@@ -86,7 +86,7 @@ public class FilteringIterator implements CloseableIterator<SAMRecord> {
         while (iterator.hasNext()) {
             SAMRecord record = iterator.next();
             if (!filter.filterOut(record)) {
-                return next;
+                return record;
             }
         }
         return null;

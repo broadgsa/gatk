@@ -11,7 +11,7 @@ import edu.mit.broad.sting.atk.LocusContext;
  * Time: 3:22:14 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ReadWalkerTest implements ReadWalker<Integer, Integer> {
+public class BaseQualityHistoWalker implements ReadWalker<Integer, Integer> {
     long[] qualCounts = new long[100];
 
     public void initialize() {
@@ -44,7 +44,15 @@ public class ReadWalkerTest implements ReadWalker<Integer, Integer> {
     }
 
     public void onTraveralDone() {
-        for ( int i = 0; i < this.qualCounts.length; i++ ) {
+        int lastNonZero = -1;
+        for ( int i = this.qualCounts.length-1; i >= 0; i-- ) {
+            if ( this.qualCounts[i] > 0 ) {
+                lastNonZero = i;
+                break;
+            }
+        }
+
+        for ( int i = 0; i < lastNonZero+1; i++ ) {
             System.out.printf("%3d : %10d%n", i, this.qualCounts[i]);
         }
     }

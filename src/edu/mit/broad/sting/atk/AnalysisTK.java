@@ -19,7 +19,7 @@ public class AnalysisTK extends CommandLineProgram {
     @Option(shortName="R", doc="Reference sequence file", optional=true) public File REF_FILE_ARG = null;
     @Option(shortName="B", doc="Debugging output", optional=true) public String DEBUGGING_STR = null;
     @Option(shortName="L", doc="Genome region to operation on: from chr:start-end", optional=true) public String REGION_STR = null;
-    @Option(shortName="T", doc="Type of analysis to run") public String AnalysisName = null;
+    @Option(shortName="T", doc="Type of analysis to run") public String Analysis_Name = null;
 
     public static HashMap<String, Object> MODULES = new HashMap<String,Object>();
     public static void addModule(final String name, final Object walker) {
@@ -28,13 +28,13 @@ public class AnalysisTK extends CommandLineProgram {
     }
 
     static {
-        addModule("EmptyLocusWalker", new EmptyLocusWalker());
-        addModule("PileupWalker", new PileupWalker());
+        addModule("Empty_Locus_Walker", new EmptyLocusWalker());
+        addModule("Pileup", new PileupWalker());
+        addModule("Empty_Read_Walker", new EmptyReadWalker());
+        addModule("Base_Quality_Histogram", new BaseQualityHistoWalker());
     }
 
     private TraversalEngine engine = null;
-    private int nSkippedIndels = 0;
-
     public boolean DEBUGGING = false;
 
     /** Required main method implementation. */
@@ -45,7 +45,7 @@ public class AnalysisTK extends CommandLineProgram {
     protected int doWork() {
         this.engine = new TraversalEngine(INPUT_FILE, REF_FILE_ARG);
 
-        ValidationStringency strictness = ValidationStringency.STRICT;
+        ValidationStringency strictness;
     	if ( STRICTNESS_ARG == null ) {
             strictness = ValidationStringency.STRICT;
     	}
@@ -64,10 +64,17 @@ public class AnalysisTK extends CommandLineProgram {
         engine.setDebugging(! ( DEBUGGING_STR == null || DEBUGGING_STR.toLowerCase().equals("true")));
         engine.setMaxReads(Integer.parseInt(MAX_READS_ARG));
 
-        //LocusWalker<Integer,Integer> walker = new EmptyLocusWalker();
-        LocusWalker<?, ?> walker = (LocusWalker<?, ?>)MODULES.get(AnalysisName);
+        //LocusWalker<Integer,Integer> walker = new PileupWalker();
         engine.initialize();
-        engine.traverseByLoci(walker);
+        try {
+            LocusWalker<?, ?> walker = (LocusWalker<?, ?>)MODULES.get(Analysis_Name);
+            engine.traverseByLoci(walker);
+        }
+        catch ( java.lang.ClassCastException e ) {
+            // I guess we're a read walker LOL
+            ReadWalker<?, ?> walker = (ReadWalker<?, ?>)MODULES.get(Analysis_Name);
+            engine.traverseByRead(walker);
+        }
 
         return 0;
     }
