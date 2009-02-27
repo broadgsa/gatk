@@ -6,6 +6,7 @@ import edu.mit.broad.picard.cmdline.Usage;
 import edu.mit.broad.picard.cmdline.Option;
 
 import edu.mit.broad.sting.atk.modules.*;
+import edu.mit.broad.sting.utils.ReferenceOrderedData;
 
 import java.io.*;
 import java.util.HashMap;
@@ -43,6 +44,9 @@ public class AnalysisTK extends CommandLineProgram {
     }
 
     protected int doWork() {
+        ReferenceOrderedData rod = new ReferenceOrderedData(new File("trunk/data/gFFTest.gff"));
+        rod.testMe();
+
         this.engine = new TraversalEngine(INPUT_FILE, REF_FILE_ARG);
 
         ValidationStringency strictness;

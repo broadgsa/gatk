@@ -52,4 +52,15 @@ public class Utils {
         return flags;
     }
 
+    public static String join(String separator, String[] strings) {
+        if (strings.length == 0) {
+            return "";
+        }
+        StringBuilder ret = new StringBuilder(strings[0]);
+        for (int i = 1; i < strings.length; ++i) {
+            ret.append(separator);
+            ret.append(strings[i]);
+        }
+        return ret.toString();
+    }
 }
