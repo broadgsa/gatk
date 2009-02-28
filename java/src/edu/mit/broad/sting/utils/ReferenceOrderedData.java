@@ -1,15 +1,7 @@
 package edu.mit.broad.sting.utils;
 
-import edu.mit.broad.sam.SAMRecord;
-import edu.mit.broad.sam.util.CloseableIterator;
-import edu.mit.broad.picard.util.TabbedTextFileParser;
-
 import java.io.File;
-import java.io.InputStream;
-import java.io.FileInputStream;
-import java.io.BufferedInputStream;
 import java.util.Iterator;
-import java.util.HashMap;
 
 /**
  * Class for representing arbitrary reference ordered data sets
@@ -19,40 +11,17 @@ import java.util.HashMap;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class ReferenceOrderedData implements Iterable<ReferenceOrderedDatum> {
+public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements Iterable<ROD> {
     private File file = null;
+    private Class<ROD> type = null; // runtime type information for object construction
 
-    public ReferenceOrderedData(File file) {
+    public ReferenceOrderedData(File file, Class<ROD> type ) {
         this.file = file;
-    }
-
-    // ----------------------------------------------------------------------
-    //
-    // Iteration
-    //
-    // ----------------------------------------------------------------------
-    private class RODIterator implements Iterator<ReferenceOrderedDatum> {
-        TabbedTextFileParser parser = null;
-        public RODIterator() {
-            parser = new TabbedTextFileParser(true, file);
-        }
-
-        public boolean hasNext() {
-            return parser.hasNext();
-        }
-
-        public ReferenceOrderedDatum next() {
-            String parts[] = parser.next();
-            return parseGFFLine(parts);
-        }
-
-        public void remove () {
-            throw new UnsupportedOperationException();
-        }
+        this.type = type;
     }
 
     public RODIterator iterator() {
-        return new RODIterator();
+        return new RODIterator(new SimpleRODIterator());
     }
 
     // ----------------------------------------------------------------------
@@ -66,28 +35,112 @@ public class ReferenceOrderedData implements Iterable<ReferenceOrderedDatum> {
         }
     }
 
+    // ----------------------------------------------------------------------
+    //
+    // Iteration
+    //
+    // ----------------------------------------------------------------------
+    private class SimpleRODIterator implements Iterator<ROD> {
+        private WhitespaceTextFileParser parser = null;
+
+        public SimpleRODIterator() {
+            parser = new WhitespaceTextFileParser(true, file);
+        }
+
+        public boolean hasNext() {
+            return parser.hasNext();
+        }
+
+        public ROD next() {
+            String parts[] = parser.next();
+            return parseLine(parts);
+        }
+ 
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    public class RODIterator implements Iterator<ROD> {
+        private PushbackIterator<ROD> it;
+        private ROD prev = null;
+        
+        public RODIterator(SimpleRODIterator it) {
+            this.it = new PushbackIterator<ROD>(it);
+        }
+
+        public boolean hasNext() { return it.hasNext(); }
+        public ROD next() {
+            prev = it.next();
+            return prev; 
+        }
+
+        //
+        // Seeks forward in the file until we reach (or cross) a record at contig / pos
+        // If we don't find anything and cross beyond contig / pos, we return null
+        // Otherwise we return the first object who's start is at pos
+        //
+        public ROD seekForward(final String contigName, final int pos) {
+            ROD result = null;
+            
+            //System.out.printf("  *** starting seek to %s %d %s%n", contigName, pos, prev);
+            while ( hasNext() ) {
+                ROD current = next();
+                //System.out.printf("    -> Seeking to %s %d AT %s %d%n", contigName, pos, current.getContig(), current.getStart());
+                int strCmp = contigName.compareTo( prev.getContig() );
+                if ( strCmp == 0 ) {
+                    // The contigs are equal
+                    if ( current.getStart() > pos ) {
+                        // There was nothing to find, push back next and return null
+                        it.pushback(current);
+                        break;
+                    }
+                    else if ( pos == current.getStart() ) {
+                        // We found a record at contig / pos, return it
+                        result = current;
+                        break;
+                    }
+                }
+                else if ( strCmp < 0 ) {
+                    // We've gone past the desired contig, break
+                    break;
+                }
+            }
+
+            /*
+            if ( result == null )
+                ;
+                //System.out.printf("    --- seek result to %s %d is NULL%n", contigName, pos);
+            else
+                System.out.printf("    ### Found %s %d%n", result.getContig(), result.getStart());
+            */
+
+             // we ran out of elements or found something
+            return result;
+        }
+
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+    }
 
     // ----------------------------------------------------------------------
     //
     // Parsing
     //
     // ----------------------------------------------------------------------
-    ReferenceOrderedDatum parseGFFLine(final String[] parts) {
+    ROD parseLine(final String[] parts) {
         //System.out.printf("Parsing GFFLine %s%n", Utils.join(" ", parts));
-
-        final String contig = parts[0];
-        final String source = parts[1];
-        final String feature = parts[2];
-        final long start = Long.parseLong(parts[3]);
-        final long stop = Long.parseLong(parts[4]);
-
-        double score = Double.NaN;
-        if ( ! parts[5].equals(".") )
-            score = Double.parseDouble(parts[5]);
-
-        final String strand = parts[6];
-        final String frame = parts[7];
-        HashMap<String, String> attributes = null;
-        return new ReferenceOrderedDatum(contig, source, feature, start, stop, score, strand, frame, attributes);
+        try {
+            ROD obj = type.newInstance();
+            obj.parseLine(parts);
+            return obj;
+        } catch ( java.lang.InstantiationException e ) {
+            System.out.println(e);
+            return null; // wow, unsafe!
+        } catch ( java.lang.IllegalAccessException e ) {
+            System.out.println(e);
+            return null; // wow, unsafe!
+        }       
     }
 }

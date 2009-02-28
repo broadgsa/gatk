@@ -9,13 +9,21 @@ import edu.mit.broad.picard.filter.FilteringIterator;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
 import edu.mit.broad.sting.utils.ReferenceIterator;
+import edu.mit.broad.sting.utils.ReferenceOrderedData;
+import edu.mit.broad.sting.utils.ReferenceOrderedDatum;
 
 import java.io.*;
+import java.util.List;
+import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class TraversalEngine {
     // Usage and parameters
     private File readsFile = null;
     private File refFileName = null;
+    private List<ReferenceOrderedData> rods = null;
+
     private String regionStr = null;
     private String traversalType = null;
     private ValidationStringency strictness = ValidationStringency.STRICT;
@@ -42,9 +50,10 @@ public class TraversalEngine {
     // Setting up the engine
     //
     // --------------------------------------------------------------------------------------------------------------
-    public TraversalEngine(File reads, File ref) {
+    public TraversalEngine(File reads, File ref, ReferenceOrderedData[] rods ) {
         readsFile = reads;
         refFileName = ref;
+        this.rods = Arrays.asList(rods);
     }
     
     public void setRegion(final String reg) { regionStr = regionStr; }
@@ -98,6 +107,30 @@ public class TraversalEngine {
         }
         System.out.println(line);
         System.exit(1);
+    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // dealing with reference ordered data
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    protected List<ReferenceOrderedData.RODIterator> initializeRODs() {
+        // set up reference ordered data
+        List<ReferenceOrderedData.RODIterator> rodIters = new ArrayList<ReferenceOrderedData.RODIterator>();
+        for ( ReferenceOrderedData data : rods ) {
+            rodIters.add(data.iterator());
+        }
+        return rodIters;
+    }
+
+    protected List<ReferenceOrderedDatum> getReferenceOrderedDataAtLocus(List<ReferenceOrderedData.RODIterator> rodIters,
+                                                                        final String contig, final int pos) {
+        List<ReferenceOrderedDatum> data = new ArrayList<ReferenceOrderedDatum>();
+        for ( ReferenceOrderedData.RODIterator iter : rodIters ) {
+            data.add(iter.seekForward(contig, pos));
+        }
+        return data;
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -159,6 +192,8 @@ public class TraversalEngine {
         FilteringIterator filterIter = new FilteringIterator(readStream.iterator(), new locusStreamFilterFunc());
         CloseableIterator<LocusIterator> iter = new LocusIterator(filterIter);
 
+        List<ReferenceOrderedData.RODIterator> rodIters = initializeRODs();
+
         T sum = walker.reduceInit();
         while ( iter.hasNext() ) {
             this.nRecords++;
@@ -167,13 +202,14 @@ public class TraversalEngine {
             final LocusIterator locus = iter.next();
             final ReferenceIterator refSite = refIter.seekForward(locus.getContig(), locus.getPosition());
             final char refBase = refSite.getBaseAsChar();
+            final List<ReferenceOrderedDatum> rodData = getReferenceOrderedDataAtLocus(rodIters, locus.getContig(), locus.getPosition());
 
             if ( DEBUGGING )
                 System.out.printf("  Reference: %s:%d %c%n", refSite.getCurrentContig().getName(), refSite.getPosition(), refBase);
 
-            final boolean keepMeP = walker.filter(refBase, locus);
+            final boolean keepMeP = walker.filter(rodData, refBase, locus);
             if ( keepMeP ) {
-                M x = walker.map(refBase, locus);
+                M x = walker.map(rodData, refBase, locus);
                 sum = walker.reduce(x, sum);
             }
 

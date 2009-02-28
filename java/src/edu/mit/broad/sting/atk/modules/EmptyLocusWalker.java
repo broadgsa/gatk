@@ -2,7 +2,10 @@ package edu.mit.broad.sting.atk.modules;
 
 import edu.mit.broad.sting.atk.LocusWalker;
 import edu.mit.broad.sting.atk.LocusIterator;
+import edu.mit.broad.sting.utils.ReferenceOrderedDatum;
 import edu.mit.broad.sam.SAMRecord;
+
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,12 +21,12 @@ public class EmptyLocusWalker implements LocusWalker<Integer, Integer> {
     public String walkerType() { return "ByLocus"; }
 
     // Do we actually want to operate on the context?
-    public boolean filter(char ref, LocusIterator context) {
+    public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context) {
         return true;    // We are keeping all the reads
     }
 
     // Map over the edu.mit.broad.sting.atk.LocusContext
-    public Integer map(char ref, LocusIterator context) {
+    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context) {
         return 1;
     }
 

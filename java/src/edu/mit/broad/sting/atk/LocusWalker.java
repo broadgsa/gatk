@@ -1,6 +1,9 @@
 package edu.mit.broad.sting.atk;
 
 import edu.mit.broad.sting.atk.LocusIterator;
+import edu.mit.broad.sting.utils.ReferenceOrderedDatum;
+
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,10 +17,10 @@ public interface LocusWalker<MapType, ReduceType> {
     public String walkerType();
 
     // Do we actually want to operate on the context?
-    boolean filter(char ref, LocusIterator context);
+    boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context);
 
     // Map over the edu.mit.broad.sting.atk.LocusContext
-    MapType map(char ref, LocusIterator context);
+    MapType map(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context);
 
     // Given result of map function
     ReduceType reduceInit();

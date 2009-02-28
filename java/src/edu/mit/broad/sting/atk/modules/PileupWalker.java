@@ -2,6 +2,7 @@ package edu.mit.broad.sting.atk.modules;
 
 import edu.mit.broad.sting.atk.LocusWalker;
 import edu.mit.broad.sting.atk.LocusIterator;
+import edu.mit.broad.sting.utils.ReferenceOrderedDatum;
 import edu.mit.broad.sam.SAMRecord;
 
 import java.util.List;
@@ -20,12 +21,12 @@ public class PileupWalker implements LocusWalker<Integer, Integer> {
     public String walkerType() { return "ByLocus"; }
 
     // Do we actually want to operate on the context?
-    public boolean filter(char ref, LocusIterator context) {
+    public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context) {
         return true;    // We are keeping all the reads
     }
 
     // Map over the edu.mit.broad.sting.atk.LocusContext
-    public Integer map(char ref, LocusIterator context) {
+    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context) {
         //System.out.printf("Reads %s:%d %d%n", context.getContig(), context.getPosition(), context.getReads().size());
         //for ( SAMRecord read : context.getReads() ) {
         //    System.out.println("  -> " + read.getReadName());
@@ -49,8 +50,18 @@ public class PileupWalker implements LocusWalker<Integer, Integer> {
             //System.out.printf("  [%2d] [%s] %s%n", offset, read.getReadString().charAt(offset), read.getReadString());
         }
 
-        if ( context.getPosition() % 10 == 0 )
-            System.out.printf("%s:%d: %s %s %s%n", context.getContig(), context.getPosition(), ref, bases, quals);
+        String rodString = "";
+        for ( ReferenceOrderedDatum datum : rodData ) {
+            if ( datum != null ) {
+                rodString += datum.toSimpleString();
+            }
+        }
+        if ( rodString != "" )
+            rodString = "[ROD: " + rodString + "]";
+
+        if ( context.getPosition() % 1 == 0 ) {
+            System.out.printf("%s:%d: %s %s %s %s%n", context.getContig(), context.getPosition(), ref, bases, quals, rodString);
+        }
 
         //for ( int offset : context.getOffsets() ) {
         //    System.out.println("  -> " + read.getReadName());

@@ -7,9 +7,13 @@ import edu.mit.broad.picard.cmdline.Option;
 
 import edu.mit.broad.sting.atk.modules.*;
 import edu.mit.broad.sting.utils.ReferenceOrderedData;
+import edu.mit.broad.sting.utils.rodGFF;
+import edu.mit.broad.sting.utils.rodDbSNP;
 
 import java.io.*;
 import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 
 public class AnalysisTK extends CommandLineProgram {
     // Usage and parameters
@@ -44,10 +48,23 @@ public class AnalysisTK extends CommandLineProgram {
     }
 
     protected int doWork() {
-        ReferenceOrderedData rod = new ReferenceOrderedData(new File("trunk/data/gFFTest.gff"));
-        rod.testMe();
+        final boolean TEST_ROD = false;
+        ReferenceOrderedData[] rods = null;
 
-        this.engine = new TraversalEngine(INPUT_FILE, REF_FILE_ARG);
+        if ( TEST_ROD ) {
+            ReferenceOrderedData gff = new ReferenceOrderedData(new File("trunk/data/gFFTest.gff"), rodGFF.class );
+            gff.testMe();
+
+            //ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("trunk/data/dbSNP_head.txt"), rodDbSNP.class );
+            ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("/Volumes/Users/mdepristo/broad/ATK/exampleSAMs/dbSNP_chr20.txt"), rodDbSNP.class );
+            //dbsnp.testMe();
+            rods = new ReferenceOrderedData[] { dbsnp }; // { gff, dbsnp };
+        }
+        else {
+            rods = new ReferenceOrderedData[] {}; // { gff, dbsnp };
+        }
+
+        this.engine = new TraversalEngine(INPUT_FILE, REF_FILE_ARG, rods);
 
         ValidationStringency strictness;
     	if ( STRICTNESS_ARG == null ) {
