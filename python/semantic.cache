@@ -1,0 +1,15 @@
+;; Object AlignerEvaluation/
+;; SEMANTICDB Tags save file
+(semanticdb-project-database-file "AlignerEvaluation/"
+  :tables (list 
+   (semanticdb-table "SimulateReads.py"
+    :major-mode 'python-mode
+    :tags '(("Bio" include nil (dependency-file none) [21 31]) ("optparse" include nil (dependency-file none) [32 65]) ("Bio" include nil (dependency-file none) [66 87]) ("Bio.Seq" include nil (dependency-file none) [88 111]) ("Bio.SeqRecord" include nil (dependency-file none) [112 147]) ("Bio.Alphabet" include nil (dependency-file none) [148 186]) ("os" include nil (dependency-file none) [187 196]) ("sys" include nil (dependency-file none) [197 207]) ("random" include nil (dependency-file none) [220 233]) ("string" include nil (dependency-file none) [234 247]) ("SAM" include nil (dependency-file none) [249 266]) ("mutateReference" function (:arguments (("ref" variable nil (reparse-symbol function_parameters) [288 291]) ("mutSite" variable nil (reparse-symbol function_parameters) [293 300]) ("mutType" variable nil (reparse-symbol function_parameters) [302 309]) ("mutParams" variable nil (reparse-symbol function_parameters) [311 320]) ("nBasesToPad" variable nil (reparse-symbol function_parameters) [322 333]))) nil [268 1475]) ("sampleReadsFromAlignment" function (:arguments (("refSeq" variable nil (reparse-symbol function_parameters) [1517 1523]) ("mutSeq" variable nil (reparse-symbol function_parameters) [1525 1531]) ("alignStart" variable nil (reparse-symbol function_parameters) [1533 1543]) ("readLen" variable nil (reparse-symbol function_parameters) [1545 1552]) ("nReads" variable nil (reparse-symbol function_parameters) [1554 1560]))) nil [1488 2391]) ("fakeQuals" function (:arguments (("seq" variable nil (reparse-symbol function_parameters) [2407 2410]))) nil [2392 2441]) ("alignedRead2SAM" function (:arguments (("readID" variable nil (reparse-symbol function_parameters) [2491 2497]) ("fastaID" variable nil (reparse-symbol function_parameters) [2499 2506]) ("read" variable nil (reparse-symbol function_parameters) [2508 2512]) ("pos" variable nil (reparse-symbol function_parameters) [2514 2517]) ("cigar" variable nil (reparse-symbol function_parameters) [2519 2524]))) nil [2470 2783]) ("readRef" function (:arguments (("referenceFasta" variable nil (reparse-symbol function_parameters) [2796 2810]))) nil [2784 3033]) ("OPTIONS" variable nil nil [3034 3048]) ("os.path" include nil (dependency-file none) [3050 3064]) ("outputFilename" function nil nil [3065 3481]) ("main" function nil nil [3482 8118]) ("main" code nil nil [8120 8126]))
+    :file "SimulateReads.py"
+    :pointmax 8129
+    )
+   )
+  :file "semantic.cache"
+  :semantic-tag-version "2.0pre4"
+  :semanticdb-version "2.0pre4"
+  )
