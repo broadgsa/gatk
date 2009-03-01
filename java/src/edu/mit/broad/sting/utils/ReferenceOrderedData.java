@@ -2,6 +2,7 @@ package edu.mit.broad.sting.utils;
 
 import java.io.File;
 import java.util.Iterator;
+import edu.mit.broad.picard.util.TabbedTextFileParser;
 
 /**
  * Class for representing arbitrary reference ordered data sets
@@ -30,9 +31,14 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     //
     // ----------------------------------------------------------------------
     public void testMe() {
+        ReferenceOrderedDatum last = null;
         for ( ReferenceOrderedDatum rec : this ) {
-            System.out.println(rec.toString());
+            if ( last == null || ! last.getContig().equals(rec.getContig()) ) {
+                System.out.println(rec.toString());
+            }
+            last = rec;
         }
+        System.exit(1);
     }
 
     // ----------------------------------------------------------------------
@@ -41,10 +47,11 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     //
     // ----------------------------------------------------------------------
     private class SimpleRODIterator implements Iterator<ROD> {
-        private WhitespaceTextFileParser parser = null;
+        //private WhitespaceTextFileParser parser = null;
+        private TabbedTextFileParser parser = null;
 
         public SimpleRODIterator() {
-            parser = new WhitespaceTextFileParser(true, file);
+            parser = new TabbedTextFileParser(true, file);
         }
 
         public boolean hasNext() {
@@ -81,9 +88,11 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         // Otherwise we return the first object who's start is at pos
         //
         public ROD seekForward(final String contigName, final int pos) {
+            final boolean DEBUG = false; 
+        
             ROD result = null;
             
-            //System.out.printf("  *** starting seek to %s %d %s%n", contigName, pos, prev);
+            if ( DEBUG ) System.out.printf("  *** starting seek to %s %d %s%n", contigName, pos, prev);
             while ( hasNext() ) {
                 ROD current = next();
                 //System.out.printf("    -> Seeking to %s %d AT %s %d%n", contigName, pos, current.getContig(), current.getStart());
@@ -102,18 +111,20 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
                     }
                 }
                 else if ( strCmp < 0 ) {
+                    if ( DEBUG ) System.out.printf("    -> Jumping to contig %s%n", contigName);
                     // We've gone past the desired contig, break
                     break;
                 }
             }
 
-            /*
-            if ( result == null )
-                ;
-                //System.out.printf("    --- seek result to %s %d is NULL%n", contigName, pos);
-            else
-                System.out.printf("    ### Found %s %d%n", result.getContig(), result.getStart());
-            */
+            if ( DEBUG ) {
+                if ( result == null )
+                    ;
+                    //System.out.printf("    --- seek result to %s %d is NULL%n", contigName, pos);
+                else
+                    System.out.printf("    ### Found %s %d%n", result.getContig(), result.getStart());
+            }
+            
 
              // we ran out of elements or found something
             return result;

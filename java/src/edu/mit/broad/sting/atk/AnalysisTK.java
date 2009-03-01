@@ -25,7 +25,8 @@ public class AnalysisTK extends CommandLineProgram {
     @Option(shortName="B", doc="Debugging output", optional=true) public String DEBUGGING_STR = null;
     @Option(shortName="L", doc="Genome region to operation on: from chr:start-end", optional=true) public String REGION_STR = null;
     @Option(shortName="T", doc="Type of analysis to run") public String Analysis_Name = null;
-
+    @Option(shortName="DBSNP", doc="DBSNP file", optional=true) public String DBSNP_FILE = null;
+    
     public static HashMap<String, Object> MODULES = new HashMap<String,Object>();
     public static void addModule(final String name, final Object walker) {
         System.out.printf("* Adding module %s%n", name);
@@ -57,6 +58,11 @@ public class AnalysisTK extends CommandLineProgram {
 
             //ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("trunk/data/dbSNP_head.txt"), rodDbSNP.class );
             ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("/Volumes/Users/mdepristo/broad/ATK/exampleSAMs/dbSNP_chr20.txt"), rodDbSNP.class );
+            //dbsnp.testMe();
+            rods = new ReferenceOrderedData[] { dbsnp }; // { gff, dbsnp };
+        }
+        else if ( DBSNP_FILE != null ) {
+            ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File(DBSNP_FILE), rodDbSNP.class );
             //dbsnp.testMe();
             rods = new ReferenceOrderedData[] { dbsnp }; // { gff, dbsnp };
         }
