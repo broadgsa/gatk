@@ -72,31 +72,41 @@ public class rodDbSNP extends ReferenceOrderedDatum {
         return String.format("%s:%s", name, observed);
     }
 
+    public String repl() {
+        return String.format("%d\t%s\t%d\t%d\t%s\t0\t%s\tX\tX\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\t%d",
+                585, contig, start-1, stop-1, name, strand, observed, molType,
+                varType, validationStatus, avHet, avHetSE, func, locType, weight );
+    }
+
     public void parseLine(final String[] parts) {
-        //System.out.printf("Parsing GFFLine %s%n", Utils.join(" <=> ", parts));
-        contig = parts[1];
-        start = Long.parseLong(parts[2]) + 1; // The final is 0 based
-        stop = Long.parseLong(parts[3]) + 1;  // The final is 0 based
-        name = parts[4];
-        strand = parts[5];
-        observed = parts[9];
-        molType = parts[10];
-        varType = parts[11];
-        validationStatus = parts[12];
-        avHet = Double.parseDouble(parts[13]);
-        avHetSE = Double.parseDouble(parts[14]);
-        func = parts[15];
-        locType = parts[16];
-        weight = Integer.parseInt(parts[17]);
+        try {
+            contig = parts[1];
+            start = Long.parseLong(parts[2]) + 1; // The final is 0 based
 
-        // Cut up the observed bases string into an array of individual bases
-        String[] bases = observed.split("/");
-        observedBases = new char[bases.length];
-        for ( String elt : bases ) {
-            observedBases[0] = (char)elt.getBytes()[0];
-            //System.out.printf("  Bases %s %d %c%n", elt, elt.getBytes()[0], (char)elt.getBytes()[0]);
+            stop = Long.parseLong(parts[3]) + 1;  // The final is 0 based
+            name = parts[4];
+            strand = parts[6];
+            observed = parts[9];
+            molType = parts[10];
+            varType = parts[11];
+            validationStatus = parts[12];
+            avHet = Double.parseDouble(parts[13]);
+            avHetSE = Double.parseDouble(parts[14]);
+            func = parts[15];
+            locType = parts[16];
+            weight = Integer.parseInt(parts[17]);
+
+            // Cut up the observed bases string into an array of individual bases
+            String[] bases = observed.split("/");
+            observedBases = new char[bases.length];
+            for ( String elt : bases ) {
+                observedBases[0] = (char)elt.getBytes()[0];
+                //System.out.printf("  Bases %s %d %c%n", elt, elt.getBytes()[0], (char)elt.getBytes()[0]);
+            }
+            //System.out.printf("  => Observed bases are %s%n", Utils.join(" B ", bases));
+        } catch ( RuntimeException e ) {
+            System.out.printf("  Exception caught during parsing GFFLine %s%n", Utils.join(" <=> ", parts));
+            throw e;
         }
-        //System.out.printf("  => Observed bases are %s%n", Utils.join(" B ", bases));
-
     }
 }

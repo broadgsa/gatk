@@ -1,7 +1,13 @@
 package edu.mit.broad.sting.utils;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.Collections;
+
 import edu.mit.broad.picard.util.TabbedTextFileParser;
 
 /**
@@ -39,6 +45,50 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
             last = rec;
         }
         System.exit(1);
+    }
+
+    // ----------------------------------------------------------------------
+    //
+    // Manipulations of all of the data
+    //
+    // ----------------------------------------------------------------------
+    public ArrayList<ReferenceOrderedDatum> readAll() {
+        ArrayList<ReferenceOrderedDatum> elts = new ArrayList<ReferenceOrderedDatum>();
+        for ( ReferenceOrderedDatum rec : this ) {
+            elts.add(rec);
+        }
+        elts.trimToSize();
+        return elts;
+    }
+
+    public static void sortRODDataInMemory(ArrayList<ReferenceOrderedDatum> data) {
+        Collections.sort(data);
+    }
+
+    public static void write(ArrayList<ReferenceOrderedDatum> data, File output) throws IOException {
+        final FileWriter out = new FileWriter(output);
+
+        for ( ReferenceOrderedDatum rec : data ) {
+            out.write(rec.repl() + "\n");
+        }
+
+        out.close();
+    }
+
+    public boolean validateFile() throws Exception {
+        ReferenceOrderedDatum last = null;
+        for ( ReferenceOrderedDatum rec : this ) {
+             if ( last != null && last.compareTo(rec) == 1 ) {
+                 // It's out of order
+                 throw new Exception("Out of order elements at \n" + last.toString() + "\n" + rec.toString());
+             }
+             last = rec;
+        }
+        return true;
+    }
+
+    public void indexFile() {
+        // Fixme -- get access to the linear index system from Jim
     }
 
     // ----------------------------------------------------------------------

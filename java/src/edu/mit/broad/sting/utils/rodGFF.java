@@ -98,6 +98,10 @@ public class rodGFF extends ReferenceOrderedDatum {
         return String.format("%s\t%s\t%s\t%d\t%d\t%f\t%s\t%s", contig, source, feature, start, stop, score, strand, frame);
     }
 
+    public String repl() {
+        return this.toString();
+    }
+
     public String toSimpleString() {
         return String.format("%s", feature);
     }
