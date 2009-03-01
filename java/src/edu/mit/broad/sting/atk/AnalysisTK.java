@@ -12,8 +12,6 @@ import edu.mit.broad.sting.utils.rodDbSNP;
 
 import java.io.*;
 import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
 
 public class AnalysisTK extends CommandLineProgram {
     // Usage and parameters
@@ -34,9 +32,9 @@ public class AnalysisTK extends CommandLineProgram {
     }
 
     static {
-        addModule("Empty_Locus_Walker", new EmptyLocusWalker());
+        addModule("CountLoci", new CountLociWalker());
         addModule("Pileup", new PileupWalker());
-        addModule("Empty_Read_Walker", new EmptyReadWalker());
+        addModule("CountReads", new CountReadsWalker());
         addModule("Base_Quality_Histogram", new BaseQualityHistoWalker());
     }
 
