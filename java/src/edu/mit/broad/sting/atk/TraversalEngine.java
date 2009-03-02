@@ -146,17 +146,18 @@ public class TraversalEngine {
     // functions for dealing with the reference sequence
     //
     // --------------------------------------------------------------------------------------------------------------
-    public void printProgress(final String type) { printProgress( false, type ); }
+    public void printProgress(final String type, GenomeLoc loc) { printProgress( false, type, loc ); }
 
-    public void printProgress( boolean mustPrint, final String type ) {
+    public void printProgress( boolean mustPrint, final String type, GenomeLoc loc ) {
         final long nRecords = this.nRecords;
 
         if ( mustPrint || nRecords % 100000 == 0 ) {
             final double elapsed = (System.currentTimeMillis() - startTime) / 1000.0;
             final double secsPer1MReads = (elapsed * 1000000.0) / nRecords;
-
-            System.out.printf("Traversed %d %s %.2f secs (%.2f secs per 1M %s)%n", nRecords, type, elapsed, secsPer1MReads, type);
-            
+            if ( loc != null )
+                System.out.printf("Traversed to %s, processing %d %s %.2f secs (%.2f secs per 1M %s)%n", loc, nRecords, type, elapsed, secsPer1MReads, type);
+            else
+                System.out.printf("Traversed %d %s %.2f secs (%.2f secs per 1M %s)%n", nRecords, type, elapsed, secsPer1MReads, type);
             System.out.printf("  -> %s%n", samReadingTracker.progressMeter());
         }
     }
@@ -297,14 +298,15 @@ public class TraversalEngine {
                     done = true;
                 }
 
-                printProgress("loci");
+
             }
 
+            printProgress("loci", locus.getLocation());
             if ( pastFinalLocation(locus.getLocation()) )
                 done = true;
         }
 
-        printProgress( true, "loci" );
+        printProgress( true, "loci", null );
         System.out.println("Traversal reduce result is " + sum);
         System.out.printf("Traversal skipped %d reads out of %d total (%.2f%%)%n", nSkippedReads, nReads, (nSkippedReads * 100.0) / nReads);
         System.out.printf("  -> %d unmapped reads%n", nUnmappedReads );
@@ -345,7 +347,7 @@ public class TraversalEngine {
                     break;
                 }
 
-                printProgress("reads");
+                printProgress("reads", loc);
             }
             
             if ( pastFinalLocation(loc) )
@@ -353,7 +355,7 @@ public class TraversalEngine {
             //System.out.printf("Done? %b%n", done);
          }
 
-        printProgress( true, "reads" );
+        printProgress( true, "reads", null );
         System.out.println("Traversal reduce result is " + sum);
         walker.onTraveralDone();
         return 0;
