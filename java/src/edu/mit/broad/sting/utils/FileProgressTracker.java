@@ -102,7 +102,7 @@ public class FileProgressTracker<T> implements Iterator<T> {
     }
 
     public int averageRecordSize() {
-        return Math.round((int)Utils.average(recordSizes(), Math.min(historyI - 1, history.size())) / samplingFrequency);
+        return Math.round((int)Utils.average(recordSizes(), Math.min(historyI - 1, historySize)) / samplingFrequency);
     }
 
     public double processingRate() {
@@ -110,7 +110,7 @@ public class FileProgressTracker<T> implements Iterator<T> {
     }
 
     public long estRecordsInFile() {
-        return (long)(getFileSize() / averageRecordSize());
+        return (long)(getFileSize() / Math.max(averageRecordSize(),1));
     }
 
     public double estFractionProgressThroughFile() {
@@ -128,6 +128,7 @@ public class FileProgressTracker<T> implements Iterator<T> {
     public void printStatus() {
         System.out.printf("FileProgressTracker:%n");
         System.out.printf("  -> File size is:                                   %d%n", getFileSize());
+        System.out.printf("  -> Sampling depth:                                 %d%n", historyI);
         System.out.printf("  -> File position:                                  %d%n", getPosition());
         System.out.printf("  -> Number of records processed:                    %d%n", nRecordsProcessed());
         System.out.printf("  -> Average record size is                          %d%n", averageRecordSize());
@@ -140,6 +141,7 @@ public class FileProgressTracker<T> implements Iterator<T> {
     }
 
     public String progressMeter() {
+        //printStatus();
         return String.format("Est. %.2f%% completed, time remaining (%.2f hrs / %.2f min) of (%.2f hrs / %.2f min) total",
                 estFractionProgressThroughFile() * 100.0,
                 estTimeTotal() / (60*60), estTimeTotal() / (60),
@@ -149,7 +151,10 @@ public class FileProgressTracker<T> implements Iterator<T> {
     public ArrayList<Long> recordSizes() {
         ArrayList<Long> sizes = new ArrayList<Long>(history);
         for ( int i = 0; i < historySize; i++ ) {
-            sizes.set(i, history.get(historyIndex(i)) - history.get(historyIndex(i-1)));
+            long val = 0; 
+            if ( history.get(historyIndex(i)) >= history.get(historyIndex(i-1) ) )
+                val = history.get(historyIndex(i)) - history.get(historyIndex(i-1));
+            sizes.set(i, val);
         }
 
 //        for ( long size : sizes ) {

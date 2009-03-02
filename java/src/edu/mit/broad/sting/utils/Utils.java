@@ -81,9 +81,10 @@ public class Utils {
                 break;
             sum += x;
             i++;
+            //System.out.printf(" %d/%d", sum, i);
         }
 
-        //System.out.printf("Sum = %d, n = %d, avg = %f%n", sum, i, (1.0 * sum) / i);
+        //System.out.printf("Sum = %d, n = %d, maxI = %d, avg = %f%n", sum, i, maxI, (1.0 * sum) / i);
 
         return (1.0 * sum) / i;
     }
