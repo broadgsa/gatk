@@ -48,7 +48,6 @@ public class PrepareROD extends CommandLineProgram {
         final ReferenceSequenceFile refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(REF_FILE_ARG);
         List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary();
         HashMap<String, Integer> refContigOrdering = new HashMap<String, Integer>();
-        ReferenceOrderedDatum.setContigOrdering(refContigOrdering);
 
         int i = 0;
         for ( SAMSequenceRecord contig : refContigs ) {
@@ -56,6 +55,7 @@ public class PrepareROD extends CommandLineProgram {
             refContigOrdering.put(contig.getSequenceName(), i);
             i++;
         }
+        ReferenceOrderedDatum.setContigOrdering(refContigOrdering);
 
         Class rodClass = Types.get(ROD_TYPE.toLowerCase());
 

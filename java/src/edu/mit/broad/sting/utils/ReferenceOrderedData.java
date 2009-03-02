@@ -146,7 +146,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
             while ( hasNext() ) {
                 ROD current = next();
                 //System.out.printf("    -> Seeking to %s %d AT %s %d%n", contigName, pos, current.getContig(), current.getStart());
-                int strCmp = contigName.compareTo( prev.getContig() );
+                int strCmp = ReferenceOrderedDatum.compareContigs( contigName, prev.getContig() );// contigName.compareTo( prev.getContig() );
                 if ( strCmp == 0 ) {
                     // The contigs are equal
                     if ( current.getStart() > pos ) {
@@ -161,8 +161,9 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
                     }
                 }
                 else if ( strCmp < 0 ) {
-                    if ( DEBUG ) System.out.printf("    -> Jumping to contig %s%n", contigName);
+                    if ( DEBUG ) System.out.printf("    -> Jumped to contig %s%n", contigName);
                     // We've gone past the desired contig, break
+                    it.pushback(current);
                     break;
                 }
             }

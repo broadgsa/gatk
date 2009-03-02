@@ -11,6 +11,7 @@ import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
 import edu.mit.broad.sting.utils.ReferenceIterator;
 import edu.mit.broad.sting.utils.ReferenceOrderedData;
 import edu.mit.broad.sting.utils.ReferenceOrderedDatum;
+import edu.mit.broad.sting.utils.Utils;
 
 import java.io.*;
 import java.util.List;
@@ -89,6 +90,7 @@ public class TraversalEngine {
         if ( refFileName!= null ) {
             this.refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFileName);
             this.refIter = new ReferenceIterator(this.refFile);
+            Utils.setupRefContigOrdering(this.refFile);
         }         
     }
 

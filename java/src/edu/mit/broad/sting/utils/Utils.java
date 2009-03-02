@@ -1,6 +1,10 @@
 package edu.mit.broad.sting.utils;
 
 import edu.mit.broad.sam.SAMRecord;
+import edu.mit.broad.sam.SAMSequenceRecord;
+import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
+import edu.mit.broad.picard.reference.ReferenceSequence;
+import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 
 import java.util.*;
 
@@ -62,5 +66,21 @@ public class Utils {
             ret.append(strings[i]);
         }
         return ret.toString();
+    }
+    
+    public static void setupRefContigOrdering(final ReferenceSequenceFile refFile) { 
+        List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary();
+        HashMap<String, Integer> refContigOrdering = new HashMap<String, Integer>();
+
+        int i = 0;
+        System.out.printf("Prepared reference sequence contig dictionary%n  order ->");
+        for ( SAMSequenceRecord contig : refContigs ) {
+            System.out.printf(" %s", contig.getSequenceName());
+            refContigOrdering.put(contig.getSequenceName(), i);
+            i++;
+        }
+        System.out.printf("%n  Total elements -> %d%n", refContigOrdering.size());
+        
+        ReferenceOrderedDatum.setContigOrdering(refContigOrdering);
     }
 }

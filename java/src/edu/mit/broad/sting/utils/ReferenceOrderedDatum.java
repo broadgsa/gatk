@@ -31,40 +31,43 @@ public abstract class ReferenceOrderedDatum implements Comparable {
     public abstract long getStart();
     public abstract long getStop();
 
-    public int compareTo( Object x ) {
-        if ( this == x ) return 0;
-
-        ReferenceOrderedDatum that = (ReferenceOrderedDatum)x;
-
+    public static int compareContigs( final String thisContig, final String thatContig ) {
         if ( refContigOrdering != null ) {
-            if ( ! refContigOrdering.containsKey(this.getContig()) ) {
-                if ( ! refContigOrdering.containsKey(that.getContig()) ) {
+            if ( ! refContigOrdering.containsKey(thisContig) ) {
+                if ( ! refContigOrdering.containsKey(thatContig) ) {
                     // Use regular sorted order
-                    int cmpContig = getContig().compareTo(that.getContig());
-                    if ( cmpContig != 0 )return cmpContig;
+                    return thisContig.compareTo(thatContig);
                 }
                 else {
                     // this is always bigger if that is in the key set
                     return 1;   
                 }
             }
-            else if ( ! refContigOrdering.containsKey(that.getContig()) )
+            else if ( ! refContigOrdering.containsKey(thatContig) )
                 return -1;
             else {
-                assert refContigOrdering.containsKey(this.getContig()) : this;
-                assert refContigOrdering.containsKey(that.getContig()) : that;
+                assert refContigOrdering.containsKey(thisContig);// : this;
+                assert refContigOrdering.containsKey(thatContig);// : that;
 
-                final int thisO = refContigOrdering.get(this.getContig());
-                final int thatO = refContigOrdering.get(that.getContig());
+                final int thisO = refContigOrdering.get(thisContig);
+                final int thatO = refContigOrdering.get(thatContig);
                 if ( thisO < thatO ) return -1;
                 if ( thisO > thatO ) return 1;
+                return 0;
             }
         }
         else {
-            int cmpContig = getContig().compareTo(that.getContig());
-            if ( cmpContig != 0 )return cmpContig;
+            return thisContig.compareTo(thatContig);
         }
+    }
 
+    public int compareTo( Object x ) {
+        if ( this == x ) return 0;
+
+        ReferenceOrderedDatum that = (ReferenceOrderedDatum)x;
+
+        final int cmpContig = compareContigs( this.getContig(), that.getContig() );
+        if ( cmpContig != 0 ) return cmpContig;
         if ( this.getStart() < that.getStart() ) return -1;
         if ( this.getStart() > that.getStart() ) return 1;
         if ( this.getStop() < that.getStop() ) return -1;
