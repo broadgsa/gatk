@@ -72,6 +72,26 @@ public class Utils {
         return join( separator, strings.toArray(new String[0]) );
     }
 
+    public static double average(List<Long> vals, int maxI) {
+        long sum = 0L;
+
+        int i = 0;
+        for ( long x : vals ) {
+            if ( i > maxI )
+                break;
+            sum += x;
+            i++;
+        }
+
+        //System.out.printf("Sum = %d, n = %d, avg = %f%n", sum, i, (1.0 * sum) / i);
+
+        return (1.0 * sum) / i;
+    }
+
+    public static double average(List<Long> vals) {
+        return average(vals, vals.size());
+    }
+
     public static void setupRefContigOrdering(final ReferenceSequenceFile refFile) { 
         List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary();
         HashMap<String, Integer> refContigOrdering = new HashMap<String, Integer>();

@@ -37,6 +37,7 @@ public class TraversalEngine {
     private ReferenceSequenceFile refFile = null;
     private ReferenceIterator refIter = null;
     private SAMFileReader readStream;
+    private Iterator<SAMRecord> samReadIter = null;
 
     private int nReads = 0;
     private int nSkippedReads = 0;
@@ -44,6 +45,7 @@ public class TraversalEngine {
     private int nNotPrimary = 0;
     private int nBadAlignments = 0;
     private int nSkippedIndels = 0;
+    private FileProgressTracker samReadingTracker = null;
 
     public boolean DEBUGGING = false;
 
@@ -58,6 +60,31 @@ public class TraversalEngine {
         readsFile = reads;
         refFileName = ref;
         this.rods = Arrays.asList(rods);
+    }
+
+    protected int initialize() {
+        startTime = System.currentTimeMillis();
+        loadReference();
+        //testReference();
+        //loadReference();
+        try {
+            final FileInputStream samFileStream = new FileInputStream(readsFile);
+            final InputStream bufferedStream= new BufferedInputStream(samFileStream);
+            //final InputStream bufferedStream= new BufferedInputStream(samInputStream, 10000000);
+            final SAMFileReader samReader = new SAMFileReader(bufferedStream, true);
+            samReader.setValidationStringency(strictness);
+
+            final SAMFileHeader header = samReader.getFileHeader();
+            System.err.println("Sort order is: " + header.getSortOrder());
+
+            samReadingTracker = new FileProgressTracker<SAMRecord>( readsFile, samReader.iterator(), samFileStream.getChannel(), 1000 );
+            samReadIter = samReadingTracker;
+        }
+        catch (IOException e) {
+            throw new RuntimeIOException(e);
+        }
+
+        return 0;
     }
     
     public void setRegion(final String reg) { regionStr = regionStr; }
@@ -127,7 +154,10 @@ public class TraversalEngine {
         if ( mustPrint || nRecords % 100000 == 0 ) {
             final double elapsed = (System.currentTimeMillis() - startTime) / 1000.0;
             final double secsPer1MReads = (elapsed * 1000000.0) / nRecords;
+
             System.out.printf("Traversed %d %s %.2f secs (%.2f secs per 1M %s)%n", nRecords, type, elapsed, secsPer1MReads, type);
+            
+            System.out.printf("  -> %s%n", samReadingTracker.progressMeter());
         }
     }
 
@@ -192,15 +222,6 @@ public class TraversalEngine {
     // traversal by loci functions
     //
     // --------------------------------------------------------------------------------------------------------------
-    protected int initialize() {
-        startTime = System.currentTimeMillis();
-        loadReference();
-        //testReference();
-        //loadReference();
-        readStream = initializeReadStreams();
-        return 0;
-    }
-
     class locusStreamFilterFunc implements SamRecordFilter {
         public boolean filterOut(SAMRecord rec) {
             boolean result = false;
@@ -243,7 +264,7 @@ public class TraversalEngine {
 
     protected <M,T> int traverseByLoci(LocusWalker<M,T> walker) {
         walker.initialize();
-        FilteringIterator filterIter = new FilteringIterator(readStream.iterator(), new locusStreamFilterFunc());
+        FilteringIterator filterIter = new FilteringIterator(samReadIter, new locusStreamFilterFunc());
         CloseableIterator<LocusIterator> iter = new LocusIterator(filterIter);
 
         List<ReferenceOrderedData.RODIterator> rodIters = initializeRODs();
@@ -301,14 +322,14 @@ public class TraversalEngine {
     // --------------------------------------------------------------------------------------------------------------
     protected <M,R> int traverseByRead(ReadWalker<M,R> walker) {
         walker.initialize();
-        CloseableIterator<SAMRecord> iter = readStream.iterator();
+
         R sum = walker.reduceInit();
         boolean done = false;
-        while ( iter.hasNext() && ! done ) {
+        while ( samReadIter.hasNext() && ! done ) {
             this.nRecords++;
 
             // actually get the read and hand it to the walker
-            final SAMRecord read = iter.next();
+            final SAMRecord read = samReadIter.next();
             GenomeLoc loc = new GenomeLoc(read.getReferenceName(), read.getAlignmentStart());
 
             if ( inLocations(loc) ) {
@@ -336,33 +357,5 @@ public class TraversalEngine {
         System.out.println("Traversal reduce result is " + sum);
         walker.onTraveralDone();
         return 0;
-    }
-
-    //
-    //
-    // Prepare the input streams
-    //
-    //
-    private SAMFileReader initializeReadStreams() {
-        SAMFileReader reader = getSamReader(readsFile);
-        return reader;
-    }
-
-    private SAMFileReader getSamReader(final File samFile) {
-        try {
-            final InputStream samInputStream = new FileInputStream(samFile);
-            final InputStream bufferedStream= new BufferedInputStream(samInputStream);
-            //final InputStream bufferedStream= new BufferedInputStream(samInputStream, 10000000);
-            final SAMFileReader samReader = new SAMFileReader(bufferedStream, true);
-            samReader.setValidationStringency(strictness);
-
-            final SAMFileHeader header = samReader.getFileHeader();
-            System.err.println("Sort order is: " + header.getSortOrder());
-
-            return samReader;
-        }
-        catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
     }
 }
