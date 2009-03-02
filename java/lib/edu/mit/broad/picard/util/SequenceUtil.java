@@ -41,6 +41,20 @@ public class SequenceUtil {
         return new String(complement);
     }
 
+    public static char complementBase(char base) {
+       switch ( base ) {
+            case 'a' : return 't';
+            case 'A' : return 'T';
+            case 'c' : return 'g';
+            case 'C' : return 'G';
+            case 'g' : return 'c';
+            case 'G' : return 'C';
+            case 't' : return 'a'; 
+            case 'T' : return 'A';
+            default  : return base;
+        }
+   }
+
     /** Attempts to efficiently compare two bases stored as bytes for equality. */
     public static boolean basesEqual(byte lhs, byte rhs) {
         if (lhs == rhs) return true;

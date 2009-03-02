@@ -3,13 +3,13 @@ package edu.mit.broad.sting.utils;
 import edu.mit.broad.sam.SAMRecord;
 import edu.mit.broad.sam.util.CloseableIterator;
 import edu.mit.broad.picard.util.TabbedTextFileParser;
+import edu.mit.broad.picard.util.SequenceUtil;
 
 import java.io.File;
 import java.io.InputStream;
 import java.io.FileInputStream;
 import java.io.BufferedInputStream;
-import java.util.Iterator;
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * Example format:
@@ -22,15 +22,18 @@ import java.util.HashMap;
  * To change this template use File | Settings | File Templates.
  */
 public class rodDbSNP extends ReferenceOrderedDatum {
-    public  String contig;      // Reference sequence chromosome or scaffold
-    public  long start, stop;   // Start and stop positions in chrom
+    public GenomeLoc loc;       // genome location of SNP
+                                // Reference sequence chromosome or scaffold
+                                // Start and stop positions in chrom
 
-    public  String name;        // Reference SNP identifier or Affy SNP name
-    public  String strand;      // Which DNA strand contains the observed alleles
-    public  String observed;    // The sequences of the observed alleles from rs-fasta files
-    public  char[] observedBases;    // The sequences of the observed alleles from rs-fasta files
-    public  String molType;     // Sample type from exemplar ss
-    public  String varType;     // The class of variant (simple, insertion, deletion, range, etc.)
+    public String name;        // Reference SNP identifier or Affy SNP name
+    public String strand;      // Which DNA strand contains the observed alleles
+
+    public String refBases;        // the reference base according to NCBI, in the dbSNP file
+    public String observed;    // The sequences of the observed alleles from rs-fasta files
+
+    public String molType;     // Sample type from exemplar ss
+    public String varType;     // The class of variant (simple, insertion, deletion, range, etc.)
                                 // Can be 'unknown','single','in-del','het','microsatellite','named','mixed','mnp','insertion','deletion'
     public String validationStatus;    // The validation status of the SNP
                                         // one of set('unknown','by-cluster','by-frequency','by-submitter','by-2hit-2allele','by-hapmap')
@@ -53,9 +56,52 @@ public class rodDbSNP extends ReferenceOrderedDatum {
     // ----------------------------------------------------------------------
     public rodDbSNP() {}
 
-    public String getContig() { return this.contig; }
-    public long getStart() { return start; }
-    public long getStop() { return stop; }
+    // ----------------------------------------------------------------------
+    //
+    // manipulating the SNP information
+    //
+    // ----------------------------------------------------------------------
+    public GenomeLoc getLocation() { return loc; }
+
+    public boolean onFwdStrand() {
+        return strand.equals("+");
+    }
+
+    // Get the reference bases on the forward strand
+    public String getRefBasesFWD() {
+        if ( onFwdStrand() )
+            return refBases;
+        else
+            return SequenceUtil.reverseComplement(refBases);
+    }
+
+    public List<String> getAllelesFWD() {
+        List<String> alleles = null;
+        if ( onFwdStrand() )
+            alleles = Arrays.asList(observed.split("/"));
+        else
+            alleles = Arrays.asList(SequenceUtil.reverseComplement(observed).split("/"));
+
+        //System.out.printf("getAlleles %s on %s %b => %s %n", observed, strand, onFwdStrand(), Utils.join("/", alleles));
+        return alleles;
+    }
+
+    public String getAllelesFWDString() {
+        return Utils.join("/", getAllelesFWD());
+    }
+
+    // ----------------------------------------------------------------------
+    //
+    // What kind of variant are we?
+    //
+    // ----------------------------------------------------------------------
+    public boolean isSNP() { return varType.contains("single"); }
+    public boolean isInsertion() { return varType.contains("insertion"); }
+    public boolean isDeletion() { return varType.contains("deletion"); }
+    public boolean isIndel() { return varType.contains("in-del"); }
+
+    public boolean isHapmap() { return validationStatus.contains("by-hapmap"); }
+    public boolean is2Hit2Allele() { return validationStatus.contains("by-2hit-2allele"); }
 
     // ----------------------------------------------------------------------
     //
@@ -63,28 +109,39 @@ public class rodDbSNP extends ReferenceOrderedDatum {
     //
     // ----------------------------------------------------------------------
     public String toString() {
-        return String.format("%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\t%d",
-                contig, start, stop, name, strand, observed, molType,
+        return String.format("%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\t%d",
+                getContig(), getStart(), getStop(), name, strand, refBases, observed, molType,
                 varType, validationStatus, avHet, avHetSE, func, locType, weight );
     }
 
     public String toSimpleString() {
-        return String.format("%s:%s", name, observed);
+        return String.format("%s:%s:%s", name, observed, strand);
+    }
+
+    public String toMediumString() {
+        String s = String.format("%s:%s:%s", getLocation().toString(), name, getAllelesFWDString());
+        if ( isSNP() ) s += ":SNP";
+        if ( isIndel() ) s += ":Indel";
+        if ( isHapmap() ) s += ":Hapmap";
+        if ( is2Hit2Allele() ) s += ":2Hit";
+        return s;        
     }
 
     public String repl() {
-        return String.format("%d\t%s\t%d\t%d\t%s\t0\t%s\tX\tX\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\t%d",
-                585, contig, start-1, stop-1, name, strand, observed, molType,
+        return String.format("%d\t%s\t%d\t%d\t%s\t0\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\t%d",
+                585, getContig(), getStart()-1, getStop()-1, name, strand, refBases, refBases, observed, molType,
                 varType, validationStatus, avHet, avHetSE, func, locType, weight );
     }
 
     public void parseLine(final String[] parts) {
         try {
-            contig = parts[1];
-            start = Long.parseLong(parts[2]) + 1; // The final is 0 based
+            String contig = parts[1];
+            long start = Long.parseLong(parts[2]) + 1; // The final is 0 based
+            long stop = Long.parseLong(parts[3]) + 1;  // The final is 0 based
+            loc = new GenomeLoc(contig, start, stop);
 
-            stop = Long.parseLong(parts[3]) + 1;  // The final is 0 based
             name = parts[4];
+            refBases = parts[5];
             strand = parts[6];
             observed = parts[9];
             molType = parts[10];
@@ -95,15 +152,6 @@ public class rodDbSNP extends ReferenceOrderedDatum {
             func = parts[15];
             locType = parts[16];
             weight = Integer.parseInt(parts[17]);
-
-            // Cut up the observed bases string into an array of individual bases
-            String[] bases = observed.split("/");
-            observedBases = new char[bases.length];
-            for ( String elt : bases ) {
-                observedBases[0] = (char)elt.getBytes()[0];
-                //System.out.printf("  Bases %s %d %c%n", elt, elt.getBytes()[0], (char)elt.getBytes()[0]);
-            }
-            //System.out.printf("  => Observed bases are %s%n", Utils.join(" B ", bases));
         } catch ( RuntimeException e ) {
             System.out.printf("  Exception caught during parsing GFFLine %s%n", Utils.join(" <=> ", parts));
             throw e;

@@ -3,8 +3,9 @@ package edu.mit.broad.sting.atk.modules;
 import edu.mit.broad.sam.SAMRecord;
 import edu.mit.broad.sting.atk.LocusContext;
 
-public class CountReadsWalker extends BasicReadWalker<Integer, Integer> {
+public class PrintReadsWalker extends BasicReadWalker<Integer, Integer> {
     public Integer map(LocusContext context, SAMRecord read) {
+        System.out.println(read.format());
         return 1;
     }
 

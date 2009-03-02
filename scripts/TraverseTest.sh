@@ -1,1 +1,1 @@
-java -Xmx1024m -cp out/production/AnalysisTK:../../jars/broad.jar edu.mit.broad.sting.atk.AnalysisTK $*
+java -Xmx1024m -cp out/production/AnalysisTK:trunk/java/jars/functionalj.jar edu.mit.broad.sting.atk.AnalysisTK $*

@@ -8,16 +8,17 @@ import edu.mit.broad.picard.filter.SamRecordFilter;
 import edu.mit.broad.picard.filter.FilteringIterator;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
-import edu.mit.broad.sting.utils.ReferenceIterator;
-import edu.mit.broad.sting.utils.ReferenceOrderedData;
-import edu.mit.broad.sting.utils.ReferenceOrderedDatum;
-import edu.mit.broad.sting.utils.Utils;
+import edu.mit.broad.sting.utils.*;
 
 import java.io.*;
-import java.util.List;
-import java.util.Iterator;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
+
+import net.sf.functionalj.reflect.StdReflect;
+import net.sf.functionalj.reflect.JdkStdReflect;
+import net.sf.functionalj.FunctionN;
+import net.sf.functionalj.Function1;
+import net.sf.functionalj.Functions;
+import net.sf.functionalj.util.Operators;
 
 public class TraversalEngine {
     // Usage and parameters
@@ -46,6 +47,8 @@ public class TraversalEngine {
 
     public boolean DEBUGGING = false;
 
+    private GenomeLoc[] locs = null;
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // Setting up the engine
@@ -62,6 +65,54 @@ public class TraversalEngine {
     public void setStrictness( final ValidationStringency s ) { strictness = s; }
     public void setMaxReads( final int maxReads ) { this.maxReads = maxReads; }
     public void setDebugging( final boolean d ) { DEBUGGING = d; }
+
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // functions for dealing locations (areas of the genome we're traversing over)
+    //
+    // --------------------------------------------------------------------------------------------------------------
+    public void setLocation( final String locStr ) {
+        this.locs = parseGenomeLocs(locStr);
+    }
+
+    public static GenomeLoc[] parseGenomeLocs( final String str ) {
+        // Of the form: loc1;loc2;...
+        // Where each locN can be:
+        // Ôchr2Õ, Ôchr2:1000000Õ or Ôchr2:1,000,000-2,000,000Õ
+        StdReflect reflect = new JdkStdReflect();
+        FunctionN<GenomeLoc> parseOne = reflect.staticFunction(GenomeLoc.class, "parseGenomeLoc", String.class);
+        Function1<GenomeLoc, String> f1 = parseOne.f1();
+        Collection<GenomeLoc> result = Functions.map(f1, Arrays.asList(str.split(";")));
+        GenomeLoc[] locs = (GenomeLoc[])result.toArray(new GenomeLoc[0]);
+
+        Arrays.sort(locs);
+        for ( GenomeLoc l : locs )
+            System.out.printf("  -> %s%n", l);
+
+        System.out.printf("  Locations are: %s%n", Utils.join(" ", Functions.map( Operators.toString, Arrays.asList(locs) ) ) );
+
+        return locs;
+    }
+
+    public boolean inLocations( GenomeLoc curr ) {
+        if ( this.locs == null )
+            return true;
+        else {
+            for ( GenomeLoc loc : this.locs ) {
+                //System.out.printf("  Overlap %s vs. %s => %b%n", loc, curr, loc.overlapsP(curr));
+                if ( loc.overlapsP(curr) )
+                    return true;
+            }
+            return false;
+        }
+    }
+
+    public boolean pastFinalLocation( GenomeLoc curr ) {
+        boolean r = locs != null && locs[locs.length-1].compareTo( curr ) == -1 && ! locs[locs.length-1].overlapsP(curr);
+        //System.out.printf("  pastFinalLocation %s vs. %s => %d => %b%n", locs[locs.length-1], curr, locs[locs.length-1].compareTo( curr ), r);
+        return r;
+    }
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -127,17 +178,18 @@ public class TraversalEngine {
     }
 
     protected List<ReferenceOrderedDatum> getReferenceOrderedDataAtLocus(List<ReferenceOrderedData.RODIterator> rodIters,
-                                                                        final String contig, final int pos) {
+                                                                        final GenomeLoc loc) {
         List<ReferenceOrderedDatum> data = new ArrayList<ReferenceOrderedDatum>();
         for ( ReferenceOrderedData.RODIterator iter : rodIters ) {
-            data.add(iter.seekForward(contig, pos));
+            data.add(iter.seekForward(loc));
         }
         return data;
     }
 
+
     // --------------------------------------------------------------------------------------------------------------
     //
-    // traversal functions
+    // traversal by loci functions
     //
     // --------------------------------------------------------------------------------------------------------------
     protected int initialize() {
@@ -197,30 +249,38 @@ public class TraversalEngine {
         List<ReferenceOrderedData.RODIterator> rodIters = initializeRODs();
 
         T sum = walker.reduceInit();
-        while ( iter.hasNext() ) {
+        boolean done = false;
+        while ( iter.hasNext() && ! done ) {
             this.nRecords++;
 
             // actually get the read and hand it to the walker
             final LocusIterator locus = iter.next();
-            final ReferenceIterator refSite = refIter.seekForward(locus.getContig(), locus.getPosition());
-            final char refBase = refSite.getBaseAsChar();
-            final List<ReferenceOrderedDatum> rodData = getReferenceOrderedDataAtLocus(rodIters, locus.getContig(), locus.getPosition());
 
-            if ( DEBUGGING )
-                System.out.printf("  Reference: %s:%d %c%n", refSite.getCurrentContig().getName(), refSite.getPosition(), refBase);
+            // Poor man's version of index LOL
+            if ( inLocations(locus.getLocation()) ) {
+                final ReferenceIterator refSite = refIter.seekForward(locus.getContig(), locus.getPosition());
+                final char refBase = refSite.getBaseAsChar();
+                final List<ReferenceOrderedDatum> rodData = getReferenceOrderedDataAtLocus(rodIters, locus.getLocation());
 
-            final boolean keepMeP = walker.filter(rodData, refBase, locus);
-            if ( keepMeP ) {
-                M x = walker.map(rodData, refBase, locus);
-                sum = walker.reduce(x, sum);
+                if ( DEBUGGING )
+                    System.out.printf("  Reference: %s:%d %c%n", refSite.getCurrentContig().getName(), refSite.getPosition(), refBase);
+
+                final boolean keepMeP = walker.filter(rodData, refBase, locus);
+                if ( keepMeP ) {
+                    M x = walker.map(rodData, refBase, locus);
+                    sum = walker.reduce(x, sum);
+                }
+
+                if ( this.maxReads > 0 && this.nRecords > this.maxReads ) {
+                    System.out.println("Maximum number of reads encountered, terminating traversal " + this.nRecords);
+                    done = true;
+                }
+
+                printProgress("loci");
             }
 
-            if ( this.maxReads > 0 && this.nRecords > this.maxReads ) {
-                System.out.println("Maximum number of reads encountered, terminating traversal " + this.nRecords);
-                break;
-            }
-
-            printProgress("loci");
+            if ( pastFinalLocation(locus.getLocation()) )
+                done = true;
         }
 
         printProgress( true, "loci" );
@@ -234,28 +294,43 @@ public class TraversalEngine {
         return 0;
     }
 
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // traversal by read functions
+    //
+    // --------------------------------------------------------------------------------------------------------------
     protected <M,R> int traverseByRead(ReadWalker<M,R> walker) {
         walker.initialize();
         CloseableIterator<SAMRecord> iter = readStream.iterator();
         R sum = walker.reduceInit();
-        while ( iter.hasNext() ) {
+        boolean done = false;
+        while ( iter.hasNext() && ! done ) {
             this.nRecords++;
 
             // actually get the read and hand it to the walker
             final SAMRecord read = iter.next();
-            final boolean keepMeP = walker.filter(null, read);
-            if ( keepMeP ) {
-                M x = walker.map(null, read);
-                sum = walker.reduce(x, sum);
-            }
+            GenomeLoc loc = new GenomeLoc(read.getReferenceName(), read.getAlignmentStart());
 
-            if ( this.maxReads > 0 && this.nRecords > this.maxReads ) {
-                System.out.println("Maximum number of reads encountered, terminating traversal " + this.nRecords);
-                break;
-            }
+            if ( inLocations(loc) ) {
+                final boolean keepMeP = walker.filter(null, read);
 
-            printProgress("reads");
-        }
+                if ( keepMeP ) {
+                    M x = walker.map(null, read);
+                    sum = walker.reduce(x, sum);
+                }
+
+                if ( this.maxReads > 0 && this.nRecords > this.maxReads ) {
+                    System.out.println("Maximum number of reads encountered, terminating traversal " + this.nRecords);
+                    break;
+                }
+
+                printProgress("reads");
+            }
+            
+            if ( pastFinalLocation(loc) )
+                done = true;
+            //System.out.printf("Done? %b%n", done);
+         }
 
         printProgress( true, "reads" );
         System.out.println("Traversal reduce result is " + sum);

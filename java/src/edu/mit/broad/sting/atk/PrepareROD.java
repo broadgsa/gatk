@@ -55,7 +55,7 @@ public class PrepareROD extends CommandLineProgram {
             refContigOrdering.put(contig.getSequenceName(), i);
             i++;
         }
-        ReferenceOrderedDatum.setContigOrdering(refContigOrdering);
+        GenomeLoc.setContigOrdering(refContigOrdering);
 
         Class rodClass = Types.get(ROD_TYPE.toLowerCase());
 

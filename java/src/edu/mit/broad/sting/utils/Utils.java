@@ -67,7 +67,11 @@ public class Utils {
         }
         return ret.toString();
     }
-    
+
+    public static String join(String separator, Collection<String> strings) {
+        return join( separator, strings.toArray(new String[0]) );
+    }
+
     public static void setupRefContigOrdering(final ReferenceSequenceFile refFile) { 
         List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary();
         HashMap<String, Integer> refContigOrdering = new HashMap<String, Integer>();
@@ -81,6 +85,6 @@ public class Utils {
         }
         System.out.printf("%n  Total elements -> %d%n", refContigOrdering.size());
         
-        ReferenceOrderedDatum.setContigOrdering(refContigOrdering);
+        GenomeLoc.setContigOrdering(refContigOrdering);
     }
 }

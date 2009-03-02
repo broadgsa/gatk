@@ -5,6 +5,7 @@ import edu.mit.broad.sam.SAMRecord;
 import edu.mit.broad.sting.utils.PushbackIterator;
 import edu.mit.broad.sting.utils.Utils;
 import edu.mit.broad.sting.utils.Predicate;
+import edu.mit.broad.sting.utils.GenomeLoc;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -26,8 +27,10 @@ public class LocusIterator implements Iterable<LocusIterator>, CloseableIterator
     private List<SAMRecord> reads = new ArrayList<SAMRecord>(100);
     private List<Integer> offsets = new ArrayList<Integer>(100);
 
-    public String getContig() { return contig; }
-    public int getPosition() { return position; }
+    protected String getContig() { return contig; }
+    protected long getPosition() { return position; }
+    public GenomeLoc getLocation() { return new GenomeLoc(contig, position); }
+
     public List<SAMRecord> getReads() { return reads; }
     public List<Integer> getOffsets() { return offsets; }
 

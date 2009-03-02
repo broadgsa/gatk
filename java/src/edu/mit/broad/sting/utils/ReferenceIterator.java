@@ -21,7 +21,7 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
 
     private ReferenceSequence currentContig = null;
     private ReferenceSequence nextContig = null;    
-    private int offset = -1;
+    private long offset = -1;
 
     public ReferenceIterator( ReferenceSequenceFile refFile ) {
         this.refFile = refFile;
@@ -32,11 +32,11 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
     // Accessing data
     //
     // --------------------------------------------------------------------------------------------------------------
-    public byte getBaseAsByte() { return currentContig.getBases()[offset]; }
-    public String getBaseAsString() { return StringUtil.bytesToString(currentContig.getBases(), offset, 1); }
+    public byte getBaseAsByte() { return currentContig.getBases()[(int)offset]; }
+    public String getBaseAsString() { return StringUtil.bytesToString(currentContig.getBases(), (int)offset, 1); }
     public char getBaseAsChar() { return getBaseAsString().charAt(0); }
     public ReferenceSequence getCurrentContig() { return currentContig; }
-    public int getPosition() { return offset + 1; }
+    public long getPosition() { return offset + 1; }
     
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -91,11 +91,15 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
     // Jumping forward
     //
     // --------------------------------------------------------------------------------------------------------------
-    public ReferenceIterator seekForward(final String contigName, final int pos) {
+    public ReferenceIterator seekForward(final GenomeLoc loc) {
+        return seekForwardOffset(loc.getContig(), loc.getStart() - 1);
+    }
+
+    public ReferenceIterator seekForward(final String contigName, final long pos) {
         return seekForwardOffset(contigName, pos - 1);
     }
 
-    private ReferenceIterator seekForwardOffset(final String contigName, final int seekOffset) {
+    private ReferenceIterator seekForwardOffset(final String contigName, final long seekOffset) {
         // jumps us forward in the sequence to the contig / pos
         if ( currentContig == null )
             next();

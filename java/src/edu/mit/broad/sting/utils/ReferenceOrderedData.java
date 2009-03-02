@@ -39,7 +39,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     public void testMe() {
         ReferenceOrderedDatum last = null;
         for ( ReferenceOrderedDatum rec : this ) {
-            if ( last == null || ! last.getContig().equals(rec.getContig()) ) {
+            if ( last == null || ! last.getLocation().onSameContig(rec.getLocation()) ) {
                 System.out.println(rec.toString());
             }
             last = rec;
@@ -137,7 +137,11 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         // If we don't find anything and cross beyond contig / pos, we return null
         // Otherwise we return the first object who's start is at pos
         //
-        public ROD seekForward(final String contigName, final int pos) {
+        public ROD seekForward(final GenomeLoc loc) {
+            return seekForward(loc.getContig(), loc.getStart());
+        }
+
+        protected ROD seekForward(final String contigName, final long pos) {
             final boolean DEBUG = false; 
         
             ROD result = null;
@@ -146,7 +150,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
             while ( hasNext() ) {
                 ROD current = next();
                 //System.out.printf("    -> Seeking to %s %d AT %s %d%n", contigName, pos, current.getContig(), current.getStart());
-                int strCmp = ReferenceOrderedDatum.compareContigs( contigName, prev.getContig() );// contigName.compareTo( prev.getContig() );
+                int strCmp = GenomeLoc.compareContigs( contigName, prev.getContig() );// contigName.compareTo( prev.getContig() );
                 if ( strCmp == 0 ) {
                     // The contigs are equal
                     if ( current.getStart() > pos ) {

@@ -24,7 +24,7 @@ public class rodGFF extends ReferenceOrderedDatum {
     private long start, stop;
     private double score;
     private HashMap<String, String> attributes;
-
+    
     // ----------------------------------------------------------------------
     //
     // Constructors
@@ -53,10 +53,6 @@ public class rodGFF extends ReferenceOrderedDatum {
     // Accessors
     //
     // ----------------------------------------------------------------------
-    public String getContig() {
-        return this.contig;
-    }
-
     public String getSource() {
         return source;
     }
@@ -73,16 +69,12 @@ public class rodGFF extends ReferenceOrderedDatum {
         return frame;
     }
 
-    public long getStart() {
-        return start;
-    }
-
-    public long getStop() {
-        return stop;
-    }
-
     public double getScore() {
         return score;
+    }
+
+    public GenomeLoc getLocation() {
+        return new GenomeLoc(contig, start, stop);
     }
 
     public String getAttribute(final String key) {

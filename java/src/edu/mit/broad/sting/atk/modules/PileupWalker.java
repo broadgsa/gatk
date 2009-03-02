@@ -3,6 +3,8 @@ package edu.mit.broad.sting.atk.modules;
 import edu.mit.broad.sting.atk.LocusWalker;
 import edu.mit.broad.sting.atk.LocusIterator;
 import edu.mit.broad.sting.utils.ReferenceOrderedDatum;
+import edu.mit.broad.sting.utils.rodDbSNP;
+import edu.mit.broad.sting.utils.Utils;
 import edu.mit.broad.sam.SAMRecord;
 
 import java.util.List;
@@ -53,14 +55,21 @@ public class PileupWalker implements LocusWalker<Integer, Integer> {
         String rodString = "";
         for ( ReferenceOrderedDatum datum : rodData ) {
             if ( datum != null ) {
-                rodString += datum.toSimpleString();
+                if ( datum instanceof rodDbSNP) {
+                    rodDbSNP dbsnp = (rodDbSNP)datum;
+                    //System.out.printf("  DBSNP %s on %s => %s%n", dbsnp.toSimpleString(), dbsnp.strand, Utils.join("/", dbsnp.getAllelesFWD()));
+                    rodString += dbsnp.toMediumString();
+                }
+                else {
+                    rodString += datum.toSimpleString();
+                }
             }
         }
         if ( rodString != "" )
             rodString = "[ROD: " + rodString + "]";
 
-        if ( context.getPosition() % 1 == 0 ) {
-            System.out.printf("%s:%d: %s %s %s %s%n", context.getContig(), context.getPosition(), ref, bases, quals, rodString);
+        if ( context.getLocation().getStart() % 1 == 0 ) {
+            System.out.printf("%s: %s %s %s %s%n", context.getLocation(), ref, bases, quals, rodString);
         }
 
         //for ( int offset : context.getOffsets() ) {

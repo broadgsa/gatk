@@ -35,6 +35,7 @@ public class AnalysisTK extends CommandLineProgram {
         addModule("CountLoci", new CountLociWalker());
         addModule("Pileup", new PileupWalker());
         addModule("CountReads", new CountReadsWalker());
+        addModule("PrintReads", new PrintReadsWalker());
         addModule("Base_Quality_Histogram", new BaseQualityHistoWalker());
     }
 
@@ -69,6 +70,7 @@ public class AnalysisTK extends CommandLineProgram {
         }
 
         this.engine = new TraversalEngine(INPUT_FILE, REF_FILE_ARG, rods);
+        engine.initialize();
 
         ValidationStringency strictness;
     	if ( STRICTNESS_ARG == null ) {
@@ -89,8 +91,11 @@ public class AnalysisTK extends CommandLineProgram {
         engine.setDebugging(! ( DEBUGGING_STR == null || DEBUGGING_STR.toLowerCase().equals("true")));
         engine.setMaxReads(Integer.parseInt(MAX_READS_ARG));
 
+        if ( REGION_STR != null ) {
+            engine.setLocation(REGION_STR);
+        }
+
         //LocusWalker<Integer,Integer> walker = new PileupWalker();
-        engine.initialize();
         try {
             LocusWalker<?, ?> walker = (LocusWalker<?, ?>)MODULES.get(Analysis_Name);
             engine.traverseByLoci(walker);
