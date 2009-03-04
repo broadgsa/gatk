@@ -96,13 +96,23 @@ public class AnalysisTK extends CommandLineProgram {
         }
 
         //LocusWalker<Integer,Integer> walker = new PileupWalker();
+
+        // Try to get the module specified
+        Object my_module;
+        if (MODULES.containsKey(Analysis_Name)) {
+            my_module = MODULES.get(Analysis_Name);
+        }else{
+            System.out.println("Could not find module "+Analysis_Name);
+            return 0;
+        }
+
         try {
-            LocusWalker<?, ?> walker = (LocusWalker<?, ?>)MODULES.get(Analysis_Name);
+            LocusWalker<?, ?> walker = (LocusWalker<?, ?>)my_module;
             engine.traverseByLoci(walker);
         }
         catch ( java.lang.ClassCastException e ) {
             // I guess we're a read walker LOL
-            ReadWalker<?, ?> walker = (ReadWalker<?, ?>)MODULES.get(Analysis_Name);
+            ReadWalker<?, ?> walker = (ReadWalker<?, ?>)my_module;
             engine.traverseByRead(walker);
         }
 
