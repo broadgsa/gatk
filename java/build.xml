@@ -3,10 +3,10 @@
         simple build file
     </description>
   <!-- set global properties for this build -->
-  <property name="src" location="trunk/java/"/>
+  <property name="src" location=""/>
   <property name="build" location="out/production/AnalysisTK"/>
   <property name="dist"  location="dist"/>
-  <property name="jars"  location="trunk/java/jars/functionalj.jar"/>
+  <property name="jars"  location="jars/functionalj.jar"/>
   
   <target name="init">
     <!-- Create the time stamp -->
