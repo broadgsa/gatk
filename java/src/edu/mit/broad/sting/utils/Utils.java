@@ -108,4 +108,93 @@ public class Utils {
         
         GenomeLoc.setContigOrdering(refContigOrdering);
     }
+
+    // Java Generics can't do primitive types, so I had to do this the simplistic way
+    
+    public static Integer[] SortPermutation(final int[] A)
+    {
+        class comparator implements Comparator
+        { 
+            public int compare(Object a, Object b)
+            {
+                if (A[(Integer)a] <  A[(Integer)b]) { return -1; }
+                if (A[(Integer)a] == A[(Integer)b]) { return  0; }
+                if (A[(Integer)a] >  A[(Integer)b]) { return  1; }
+                return 0;
+            } 
+        }
+        Integer[] permutation = new Integer[A.length];
+        for (int i = 0; i < A.length; i++)
+        {
+            permutation[i] = i;
+        }
+        Arrays.sort(permutation, new comparator());
+        return permutation;
+    }
+
+    public static Integer[] SortPermutation(final double[] A)
+    {
+        class comparator implements Comparator
+        { 
+            public int compare(Object a, Object b)
+            {
+                if (A[(Integer)a] <  A[(Integer)b]) { return -1; }
+                if (A[(Integer)a] == A[(Integer)b]) { return  0; }
+                if (A[(Integer)a] >  A[(Integer)b]) { return  1; }
+                return 0;
+            } 
+        }
+        Integer[] permutation = new Integer[A.length];
+        for (int i = 0; i < A.length; i++)
+        {
+            permutation[i] = i;
+        }
+        Arrays.sort(permutation, new comparator());
+        return permutation;
+    }
+
+    public static int[] PermuteArray(int[] array, Integer[] permutation)
+    {
+        int[] output = new int[array.length];
+        for (int i = 0; i < output.length; i++)
+        {
+            output[i] = array[permutation[i]];
+        }
+        return output;
+    }
+
+    public static double[] PermuteArray(double[] array, Integer[] permutation)
+    {
+        double[] output = new double[array.length];
+        for (int i = 0; i < output.length; i++)
+        {
+            output[i] = array[permutation[i]];
+        }
+        return output;
+    }
+
+    public static Object[] PermuteArray(Object[] array, Integer[] permutation)
+    {
+        Object[] output = new Object[array.length];
+        for (int i = 0; i < output.length; i++)
+        {
+            output[i] = array[permutation[i]];
+        }
+        return output;
+    }
+
+    public static String[] PermuteArray(String[] array, Integer[] permutation)
+    {
+        String[] output = new String[array.length];
+        for (int i = 0; i < output.length; i++)
+        {
+            output[i] = array[permutation[i]];
+        }
+        return output;
+    }
+
 }
+
+
+
+
