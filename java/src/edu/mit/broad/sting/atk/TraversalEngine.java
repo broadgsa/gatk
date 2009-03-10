@@ -1,9 +1,9 @@
 package edu.mit.broad.sting.atk;
 
-import edu.mit.broad.sam.*;
-import edu.mit.broad.sam.SAMFileReader.ValidationStringency;
-import edu.mit.broad.sam.util.CloseableIterator;
-import edu.mit.broad.sam.util.RuntimeIOException;
+import net.sf.samtools.*;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.util.CloseableIterator;
+import net.sf.samtools.util.RuntimeIOException;
 import edu.mit.broad.picard.filter.SamRecordFilter;
 import edu.mit.broad.picard.filter.FilteringIterator;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;

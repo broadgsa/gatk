@@ -1,7 +1,7 @@
 package edu.mit.broad.sting.utils;
 
-import edu.mit.broad.sam.SAMRecord;
-import edu.mit.broad.sam.util.CloseableIterator;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.CloseableIterator;
 import edu.mit.broad.picard.util.TabbedTextFileParser;
 
 import java.io.File;

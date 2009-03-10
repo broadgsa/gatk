@@ -3,10 +3,10 @@
         simple build file
     </description>
   <!-- set global properties for this build -->
-  <property name="src" location=""/>
-  <property name="build" location="out/production/AnalysisTK"/>
+  <property name="src" location="src"/>
+  <property name="build" location="build"/>
   <property name="dist"  location="dist"/>
-  <property name="jars"  location="jars/functionalj.jar"/>
+  <property name="lib"  location="lib"/>
   
   <target name="init">
     <!-- Create the time stamp -->
@@ -18,16 +18,31 @@
   <target name="compile" depends="init"
         description="compile the source " >
     <!-- Compile the java code from ${src} into ${build} -->
-    <javac srcdir="${src}" destdir="${build}" classpath="${jars}"/>
+    <javac srcdir="${src}" destdir="${build}" >
+      <classpath>
+        <fileset dir="lib">
+          <include name="*.jar" />
+        </fileset>
+      </classpath>
+    </javac>
   </target>
 
   <target name="dist" depends="compile"
         description="generate the distribution" >
     <!-- Create the distribution directory -->
-    <mkdir dir="${dist}/lib"/>
+    <mkdir dir="${dist}"/>
 
     <!-- Put everything in ${build} into the MyProject-${DSTAMP}.jar file -->
-    <jar jarfile="${dist}/AnalysisTK-${DSTAMP}.jar" basedir="${build}"/>
+    <jar jarfile="${dist}/AnalysisTK.jar" basedir="${build}">
+      <manifest>
+        <attribute name="Class-Path" value="functionalj.jar picard.jar sam-1.0.jar" />
+        <attribute name="Main-Class" value="edu.mit.broad.sting.atk.AnalysisTK" />
+      </manifest>
+    </jar>
+
+    <copy todir="${dist}">
+      <fileset dir="${lib}" includes="*.jar" />
+    </copy>
   </target>
 
   <target name="clean"

@@ -1,7 +1,7 @@
 package edu.mit.broad.sting.atk;
 
-import edu.mit.broad.sam.util.CloseableIterator;
-import edu.mit.broad.sam.SAMRecord;
+import net.sf.samtools.util.CloseableIterator;
+import net.sf.samtools.SAMRecord;
 import edu.mit.broad.sting.utils.PushbackIterator;
 import edu.mit.broad.sting.utils.Utils;
 import edu.mit.broad.sting.utils.Predicate;

@@ -5,7 +5,7 @@ import edu.mit.broad.sting.atk.LocusIterator;
 import edu.mit.broad.sting.utils.ReferenceOrderedDatum;
 import edu.mit.broad.sting.utils.rodDbSNP;
 import edu.mit.broad.sting.utils.Utils;
-import edu.mit.broad.sam.SAMRecord;
+import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 

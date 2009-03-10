@@ -1,6 +1,6 @@
 package edu.mit.broad.sting.atk.modules;
 
-import edu.mit.broad.sam.SAMRecord;
+import net.sf.samtools.SAMRecord;
 import edu.mit.broad.sting.atk.LocusContext;
 
 public class CountReadsWalker extends BasicReadWalker<Integer, Integer> {

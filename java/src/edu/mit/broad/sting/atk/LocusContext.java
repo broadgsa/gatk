@@ -1,6 +1,6 @@
 package edu.mit.broad.sting.atk;
 
-import edu.mit.broad.sam.SAMRecord;
+import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 

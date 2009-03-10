@@ -1,7 +1,7 @@
 package edu.mit.broad.sting.atk;
 
-import edu.mit.broad.sam.SAMFileReader.ValidationStringency;
-import edu.mit.broad.sam.SAMSequenceRecord;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.SAMSequenceRecord;
 import edu.mit.broad.picard.cmdline.CommandLineProgram;
 import edu.mit.broad.picard.cmdline.Usage;
 import edu.mit.broad.picard.cmdline.Option;

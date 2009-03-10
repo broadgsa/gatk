@@ -1,8 +1,8 @@
 package edu.mit.broad.sting;
 
-import edu.mit.broad.sam.*;
-import edu.mit.broad.sam.SAMFileReader.ValidationStringency;
-import edu.mit.broad.sam.util.CloseableIterator;
+import net.sf.samtools.*;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.util.CloseableIterator;
 import edu.mit.broad.picard.cmdline.CommandLineProgram;
 import edu.mit.broad.picard.cmdline.Usage;
 import edu.mit.broad.picard.cmdline.Option;

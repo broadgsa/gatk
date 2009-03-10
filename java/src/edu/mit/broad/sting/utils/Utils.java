@@ -1,7 +1,7 @@
 package edu.mit.broad.sting.utils;
 
-import edu.mit.broad.sam.SAMRecord;
-import edu.mit.broad.sam.SAMSequenceRecord;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMSequenceRecord;
 import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
 import edu.mit.broad.picard.reference.ReferenceSequence;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;

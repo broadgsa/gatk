@@ -3,7 +3,7 @@ package edu.mit.broad.sting.atk.modules;
 import edu.mit.broad.sting.atk.LocusWalker;
 import edu.mit.broad.sting.atk.LocusIterator;
 import edu.mit.broad.sting.utils.ReferenceOrderedDatum;
-import edu.mit.broad.sam.SAMRecord;
+import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 

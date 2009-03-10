@@ -2,7 +2,7 @@ package edu.mit.broad.sting.utils;
 
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import edu.mit.broad.picard.reference.ReferenceSequence;
-import edu.mit.broad.sam.util.StringUtil;
+import net.sf.samtools.util.StringUtil;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
