@@ -31,6 +31,8 @@ public class TraversalEngine {
     private ValidationStringency strictness = ValidationStringency.STRICT;
 
     private long startTime = -1;
+    private long lastProgressPrintTime = -1;
+    private long MAX_PROGRESS_PRINT_TIME = 5 * 1000; // 10 seconds in millisecs
     private long maxReads = -1;
     private long nRecords = 0;
     private SAMFileReader samReader = null;
@@ -63,7 +65,7 @@ public class TraversalEngine {
     }
 
     protected int initialize() {
-        startTime = System.currentTimeMillis();
+        lastProgressPrintTime = startTime = System.currentTimeMillis();
         loadReference();
         //testReference();
         //loadReference();
@@ -146,19 +148,34 @@ public class TraversalEngine {
     // functions for dealing with the reference sequence
     //
     // --------------------------------------------------------------------------------------------------------------
+    /**
+     *
+     * @param curTime (current runtime, in millisecs)
+     * @return true if the maximum interval (in millisecs) has passed since the last printing
+     */
+
+    private boolean maxElapsedIntervalForPrinting(final long curTime) {
+        return (curTime - this.lastProgressPrintTime) > MAX_PROGRESS_PRINT_TIME;
+    }
+
     public void printProgress(final String type, GenomeLoc loc) { printProgress( false, type, loc ); }
 
     public void printProgress( boolean mustPrint, final String type, GenomeLoc loc ) {
         final long nRecords = this.nRecords;
-
-        if ( mustPrint || nRecords % 100000 == 0 ) {
-            final double elapsed = (System.currentTimeMillis() - startTime) / 1000.0;
+        final long curTime = System.currentTimeMillis();
+        final double elapsed = (curTime - startTime) / 1000.0;
+        //System.out.printf("Cur = %d, last print = %d%n", curTime, lastProgressPrintTime);
+                    
+        if ( mustPrint || nRecords % 100000 == 0 || maxElapsedIntervalForPrinting(curTime)) {
+            this.lastProgressPrintTime = curTime;
             final double secsPer1MReads = (elapsed * 1000000.0) / nRecords;
             if ( loc != null )
-                System.out.printf("Traversed to %s, processing %d %s %.2f secs (%.2f secs per 1M %s)%n", loc, nRecords, type, elapsed, secsPer1MReads, type);
+                System.out.printf("[PROGRESS] Traversed to %s, processing %d %s %.2f secs (%.2f secs per 1M %s)%n", loc, nRecords, type, elapsed, secsPer1MReads, type);
             else
-                System.out.printf("Traversed %d %s %.2f secs (%.2f secs per 1M %s)%n", nRecords, type, elapsed, secsPer1MReads, type);
-            System.out.printf("  -> %s%n", samReadingTracker.progressMeter());
+                System.out.printf("[PROGRESS] Traversed %d %s %.2f secs (%.2f secs per 1M %s)%n", nRecords, type, elapsed, secsPer1MReads, type);
+
+            if ( this.locs == null )
+                System.out.printf("[PROGRESS]   -> %s%n", samReadingTracker.progressMeter());
         }
     }
 

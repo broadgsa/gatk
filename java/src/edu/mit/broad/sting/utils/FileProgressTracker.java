@@ -144,8 +144,8 @@ public class FileProgressTracker<T> implements Iterator<T> {
         //printStatus();
         return String.format("Est. %.2f%% completed, time remaining (%.2f hrs / %.2f min) of (%.2f hrs / %.2f min) total",
                 estFractionProgressThroughFile() * 100.0,
-                estTimeTotal() / (60*60), estTimeTotal() / (60),
-                estTimeRemaining() / (60*60), estTimeRemaining() / 60);
+                estTimeRemaining() / (60*60), estTimeRemaining() / 60,
+                estTimeTotal() / (60*60), estTimeTotal() / (60));                
     }
 
     public ArrayList<Long> recordSizes() {
