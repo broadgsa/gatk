@@ -1,4 +1,4 @@
-<project name="AnalysisTK" default="dist" basedir=".">
+<project name="AnalysisTK" default="dist" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
     <description>
         simple build file
     </description>
@@ -7,7 +7,27 @@
   <property name="build" location="build"/>
   <property name="dist"  location="dist"/>
   <property name="lib"  location="lib"/>
-  
+
+  <!-- ivy properties -->
+  <property name="ivy.install.version" value="2.0.0" />
+  <property name="ivy.home" value="${user.home}/.ant" />
+  <property name="ivy.jar.dir" value="${ivy.home}/lib" />
+  <property name="ivy.jar.file" value="ivy-${ivy.install.version}.jar" />
+  <property name="ivy.settings.dir" value="settings" />
+  <property file="${ivy.settings.dir}/ivysettings.properties" />
+
+  <target name="resolve">
+    <mkdir dir="${ivy.jar.dir}" />
+    <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
+         dest="${ivy.jar.dir}/${ivy.jar.file}" 
+         usetimestamp="true"/>
+    <taskdef resource="org/apache/ivy/ant/antlib.xml" 
+             uri="antlib:org.apache.ivy.ant" 
+             classpath="${ivy.jar.dir}/${ivy.jar.file}" />
+    <ivy:settings file="${ivy.settings.dir}/ivysettings.xml" />
+    <ivy:retrieve />
+  </target>
+
   <target name="init">
     <!-- Create the time stamp -->
     <tstamp/>
@@ -15,7 +35,7 @@
     <mkdir dir="${build}"/>
   </target>
 
-  <target name="compile" depends="init"
+  <target name="compile" depends="init,resolve"
         description="compile the source " >
     <!-- Compile the java code from ${src} into ${build} -->
     <javac srcdir="${src}" destdir="${build}" >
@@ -35,7 +55,7 @@
     <!-- Put everything in ${build} into the MyProject-${DSTAMP}.jar file -->
     <jar jarfile="${dist}/AnalysisTK.jar" basedir="${build}">
       <manifest>
-        <attribute name="Class-Path" value="functionalj.jar picard.jar sam-1.0.jar" />
+        <attribute name="Class-Path" value="functionalj-1.0.jar picard-snapshot.jar sam-1.0.jar" />
         <attribute name="Main-Class" value="edu.mit.broad.sting.atk.AnalysisTK" />
       </manifest>
     </jar>
@@ -50,5 +70,6 @@
     <!-- Delete the ${build} and ${dist} directory trees -->
     <delete dir="${build}"/>
     <delete dir="${dist}"/>
+    <delete dir="${lib}" />
   </target>
 </project>

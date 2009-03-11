@@ -1,0 +1,16 @@
+<ivysettings>
+  <properties file="${ivy.settings.dir}/ivysettings.properties"/>
+  <settings defaultResolver="libraries"/>
+  <resolvers>
+    <filesystem name="projects">
+	 <artifact pattern="${repository.dir}/[organisation]/[artifact]-[revision].[ext]" />
+	 <ivy pattern="${repository.dir}/[organisation]/[module]-[revision].xml" />
+    </filesystem>
+    <ibiblio name="libraries" m2compatible="true" usepoms="false" />
+  </resolvers>
+  <modules>
+    <module organisation="edu.mit.broad" resolver="projects" />
+    <module organisation="net.sf" module="functionalj" resolver="projects" />
+    <module organisation="net.sf" module="samtools" resolver="projects" />
+  </modules>
+</ivysettings>
