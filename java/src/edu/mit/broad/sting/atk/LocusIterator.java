@@ -33,6 +33,7 @@ public class LocusIterator implements Iterable<LocusIterator>, CloseableIterator
 
     public List<SAMRecord> getReads() { return reads; }
     public List<Integer> getOffsets() { return offsets; }
+    public int numReads() { return reads.size(); }
 
     // -----------------------------------------------------------------------------------------------------------------
     //

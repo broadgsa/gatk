@@ -37,6 +37,7 @@ public class AnalysisTK extends CommandLineProgram {
         addModule("CountReads", new CountReadsWalker());
         addModule("PrintReads", new PrintReadsWalker());
         addModule("Base_Quality_Histogram", new BaseQualityHistoWalker());
+        addModule("Genotype", new GenotypeWalker());
         addModule("SingleSampleGenotyper", new SingleSampleGenotyper());
         addModule("Null", new NullWalker());
     }
