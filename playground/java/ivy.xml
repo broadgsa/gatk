@@ -1,0 +1,8 @@
+<ivy-module version="1.0">
+  <info organisation="org.broadinstitute" module="Sting"/>
+  <dependencies>
+    <dependency org="net.sf" name="functionalj" rev="latest.integration" />
+    <dependency org="net.sf" name="sam" rev="latest.integration" />
+    <dependency org="edu.mit.broad" name="picard" rev="latest.integration" />
+  </dependencies>
+</ivy-module>
