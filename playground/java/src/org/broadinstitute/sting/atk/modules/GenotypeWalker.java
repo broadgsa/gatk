@@ -2,6 +2,7 @@ package org.broadinstitute.sting.atk.modules;
 
 import org.broadinstitute.sting.atk.LocusIterator;
 import org.broadinstitute.sting.atk.GenotypeEvidence;
+import org.broadinstitute.sting.atk.LocusContext;
 import org.broadinstitute.sting.utils.ReferenceOrderedDatum;
 import net.sf.samtools.SAMRecord;
 
@@ -10,7 +11,7 @@ import java.util.List;
 import static java.lang.System.currentTimeMillis;
 
 public class GenotypeWalker extends BasicLociWalker<Integer, Integer> {
-    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context) {
+    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
         //char[] = new char(26);
         long start_tm = currentTimeMillis();
         List<SAMRecord> reads = context.getReads();

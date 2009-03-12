@@ -17,10 +17,10 @@ public interface LocusWalker<MapType, ReduceType> {
     public String walkerType();
 
     // Do we actually want to operate on the context?
-    boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context);
+    boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context);
 
     // Map over the org.broadinstitute.sting.atk.LocusContext
-    MapType map(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context);
+    MapType map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context);
 
     // Given result of map function
     ReduceType reduceInit();

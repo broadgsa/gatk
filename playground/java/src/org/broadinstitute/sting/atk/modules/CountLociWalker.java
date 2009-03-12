@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.atk.modules;
 
-import org.broadinstitute.sting.atk.LocusIterator;
+import org.broadinstitute.sting.atk.LocusContext;
 import org.broadinstitute.sting.utils.ReferenceOrderedDatum;
 
 import java.util.List;
@@ -13,7 +13,7 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class CountLociWalker extends BasicLociWalker<Integer, Integer> {
-    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context) {
+    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
         return 1;
     }
 

@@ -40,6 +40,7 @@ public class AnalysisTK extends CommandLineProgram {
         addModule("Genotype", new GenotypeWalker());
         addModule("SingleSampleGenotyper", new SingleSampleGenotyper());
         addModule("Null", new NullWalker());
+        addModule("DepthOfCoverage", new DepthOfCoverageWalker());
     }
 
     private TraversalEngine engine = null;

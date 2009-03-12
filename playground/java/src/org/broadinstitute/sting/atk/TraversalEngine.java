@@ -383,12 +383,6 @@ public class TraversalEngine {
                 result = true;
                 why = "No alignment start";
             }
-            else if ( rec.getCigar().numCigarElements() > 1 ) {
-                // FIXME -- deal with indels correctly!
-                nSkippedIndels++;
-                result = true;
-                why = "Skipping indel: " + rec.getCigarString();
-            }
             else {
                 result = false;
             }
@@ -417,7 +411,8 @@ public class TraversalEngine {
     protected <M,T> int traverseByLoci(LocusWalker<M,T> walker) {
         // prepare the read filtering read iterator and provide it to a new locus iterator
         FilteringIterator filterIter = new FilteringIterator(samReadIter, new locusStreamFilterFunc());
-        CloseableIterator<LocusIterator> iter = new LocusIterator(filterIter);
+        //LocusIterator iter = new SingleLocusIterator(filterIter);
+        LocusIterator iter = new LocusIteratorByHanger(filterIter);
 
         // Initial the reference ordered data iterators
         List<ReferenceOrderedData.RODIterator> rodIters = initializeRODs();
@@ -432,7 +427,7 @@ public class TraversalEngine {
             this.nRecords++;
 
             // actually get the read and hand it to the walker
-            final LocusIterator locus = iter.next();
+            final LocusContext locus = iter.next();
 
             // Poor man's version of index LOL
             if ( inLocations(locus.getLocation()) ) {

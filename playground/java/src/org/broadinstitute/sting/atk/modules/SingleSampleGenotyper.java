@@ -2,6 +2,7 @@ package org.broadinstitute.sting.atk.modules;
 
 import org.broadinstitute.sting.atk.LocusWalker;
 import org.broadinstitute.sting.atk.LocusIterator;
+import org.broadinstitute.sting.atk.LocusContext;
 import org.broadinstitute.sting.utils.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.rodDbSNP;
 import org.broadinstitute.sting.utils.Utils;
@@ -19,7 +20,7 @@ public class SingleSampleGenotyper implements LocusWalker<Integer, Integer> {
     public String walkerType() { return "ByLocus"; }
 
     // Do we actually want to operate on the context?
-    public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context) {
+    public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
         return true;    // We are keeping all the reads
     }
 
@@ -86,7 +87,7 @@ public class SingleSampleGenotyper implements LocusWalker<Integer, Integer> {
     }
 
     // Map over the org.broadinstitute.sting.atk.LocusContext
-    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context) {
+    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
         //System.out.printf("Reads %s:%d %d%n", context.getContig(), context.getPosition(), context.getReads().size());
         //for ( SAMRecord read : context.getReads() ) {
         //    System.out.println("  -> " + read.getReadName());

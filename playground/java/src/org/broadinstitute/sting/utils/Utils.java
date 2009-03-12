@@ -68,8 +68,15 @@ public class Utils {
         return ret.toString();
     }
 
-    public static String join(String separator, Collection<String> strings) {
-        return join( separator, strings.toArray(new String[0]) );
+    //public static String join(String separator, Collection<String> strings) {
+    //    return join( separator, strings.toArray(new String[0]) );
+    //}
+
+    public static <T> String join(String separator, Collection<T> objects) {
+        ArrayList<String> strs = new ArrayList<String>();
+        for ( Object x : objects )
+            strs.add(x.toString());
+        return join( separator, strs.toArray(new String[0]) );
     }
 
     public static double average(List<Long> vals, int maxI) {
@@ -97,14 +104,16 @@ public class Utils {
         List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary();
         HashMap<String, Integer> refContigOrdering = new HashMap<String, Integer>();
 
-        int i = 0;
-        System.out.printf("Prepared reference sequence contig dictionary%n  order ->");
-        for ( SAMSequenceRecord contig : refContigs ) {
-            System.out.printf(" %s", contig.getSequenceName());
-            refContigOrdering.put(contig.getSequenceName(), i);
-            i++;
+        if ( refContigs != null ) {
+            int i = 0;
+            System.out.printf("Prepared reference sequence contig dictionary%n  order ->");
+            for ( SAMSequenceRecord contig : refContigs ) {
+                System.out.printf(" %s", contig.getSequenceName());
+                refContigOrdering.put(contig.getSequenceName(), i);
+                i++;
+            }
+            System.out.printf("%n  Total elements -> %d%n", refContigOrdering.size());
         }
-        System.out.printf("%n  Total elements -> %d%n", refContigOrdering.size());
         
         GenomeLoc.setContigOrdering(refContigOrdering);
     }

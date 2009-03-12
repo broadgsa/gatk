@@ -23,11 +23,19 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     // Ugly global variable defining the optional ordering of contig elements
     //
     public static HashMap<String, Integer> refContigOrdering = null;
+    public static HashMap<String, String> interns = null;
+
     public static void setContigOrdering(HashMap<String, Integer> rco) {
         refContigOrdering = rco;
+        interns = new HashMap<String, String>();
+        for ( String contig : rco.keySet() )
+            interns.put( contig, contig );
     }
 
-    public GenomeLoc( final String contig, final long start, final long stop ) {
+    public GenomeLoc( String contig, final long start, final long stop ) {
+        if ( interns != null )
+            contig = interns.get(contig);
+
         this.contig = contig;
         this.start = start;
         this.stop = stop;
@@ -37,12 +45,16 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         this( contig, pos, pos );
     }
 
+    public GenomeLoc( final GenomeLoc toCopy ) {
+        this( new String(toCopy.getContig()), toCopy.getStart(), toCopy.getStop() );
+    }
+
     //
     // Parsing string representations
     //
     private static long parsePosition( final String pos ) {
         String x = pos.replaceAll(",", "");
-        return Long.parseLong(x);        
+        return Long.parseLong(x);
     }
 
     public static GenomeLoc parseGenomeLoc( final String str ) {
@@ -57,7 +69,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         long start = 1;
         long stop = Integer.MAX_VALUE;
         boolean bad = false;
-        
+
         Matcher match1 = regex1.matcher(str);
         Matcher match2 = regex2.matcher(str);
         Matcher match3 = regex3.matcher(str);
@@ -133,7 +145,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         if ( that.start > this.stop ) return true;                          // that guy is past our start
         return false;
     }
-    
+
     public final boolean overlapsP(GenomeLoc that) {
         return ! disjointP( that );
     }
@@ -142,11 +154,41 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         return this.contig.equals(that.contig);
     }
 
+    public final int minus( final GenomeLoc that ) {
+        if ( this.getContig().equals(that.getContig()) )
+            return (int) (this.getStart() - that.getStart());
+        else
+            return Integer.MAX_VALUE;
+    }
 
+    public final int distance( final GenomeLoc that ) {
+        return Math.abs(minus(that));
+    }    
+
+    public final boolean isBetween( final GenomeLoc left, final GenomeLoc right ) {
+        return this.compareTo(left) > -1 && this.compareTo(right) < 1;
+    }
+
+    public final void incPos() {
+        incPos(1);
+    }
+    public final void incPos(long by) {
+        this.start += by;
+        this.stop += by;
+    }
+
+    public final GenomeLoc nextLoc() {
+        GenomeLoc n = new GenomeLoc(this);
+        n.incPos();
+        return n;
+    }
     //
     // Comparison operations
     //
     public static int compareContigs( final String thisContig, final String thatContig ) {
+        if ( thisContig == thatContig )
+            return 0;
+
         if ( refContigOrdering != null ) {
             if ( ! refContigOrdering.containsKey(thisContig) ) {
                 if ( ! refContigOrdering.containsKey(thatContig) ) {

@@ -2,6 +2,7 @@ package org.broadinstitute.sting.atk.modules;
 
 import org.broadinstitute.sting.atk.LocusWalker;
 import org.broadinstitute.sting.atk.LocusIterator;
+import org.broadinstitute.sting.atk.LocusContext;
 import org.broadinstitute.sting.utils.ReferenceOrderedDatum;
 import net.sf.samtools.SAMRecord;
 
@@ -22,7 +23,7 @@ public abstract class BasicLociWalker<MapType, ReduceType> implements LocusWalke
     public String walkerType() { return "ByLocus"; }
 
     // Do we actually want to operate on the context?
-    public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context) {
+    public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
         return true;    // We are keeping all the reads
     }
 
@@ -30,7 +31,7 @@ public abstract class BasicLociWalker<MapType, ReduceType> implements LocusWalke
     }
 
     // These three capabilities must be overidden
-    public abstract MapType map(List<ReferenceOrderedDatum> rodData, char ref, LocusIterator context);
+    public abstract MapType map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context);
     public abstract ReduceType reduceInit();
     public abstract ReduceType reduce(MapType value, ReduceType sum);
 
