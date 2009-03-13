@@ -26,5 +26,5 @@ public interface LocusWalker<MapType, ReduceType> {
     ReduceType reduceInit();
     ReduceType reduce(MapType value, ReduceType sum);
 
-    void onTraveralDone();
+    void onTraversalDone();
 }
