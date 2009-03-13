@@ -6,6 +6,7 @@
   <property name="build" location="build"/>
   <property name="dist"  location="dist"/>
   <property name="lib"  location="lib"/>
+  <property name="javadoc" location="javadoc" />
 
   <path id="classpath">
     <fileset dir="${lib}" includes="*.jar" />
@@ -67,6 +68,11 @@
     <copy todir="${dist}">
       <fileset dir="${lib}" includes="*.jar" />
     </copy>
+  </target>
+
+  <target name="javadoc">
+    <mkdir dir="${javadoc}" />
+    <javadoc sourcepath="${src}" destdir="${javadoc}" />
   </target>
 
   <target name="clean"
