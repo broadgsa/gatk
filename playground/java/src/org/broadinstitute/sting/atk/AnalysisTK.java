@@ -75,7 +75,6 @@ public class AnalysisTK extends CommandLineProgram {
         }
 
         this.engine = new TraversalEngine(INPUT_FILE, REF_FILE_ARG, rods);
-        engine.initialize(ENABLED_THREADED_IO.toLowerCase().equals("true"));
         //engine.testReference();
 
         ValidationStringency strictness;
@@ -96,6 +95,8 @@ public class AnalysisTK extends CommandLineProgram {
 
         engine.setDebugging(! ( DEBUGGING_STR == null || DEBUGGING_STR.toLowerCase().equals("true")));
         engine.setMaxReads(Integer.parseInt(MAX_READS_ARG));
+
+        engine.initialize(ENABLED_THREADED_IO.toLowerCase().equals("true"));
 
         if ( REGION_STR != null ) {
             engine.setLocation(REGION_STR);
