@@ -47,7 +47,7 @@ public class LocusIteratorByHanger extends LocusIterator {
 
         public List<SAMRecord> getReads() { return reads; }
         public List<Integer> getOffsets() { return offsets; }
-        public int numReads() { return readHanger.getLeft().data.size(); }
+        public int numReads() { return reads.size(); }
     }
 
     // -----------------------------------------------------------------------------------------------------------------
