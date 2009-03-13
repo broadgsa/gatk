@@ -464,7 +464,7 @@ public class TraversalEngine {
         }
 
         printOnTraversalDone("loci", sum);
-        walker.onTraveralDone();
+        walker.onTraversalDone();
         return 0;
     }
 
@@ -518,7 +518,7 @@ public class TraversalEngine {
          }
 
         printOnTraversalDone("reads", sum);
-        walker.onTraveralDone();
+        walker.onTraversalDone();
         return 0;
     }
 }
