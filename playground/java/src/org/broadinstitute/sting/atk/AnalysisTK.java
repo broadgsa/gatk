@@ -77,7 +77,7 @@ public class AnalysisTK extends CommandLineProgram {
         this.engine = new TraversalEngine(INPUT_FILE, REF_FILE_ARG, rods);
         engine.initialize(ENABLED_THREADED_IO.toLowerCase().equals("true"));
         //engine.testReference();
-        
+
         ValidationStringency strictness;
     	if ( STRICTNESS_ARG == null ) {
             strictness = ValidationStringency.STRICT;
