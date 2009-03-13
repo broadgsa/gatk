@@ -1,0 +1,53 @@
+\documentclass[11pt,fullpage]{article}
+\usepackage[urlcolor=blue,colorlinks=true]{hyperref}
+
+\begin{document}
+
+\title{Using Intellij with the Broad Sting Repository}
+\author{Aaron Mckenna}
+\date{\today}
+\maketitle
+
+\section{Overview}
+Using JetBrains Intellij with the Broad String repository is a relatively simple process.  
+
+\subsection{Getting the source}
+The source can be checked out from the repository, from the following link: \\ \\
+\url{https://svnrepos/sting}\\ \\
+Using the command:\\ \\
+\texttt{svn co http://svnrepos/sting ./sting} \\ \\ 
+Replacing the second directory with the location you'd like the code to reside in on your local machine.  
+\subsection{Getting IntelliJ}
+Licensing of JetBrains Intellij at MIT is done one license at a time, we don't have a site license for it.  You'll need to contact help,
+(help@broad.mit.edu) and they'll retrieve a license for you.  In the the mean time you can download the Intellij demo, which is a 
+fully featured 30 day trial that the license can be entered into.  You can download it from their site: \\ \\
+\url{http://www.jetbrains.com/idea/download} \\ \\
+When you do have your license, you can enter the license into Intellij by selecting help, and then the register drop down option. 
+\section{Working with the code in Intellij}
+
+\subsection{Setting up the project}
+Intellij doesn't need to know that the project is an ant project specifically, instead it knows how to build an ant project once it's loaded.  To
+setup a new project, create a new project, selecting the \textit{Create project from existing sources} option.  It's best to work with either the 
+playground or the core sources one at a time, and all development work should be done in the playground.  The best option in Intellij is to 
+choose the java directory in playground as your source, and let Intellij create the project directory there. 
+\\
+\begin{enumerate}
+\item Choose \textit{New Project} from the file menu \\
+\item Choose the \textit{Create project from existing sources} option.\\
+\item Name your project, something sensical like Playground, and choose the source directory \textit{sting/playground/java}. \\
+\item Choose the .idea (directory format) project storage.  This is just a recommendation, you can do either. \\
+\item After clicking next, Intellij should detect that the java directory already has a src directory, click through the next few windows and finally select finish.
+\end{enumerate}
+
+To have Intellij recognize that the project is an Ant project, select the Ant tab on the far right of the Intellij window.  When the window pane opens, click the
+plus symbol, and select the build.xml in the /playground/java directory.  Now the Ant build target window should have a list of the targets that were loaded
+from the build file.
+
+\subsection{Building the code}
+To build the code, select the compile list options from the Ant window.  Ivy should automatically build the dependancy list, and fetch any libraries that aren't already loaded.  To 
+transfer the code to one of our machines once a jar file is created.  
+
+\subsection{Setting up the header to contain the license file}
+
+
+\end{document}
