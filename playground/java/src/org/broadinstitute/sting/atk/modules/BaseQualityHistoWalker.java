@@ -43,7 +43,7 @@ public class BaseQualityHistoWalker implements ReadWalker<Integer, Integer> {
         return value + sum;
     }
 
-    public void onTraveralDone() {
+    public void onTraversalDone() {
         int lastNonZero = -1;
         for ( int i = this.qualCounts.length-1; i >= 0; i-- ) {
             if ( this.qualCounts[i] > 0 ) {

@@ -24,5 +24,5 @@ public interface ReadWalker<MapType, ReduceType> {
     ReduceType reduceInit();
     ReduceType reduce(MapType value, ReduceType sum);
 
-    void onTraveralDone();   
+    void onTraversalDone();
 }
