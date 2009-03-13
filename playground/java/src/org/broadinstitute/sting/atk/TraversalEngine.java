@@ -8,6 +8,7 @@ import edu.mit.broad.picard.filter.SamRecordFilter;
 import edu.mit.broad.picard.filter.FilteringIterator;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
+import edu.mit.broad.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.utils.*;
 
 import java.io.*;
@@ -65,6 +66,7 @@ public class TraversalEngine {
 
     public boolean DEBUGGING = false;
     public long N_RECORDS_TO_PRINT = 100000;
+    public int THREADED_IO_BUFFER_SIZE = 10000;
 
     // Locations we are going to process during the traversal
     private GenomeLoc[] locs = null;
@@ -258,7 +260,7 @@ public class TraversalEngine {
      *
      * @return true on success
      */
-    public boolean initialize() {
+    public boolean initialize(final boolean THREADED_IO) {
         lastProgressPrintTime = startTime = System.currentTimeMillis();
         loadReference();
         //testReference();
@@ -275,6 +277,12 @@ public class TraversalEngine {
 
             samReadingTracker = new FileProgressTracker<SAMRecord>( readsFile, samReader.iterator(), samFileStream.getChannel(), 1000 );
             samReadIter = samReadingTracker;
+
+            if ( THREADED_IO ) {
+                System.out.printf("Enabling threaded I/O with buffer of %d reads%n", THREADED_IO_BUFFER_SIZE);
+                samReadIter = new ThreadedIterator<SAMRecord>(samReadIter, THREADED_IO_BUFFER_SIZE);
+            }
+
         }
         catch (IOException e) {
             throw new RuntimeIOException(e);
@@ -310,22 +318,13 @@ public class TraversalEngine {
         return rodIters;
     }
 
-//    protected void testReference() {
-//        String line = "";
-//        refIter.seekForward("chr20", 79);
-//        for ( int i = 0; i < this.maxReads && refIter.hasNext(); i++ ) {
-//            final ReferenceIterator refSite = refIter.next();
-//            final char refBase = refSite.getBaseAsChar();
-//            line += refBase;
-//            if ( (i + 1) % 80 == 0 ) {
-//                System.out.println(line);
-//                line = "";
-//            }
-//            //System.out.printf("  Reference: %s:%d %c%n", refSite.getCurrentContig().getName(), refSite.getPosition(), refBase);
-//        }
-//        System.out.println(line);
-//        System.exit(1);
-//    }
+    protected void testReference() {
+        while (true) {
+            ReferenceSequence ref = refFile.nextSequence();
+            System.out.printf("%s %d %d%n", ref.getName(), ref.length(), System.currentTimeMillis());
+            printProgress(true, "loci", new GenomeLoc("foo", 1));
+        }
+    }
 
     // --------------------------------------------------------------------------------------------------------------
     //

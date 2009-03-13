@@ -24,7 +24,8 @@ public class AnalysisTK extends CommandLineProgram {
     @Option(shortName="L", doc="Genome region to operation on: from chr:start-end", optional=true) public String REGION_STR = null;
     @Option(shortName="T", doc="Type of analysis to run") public String Analysis_Name = null;
     @Option(shortName="DBSNP", doc="DBSNP file", optional=true) public String DBSNP_FILE = null;
-    
+    @Option(shortName="THREADED_IO", doc="If true, enables threaded I/O operations", optional=true) public String ENABLED_THREADED_IO = "false";
+
     public static HashMap<String, Object> MODULES = new HashMap<String,Object>();
     public static void addModule(final String name, final Object walker) {
         System.out.printf("* Adding module %s%n", name);
@@ -74,8 +75,9 @@ public class AnalysisTK extends CommandLineProgram {
         }
 
         this.engine = new TraversalEngine(INPUT_FILE, REF_FILE_ARG, rods);
-        engine.initialize();
-
+        engine.initialize(ENABLED_THREADED_IO.toLowerCase().equals("true"));
+        //engine.testReference();
+        
         ValidationStringency strictness;
     	if ( STRICTNESS_ARG == null ) {
             strictness = ValidationStringency.STRICT;
@@ -105,7 +107,7 @@ public class AnalysisTK extends CommandLineProgram {
         Object my_module;
         if (MODULES.containsKey(Analysis_Name)) {
             my_module = MODULES.get(Analysis_Name);
-        }else{
+        } else {
             System.out.println("Could not find module "+Analysis_Name);
             return 0;
         }
