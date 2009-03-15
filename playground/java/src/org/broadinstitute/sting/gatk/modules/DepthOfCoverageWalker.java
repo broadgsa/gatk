@@ -1,9 +1,11 @@
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.sting.atk.modules;
 
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.atk.LocusContext;
+import org.broadinstitute.sting.utils.ReferenceOrderedDatum;
 
 import java.util.List;
+
+import net.sf.samtools.SAMRecord;
 
 /**
  * Created by IntelliJ IDEA.

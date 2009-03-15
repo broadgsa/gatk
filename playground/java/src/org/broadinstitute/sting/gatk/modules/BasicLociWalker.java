@@ -1,8 +1,10 @@
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.sting.atk.modules;
 
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.atk.LocusWalker;
+import org.broadinstitute.sting.atk.LocusIterator;
+import org.broadinstitute.sting.atk.LocusContext;
+import org.broadinstitute.sting.utils.ReferenceOrderedDatum;
+import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 
@@ -25,8 +27,7 @@ public abstract class BasicLociWalker<MapType, ReduceType> implements LocusWalke
         return true;    // We are keeping all the reads
     }
 
-    public void onTraversalDone() {
-        ;
+    public void onTraveralDone() {
     }
 
     // These three capabilities must be overidden

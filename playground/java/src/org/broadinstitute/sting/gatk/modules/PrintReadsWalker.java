@@ -1,10 +1,11 @@
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.sting.atk.modules;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.atk.LocusContext;
 
-public class CountReadsWalker extends BasicReadWalker<Integer, Integer> {
+public class PrintReadsWalker extends BasicReadWalker<Integer, Integer> {
     public Integer map(LocusContext context, SAMRecord read) {
+        System.out.println(read.format());
         return 1;
     }
 
