@@ -1,5 +1,5 @@
-<project name="AnalysisTK" default="dist" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
-  <description>Compile and distribute the Sting analysis toolkit</description>
+<project name="GenomeAnalysisTK" default="dist" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
+  <description>Compile and distribute the Sting genome analysis toolkit</description>
 
   <!-- set global properties for this build -->
   <property name="src" location="src"/>
@@ -58,10 +58,10 @@
       <flattenmapper />
     </pathconvert>
 
-    <jar jarfile="${dist}/AnalysisTK.jar" basedir="${build}">
+    <jar jarfile="${dist}/GenomeAnalysisTK.jar" basedir="${build}">
       <manifest>
         <attribute name="Class-Path" value="${jar.classpath}" />
-        <attribute name="Main-Class" value="org.broadinstitute.sting.gatkk.GenomeAnalysisTK" />
+        <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.GenomeAnalysisTK" />
       </manifest>
     </jar>
 
