@@ -61,7 +61,7 @@
     <jar jarfile="${dist}/AnalysisTK.jar" basedir="${build}">
       <manifest>
         <attribute name="Class-Path" value="${jar.classpath}" />
-        <attribute name="Main-Class" value="org.broadinstitute.sting.atk.AnalysisTK" />
+        <attribute name="Main-Class" value="org.broadinstitute.sting.gatkk.GenomeAnalysisTK" />
       </manifest>
     </jar>
 

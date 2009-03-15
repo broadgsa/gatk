@@ -1,8 +1,10 @@
-package org.broadinstitute.sting.atk;
+package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.PushbackIterator;
+import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
+import org.broadinstitute.sting.gatk.iterators.LocusIterator;
+import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Predicate;
 import org.broadinstitute.sting.utils.GenomeLoc;

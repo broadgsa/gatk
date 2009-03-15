@@ -1,15 +1,12 @@
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.gatk.refdata;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.CloseableIterator;
-import edu.mit.broad.picard.util.TabbedTextFileParser;
 import edu.mit.broad.picard.util.SequenceUtil;
 
-import java.io.File;
-import java.io.InputStream;
-import java.io.FileInputStream;
-import java.io.BufferedInputStream;
 import java.util.*;
+
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 
 /**
  * Example format:

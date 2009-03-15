@@ -1,4 +1,6 @@
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.gatk.refdata;
+
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 /**
  * Created by IntelliJ IDEA.

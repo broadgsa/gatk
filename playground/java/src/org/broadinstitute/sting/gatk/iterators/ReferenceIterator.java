@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.gatk.iterators;
 
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import edu.mit.broad.picard.reference.ReferenceSequence;
@@ -6,6 +6,8 @@ import net.sf.samtools.util.StringUtil;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 /**
  * Created by IntelliJ IDEA.
@@ -119,6 +121,8 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
         }
         else {
             while (true) {
+                //System.out.printf("Seeking to contig %s, cur=%s, next=%s%n", contigName, currentContig.getName(),
+                //        nextContig != null ? nextContig.getName() : "not loaded yet");
                 // go searching through the reference
                 if ( ! loadNextContig() ) {
                     // never found anything

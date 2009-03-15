@@ -1,1 +1,1 @@
-java -Xmx4096m -jar ../java/dist/AnalysisTK.jar $*
+java -Xmx8192m -jar dist/GenomeAnalysisTK.jar $*

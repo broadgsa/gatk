@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.atk;
+package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.SAMRecord;
@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Iterator;
 
 import org.broadinstitute.sting.utils.RefHanger;
+import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
+import org.broadinstitute.sting.gatk.iterators.LocusIterator;
+import org.broadinstitute.sting.gatk.LocusContext;
 
 /**
  * Iterator that traverses a SAM File, accumulating information on a per-locus basis
@@ -27,7 +30,7 @@ public class LocusIteratorByHanger extends LocusIterator {
     final int INCREMENT_SIZE = 100;
     final boolean DEBUG = false;
 
-    /**
+    /**                   sy
      * Useful class for forwarding on locusContext data from this iterator
      */
     public class MyLocusContext implements LocusContext {
@@ -145,15 +148,23 @@ public class LocusIteratorByHanger extends LocusIterator {
     }
 
     private final boolean currentPositionIsFullyCovered() {
-        final SAMRecord read = it.next();
-        GenomeLoc readLoc = new GenomeLoc(read.getReferenceName(), read.getAlignmentStart());
-        final boolean coveredP = currentPositionIsFullyCovered(readLoc);
-        if ( coveredP )
-            it.pushback(read);
-        return coveredP;
+        if ( ! it.hasNext() )   // if there are no more reads, we are fully covered
+            return true;
+        else {
+            final SAMRecord read = it.peek();
+            GenomeLoc readLoc = Utils.genomicLocationOf(read);
+            final boolean coveredP = currentPositionIsFullyCovered(readLoc);
+            //System.out.printf("CoverP = %s => %b%n", readLoc, coveredP);
+            return coveredP;
+        }
     }
 
     private final void expandWindow(final int incrementSize) {
+        if ( DEBUG ) {
+            System.out.printf("entering expandWindow..., hasNext=%b%n", it.hasNext());
+            printState();
+        }
+
         while ( it.hasNext() ) {
             if ( DEBUG ) {
                 System.out.printf("Expanding window%n");
@@ -162,7 +173,7 @@ public class LocusIteratorByHanger extends LocusIterator {
             
             SAMRecord read = it.next();
 
-            GenomeLoc readLoc = new GenomeLoc(read.getReferenceName(), read.getAlignmentStart());
+            GenomeLoc readLoc = Utils.genomicLocationOf(read);
             if ( DEBUG ) {
                 System.out.printf("  Expanding window sizes %d with %d : left=%s, right=%s, readLoc = %s, cmp=%d%n",
                     readHanger.size(), incrementSize,

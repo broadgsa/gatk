@@ -1,1 +1,1 @@
-java -Xmx4096m -agentlib:hprof=cpu=samples -jar ../java/dist/AnalysisTK.jar $*
+java -Xmx4096m -agentlib:hprof=cpu=samples,depth=10 -jar dist/GenomeAnalysisTK.jar $*

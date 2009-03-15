@@ -1,7 +1,7 @@
-package org.broadinstitute.sting.atk;
+package org.broadinstitute.sting.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.atk.LocusContext;
+import org.broadinstitute.sting.gatk.LocusContext;
 
 /**
  * Created by IntelliJ IDEA.
@@ -17,7 +17,7 @@ public interface ReadWalker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
     boolean filter(LocusContext context, SAMRecord read);
 
-    // Map over the org.broadinstitute.sting.atk.LocusContext
+    // Map over the org.broadinstitute.sting.gatk.LocusContext
     MapType map(LocusContext context, SAMRecord read);
 
     // Given result of map function

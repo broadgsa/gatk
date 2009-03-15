@@ -1,8 +1,8 @@
-package org.broadinstitute.sting.atk.modules;
+package org.broadinstitute.sting.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.atk.LocusContext;
-import org.broadinstitute.sting.atk.ReadWalker;
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 
 /**
  * Created by IntelliJ IDEA.
@@ -20,8 +20,8 @@ public abstract class BasicReadWalker<MapType, ReduceType> implements ReadWalker
         return true;
     }
 
-    public void onTraveralDone() {
-
+    public void onTraversalDone() {
+        ;
     }
 
     // Three basic abstract function that *must* be overridden

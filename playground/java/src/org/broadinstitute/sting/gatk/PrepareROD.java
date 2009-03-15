@@ -1,16 +1,17 @@
-package org.broadinstitute.sting.atk;
+package org.broadinstitute.sting.gatk;
 
-import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMSequenceRecord;
 import edu.mit.broad.picard.cmdline.CommandLineProgram;
 import edu.mit.broad.picard.cmdline.Usage;
 import edu.mit.broad.picard.cmdline.Option;
 import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
-import edu.mit.broad.picard.reference.ReferenceSequence;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 
-import org.broadinstitute.sting.atk.modules.*;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.rodGFF;
 
 import java.io.*;
 import java.util.HashMap;

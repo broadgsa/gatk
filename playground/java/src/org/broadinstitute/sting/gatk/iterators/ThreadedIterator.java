@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.gatk.iterators;
 
 import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;

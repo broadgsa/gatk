@@ -1,12 +1,8 @@
-package org.broadinstitute.sting.atk.modules;
+package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.atk.LocusWalker;
-import org.broadinstitute.sting.atk.LocusIterator;
-import org.broadinstitute.sting.atk.LocusContext;
-import org.broadinstitute.sting.utils.ReferenceOrderedDatum;
-import org.broadinstitute.sting.utils.rodDbSNP;
-import org.broadinstitute.sting.utils.Utils;
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 
 import java.util.List;
 
@@ -24,7 +20,7 @@ public class NullWalker implements LocusWalker<Integer, Integer> {
         return true;    // We are keeping all the reads
     }
 
-    // Map over the org.broadinstitute.sting.atk.LocusContext
+    // Map over the org.broadinstitute.sting.gatk.LocusContext
     public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) 
     {
         return 1;
@@ -40,6 +36,6 @@ public class NullWalker implements LocusWalker<Integer, Integer> {
         return 0;
     }
 
-    public void onTraveralDone() {
+    public void onTraversalDone() {
     }
 }

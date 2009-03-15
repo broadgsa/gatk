@@ -1,7 +1,7 @@
-package org.broadinstitute.sting.atk.modules;
+package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.atk.LocusContext;
-import org.broadinstitute.sting.utils.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 
 import java.util.List;
 

@@ -1,7 +1,7 @@
-package org.broadinstitute.sting.atk;
+package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.atk.LocusIterator;
-import org.broadinstitute.sting.utils.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.LocusContext;
 
 import java.util.List;
 
@@ -19,7 +19,7 @@ public interface LocusWalker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
     boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context);
 
-    // Map over the org.broadinstitute.sting.atk.LocusContext
+    // Map over the org.broadinstitute.sting.gatk.LocusContext
     MapType map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context);
 
     // Given result of map function

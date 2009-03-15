@@ -1,8 +1,7 @@
-package org.broadinstitute.sting.atk.modules;
+package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.atk.LocusIterator;
-import org.broadinstitute.sting.atk.LocusContext;
-import org.broadinstitute.sting.utils.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;

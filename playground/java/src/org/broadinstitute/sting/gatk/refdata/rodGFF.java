@@ -1,15 +1,9 @@
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.gatk.refdata;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.CloseableIterator;
-import edu.mit.broad.picard.util.TabbedTextFileParser;
-
-import java.io.File;
-import java.io.InputStream;
-import java.io.FileInputStream;
-import java.io.BufferedInputStream;
-import java.util.Iterator;
 import java.util.HashMap;
+
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 /**
  * Class for representing arbitrary reference ordered data sets

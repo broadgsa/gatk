@@ -7,7 +7,7 @@
 * This software is supplied without any warranty or guaranteed support whatsoever. Neither
 * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
 */
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.gatk.iterators;
 
 import java.util.Iterator;
 
@@ -23,16 +23,25 @@ public class PushbackIterator<T> implements Iterator<T> {
         return pushedElement != null || underlyingIterator.hasNext();
     }
 
+    public T peek() {
+        T x = next();
+        pushback(x);
+        return x;
+    }
+
     public T next() {
         if (pushedElement != null) {
             final T ret = pushedElement;
             pushedElement = null;
             return ret;
+        } else {
+            return underlyingIterator.next();
         }
-        return underlyingIterator.next();
     }
 
     public void pushback(T elt) {
+        assert(pushedElement == null);
+        
         pushedElement = elt;
     }
 

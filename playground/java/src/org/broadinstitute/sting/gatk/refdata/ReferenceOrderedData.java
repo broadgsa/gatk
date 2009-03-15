@@ -1,7 +1,6 @@
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.gatk.refdata;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
@@ -9,6 +8,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import edu.mit.broad.picard.util.TabbedTextFileParser;
+import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 /**
  * Class for representing arbitrary reference ordered data sets

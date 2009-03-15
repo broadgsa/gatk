@@ -1,8 +1,7 @@
-package org.broadinstitute.sting.atk;
+package org.broadinstitute.sting.gatk;
 
 import net.sf.samtools.*;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
-import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.util.RuntimeIOException;
 import edu.mit.broad.picard.filter.SamRecordFilter;
 import edu.mit.broad.picard.filter.FilteringIterator;
@@ -10,6 +9,11 @@ import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
 import edu.mit.broad.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.gatk.iterators.*;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 
 import java.io.*;
 import java.util.*;
@@ -22,8 +26,11 @@ import net.sf.functionalj.Functions;
 import net.sf.functionalj.util.Operators;
 
 public class TraversalEngine {
-    // Usage and parameters
-    private List<ReferenceOrderedData> rods = null;         // list of reference ordered data objects
+    // list of reference ordered data objects
+    private List<ReferenceOrderedData> rods = null;
+
+    // Iterator over rods
+    List<ReferenceOrderedData.RODIterator> rodIters;
 
     //private String regionStr = null;                        // String dec
     //private String traversalType = null;                    // String describing this traversal type
@@ -262,9 +269,17 @@ public class TraversalEngine {
      */
     public boolean initialize(final boolean THREADED_IO) {
         lastProgressPrintTime = startTime = System.currentTimeMillis();
-        loadReference();
+        initializeReference();
+        initializeReads(THREADED_IO);
+        // Initial the reference ordered data iterators
+        initializeRODs();
+
         //testReference();
         //loadReference();
+        return true;
+    }
+
+    private void initializeReads(final boolean THREADED_IO) {
         try {
             final FileInputStream samFileStream = new FileInputStream(readsFile);
             final InputStream bufferedStream= new BufferedInputStream(samFileStream);
@@ -276,8 +291,8 @@ public class TraversalEngine {
             System.err.println("Sort order is: " + header.getSortOrder());
 
             samReadingTracker = new FileProgressTracker<SAMRecord>( readsFile, samReader.iterator(), samFileStream.getChannel(), 1000 );
-            samReadIter = samReadingTracker;
-
+            samReadIter = new VerifyingSamIterator(samReadingTracker);
+            
             if ( THREADED_IO ) {
                 System.out.printf("Enabling threaded I/O with buffer of %d reads%n", THREADED_IO_BUFFER_SIZE);
                 samReadIter = new ThreadedIterator<SAMRecord>(samReadIter, THREADED_IO_BUFFER_SIZE);
@@ -287,8 +302,6 @@ public class TraversalEngine {
         catch (IOException e) {
             throw new RuntimeIOException(e);
         }
-
-        return true;
     }
 
 
@@ -296,11 +309,14 @@ public class TraversalEngine {
      * Prepare the reference for stream processing
      *
      */
-    protected void loadReference() {
+    protected void initializeReference() {
         if ( refFileName!= null ) {
             this.refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFileName);
             this.refIter = new ReferenceIterator(this.refFile);
-            Utils.setupRefContigOrdering(this.refFile);
+            if ( ! Utils.setupRefContigOrdering(this.refFile) ) {
+                // We couldn't process the reference contig ordering, fail since we need it
+                throw new RuntimeException("We couldn't load the contig dictionary associated with %s.  At the current time we require this dictionary file to efficiently access the FASTA file.  In the near future this program will automatically construct the dictionary for you and save it down.");
+            }
         }         
     }
 
@@ -311,7 +327,7 @@ public class TraversalEngine {
      */
     protected List<ReferenceOrderedData.RODIterator> initializeRODs() {
         // set up reference ordered data
-        List<ReferenceOrderedData.RODIterator> rodIters = new ArrayList<ReferenceOrderedData.RODIterator>();
+        rodIters = new ArrayList<ReferenceOrderedData.RODIterator>();
         for ( ReferenceOrderedData data : rods ) {
             rodIters.add(data.iterator());
         }
@@ -413,14 +429,12 @@ public class TraversalEngine {
         //LocusIterator iter = new SingleLocusIterator(filterIter);
         LocusIterator iter = new LocusIteratorByHanger(filterIter);
 
-        // Initial the reference ordered data iterators
-        List<ReferenceOrderedData.RODIterator> rodIters = initializeRODs();
-
         // initialize the walker object
         walker.initialize();
         // Initialize the T sum using the walker
         T sum = walker.reduceInit();
         boolean done = false;
+        GenomeLoc prevLoc = null;
 
         while ( iter.hasNext() && ! done ) {
             this.nRecords++;
@@ -429,7 +443,10 @@ public class TraversalEngine {
             final LocusContext locus = iter.next();
 
             // Poor man's version of index LOL
-            if ( inLocations(locus.getLocation()) ) {
+            GenomeLoc curLoc = locus.getLocation();
+            if ( inLocations(curLoc) ) {
+                if ( prevLoc != null && curLoc.compareContigs(prevLoc) != 0 )
+                    System.out.printf("Traversing to next chromosome...%n");
 
                 // Jump forward in the reference to this locus location
                 final ReferenceIterator refSite = refIter.seekForward(locus.getLocation());
@@ -522,3 +539,4 @@ public class TraversalEngine {
         return 0;
     }
 }
+

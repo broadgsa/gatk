@@ -1,19 +1,19 @@
-package org.broadinstitute.sting.atk;
+package org.broadinstitute.sting.gatk;
 
 import net.sf.samtools.SAMFileReader.ValidationStringency;
 import edu.mit.broad.picard.cmdline.CommandLineProgram;
 import edu.mit.broad.picard.cmdline.Usage;
 import edu.mit.broad.picard.cmdline.Option;
 
-import org.broadinstitute.sting.atk.modules.*;
-import org.broadinstitute.sting.utils.ReferenceOrderedData;
-import org.broadinstitute.sting.utils.rodGFF;
-import org.broadinstitute.sting.utils.rodDbSNP;
+import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.rodGFF;
 
 import java.io.*;
 import java.util.HashMap;
 
-public class AnalysisTK extends CommandLineProgram {
+public class GenomeAnalysisTK extends CommandLineProgram {
     // Usage and parameters
     @Usage(programVersion="0.1") public String USAGE = "SAM Validator\n";
     @Option(shortName="I", doc="SAM or BAM file for validation") public File INPUT_FILE;
@@ -49,7 +49,7 @@ public class AnalysisTK extends CommandLineProgram {
 
     /** Required main method implementation. */
     public static void main(String[] argv) {
-        System.exit(new AnalysisTK().instanceMain(argv));
+        System.exit(new GenomeAnalysisTK().instanceMain(argv));
     }
 
     protected int doWork() {
@@ -75,7 +75,6 @@ public class AnalysisTK extends CommandLineProgram {
         }
 
         this.engine = new TraversalEngine(INPUT_FILE, REF_FILE_ARG, rods);
-        //engine.testReference();
 
         ValidationStringency strictness;
     	if ( STRICTNESS_ARG == null ) {
@@ -96,12 +95,13 @@ public class AnalysisTK extends CommandLineProgram {
         engine.setDebugging(! ( DEBUGGING_STR == null || DEBUGGING_STR.toLowerCase().equals("true")));
         engine.setMaxReads(Integer.parseInt(MAX_READS_ARG));
 
-        engine.initialize(ENABLED_THREADED_IO.toLowerCase().equals("true"));
-
         if ( REGION_STR != null ) {
             engine.setLocation(REGION_STR);
         }
 
+        engine.initialize(ENABLED_THREADED_IO.toLowerCase().equals("true"));
+        //engine.testReference();
+        
         //LocusWalker<Integer,Integer> walker = new PileupWalker();
 
         // Try to get the module specified

@@ -1,11 +1,8 @@
-package org.broadinstitute.sting.atk.modules;
+package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.atk.LocusWalker;
-import org.broadinstitute.sting.atk.LocusIterator;
-import org.broadinstitute.sting.atk.LocusContext;
-import org.broadinstitute.sting.utils.ReferenceOrderedDatum;
-import org.broadinstitute.sting.utils.rodDbSNP;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
@@ -17,7 +14,7 @@ import java.util.List;
  * Time: 3:22:14 PM
  * To change this template use File | Settings | File Templates.
  */
-public class PileupWalker implements LocusWalker<Integer, Integer> {
+public class PileupWalker extends BasicLociWalker<Integer, Integer> {
     public void initialize() {
     }
 
@@ -28,7 +25,7 @@ public class PileupWalker implements LocusWalker<Integer, Integer> {
         return true;    // We are keeping all the reads
     }
 
-    // Map over the org.broadinstitute.sting.atk.LocusContext
+    // Map over the org.broadinstitute.sting.gatk.LocusContext
     public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
         //System.out.printf("Reads %s:%d %d%n", context.getContig(), context.getPosition(), context.getReads().size());
         //for ( SAMRecord read : context.getReads() ) {
@@ -83,8 +80,5 @@ public class PileupWalker implements LocusWalker<Integer, Integer> {
     public Integer reduceInit() { return 0; }
     public Integer reduce(Integer value, Integer sum) {
         return value + sum;
-    }
-
-    public void onTraveralDone() {
     }
 }

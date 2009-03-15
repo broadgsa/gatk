@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.atk;
+package org.broadinstitute.sting.gatk;
 
 import net.sf.samtools.SAMRecord;
 

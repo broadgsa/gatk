@@ -29,6 +29,10 @@ public class Utils {
         return filtered;
     }
 
+    public static GenomeLoc genomicLocationOf( final SAMRecord read ) {
+        return new GenomeLoc( read.getReferenceName(), read.getAlignmentStart() );
+    }
+
     private static final Map<Integer,String> readFlagNames
           = new HashMap<Integer,String>();
 
@@ -100,7 +104,7 @@ public class Utils {
         return average(vals, vals.size());
     }
 
-    public static void setupRefContigOrdering(final ReferenceSequenceFile refFile) { 
+    public static boolean setupRefContigOrdering(final ReferenceSequenceFile refFile) {
         List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary();
         HashMap<String, Integer> refContigOrdering = new HashMap<String, Integer>();
 
@@ -116,6 +120,7 @@ public class Utils {
         }
         
         GenomeLoc.setContigOrdering(refContigOrdering);
+        return refContigOrdering != null;
     }
 
     // Java Generics can't do primitive types, so I had to do this the simplistic way

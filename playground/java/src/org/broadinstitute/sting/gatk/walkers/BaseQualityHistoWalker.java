@@ -1,8 +1,8 @@
-package org.broadinstitute.sting.atk.modules;
+package org.broadinstitute.sting.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.atk.ReadWalker;
-import org.broadinstitute.sting.atk.LocusContext;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.LocusContext;
 
 /**
  * Created by IntelliJ IDEA.
@@ -27,7 +27,7 @@ public class BaseQualityHistoWalker implements ReadWalker<Integer, Integer> {
         return true;    // We are keeping all the reads
     }
 
-    // Map over the org.broadinstitute.sting.atk.LocusContext
+    // Map over the org.broadinstitute.sting.gatk.LocusContext
     public Integer map(LocusContext context, SAMRecord read) {
         for ( byte qual : read.getBaseQualities() ) {
             //System.out.println(qual);
