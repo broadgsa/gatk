@@ -55,7 +55,42 @@ Useful targets include:
   \item[javadoc] Generates javadoc for the source tree.  Places javadoc in the javadoc directory.
   \item[clean] Removes artifacts from old compilations / distributions.
 \end{description}
-All available ant targets can be viewed by running 'ant -projecthelp' in the directory containing build.xml.
+View all available ant targets by running 'ant -projecthelp' in the directory containing build.xml.
+
+\subsection{Adding external sources}
+To easily debug into third-party dependencies like picard and samtools, add their source to the dependency list as follows:
+
+\begin{enumerate}
+  \item Right-click one of the Sting modules and select 'Module Settings'.
+  \item Select the 'dependencies' tab.
+  \item Right-click your library directory.  Hit 'Edit...'.
+  \item Click 'Attach Sources...'.
+  \item In the 'Choose Source Roots' directory, if the project contains a test directory, unselect it.
+  \item Click 'Okay' or 'Apply' until all dialogs are closed.
+\end{enumerate}
+
+\subsection{Debugging remotely on gsa1 / gsa2}
+To debug remotely on gsa1 or gsa2:
+
+\begin{enumerate}
+  \item Select 'Edit Configurations' from the 'Run' menu.
+  \item Click the '+' button to add a new configuration.  Select 'Remote'.
+  \item Type in 'gsa1' or 'gsa2' in the Host field.  Choose a port randomly (please choose a value >= 1024).
+  \item Before launch, run ant target 'dist'.
+  \item Make a note of the command-line settings required to initiate remote debugging:
+    \begin{verbatim}
+      -Xdebug 
+      -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005
+    \end{verbatim}
+  \item Start the application on gsa1 as follows:
+    \begin{verbatim}
+      java -Xdebug \
+           -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005 \ 
+           -Xmx{mem_required} \ 
+           -jar {your jar} {your options}
+    \end{verbatim}
+  \item Select the 'Debug' icon from the toolbar.  Press the 'Debug' button in the resulting dialog.
+\end{enumerate}
 
 \subsection{Setting up the header to contain the license file}
 
