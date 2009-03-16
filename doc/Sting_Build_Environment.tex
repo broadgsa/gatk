@@ -1,0 +1,57 @@
+\documentclass[11pt,fullpage]{article}
+\usepackage[urlcolor=blue,colorlinks=true]{hyperref}
+
+\begin{document}
+
+\title{The Sting Build Environment}
+\author{Matt Hanna}
+\date{16 Mar 2009}
+\maketitle
+
+\section{Getting the source}
+gsa1 and gsa2 are earmarked for Sting repository development, and the scr1 thumper is used for Sting storage.
+
+To download the source:
+\begin{enumerate}
+  \item log into gsa1 or gsa2.  Create a directory for yourself on the scr1 thumper as follows:
+    \begin{verbatim}
+      mkdir /wga/scr1/{YOUR USER NAME}
+    \end{verbatim}
+  \item Download the source as follows:
+    \begin{verbatim}
+      svn co https://svnrepos/Sting/trunk Sting
+    \end{verbatim}
+  \item (Optional) mount the thumper locally using share name smb://thumper01/scr1.
+\end{enumerate}
+
+\section{Build Prerequisites}
+Sting requires Java SE 6 to compile.  The steps below describe preparing your system for JDK 1.6 compilation.
+
+\subsection{Mac}
+\begin{enumerate}
+  \item Download the latest Mac Java service pack.  At the time of writing, the latest service pack is available here: \url{http://support.apple.com/downloads/Java_for_Mac_OS_X_10_5_Update_2}
+  \item Set the JAVA\_HOME environment variable to the location of JDK1.6 (/System/Library/Frameworks/JavaVM.framework/Versions/1.6/Home).
+\end{enumerate}
+
+\subsection{Linux in the Broad Environment}
+  To compile Sting on gsa1 or gsa2, add the following lines to your ~/.my.cshrc:
+  \begin{verbatim}
+    use -q Java-1.6
+    use -q Ant-1.7
+  \end{verbatim}
+
+\section{Building the Source}
+To build the source, locate all build.xmls for required projects.  In each directory containing a build.xml, run the command:
+\begin{verbatim}
+ant
+\end{verbatim}
+
+You might also find the following ant targets useful.  \input{Ant_Help}
+
+\section{Adding Third-party dependencies}
+A large number of popular third-party tools are available via the maven repository (\url{mvnrepository.com}).  If your tool is available in the maven repository, add a line to the ivy.xml file similar to the following:
+\begin{verbatim}
+    <dependency org="junit" name="junit" rev="4.4" />
+\end{verbatim}
+If your third-party dependency is not available via ivy, talk to Aaron or Matt.
+\end{document}
