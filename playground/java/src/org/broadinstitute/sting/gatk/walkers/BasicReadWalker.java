@@ -14,6 +14,7 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 public abstract class BasicReadWalker<MapType, ReduceType> implements ReadWalker<MapType, ReduceType> {
     public void initialize() { }
     public String walkerType() { return "ByRead"; }
+    public boolean requiresOrderedReads() { return false; }
 
     public boolean filter(LocusContext context, SAMRecord read) {
         // We are keeping all the reads

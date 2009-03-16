@@ -30,12 +30,21 @@ public class VerifyingSamIterator implements Iterator<SAMRecord> {
         SAMRecord cur = it.next();
         if ( last != null )
             verifyRecord(last, cur);
-        last = cur;
+        if ( ! cur.getReadUnmappedFlag() )
+            last = cur;
         return cur;
     }
 
+    /**
+     * If true, enables ordered checking of the reads in the file.  By default this is enabled.
+     * @param checkP If true, sam records will be checked to insure they come in order
+     */
+    public void setCheckOrderP( boolean checkP ) {
+        checkOrderP = checkP;
+    }
+
     public void verifyRecord( final SAMRecord last, final SAMRecord cur ) {
-        if ( checkOrderP ) {
+        if ( checkOrderP && ! cur.getReadUnmappedFlag() ) {
             GenomeLoc lastLoc = Utils.genomicLocationOf( last );
             GenomeLoc curLoc = Utils.genomicLocationOf( cur );
 

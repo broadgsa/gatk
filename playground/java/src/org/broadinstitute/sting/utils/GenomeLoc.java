@@ -123,6 +123,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     }
 
 
+    public final boolean isUnmapped() { return this.contig == null; }
     public final boolean throughEndOfContigP() { return this.stop == Integer.MAX_VALUE; }
     public final boolean atBeginningOfContigP() { return this.start == 1; }
 

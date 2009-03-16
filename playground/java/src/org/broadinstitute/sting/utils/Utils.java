@@ -16,6 +16,23 @@ import java.util.*;
  * To change this template use File | Settings | File Templates.
  */
 public class Utils {
+    public static void warnUser(final String msg) {
+        System.out.printf("********************************************************************************%n");
+        System.out.printf("* WARNING:%n");
+        System.out.printf("*%n");
+        System.out.printf("* %s%n", msg);
+        System.out.printf("********************************************************************************%n");                
+    }
+
+    public static void scareUser(final String msg) {
+        System.out.printf("********************************************************************************%n");
+        System.out.printf("* ERROR:%n");
+        System.out.printf("*%n");
+        System.out.printf("* %s%n", msg);
+        System.out.printf("********************************************************************************%n");
+        throw new RuntimeException(msg);
+    }
+
     public static <T> List<T> filter(Predicate pred, Collection<T> c) {
         List<T> filtered = new ArrayList<T>();
         // loop through all the elements in c
@@ -142,7 +159,7 @@ public class Utils {
         }
         
         GenomeLoc.setContigOrdering(refContigOrdering);
-        return refContigOrdering != null;
+        return refContigs != null;
     }
 
     // Java Generics can't do primitive types, so I had to do this the simplistic way

@@ -94,6 +94,8 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
     //
     // --------------------------------------------------------------------------------------------------------------
     public ReferenceIterator seekForward(final GenomeLoc loc) {
+        assert loc != null : "seekForward location is null";
+        
         return seekForwardOffset(loc.getContig(), loc.getStart() - 1);
     }
 
@@ -102,6 +104,9 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
     }
 
     private ReferenceIterator seekForwardOffset(final String contigName, final long seekOffset) {
+        assert contigName != null : "contigName is null";
+        assert seekOffset >= 0 : "seekOffset < 0: " + seekOffset;
+
         // jumps us forward in the sequence to the contig / pos
         if ( currentContig == null )
             next();

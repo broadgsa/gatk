@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
 public interface ReadWalker<MapType, ReduceType> {
     void initialize();
     public String walkerType();
+    public boolean requiresOrderedReads();
     
     // Do we actually want to operate on the context?
     boolean filter(LocusContext context, SAMRecord read);

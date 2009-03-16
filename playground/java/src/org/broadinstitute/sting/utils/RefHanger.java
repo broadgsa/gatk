@@ -87,7 +87,7 @@ public class RefHanger<T> {
      * @return
      */
     public Hanger popLeft() {
-        assert(hasHangers());
+        assert hasHangers();
         return hangers.remove(0);
     }
 
@@ -101,7 +101,7 @@ public class RefHanger<T> {
      * @return
      */
     public Hanger getLeft() {
-        assert(hasHangers());
+        assert hasHangers();
         return getHanger(0);
     }
 
@@ -111,7 +111,7 @@ public class RefHanger<T> {
      * @return
      */
     public Hanger getHanger(int relativePos) {
-        assert( hangers.contains(relativePos) );
+        //assert hangers.contains(relativePos) : hangers + " " + relativePos;
         return hangers.get(relativePos);
     }
 
@@ -209,7 +209,7 @@ public class RefHanger<T> {
             // we have nothing, just push right
             pushRight(pos, datum);
         else {
-            assert( pos.compareTo(getRightLoc()) == 1 );
+            //assert pos.compareTo(getRightLoc()) == 1 : pos + " " + getRightLoc() + " => " + pos.compareTo(getRightLoc());
 
             GenomeLoc nextRight = getRightLoc().nextLoc();
             while ( pos.compareTo(nextRight) == 1 ) {

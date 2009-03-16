@@ -50,8 +50,12 @@ public class TraversalEngine {
 
     // Name of the reads file, in BAM/SAM format
     private File readsFile = null;                          // the name of the reads file
+    private SAMFileReader samReader = null;
     // iterator over the sam records in the readsFile
     private Iterator<SAMRecord> samReadIter = null;
+
+    // The verifying iterator, it does checking
+    VerifyingSamIterator verifyingSamReadIter = null;
 
     // The reference data -- filename, refSeqFile, and iterator
     private File refFileName = null;                        // the name of the reference file
@@ -72,6 +76,7 @@ public class TraversalEngine {
     private FileProgressTracker samReadingTracker = null;
 
     public boolean DEBUGGING = false;
+    public boolean beSafeP = true;
     public long N_RECORDS_TO_PRINT = 100000;
     public int THREADED_IO_BUFFER_SIZE = 10000;
 
@@ -107,6 +112,11 @@ public class TraversalEngine {
     public void setStrictness( final ValidationStringency s ) { strictness = s; }
     public void setMaxReads( final int maxReads ) { this.maxReads = maxReads; }
     public void setDebugging( final boolean d ) { DEBUGGING = d; }
+    public void setSafetyChecking( final boolean beSafeP ) {
+        if ( ! beSafeP )
+            System.out.printf("*** Turning off safety checking, I hope you know what you are doing...%n");
+        this.beSafeP = beSafeP;
+    }
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -284,14 +294,19 @@ public class TraversalEngine {
             final FileInputStream samFileStream = new FileInputStream(readsFile);
             final InputStream bufferedStream= new BufferedInputStream(samFileStream);
             //final InputStream bufferedStream= new BufferedInputStream(samInputStream, 10000000);
-            final SAMFileReader samReader = new SAMFileReader(bufferedStream, true);
+            samReader = new SAMFileReader(bufferedStream, true);
             samReader.setValidationStringency(strictness);
 
             final SAMFileHeader header = samReader.getFileHeader();
             System.err.println("Sort order is: " + header.getSortOrder());
 
             samReadingTracker = new FileProgressTracker<SAMRecord>( readsFile, samReader.iterator(), samFileStream.getChannel(), 1000 );
-            samReadIter = new VerifyingSamIterator(samReadingTracker);
+            if ( beSafeP ) {
+                verifyingSamReadIter = new VerifyingSamIterator(samReadingTracker);
+                samReadIter = verifyingSamReadIter;
+            } else {
+                samReadIter = samReadingTracker;
+            }
             
             if ( THREADED_IO ) {
                 System.out.printf("Enabling threaded I/O with buffer of %d reads%n", THREADED_IO_BUFFER_SIZE);
@@ -310,12 +325,12 @@ public class TraversalEngine {
      *
      */
     protected void initializeReference() {
-        if ( refFileName!= null ) {
+        if ( refFileName != null ) {
             this.refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFileName);
             this.refIter = new ReferenceIterator(this.refFile);
             if ( ! Utils.setupRefContigOrdering(this.refFile) ) {
                 // We couldn't process the reference contig ordering, fail since we need it
-                throw new RuntimeException("We couldn't load the contig dictionary associated with %s.  At the current time we require this dictionary file to efficiently access the FASTA file.  In the near future this program will automatically construct the dictionary for you and save it down.");
+                Utils.scareUser(String.format("We couldn't load the contig dictionary associated with %s.  At the current time we require this dictionary file to efficiently access the FASTA file.  In the near future this program will automatically construct the dictionary for you and save it down.", refFileName));
             }
         }         
     }
@@ -413,6 +428,16 @@ public class TraversalEngine {
         }
     }
 
+    public void verifySortOrder(final boolean requiresSortedOrder) {
+        if ( beSafeP && samReader.getFileHeader().getSortOrder() != SAMFileHeader.SortOrder.coordinate ) {
+            final String msg = "SAM file is not sorted in coordinate order (according to header) Walker type with given arguments requires a sorted file for correct processing";
+            if ( requiresSortedOrder || strictness == SAMFileReader.ValidationStringency.STRICT )
+                throw new RuntimeIOException(msg);
+            else if ( strictness == SAMFileReader.ValidationStringency.LENIENT )
+                Utils.warnUser(msg);
+        }
+    }
+
     /**
      * Traverse by loci -- the key driver of linearly ordered traversal of loci.  Provides reads, RODs, and
      * the reference base for each locus in the reference to the LocusWalker walker.  Supports all of the
@@ -424,6 +449,8 @@ public class TraversalEngine {
      * @return 0 on success
      */
     protected <M,T> int traverseByLoci(LocusWalker<M,T> walker) {
+        verifySortOrder(true);
+
         // prepare the read filtering read iterator and provide it to a new locus iterator
         FilteringIterator filterIter = new FilteringIterator(samReadIter, new locusStreamFilterFunc());
         //LocusIterator iter = new SingleLocusIterator(filterIter);
@@ -490,13 +517,19 @@ public class TraversalEngine {
      * Traverse by read -- the key driver of linearly ordered traversal of reads.  Provides a single read to
      * the walker object, in coordinate order.  Supports all of the
      * interaction contract implied by the read walker
-     *
+     *                                  sor
      * @param walker A read walker object
      * @param <M> MapType -- the result of calling map() on walker
      * @param <T> ReduceType -- the result of calling reduce() on the walker
      * @return 0 on success
      */
     protected <M,R> int traverseByRead(ReadWalker<M,R> walker) {
+        if ( refFileName == null && ! walker.requiresOrderedReads() ) {
+            System.out.println("STATUS: No reference file provided and unordered reads are tolerated, enabling out of order read processing.");
+            verifyingSamReadIter.setCheckOrderP(false);
+        }
+
+        verifySortOrder( refFileName != null || walker.requiresOrderedReads());
 
         // Initialize the walker
         walker.initialize();
@@ -515,10 +548,11 @@ public class TraversalEngine {
             GenomeLoc loc = Utils.genomicLocationOf(read);
 
             // Jump forward in the reference to this locus location
-            final ReferenceIterator refSite = refIter.seekForward(loc);
-            final char refBase = refSite.getBaseAsChar();
             LocusContext locus = new LocusContext(loc, reads, offsets);
-            locus.setReferenceContig(refSite.getCurrentContig());
+            if ( ! loc.isUnmapped() && refIter != null ) {
+                final ReferenceIterator refSite = refIter.seekForward(loc);
+                locus.setReferenceContig(refSite.getCurrentContig());
+            }
 
             if ( inLocations(loc) ) {
 

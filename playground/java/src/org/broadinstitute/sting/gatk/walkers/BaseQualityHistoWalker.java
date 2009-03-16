@@ -11,7 +11,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
  * Time: 3:22:14 PM
  * To change this template use File | Settings | File Templates.
  */
-public class BaseQualityHistoWalker implements ReadWalker<Integer, Integer> {
+public class BaseQualityHistoWalker extends BasicReadWalker<Integer, Integer> {
     long[] qualCounts = new long[100];
 
     public void initialize() {
@@ -19,8 +19,6 @@ public class BaseQualityHistoWalker implements ReadWalker<Integer, Integer> {
             this.qualCounts[i] = 0;
         }
     }
-
-    public String walkerType() { return "ByRead"; }
 
     // Do we actually want to operate on the context?
     public boolean filter(LocusContext context, SAMRecord read) {

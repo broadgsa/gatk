@@ -25,6 +25,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     @Option(shortName="T", doc="Type of analysis to run") public String Analysis_Name = null;
     @Option(shortName="DBSNP", doc="DBSNP file", optional=true) public String DBSNP_FILE = null;
     @Option(shortName="THREADED_IO", doc="If true, enables threaded I/O operations", optional=true) public String ENABLED_THREADED_IO = "false";
+    @Option(shortName="U", doc="If true, enables unsafe operations, nothing will be checked at runtime.  You better know what you are doing if you set this flag.", optional=false) public String UNSAFE = "false";
 
     public static HashMap<String, Object> MODULES = new HashMap<String,Object>();
     public static void addModule(final String name, final Object walker) {
@@ -99,6 +100,8 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         if ( REGION_STR != null ) {
             engine.setLocation(REGION_STR);
         }
+
+        engine.setSafetyChecking(! UNSAFE.toLowerCase().equals("true"));
 
         engine.initialize(ENABLED_THREADED_IO.toLowerCase().equals("true"));
         //engine.testReference();
