@@ -42,6 +42,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         addModule("SingleSampleGenotyper", new SingleSampleGenotyper());
         addModule("Null", new NullWalker());
         addModule("DepthOfCoverage", new DepthOfCoverageWalker());
+        addModule("CountMismatches", new MismatchCounterWalker());
     }
 
     private TraversalEngine engine = null;

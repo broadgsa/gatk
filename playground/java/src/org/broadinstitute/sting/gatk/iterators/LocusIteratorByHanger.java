@@ -30,29 +30,6 @@ public class LocusIteratorByHanger extends LocusIterator {
     final int INCREMENT_SIZE = 100;
     final boolean DEBUG = false;
 
-    /**                   sy
-     * Useful class for forwarding on locusContext data from this iterator
-     */
-    public class MyLocusContext implements LocusContext {
-        GenomeLoc loc = null;
-        private List<SAMRecord> reads = null;
-        private List<Integer> offsets = null;
-
-        private MyLocusContext(GenomeLoc loc, List<SAMRecord> reads, List<Integer> offsets) {
-            this.loc = loc;
-            this.reads = reads;
-            this.offsets = offsets;
-        }
-
-        public String getContig() { return getLocation().getContig(); }
-        public long getPosition() { return getLocation().getStart(); }
-        public GenomeLoc getLocation() { return loc; }
-
-        public List<SAMRecord> getReads() { return reads; }
-        public List<Integer> getOffsets() { return offsets; }
-        public int numReads() { return reads.size(); }
-    }
-
     // -----------------------------------------------------------------------------------------------------------------
     //
     // constructors and other basic operations
@@ -95,7 +72,7 @@ public class LocusIteratorByHanger extends LocusIterator {
     // next() routine and associated collection operations
     //
     // -----------------------------------------------------------------------------------------------------------------
-    public MyLocusContext next() {
+    public LocusContext next() {
         if ( ! currentPositionIsFullyCovered() )
             expandWindow(INCREMENT_SIZE);
 
@@ -107,7 +84,7 @@ public class LocusIteratorByHanger extends LocusIterator {
         RefHanger.Hanger rhanger = readHanger.popLeft();
         RefHanger.Hanger ohanger = offsetHanger.popLeft();
 
-        return new MyLocusContext(rhanger.loc, rhanger.data, ohanger.data);
+        return new LocusContext(rhanger.loc, rhanger.data, ohanger.data);
     }
 
     protected void hangRead(final SAMRecord read) {

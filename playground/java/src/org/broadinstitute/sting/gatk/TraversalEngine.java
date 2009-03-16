@@ -451,6 +451,7 @@ public class TraversalEngine {
                 // Jump forward in the reference to this locus location
                 final ReferenceIterator refSite = refIter.seekForward(locus.getLocation());
                 final char refBase = refSite.getBaseAsChar();
+                locus.setReferenceContig(refSite.getCurrentContig());
 
                 // Iterate forward to get all reference ordered data covering this locus
                 final List<ReferenceOrderedDatum> rodData = getReferenceOrderedDataAtLocus(rodIters, locus.getLocation());
@@ -502,6 +503,7 @@ public class TraversalEngine {
 
         // Initialize the sum
         R sum = walker.reduceInit();
+        List<Integer> offsets = Arrays.asList(0);   // Offset of a single read is always 0
 
         boolean done = false;
         while ( samReadIter.hasNext() && ! done ) {
@@ -509,16 +511,23 @@ public class TraversalEngine {
 
             // get the next read
             final SAMRecord read = samReadIter.next();
-            GenomeLoc loc = new GenomeLoc(read.getReferenceName(), read.getAlignmentStart());
+            final List<SAMRecord> reads = Arrays.asList(read);
+            GenomeLoc loc = Utils.genomicLocationOf(read);
+
+            // Jump forward in the reference to this locus location
+            final ReferenceIterator refSite = refIter.seekForward(loc);
+            final char refBase = refSite.getBaseAsChar();
+            LocusContext locus = new LocusContext(loc, reads, offsets);
+            locus.setReferenceContig(refSite.getCurrentContig());
 
             if ( inLocations(loc) ) {
 
                 //
                 // execute the walker contact
                 //
-                final boolean keepMeP = walker.filter(null, read);
+                final boolean keepMeP = walker.filter(locus, read);
                 if ( keepMeP ) {
-                    M x = walker.map(null, read);
+                    M x = walker.map(locus, read);
                     sum = walker.reduce(x, sum);
                 }
 

@@ -19,7 +19,7 @@ import edu.mit.broad.picard.filter.FilteringIterator;
 /**
  * Iterator that traverses a SAM File, accumulating information on a per-locus basis
  */
-public class SingleLocusIterator extends LocusIterator implements LocusContext {
+public class SingleLocusIterator extends LocusIterator {
 
     // -----------------------------------------------------------------------------------------------------------------
     //
@@ -31,14 +31,6 @@ public class SingleLocusIterator extends LocusIterator implements LocusContext {
     private int position = -1;
     private List<SAMRecord> reads = new ArrayList<SAMRecord>(100);
     private List<Integer> offsets = new ArrayList<Integer>(100);
-
-    public String getContig() { return contig; }
-    public long getPosition() { return position; }
-    public GenomeLoc getLocation() { return new GenomeLoc(contig, position); }
-
-    public List<SAMRecord> getReads() { return reads; }
-    public List<Integer> getOffsets() { return offsets; }
-    public int numReads() { return reads.size(); }
 
     // -----------------------------------------------------------------------------------------------------------------
     //
@@ -97,7 +89,7 @@ public class SingleLocusIterator extends LocusIterator implements LocusContext {
             // at this point, window contains all reads covering the pos, we need to return them
             // and the offsets into each read for this loci
             calcOffsetsOfWindow(position);
-            return this;
+            return new LocusContext(new GenomeLoc(contig, position), reads, offsets);
         }
     }
 

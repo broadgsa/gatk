@@ -29,6 +29,28 @@ public class Utils {
         return filtered;
     }
 
+    public static ArrayList<Byte> subseq(byte[] fullArray) {
+        return subseq(fullArray, 0, fullArray.length);
+    }
+    
+    public static ArrayList<Byte> subseq(byte[] fullArray, int start, int end) {
+        ArrayList<Byte> dest = new ArrayList<Byte>(end-start+1);
+        for ( int i = start; i < end; i++ ) {
+            dest.add(fullArray[i]);
+        }
+        return dest;
+    }
+
+    public static String baseList2string(List<Byte> bases) {
+        byte[] basesAsbytes = new byte[bases.size()];
+        int i = 0;
+        for ( Byte b : bases ) {
+            basesAsbytes[i] = b;
+            i++;
+        }
+        return new String(basesAsbytes);
+    }
+
     public static GenomeLoc genomicLocationOf( final SAMRecord read ) {
         return new GenomeLoc( read.getReferenceName(), read.getAlignmentStart() );
     }
