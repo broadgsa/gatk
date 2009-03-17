@@ -33,6 +33,13 @@ public class Utils {
         throw new RuntimeException(msg);
     }
 
+    /** Returns a new list built from those objects found in collection <c> that satisfy the
+     * predicate ( i.e. pred.apply() is true for the objects in th eresulting list ).
+      * @param pred filtering condition ( objects, for which pred.apply() is true pass the filter )
+     * @param c collection to filter (will not be modified)
+     * @return  new list built from elements of <c> passing the filter
+     * @see #filterInPlace(Predicate pred, Collection c)
+     */
     public static <T> List<T> filter(Predicate pred, Collection<T> c) {
         List<T> filtered = new ArrayList<T>();
         // loop through all the elements in c
@@ -44,6 +51,57 @@ public class Utils {
             }
         }
         return filtered;
+    }
+
+    /** Removes from the collection <c> all the elements that do not pass the filter (i.e. those elements,
+     * for which pred.apply() is false ). This is an in-place method - the argument is modified, and no new
+     * objects are created/copied. Collection's iterator (as returned by iterator()) must implement
+     * optional remove() interface method that allows multiple subsequent removals of elements from the
+     * underlying collection (this is the standard contract). This method
+     * works best for collections that support cheap, constant time
+     * object removal (such as LinkedList, HashSet etc.). It is also specifically designed to
+     * detect ArrayLists and use optimized strategy for them. However
+     * with other, custom lists that 1) do not inherit (are not instanceof) from ArrayList and 2) do not implement
+     * fast (constant time) remove() operation, the performance can degrade significantly (linear traversal times,
+     * e.g., linear removal ~ N^2).
+     * @param pred filtering condition (only elements, for which pred.apply() is true will be kept in the collection)
+     * @param c collection to filter (will be modified - should be mutable and should implement remove() )
+     * @return reference to the same (modified) collection <c>
+     * @see #filter(Predicate pred, Collection c)
+     */
+    public static <T> Collection<T> filterInPlace(Predicate pred, Collection<T> c) {
+        if ( c instanceof ArrayList ) {
+            // arraylists are a special case that we know how to process efficiently
+            // (generic implementation below removes one element at a time and is not well suited
+            // for ArrayLists
+            List<T> list = (List<T>)c;
+            int j = 0; // copy-to location
+            // perform one linear pass copying forward all elements that pass the filter,
+            // so that the head of the list is continuous sequence of such elements:
+            for ( int i = 0 ; i < list.size() ; i++ ) {
+                // if object passes, copy it forward and increment j (=copy-to location);
+                // otherwise keep the same copy-to location and move on to the next element
+                 if ( pred.apply(list.get(i)) ) list.set(j++,list.get(i));
+            }
+            // j now points to first unused copy-to location; elements 0...j-1 pass the filter
+            list.subList(j,list.size()).clear(); // remove tail of the list
+        }
+/*
+        // loop through all the elements in c
+        for (T obj : c) {
+            // if the predicate is false for the current element
+            if (! pred.apply(obj)) {
+                // remove that element from the collection
+                c.remove(obj);
+            }
+        }
+ */
+        Iterator<T> it = c.iterator();
+        while ( it.hasNext() ) {
+            if ( pred.apply(it.next() )) continue;
+            it.remove();
+        }
+        return c;
     }
 
     public static ArrayList<Byte> subseq(byte[] fullArray) {
@@ -246,6 +304,41 @@ public class Utils {
         return output;
     }
 
+
+/* TEST ME
+    public static void main(String[] argv) {
+        List<Integer> l1 = new LinkedList<Integer>();
+        List<Integer> l2 = new ArrayList<Integer>();
+
+        l1.add(1);
+        l1.add(5);
+        l1.add(3);
+        l1.add(10);
+        l1.add(4);
+        l1.add(2);
+        l2.add(1);
+        l2.add(5);
+        l2.add(3);
+        l2.add(10);
+        l2.add(4);
+        l2.add(2);
+
+        Predicate<Integer> p = new Predicate<Integer>() {
+            public boolean apply(Integer i) {
+                return i > 2;
+            }
+        };
+        filterInPlace(p, l1);
+        filterInPlace(p, l2);
+
+        for ( int i = 0 ; i < l1.size(); i++ ) System.out.print(" "+l1.get(i));
+        System.out.println();
+        for ( int i = 0 ; i < l2.size(); i++ ) System.out.print(" " + l2.get(i));
+        System.out.println();
+
+    }
+
+*/    
 }
 
 
