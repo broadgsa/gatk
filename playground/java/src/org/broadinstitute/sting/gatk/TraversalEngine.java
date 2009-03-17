@@ -114,7 +114,7 @@ public class TraversalEngine {
     public void setDebugging( final boolean d ) { DEBUGGING = d; }
     public void setSafetyChecking( final boolean beSafeP ) {
         if ( ! beSafeP )
-            System.out.printf("*** Turning off safety checking, I hope you know what you are doing...%n");
+            System.out.printf("*** Turning off safety checking, I hope you know what you are doing.  Errors will result in debugging assert failures and other inscrutable messages...%n");
         this.beSafeP = beSafeP;
     }
 

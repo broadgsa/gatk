@@ -116,7 +116,8 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
             // we're somewhere on this contig
             if ( seekOffset < offset || seekOffset >= currentContig.length() ) {
                 // bad boy -- can't go backward safely or just beyond the contig length
-                throw new IllegalArgumentException("Bad seek to " + seekOffset + " current: " + offset);
+                throw new IllegalArgumentException(String.format("Invalid seek to %s from %s, which is usually due to out of order reads%n",
+                        new GenomeLoc(currentContig.getName(), seekOffset), new GenomeLoc(currentContig.getName(), offset)));
                 //return null;
             }
             else {
