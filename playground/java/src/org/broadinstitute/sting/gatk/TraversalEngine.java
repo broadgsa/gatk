@@ -230,6 +230,12 @@ public class TraversalEngine {
      * @param loc Current location 
      */
     public void printProgress( boolean mustPrint, final String type, GenomeLoc loc ) {
+        // If an index is enabled, file read progress is meaningless because a linear
+        // traversal is not being performed.  For now, don't bother printing progress.
+        // TODO: Create a sam indexed read tracker that tracks based on percentage through the query.
+        if( samReadingTracker == null )
+            return;
+
         final long nRecords = this.nRecords;
         final long curTime = System.currentTimeMillis();
         final double elapsed = (curTime - startTime) / 1000.0;
@@ -290,33 +296,53 @@ public class TraversalEngine {
     }
 
     private void initializeReads(final boolean THREADED_IO) {
+
+        Iterator<SAMRecord> samIterator;
         try {
+            samReadIter = loadSAMFile( readsFile, THREADED_IO );
+        }
+        catch( IOException ex ) {
+            // TODO: IOException should be a checked exception in this case.
+            throw new RuntimeIOException(ex);
+        }
+
+        if ( beSafeP )
+            samReadIter = new VerifyingSamIterator(samReadIter);
+
+        if ( THREADED_IO ) {
+            System.out.printf("Enabling threaded I/O with buffer of %d reads%n", THREADED_IO_BUFFER_SIZE);
+            samReadIter = new ThreadedIterator<SAMRecord>(samReadIter, THREADED_IO_BUFFER_SIZE);
+        }
+    }
+
+    protected Iterator<SAMRecord> loadSAMFile( final File samFile, final boolean threadedIO )
+            throws IOException {
+        Iterator<SAMRecord> iterator = null;
+
+        samReader = new SAMFileReader(readsFile, true);
+        samReader.setValidationStringency(strictness);
+
+        final SAMFileHeader header = samReader.getFileHeader();
+        System.err.println("Sort order is: " + header.getSortOrder());
+
+        // If the file has an index, querying functions are available.  Use them if possible...
+        if(samReader.hasIndex()) {
+            iterator = new SamQueryIterator( samReader, locs );
+        }
+        else {
+            // Ugh.  Close and reopen the file so that the file progress decorator can be assigned to the input stream.
+            samReader.close();
+
             final FileInputStream samFileStream = new FileInputStream(readsFile);
             final InputStream bufferedStream= new BufferedInputStream(samFileStream);
-            //final InputStream bufferedStream= new BufferedInputStream(samInputStream, 10000000);
-            samReader = new SAMFileReader(bufferedStream, true);
+            samReader = new SAMFileReader(readsFile, true);
             samReader.setValidationStringency(strictness);
 
-            final SAMFileHeader header = samReader.getFileHeader();
-            System.err.println("Sort order is: " + header.getSortOrder());
-
             samReadingTracker = new FileProgressTracker<SAMRecord>( readsFile, samReader.iterator(), samFileStream.getChannel(), 1000 );
-            if ( beSafeP ) {
-                verifyingSamReadIter = new VerifyingSamIterator(samReadingTracker);
-                samReadIter = verifyingSamReadIter;
-            } else {
-                samReadIter = samReadingTracker;
-            }
-            
-            if ( THREADED_IO ) {
-                System.out.printf("Enabling threaded I/O with buffer of %d reads%n", THREADED_IO_BUFFER_SIZE);
-                samReadIter = new ThreadedIterator<SAMRecord>(samReadIter, THREADED_IO_BUFFER_SIZE);
-            }
+            iterator = samReadingTracker;
+        }
 
-        }
-        catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
+        return iterator;
     }
 
 
@@ -524,7 +550,7 @@ public class TraversalEngine {
      * @return 0 on success
      */
     protected <M,R> int traverseByRead(ReadWalker<M,R> walker) {
-        if ( refFileName == null && ! walker.requiresOrderedReads() ) {
+        if ( refFileName == null && ! walker.requiresOrderedReads() && verifyingSamReadIter != null ) {
             System.out.println("STATUS: No reference file provided and unordered reads are tolerated, enabling out of order read processing.");
             if ( verifyingSamReadIter != null )
                 verifyingSamReadIter.setCheckOrderP(false);
