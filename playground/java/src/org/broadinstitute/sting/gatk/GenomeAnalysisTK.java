@@ -26,6 +26,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     @Option(shortName="DBSNP", doc="DBSNP file", optional=true) public String DBSNP_FILE = null;
     @Option(shortName="THREADED_IO", doc="If true, enables threaded I/O operations", optional=true) public String ENABLED_THREADED_IO = "false";
     @Option(shortName="U", doc="If true, enables unsafe operations, nothing will be checked at runtime.  You better know what you are doing if you set this flag.", optional=false) public String UNSAFE = "false";
+    @Option(shortName="SORT_ON_FLY", doc="If true, enables on fly sorting of reads file.", optional=false) public String ENABLED_SORT_ON_FLY = "false";
 
     public static HashMap<String, Object> MODULES = new HashMap<String,Object>();
     public static void addModule(final String name, final Object walker) {
@@ -103,6 +104,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         }
 
         engine.setSafetyChecking(! UNSAFE.toLowerCase().equals("true"));
+        engine.setSortOnFly(! ENABLED_SORT_ON_FLY.toLowerCase().equals("true"));
 
         engine.initialize(ENABLED_THREADED_IO.toLowerCase().equals("true"));
         //engine.testReference();

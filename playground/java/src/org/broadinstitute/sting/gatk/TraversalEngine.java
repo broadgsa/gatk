@@ -77,6 +77,8 @@ public class TraversalEngine {
 
     public boolean DEBUGGING = false;
     public boolean beSafeP = true;
+    public boolean SORT_ON_FLY = false;
+    public int MAX_ON_FLY_SORTS = 100000;
     public long N_RECORDS_TO_PRINT = 100000;
     public int THREADED_IO_BUFFER_SIZE = 10000;
 
@@ -116,6 +118,11 @@ public class TraversalEngine {
         if ( ! beSafeP )
             System.out.printf("*** Turning off safety checking, I hope you know what you are doing.  Errors will result in debugging assert failures and other inscrutable messages...%n");
         this.beSafeP = beSafeP;
+    }
+    public void setSortOnFly( final boolean SORT_ON_FLY ) {
+        if ( SORT_ON_FLY )
+            System.out.println("Sorting read file on the fly: max reads allowed is " + MAX_ON_FLY_SORTS);
+        this.SORT_ON_FLY = SORT_ON_FLY;
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -306,9 +313,11 @@ public class TraversalEngine {
             throw new RuntimeIOException(ex);
         }
 
-        if ( beSafeP )
+        if ( SORT_ON_FLY )
+            samReadIter = new SortSamIterator(samReadIter, MAX_ON_FLY_SORTS);
+        else if ( beSafeP )
             samReadIter = new VerifyingSamIterator(samReadIter);
-
+        
         if ( THREADED_IO ) {
             System.out.printf("Enabling threaded I/O with buffer of %d reads%n", THREADED_IO_BUFFER_SIZE);
             samReadIter = new ThreadedIterator<SAMRecord>(samReadIter, THREADED_IO_BUFFER_SIZE);
@@ -455,7 +464,7 @@ public class TraversalEngine {
     }
 
     public void verifySortOrder(final boolean requiresSortedOrder) {
-        if ( beSafeP && samReader.getFileHeader().getSortOrder() != SAMFileHeader.SortOrder.coordinate ) {
+        if ( beSafeP && !SORT_ON_FLY && samReader.getFileHeader().getSortOrder() != SAMFileHeader.SortOrder.coordinate ) {
             final String msg = "SAM file is not sorted in coordinate order (according to header) Walker type with given arguments requires a sorted file for correct processing";
             if ( requiresSortedOrder || strictness == SAMFileReader.ValidationStringency.STRICT )
                 throw new RuntimeIOException(msg);
