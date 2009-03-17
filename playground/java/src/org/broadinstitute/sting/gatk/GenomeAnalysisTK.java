@@ -39,6 +39,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         addModule("CountReads", new CountReadsWalker());
         addModule("PrintReads", new PrintReadsWalker());
         addModule("Base_Quality_Histogram", new BaseQualityHistoWalker());
+        addModule("Aligned_Reads_Histogram", new AlignedReadsHistoWalker());
         addModule("AlleleFrequency", new AlleleFrequencyWalker());
         addModule("SingleSampleGenotyper", new SingleSampleGenotyper());
         addModule("Null", new NullWalker());
