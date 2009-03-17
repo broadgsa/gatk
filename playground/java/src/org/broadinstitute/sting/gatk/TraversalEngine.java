@@ -526,7 +526,8 @@ public class TraversalEngine {
     protected <M,R> int traverseByRead(ReadWalker<M,R> walker) {
         if ( refFileName == null && ! walker.requiresOrderedReads() ) {
             System.out.println("STATUS: No reference file provided and unordered reads are tolerated, enabling out of order read processing.");
-            verifyingSamReadIter.setCheckOrderP(false);
+            if ( verifyingSamReadIter != null )
+                verifyingSamReadIter.setCheckOrderP(false);
         }
 
         verifySortOrder( refFileName != null || walker.requiresOrderedReads());
