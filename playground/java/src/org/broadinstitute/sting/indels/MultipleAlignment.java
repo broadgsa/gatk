@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.sun.org.apache.bcel.internal.generic.RETURN;
 
 public class MultipleAlignment implements Iterable<Integer>  {
 	private static final int IMPOSSIBLE = 1000000000;
