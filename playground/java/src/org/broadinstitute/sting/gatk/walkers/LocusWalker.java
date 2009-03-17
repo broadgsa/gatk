@@ -12,10 +12,7 @@ import java.util.List;
  * Time: 2:52:28 PM
  * To change this template use File | Settings | File Templates.
  */
-public interface LocusWalker<MapType, ReduceType> {
-    void initialize();
-    public String walkerType();
-
+public interface LocusWalker<MapType, ReduceType> extends Walker {
     // Do we actually want to operate on the context?
     boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context);
 
@@ -25,6 +22,4 @@ public interface LocusWalker<MapType, ReduceType> {
     // Given result of map function
     ReduceType reduceInit();
     ReduceType reduce(MapType value, ReduceType sum);
-
-    void onTraversalDone();
 }

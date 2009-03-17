@@ -14,6 +14,10 @@ import org.broadinstitute.sting.gatk.LocusContext;
 public class AlignedReadsHistoWalker extends BasicReadWalker<Integer, Integer> {
     long[] alignCounts = new long[51];
 
+    public String getName() {
+        return "Aligned_Reads_Histogram";
+    }
+
     public void initialize() {
         for ( int i = 0; i < this.alignCounts.length; i++ ) {
             this.alignCounts[i] = 0;

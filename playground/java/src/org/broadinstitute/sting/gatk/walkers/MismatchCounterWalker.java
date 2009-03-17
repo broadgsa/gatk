@@ -10,6 +10,10 @@ import java.util.Arrays;
 import java.util.List;
 
 public class MismatchCounterWalker extends BasicReadWalker<Integer, Integer> {
+    public String getName() {
+        return "CountMismatches";
+    }
+
     public Integer map(LocusContext context, SAMRecord read) {
         int nMismatches = 0;
         

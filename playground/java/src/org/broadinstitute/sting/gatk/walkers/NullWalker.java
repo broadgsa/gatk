@@ -10,10 +10,12 @@ import java.util.List;
 // j.maguire 3-7-2009
 
 public class NullWalker implements LocusWalker<Integer, Integer> {
-    public void initialize() {
+    public String getName() {
+        return "Null";
     }
 
-    public String walkerType() { return "ByLocus"; }
+    public void initialize() {
+    }
 
     // Do we actually want to operate on the context?
     public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {

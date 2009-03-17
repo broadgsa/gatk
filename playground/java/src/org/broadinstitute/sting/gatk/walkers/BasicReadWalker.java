@@ -12,8 +12,17 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
  * To change this template use File | Settings | File Templates.
  */
 public abstract class BasicReadWalker<MapType, ReduceType> implements ReadWalker<MapType, ReduceType> {
+    public String getName() {
+        // Return name of class, trimming 'Walker' from the end if present.
+        // TODO: Duplicate of BasicLociWalker.getName().  Eliminate duplication.
+        String className = getClass().getSimpleName();
+        if(className.endsWith(Walker.class.getSimpleName()))
+            return className.substring(0,className.lastIndexOf(Walker.class.getSimpleName()));
+        else
+            return className;
+    }
+
     public void initialize() { }
-    public String walkerType() { return "ByRead"; }
     public boolean requiresOrderedReads() { return false; }
 
     public boolean filter(LocusContext context, SAMRecord read) {

@@ -28,26 +28,8 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     @Option(shortName="U", doc="If true, enables unsafe operations, nothing will be checked at runtime.  You better know what you are doing if you set this flag.", optional=false) public String UNSAFE = "false";
     @Option(shortName="SORT_ON_FLY", doc="If true, enables on fly sorting of reads file.", optional=false) public String ENABLED_SORT_ON_FLY = "false";
 
-    public static HashMap<String, Object> MODULES = new HashMap<String,Object>();
-    public static void addModule(final String name, final Object walker) {
-        System.out.printf("* Adding module %s%n", name);
-        MODULES.put(name, walker);
-    }
-
-    static {
-        addModule("CountLoci", new CountLociWalker());
-        addModule("Pileup", new PileupWalker());
-        addModule("CountReads", new CountReadsWalker());
-        addModule("PrintReads", new PrintReadsWalker());
-        addModule("Base_Quality_Histogram", new BaseQualityHistoWalker());
-        addModule("Aligned_Reads_Histogram", new AlignedReadsHistoWalker());
-        addModule("AlleleFrequency", new AlleleFrequencyWalker());
-        addModule("SingleSampleGenotyper", new SingleSampleGenotyper());
-        addModule("Null", new NullWalker());
-        addModule("DepthOfCoverage", new DepthOfCoverageWalker());
-        addModule("CountMismatches", new MismatchCounterWalker());
-    }
-
+    private WalkerManager walkerManager = new WalkerManager();
+    
     private TraversalEngine engine = null;
     public boolean DEBUGGING = false;
 
@@ -111,22 +93,22 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         
         //LocusWalker<Integer,Integer> walker = new PileupWalker();
 
-        // Try to get the module specified
-        Object my_module;
-        if (MODULES.containsKey(Analysis_Name)) {
-            my_module = MODULES.get(Analysis_Name);
+        // Try to get the walker specified
+        Object my_walker;
+        if (walkerManager.doesWalkerExist(Analysis_Name)) {
+            my_walker = walkerManager.getWalkerByName(Analysis_Name);
         } else {
-            System.out.println("Could not find module "+Analysis_Name);
+            System.out.println("Could not find walker "+Analysis_Name);
             return 0;
         }
 
         try {
-            LocusWalker<?, ?> walker = (LocusWalker<?, ?>)my_module;
+            LocusWalker<?, ?> walker = (LocusWalker<?, ?>)my_walker;
             engine.traverseByLoci(walker);
         }
         catch ( java.lang.ClassCastException e ) {
             // I guess we're a read walker LOL
-            ReadWalker<?, ?> walker = (ReadWalker<?, ?>)my_module;
+            ReadWalker<?, ?> walker = (ReadWalker<?, ?>)my_walker;
             engine.traverseByRead(walker);
         }
 

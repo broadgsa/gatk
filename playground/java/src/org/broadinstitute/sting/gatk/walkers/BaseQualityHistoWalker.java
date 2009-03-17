@@ -14,6 +14,10 @@ import org.broadinstitute.sting.gatk.LocusContext;
 public class BaseQualityHistoWalker extends BasicReadWalker<Integer, Integer> {
     long[] qualCounts = new long[100];
 
+    public String getName() {
+        return "Base_Quality_Histogram";
+    }
+
     public void initialize() {
         for ( int i = 0; i < this.qualCounts.length; i++ ) {
             this.qualCounts[i] = 0;
