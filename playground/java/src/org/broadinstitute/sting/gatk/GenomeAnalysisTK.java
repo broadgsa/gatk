@@ -104,7 +104,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         }
 
         engine.setSafetyChecking(! UNSAFE.toLowerCase().equals("true"));
-        engine.setSortOnFly(! ENABLED_SORT_ON_FLY.toLowerCase().equals("true"));
+        engine.setSortOnFly(ENABLED_SORT_ON_FLY.toLowerCase().equals("true"));
 
         engine.initialize(ENABLED_THREADED_IO.toLowerCase().equals("true"));
         //engine.testReference();
