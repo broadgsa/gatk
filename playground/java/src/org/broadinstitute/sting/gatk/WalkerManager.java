@@ -1,9 +1,17 @@
 package org.broadinstitute.sting.gatk;
 
+import net.sf.functionalj.reflect.StdReflect;
+import net.sf.functionalj.reflect.JdkStdReflect;
+import net.sf.functionalj.FunctionN;
+import net.sf.functionalj.Functions;
+
 import java.lang.reflect.Modifier;
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
@@ -26,7 +34,16 @@ public class WalkerManager {
     public WalkerManager() {
         try {
             final File jarFile = getThisJarFile();
-            List<Class> walkerClasses = loadClassesOfType( jarFile, Walker.class );
+
+            List<Class> walkerClasses = new ArrayList<Class>();
+
+            walkerClasses.addAll( loadClassesFromJar( jarFile, getPackagePrefix(Walker.class) ) );
+
+            File extensionPath = new File( jarFile.getParent() + File.separator + "walkers" );
+            if(extensionPath.exists())
+                walkerClasses.addAll( loadClassesFromPath( extensionPath ) );
+
+            walkerClasses = filterWalkers(walkerClasses);
 
             if(walkerClasses.isEmpty())
                 throw new RuntimeException("No walkers were found.");            
@@ -85,13 +102,11 @@ public class WalkerManager {
      * Loads concrete classes from a jar which are both in the same package or 'sub-package' of baseClass,
      * and which extend from baseClass.
      * @param jarFile The jar file to search.
-     * @param baseClass The base class / interface for
+     * @param packagePrefix Filter out classes in the jar that don't start with this package.
      * @return A list of classes derived from baseClass.
      */
-    private List<Class> loadClassesOfType(final File jarFile, final Class baseClass)
+    private List<Class> loadClassesFromJar(final File jarFile, String packagePrefix)
             throws IOException {
-        final String PACKAGE_JAR_PREFIX = baseClass.getPackage().getName().replace('.','/');
-
         List<Class> subclasses = new ArrayList<Class>();
 
         JarInputStream jarInputStream = new JarInputStream(new FileInputStream( jarFile ) );
@@ -101,14 +116,10 @@ public class WalkerManager {
 
             while(jarEntry != null) {
                 String jarEntryName = jarEntry.getName();
-                if(jarEntryName.startsWith(PACKAGE_JAR_PREFIX) && jarEntryName.endsWith(".class"))
+                if(jarEntryName.startsWith(packagePrefix) && jarEntryName.endsWith(".class"))
                 {
                     String className = jarEntryName.substring(0,jarEntryName.lastIndexOf(".class")).replace('/','.');
-                    Class clazz = Class.forName(className);
-                    if( baseClass.isAssignableFrom( clazz ) &&
-                            !Modifier.isAbstract(clazz.getModifiers()) &&
-                            !Modifier.isInterface(clazz.getModifiers()))
-                        subclasses.add( clazz );
+                    subclasses.add( Class.forName(className) );
                 }
                 jarEntry = jarInputStream.getNextJarEntry();
             }
@@ -122,6 +133,77 @@ public class WalkerManager {
         }
 
         return subclasses;
+    }
+
+    /**
+     * Get the package prefix for a class, in directory format.
+     * @param clazz The class.
+     * @return Package prefix, in directory format.
+     */
+    private String getPackagePrefix(Class clazz) {
+        return clazz.getPackage().getName().replace('.','/');
+    }
+
+    /**
+     * Load loose classes from the specified directory.
+     * @param path source path from which to load classes.
+     * @return A list of all loose classes contained in the path directory.
+     */
+    private List<Class> loadClassesFromPath(final File path)
+            throws IOException {
+        List<Class> subclasses = new ArrayList<Class>();
+
+        URL pathURL = path.toURI().toURL();
+
+        ClassLoader cl = new URLClassLoader(new URL[] { pathURL });
+
+        File[] classFiles = path.listFiles(
+                new FilenameFilter() { public boolean accept( File f, String s ) { return s.endsWith(".class"); } });
+        for(File classFile: classFiles) {
+            // Poor person's way of getting the classname: assume classes are unpackaged.
+            // Chop out the classname section of the URL, and assume the class is unpackaged.
+            String fileName = classFile.getName();
+            String className = fileName.substring(fileName.lastIndexOf(File.separator)+1,fileName.lastIndexOf(".class"));
+
+            try {
+                subclasses.add(cl.loadClass(className));
+            }
+            catch(ClassNotFoundException ex) {
+                // Class not found from a list of classes just looked up is an IO error.  Wrap and throw.
+                throw new IOException(ex);
+            }
+
+        }
+
+        return subclasses;
+    }
+
+    /**
+     * Given a list of classes, return a list of those classes which extend from the Walker base interface.
+     * @param classes Arbitrary list of classes.
+     * @return List of classes extending from Walker.
+     */
+    private List<Class> filterWalkers(List<Class> classes) {
+        StdReflect reflect = new JdkStdReflect();
+        FunctionN<Boolean> filterFunc = reflect.instanceFunction(new ClassFilter(Walker.class),"filter",Class.class);
+        return Functions.findAll(filterFunc.f1(),classes);
+    }
+
+    /**
+     * A functor returning true for classes which extend from baseClass.
+     */
+    private class ClassFilter {
+        private Class baseClass;
+
+        public ClassFilter(Class baseClass) {
+            this.baseClass = baseClass;
+        }
+
+        public Boolean filter(Class clazz) {
+            return baseClass.isAssignableFrom( clazz ) &&
+                    !Modifier.isAbstract( clazz.getModifiers() ) &&
+                    !Modifier.isInterface( clazz.getModifiers() );
+        }
     }
 
     /**
