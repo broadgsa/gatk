@@ -1,4 +1,6 @@
-package org.broadinstitute.sting.indels;
+package org.broadinstitute.sting.utils;
+
+import org.broadinstitute.sting.utils.CountedObject;
 
 /** Support class for counted objects. This comparator is an adapter: it is initialized with an arbitrary
  * comparator for objects of type T and can be used to directly compare counted objects of type CountedObject<T>

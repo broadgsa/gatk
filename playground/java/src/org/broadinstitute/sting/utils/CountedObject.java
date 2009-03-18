@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.indels;
+package org.broadinstitute.sting.utils;
 
 /** Utility class that makes working with counted objects slightly easier (and faster). 
  * Consider a "generic" counter representation as Map<Object,Integer>: updating the counter would require
