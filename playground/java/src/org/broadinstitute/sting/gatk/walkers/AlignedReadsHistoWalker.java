@@ -19,8 +19,8 @@ public class AlignedReadsHistoWalker extends BasicReadWalker<Integer, Integer> {
     }
 
     public void initialize() {
-        for ( int i = 0; i < this.alignCounts.length; i++ ) {
-            this.alignCounts[i] = 0;
+        for ( int i = 0; i < alignCounts.length; i++ ) {
+            alignCounts[i] = 0;
         }
     }
 
@@ -36,7 +36,8 @@ public class AlignedReadsHistoWalker extends BasicReadWalker<Integer, Integer> {
     public Integer map(LocusContext context, SAMRecord read) {
         //System.out.println(read.getAttribute("NM"));
         int editDist = Integer.parseInt(read.getAttribute("NM").toString());
-        this.alignCounts[editDist]++;
+        if (editDist <= 50)
+            alignCounts[editDist]++;
         return 1;
     }
 
@@ -48,7 +49,7 @@ public class AlignedReadsHistoWalker extends BasicReadWalker<Integer, Integer> {
 
     public void onTraversalDone() {
         int curTotal = 0;
-        for ( int i = 0; i < this.alignCounts.length; i++ ) {
+        for ( int i = 0; i < alignCounts.length; i++ ) {
             curTotal += alignCounts[i];
             System.out.printf("%3d %10d%n", i, curTotal);
         }
