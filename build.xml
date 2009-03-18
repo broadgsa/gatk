@@ -1,9 +1,12 @@
-<project name="GenomeAnalysisTK" default="dist" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
+<project name="Sting" default="dist" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
   <description>Compile and distribute the Sting genome analysis toolkit</description>
 
   <!-- set global properties for this build -->
-  <property name="src" location="src"/>
-  <property name="build" location="build"/>
+  <property name="core.src" location="core/java/src"/>
+  <property name="core.build" location="core/java/build"/>
+  <property name="playground.src" location="playground/java/src" />
+  <property name="playground.build" location="playground/java/build" />
+
   <property name="dist"  location="dist"/>
   <property name="lib"  location="lib"/>
   <property name="javadoc" location="javadoc" />
@@ -40,13 +43,16 @@
     <!-- Create the time stamp -->
     <tstamp/>
     <!-- Create the build directory structure used by compile -->
-    <mkdir dir="${build}"/>
+    <mkdir dir="${core.build}" />
+    <mkdir dir="${playground.build}" />
   </target>
 
   <target name="compile" depends="init,resolve"
           description="compile the source">
     <!-- Compile the java code from ${src} into ${build} -->
-    <javac srcdir="${src}" destdir="${build}" classpathref="classpath" 
+    <javac srcdir="${core.src}" destdir="${core.build}" classpathref="classpath" 
+           debug="true" debuglevel="lines,vars,source" />
+    <javac srcdir="${playground.src}" destdir="${playground.build}" classpathref="classpath"
            debug="true" debuglevel="lines,vars,source" />
   </target>
 
@@ -54,20 +60,51 @@
           description="generate the distribution" >
     <mkdir dir="${dist}"/>
 
-    <pathconvert property="jar.classpath" pathsep=" " refid="classpath">
-      <flattenmapper />
-    </pathconvert>
+    <copy todir="${dist}">
+      <fileset dir="${lib}" includes="*.jar" />
+    </copy>
 
-    <jar jarfile="${dist}/GenomeAnalysisTK.jar" basedir="${build}">
+    <jar jarfile="${dist}/StingUtils.jar">
+      <fileset dir="${playground.build}" includes="org/broadinstitute/sting/utils/**" />
+    </jar>
+
+    <jar jarfile="${dist}/GenomeAnalysisTK.jar">
+      <fileset dir="${playground.build}" includes="org/broadinstitute/sting/gatk/**" />
       <manifest>
-        <attribute name="Class-Path" value="${jar.classpath}" />
         <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.GenomeAnalysisTK" />
       </manifest>
     </jar>
 
-    <copy todir="${dist}">
-      <fileset dir="${lib}" includes="*.jar" />
-    </copy>
+    <jar jarfile="${dist}/Playground.jar">
+      <fileset dir="${playground.build}">
+        <exclude name="org/broadinstitute/sting/utils/**" />
+        <exclude name="org/broadinstitute/sting/gatk/**" />
+      </fileset>
+    </jar>
+
+    <pathconvert property="jar.classpath" pathsep=" ">
+      <flattenmapper />
+      <fileset dir="${dist}" includes="*.jar" />
+    </pathconvert>
+
+    <jar jarfile="${dist}/StingUtils.jar" update="true">
+      <manifest>
+        <attribute name="Class-Path" value="${jar.classpath}" />
+      </manifest>
+    </jar>
+
+    <jar jarfile="${dist}/GenomeAnalysisTK.jar" update="true">
+      <manifest>
+        <attribute name="Class-Path" value="${jar.classpath}" />
+      </manifest>
+    </jar>
+
+    <jar jarfile="${dist}/Playground.jar" update="true">
+      <manifest>
+        <attribute name="Class-Path" value="${jar.classpath}" />
+      </manifest>
+    </jar>
+
   </target>
 
   <target name="javadoc">
@@ -77,7 +114,8 @@
 
   <target name="clean"
           description="clean up" >
-    <delete dir="${build}"/>
+    <delete dir="${core.build}"/>
+    <delete dir="${playground.build}" />
     <delete dir="${dist}"/>
     <delete dir="${lib}" />
   </target>
