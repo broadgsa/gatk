@@ -22,10 +22,10 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     //
     // Ugly global variable defining the optional ordering of contig elements
     //
-    public static HashMap<String, Integer> refContigOrdering = null;
+    public static Map<String, Integer> refContigOrdering = null;
     public static HashMap<String, String> interns = null;
 
-    public static void setContigOrdering(HashMap<String, Integer> rco) {
+    public static void setContigOrdering(Map<String, Integer> rco) {
         refContigOrdering = rco;
         interns = new HashMap<String, String>();
         for ( String contig : rco.keySet() )
