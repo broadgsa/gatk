@@ -315,7 +315,7 @@ public class TraversalEngine {
 
         if ( SORT_ON_FLY )
             samReadIter = new SortSamIterator(samReadIter, MAX_ON_FLY_SORTS);
-        else if ( beSafeP )
+        if ( beSafeP )
             samReadIter = new VerifyingSamIterator(samReadIter);
         
         if ( THREADED_IO ) {
