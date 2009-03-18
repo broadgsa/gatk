@@ -27,27 +27,16 @@ public class PileupWalker extends BasicLociWalker<Integer, Integer> {
 
     // Map over the org.broadinstitute.sting.gatk.LocusContext
     public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
-        //System.out.printf("Reads %s:%d %d%n", context.getContig(), context.getPosition(), context.getReads().size());
-        //for ( SAMRecord read : context.getReads() ) {
-        //    System.out.println("  -> " + read.getReadName());
-        //}
-
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
         String bases = "";
         String quals = "";
-        //String offsetString = "";
         for ( int i = 0; i < reads.size(); i++ ) {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
 
-            //if ( offset >= read.getReadString().length() )
-            //    System.out.printf("  [%2d] [%s] %s%n", offset, read.format(), read.getReadString());
-
             bases += read.getReadString().charAt(offset);
             quals += read.getBaseQualityString().charAt(offset);
-            //offsetString += i;
-            //System.out.printf("  [%2d] [%s] %s%n", offset, read.getReadString().charAt(offset), read.getReadString());
         }
 
         String rodString = "";
@@ -55,7 +44,6 @@ public class PileupWalker extends BasicLociWalker<Integer, Integer> {
             if ( datum != null ) {
                 if ( datum instanceof rodDbSNP) {
                     rodDbSNP dbsnp = (rodDbSNP)datum;
-                    //System.out.printf("  DBSNP %s on %s => %s%n", dbsnp.toSimpleString(), dbsnp.strand, Utils.join("/", dbsnp.getAllelesFWD()));
                     rodString += dbsnp.toMediumString();
                 }
                 else {
@@ -70,9 +58,6 @@ public class PileupWalker extends BasicLociWalker<Integer, Integer> {
             System.out.printf("%s: %s %s %s %s%n", context.getLocation(), ref, bases, quals, rodString);
         }
 
-        //for ( int offset : context.getOffsets() ) {
-        //    System.out.println("  -> " + read.getReadName());
-        //}
         return 1;
     }
 
