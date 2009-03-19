@@ -1,16 +1,16 @@
 package org.broadinstitute.sting.gatk.walkers;
-
 //import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.utils.AlleleFrequencyMetrics;
+import org.broadinstitute.sting.utils.AlleleFrequencyEstimate;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 import java.util.Arrays;
 
-public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyWalker.AlleleFrequencyEstimate, Integer> {
+public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstimate, Integer> {
 
     public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
 
@@ -50,6 +50,7 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyWalker
         for (byte b : bases)
             base_counts[nuc2num[b]]++;
 
+        
         // Find alternate allele - 2nd most frequent non-ref allele
         // (maybe we should check for ties and eval both or check most common including quality scores)
         int altnum = -1; // start with first base numerical identity (0,1,2,3)
@@ -77,13 +78,10 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyWalker
                     //System.out.printf("  DBSNP %s on %s => %s%n", dbsnp.toSimpleString(), dbsnp.strand, Utils.join("/", dbsnp.getAllelesFWD()));
                     System.out.printf("ROD: %s ",dbsnp.toMediumString());
                 }
-
             }
         }
         if (debug >= 1) System.out.format(" %s\n", base_string);
         if (debug >= 2) System.out.println();
-
-        alleleMetrics.calculateMetrics(rodData, alleleFreq);
 
         return alleleFreq;
     }
@@ -178,40 +176,6 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyWalker
             if (posterior < other.posterior)      return 1;
             else if (posterior > other.posterior) return -1;
             else                                  return 0;
-        }
-    }
-
-    public class AlleleFrequencyEstimate {
-        //AlleleFrequencyEstimate();
-        char ref;
-        char alt;
-        int N;
-        double qhat;
-        double qstar;
-        double logOddsVarRef;
-
-        public double getQstar() {return qstar;}
-        public double getLogOddsVarRef() {return logOddsVarRef;}
-
-
-        public AlleleFrequencyEstimate (char ref, char alt, int N, double qhat, double qstar, double logOddsVarRef) {
-            this.ref = ref;
-            this.alt = alt;
-            this.N = N;
-            this.qhat = qhat;
-            this.qstar = qstar;
-            this.logOddsVarRef = logOddsVarRef;
-        }
-
-        public String asString () {
-            // Print out the called bases
-            // Notes: switched from qhat to qstar because qhat doesn't work at n=1 (1 observed base) where having a single non-ref
-            //        base has you calculate qstar = 0.0 and qhat = 0.49 and that leads to a genotype predicition of AG according
-            //        to qhat, but AA according to qstar.  This needs to be further investigated to see whether we really want
-            //        to use qstar, but make N (number of chormosomes) switch to n (number of reads at locus) for n=1
-            long numNonrefBases = Math.round(qstar * N);
-            long numRefBases = N - numNonrefBases;
-            return repeat(ref, numRefBases) + repeat(alt, numNonrefBases);
         }
     }
 
@@ -327,15 +291,8 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyWalker
         p_G_N_2[0] = 0.999;
         p_G_N_2[1] = 1e-3;
         p_G_N_2[2] = 1e-5;
-
-        alleleMetrics = new AlleleFrequencyMetrics();
     }
 
-    AlleleFrequencyMetrics alleleMetrics;
-    
-    public void onTraversalDone() {
-        alleleMetrics.printMetrics();
-    }
 
 
     void print_base_qual_matrix(double [][]quals, int numReads) {
