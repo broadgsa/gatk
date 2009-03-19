@@ -29,17 +29,25 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
  * To change this template use File | Settings | File Templates.
  */
 public class WalkerManager {
+    
     private Map<String,Walker> walkers = null;
 
-    public WalkerManager() {
+    public WalkerManager( String pluginDirectory ) {
         try {
             final File jarFile = getThisJarFile();
 
+            if(pluginDirectory == null)
+                pluginDirectory = jarFile.getParent() + File.separator + "walkers";
+
+            System.out.println("plugin directory: " + pluginDirectory);
+
             List<Class> walkerClasses = new ArrayList<Class>();
 
-            walkerClasses.addAll( loadClassesFromJar( jarFile, getPackagePrefix(Walker.class) ) );
+            // Load all classes that live in this jar.
+            walkerClasses.addAll( loadClassesFromJar( jarFile ) );
 
-            File extensionPath = new File( jarFile.getParent() + File.separator + "walkers" );
+            // Load all classes that live in the extension path.
+            File extensionPath = new File( pluginDirectory );
             if(extensionPath.exists())
                 walkerClasses.addAll( loadClassesFromPath( extensionPath ) );
 
@@ -102,10 +110,9 @@ public class WalkerManager {
      * Loads concrete classes from a jar which are both in the same package or 'sub-package' of baseClass,
      * and which extend from baseClass.
      * @param jarFile The jar file to search.
-     * @param packagePrefix Filter out classes in the jar that don't start with this package.
      * @return A list of classes derived from baseClass.
      */
-    private List<Class> loadClassesFromJar(final File jarFile, String packagePrefix)
+    private List<Class> loadClassesFromJar(final File jarFile)
             throws IOException {
         List<Class> subclasses = new ArrayList<Class>();
 
@@ -116,7 +123,7 @@ public class WalkerManager {
 
             while(jarEntry != null) {
                 String jarEntryName = jarEntry.getName();
-                if(jarEntryName.startsWith(packagePrefix) && jarEntryName.endsWith(".class"))
+                if(jarEntryName.endsWith(".class"))
                 {
                     String className = jarEntryName.substring(0,jarEntryName.lastIndexOf(".class")).replace('/','.');
                     subclasses.add( Class.forName(className) );
@@ -133,15 +140,6 @@ public class WalkerManager {
         }
 
         return subclasses;
-    }
-
-    /**
-     * Get the package prefix for a class, in directory format.
-     * @param clazz The class.
-     * @return Package prefix, in directory format.
-     */
-    private String getPackagePrefix(Class clazz) {
-        return clazz.getPackage().getName().replace('.','/');
     }
 
     /**

@@ -15,7 +15,7 @@ import java.util.HashMap;
 
 public class GenomeAnalysisTK extends CommandLineProgram {
     // Usage and parameters
-    @Usage(programVersion="0.1") public String USAGE = "SAM Validator\n";
+    @Usage(programVersion="0.1") public String USAGE = "Genome Analysis Toolkit\n";
     @Option(shortName="I", doc="SAM or BAM file for validation") public File INPUT_FILE;
     @Option(shortName="M", doc="Maximum number of reads to process before exiting", optional=true) public String MAX_READS_ARG = "-1";
     @Option(shortName="S", doc="How strict should we be with validation", optional=true) public String STRICTNESS_ARG = "strict";
@@ -28,7 +28,10 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     @Option(shortName="U", doc="If true, enables unsafe operations, nothing will be checked at runtime.  You better know what you are doing if you set this flag.", optional=false) public String UNSAFE = "false";
     @Option(shortName="SORT_ON_FLY", doc="If true, enables on fly sorting of reads file.", optional=false) public String ENABLED_SORT_ON_FLY = "false";
 
-    private WalkerManager walkerManager = new WalkerManager();
+    @Option(shortName="PLUGINS", doc="Directory where plugin class files live.", optional=true)
+    public String pluginPathName = null;
+
+    private WalkerManager walkerManager = null;
     
     private TraversalEngine engine = null;
     public boolean DEBUGGING = false;
@@ -39,6 +42,8 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     }
 
     protected int doWork() {
+        walkerManager = new WalkerManager(pluginPathName);
+
         final boolean TEST_ROD = false;
         ReferenceOrderedData[] rods = null;
 
