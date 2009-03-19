@@ -112,7 +112,13 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
             next();
 
         //System.out.printf("  -> Seeking to %s %d from %s %d%n", contigName, seekOffset, currentContig.getName(), offset);
-        if ( contigName.equals(currentContig.getName()) ) {
+        int cmpContigs = GenomeLoc.compareContigs(contigName, currentContig.getName());
+        if ( cmpContigs == -1 ) {
+            // The contig we are looking for is before the currentContig -- it's an error
+            throw new IllegalArgumentException(String.format("Invalid seek to %s from %s, which is usually due to out of order reads%n",
+                    new GenomeLoc(currentContig.getName(), seekOffset), new GenomeLoc(currentContig.getName(), offset)));
+        }
+        else if ( cmpContigs == 0 ) {
             // we're somewhere on this contig
             if ( seekOffset < offset || seekOffset >= currentContig.length() ) {
                 // bad boy -- can't go backward safely or just beyond the contig length
@@ -134,7 +140,7 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
                     // never found anything
                     return null;
                 }
-                else if ( nextContig.getName().equals(contigName) ) {
+                else if ( GenomeLoc.compareContigs( nextContig.getName(), contigName ) == 0 ) {
                     swapNextContig();
                     return seekForward(contigName, seekOffset);
                 }

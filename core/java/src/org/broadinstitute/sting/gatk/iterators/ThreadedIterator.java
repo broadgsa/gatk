@@ -16,6 +16,7 @@ public class ThreadedIterator<T> implements Iterator<T>, Runnable {
     private Iterator<T> it;
     private final BlockingQueue<T> queue;
     private int nOps = 0;
+    private final int printStateFreq = -1;
 
     public void run() {
         try {
@@ -30,7 +31,7 @@ public class ThreadedIterator<T> implements Iterator<T>, Runnable {
     }
 
     public synchronized void printState(final String op) {
-        if ( nOps++ % 100000 == 0 )
+        if ( printStateFreq != -1 && nOps++ % printStateFreq == 0 )
             System.out.printf("  [%s] Queue has %d elements %d ops%n", op, queue.size(), nOps);
     }
 

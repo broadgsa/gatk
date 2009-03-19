@@ -237,12 +237,6 @@ public class TraversalEngine {
      * @param loc Current location 
      */
     public void printProgress( boolean mustPrint, final String type, GenomeLoc loc ) {
-        // If an index is enabled, file read progress is meaningless because a linear
-        // traversal is not being performed.  For now, don't bother printing progress.
-        // TODO: Create a sam indexed read tracker that tracks based on percentage through the query.
-        if( samReadingTracker == null )
-            return;
-
         final long nRecords = this.nRecords;
         final long curTime = System.currentTimeMillis();
         final double elapsed = (curTime - startTime) / 1000.0;
@@ -257,7 +251,11 @@ public class TraversalEngine {
                 System.out.printf("[PROGRESS] Traversed %,d %s in %.2f secs (%.2f secs per 1M %s)%n", nRecords, type, elapsed, secsPer1MReads, type);
 
             // Currently samReadingTracker will print misleading info if we're not processing the whole file
-            if ( this.locs == null )
+
+            // If an index is enabled, file read progress is meaningless because a linear
+            // traversal is not being performed.  For now, don't bother printing progress.
+            // TODO: Create a sam indexed read tracker that tracks based on percentage through the query.
+            if ( samReadingTracker != null && this.locs == null )
                 System.out.printf("[PROGRESS]   -> %s%n", samReadingTracker.progressMeter());
         }
     }
