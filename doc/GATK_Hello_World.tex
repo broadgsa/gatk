@@ -27,7 +27,7 @@ Download and build the source as follows:
 
 \section{Getting Started}
 The core concept behind GATK is the walker, a class that implements the 
-three core operations, filtering, mapping, and reducing.
+three core operations: filtering, mapping, and reducing.
 
 \begin{description}
   \item [filter] reduces the size of the dataset by applying a predicate.  
@@ -41,10 +41,25 @@ Users of the GATK will provide a walker to run their analyses.  The engine
 will produce a result by first filtering the dataset, running a map operation,
 and finally reducing the map operation to a single result.  
 
+\section{Creating a Walker}
+To be loaded by GATK, the walker must satisfy the following properties:
+\begin{enumerate}
+  \item It must be a loose class, not packaged into a jar file.
+  \item It must be in the unnamed package (in other words, the source
+    should not start with a package declaration).
+  \item It must subclass one of the basic walkers in the 
+    org.broadinstitute.sting.gatk.walkers package: BasicReadWalker or 
+    BasicLociWalker.
+  \item It must live in the directory \$STING\_HOME/dist/walkers.
+\end{enumerate}
+
 \section{Example}
 This walker will print output for each read it sees, eventually computing the
 total number of reads by mapping every read to 1 and summing all the 1s to
 realize the total number of reads.
+
+\begin{samepage}
+Copy the following text into the file \$STING\_HOME/dist/walkers/HelloWalker.java:
 
 \begin{verbatim}
 import net.sf.samtools.SAMRecord;
@@ -74,6 +89,7 @@ public class HelloWalker extends BasicReadWalker<Integer,Long> {
     }
 }
 \end{verbatim}
+\end{samepage}
 To compile the walker:
 \begin{verbatim}
 setenv CLASSPATH $STING_HOME/dist/GenomeAnalysisTK.jar:$STING_HOME/dist/sam-1.0.jar
@@ -82,7 +98,6 @@ javac HelloWalker.java
 To run the walker:
 \begin{verbatim}
 mkdir $STING_HOME/dist/walkers
-cp HelloWalker.java $STING_HOME/dist/walkers
 java -Xmx4096m -jar dist/GenomeAnalysisTK.jar \
      INPUT_FILE=/broad/1KG/legacy_data/trio/na12878.bam \
      ANALYSIS_NAME=Hello L=chr1:10000000-10000100
