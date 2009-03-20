@@ -54,9 +54,11 @@ public class MismatchHistoWalker extends BasicReadWalker<Integer, Integer> {
 
             String refStr = Utils.baseList2string(refSeq).toUpperCase();
             String readStr = Utils.baseList2string(readBases).toUpperCase();
+
+            boolean reverseFlag = read.getReadNegativeStrandFlag();
             for ( int i = 0; i < refStr.length(); i++) {
                 if ( refStr.charAt(i) != readStr.charAt(i) )
-                    mismatchCounts[i]++;
+                    mismatchCounts[(reverseFlag ? (refStr.length()-1-i) : i)]++;
             }
         }
 
@@ -70,9 +72,8 @@ public class MismatchHistoWalker extends BasicReadWalker<Integer, Integer> {
     }
 
     public void onTraversalDone() {
-        for ( int i = 0; i < mismatchCounts.length; i++ ) {
-            System.out.printf("%3d %10d%n", (i+1), mismatchCounts[i]);
-        }
+        for ( int i = 0; i < mismatchCounts.length; i++ )
+            System.out.println((i+1) + "\t" + mismatchCounts[i]);
     }
 
     private static Object resizeArray (Object oldArray, int newSize) {
