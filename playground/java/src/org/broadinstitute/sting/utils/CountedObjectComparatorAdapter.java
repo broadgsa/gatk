@@ -11,10 +11,10 @@ package org.broadinstitute.sting.utils;
  */
 public class CountedObjectComparatorAdapter<T>  implements java.util.Comparator<CountedObject<T>> {
 	
-	private java.util.Comparator<T> mComp;
+	private java.util.Comparator<? super T> mComp;
 
     /** Initializes comparator adapter with a comparator for objects of trype T */
-	public CountedObjectComparatorAdapter(java.util.Comparator<T> adaptee) {
+	public CountedObjectComparatorAdapter(java.util.Comparator<? super T> adaptee) {
 		mComp = adaptee;
 	}
 

@@ -20,6 +20,7 @@ public class CountedObject<T> {
 	 * @param o object to start counting for
 	 */
 	public CountedObject(T o) {
+        assert o!=null : "Can not create counted object over null";
 		mObject = o;
 		mCounter = 1;
 	}
@@ -30,6 +31,7 @@ public class CountedObject<T> {
 	 * @param n initial count
 	 */
 	public CountedObject(T o, int n) {
+        assert o!=null : "Can not create counted object over null";
 		mObject = o;
 		mCounter = n;
 	}
@@ -40,11 +42,18 @@ public class CountedObject<T> {
 	public void increment(int n) { mCounter+=n; }
 	public void decrement() { mCounter--; }
 	public void decrement(int n) { mCounter -= n; }
+
     @Override
     public boolean equals(Object o) {
         if ( this == o ) return true;
-        if ( ! ( o instanceof CountedObject )) return false;
-        return mObject.equals(o);
+        if ( ! ( o instanceof CountedObject ) ) return false;
+        if ( ((CountedObject)o).mObject.getClass() != this.mObject.getClass() ) return false;
+        return mObject.equals(((CountedObject<T>)o).getObject());
+    }
+
+    @Override
+    public int hashCode() {
+        return mObject.hashCode();
     }
 
 }
