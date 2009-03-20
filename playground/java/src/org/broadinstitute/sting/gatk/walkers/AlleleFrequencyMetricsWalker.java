@@ -41,7 +41,7 @@ public class AlleleFrequencyMetricsWalker extends BasicLociWalker<Integer, Integ
             }
         }
 
-        if (alleleFreq.getQstar() > 0.0 && alleleFreq.getLogOddsVarRef() >= LOD_cutoff) { // we confidently called it a SNP!
+        if (alleleFreq.getQstar() > 0.0 && alleleFreq.getLOD() >= LOD_cutoff) { // we confidently called it a SNP!
             if (is_dbSNP_SNP) {
                 dbsnp_tp += 1;
             }else{
@@ -49,7 +49,7 @@ public class AlleleFrequencyMetricsWalker extends BasicLociWalker<Integer, Integ
             }
         }
 
-        if (alleleFreq.getQstar() > 0.0 && alleleFreq.getLogOddsVarRef() >= LOD_cutoff) {
+        if (alleleFreq.getQstar() > 0.0 && alleleFreq.getLOD() >= LOD_cutoff) {
             //System.out.println(alleleFreq.getLogOddsVarRef());
             num_snps++;
         }
