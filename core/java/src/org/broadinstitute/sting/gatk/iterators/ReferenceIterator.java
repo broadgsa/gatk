@@ -35,7 +35,12 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
     //
     // --------------------------------------------------------------------------------------------------------------
     public byte getBaseAsByte() { return currentContig.getBases()[(int)offset]; }
-    public String getBaseAsString() { return StringUtil.bytesToString(currentContig.getBases(), (int)offset, 1); }
+    public String getBaseAsString() { 
+	assert offset > -1 : currentContig.getName() + " index is " + offset;
+	//assert offset < currentContig.getBases().();
+
+	return StringUtil.bytesToString(currentContig.getBases(), (int)offset, 1);
+    }
     public char getBaseAsChar() { return getBaseAsString().charAt(0); }
     public ReferenceSequence getCurrentContig() { return currentContig; }
     public long getPosition() { return offset + 1; }
@@ -142,7 +147,7 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
                 }
                 else if ( GenomeLoc.compareContigs( nextContig.getName(), contigName ) == 0 ) {
                     swapNextContig();
-                    return seekForward(contigName, seekOffset);
+                    return seekForwardOffset(contigName, seekOffset);
                 }
             }
         }
