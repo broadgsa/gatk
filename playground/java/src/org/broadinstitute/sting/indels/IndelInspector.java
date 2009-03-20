@@ -250,7 +250,7 @@ public class IndelInspector extends CommandLineProgram {
             setDefaultContigOrdering();
             return;
         }
-        List<SAMSequenceRecord> seqs = h.getSequences();
+        List<SAMSequenceRecord> seqs = h.getSequenceDictionary().getSequences();
         if ( seqs == null ) {
             System.out.println("No reference sequence records found in SAM file header, " +
                                "falling back to default contig ordering");
