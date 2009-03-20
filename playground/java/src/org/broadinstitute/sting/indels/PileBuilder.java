@@ -1,11 +1,18 @@
 package org.broadinstitute.sting.indels;
 
+import net.sf.samtools.SAMRecord;
 
-public class PileBuilder {
+import java.util.Collection;
+
+
+public class PileBuilder implements RecordPileReceiver {
 	private StrictlyUpperTriangularMatrix distances ;
 	private Matrix<PairwiseAlignment> alignments ;
-	
-	private static class SelectedPair {
+    private static final int KmerSize = 8;
+    private MultipleAlignment alignments1;
+    private MultipleAlignment alignments2;
+
+    private static class SelectedPair {
 		private int i_;
 		private int j_;
 		private double d_;
@@ -40,7 +47,23 @@ public class PileBuilder {
 	}
 	
 	public PileBuilder() {}
-	
+
+    public void receive(Collection<SAMRecord> c) {
+           IndexedSequence[] seqs = new IndexedSequence[c.size()];
+           int i = 0;
+           for ( SAMRecord r : c ) {
+                seqs[i++] = new IndexedSequence(r.getReadString(),KmerSize);
+           }
+           doMultipleAlignment(seqs);
+           System.out.print("Distance between final piles: "+distance(alignments1, alignments2));
+           System.out.println("; diameter of PILE1: "+ diameter(alignments1));
+           System.out.println("; diameter of PILE2: "+ diameter(alignments2));
+
+		   System.out.println("PILE 1: \n"+alignments1.toString());
+		   System.out.println("PILE 2: \n"+alignments2.toString());
+
+    }
+
 	public void initPairwiseAlignments( IndexedSequence [] seqs ) {
 		 distances = new StrictlyUpperTriangularMatrix( seqs.length );
 		 alignments = new Matrix<PairwiseAlignment>( seqs.length );
@@ -57,7 +80,7 @@ public class PileBuilder {
 	 * so that the alignments are pre-computed.
 	 * @return id's of the two sequences and the distance between them in a compound object.
 	 */
-	public SelectedPair findBest() {
+	public SelectedPair findClosestPair() {
 		
 		SelectedPair p = new SelectedPair(-1,-1,1e100);
 		
@@ -95,7 +118,7 @@ public class PileBuilder {
 	 * @param pexclude neither of the two sequences in the returned pair can have its id listed in pexclude pair. 
 	 * @return Best pairwise alignment excluding alignments between pairs involving at least one sequence from pexclude
 	 */
-	public SelectedPair findBest(SelectedPair pexclude) {
+	public SelectedPair findNextClosestPairAfter(SelectedPair pexclude) {
 		
 		SelectedPair p = new SelectedPair(-1,-1,1e100);
 		
@@ -117,7 +140,7 @@ public class PileBuilder {
 	 * @return a compound SelectedPair object that contains the index of the closest sequence found (is guaranteed to
 	 * be not in the pile), the index of the sequence in the pile it is closest to, and the actual distance between the two. 
 	 */
-	public SelectedPair findClosest(MultipleAlignment a) {
+	public SelectedPair findClosestToPile(MultipleAlignment a) {
 
 		SelectedPair p = new SelectedPair(-1,-1,1e100);
 		
@@ -143,7 +166,7 @@ public class PileBuilder {
 	 * @param a alignment pile to find the closest sequence for
 	 * @return index of the farthest sequence 
 	 */
-	public int findFarthest(MultipleAlignment a) {
+	public int findFarthestFromPile(MultipleAlignment a) {
 
 		double dmaxmin = 0;
 		int i_out = -1;
@@ -209,17 +232,22 @@ public class PileBuilder {
 		IndexedSequence [] seqs = testSet3(K); // initialize test set data
 		
 		PileBuilder pb = new PileBuilder();
+
+        pb.doMultipleAlignment(seqs);
+    }
+
+    public void doMultipleAlignment(IndexedSequence[] seqs) {
 		// two piles we are going to grow until all sequences are assigned to one of them.
 		// we intend to keep the piles disjoint, e.g. no sequence should be placed in both
 		MultipleAlignment pile1 = new MultipleAlignment();
 		MultipleAlignment pile2 = new MultipleAlignment();
 	
-		pb.initPairwiseAlignments(seqs);
+		initPairwiseAlignments(seqs);
 		
 		
 		// all the pairwise alignments are computed and disjoint best and next-best pairs are found
 
-		System.out.println( pb.distances.format("%8.4g "));
+		//System.out.println( distances.format("%8.4g "));
 
 	/*	
 		SelectedPair pworst = pb.findWorst();
@@ -229,10 +257,10 @@ public class PileBuilder {
 */
 				
 		// initialize piles with best and next-best pairs
-		SelectedPair p_best = pb.findBest();
-		SelectedPair p_nextbest = pb.findBest(p_best);
-		pile1.add( pb.alignments.get(p_best.i(), p_best.j()),p_best.i(),p_best.j());
-		pile2.add( pb.alignments.get(p_nextbest.i(), p_nextbest.j()),p_nextbest.i(),p_nextbest.j());
+		SelectedPair p_best = findClosestPair();
+		SelectedPair p_nextbest = findNextClosestPairAfter(p_best);
+		pile1.add( alignments.get(p_best.i(), p_best.j()),p_best.i(),p_best.j());
+		pile2.add( alignments.get(p_nextbest.i(), p_nextbest.j()),p_nextbest.i(),p_nextbest.j());
 /*		
 		System.out.println("Best pair ("+p_best.i() + "," + p_best.j()+", d="+p_best.d()+"):");
 		System.out.println(pile1.toString());
@@ -245,42 +273,39 @@ public class PileBuilder {
 		// grow piles hierarchical clustering-style
 	   while ( pile1.size() + pile2.size() < seqs.length ) {
 		   // find candidate sequences closest to each of the two piles
-		   p1 = pb.findClosest(pile1);
-		   p2 = pb.findClosest(pile2);
+		   p1 = findClosestToPile(pile1);
+		   p2 = findClosestToPile(pile2);
 		   int id1_cand = pile1.selectExternal(p1.i(), p1.j()); // id of the sequence closest to the pile 1
 		   int id2_cand = pile2.selectExternal(p2.i(), p2.j()); // id of the sequence closest to the pile 2
 		   if ( pile2.contains(id1_cand) && pile1.contains(id2_cand)) { 
 			   // pile1 and pile 2 are mutually the closest, so we need to merge them.
 			   // if piles are mutually the closest, then p1 and p2 are the same pair (id1, id2), 
 			   // so we just merge on one of the (redundant) instances:
-			   pile1.add(pile2, pb.alignments.get( p1.i(), p1.j()),p1.i(), p1.j());
+			   pile1.add(pile2, alignments.get( p1.i(), p1.j()),p1.i(), p1.j());
 			   pile2.clear(); // need to reset pile 2 to something else
-			   int z = pb.findFarthest(pile1); // get sequence farthest from merged pile 1
+			   int z = findFarthestFromPile(pile1); // get sequence farthest from merged pile 1
 			   pile2.add(seqs[z].getSequence(), z); // and reinitialize pile 2 with that sequence
 		   } else {
 				   if ( p1.d() < p2.d() ) {
 					   if ( pile2.contains(id1_cand) ) {
-						   pile1.add(pile2, pb.alignments.get( p1.i(), p1.j()),p1.i(), p1.j());
+						   pile1.add(pile2, alignments.get( p1.i(), p1.j()),p1.i(), p1.j());
 						   pile2.clear(); // need to reset pile 2 to something else
-						   int z = pb.findFarthest(pile1); // get sequence farthest from merged pile 1
+						   int z = findFarthestFromPile(pile1); // get sequence farthest from merged pile 1
 						   pile2.add(seqs[z].getSequence(), z); // and reinitialize pile 2 with that sequence
-					   } else pile1.add( pb.alignments.get(p1.i(), p1.j()) );
+					   } else pile1.add( alignments.get(p1.i(), p1.j()) );
 				   } else {
 					   if ( pile1.contains(id2_cand) ) {
-						   pile2.add(pile1, pb.alignments.get( p2.i(), p2.j()),p2.i(), p2.j());
+						   pile2.add(pile1, alignments.get( p2.i(), p2.j()),p2.i(), p2.j());
 						   pile1.clear(); // need to reset pile 2 to something else
-						   int z = pb.findFarthest(pile2); // get sequence farthest from merged pile 1
+						   int z = findFarthestFromPile(pile2); // get sequence farthest from merged pile 1
 						   pile1.add(seqs[z].getSequence(), z); // and reinitialize pile 2 with that sequence
-					   } else pile2.add( pb.alignments.get(p2.i(), p2.j()) );
+					   } else pile2.add( alignments.get(p2.i(), p2.j()) );
 			   } 
 		   }
-		   System.out.println("PILE 1: \n"+pile1.toString());
-		   System.out.println("PILE 2: \n"+pile2.toString());
 	   } // end WHILE
 
-	   System.out.println("Distance between final piles: "+pb.distance(pile1, pile2));
-	   System.out.println("Diameter of PILE1: "+ pb.diameter(pile1));
-	   System.out.println("Diameter of PILE2: "+ pb.diameter(pile2));
+       alignments1 = pile1;
+       alignments2 = pile2;
 /*
  * System.out.println("Closest distance to the pile: " + best_d
 					+ "(adding: " + best_i + "," + best_j + "):");

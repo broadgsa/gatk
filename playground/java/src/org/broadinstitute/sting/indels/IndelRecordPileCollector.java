@@ -86,16 +86,16 @@ public class IndelRecordPileCollector implements RecordReceiver {
 	private List<Integer> mIndelLengthHistI;
 	private List<Integer> mIndelLengthHistD;
 
-    private RecordReceiver nonindelReceiver; // we will send there records that do not overlap with regions of interest
+    private RecordReceiver defaultReceiver; // we will send there records that do not overlap with regions of interest
     private RecordPileReceiver indelPileReceiver; // piles over indel regions will be sent there
 
-	public String memStatsString() {
+    public String memStatsString() {
 		String s = "mRecordPile: ";
 		return s+mRecordPile.size() + " mAllIndels: "+mAllIndels.size() + " mLastContig=" +mLastContig + " mLastStartOnref="+mLastStartOnRef;
                 //+" Bndries="+mIndelRegionStart +":"+ mIndelRegionStop;
 	}
 	
-	public IndelRecordPileCollector() throws java.io.IOException {
+	public IndelRecordPileCollector(RecordReceiver rr, RecordPileReceiver rp) throws java.io.IOException {
 		mRecordPile = new LinkedList<SAMRecord>();
 		mAllIndels = new TreeSet<CountedObject<Indel> >(
                 new CountedObjectComparatorAdapter<Indel>(new IntervalComparator()));
@@ -108,8 +108,8 @@ public class IndelRecordPileCollector implements RecordReceiver {
 			mIndelLengthHistI.add(0);
 			mIndelLengthHistD.add(0);
 		}
-        nonindelReceiver = new DiscardingReceiver();
-        indelPileReceiver = new DiscardingPileReceiver();
+        defaultReceiver = rr;
+        indelPileReceiver = rp;
         setWaitState();
 	}
 
@@ -138,7 +138,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
         while ( i.hasNext() ) {
             SAMRecord r = i.next();
             if ( r.getAlignmentEnd() <= pos ) {
-                nonindelReceiver.receive(r);
+                defaultReceiver.receive(r);
                 i.remove();
             } else break;
         }
@@ -153,7 +153,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
         while ( i.hasNext() ) {
             SAMRecord r = i.next();
             if ( r.getAlignmentStart() >= pos ) {
-                nonindelReceiver.receive(r);
+                defaultReceiver.receive(r);
                 i.remove();
             } else break;
         }
@@ -243,8 +243,8 @@ public class IndelRecordPileCollector implements RecordReceiver {
                                    " bases between indels");
             }
 
-			// no indels or avoiding indels in bad region: send all records to nonindelReceiver and clear the pile
-            for ( SAMRecord r : mRecordPile ) nonindelReceiver.receive(r);
+			// no indels or avoiding indels in bad region: send all records to defaultReceiver and clear the pile
+            for ( SAMRecord r : mRecordPile ) defaultReceiver.receive(r);
             setWaitState();
 			return;
 		}
@@ -277,7 +277,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
 
         while ( indel != null ) {
 
-            // first, if we just started new indel train, then emit into nonindelReceiver all alignments
+            // first, if we just started new indel train, then emit into defaultReceiver all alignments
             // that end prior to the first indel in the train:
             if ( finalTrain.size() == 0 ) purgeRecordsEndingAtOrBefore(indel.getObject().getStart() - 1);
 
@@ -315,8 +315,14 @@ public class IndelRecordPileCollector implements RecordReceiver {
                             finalTrain.size() + " indels");
                     System.out.println(formatRange(finalTrain));
 
-                    if ( shouldAcceptForOutput(finalTrain ) ) indelPileReceiver.receive(finalPile);
-                    else for ( SAMRecord r : finalPile ) nonindelReceiver.receive(r);
+                    if ( shouldAcceptForOutput(finalTrain ) ) {
+                        System.out.print(mLastContig+":"+ finalTrain.get(0).getObject().getStart() + "-" +
+                                finalTrain.get(finalTrain.size()-1).getObject().getStop() + " " +
+                                finalTrain.size() + " indels; ");
+                        System.out.print(finalPile.size() + " reads in the pile;")  ;
+                        System.out.println(formatRange(finalTrain));
+                        indelPileReceiver.receive(finalPile);
+                    } else for ( SAMRecord r : finalPile ) defaultReceiver.receive(r);
                     finalPile.clear();
                     finalTrain.clear();
                     curr_stop = -1;
@@ -444,7 +450,8 @@ public class IndelRecordPileCollector implements RecordReceiver {
 		
 		long min = 1000000000;
 		long max = 0;
-		
+
+        all.append("passing indels:");
 		for ( CountedObject<Indel> o :  indels ) {
 			if ( o.getCount() < 2 ) continue;
             all.append(" ");
@@ -452,9 +459,9 @@ public class IndelRecordPileCollector implements RecordReceiver {
 			if ( o.getObject().getIndelLength() < min ) min = o.getObject().getIndelLength();
 			if ( o.getObject().getIndelLength() > max ) max = o.getObject().getIndelLength();
 		}
-		b.append(" min: ");
+		b.append("; passing min length: ");
 		b.append(min);
-		b.append(" max: ");
+		b.append("; passing max length: ");
 		b.append(max);
 		b.append(all);
 		return b.toString();

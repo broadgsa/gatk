@@ -36,6 +36,7 @@ public class IndelInspector extends CommandLineProgram {
     
 	protected int doWork() {
 
+        System.out.println("I am at version 0.1");
         GenomeLoc location = null;
         if ( GENOME_LOCATION != null ) {
             location = GenomeLoc.parseGenomeLoc(GENOME_LOCATION);
@@ -59,7 +60,7 @@ public class IndelInspector extends CommandLineProgram {
 
 		IndelRecordPileCollector col = null;
 		try {
-			col = new IndelRecordPileCollector();
+			col = new IndelRecordPileCollector(new DiscardingReceiver(), new PileBuilder() );
 		} catch(Exception e) { System.err.println(e.getMessage()); }
 		if ( col == null ) return 1; 
 		
@@ -105,8 +106,8 @@ public class IndelInspector extends CommandLineProgram {
         	else if ( ERR_MODE.equals("ERR")) err = numErrors(r);
         	else if ( ERR_MODE.equals("MG")) err = numMismatchesGaps(r);
         	if ( err > MAX_ERRS.intValue() ) continue;
-        	counter++;
-        	if ( counter % 1000000 == 0 ) System.out.println(counter+" records; "+col.memStatsString());
+//        	counter++;
+//        	if ( counter % 1000000 == 0 ) System.out.println(counter+" records; "+col.memStatsString());
         	col.receive(r);
 
         }
