@@ -3,7 +3,7 @@ import os.path
 import sys
 import getopt
 
-defaultCommands = ['CountLoci', 'Pileup']
+defaultCommands = ['CountReads', 'Pileup']
 
 def usage():
     print "Optional arguments:"
@@ -31,14 +31,20 @@ if __name__ == "__main__":
         if opt in ("-e", "--ignoreExistingFiles"):
             ignoreExistingFiles = True
 
+    directory = args[1]
     for line in open(args[0]):
         lane = line.strip()
+        
+        if not os.path.exists(lane):
+            print 'Input SAM/BAM file: "', lane, '" does not exist, skipping...'
+            continue        
+
         head, lane_filename = os.path.split(lane)
         filebase = os.path.splitext(lane_filename)[0]
     
         # convert the fasta
         for analysis in commandsList:
-            output = filebase + '.' + analysis + '.output'
+            output = os.path.join(directory, filebase + '.' + analysis + '.output')
             if ignoreExistingFiles or not os.path.exists(output):
                 cmd = "java -jar ~/dev/GenomeAnalysisTK/trunk/dist/GenomeAnalysisTK.jar T=" + analysis + " I= " + lane + " R= /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta "
                 print cmd
