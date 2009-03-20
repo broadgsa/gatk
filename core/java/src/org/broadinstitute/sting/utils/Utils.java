@@ -202,7 +202,7 @@ public class Utils {
     }
 
     public static boolean setupRefContigOrdering(final ReferenceSequenceFile refFile) {
-        List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary();
+        List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary().getSequences();
         HashMap<String, Integer> refContigOrdering = new HashMap<String, Integer>();
 
         if ( refContigs != null ) {
