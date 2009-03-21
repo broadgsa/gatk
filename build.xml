@@ -119,6 +119,13 @@
         <attribute name="Class-Path" value="${jar.classpath}" />
       </manifest>
     </jar>
+
+    <jar jarfile="${dist}/FourBaseCaller.jar" basedir="${build}">
+      <manifest>
+        <attribute name="Class-Path" value="${jar.classpath}" />
+        <attribute name="Main-Class" value="org.broadinstitute.sting.projects.fourbasecaller.FourBaseCaller" />
+      </manifest>
+    </jar>
   </target>
 
   <target name="dist.playground" if="target.is.playground">
