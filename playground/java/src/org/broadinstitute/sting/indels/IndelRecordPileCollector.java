@@ -310,11 +310,6 @@ public class IndelRecordPileCollector implements RecordReceiver {
                     // this means that the current train and pile of reads overlapping with it are fully built;
                     // emit into indel receiver if the train is interesting enough, or into the nonindel receiver:
 
-                    System.out.print(mLastContig+":"+ finalTrain.get(0).getObject().getStart() + "-" +
-                            finalTrain.get(finalTrain.size()-1).getObject().getStop() + " " +
-                            finalTrain.size() + " indels");
-                    System.out.println(formatRange(finalTrain));
-
                     if ( shouldAcceptForOutput(finalTrain ) ) {
                         System.out.print(mLastContig+":"+ finalTrain.get(0).getObject().getStart() + "-" +
                                 finalTrain.get(finalTrain.size()-1).getObject().getStop() + " " +
@@ -451,7 +446,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
 		long min = 1000000000;
 		long max = 0;
 
-        all.append("passing indels:");
+        all.append("; passing indels:");
 		for ( CountedObject<Indel> o :  indels ) {
 			if ( o.getCount() < 2 ) continue;
             all.append(" ");
@@ -459,7 +454,9 @@ public class IndelRecordPileCollector implements RecordReceiver {
 			if ( o.getObject().getIndelLength() < min ) min = o.getObject().getIndelLength();
 			if ( o.getObject().getIndelLength() > max ) max = o.getObject().getIndelLength();
 		}
-		b.append("; passing min length: ");
+        if ( max == 0 ) return new String(); // no passinf indels, return empty string
+
+		b.append(" passing min length: ");
 		b.append(min);
 		b.append("; passing max length: ");
 		b.append(max);

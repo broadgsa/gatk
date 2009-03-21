@@ -23,7 +23,7 @@ public class IndelInspector extends CommandLineProgram {
 
     // Usage and parameters
     @Usage(programVersion="1.0") public String USAGE = "Investigates indels called in the alignment data\n";
-    @Option(shortName="I", doc="SAM or BAM file for calling") public File INPUT_FILE;
+    @Option(shortName="I", doc="SAM or BAM file for calling",optional=true) public File INPUT_FILE;
     @Option(shortName="L",doc="Genomic interval to run on, as contig[:start[-stop]]; whole genome if not specified", optional=true) public String GENOME_LOCATION;
     @Option(doc="Error counting mode: MM - count mismatches only, ERR - count errors (arachne style), MG - count mismatches and gaps as one error each") public String ERR_MODE;
     @Option(doc="Maximum number of errors allowed (see ERR_MODE)") public Integer MAX_ERRS;
@@ -36,7 +36,7 @@ public class IndelInspector extends CommandLineProgram {
     
 	protected int doWork() {
 
-        System.out.println("I am at version 0.1");
+        System.out.println("I am at version 0.2");
         GenomeLoc location = null;
         if ( GENOME_LOCATION != null ) {
             location = GenomeLoc.parseGenomeLoc(GENOME_LOCATION);
@@ -47,7 +47,8 @@ public class IndelInspector extends CommandLineProgram {
 			return 1;
 		}
 		
-		final SAMFileReader samReader = new SAMFileReader(getInputFile(INPUT_FILE,"/broad/1kG/"));
+		final SAMFileReader samReader = new SAMFileReader(getInputFile(INPUT_FILE,"/broad/1KG/"));
+        samReader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
 
         setContigOrdering(samReader);
 
@@ -69,6 +70,7 @@ public class IndelInspector extends CommandLineProgram {
 
         for ( SAMRecord r : samReader ) {
 
+            if ( r.getReadUnmappedFlag() ) continue; 
         	if ( r.getReferenceName() != cur_contig) {
         		cur_contig = r.getReferenceName();
         		System.out.println("Contig "+cur_contig);
@@ -173,6 +175,7 @@ public class IndelInspector extends CommandLineProgram {
 	}
 
     private static int numMismatchesDirect(SAMRecord r, ReferenceSequence ref) {
+        if ( r.getReadUnmappedFlag() ) return 1000000;
         int i_ref = r.getAlignmentStart()-1; // position on the ref
         int i_read = 0;                    // position on the read
         int mm_count = 0; // number of mismatches

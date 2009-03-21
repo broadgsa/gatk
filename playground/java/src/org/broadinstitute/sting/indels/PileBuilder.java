@@ -3,6 +3,7 @@ package org.broadinstitute.sting.indels;
 import net.sf.samtools.SAMRecord;
 
 import java.util.Collection;
+import java.util.Iterator;
 
 
 public class PileBuilder implements RecordPileReceiver {
@@ -56,7 +57,7 @@ public class PileBuilder implements RecordPileReceiver {
            }
            doMultipleAlignment(seqs);
            System.out.print("Distance between final piles: "+distance(alignments1, alignments2));
-           System.out.println("; diameter of PILE1: "+ diameter(alignments1));
+           System.out.print("; diameter of PILE1: "+ diameter(alignments1));
            System.out.println("; diameter of PILE2: "+ diameter(alignments2));
 
 		   System.out.println("PILE 1: \n"+alignments1.toString());
@@ -209,18 +210,23 @@ public class PileBuilder implements RecordPileReceiver {
      */
 	public double diameter(MultipleAlignment a) {
 		double dmaxmin = 0.0;
-		for ( Integer id1 : a ) {
-			double d = 1e100;
-			for ( Integer id2 : a ) {
-				if ( id2 <= id1 ) continue;
-				if ( distances.get(id1,id2) < d ) d = distances.get(id1,id2);
+        System.out.print("\n[");
+        Iterator<Integer> ids1 = a.sequenceIdByOffsetIterator();
+		while ( ids1.hasNext() ) {
+            Integer id1 = ids1.next();
+			double d = 1e100; // will hold distance from id1 to its closest neighbor
+            for ( Integer id2 : a ) {
+				if ( id2 == id1 ) continue;
+                double dpair = ( id1 < id2 ? distances.get(id1,id2) : distances.get(id2,id1) );
+				d = Math.min(d,dpair);
 			}
             // d = distance from id1 to its closest neighbor within the pile
 			if ( d < 1e99 ) System.out.printf("%8.4g",d);
 			if ( d < 1e99 && d > dmaxmin ) dmaxmin = d;
 		}
+        System.out.println(" ]");
         // dmaxmin = the largest distance from a sequence in this pile to its closest neighbor
-		System.out.println();
+//		System.out.println();
 		return dmaxmin;
 	}
 	
@@ -229,11 +235,18 @@ public class PileBuilder implements RecordPileReceiver {
 		int K=8;
 //		IndexedSequence [] seqs = testSet1(K); // initialize test set data
 //		IndexedSequence [] seqs = testSet2(K); // initialize test set data
-		IndexedSequence [] seqs = testSet3(K); // initialize test set data
-		
+//        IndexedSequence [] seqs = testSet3(K); // initialize test set data
+        IndexedSequence [] seqs = testSet4(K); // initialize test set data
+
 		PileBuilder pb = new PileBuilder();
 
         pb.doMultipleAlignment(seqs);
+        System.out.print("Distance between final piles: "+pb.distance(pb.alignments1, pb.alignments2));
+        System.out.print("; diameter of PILE1: "+ pb.diameter(pb.alignments1));
+        System.out.println("; diameter of PILE2: "+ pb.diameter(pb.alignments2));
+
+        System.out.println("PILE 1: \n"+pb.alignments1.toString());
+        System.out.println("PILE 2: \n"+pb.alignments2.toString());
     }
 
     public void doMultipleAlignment(IndexedSequence[] seqs) {
@@ -359,4 +372,28 @@ public class PileBuilder implements RecordPileReceiver {
 		seqs[10] = new IndexedSequence("GTCTGGTGAGGGTAGGGTGCACTCTCTGCTTCATAAATGGGTCTCTTGCCGCAAAAAAATCTGTTTGCTCCTCCAG",K); 		
 		return seqs;
 	}
+
+    public static IndexedSequence[] testSet4(int K) {
+        IndexedSequence [] seqs = new IndexedSequence[19];
+        seqs[0]  = new IndexedSequence("CGTGTGTGTGTGTGCAGTGCGTGGTGCTGTGAGATCAGCGTGTGTGTGTGTGCAGTGCATGGTGCTTTGTGAGATC",K);
+        seqs[1]  = new IndexedSequence("ATGTGTGTGTGTGCAGTGCATGGTGCTGTGAGATCAGCGTGTGTGTGTGTGCAGTGCAT",K);
+        seqs[2]  = new IndexedSequence("GTGTGTGTGTGCAGTGCATGGTGCTGTGAGATCAGCGTGTGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCAGC",K);
+        seqs[3]  = new IndexedSequence("TGTGTGTGTGCAGTGCATGGTGCTGTGAGATCAGCGTGTGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCAGCA",K);
+        seqs[4]  = new IndexedSequence("GTGTGTGTGCAGTGCATGGTGCTGTGAGATCAGCGTGTGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCAGCAT",K);
+        seqs[5]  = new IndexedSequence("GTGTGTGTGCCGTGCTTTGTGCTGTGAGATCTGCGTGTGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCTGCAT",K);
+        seqs[6]  = new IndexedSequence("GTGTGTGCAGTGCATGGTGCTGTGAGATCAGCGTGTGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCAGCATGT",K);
+        seqs[7]  = new IndexedSequence("GTGCAGTGCATGGTGCTGTGAGATCAGCGTGTGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCAGCATGTGTGT",K);
+        seqs[8]  = new IndexedSequence("TGCAGTGCATGGTGCTGTGAGATCAGCGTGTGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCAGCATGTGTGTG",K);
+        seqs[9]  = new IndexedSequence("AGTGCATGGTGCTGTGAGATCAGCGTGTGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCAGCATGTGTGTGTGT",K);
+        seqs[10] = new IndexedSequence("TGGGCATGGTGCTGTGAGATCAGCGTGTGTGTGTGCAGCGCATGGTGCTGTGTGAGATCAGCGTGTGTGTGTGCAG",K);
+        seqs[11]  = new IndexedSequence("GCTGTGAGATCAGCGTGTGTGTGTGAGCAGTGCATGGGGATGTGTGAGATCAGCATGTGTGTGTGTGTGCAGCGCG",K);
+        seqs[12]  = new IndexedSequence("GCTGTGAGATCAGCGTGTGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCAGCATGTGTGTGTGTGTGCAGTGCA",K);
+        seqs[13]  = new IndexedSequence("AGATCAGCATGTGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCAGCATGTGTGTGTGTGTGCAGTGCATGGTGC",K);
+        seqs[14] = new IndexedSequence("AGATCAGCGTGTGTGTGTGCAGCGCATGGCGCTGTGTGAGATCAGCATGTGTGTGTGTGTGCGGCGCATGGGGGTG",K);
+        seqs[15]  = new IndexedSequence("GATCAGCGTGTGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCAGAATGTGTGTGTGTGTGCAGTGCATGGTGCT",K);
+        seqs[16]  = new IndexedSequence("ATCAGCATGGGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCAGCATGTGTGGGTGTGTGGGGTGGGTGGTGGTG",K);
+        seqs[17]  = new IndexedSequence("ATCAGCATGTGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCAGCATGTGTGTGTGTGTGCAGTGCATGGGGCTG",K);
+        seqs[18]  = new IndexedSequence("GTGTGTGTGTGTGCAGTGCATGGTGCTGTGTGAGATCAGCATGTGTGTGTGTGTGCAGTGCATGGTGCTGAGTGTG",K);
+        return seqs;
+    }
 }

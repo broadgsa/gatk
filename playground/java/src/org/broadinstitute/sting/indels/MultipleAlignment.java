@@ -1,18 +1,14 @@
 package org.broadinstitute.sting.indels;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 public class MultipleAlignment implements Iterable<Integer>  {
 	private static final int IMPOSSIBLE = 1000000000;
-	private Map<Integer,Integer> index; 
-	private List<String> seqs;
-	private List<Integer> ext_ids;
-	private List<Integer>  alignment_offsets; // offset of seqs[i] w/respect to seqs[0]
+	private Map<Integer,Integer> index;    // maps external id of the sequence onto its index in the pile
+	private List<String> seqs;             // sequences, in order they were added
+	private List<Integer> ext_ids;         // external ids of the sequences, in order they were added to the pile
+	private List<Integer>  alignment_offsets; // offset of seqs[i] w/respect to seqs[0] (i.e. in order the seqs were added)
 	private int best_mm; // mismatch count
 	private int next_mm; // next-best mismatch count
 		
@@ -29,7 +25,27 @@ public class MultipleAlignment implements Iterable<Integer>  {
 		alignment_offsets.clear();
 		ext_ids.clear();
 	}
-	
+
+    public  static <T extends Comparable> Integer[] SortPermutation( List<T> A )
+    {
+        final Object[] data = A.toArray();
+
+        class comparator implements Comparator<Integer>
+        {
+            public int compare(Integer a, Integer b)
+            {
+                return ((T)data[a]).compareTo(data[b]);
+            }
+        }
+        Integer[] permutation = new Integer[A.size()];
+        for (int i = 0; i < A.size(); i++)
+        {
+            permutation[i] = i;
+        }
+        Arrays.sort(permutation, new comparator());
+        return permutation;
+    }
+
 	/** Adds  single sequence with id set to i. Pile must be empty, or IllegalStateException will be thrown
 	 * 
 	 * @param seq sequence to add
@@ -182,11 +198,22 @@ public class MultipleAlignment implements Iterable<Integer>  {
 			return i;
 		}
 	}
-	
+
+    public String skipN(int n) {
+        StringBuilder b=new StringBuilder();
+        for ( int k = 0 ; k < n ; k++ ) b.append(' ');
+        return b.toString();
+    }
+
+    public void skipN(int n, StringBuilder b) {
+        for ( int k = 0 ; k < n ; k++ ) b.append(' ');
+    }
+
 	/** Returns a (multiline) string that represents the alignment visually: the sequences are appropriately
 	 *  shifted and ready for printout;  
 	 */
-	public String toString() {
+	public String toString(boolean inorder) {
+
 		StringBuilder b = new StringBuilder();
 		java.util.Formatter frmt = new java.util.Formatter(b);
 		
@@ -196,23 +223,23 @@ public class MultipleAlignment implements Iterable<Integer>  {
 		for ( int i = 0 ; i < seqs.size() ; i++ ) {
 			if ( -alignment_offsets.get(i) > skip_first ) skip_first = -alignment_offsets.get(i);
 		}
+
+        Integer[] perm = null;
+        if ( inorder ) perm = SortPermutation(alignment_offsets);
 		
-		frmt.format("%3d:", ext_ids.get(0));
-		for ( int k = 0 ; k < skip_first ; k++ ) b.append(' ');
-		b.append(seqs.get(0));
-		b.append('\n');
-		
-		for ( int i = 1 ; i < seqs.size() ; i++ ) {
-			frmt.format("%3d:", ext_ids.get(i));
-			int skip = alignment_offsets.get(i) + skip_first ;
-			for ( int k = 0 ; k < skip ; k++ ) b.append(' ');
-			b.append(seqs.get(i));
+		for ( int i = 0 ; i < seqs.size() ; i++ ) {
+            int index = (inorder ? perm[i] : i);
+			frmt.format("%3d:", ext_ids.get(index));
+			skipN(alignment_offsets.get(index)+skip_first,b);
+			b.append(seqs.get(index));
 			b.append('\n');
 		}
 //		b.append(best_mm+" mismatches, "+ next_mm + " next best, " + getOverlap() + " overlapping bases, distance=" + distance() + "\n");
 		return b.toString();
 	}
-	
+
+    public String toString() { return toString(true); }
+
 	public int size() { return seqs.size(); }
 	
 	/** Returns an iterator over the id's of the sequences currently stored in the pile 
@@ -221,8 +248,27 @@ public class MultipleAlignment implements Iterable<Integer>  {
 	 */
 	public Iterator<Integer> sequenceIdIterator() { return index.keySet().iterator(); }
 
+    public Iterator<Integer> sequenceIdByOffsetIterator() {
+        final Integer[] perm = SortPermutation(alignment_offsets);
+        return new Iterator<Integer>() {
+            private int i = 0;
+            public boolean hasNext() {
+                return i < perm.length;
+            }
+            public Integer next() {
+                return ext_ids.get(perm[i++]);
+            }
+            public void remove() {
+                throw new UnsupportedOperationException("remove not supported");
+            }
+        }   ;
+
+    }
+
 	@Override
 	public Iterator<Integer> iterator() {
 		return sequenceIdIterator();
 	}
+
+
 }
