@@ -305,24 +305,26 @@ public class IndelRecordPileCollector implements RecordReceiver {
             // we are done with current indel, get next one if any:
             if ( i_iter.hasNext() ) {
                 indel = i_iter.next();
-                if ( curr_stop < indel.getObject().getStart() ) {
-                    // all alignments that overlapped with the previous indel ended before the current indel started,
-                    // this means that the current train and pile of reads overlapping with it are fully built;
-                    // emit into indel receiver if the train is interesting enough, or into the nonindel receiver:
-
-                    if ( shouldAcceptForOutput(finalTrain ) ) {
-                        System.out.print(mLastContig+":"+ finalTrain.get(0).getObject().getStart() + "-" +
-                                finalTrain.get(finalTrain.size()-1).getObject().getStop() + " " +
-                                finalTrain.size() + " indels; ");
-                        System.out.print(finalPile.size() + " reads in the pile;")  ;
-                        System.out.println(formatRange(finalTrain));
-                        indelPileReceiver.receive(finalPile);
-                    } else for ( SAMRecord r : finalPile ) defaultReceiver.receive(r);
-                    finalPile.clear();
-                    finalTrain.clear();
-                    curr_stop = -1;
-                } // ELSE: otherwise we have reads that overlap with both previous and current indel, so we just continue
             } else indel = null;
+            if ( indel == null || curr_stop < indel.getObject().getStart() ) {
+                // if there are no more indels or
+                // all alignments that overlapped with the previous indel ended before the current indel started,
+                // this means that the current train and pile of reads overlapping with it are fully built
+                // and can be emitted
+
+                if ( shouldAcceptForOutput(finalTrain ) ) {
+                     System.out.print(mLastContig+":"+ finalTrain.get(0).getObject().getStart() + "-" +
+                             finalTrain.get(finalTrain.size()-1).getObject().getStop() + " " +
+                             finalTrain.size() + " indels; ");
+                     System.out.print(finalPile.size() + " reads in the pile;")  ;
+                     System.out.println(formatRange(finalTrain));
+                     indelPileReceiver.receive(finalPile);
+                } else for ( SAMRecord r : finalPile ) defaultReceiver.receive(r);
+                finalPile.clear();
+                finalTrain.clear();
+                curr_stop = -1;
+            } // ELSE: otherwise we have reads that overlap with both previous and current indel, so we just continue
+              // with building the indel train
         }
 
         setWaitState();

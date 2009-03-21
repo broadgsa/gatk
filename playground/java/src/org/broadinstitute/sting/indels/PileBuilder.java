@@ -262,18 +262,19 @@ public class PileBuilder implements RecordPileReceiver {
 
 		//System.out.println( distances.format("%8.4g "));
 
-	/*	
-		SelectedPair pworst = pb.findWorst();
+
+		SelectedPair pworst = findWorst();
 
 		pile1.add(seqs[pworst.i()].getSequence(), pworst.i());
 		pile2.add(seqs[pworst.j()].getSequence(), pworst.j());
-*/
-				
+
+/*
 		// initialize piles with best and next-best pairs
 		SelectedPair p_best = findClosestPair();
 		SelectedPair p_nextbest = findNextClosestPairAfter(p_best);
 		pile1.add( alignments.get(p_best.i(), p_best.j()),p_best.i(),p_best.j());
 		pile2.add( alignments.get(p_nextbest.i(), p_nextbest.j()),p_nextbest.i(),p_nextbest.j());
+*/		
 /*		
 		System.out.println("Best pair ("+p_best.i() + "," + p_best.j()+", d="+p_best.d()+"):");
 		System.out.println(pile1.toString());
