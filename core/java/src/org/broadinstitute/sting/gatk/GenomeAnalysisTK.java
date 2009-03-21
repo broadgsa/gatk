@@ -22,6 +22,9 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     @Option(shortName="R", doc="Reference sequence file", optional=true) public File REF_FILE_ARG = null;
     @Option(shortName="B", doc="Debugging output", optional=true) public String DEBUGGING_STR = null;
     @Option(shortName="L", doc="Genome region to operation on: from chr:start-end", optional=true) public String REGION_STR = null;
+
+    @Option(shortName="INT", doc="File containing list of genomic intervals to operate on. line := <contig> <start> <end>\n", optional=true) public String INTERVALS_FILE = null;
+
     @Option(shortName="T", doc="Type of analysis to run") public String Analysis_Name = null;
     @Option(shortName="DBSNP", doc="DBSNP file", optional=true) public String DBSNP_FILE = null;
     @Option(shortName="THREADED_IO", doc="If true, enables threaded I/O operations", optional=true) public String ENABLED_THREADED_IO = "false";
@@ -88,6 +91,11 @@ public class GenomeAnalysisTK extends CommandLineProgram {
 
         if ( REGION_STR != null ) {
             engine.setLocation(REGION_STR);
+        }
+
+        if (INTERVALS_FILE != null)
+        {
+            engine.setLocationFromFile(INTERVALS_FILE);
         }
 
         engine.setSafetyChecking(! UNSAFE.toLowerCase().equals("true"));

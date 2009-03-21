@@ -145,6 +145,47 @@ public class TraversalEngine {
     }
 
     /**
+     * Read a file of genome locations to process.
+     * regions specified by the location string.  The string is of the form:
+     *   Of the form: loc1;loc2;...
+     *   Where each locN can be:
+     *     Ôchr2Õ, Ôchr2:1000000Õ or Ôchr2:1,000,000-2,000,000Õ
+     *
+     * @param file_name
+     */
+    public void setLocationFromFile( final String file_name ) 
+    {
+        String locStr = "";
+
+	    Scanner scanner = null;
+	    try 
+	    { 
+            scanner = new Scanner(new File(file_name));
+	        while ( scanner.hasNextLine() )
+	        {
+		        String line = scanner.nextLine();
+                line.replaceAll("\n", "");
+                locStr += line;
+                if (scanner.hasNextLine()) { locStr += ";"; }
+	        }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            System.exit(-1); 
+        }
+	    finally 
+	    {
+		    //ensure the underlying stream is always closed
+		    scanner.close();
+        }
+
+        System.out.format("DEBUG: locStr: %s\n", locStr);
+
+        this.locs = parseGenomeLocs(locStr);
+    }
+
+    /**
      * Useful utility function that parses a location string into a coordinate-order sorted
      * array of GenomeLoc objects
      *
@@ -503,6 +544,7 @@ public class TraversalEngine {
             final LocusContext locus = iter.next();
 
             // Poor man's version of index LOL
+            // HALP! I HAZ 10K INTERVALS 2 INDX
             GenomeLoc curLoc = locus.getLocation();
             if ( inLocations(curLoc) ) {
                 if ( prevLoc != null && curLoc.compareContigs(prevLoc) != 0 )
