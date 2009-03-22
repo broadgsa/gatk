@@ -560,7 +560,7 @@ public class TraversalEngine {
 
                 //System.out.format("DEBUG Seeking from %s to %s\n", locus.getLocation().toString(), this.locs[current_interval_index].toString());
 
-                while ((!locus.getLocation().overlapsP(this.locs[current_interval_index])) && (iter.hasNext()))
+                while ((this.locs.length > current_interval_index) && (!locus.getLocation().overlapsP(this.locs[current_interval_index])) && (iter.hasNext()))
                 {
                     switch (locus.getLocation().compareTo(this.locs[current_interval_index]))
                     {
@@ -573,10 +573,12 @@ public class TraversalEngine {
                         case 1 :
                                     current_interval_index += 1;
                                     current_interval_offset = 0;
+                                    if (this.locs.length <= current_interval_index) { done = true; break; }
                                     //System.out.format("DEBUG Giving up on old locus, Seeking from %s to %s\n", locus.getLocation().toString(), this.locs[current_interval_index].toString());
                                     break;
                     }
                 }
+                if (this.locs.length <= current_interval_index) { done = true; break; }
 
                 //System.out.format("DEBUG Got there.\n");
             }
