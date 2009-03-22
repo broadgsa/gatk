@@ -99,8 +99,8 @@ To run the walker:
 \begin{verbatim}
 mkdir $STING_HOME/dist/walkers
 java -Xmx4096m -jar dist/GenomeAnalysisTK.jar \
-     INPUT_FILE=/broad/1KG/legacy_data/trio/na12878.bam \
-     ANALYSIS_NAME=Hello L=chr1:10000000-10000100
+     -I /broad/1KG/legacy_data/trio/na12878.bam -T Hello \
+     -L chr1:10000000-10000100 -l INFO
 \end{verbatim}
 This command will run the walker across a subsection of chromosome 1, operating on 
 reads which align to that subsection.  
