@@ -1,17 +1,21 @@
 package org.broadinstitute.sting.gatk;
 
 import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.SAMSequenceRecord;
 import edu.mit.broad.picard.cmdline.CommandLineProgram;
 import edu.mit.broad.picard.cmdline.Usage;
 import edu.mit.broad.picard.cmdline.Option;
+import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
+import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.rodGFF;
 
 import java.io.*;
-import java.util.HashMap;
+import java.util.*;
 
 public class GenomeAnalysisTK extends CommandLineProgram {
     // Usage and parameters
@@ -69,6 +73,17 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         }
 
         this.engine = new TraversalEngine(INPUT_FILE, REF_FILE_ARG, rods);
+
+        // Prepare the sort ordering w.r.t. the sequence dictionary
+        final ReferenceSequenceFile refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(REF_FILE_ARG);
+        List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary().getSequences();
+        HashMap<String, Integer> refContigOrdering = new HashMap<String, Integer>();
+        int i = 0;
+        for ( SAMSequenceRecord contig : refContigs ) {
+            refContigOrdering.put(contig.getSequenceName(), i);
+            i++;
+        }
+        GenomeLoc.setContigOrdering(refContigOrdering);
 
         ValidationStringency strictness;
     	if ( STRICTNESS_ARG == null ) {

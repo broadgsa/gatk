@@ -203,10 +203,7 @@ public class TraversalEngine {
         GenomeLoc[] locs = (GenomeLoc[])result.toArray(new GenomeLoc[0]);
 
         Arrays.sort(locs);
-        for ( GenomeLoc l : locs )
-            System.out.printf("  -> %s%n", l);
-
-        System.out.printf("  Locations are: %s%n", Utils.join(" ", Functions.map( Operators.toString, Arrays.asList(locs) ) ) );
+        System.out.printf("  Locations are: %s%n", Utils.join("\n", Functions.map( Operators.toString, Arrays.asList(locs) ) ) );
 
         return locs;
     }
@@ -220,9 +217,13 @@ public class TraversalEngine {
      */
     public boolean inLocations( GenomeLoc curr ) {
         if ( this.locs == null )
+        {
             return true;
-        else {
-            for ( GenomeLoc loc : this.locs ) {
+        }
+        else  
+        {
+            for ( GenomeLoc loc : this.locs ) 
+            {
                 //System.out.printf("  Overlap %s vs. %s => %b%n", loc, curr, loc.overlapsP(curr));
                 if ( loc.overlapsP(curr) )
                     return true;
@@ -537,21 +538,59 @@ public class TraversalEngine {
         boolean done = false;
         GenomeLoc prevLoc = null;
 
-        while ( iter.hasNext() && ! done ) {
+        int current_interval_index = -1;
+        int current_interval_offset = -1;
+
+        while ( iter.hasNext() && ! done ) 
+        {
             this.nRecords++;
 
             // actually get the read and hand it to the walker
-            final LocusContext locus = iter.next();
+            LocusContext locus = iter.next();
 
             // Poor man's version of index LOL
             // HALP! I HAZ 10K INTERVALS 2 INDX
-            GenomeLoc curLoc = locus.getLocation();
-            if ( inLocations(curLoc) ) {
-                if ( prevLoc != null && curLoc.compareContigs(prevLoc) != 0 )
-                    System.out.printf("Traversing to next chromosome...%n");
+            if ( ((this.locs != null) && (this.locs.length != 0)) && ((current_interval_index == -1) || (!locus.getLocation().overlapsP(this.locs[current_interval_index]))))
+            {
+                // Advance to the next locus.
+                current_interval_index += 1;
+                current_interval_offset = 0;
+
+                if (this.locs.length <= current_interval_index) { done = true; break; }
+
+                //System.out.format("DEBUG Seeking from %s to %s\n", locus.getLocation().toString(), this.locs[current_interval_index].toString());
+
+                while ((!locus.getLocation().overlapsP(this.locs[current_interval_index])) && (iter.hasNext()))
+                {
+                    switch (locus.getLocation().compareTo(this.locs[current_interval_index]))
+                    {
+                        case -1 : 
+                                    locus = iter.next();
+                                    //System.out.format("DEBUG at %s\n", locus.getLocation().toString());
+                                    break;
+                        case 0 :
+                                    break;
+                        case 1 :
+                                    current_interval_index += 1;
+                                    current_interval_offset = 0;
+                                    //System.out.format("DEBUG Giving up on old locus, Seeking from %s to %s\n", locus.getLocation().toString(), this.locs[current_interval_index].toString());
+                                    break;
+                    }
+                }
+
+                //System.out.format("DEBUG Got there.\n");
+            }
+            else
+            {
+                current_interval_offset += 1;
+            }
+            
+            {
+                //System.out.format("Working at %s\n", locus.getLocation().toString());
 
                 // Jump forward in the reference to this locus location
-                final ReferenceIterator refSite = refIter.seekForward(locus.getLocation());
+                final ReferenceIterator refSite;
+                refSite = refIter.seekForward(locus.getLocation());
                 final char refBase = refSite.getBaseAsChar();
                 locus.setReferenceContig(refSite.getCurrentContig());
 
