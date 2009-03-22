@@ -3,11 +3,14 @@ package org.broadinstitute.sting.gatk.iterators;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import edu.mit.broad.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
+import net.sf.samtools.util.RuntimeIOException;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.io.IOException;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.FastaSequenceFile2;
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,14 +21,17 @@ import org.broadinstitute.sting.utils.GenomeLoc;
  */
 public class ReferenceIterator implements Iterator<ReferenceIterator> {
 
+    // enable debugging output?
+    private final boolean DEBUG = false;
+
     // The reference sequence file generator
-    private ReferenceSequenceFile refFile;
+    private FastaSequenceFile2 refFile;
 
     private ReferenceSequence currentContig = null;
-    private ReferenceSequence nextContig = null;    
+    //private ReferenceSequence nextContig = null;    
     private long offset = -1;
 
-    public ReferenceIterator( ReferenceSequenceFile refFile ) {
+    public ReferenceIterator( FastaSequenceFile2 refFile ) {
         this.refFile = refFile;
     }
 
@@ -55,27 +61,20 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
             return true;
         }
         else {
-            return loadNextContig();
+            return readNextContig();
         }
     }
 
     public ReferenceIterator next() {
         if ( currentContig != null ) {
-            //System.out.printf("  -> %s:%d %d%n", currentContig.getName(), offset, currentContig.length());
+            if ( DEBUG ) System.out.printf("  -> %s:%d %d%n", currentContig.getName(), offset, currentContig.length());
         }
         offset++;  // move on to the next position
 
         if ( currentContig == null || offset >= currentContig.length() ) {
             // We need to update the contig
-            //System.out.printf("  -> Updating length%n");
-            if ( nextContig != null ) {
-                // We've already loaded the next contig, swap it in, and recursively call next
-                swapNextContig();
-                return next();
-            }
-            else if ( loadNextContig() ){
+            if ( readNextContig() ){
                 // We sucessfully loaded the next contig, recursively call next
-                offset = -1;
                 return next();
             }
             else {
@@ -108,49 +107,61 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
         return seekForwardOffset(contigName, pos - 1);
     }
 
-    private ReferenceIterator seekForwardOffset(final String contigName, final long seekOffset) {
-        assert contigName != null : "contigName is null";
+    /**
+     * Helper routine that doesn't move the contigs around, it just checks that everything is kosher in the seek
+     * within this chromosome
+     * @param seekContigName name for printing pursues, asserted to be the current contig name
+     * @param seekOffset where we want to be in this contig
+     * @return this setup to be at seekoffset within seekContigName 
+     */
+    private ReferenceIterator seekForwardOffsetOnSameContig(final String seekContigName, final long seekOffset) {
+        assert seekContigName.equals(currentContig.getName()) : String.format("only works on this contig, but the current %s and sought %s contigs are different!", currentContig.getName(), seekContigName);
+
+        // we're somewhere on this contig
+        if ( seekOffset < offset || seekOffset >= currentContig.length() ) {
+            // bad boy -- can't go backward safely or just beyond the contig length
+            throw new IllegalArgumentException(String.format("Invalid seek to %s from %s, which is usually due to out of order reads%n",
+                    new GenomeLoc(currentContig.getName(), seekOffset), new GenomeLoc(currentContig.getName(), offset)));
+        }
+        else {
+            offset = seekOffset - 1;
+            return next();
+        }
+    }
+
+
+    private ReferenceIterator seekForwardOffset(final String seekContigName, final long seekOffset) {
+        assert seekContigName != null : "seekContigName is null";
         assert seekOffset >= 0 : "seekOffset < 0: " + seekOffset;
 
         // jumps us forward in the sequence to the contig / pos
         if ( currentContig == null )
             next();
 
-        //System.out.printf("  -> Seeking to %s %d from %s %d%n", contigName, seekOffset, currentContig.getName(), offset);
-        int cmpContigs = GenomeLoc.compareContigs(contigName, currentContig.getName());
+        if ( DEBUG ) System.out.printf("  -> Seeking to %s %d from %s %d%n", seekContigName, seekOffset, currentContig.getName(), offset);
+
+        int cmpContigs = GenomeLoc.compareContigs(seekContigName, currentContig.getName());
+
         if ( cmpContigs == -1 ) {
             // The contig we are looking for is before the currentContig -- it's an error
             throw new IllegalArgumentException(String.format("Invalid seek to %s from %s, which is usually due to out of order reads%n",
                     new GenomeLoc(currentContig.getName(), seekOffset), new GenomeLoc(currentContig.getName(), offset)));
         }
-        else if ( cmpContigs == 0 ) {
-            // we're somewhere on this contig
-            if ( seekOffset < offset || seekOffset >= currentContig.length() ) {
-                // bad boy -- can't go backward safely or just beyond the contig length
-                throw new IllegalArgumentException(String.format("Invalid seek to %s from %s, which is usually due to out of order reads%n",
+        else if ( cmpContigs == 1 ) {
+            // we need to jump forward
+            if ( DEBUG ) System.out.printf("  -> Seeking in the fasta file to %s from %s%n", seekContigName, currentContig.getName());
+
+            if ( ! refFile.seekToContig(seekContigName) ) { // ok, do the seek
+                // a false result indicates a failure, throw a somewhat cryptic call
+                throw new RuntimeIOException(String.format("Unexpected seek failure from %s from %s%n",
                         new GenomeLoc(currentContig.getName(), seekOffset), new GenomeLoc(currentContig.getName(), offset)));
-                //return null;
             }
-            else {
-                offset = seekOffset - 1;
-                return next();
-            }
+
+            readNextContig(); // since we haven't failed, we just read in the next contig (which is seekContigName)
         }
-        else {
-            while (true) {
-                //System.out.printf("Seeking to contig %s, cur=%s, next=%s%n", contigName, currentContig.getName(),
-                //        nextContig != null ? nextContig.getName() : "not loaded yet");
-                // go searching through the reference
-                if ( ! loadNextContig() ) {
-                    // never found anything
-                    return null;
-                }
-                else if ( GenomeLoc.compareContigs( nextContig.getName(), contigName ) == 0 ) {
-                    swapNextContig();
-                    return seekForwardOffset(contigName, seekOffset);
-                }
-            }
-        }
+
+        // at this point, the current contig is seekContigName, so just do a bit more error checking and be done
+        return seekForwardOffsetOnSameContig( seekContigName, seekOffset );
     }
 
 
@@ -159,15 +170,20 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
     // Interal state manipulation
     //
     // --------------------------------------------------------------------------------------------------------------
-    protected boolean loadNextContig() {
+    protected boolean readNextContig() {
         // returns true if we had another contig to load
-        nextContig = refFile.nextSequence();
-        return nextContig != null;
+        currentContig = refFile.nextSequence();
+        offset = -1;
+        return currentContig != null;
     }
 
-    protected void swapNextContig() {
-        currentContig = nextContig;
-        nextContig = null;
-        offset = -1;
+    /**
+     * Simple forwarding method to the refFile itself
+     * 
+     * @return
+     */
+    public String nextContigName() {
+        return this.refFile.getNextContigName();
     }
+
 }
