@@ -280,6 +280,27 @@ public class Utils {
         return permutation;
     }
 
+    public  static <T extends Comparable> Integer[] SortPermutation( List<T> A )
+    {
+        final Object[] data = A.toArray();
+
+        class comparator implements Comparator<Integer>
+        {
+            public int compare(Integer a, Integer b)
+            {
+                return ((T)data[a]).compareTo(data[b]);
+            }
+        }
+        Integer[] permutation = new Integer[A.size()];
+        for (int i = 0; i < A.size(); i++)
+        {
+            permutation[i] = i;
+        }
+        Arrays.sort(permutation, new comparator());
+        return permutation;
+    }
+
+
     public static int[] PermuteArray(int[] array, Integer[] permutation)
     {
         int[] output = new int[array.length];
