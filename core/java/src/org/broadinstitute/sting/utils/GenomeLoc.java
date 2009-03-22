@@ -190,7 +190,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     {
         if ( thisContig == thatContig )
         {
-            assert(false);
+            // Optimization.  If the pointers are equal, then the contigs are equal.
             return 0;
         }
 
