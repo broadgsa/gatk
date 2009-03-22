@@ -4,29 +4,35 @@ import org.broadinstitute.sting.gatk.walkers.AlleleFrequencyWalker;
 
 public class AlleleFrequencyEstimate {
     //AlleleFrequencyEstimate();
+    public String location;
     public char ref;
     public char alt;
     public int N;
     public double qhat;
     public double qstar;
     public double LOD;
+    public int depth;
 
-    public double getQstar() {
+    public double getQstar() 
+    {
         return qstar;
     }
 
-    public double getLOD() {
+    public double getLOD() 
+    {
         return LOD;
     }
 
-
-    public AlleleFrequencyEstimate(char ref, char alt, int N, double qhat, double qstar, double LOD) {
+    public AlleleFrequencyEstimate(String location, char ref, char alt, int N, double qhat, double qstar, double LOD, int depth)
+    {
+        this.location = location;
         this.ref = ref;
         this.alt = alt;
         this.N = N;
         this.qhat = qhat;
         this.qstar = qstar;
         this.LOD = LOD;
+        this.depth = depth;
     }
 
     public String asString() {
