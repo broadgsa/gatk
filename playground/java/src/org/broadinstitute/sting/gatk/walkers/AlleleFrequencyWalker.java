@@ -48,7 +48,6 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
         int[] base_counts = new int[4];
         for (byte b : bases)
             base_counts[nuc2num[b]]++;
-
         
         // Find alternate allele - 2nd most frequent non-ref allele
         // (maybe we should check for ties and eval both or check most common including quality scores)
@@ -62,7 +61,7 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
         }
         assert(altnum != -1);
 
-        AlleleFrequencyEstimate alleleFreq = AlleleFrequencyEstimator(N, bases, quals, refnum, altnum);
+        AlleleFrequencyEstimate alleleFreq = AlleleFrequencyEstimator(context.getLocation().toString(), N, bases, quals, refnum, altnum, base_string.length());
 
         // Print dbSNP data if its there
         if (false) {
@@ -74,20 +73,10 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
                 }
             }
         }
-
-        System.out.print(String.format("RESULT %s %c %c %f %f %f %d\n", 
-                                        context.getLocation(), 
-                                        alleleFreq.ref, 
-                                        alleleFreq.alt, 
-                                        alleleFreq.qhat, 
-                                        alleleFreq.qstar, 
-                                        alleleFreq.LOD, 
-                                        base_string.length()));
-
         return alleleFreq;
     }
 
-    public AlleleFrequencyEstimate AlleleFrequencyEstimator(int N, byte[] bases, double[][] quals, int refnum, int altnum)
+    public AlleleFrequencyEstimate AlleleFrequencyEstimator(String location, int N, byte[] bases, double[][] quals, int refnum, int altnum, int depth)
     {
 
         // q = hypothetical %nonref
@@ -98,7 +87,6 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
         // ref = reference base
 
         // b = number of bases at locus
-
 
         double epsilon = 0; //  1e-2;
         double qstar;
@@ -111,36 +99,45 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
         double best_qhat      = Math.log10(0);
         double best_posterior = Math.log10(0);
 
+        double best_pDq = Math.log10(0);
+        double best_pqG = Math.log10(0);
+        double best_pG  = Math.log10(0);
+
         for (double q=0.0; q <= qend; q += qstep) // hypothetic allele balance that we sample over
         {
             long q_R = Math.round(q*bases.length);
-            for (qstar = epsilon, qstar_N = 0; qstar <= 1.0; qstar += (1.0 - 2*epsilon)/N, qstar_N++) // qstar - true allele balances
+            for (qstar = epsilon + ((1.0 - 2*epsilon)/N), qstar_N = 1; qstar <= 1.0; qstar += (1.0 - 2*epsilon)/N, qstar_N++) // qstar - true allele balances
             { 
                 // for N=2: these are 0.0 + epsilon, 0.5, 1.0 - epsilon corresponding to reference, het-SNP, homo-SNP
                 double pDq = P_D_q(bases, quals, q, refnum, altnum);
                 double pqG = P_q_G(bases, N, q, qstar, q_R);
-                double pG  = P_G(N, qstar_N); //= P_G(N, qstar);
-                double posterior = pDq + pqG; // + pG;
+                double pG  = P_G(N, qstar_N); 
+                double posterior = pDq + pqG + pG;
 
                 if (posterior > best_posterior) 
                 {
                     best_qstar = qstar;
                     best_qhat  = q;
                     best_posterior = posterior; 
+
+                    best_pDq = pDq;
+                    best_pqG = pqG;
+                    best_pG  = pG;
                 }
             }
         }
 
-        double posterior_null_hyp = P_D_q(bases, quals, 0.0, refnum, altnum) + P_q_G(bases, N, 0.0, 0.0, 0) + P_G(N, 0);
+        double posterior_null_hyp = P_D_q(bases, quals, 0.0, refnum, altnum) + P_q_G(bases, N, 0.0, epsilon, 0) + P_G(N, 0);
         double LOD = best_posterior - posterior_null_hyp;
 
-        AlleleFrequencyEstimate alleleFreq = new AlleleFrequencyEstimate(num2nuc[refnum], 
+        AlleleFrequencyEstimate alleleFreq = new AlleleFrequencyEstimate(location,
+                                                                         num2nuc[refnum], 
                                                                          num2nuc[altnum],
                                                                          N, 
                                                                          best_qhat, 
                                                                          best_qstar, 
-                                                                         LOD);
-
+                                                                         LOD,
+                                                                         depth);
         return alleleFreq;
     }
 
@@ -182,14 +179,10 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
 
     static double P_G(int N, int qstar_N) 
     {
-        if (N==2) 
-        {
-            return Math.log10(p_G_N_2[ qstar_N ]);
-        }
-        else
-        {
-            return Math.log10(1.0);
-        }
+        // badly hard coded right now.
+        if      (qstar_N == 0) { return Math.log10(0.999); }
+        else if (qstar_N == N) { return Math.log10(1e-5);  }
+        else                   { return Math.log10(1e-3);  }
     }
 
     static String genotypeTypeString(double q, int N){
@@ -237,13 +230,23 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
 
     public Integer reduce(AlleleFrequencyEstimate alleleFreq, Integer sum) 
     {
+        if (alleleFreq.LOD >= 5)
+        {
+	        System.out.print(String.format("RESULT %s %c %c %f %f %f %d\n", 
+	                                        alleleFreq.location,
+	                                        alleleFreq.ref, 
+	                                        alleleFreq.alt, 
+	                                        alleleFreq.qhat, 
+	                                        alleleFreq.qstar, 
+	                                        alleleFreq.LOD, 
+	                                        alleleFreq.depth));
+        }
         return 0;
     }
 
 
     static int nuc2num[];
     static char num2nuc[];
-    static double p_G_N_2[]; // pop. gen. priors for N=2
     public AlleleFrequencyWalker() {
         nuc2num = new int[128];
         nuc2num['A'] = 0;
@@ -260,11 +263,6 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
         num2nuc[1] = 'C';
         num2nuc[2] = 'T';
         num2nuc[3] = 'G';
-
-        p_G_N_2 = new double[3];
-        p_G_N_2[0] = 0.999;
-        p_G_N_2[1] = 1e-3;
-        p_G_N_2[2] = 1e-5;
     }
 
 
@@ -309,7 +307,7 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
                                 {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0}};
 
         AlleleFrequencyWalker w = new AlleleFrequencyWalker();
-        AlleleFrequencyEstimate estimate = w.AlleleFrequencyEstimator(N, het_bases, het_quals, 0, 1);
+        AlleleFrequencyEstimate estimate = w.AlleleFrequencyEstimator("null", N, het_bases, het_quals, 0, 1, 20);
 
         System.out.print(String.format("50/50 Het : %s %c %c %f %f %f %d %s\n", 
                                         "null", estimate.ref, estimate.alt, estimate.qhat, estimate.qstar, estimate.LOD, 20, "null"));

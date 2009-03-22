@@ -17,72 +17,96 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 
-public class AlleleFrequencyMetricsWalker extends BasicLociWalker<Integer, Integer> {
+public class AlleleFrequencyMetricsWalker extends BasicLociWalker<AlleleFrequencyEstimate, String> 
+{
 
-    long dbsnp_tp=0;
-    long dbsnp_fp=0;
-    long num_snps=0;
-    long num_loci=0;
+    long dbsnp_hits=0;
+    long num_variants=0;
+    long num_loci_total=0;
+    long num_loci_confident=0;
     double LOD_cutoff = 5;
 
-    //public void calculateMetrics(List<ReferenceOrderedDatum> rodData, AlleleFrequencyWalker.AlleleFrequencyEstimate alleleFreq) {
-    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
+    AlleleFrequencyWalker caller;
 
-        //AlleleFrequencyWalker = AlleleFrequencyWalker();
-        AlleleFrequencyEstimate alleleFreq = new AlleleFrequencyWalker().map(rodData, ref, context);
-
+    public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) 
+    {
+        AlleleFrequencyEstimate alleleFreq = caller.map(rodData, ref, context);
 
         boolean is_dbSNP_SNP = false;
 
-        for ( ReferenceOrderedDatum datum : rodData ) {
-            if ( datum != null && datum instanceof rodDbSNP) {
+        for ( ReferenceOrderedDatum datum : rodData ) 
+        {
+            if ( datum != null && datum instanceof rodDbSNP) 
+            {
                 rodDbSNP dbsnp = (rodDbSNP)datum;
                 if (dbsnp.isSNP()) is_dbSNP_SNP = true;
             }
         }
 
-        if (alleleFreq.getQstar() > 0.0 && alleleFreq.getLOD() >= LOD_cutoff) { // we confidently called it a SNP!
-            if (is_dbSNP_SNP) {
-                dbsnp_tp += 1;
-            }else{
-                dbsnp_fp += 1;
+        num_loci_total += 1;
+
+        if (Math.abs(alleleFreq.LOD) >= LOD_cutoff) { num_loci_confident += 1; }
+
+        if (alleleFreq.getQstar() > 0.0 && alleleFreq.getLOD() >= LOD_cutoff)
+        { 
+            // Confident variant.
+           
+            num_variants += 1;
+
+            if (is_dbSNP_SNP) 
+            {
+                dbsnp_hits += 1;
             }
         }
 
-        if (alleleFreq.getQstar() > 0.0 && alleleFreq.getLOD() >= LOD_cutoff) {
-            //System.out.println(alleleFreq.getLogOddsVarRef());
-            num_snps++;
+        return alleleFreq;
+    }
+
+    public void printMetrics() 
+    {
+        if (num_loci_total == 0) { return; }
+
+        System.out.printf("\n");
+        System.out.printf("METRICS Allele Frequency Metrics (LOD >= %.0f)\n", LOD_cutoff);
+        System.out.printf("METRICS -------------------------------------------------\n");
+        System.out.printf("METRICS Total loci                         : %d\n", num_loci_total);
+        System.out.printf("METRICS Total called with confidence       : %d (%.2f%%)\n", num_loci_confident, 100.0 * (float)num_loci_confident / (float)num_loci_total);
+        if (num_variants != 0)
+        {
+	        System.out.printf("METRICS Number of Variants                 : %d (%.2f%%) (1/%d)\n", num_variants, 100.0 * (float)num_variants / (float)num_loci_confident, num_loci_confident / num_variants);
+	        System.out.printf("METRICS Fraction of variant sites in dbSNP : %.2f%%\n", 100.0 * (float)dbsnp_hits / (float)num_variants);
         }
-        num_loci++;
-
-        return 1;
+        System.out.println();
     }
 
-    public void printMetrics() {
-        System.out.println("\nAllele Frequency Metrics:\n");
-        System.out.printf("Precision of LOD >= %.0f SNPs w.r.t dbSNP: %.2f\n", LOD_cutoff, (float)dbsnp_tp / (dbsnp_fp + dbsnp_tp) * 100);
-        System.out.printf("\\--TP: %d\n", dbsnp_tp);
-        System.out.printf("\\--FP: %d\n", dbsnp_fp);
-        System.out.println();
-        System.out.printf("SNPs (LOD > %.0f): %d\n", LOD_cutoff, num_snps);
-        System.out.printf("Total loci: %d\n", num_loci);
-        System.out.printf("SNPs / loci: 1/%.0f\n", (float)num_loci/num_snps);
-        System.out.println();
-        
-    }
-
-
-    public void onTraversalDone() {
+    public void onTraversalDone() 
+    {
         printMetrics();
     }
 
+    public String reduceInit() 
+    { 
+        caller = new AlleleFrequencyWalker();
+        return ""; 
+    }
 
-    public Integer reduceInit() { return 0; }
+    public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
+    {
+        if ((alleleFreq.LOD >= 5) || (alleleFreq.LOD <= -5))
+        {
+	        System.out.print(String.format("RESULT %s %c %c %f %f %f %d\n", 
+	                                        alleleFreq.location,
+	                                        alleleFreq.ref, 
+	                                        alleleFreq.alt, 
+	                                        alleleFreq.qhat, 
+	                                        alleleFreq.qstar, 
+	                                        alleleFreq.LOD, 
+	                                        alleleFreq.depth));
+        }
 
-    public Integer reduce(Integer alleleFreq, Integer sum) {
+        if (this.num_loci_total % 10000 == 0) { printMetrics(); }
 
-        //System.out.printf("%s %.2f\n", alleleFreq.asString(), alleleFreq.logOddsVarRef);
-        return 0;//value + sum;
+        return "null";
     }
 
     
