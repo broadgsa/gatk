@@ -15,6 +15,7 @@ public class ValidateSAM extends CommandLineProgram {
     @Option(shortName="I", doc="SAM or BAM file for validation") public File INPUT_FILE;
     @Option(shortName="M", doc="Maximum number of errors to detect before exiting", optional=true) public String MAX_ERRORS_ARG = "-1";
     @Option(shortName="S", doc="How strict should we be with validation", optional=true) public String STRICTNESS_ARG = "strict";
+    @Option(shortName="SORTED", doc="Check that the SAM file is sorted", optional=true) public boolean CHECK_SORTED_ARG = false;
 
     private long startTime = -1;
     
@@ -51,15 +52,33 @@ public class ValidateSAM extends CommandLineProgram {
         
         int nRecords = 0;
         int nErrors = 0;
+
+        SAMRecord last_record = null;
+
         while ( iter.hasNext() ) {
         	nRecords++;
         	try {
             	final SAMRecord ri = iter.next();
+
+	            if (CHECK_SORTED_ARG && 
+                    (last_record != null) &&
+	                (ri.getReferenceName() == last_record.getReferenceName()) &&
+	                (ri.getAlignmentStart() < last_record.getAlignmentStart()))
+	            {
+	                System.out.println("Not sorted!");
+	                System.out.println(last_record.format());
+	                System.out.println(ri.format() + "\n");
+	                System.exit(-1);
+                }
+
+                last_record = ri;
+
 	        } catch (Exception ioe) {
 	        	nErrors++;
 	        	System.out.println("[VALIDATION FAILURE IN RECORD]: " + ioe);
                 ioe.printStackTrace();
 	        }
+
 	        
 	        if ( MAX_ERRORS > -1 && nErrors >= MAX_ERRORS ) {
 	        	System.out.println("Maximum number of errors encountered " + nErrors);
