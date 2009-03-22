@@ -59,8 +59,9 @@ public class TraversalEngine {
 
     // The reference data -- filename, refSeqFile, and iterator
     private File refFileName = null;                        // the name of the reference file
-    private ReferenceSequenceFile refFile = null;
-    private ReferenceIterator refIter = null;
+    //private ReferenceSequenceFile refFile = null;
+    private FastaSequenceFile2 refFile = null;              // todo: merge FastaSequenceFile2 into picard!
+    private ReferenceIterator refIter = null;                
 
     // Number of records (loci, reads) we've processed
     private long nRecords = 0;
@@ -199,14 +200,17 @@ public class TraversalEngine {
         StdReflect reflect = new JdkStdReflect();
         FunctionN<GenomeLoc> parseOne = reflect.staticFunction(GenomeLoc.class, "parseGenomeLoc", String.class);
         Function1<GenomeLoc, String> f1 = parseOne.f1();
-        Collection<GenomeLoc> result = Functions.map(f1, Arrays.asList(str.split(";")));
-        GenomeLoc[] locs = (GenomeLoc[])result.toArray(new GenomeLoc[0]);
-
-        Arrays.sort(locs);
-        System.out.printf("  Locations are: %s%n", Utils.join("\n", Functions.map( Operators.toString, Arrays.asList(locs) ) ) );
-
-        return locs;
-    }
+        try {
+            Collection<GenomeLoc> result = Functions.map(f1, Arrays.asList(str.split(";")));
+            GenomeLoc[] locs = (GenomeLoc[])result.toArray(new GenomeLoc[0]);
+            Arrays.sort(locs);
+            System.out.printf("  Locations are: %s%n", Utils.join("\n", Functions.map( Operators.toString, Arrays.asList(locs) ) ) );
+            return locs;
+        } catch ( Exception e ) {
+            Utils.scareUser(String.format("Invalid locations string: %s, format is loc1;loc2; where each locN can be 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'", str));
+            return null;
+        }
+     }
 
     /**
      * A key function that returns true if the proposed GenomeLoc curr is within the list of
@@ -337,8 +341,6 @@ public class TraversalEngine {
         // Initial the reference ordered data iterators
         initializeRODs();
 
-        //testReference();
-        //loadReference();
         return true;
     }
 
@@ -401,7 +403,8 @@ public class TraversalEngine {
      */
     protected void initializeReference() {
         if ( refFileName != null ) {
-            this.refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFileName);
+            //this.refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFileName);
+            this.refFile = new FastaSequenceFile2(refFileName);   // todo: replace when FastaSequenceFile2 is in picard
             this.refIter = new ReferenceIterator(this.refFile);
             if ( ! Utils.setupRefContigOrdering(this.refFile) ) {
                 // We couldn't process the reference contig ordering, fail since we need it
@@ -424,6 +427,9 @@ public class TraversalEngine {
         return rodIters;
     }
 
+    /**
+     * An inappropriately placed testing of reading the reference
+     */
     protected void testReference() {
         while (true) {
             ReferenceSequence ref = refFile.nextSequence();
