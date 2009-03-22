@@ -2,8 +2,7 @@ package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
-import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.samtools.SAMSequenceDictionary;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 
 import java.util.*;
@@ -197,19 +196,36 @@ public class Utils {
         return (1.0 * sum) / i;
     }
 
-    public static double average(List<Long> vals) {
-        return average(vals, vals.size());
+    public static double averageDouble(List<Double> vals, int maxI) {
+        double sum = 0.0;
+
+        int i = 0;
+        for ( double x : vals ) {
+            if ( i > maxI )
+                break;
+            sum += x;
+            i++;
+        }
+        return (1.0 * sum) / i;
     }
+    
+    public static double average(List<Long> vals) { return average(vals, vals.size()); }
+    public static double averageDouble(List<Double> vals) { return averageDouble(vals, vals.size()); }
 
     public static boolean setupRefContigOrdering(final ReferenceSequenceFile refFile) {
-        List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary().getSequences();
+        final SAMSequenceDictionary seqDict = refFile.getSequenceDictionary();
+
+        if ( seqDict == null ) // we couldn't load the reference dictionary
+            return false;
+        
+        List<SAMSequenceRecord> refContigs = seqDict.getSequences();
         HashMap<String, Integer> refContigOrdering = new HashMap<String, Integer>();
 
         if ( refContigs != null ) {
             int i = 0;
             System.out.printf("Prepared reference sequence contig dictionary%n  order ->");
             for ( SAMSequenceRecord contig : refContigs ) {
-                System.out.printf(" %s", contig.getSequenceName());
+                System.out.printf(" %s (%d bp)", contig.getSequenceName(), contig.getSequenceLength());
                 refContigOrdering.put(contig.getSequenceName(), i);
                 i++;
             }
