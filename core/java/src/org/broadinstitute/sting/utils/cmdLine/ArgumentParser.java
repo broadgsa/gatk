@@ -44,9 +44,9 @@ public class ArgumentParser {
     protected static Logger logger = Logger.getLogger(ArgumentParser.class);
 
     // the reference to the command line program to fill in
-    CommandLineProgram prog;
+    Object prog;
 
-    public ArgumentParser(String programName, CommandLineProgram prog) {
+    public ArgumentParser(String programName, Object prog) {
         this.programName = programName;
         this.prog = prog;
     }
