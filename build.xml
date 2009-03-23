@@ -11,31 +11,17 @@
   </condition>
 
   <!-- set global properties for this build -->
-  <property name="build" location="build"/>
-  <property name="dist" location="dist"/>
-  <property name="lib"  location="lib"/>
-  <property name="javadoc" location="javadoc" />
-
   <path id="thirdparty.dependencies">
-    <fileset dir="${lib}" includes="*.jar" />
+    <fileset dir="lib" includes="*.jar" />
   </path>
 
-  <path id="core.classpath">
-    <path refid="thirdparty.dependencies" />
-  </path>
-
-  <path id="playground.classpath">
-    <path refid="thirdparty.dependencies" />
-    <fileset dir="${build}" includes="**/*.class" />
-  </path>
-
-  <path id="core.srcdir">
-    <dirset dir="core/java/src"/>
-  </path>
-
-  <path id="playground.srcdir">
-    <path refid="core.srcdir" />
-    <dirset dir="playground/java/src" />
+  <path id="source">
+    <dirset dir="java/src">
+      <patternset>
+        <include name="org/broadinstitute/sting/*" />
+        <exclude name="**/playground/**" unless="target.is.playground" />
+      </patternset>
+    </dirset>
   </path>
 
   <!-- ivy properties -->
@@ -69,79 +55,77 @@
     <echo message="Compiling module ${target}" />
 
     <!-- Create the build directory structure used by compile -->
-    <mkdir dir="${build}" />
+    <mkdir dir="build" />
   </target>
 
   <target name="compile" depends="init,resolve"
           description="compile the source">
-    <!-- Compile the java code from ${src} into ${build} -->
-    <javac destdir="${build}" classpathref="${target}.classpath"
+    <!-- Compile the java code from ${src} into build -->
+    <javac destdir="build" classpathref="thirdparty.dependencies"
            debug="true" debuglevel="lines,vars,source">
-       <src refid="${target}.srcdir" />
+       <src refid="source" />
     </javac>
   </target>
 
   <target name="dist" depends="compile"
           description="generate the distribution" >
-    <mkdir dir="${dist}"/>
+    <mkdir dir="dist"/>
 
-    <copy todir="${dist}">
-      <fileset dir="${lib}" includes="*.jar" />
+    <copy todir="dist">
+      <fileset dir="lib" includes="*.jar" />
     </copy>
 
-    <jar jarfile="${dist}/StingUtils.jar">
-      <fileset dir="${build}" includes="org/broadinstitute/sting/utils/**" />
+    <jar jarfile="dist/StingUtils.jar">
+      <fileset dir="build" includes="**/utils/**/*.class" />
     </jar>
 
-    <jar jarfile="${dist}/GenomeAnalysisTK.jar">
-      <fileset dir="${build}" includes="org/broadinstitute/sting/gatk/**" />
+    <jar jarfile="dist/GenomeAnalysisTK.jar">
+      <fileset dir="build" includes="**/gatk/**/*.class" />
       <manifest>
         <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.GenomeAnalysisTK" />
       </manifest>
     </jar>
 
-    <!-- Call special distribution methods for the playground.  Will not run if target isn't playground -->  
-    <antcall target="dist.playground"/>
-
-    <pathconvert property="jar.classpath" pathsep=" ">
-      <flattenmapper />
-      <fileset dir="${dist}" includes="*.jar" />
-    </pathconvert>
-
-    <jar jarfile="${dist}/StingUtils.jar" update="true">
+    <jar jarfile="dist/FourBaseCaller.jar" whenmanifestonly="skip">
+      <fileset dir="build" includes="**/fourbasecaller/**/*.class" />
       <manifest>
-        <attribute name="Class-Path" value="${jar.classpath}" />
+        <attribute name="Main-Class" value="org.broadinstitute.sting.playground.fourbasecaller.FourBaseCaller" />
       </manifest>
     </jar>
 
-    <jar jarfile="${dist}/GenomeAnalysisTK.jar" update="true">
-      <manifest>
-        <attribute name="Class-Path" value="${jar.classpath}" />
-      </manifest>
-    </jar>
-
-    <jar jarfile="${dist}/FourBaseCaller.jar" basedir="${build}">
-      <manifest>
-        <attribute name="Class-Path" value="${jar.classpath}" />
-        <attribute name="Main-Class" value="org.broadinstitute.sting.projects.fourbasecaller.FourBaseCaller" />
-      </manifest>
-    </jar>
-  </target>
-
-  <target name="dist.playground" if="target.is.playground">
-    <jar jarfile="${dist}/Playground.jar">
-      <fileset dir="${build}">
-        <exclude name="org/broadinstitute/sting/utils/**" />
-        <exclude name="org/broadinstitute/sting/gatk/**" />
+    <jar jarfile="dist/Playground.jar" whenmanifestonly="skip">
+      <fileset dir="build">
+        <include name="**/*.class" />
+        <exclude name="**/utils/**" />
+        <exclude name="**/gatk/**" />
+        <exclude name="**/fourbasecaller/**" />
       </fileset>
     </jar>
 
     <pathconvert property="jar.classpath" pathsep=" ">
       <flattenmapper />
-      <fileset dir="${dist}" includes="*.jar" />
+      <fileset dir="dist" includes="*.jar" />
     </pathconvert>
 
-    <jar jarfile="${dist}/Playground.jar" update="true">
+    <jar jarfile="dist/StingUtils.jar" update="true">
+      <manifest>
+        <attribute name="Class-Path" value="${jar.classpath}" />
+      </manifest>
+    </jar>
+
+    <jar jarfile="dist/GenomeAnalysisTK.jar" update="true">
+      <manifest>
+        <attribute name="Class-Path" value="${jar.classpath}" />
+      </manifest>
+    </jar>
+
+    <jar jarfile="dist/FourBaseCaller.jar" update="true" whenmanifestonly="skip">
+      <manifest>
+        <attribute name="Class-Path" value="${jar.classpath}" />
+      </manifest>
+    </jar>
+
+    <jar jarfile="dist/Playground.jar" update="true" whenmanifestonly="skip">
       <manifest>
         <attribute name="Class-Path" value="${jar.classpath}" />
       </manifest>
@@ -149,14 +133,15 @@
   </target>
 
   <target name="javadoc">
-    <mkdir dir="${javadoc}" />
-    <javadoc sourcepathref="${target}.srcdir" destdir="${javadoc}" />
+    <mkdir dir="javadoc" />
+    <javadoc sourcepathref="${target}.srcdir" destdir="javadoc" />
   </target>
 
   <target name="clean"
           description="clean up" >
-    <delete dir="${build}"/>
-    <delete dir="${dist}"/>
-    <delete dir="${lib}" />
+    <delete dir="out" />
+    <delete dir="build" />
+    <delete dir="dist" />
+    <delete dir="lib" />
   </target>
 </project>
