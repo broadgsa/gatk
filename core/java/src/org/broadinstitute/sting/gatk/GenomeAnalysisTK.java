@@ -66,9 +66,9 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalArg("genome_region", "L", "Genome region to operation on: from chr:start-end", "REGION_STR");
         m_parser.addRequiredlArg("analysis_type", "T", "Type of analysis to run", "Analysis_Name");
         m_parser.addOptionalArg("DBSNP", "D", "DBSNP file", "DBSNP_FILE");
-        m_parser.addOptionalFlag("Threaded_IO", "P", "If set, enables threaded I/O operations", "ENABLED_THREADED_IO");
-        m_parser.addOptionalFlag("Unsafe", "U", "If set, enables unsafe operations, nothing will be checked at runtime.", "UNSAFE");
-        m_parser.addOptionalFlag("Sort_on_the_fly", "F", "If set, enables on fly sorting of reads file.", "ENABLED_SORT_ON_FLY");
+        m_parser.addOptionalFlag("threaded_IO", "P", "If set, enables threaded I/O operations", "ENABLED_THREADED_IO");
+        m_parser.addOptionalFlag("unsafe", "U", "If set, enables unsafe operations, nothing will be checked at runtime.", "UNSAFE");
+        m_parser.addOptionalFlag("sort_on_the_fly", "F", "If set, enables on fly sorting of reads file.", "ENABLED_SORT_ON_FLY");
         m_parser.addOptionalArg("intervals_file", "V", "File containing list of genomic intervals to operate on. line := <contig> <start> <end>", "INTERVALS_FILE");
     }
 
