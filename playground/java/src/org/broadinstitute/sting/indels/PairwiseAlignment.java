@@ -46,8 +46,26 @@ public class PairwiseAlignment {
 			 *                 if s2 is shifted left (starts earlier) wrt s1
 			 */
 			public int getBestOffset2wrt1() { return alignment_offset; }
+
+            /** Returns offset of the sequence j wrt sequence i in the best pairwise alignment found.
+             *
+             * @param i extrenal id of a sequence, must be one of the sequences kept by this alignment
+             * @param j extrenal id of a sequence, must be one of the sequences kept by this alignment
+             * @return offset of 2nd arg (j) wrt to the first arg (i)
+             */
+            public int getBestOffset2wrt1(int i, int j ) {
+               if ( i == i1 && j == i2 ) return alignment_offset;
+               else if ( i == i2 && j == i1 ) return -alignment_offset;
+               throw new RuntimeException("Specified sequence id not found in the alignment");
+            }
+
 			public String getSequence1() { return s1; }
 			public String getSequence2() { return s2; }
+            public String getSequenceById(int i) {
+                if ( i == i1 ) return s1;
+                else if ( i == i2 ) return s2;
+                throw new RuntimeException("Specified sequence id not found in the alignment");
+            }
 			public int id1() { return i1;}
 			public int id2() { return i2;}
 			
@@ -78,6 +96,16 @@ public class PairwiseAlignment {
 					return Math.min(s2.length()+alignment_offset, s1.length());
 				}
 			}
+
+            public static int getOverlap(String seq1, String seq2, int offset2wrt1) {
+                int L ;
+                if ( offset2wrt1 >= 0 ) {
+                    L = Math.min(seq1.length()-offset2wrt1, seq2.length());
+                } else {
+                    L = Math.min(seq2.length()+offset2wrt1, seq1.length());
+                }
+                return ( L < 0 ? 0 : L );
+            }
 			
 			/** Returns true if at least one alignment, no matter how bad, was found between the two sequences
 			 * (i.e. the sequences have at least one kmer in common).
@@ -116,7 +144,8 @@ public class PairwiseAlignment {
 				int pos2 = ( offset2wrt1 >= 0 ? 0 : -offset2wrt1 );  
 				int cnt = 0;
 				while ( pos1 < seq1.length() && pos2 < seq2.length() ) {
-					if ( seq1.charAt(pos1++) == seq2.charAt(pos2++) ) continue;
+					if ( Character.toUpperCase(seq1.charAt(pos1++)) ==
+                            Character.toUpperCase(seq2.charAt(pos2++)) ) continue;
 					cnt++; // found mismatch						
 				}
 				return cnt;
@@ -127,7 +156,8 @@ public class PairwiseAlignment {
 				int pos2 = ( offset2wrt1 >= 0 ? 0 : -offset2wrt1 );  
 				int cnt = 0;
 				while ( pos1 < seq1.length() && pos2 < seq2.length() && cnt < maxerr ) {
-					if ( seq1.charAt(pos1++) == seq2.charAt(pos2++) ) continue;
+					if ( Character.toUpperCase(seq1.charAt(pos1++)) ==
+                            Character.toUpperCase(seq2.charAt(pos2++)) ) continue;
 					cnt++; // found mismatch						
 				}
 				return cnt;
@@ -156,6 +186,14 @@ public class PairwiseAlignment {
 				double l = ( best_mm==0? 1.0 : (double)best_mm + Math.sqrt((double)best_mm) );
 				return ( l / (double)L );	
 			}
+
+            public static double distance(String seq1, String seq2, int offset2wrt1) {
+                int L = getOverlap(seq1,seq2,offset2wrt1);
+                if ( L <= 0 ) return 1e100;
+                int mm = countMismatches(seq1,seq2,offset2wrt1);
+                double l = ( mm == 0 ? 1.0 : (double)mm + Math.sqrt((double)mm) );
+                return ( l / (double) L );
+            }
 
 }
 

@@ -60,8 +60,9 @@ public class IndelInspector extends CommandLineProgram {
         ReferenceSequence contig_seq = null;
 
 		IndelRecordPileCollector col = null;
+        PileBuilder pileBuilder = new PileBuilder();
 		try {
-			col = new IndelRecordPileCollector(new DiscardingReceiver(), new PileBuilder() );
+			col = new IndelRecordPileCollector(new DiscardingReceiver(), pileBuilder );
 		} catch(Exception e) { System.err.println(e.getMessage()); }
 		if ( col == null ) return 1; 
 		
@@ -78,6 +79,9 @@ public class IndelInspector extends CommandLineProgram {
                 if ( location != null && GenomeLoc.compareContigs(cur_contig, location.getContig()) == 1 ) break;
                 if ( location == null || GenomeLoc.compareContigs(cur_contig, location.getContig()) == 0 ) {
                     contig_seq = reference.get(r.getReferenceIndex());
+                    String refstr = new String(contig_seq.getBases());
+                    col.setReferenceSequence(refstr);
+                    pileBuilder.setReferenceSequence(refstr);
                     System.out.println("loaded contig "+cur_contig+" (index="+r.getReferenceIndex()+"); length="+contig_seq.getBases().length+" tst="+contig_seq.toString());
                 }
             }
@@ -85,9 +89,12 @@ public class IndelInspector extends CommandLineProgram {
             // if contig is specified and wqe did not reach it yet, skip the records until we reach that contig:
         	if ( location != null && GenomeLoc.compareContigs(cur_contig, location.getContig()) == -1 ) continue;
 
+
+            if ( location != null && r.getAlignmentEnd() < location.getStart() ) continue;
+
             // if stop position is specified and we are past that, stop reading:
         	if ( location != null && r.getAlignmentStart() > location.getStop() ) break;
-        	
+
         	if ( cur_contig.equals("chrM") || GenomeLoc.compareContigs(cur_contig,"chrY")==1 ) continue; // skip chrM and unplaced contigs for now
         	
         	int err = -1;

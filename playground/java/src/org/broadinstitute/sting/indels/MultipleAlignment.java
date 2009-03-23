@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.indels;
 
 import java.util.*;
+import org.broadinstitute.sting.utils.Utils;
 
 
 public class MultipleAlignment implements Iterable<Integer>  {
@@ -25,26 +26,6 @@ public class MultipleAlignment implements Iterable<Integer>  {
 		alignment_offsets.clear();
 		ext_ids.clear();
 	}
-
-    public  static <T extends Comparable> Integer[] SortPermutation( List<T> A )
-    {
-        final Object[] data = A.toArray();
-
-        class comparator implements Comparator<Integer>
-        {
-            public int compare(Integer a, Integer b)
-            {
-                return ((T)data[a]).compareTo(data[b]);
-            }
-        }
-        Integer[] permutation = new Integer[A.size()];
-        for (int i = 0; i < A.size(); i++)
-        {
-            permutation[i] = i;
-        }
-        Arrays.sort(permutation, new comparator());
-        return permutation;
-    }
 
 	/** Adds  single sequence with id set to i. Pile must be empty, or IllegalStateException will be thrown
 	 * 
@@ -108,7 +89,8 @@ public class MultipleAlignment implements Iterable<Integer>  {
 			alignment_offsets.add( -a.getBestOffset2wrt1() + alignment_offsets.get( second ));
 		}
 	}
-	
+
+
 	/** Returns sequence associated with the specified external id, or null if sequence with this external id is not found in the pile
 	 * 
 	 * @param id query id
@@ -154,7 +136,13 @@ public class MultipleAlignment implements Iterable<Integer>  {
 			alignment_offsets.add(off2+a.getOffsetById(id));
 		}
 	}
-	
+
+
+    public void add(MultipleAlignment a, PairwiseAlignment p) {
+        if ( p.id1() == -1 || p.id2() == -1 ) throw new IllegalArgumentException("Attempt to add MSA based on pairwise alignemnt with sequence ids not properly set");
+        add(a,p,p.id1(),p.id2());        
+    }
+
 	/** Returns true if the alignment already contains sequence with the specified id 
 	 * 
 	 * @param id
@@ -168,21 +156,20 @@ public class MultipleAlignment implements Iterable<Integer>  {
 		return PairwiseAlignment.countMismatches(getSequenceById(i), getSequenceById(j), getOffsetById(j)-getOffsetById(i));
 	}
 
-	/** Returns the length of the overlapping region of sequences si and sj  .
+	/** Returns the length of the overlapping region of the two sequences specified by their external ids i and j.
 	 * 
 	 * @return overlap size
 	 */
 	public int getOverlap(int i, int j) {
-		if ( ! contains(i) || ! contains(j)  ) return -1;
+		if ( ! contains(i) || ! contains(j)  ) throw new RuntimeException("Sequence with specified id is not in MSA pile");
 		int off = getOffsetById(j) - getOffsetById(i);
-		if ( off >= 0 ) {
-			return Math.min(getSequenceById(i).length()-off, getSequenceById(j).length());
-		} else {
-			return Math.min(getSequenceById(j).length()+off, getSequenceById(i).length());
-		}
+        int L;
+		if ( off >= 0 ) L = Math.min(getSequenceById(i).length()-off, getSequenceById(j).length());
+		else L = Math.min(getSequenceById(j).length()+off, getSequenceById(i).length());
+		return ( L < 0 ? 0 : L );
 	}
 	
-	/** Given the two indices, one of which has to be already in the pile, returns the one that is not in the pile.
+	/** Given the two sequence ids, one of which has to be already in the pile, returns the one that is not in the pile.
 	 * 
 	 * @param i sequence id
 	 * @param j sequence id
@@ -199,13 +186,23 @@ public class MultipleAlignment implements Iterable<Integer>  {
 		}
 	}
 
-    public String skipN(int n) {
+    /** Returns a string consisting of n spaces.
+     *
+     * @param n
+     * @return
+     */
+    private String skipN(int n) {
         StringBuilder b=new StringBuilder();
         for ( int k = 0 ; k < n ; k++ ) b.append(' ');
         return b.toString();
     }
 
-    public void skipN(int n, StringBuilder b) {
+    /** Prints n spaces directly into the specified string builder.
+     *
+     * @param n
+     * @param b
+     */
+    private void skipN(int n, StringBuilder b) {
         for ( int k = 0 ; k < n ; k++ ) b.append(' ');
     }
 
@@ -220,12 +217,60 @@ public class MultipleAlignment implements Iterable<Integer>  {
 		if ( seqs.size() == 0 ) return b.toString();
 		
 		int skip_first = 0;
+        int msa_length = 0;
 		for ( int i = 0 ; i < seqs.size() ; i++ ) {
 			if ( -alignment_offsets.get(i) > skip_first ) skip_first = -alignment_offsets.get(i);
+            msa_length = Math.max( alignment_offsets.get(i)+seqs.get(i).length() , msa_length );
 		}
 
+        msa_length += skip_first;
+        int [] cov = new int[4];
+        char[] bases = { 'A' , 'C', 'G', 'T' };
+        char[][] consensus = new char[4][msa_length];
+
+        for ( int i = 0 ; i < msa_length ; i++ ) {
+            cov[0] = cov[1] = cov[2] = cov[3] = 0;
+            for ( int j = 0 ; j < seqs.size(); j++ ) {
+                // offset of the sequence j wrt start of the msa region
+                int seq_offset = skip_first + alignment_offsets.get(j);
+                if ( i < seq_offset || i >= seq_offset + seqs.get(j).length() ) continue; // sequence j has no bases at position i
+                int base = -1;
+                switch( Character.toUpperCase(seqs.get(j).charAt(i-seq_offset)) ) {
+                    case 'A': base = 0; break;
+                    case 'C': base = 1 ; break;
+                    case 'G': base = 2 ; break;
+                    case 'T': base = 3 ; break;
+                }
+                if ( base >= 0 ) cov[base]++;
+            }
+            int total_cov = cov[0] + cov[1] + cov[2] + cov[3];
+            int bmax = 0;
+            int mm = 0;
+            consensus[3][i] = 'N';
+            for ( int z = 0; z < 4 ; z++ ) {
+                if ( cov[z] > bmax ) {
+                    bmax = cov[z];
+                    consensus[3][i] = bases[z];
+                    mm = total_cov - bmax;
+                }
+            }
+            if ( mm > 0 ) {
+                consensus[2][i] = '*';
+                if ( mm > 9 ) consensus[0][i] = Character.forDigit(mm/10,10);
+                else consensus[0][i] = ' ';
+                consensus[1][i] = Character.forDigit(mm%10,10);
+            } else {
+                consensus[0][i] = consensus[1][i] = consensus[2][i] = ' ';
+            }
+        }
+
+        b.append("    "); b.append(consensus[0]); b.append('\n');
+        b.append("    "); b.append(consensus[1]); b.append('\n');
+        b.append("    "); b.append(consensus[2]); b.append('\n');
+        b.append("    "); b.append(consensus[3]); b.append('\n');
+
         Integer[] perm = null;
-        if ( inorder ) perm = SortPermutation(alignment_offsets);
+        if ( inorder ) perm = Utils.SortPermutation(alignment_offsets);
 		
 		for ( int i = 0 ; i < seqs.size() ; i++ ) {
             int index = (inorder ? perm[i] : i);
@@ -248,8 +293,12 @@ public class MultipleAlignment implements Iterable<Integer>  {
 	 */
 	public Iterator<Integer> sequenceIdIterator() { return index.keySet().iterator(); }
 
+    /** Returns an iterator over external seuqnce ids of the sequences stored in the pile, presenting them in
+     * the order of ascending alignment offsets.
+     * @return
+     */
     public Iterator<Integer> sequenceIdByOffsetIterator() {
-        final Integer[] perm = SortPermutation(alignment_offsets);
+        final Integer[] perm = Utils.SortPermutation(alignment_offsets);
         return new Iterator<Integer>() {
             private int i = 0;
             public boolean hasNext() {

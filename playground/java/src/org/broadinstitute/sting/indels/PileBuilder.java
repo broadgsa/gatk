@@ -2,16 +2,26 @@ package org.broadinstitute.sting.indels;
 
 import net.sf.samtools.SAMRecord;
 
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.*;
 
 
 public class PileBuilder implements RecordPileReceiver {
-	private StrictlyUpperTriangularMatrix distances ;
+	private SymmetricMatrix distances ;
 	private Matrix<PairwiseAlignment> alignments ;
     private static final int KmerSize = 8;
     private MultipleAlignment alignments1;
     private MultipleAlignment alignments2;
+    private String referenceSequence;
+    private int reference_start;
+
+    private static class IntPair {
+        int first;
+        int second;
+        public IntPair(int i, int j) { set(i,j); }
+        public int first() { return first; }
+        public int second() { return second; }
+        public void set(int i, int j) { first = i; second = j; }
+    }
 
     private static class SelectedPair {
 		private int i_;
@@ -46,32 +56,88 @@ public class PileBuilder implements RecordPileReceiver {
 		}
 	
 	}
+
+    public class SelectedSequence {
+        private int id_;
+        private double d_;
+
+        private SelectedSequence(int i, double d) {
+            set(i,d);
+        }
+
+        private SelectedSequence() { this(-1,1e100) ; }
+        private void set(int i, double d) { id_ = i; d_ = d; }
+
+        public double d() { return d_;}
+        public int i() { return id_; }
+
+    }
 	
-	public PileBuilder() {}
+	public PileBuilder() {
+        referenceSequence = null;
+        reference_start = -1;
+    }
+
+    public void setReferenceSequence(String seq, int start) {
+        referenceSequence = seq;
+        reference_start = start;
+    }
+
+    public void setReferenceSequence(String seq) {
+        referenceSequence = seq;
+        reference_start = -1;
+    }
 
     public void receive(Collection<SAMRecord> c) {
            IndexedSequence[] seqs = new IndexedSequence[c.size()];
            int i = 0;
+           int left = 1000000000;
+           int right = 0;
            for ( SAMRecord r : c ) {
                 seqs[i++] = new IndexedSequence(r.getReadString(),KmerSize);
+                left = Math.min(left, r.getAlignmentStart() );
+                right = Math.max(right,r.getAlignmentEnd());
            }
-           doMultipleAlignment(seqs);
-           System.out.print("Distance between final piles: "+distance(alignments1, alignments2));
-           System.out.print("; diameter of PILE1: "+ diameter(alignments1));
-           System.out.println("; diameter of PILE2: "+ diameter(alignments2));
 
-		   System.out.println("PILE 1: \n"+alignments1.toString());
-		   System.out.println("PILE 2: \n"+alignments2.toString());
+           SequencePile originalAligns = new SequencePile(referenceSequence.substring(left-1,right));
+           for ( SAMRecord r : c ) {
+               originalAligns.addAlignedSequence(r.getReadString(), r.getReadNegativeStrandFlag(),
+                       r.getCigar(), r.getAlignmentStart() - left );
+           }
+           System.out.println("\n#############################################################################");
+           System.out.println("ORIGINAL ALIGNMENT: \n");
+           originalAligns.colorprint(true);
+           System.out.println("\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++") ;
 
+           List<MultipleAlignment> piles = doMultipleAlignment2(seqs);
+//           System.out.print("Distance between final piles: "+distance(alignments1, alignments2));
+//           System.out.print("; diameter of PILE1: "+ diameter(alignments1));
+//           System.out.println("; diameter of PILE2: "+ diameter(alignments2));
+
+//		   System.out.println("PILE 1: \n"+alignments1.toString());
+//		   System.out.println("PILE 2: \n"+alignments2.toString());
+
+        SymmetricMatrix d = new SymmetricMatrix(piles.size());
+        for ( int n = 0 ; n < piles.size() ; n++ ) {
+            d.set(n,n,diameter(piles.get(n)));
+            for ( int m = n+1 ; m < piles.size() ; m++ ) {
+                d.set(n,m,distance(piles.get(n), piles.get(m)));
+            }
+        }
+        System.out.println(d.format("%8.4g"));
+        for ( int n = 0 ; n < piles.size() ; n++ ) {
+            System.out.println("PILE " + n +"\n" +piles.get(n).toString());
+        }
     }
 
 	public void initPairwiseAlignments( IndexedSequence [] seqs ) {
-		 distances = new StrictlyUpperTriangularMatrix( seqs.length );
+		 distances = new SymmetricMatrix( seqs.length );
 		 alignments = new Matrix<PairwiseAlignment>( seqs.length );
 		 for( int i = 0; i < seqs.length ; i++ ) {
 			 for ( int j = i+1 ; j < seqs.length ; j++ ) {
 					PairwiseAlignment a = new PairwiseAlignment(seqs[i],seqs[j],i,j); // compute pairwise alignment
 					alignments.set(i, j, a); // save it
+                    alignments.set(j, i, a); // save it
 					distances.set(i,j,a.distance());
 			 }
 		 }
@@ -146,21 +212,152 @@ public class PileBuilder implements RecordPileReceiver {
 		SelectedPair p = new SelectedPair(-1,-1,1e100);
 		
 		for ( Integer id : a ) {
-			for (int i = 0; i < id; i++) {
+			for (int i = 0; i < distances.size(); i++) {
 					if (a.contains(i))	continue; // a already contains both sequences (i,id)
 					double d = distances.get(i, id);
 					if (d < p.d() ) p.set(i,id,d);
-			}
-			for (int j = id + 1; j < distances.size() ; j++) {
-					if (a.contains(j))	continue; // a already contains both sequences (id, j)
-					double d = distances.get(id, j);
-					if (d < p.d()) p.set(id,j,d);
 			}
 		}
 		return p;
 	}
 
-	
+    public SelectedPair findClosestToPileAverage(MultipleAlignment a) {
+
+        SelectedPair p = new SelectedPair(-1,-1,1e100);
+
+        // currently, we compute the average distance from each sequence to the pile, but if the average
+        // distance is small enough, we will try to stitch that sequence to the pile based on the *best*
+        // available pairwise alignment, best_id will keep the id of that sequence from the pile that
+        // has the best alignment with the sequence that is the closest on average
+        int best_id=-1;
+
+        Set<Integer> offsets = new HashSet<Integer>(); // all putative offsets suggested by different p-wise alignments
+        for ( int i = 0 ; i < distances.size() ; i++ ) { // for each sequence i
+
+            if ( a.contains(i) ) continue; // sequence i is already in the pile, ignore it
+
+            offsets.clear();
+
+            for ( Integer id : a ) { // for all sequences from the msa pile
+                PairwiseAlignment pa = alignments.get(i,id);
+                if ( pa.getOverlap() <= 0 ) continue; // at this step we do not take into account sequences with no overlap
+                // alignment pa suggests this offset of i wrt the first sequence in the msa
+                offsets.add( pa.getBestOffset2wrt1(id,i)+a.getOffsetById(id));
+            }
+            // we got all suggested offsets; now lets recompute distances:
+
+            for( Integer off : offsets ) {
+                SelectedPair spo = averageDistanceForOffset(a,i,off);
+                if ( spo.d() < p.d() ) p.set(spo.i(),spo.j(),spo.d());
+            }
+        }
+        return p;
+    }
+
+    public Matrix<SelectedPair> averageClosestDistanceMatrix(List<MultipleAlignment> la, int n) {
+
+        Matrix<SelectedPair> mp = new Matrix<SelectedPair>(n);
+
+        for ( int i = 0 ; i < n ; i++ ) {
+            for ( int j = i + 1 ; j < n ; j++  ) {
+                mp.set(i,j, findBestAlignment(la.get(i),la.get(j)) );
+                mp.set(j,i, mp.get(i,j) );
+            }
+        }
+        return mp;
+    }
+
+    public SelectedPair findBestAlignment(MultipleAlignment a1, MultipleAlignment a2) {
+
+        Map<Integer, IntPair > all_offsets = new HashMap<Integer, IntPair >();
+        SelectedPair p = new SelectedPair(-1,-1,1e100);
+
+        for ( Integer id1 : a1 ) {
+            for ( Integer id2 : a2 ) {
+                PairwiseAlignment pa = alignments.get(id1,id2);
+                if ( pa.getOverlap() <= 0 ) continue; // id1 and id2 do not overlap and/or we don't have p-wise alignment
+
+                // record suggested offset of a2 wrt a1 (defined by their first sequences), and remember the
+                // pairwise alignment that suggested it
+                int suggested_offset = a1.getOffsetById(id1) + pa.getBestOffset2wrt1(id1,id2) - a2.getOffsetById(id2);
+                if ( ! all_offsets.containsKey(suggested_offset) ) {
+                    all_offsets.put( suggested_offset , new IntPair(id1,id2)) ;
+                }
+            }
+        }
+        for ( Map.Entry<Integer,IntPair> offset_record : all_offsets.entrySet() ) {
+
+            double d = averageDistanceForOffset(a1,a2,offset_record.getKey());
+            if ( d < p.d() ) p.set(offset_record.getValue().first(),offset_record.getValue().second(),d);
+        }
+        return p;
+    }
+
+    public double averageDistanceForOffset(MultipleAlignment a1, MultipleAlignment a2, int offset) {
+        SelectedPair p = new SelectedPair();
+
+        double d_av = 0;
+        int nseq = 0;
+        int i1 = -1;
+        int i2 = -1;
+
+        for ( Integer id2 : a2 ) {
+            SelectedPair spo = averageDistanceForOffset(a1,id2,offset+a2.getOffsetById(id2));
+            if ( spo.d() > 1e99 ) continue;
+            nseq++;
+            d_av += spo.d();
+        }
+        if ( nseq == 0 ) return 1e100;
+        d_av /= nseq;
+        return d_av;
+    }
+
+    /** Computes average distance from sequence i to multiple alignment a for the specified offset of i wrt a
+     *  and returns that distance and pair of sequence indices, on which the specified offset is realized
+     * @param a
+     * @param i
+     * @param offset
+     * @return
+     */
+    public SelectedPair averageDistanceForOffset(MultipleAlignment a, int i, int offset) {
+
+        SelectedPair p = new SelectedPair(-1,-1,1e100);
+
+        double d = 0; // will hold average distance
+        double dmin = 1e100; // used to find the nearest individual sequence in the pile
+        int nseq = 0; // number of sequences in the pile that have distance to sequence i defined
+        int best_id = -1;
+
+        for ( Integer id : a ) { // for all sequences from the msa pile
+            PairwiseAlignment pa = alignments.get(i,id);
+            int new_off = offset - a.getOffsetById(id); // offset of i wrt id as suggested by <offset>
+            double dist_for_off; // distance between i and id for the given offset off
+
+            // check if p-wise alignment has data for the specified offset:
+            boolean canuse = false;
+            if ( pa.alignmentExists() && pa.getBestOffset2wrt1(id,i) == new_off ) {
+                dist_for_off = distances.get(i,id);
+                canuse = true; // can use this alignment to stitch i to a
+            }
+            else {
+                // offset is different from what the pwise alignment suggests; recompute!
+                dist_for_off = PairwiseAlignment.distance(pa.getSequenceById(id),pa.getSequenceById(i),new_off);
+            }
+            if ( dist_for_off > 1e99 ) continue; // at this offset, i and id do not overlap, go check next id
+            d += dist_for_off;
+            nseq++;
+            if ( dist_for_off < dmin && canuse ) {
+                dmin = dist_for_off;
+                best_id = id;
+            }
+
+        }
+        if ( nseq == 0 ) return p;
+        d /= (double)nseq;
+        p.set(i,best_id,d);
+        return p;
+    }
+
 	/** Finds, among all sequences, the one farthest from the specified pile. Being
 	 *  the 'farthest' is defined as having the largest lower bound of the distances to all sequences in the pile.
 	 * 
@@ -178,7 +375,7 @@ public class PileBuilder implements RecordPileReceiver {
 			double d_min = 1e100; // smallest distance from sequence i to the pile
 
 			for ( Integer id : a ) {
-				double d = ( i < id ? distances.get(i, id) : distances.get(id,i) );
+				double d = distances.get(i, id) ;
 				if (d < d_min ) d_min = d;
 			}
 			// d_min is the smallest distance from sequence i to pile a
@@ -195,8 +392,7 @@ public class PileBuilder implements RecordPileReceiver {
 		double d = 1e100;
 		for ( Integer id1 : a1 ) {
 			for ( Integer id2 : a2 ) {
-				if ( id1 < id2 && distances.get(id1,id2) < d ) d = distances.get(id1,id2);
-				if ( id1 > id2 && distances.get(id2,id1) < d ) d = distances.get(id2,id1);
+				if ( distances.get(id1,id2) < d ) d = distances.get(id1,id2);
 			}
 		}
 		return d;
@@ -217,7 +413,7 @@ public class PileBuilder implements RecordPileReceiver {
 			double d = 1e100; // will hold distance from id1 to its closest neighbor
             for ( Integer id2 : a ) {
 				if ( id2 == id1 ) continue;
-                double dpair = ( id1 < id2 ? distances.get(id1,id2) : distances.get(id2,id1) );
+                double dpair = distances.get(id1,id2) ;
 				d = Math.min(d,dpair);
 			}
             // d = distance from id1 to its closest neighbor within the pile
@@ -240,7 +436,8 @@ public class PileBuilder implements RecordPileReceiver {
 
 		PileBuilder pb = new PileBuilder();
 
-        pb.doMultipleAlignment(seqs);
+        //pb.doMultipleAlignment(seqs);
+        pb.doMultipleAlignment2(seqs);
         System.out.print("Distance between final piles: "+pb.distance(pb.alignments1, pb.alignments2));
         System.out.print("; diameter of PILE1: "+ pb.diameter(pb.alignments1));
         System.out.println("; diameter of PILE2: "+ pb.diameter(pb.alignments2));
@@ -252,6 +449,8 @@ public class PileBuilder implements RecordPileReceiver {
     public void doMultipleAlignment(IndexedSequence[] seqs) {
 		// two piles we are going to grow until all sequences are assigned to one of them.
 		// we intend to keep the piles disjoint, e.g. no sequence should be placed in both
+
+
 		MultipleAlignment pile1 = new MultipleAlignment();
 		MultipleAlignment pile2 = new MultipleAlignment();
 	
@@ -260,7 +459,7 @@ public class PileBuilder implements RecordPileReceiver {
 		
 		// all the pairwise alignments are computed and disjoint best and next-best pairs are found
 
-		//System.out.println( distances.format("%8.4g "));
+//		System.out.println( distances.format("%8.4g "));
 
 
 		SelectedPair pworst = findWorst();
@@ -268,13 +467,14 @@ public class PileBuilder implements RecordPileReceiver {
 		pile1.add(seqs[pworst.i()].getSequence(), pworst.i());
 		pile2.add(seqs[pworst.j()].getSequence(), pworst.j());
 
-/*
+
 		// initialize piles with best and next-best pairs
+/*
 		SelectedPair p_best = findClosestPair();
 		SelectedPair p_nextbest = findNextClosestPairAfter(p_best);
-		pile1.add( alignments.get(p_best.i(), p_best.j()),p_best.i(),p_best.j());
-		pile2.add( alignments.get(p_nextbest.i(), p_nextbest.j()),p_nextbest.i(),p_nextbest.j());
-*/		
+		pile1.add( alignments.get(p_best.i(), p_best.j()));
+		pile2.add( alignments.get(p_nextbest.i(), p_nextbest.j()));
+*/
 /*		
 		System.out.println("Best pair ("+p_best.i() + "," + p_best.j()+", d="+p_best.d()+"):");
 		System.out.println(pile1.toString());
@@ -283,39 +483,44 @@ public class PileBuilder implements RecordPileReceiver {
 */
 		SelectedPair p1 = null;
 		SelectedPair p2 = null;
-		
+
 		// grow piles hierarchical clustering-style
 	   while ( pile1.size() + pile2.size() < seqs.length ) {
 		   // find candidate sequences closest to each of the two piles
-		   p1 = findClosestToPile(pile1);
-		   p2 = findClosestToPile(pile2);
+
+//		   p1 = findClosestToPileAverage(pile1); // findClosestToPile(pile1);
+//		   p2 = findClosestToPileAverage(pile2); //findClosestToPile(pile2);
+           p1 = findClosestToPile(pile1); // findClosestToPile(pile1);
+           p2 = findClosestToPile(pile2); //findClosestToPile(pile2);
 		   int id1_cand = pile1.selectExternal(p1.i(), p1.j()); // id of the sequence closest to the pile 1
 		   int id2_cand = pile2.selectExternal(p2.i(), p2.j()); // id of the sequence closest to the pile 2
 		   if ( pile2.contains(id1_cand) && pile1.contains(id2_cand)) { 
 			   // pile1 and pile 2 are mutually the closest, so we need to merge them.
 			   // if piles are mutually the closest, then p1 and p2 are the same pair (id1, id2), 
 			   // so we just merge on one of the (redundant) instances:
-			   pile1.add(pile2, alignments.get( p1.i(), p1.j()),p1.i(), p1.j());
+			   pile1.add(pile2, alignments.get( p1.i(), p1.j()));
 			   pile2.clear(); // need to reset pile 2 to something else
 			   int z = findFarthestFromPile(pile1); // get sequence farthest from merged pile 1
 			   pile2.add(seqs[z].getSequence(), z); // and reinitialize pile 2 with that sequence
 		   } else {
 				   if ( p1.d() < p2.d() ) {
 					   if ( pile2.contains(id1_cand) ) {
-						   pile1.add(pile2, alignments.get( p1.i(), p1.j()),p1.i(), p1.j());
+						   pile1.add(pile2, alignments.get( p1.i(), p1.j()));
 						   pile2.clear(); // need to reset pile 2 to something else
 						   int z = findFarthestFromPile(pile1); // get sequence farthest from merged pile 1
 						   pile2.add(seqs[z].getSequence(), z); // and reinitialize pile 2 with that sequence
 					   } else pile1.add( alignments.get(p1.i(), p1.j()) );
 				   } else {
 					   if ( pile1.contains(id2_cand) ) {
-						   pile2.add(pile1, alignments.get( p2.i(), p2.j()),p2.i(), p2.j());
+						   pile2.add(pile1, alignments.get( p2.i(), p2.j()));
 						   pile1.clear(); // need to reset pile 2 to something else
 						   int z = findFarthestFromPile(pile2); // get sequence farthest from merged pile 1
 						   pile1.add(seqs[z].getSequence(), z); // and reinitialize pile 2 with that sequence
 					   } else pile2.add( alignments.get(p2.i(), p2.j()) );
 			   } 
 		   }
+           System.out.println("PILE 1: \n"+pile1.toString());
+           System.out.println("PILE 2: \n"+pile2.toString());
 	   } // end WHILE
 
        alignments1 = pile1;
@@ -327,6 +532,56 @@ public class PileBuilder implements RecordPileReceiver {
 		}
 */
 	}
+
+public List<MultipleAlignment> doMultipleAlignment2(IndexedSequence[] seqs) {
+
+    initPairwiseAlignments(seqs);
+
+    List<MultipleAlignment> piles = new LinkedList<MultipleAlignment>();
+
+    int npiles = seqs.length;
+
+    for ( int i = 0 ; i < seqs.length ; i++ ) {
+        MultipleAlignment m = new MultipleAlignment();
+        m.add(seqs[i].getSequence(),i);
+        piles.add(m);
+    }
+
+    while ( npiles > 2 ) {
+        Matrix<SelectedPair> dist = averageClosestDistanceMatrix(piles,npiles);
+        int best_i = -1;
+        int best_j = -1;
+        int pile_i = -1;
+        int pile_j = -1;
+        double d = 1e100;
+        for ( int i = 0 ; i < npiles ; i++ ) {
+            for ( int j = i+1 ; j < npiles ; j++ ) {
+                SelectedPair p = dist.get(i,j);
+                if ( p.d() < d ) {
+                    d = p.d();
+                    pile_i = i;
+                    pile_j = j;
+                    best_i = p.i();
+                    best_j = p.j();
+                }
+            }
+        }
+//        System.out.println("joining pile "+pile_i +" and pile " + pile_j +" on seqs " + best_i +" and " + best_j );
+        // got the closest pair
+        piles.get(pile_i).add(piles.get(pile_j),alignments.get(best_i,best_j));
+//        System.out.println("JOINED PILE: \n"+piles.get(pile_i).toString());
+        piles.remove(pile_j);
+        npiles--;
+    }
+
+    alignments1 = piles.get(0);
+    alignments2 = piles.get(1);
+
+
+//    System.out.println("PILE 1: \n"+piles.get(0).toString());
+//    System.out.println("PILE 2: \n"+piles.get(1).toString());
+    return piles;
+}
 	
 	public static IndexedSequence[] testSet1(int K) {
 		IndexedSequence [] seqs = new IndexedSequence[9];

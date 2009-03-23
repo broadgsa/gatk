@@ -89,6 +89,8 @@ public class IndelRecordPileCollector implements RecordReceiver {
     private RecordReceiver defaultReceiver; // we will send there records that do not overlap with regions of interest
     private RecordPileReceiver indelPileReceiver; // piles over indel regions will be sent there
 
+    private String referenceSequence;
+
     public String memStatsString() {
 		String s = "mRecordPile: ";
 		return s+mRecordPile.size() + " mAllIndels: "+mAllIndels.size() + " mLastContig=" +mLastContig + " mLastStartOnref="+mLastStartOnRef;
@@ -110,6 +112,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
 		}
         defaultReceiver = rr;
         indelPileReceiver = rp;
+        referenceSequence = null;
         setWaitState();
 	}
 
@@ -124,7 +127,11 @@ public class IndelRecordPileCollector implements RecordReceiver {
         avoiding_region = false;
         mState = WAIT_STATE; // got to do this if we were in avoid_region state
     }
-	
+
+    public void setReferenceSequence(String contig) {
+        referenceSequence = contig;
+    }
+
 	/** A utility method: emits into nonindelReceiver and purges from the currently held SAM record pile
      * all the consequtive records with alignment end positions less than or equal to the specified
      * position <code>pos</code>, until the first record is encountered that does not meet this condition. Note that
