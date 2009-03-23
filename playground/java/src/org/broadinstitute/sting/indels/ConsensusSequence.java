@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.indels;
 
+import org.broadinstitute.sting.utils.Pair;
+
 import java.util.List;
 import java.util.ArrayList;
 
@@ -15,6 +17,7 @@ public class ConsensusSequence {
     private long referencePos;// (arbitrary) reference position; when adding sequences, their offsets should be wrt this position
     private int startOffset; // offset of the leftmost base of this consensus sequence wrt referencePos; negative=left, positive=right
     private final static int NUMBINS = 4;
+    private final static char[] BASES = { 'A','C','G','T' };
 
     public ConsensusSequence(int refPos) {
         coverage = new ArrayList< int[] >();
@@ -101,6 +104,51 @@ public class ConsensusSequence {
         }
         return 0.0;
     }
+
+    /** Returns consensus base at the specified offset wrt the consesus sequence's reference position.
+     * Specified offset must be within the span of currently held consensus sequence. Consensus base is the
+     * one with the maximum count of observations. If two different nucleotides were observed exactly the
+     * same number of times (and that number is greater than the number of observations for othe nucleotides),
+     * the "lesser" one, (order being ACGT) will be returned.
+     * @param offset
+     * @return
+     */
+    public char baseAt(int offset) {
+        assert offset >= startOffset && offset < startOffset + coverage.size() : "Offset out of bounds";
+        int [] cov = coverage.get(offset+(int)referencePos);
+        int total_cov = cov[0] + cov[1] + cov[2] + cov[3];
+        int bmax = 0;
+        char base = 'N';
+        for ( int z = 0; z < 4 ; z++ ) {
+            if ( cov[z] > bmax ) {
+                bmax = cov[z];
+                base = BASES[z];
+            }
+        }
+        return base;        
+    }
+
+    /** Returns consensus base at the specified offset together with its observation count.
+     *
+     * @param offset
+     * @return
+     * @see #baseAt(int)
+     */
+    public Pair<Character,Integer> baseWithCountAt(int offset) {
+        assert offset >= startOffset && offset < startOffset + coverage.size() : "Offset out of bounds";
+        int [] cov = coverage.get(offset+(int)referencePos);
+        int total_cov = cov[0] + cov[1] + cov[2] + cov[3];
+        int bmax = 0;
+        char base = 'N';
+        for ( int z = 0; z < 4 ; z++ ) {
+            if ( cov[z] > bmax ) {
+                bmax = cov[z];
+                base = BASES[z];
+            }
+        }
+        return base;
+    }
+
 
     private List<int[]> instantiateCoverageList(int n) {
         List< int[] > subseq = new ArrayList<int[] >(n);

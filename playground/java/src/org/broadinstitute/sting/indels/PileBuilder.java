@@ -3,6 +3,7 @@ package org.broadinstitute.sting.indels;
 import net.sf.samtools.SAMRecord;
 
 import java.util.*;
+import org.broadinstitute.sting.utils.PrimitivePair;
 
 
 public class PileBuilder implements RecordPileReceiver {
@@ -14,14 +15,6 @@ public class PileBuilder implements RecordPileReceiver {
     private String referenceSequence;
     private int reference_start;
 
-    private static class IntPair {
-        int first;
-        int second;
-        public IntPair(int i, int j) { set(i,j); }
-        public int first() { return first; }
-        public int second() { return second; }
-        public void set(int i, int j) { first = i; second = j; }
-    }
 
     private static class SelectedPair {
 		private int i_;
@@ -269,7 +262,7 @@ public class PileBuilder implements RecordPileReceiver {
 
     public SelectedPair findBestAlignment(MultipleAlignment a1, MultipleAlignment a2) {
 
-        Map<Integer, IntPair > all_offsets = new HashMap<Integer, IntPair >();
+        Map<Integer, PrimitivePair.Int > all_offsets = new HashMap<Integer, PrimitivePair.Int >();
         SelectedPair p = new SelectedPair(-1,-1,1e100);
 
         for ( Integer id1 : a1 ) {
@@ -281,14 +274,14 @@ public class PileBuilder implements RecordPileReceiver {
                 // pairwise alignment that suggested it
                 int suggested_offset = a1.getOffsetById(id1) + pa.getBestOffset2wrt1(id1,id2) - a2.getOffsetById(id2);
                 if ( ! all_offsets.containsKey(suggested_offset) ) {
-                    all_offsets.put( suggested_offset , new IntPair(id1,id2)) ;
+                    all_offsets.put( suggested_offset , new PrimitivePair.Int(id1,id2)) ;
                 }
             }
         }
-        for ( Map.Entry<Integer,IntPair> offset_record : all_offsets.entrySet() ) {
+        for ( Map.Entry<Integer,PrimitivePair.Int> offset_record : all_offsets.entrySet() ) {
 
             double d = averageDistanceForOffset(a1,a2,offset_record.getKey());
-            if ( d < p.d() ) p.set(offset_record.getValue().first(),offset_record.getValue().second(),d);
+            if ( d < p.d() ) p.set(offset_record.getValue().first,offset_record.getValue().second,d);
         }
         return p;
     }
