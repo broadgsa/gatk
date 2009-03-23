@@ -135,13 +135,13 @@ public class TraversalEngine {
 
     public void setSafetyChecking(final boolean beSafeP) {
         if (!beSafeP)
-            System.out.printf("*** Turning off safety checking, I hope you know what you are doing.  Errors will result in debugging assert failures and other inscrutable messages...%n");
+            logger.warn("*** Turning off safety checking, I hope you know what you are doing.  Errors will result in debugging assert failures and other inscrutable messages...");
         this.beSafeP = beSafeP;
     }
 
     public void setSortOnFly(final boolean SORT_ON_FLY) {
         if (SORT_ON_FLY)
-            System.out.println("Sorting read file on the fly: max reads allowed is " + MAX_ON_FLY_SORTS);
+            logger.info("Sorting read file on the fly: max reads allowed is " + MAX_ON_FLY_SORTS);
         this.SORT_ON_FLY = SORT_ON_FLY;
     }
 
@@ -197,7 +197,7 @@ public class TraversalEngine {
             scanner.close();
         }
 
-        System.out.format("DEBUG: locStr: %s\n", locStr);
+        logger.debug("DEBUG: locStr: " + locStr);
 
         this.locs = parseGenomeLocs(locStr);
     }
@@ -220,7 +220,7 @@ public class TraversalEngine {
             Collection<GenomeLoc> result = Functions.map(f1, Arrays.asList(str.split(";")));
             GenomeLoc[] locs = (GenomeLoc[]) result.toArray(new GenomeLoc[0]);
             Arrays.sort(locs);
-            System.out.printf("  Locations are: %s%n", Utils.join("\n", Functions.map(Operators.toString, Arrays.asList(locs))));
+            logger.debug("  Locations are: " + Utils.join("\n", Functions.map(Operators.toString, Arrays.asList(locs))));
             return locs;
         } catch (Exception e) {
             logger.fatal(String.format("Invalid locations string: %s, format is loc1;loc2; where each locN can be 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'", str));
@@ -303,9 +303,9 @@ public class TraversalEngine {
             this.lastProgressPrintTime = curTime;
             final double secsPer1MReads = (elapsed * 1000000.0) / nRecords;
             if (loc != null)
-                System.out.printf("[PROGRESS] Traversed to %s, processing %,d %s in %.2f secs (%.2f secs per 1M %s)%n", loc, nRecords, type, elapsed, secsPer1MReads, type);
+                logger.info(String.format("[PROGRESS] Traversed to %s, processing %,d %s in %.2f secs (%.2f secs per 1M %s)", loc, nRecords, type, elapsed, secsPer1MReads, type));
             else
-                System.out.printf("[PROGRESS] Traversed %,d %s in %.2f secs (%.2f secs per 1M %s)%n", nRecords, type, elapsed, secsPer1MReads, type);
+                logger.info(String.format("[PROGRESS] Traversed %,d %s in %.2f secs (%.2f secs per 1M %s)", nRecords, type, elapsed, secsPer1MReads, type));
 
             // Currently samReadingTracker will print misleading info if we're not processing the whole file
 
@@ -313,7 +313,7 @@ public class TraversalEngine {
             // traversal is not being performed.  For now, don't bother printing progress.
             // TODO: Create a sam indexed read tracker that tracks based on percentage through the query.
             if (samReadingTracker != null && this.locs == null)
-                System.out.printf("[PROGRESS]   -> %s%n", samReadingTracker.progressMeter());
+                logger.info(String.format("[PROGRESS]   -> %s", samReadingTracker.progressMeter()));
         }
     }
 
@@ -326,12 +326,12 @@ public class TraversalEngine {
      */
     protected <T> void printOnTraversalDone(final String type, T sum) {
         printProgress(true, type, null);
-        System.out.println("Traversal reduce result is " + sum);
-        System.out.printf("Traversal skipped %d reads out of %d total (%.2f%%)%n", nSkippedReads, nReads, (nSkippedReads * 100.0) / nReads);
-        System.out.printf("  -> %d unmapped reads%n", nUnmappedReads);
-        System.out.printf("  -> %d non-primary reads%n", nNotPrimary);
-        System.out.printf("  -> %d reads with bad alignments%n", nBadAlignments);
-        System.out.printf("  -> %d reads with indels%n", nSkippedIndels);
+        logger.info(String.format("Traversal reduce result is " + sum));
+        logger.info(String.format("Traversal skipped %d reads out of %d total (%.2f%%)", nSkippedReads, nReads, (nSkippedReads * 100.0) / nReads));
+        logger.info(String.format("  -> %d unmapped reads", nUnmappedReads));
+        logger.info(String.format("  -> %d non-primary reads", nNotPrimary));
+        logger.info(String.format("  -> %d reads with bad alignments", nBadAlignments));
+        logger.info(String.format("  -> %d reads with indels", nSkippedIndels));
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -372,7 +372,7 @@ public class TraversalEngine {
             samReadIter = new VerifyingSamIterator(samReadIter);
 
         if (THREADED_IO) {
-            System.out.printf("Enabling threaded I/O with buffer of %d reads%n", THREADED_IO_BUFFER_SIZE);
+            logger.info(String.format("Enabling threaded I/O with buffer of %d reads", THREADED_IO_BUFFER_SIZE));
             samReadIter = new ThreadedIterator<SAMRecord>(samReadIter, THREADED_IO_BUFFER_SIZE);
         }
     }
@@ -385,7 +385,7 @@ public class TraversalEngine {
         samReader.setValidationStringency(strictness);
 
         final SAMFileHeader header = samReader.getFileHeader();
-        System.err.println("Sort order is: " + header.getSortOrder());
+        logger.info(String.format("Sort order is: " + header.getSortOrder()));
 
         // If the file has an index, querying functions are available.  Use them if possible...
         if (samReader.hasIndex()) {
@@ -443,7 +443,7 @@ public class TraversalEngine {
     protected void testReference() {
         while (true) {
             ReferenceSequence ref = refFile.nextSequence();
-            System.out.printf("%s %d %d%n", ref.getName(), ref.length(), System.currentTimeMillis());
+            logger.debug(String.format("%s %d %d", ref.getName(), ref.length(), System.currentTimeMillis()));
             printProgress(true, "loci", new GenomeLoc("foo", 1));
         }
     }
@@ -506,7 +506,7 @@ public class TraversalEngine {
 
             if (result) {
                 nSkippedReads++;
-                //System.out.printf("  [filter] %s => %b %s%n", rec.getReadName(), result, why);
+                //System.out.printf("  [filter] %s => %b %s", rec.getReadName(), result, why);
             } else {
                 nReads++;
             }
@@ -613,8 +613,8 @@ public class TraversalEngine {
                 // Iterate forward to get all reference ordered data covering this locus
                 final List<ReferenceOrderedDatum> rodData = getReferenceOrderedDataAtLocus(rodIters, locus.getLocation());
 
-                if (DEBUGGING)
-                    System.out.printf("  Reference: %s:%d %c%n", refSite.getCurrentContig().getName(), refSite.getPosition(), refBase);
+
+                    logger.debug(String.format("  Reference: %s:%d %c", refSite.getCurrentContig().getName(), refSite.getPosition(), refBase));
 
                 //
                 // Execute our contract with the walker.  Call filter, map, and reduce
@@ -626,7 +626,7 @@ public class TraversalEngine {
                 }
 
                 if (this.maxReads > 0 && this.nRecords > this.maxReads) {
-                    System.out.println("Maximum number of reads encountered, terminating traversal " + this.nRecords);
+                    logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + this.nRecords));
                     done = true;
                 }
 
@@ -656,7 +656,7 @@ public class TraversalEngine {
      */
     protected <M, R> int traverseByRead(ReadWalker<M, R> walker) {
         if (refFileName == null && !walker.requiresOrderedReads() && verifyingSamReadIter != null) {
-            System.out.println("STATUS: No reference file provided and unordered reads are tolerated, enabling out of order read processing.");
+            logger.warn(String.format("STATUS: No reference file provided and unordered reads are tolerated, enabling out of order read processing."));
             if (verifyingSamReadIter != null)
                 verifyingSamReadIter.setCheckOrderP(false);
         }
@@ -698,7 +698,7 @@ public class TraversalEngine {
                 }
 
                 if (this.maxReads > 0 && this.nRecords > this.maxReads) {
-                    System.out.println("Maximum number of reads encountered, terminating traversal " + this.nRecords);
+                    logger.warn(String.format(("Maximum number of reads encountered, terminating traversal " + this.nRecords)));
                     done = true;
                 }
             }
