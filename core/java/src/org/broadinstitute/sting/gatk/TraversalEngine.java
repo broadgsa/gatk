@@ -1,29 +1,32 @@
 package org.broadinstitute.sting.gatk;
 
-import net.sf.samtools.*;
-import net.sf.samtools.SAMFileReader.ValidationStringency;
-import net.sf.samtools.util.RuntimeIOException;
-import edu.mit.broad.picard.filter.SamRecordFilter;
 import edu.mit.broad.picard.filter.FilteringIterator;
-import edu.mit.broad.picard.reference.ReferenceSequenceFile;
-import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
+import edu.mit.broad.picard.filter.SamRecordFilter;
 import edu.mit.broad.picard.reference.ReferenceSequence;
-import org.broadinstitute.sting.utils.*;
+import net.sf.functionalj.Function1;
+import net.sf.functionalj.FunctionN;
+import net.sf.functionalj.Functions;
+import net.sf.functionalj.reflect.JdkStdReflect;
+import net.sf.functionalj.reflect.StdReflect;
+import net.sf.functionalj.util.Operators;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMFileReader.ValidationStringency;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.RuntimeIOException;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.iterators.*;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.utils.FastaSequenceFile2;
+import org.broadinstitute.sting.utils.FileProgressTracker;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.io.*;
 import java.util.*;
-
-import net.sf.functionalj.reflect.StdReflect;
-import net.sf.functionalj.reflect.JdkStdReflect;
-import net.sf.functionalj.FunctionN;
-import net.sf.functionalj.Function1;
-import net.sf.functionalj.Functions;
-import net.sf.functionalj.util.Operators;
 
 public class TraversalEngine {
     // list of reference ordered data objects
@@ -61,7 +64,7 @@ public class TraversalEngine {
     private File refFileName = null;                        // the name of the reference file
     //private ReferenceSequenceFile refFile = null;
     private FastaSequenceFile2 refFile = null;              // todo: merge FastaSequenceFile2 into picard!
-    private ReferenceIterator refIter = null;                
+    private ReferenceIterator refIter = null;
 
     // Number of records (loci, reads) we've processed
     private long nRecords = 0;
@@ -83,6 +86,12 @@ public class TraversalEngine {
     public long N_RECORDS_TO_PRINT = 100000;
     public int THREADED_IO_BUFFER_SIZE = 10000;
 
+    /**
+     * our log, which we want to capture anything from this class
+     */
+    private static Logger logger = Logger.getLogger(GenomeAnalysisTK.class);
+
+
     // Locations we are going to process during the traversal
     private GenomeLoc[] locs = null;
 
@@ -96,10 +105,10 @@ public class TraversalEngine {
      * Creates a new, uninitialized TraversalEngine
      *
      * @param reads SAM/BAM file of reads
-     * @param ref Reference file in FASTA format, assumes a .dict file is also available
-     * @param rods Array of reference ordered data sets
+     * @param ref   Reference file in FASTA format, assumes a .dict file is also available
+     * @param rods  Array of reference ordered data sets
      */
-    public TraversalEngine(File reads, File ref, ReferenceOrderedData[] rods ) {
+    public TraversalEngine(File reads, File ref, ReferenceOrderedData[] rods) {
         readsFile = reads;
         refFileName = ref;
         this.rods = Arrays.asList(rods);
@@ -112,16 +121,26 @@ public class TraversalEngine {
     // --------------------------------------------------------------------------------------------------------------
     //public void setRegion(final String reg) { regionStr = regionStr; }
     //public void setTraversalType(final String type) { traversalType = type; }
-    public void setStrictness( final ValidationStringency s ) { strictness = s; }
-    public void setMaxReads( final int maxReads ) { this.maxReads = maxReads; }
-    public void setDebugging( final boolean d ) { DEBUGGING = d; }
-    public void setSafetyChecking( final boolean beSafeP ) {
-        if ( ! beSafeP )
+    public void setStrictness(final ValidationStringency s) {
+        strictness = s;
+    }
+
+    public void setMaxReads(final int maxReads) {
+        this.maxReads = maxReads;
+    }
+
+    public void setDebugging(final boolean d) {
+        DEBUGGING = d;
+    }
+
+    public void setSafetyChecking(final boolean beSafeP) {
+        if (!beSafeP)
             System.out.printf("*** Turning off safety checking, I hope you know what you are doing.  Errors will result in debugging assert failures and other inscrutable messages...%n");
         this.beSafeP = beSafeP;
     }
-    public void setSortOnFly( final boolean SORT_ON_FLY ) {
-        if ( SORT_ON_FLY )
+
+    public void setSortOnFly(final boolean SORT_ON_FLY) {
+        if (SORT_ON_FLY)
             System.out.println("Sorting read file on the fly: max reads allowed is " + MAX_ON_FLY_SORTS);
         this.SORT_ON_FLY = SORT_ON_FLY;
     }
@@ -135,50 +154,47 @@ public class TraversalEngine {
     /**
      * Parses the location string locStr and sets the traversal engine to only process
      * regions specified by the location string.  The string is of the form:
-     *   Of the form: loc1;loc2;...
-     *   Where each locN can be:
-     *     Ôchr2Õ, Ôchr2:1000000Õ or Ôchr2:1,000,000-2,000,000Õ
+     * Of the form: loc1;loc2;...
+     * Where each locN can be:
+     * Ôchr2Õ, Ôchr2:1000000Õ or Ôchr2:1,000,000-2,000,000Õ
      *
      * @param locStr
      */
-    public void setLocation( final String locStr ) {
+    public void setLocation(final String locStr) {
         this.locs = parseGenomeLocs(locStr);
     }
 
     /**
      * Read a file of genome locations to process.
      * regions specified by the location string.  The string is of the form:
-     *   Of the form: loc1;loc2;...
-     *   Where each locN can be:
-     *     Ôchr2Õ, Ôchr2:1000000Õ or Ôchr2:1,000,000-2,000,000Õ
+     * Of the form: loc1;loc2;...
+     * Where each locN can be:
+     * Ôchr2Õ, Ôchr2:1000000Õ or Ôchr2:1,000,000-2,000,000Õ
      *
      * @param file_name
      */
-    public void setLocationFromFile( final String file_name ) 
-    {
+    public void setLocationFromFile(final String file_name) {
         String locStr = "";
 
-	    Scanner scanner = null;
-	    try 
-	    { 
+        Scanner scanner = null;
+        try {
             scanner = new Scanner(new File(file_name));
-	        while ( scanner.hasNextLine() )
-	        {
-		        String line = scanner.nextLine();
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
                 line.replaceAll("\n", "");
                 locStr += line;
-                if (scanner.hasNextLine()) { locStr += ";"; }
-	        }
+                if (scanner.hasNextLine()) {
+                    locStr += ";";
+                }
+            }
         }
-        catch (Exception e)
-        {
+        catch (Exception e) {
             e.printStackTrace();
-            System.exit(-1); 
+            System.exit(-1);
         }
-	    finally 
-	    {
-		    //ensure the underlying stream is always closed
-		    scanner.close();
+        finally {
+            //ensure the underlying stream is always closed
+            scanner.close();
         }
 
         System.out.format("DEBUG: locStr: %s\n", locStr);
@@ -193,7 +209,7 @@ public class TraversalEngine {
      * @param str
      * @return Array of GenomeLoc objects corresponding to the locations in the string, sorted by coordinate order
      */
-    public static GenomeLoc[] parseGenomeLocs( final String str ) {
+    public static GenomeLoc[] parseGenomeLocs(final String str) {
         // Of the form: loc1;loc2;...
         // Where each locN can be:
         // Ôchr2Õ, Ôchr2:1000000Õ or Ôchr2:1,000,000-2,000,000Õ
@@ -202,15 +218,15 @@ public class TraversalEngine {
         Function1<GenomeLoc, String> f1 = parseOne.f1();
         try {
             Collection<GenomeLoc> result = Functions.map(f1, Arrays.asList(str.split(";")));
-            GenomeLoc[] locs = (GenomeLoc[])result.toArray(new GenomeLoc[0]);
+            GenomeLoc[] locs = (GenomeLoc[]) result.toArray(new GenomeLoc[0]);
             Arrays.sort(locs);
-            System.out.printf("  Locations are: %s%n", Utils.join("\n", Functions.map( Operators.toString, Arrays.asList(locs) ) ) );
+            System.out.printf("  Locations are: %s%n", Utils.join("\n", Functions.map(Operators.toString, Arrays.asList(locs))));
             return locs;
-        } catch ( Exception e ) {
-            Utils.scareUser(String.format("Invalid locations string: %s, format is loc1;loc2; where each locN can be 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'", str));
-            return null;
+        } catch (Exception e) {
+            logger.fatal(String.format("Invalid locations string: %s, format is loc1;loc2; where each locN can be 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'", str));
+            throw new IllegalArgumentException("Invalid locations string: " + str + ", format is loc1;loc2; where each locN can be 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'");
         }
-     }
+    }
 
     /**
      * A key function that returns true if the proposed GenomeLoc curr is within the list of
@@ -219,17 +235,13 @@ public class TraversalEngine {
      * @param curr
      * @return true if we should process GenomeLoc curr, otherwise false
      */
-    public boolean inLocations( GenomeLoc curr ) {
-        if ( this.locs == null )
-        {
+    public boolean inLocations(GenomeLoc curr) {
+        if (this.locs == null) {
             return true;
-        }
-        else  
-        {
-            for ( GenomeLoc loc : this.locs ) 
-            {
+        } else {
+            for (GenomeLoc loc : this.locs) {
                 //System.out.printf("  Overlap %s vs. %s => %b%n", loc, curr, loc.overlapsP(curr));
-                if ( loc.overlapsP(curr) )
+                if (loc.overlapsP(curr))
                     return true;
             }
             return false;
@@ -243,8 +255,8 @@ public class TraversalEngine {
      * @param curr Current genome Location
      * @return true if we are past the last location to process
      */
-    private boolean pastFinalLocation( GenomeLoc curr ) {
-        boolean r = locs != null && locs[locs.length-1].compareTo( curr ) == -1 && ! locs[locs.length-1].overlapsP(curr);
+    private boolean pastFinalLocation(GenomeLoc curr) {
+        boolean r = locs != null && locs[locs.length - 1].compareTo(curr) == -1 && !locs[locs.length - 1].overlapsP(curr);
         //System.out.printf("  pastFinalLocation %s vs. %s => %d => %b%n", locs[locs.length-1], curr, locs[locs.length-1].compareTo( curr ), r);
         return r;
     }
@@ -254,9 +266,8 @@ public class TraversalEngine {
     // printing
     //
     // --------------------------------------------------------------------------------------------------------------
-    
+
     /**
-     *
      * @param curTime (current runtime, in millisecs)
      * @return true if the maximum interval (in millisecs) has passed since the last printing
      */
@@ -271,7 +282,7 @@ public class TraversalEngine {
      * @param loc
      */
     public void printProgress(final String type, GenomeLoc loc) {
-        printProgress( false, type, loc );
+        printProgress(false, type, loc);
     }
 
     /**
@@ -279,19 +290,19 @@ public class TraversalEngine {
      * every M seconds, for N and M set in global variables.
      *
      * @param mustPrint If true, will print out info, regardless of nRecords or time interval
-     * @param type String to print out describing our atomic traversal type ("read", "locus", etc)
-     * @param loc Current location 
+     * @param type      String to print out describing our atomic traversal type ("read", "locus", etc)
+     * @param loc       Current location
      */
-    public void printProgress( boolean mustPrint, final String type, GenomeLoc loc ) {
+    public void printProgress(boolean mustPrint, final String type, GenomeLoc loc) {
         final long nRecords = this.nRecords;
         final long curTime = System.currentTimeMillis();
         final double elapsed = (curTime - startTime) / 1000.0;
         //System.out.printf("Cur = %d, last print = %d%n", curTime, lastProgressPrintTime);
-                    
-        if ( mustPrint || nRecords % N_RECORDS_TO_PRINT == 0 || maxElapsedIntervalForPrinting(curTime)) {
+
+        if (mustPrint || nRecords % N_RECORDS_TO_PRINT == 0 || maxElapsedIntervalForPrinting(curTime)) {
             this.lastProgressPrintTime = curTime;
             final double secsPer1MReads = (elapsed * 1000000.0) / nRecords;
-            if ( loc != null )
+            if (loc != null)
                 System.out.printf("[PROGRESS] Traversed to %s, processing %,d %s in %.2f secs (%.2f secs per 1M %s)%n", loc, nRecords, type, elapsed, secsPer1MReads, type);
             else
                 System.out.printf("[PROGRESS] Traversed %,d %s in %.2f secs (%.2f secs per 1M %s)%n", nRecords, type, elapsed, secsPer1MReads, type);
@@ -301,7 +312,7 @@ public class TraversalEngine {
             // If an index is enabled, file read progress is meaningless because a linear
             // traversal is not being performed.  For now, don't bother printing progress.
             // TODO: Create a sam indexed read tracker that tracks based on percentage through the query.
-            if ( samReadingTracker != null && this.locs == null )
+            if (samReadingTracker != null && this.locs == null)
                 System.out.printf("[PROGRESS]   -> %s%n", samReadingTracker.progressMeter());
         }
     }
@@ -310,17 +321,17 @@ public class TraversalEngine {
      * Called after a traversal to print out information about the traversal process
      *
      * @param type String describing this type of traversal ("loci", "read")
-     * @param sum The reduce result of the traversal
-     * @param <T> ReduceType of the traversal
+     * @param sum  The reduce result of the traversal
+     * @param <T>  ReduceType of the traversal
      */
-    protected <T> void printOnTraversalDone( final String type, T sum ) {
-        printProgress( true, type, null );
+    protected <T> void printOnTraversalDone(final String type, T sum) {
+        printProgress(true, type, null);
         System.out.println("Traversal reduce result is " + sum);
         System.out.printf("Traversal skipped %d reads out of %d total (%.2f%%)%n", nSkippedReads, nReads, (nSkippedReads * 100.0) / nReads);
-        System.out.printf("  -> %d unmapped reads%n", nUnmappedReads );
-        System.out.printf("  -> %d non-primary reads%n", nNotPrimary );
-        System.out.printf("  -> %d reads with bad alignments%n", nBadAlignments );
-        System.out.printf("  -> %d reads with indels%n", nSkippedIndels );
+        System.out.printf("  -> %d unmapped reads%n", nUnmappedReads);
+        System.out.printf("  -> %d non-primary reads%n", nNotPrimary);
+        System.out.printf("  -> %d reads with bad alignments%n", nBadAlignments);
+        System.out.printf("  -> %d reads with indels%n", nSkippedIndels);
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -348,25 +359,25 @@ public class TraversalEngine {
 
         Iterator<SAMRecord> samIterator;
         try {
-            samReadIter = loadSAMFile( readsFile, THREADED_IO );
+            samReadIter = loadSAMFile(readsFile, THREADED_IO);
         }
-        catch( IOException ex ) {
+        catch (IOException ex) {
             // TODO: IOException should be a checked exception in this case.
             throw new RuntimeIOException(ex);
         }
 
-        if ( SORT_ON_FLY )
+        if (SORT_ON_FLY)
             samReadIter = new SortSamIterator(samReadIter, MAX_ON_FLY_SORTS);
-        if ( beSafeP )
+        if (beSafeP)
             samReadIter = new VerifyingSamIterator(samReadIter);
-        
-        if ( THREADED_IO ) {
+
+        if (THREADED_IO) {
             System.out.printf("Enabling threaded I/O with buffer of %d reads%n", THREADED_IO_BUFFER_SIZE);
             samReadIter = new ThreadedIterator<SAMRecord>(samReadIter, THREADED_IO_BUFFER_SIZE);
         }
     }
 
-    protected Iterator<SAMRecord> loadSAMFile( final File samFile, final boolean threadedIO )
+    protected Iterator<SAMRecord> loadSAMFile(final File samFile, final boolean threadedIO)
             throws IOException {
         Iterator<SAMRecord> iterator = null;
 
@@ -377,19 +388,18 @@ public class TraversalEngine {
         System.err.println("Sort order is: " + header.getSortOrder());
 
         // If the file has an index, querying functions are available.  Use them if possible...
-        if(samReader.hasIndex()) {
-            iterator = new SamQueryIterator( samReader, locs );
-        }
-        else {
+        if (samReader.hasIndex()) {
+            iterator = new SamQueryIterator(samReader, locs);
+        } else {
             // Ugh.  Close and reopen the file so that the file progress decorator can be assigned to the input stream.
             samReader.close();
 
             final FileInputStream samFileStream = new FileInputStream(readsFile);
-            final InputStream bufferedStream= new BufferedInputStream(samFileStream);
+            final InputStream bufferedStream = new BufferedInputStream(samFileStream);
             samReader = new SAMFileReader(readsFile, true);
             samReader.setValidationStringency(strictness);
 
-            samReadingTracker = new FileProgressTracker<SAMRecord>( readsFile, samReader.iterator(), samFileStream.getChannel(), 1000 );
+            samReadingTracker = new FileProgressTracker<SAMRecord>(readsFile, samReader.iterator(), samFileStream.getChannel(), 1000);
             iterator = samReadingTracker;
         }
 
@@ -399,29 +409,29 @@ public class TraversalEngine {
 
     /**
      * Prepare the reference for stream processing
-     *
      */
     protected void initializeReference() {
-        if ( refFileName != null ) {
+        if (refFileName != null) {
             //this.refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFileName);
             this.refFile = new FastaSequenceFile2(refFileName);   // todo: replace when FastaSequenceFile2 is in picard
             this.refIter = new ReferenceIterator(this.refFile);
-            if ( ! Utils.setupRefContigOrdering(this.refFile) ) {
+            if (!Utils.setupRefContigOrdering(this.refFile)) {
                 // We couldn't process the reference contig ordering, fail since we need it
-                Utils.scareUser(String.format("We couldn't load the contig dictionary associated with %s.  At the current time we require this dictionary file to efficiently access the FASTA file.  In the near future this program will automatically construct the dictionary for you and save it down.", refFileName));
+                logger.fatal(String.format("We couldn't load the contig dictionary associated with %s.  At the current time we require this dictionary file to efficiently access the FASTA file.  In the near future this program will automatically construct the dictionary for you and save it down.", refFileName));
+                throw new RuntimeException("We couldn't load the contig dictionary associated with " + refFileName + ".  At the current time we require this dictionary file to efficiently access the FASTA file.  In the near future this program will automatically construct the dictionary for you and save it down.");
             }
-        }         
+        }
     }
 
     /**
      * Prepare the list of reference ordered data iterators for each of the rods
-     * 
+     *
      * @return A list of ROD iterators for getting data from each ROD
      */
     protected List<ReferenceOrderedData.RODIterator> initializeRODs() {
         // set up reference ordered data
         rodIters = new ArrayList<ReferenceOrderedData.RODIterator>();
-        for ( ReferenceOrderedData data : rods ) {
+        for (ReferenceOrderedData data : rods) {
             rodIters.add(data.iterator());
         }
         return rodIters;
@@ -450,13 +460,13 @@ public class TraversalEngine {
      * successive call moves you along the file, consuming all data before loc.
      *
      * @param rodIters Iterators to access the RODs
-     * @param loc The location to get the rods at
+     * @param loc      The location to get the rods at
      * @return A list of ReferenceOrderDatum at loc.  ROD without a datum at loc will be null in the list
      */
     protected List<ReferenceOrderedDatum> getReferenceOrderedDataAtLocus(List<ReferenceOrderedData.RODIterator> rodIters,
-                                                                        final GenomeLoc loc) {
+                                                                         final GenomeLoc loc) {
         List<ReferenceOrderedDatum> data = new ArrayList<ReferenceOrderedDatum>();
-        for ( ReferenceOrderedData.RODIterator iter : rodIters ) {
+        for (ReferenceOrderedData.RODIterator iter : rodIters) {
             data.add(iter.seekForward(loc));
         }
         return data;
@@ -473,49 +483,44 @@ public class TraversalEngine {
      * Class to filter out un-handle-able reads from the stream.  We currently are skipping
      * unmapped reads, non-primary reads, unaligned reads, and those with indels.  We should
      * really change this to handle indel containing reads.
-     *
      */
     class locusStreamFilterFunc implements SamRecordFilter {
         public boolean filterOut(SAMRecord rec) {
             boolean result = false;
             String why = "";
-            if ( rec.getReadUnmappedFlag() ) {
+            if (rec.getReadUnmappedFlag()) {
                 nUnmappedReads++;
                 result = true;
                 why = "Unmapped";
-            }
-            else if ( rec.getNotPrimaryAlignmentFlag() ) {
+            } else if (rec.getNotPrimaryAlignmentFlag()) {
                 nNotPrimary++;
                 result = true;
                 why = "Not Primary";
-            }
-            else if ( rec.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ) {
+            } else if (rec.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START) {
                 nBadAlignments++;
                 result = true;
                 why = "No alignment start";
-            }
-            else {
+            } else {
                 result = false;
             }
 
-            if ( result ) {
+            if (result) {
                 nSkippedReads++;
                 //System.out.printf("  [filter] %s => %b %s%n", rec.getReadName(), result, why);
-            }
-            else {
+            } else {
                 nReads++;
             }
-            return result;        
+            return result;
         }
     }
 
     public void verifySortOrder(final boolean requiresSortedOrder) {
-        if ( beSafeP && !SORT_ON_FLY && samReader.getFileHeader().getSortOrder() != SAMFileHeader.SortOrder.coordinate ) {
+        if (beSafeP && !SORT_ON_FLY && samReader.getFileHeader().getSortOrder() != SAMFileHeader.SortOrder.coordinate) {
             final String msg = "SAM file is not sorted in coordinate order (according to header) Walker type with given arguments requires a sorted file for correct processing";
-            if ( requiresSortedOrder || strictness == SAMFileReader.ValidationStringency.STRICT )
+            if (requiresSortedOrder || strictness == SAMFileReader.ValidationStringency.STRICT)
                 throw new RuntimeIOException(msg);
-            else if ( strictness == SAMFileReader.ValidationStringency.LENIENT )
-                Utils.warnUser(msg);
+            else if (strictness == SAMFileReader.ValidationStringency.LENIENT)
+                logger.warn(msg);
         }
     }
 
@@ -525,11 +530,11 @@ public class TraversalEngine {
      * interaction contract implied by the locus walker
      *
      * @param walker A locus walker object
-     * @param <M> MapType -- the result of calling map() on walker
-     * @param <T> ReduceType -- the result of calling reduce() on the walker
+     * @param <M>    MapType -- the result of calling map() on walker
+     * @param <T>    ReduceType -- the result of calling reduce() on the walker
      * @return 0 on success
      */
-    protected <M,T> int traverseByLoci(LocusWalker<M,T> walker) {
+    protected <M, T> int traverseByLoci(LocusWalker<M, T> walker) {
         verifySortOrder(true);
 
         // prepare the read filtering read iterator and provide it to a new locus iterator
@@ -547,8 +552,7 @@ public class TraversalEngine {
         int current_interval_index = -1;
         int current_interval_offset = -1;
 
-        while ( iter.hasNext() && ! done ) 
-        {
+        while (iter.hasNext() && !done) {
             this.nRecords++;
 
             // actually get the read and hand it to the walker
@@ -556,43 +560,47 @@ public class TraversalEngine {
 
             // Poor man's version of index LOL
             // HALP! I HAZ 10K INTERVALS 2 INDX
-            if ( ((this.locs != null) && (this.locs.length != 0)) && ((current_interval_index == -1) || (!locus.getLocation().overlapsP(this.locs[current_interval_index]))))
-            {
+            if (((this.locs != null) && (this.locs.length != 0)) && ((current_interval_index == -1) || (!locus.getLocation().overlapsP(this.locs[current_interval_index])))) {
                 // Advance to the next locus.
                 current_interval_index += 1;
                 current_interval_offset = 0;
 
-                if (this.locs.length <= current_interval_index) { done = true; break; }
+                if (this.locs.length <= current_interval_index) {
+                    done = true;
+                    break;
+                }
 
                 //System.out.format("DEBUG Seeking from %s to %s\n", locus.getLocation().toString(), this.locs[current_interval_index].toString());
 
-                while ((this.locs.length > current_interval_index) && (!locus.getLocation().overlapsP(this.locs[current_interval_index])) && (iter.hasNext()))
-                {
-                    switch (locus.getLocation().compareTo(this.locs[current_interval_index]))
-                    {
-                        case -1 : 
-                                    locus = iter.next();
-                                    //System.out.format("DEBUG at %s\n", locus.getLocation().toString());
-                                    break;
-                        case 0 :
-                                    break;
-                        case 1 :
-                                    current_interval_index += 1;
-                                    current_interval_offset = 0;
-                                    if (this.locs.length <= current_interval_index) { done = true; break; }
-                                    //System.out.format("DEBUG Giving up on old locus, Seeking from %s to %s\n", locus.getLocation().toString(), this.locs[current_interval_index].toString());
-                                    break;
+                while ((this.locs.length > current_interval_index) && (!locus.getLocation().overlapsP(this.locs[current_interval_index])) && (iter.hasNext())) {
+                    switch (locus.getLocation().compareTo(this.locs[current_interval_index])) {
+                        case -1:
+                            locus = iter.next();
+                            //System.out.format("DEBUG at %s\n", locus.getLocation().toString());
+                            break;
+                        case 0:
+                            break;
+                        case 1:
+                            current_interval_index += 1;
+                            current_interval_offset = 0;
+                            if (this.locs.length <= current_interval_index) {
+                                done = true;
+                                break;
+                            }
+                            //System.out.format("DEBUG Giving up on old locus, Seeking from %s to %s\n", locus.getLocation().toString(), this.locs[current_interval_index].toString());
+                            break;
                     }
                 }
-                if (this.locs.length <= current_interval_index) { done = true; break; }
+                if (this.locs.length <= current_interval_index) {
+                    done = true;
+                    break;
+                }
 
                 //System.out.format("DEBUG Got there.\n");
-            }
-            else
-            {
+            } else {
                 current_interval_offset += 1;
             }
-            
+
             {
                 //System.out.format("Working at %s\n", locus.getLocation().toString());
 
@@ -605,19 +613,19 @@ public class TraversalEngine {
                 // Iterate forward to get all reference ordered data covering this locus
                 final List<ReferenceOrderedDatum> rodData = getReferenceOrderedDataAtLocus(rodIters, locus.getLocation());
 
-                if ( DEBUGGING )
+                if (DEBUGGING)
                     System.out.printf("  Reference: %s:%d %c%n", refSite.getCurrentContig().getName(), refSite.getPosition(), refBase);
 
                 //
                 // Execute our contract with the walker.  Call filter, map, and reduce
                 //
                 final boolean keepMeP = walker.filter(rodData, refBase, locus);
-                if ( keepMeP ) {
+                if (keepMeP) {
                     M x = walker.map(rodData, refBase, locus);
                     sum = walker.reduce(x, sum);
                 }
 
-                if ( this.maxReads > 0 && this.nRecords > this.maxReads ) {
+                if (this.maxReads > 0 && this.nRecords > this.maxReads) {
                     System.out.println("Maximum number of reads encountered, terminating traversal " + this.nRecords);
                     done = true;
                 }
@@ -626,7 +634,7 @@ public class TraversalEngine {
             }
 
             printProgress("loci", locus.getLocation());
-            if ( pastFinalLocation(locus.getLocation()) )
+            if (pastFinalLocation(locus.getLocation()))
                 done = true;
         }
 
@@ -639,20 +647,21 @@ public class TraversalEngine {
      * Traverse by read -- the key driver of linearly ordered traversal of reads.  Provides a single read to
      * the walker object, in coordinate order.  Supports all of the
      * interaction contract implied by the read walker
-     *                                  sor
+     * sor
+     *
      * @param walker A read walker object
-     * @param <M> MapType -- the result of calling map() on walker
-     * @param <T> ReduceType -- the result of calling reduce() on the walker
+     * @param <M>    MapType -- the result of calling map() on walker
+     * @param <R>    ReduceType -- the result of calling reduce() on the walker
      * @return 0 on success
      */
-    protected <M,R> int traverseByRead(ReadWalker<M,R> walker) {
-        if ( refFileName == null && ! walker.requiresOrderedReads() && verifyingSamReadIter != null ) {
+    protected <M, R> int traverseByRead(ReadWalker<M, R> walker) {
+        if (refFileName == null && !walker.requiresOrderedReads() && verifyingSamReadIter != null) {
             System.out.println("STATUS: No reference file provided and unordered reads are tolerated, enabling out of order read processing.");
-            if ( verifyingSamReadIter != null )
+            if (verifyingSamReadIter != null)
                 verifyingSamReadIter.setCheckOrderP(false);
         }
 
-        verifySortOrder( refFileName != null || walker.requiresOrderedReads());
+        verifySortOrder(refFileName != null || walker.requiresOrderedReads());
 
         // Initialize the walker
         walker.initialize();
@@ -662,7 +671,7 @@ public class TraversalEngine {
         List<Integer> offsets = Arrays.asList(0);   // Offset of a single read is always 0
 
         boolean done = false;
-        while ( samReadIter.hasNext() && ! done ) {
+        while (samReadIter.hasNext() && !done) {
             this.nRecords++;
 
             // get the next read
@@ -672,33 +681,33 @@ public class TraversalEngine {
 
             // Jump forward in the reference to this locus location
             LocusContext locus = new LocusContext(loc, reads, offsets);
-            if ( ! loc.isUnmapped() && refIter != null ) {
+            if (!loc.isUnmapped() && refIter != null) {
                 final ReferenceIterator refSite = refIter.seekForward(loc);
                 locus.setReferenceContig(refSite.getCurrentContig());
             }
 
-            if ( inLocations(loc) ) {
+            if (inLocations(loc)) {
 
                 //
                 // execute the walker contact
                 //
                 final boolean keepMeP = walker.filter(locus, read);
-                if ( keepMeP ) {
+                if (keepMeP) {
                     M x = walker.map(locus, read);
                     sum = walker.reduce(x, sum);
                 }
 
-                if ( this.maxReads > 0 && this.nRecords > this.maxReads ) {
+                if (this.maxReads > 0 && this.nRecords > this.maxReads) {
                     System.out.println("Maximum number of reads encountered, terminating traversal " + this.nRecords);
                     done = true;
                 }
             }
             printProgress("reads", loc);
 
-            if ( pastFinalLocation(loc) )
+            if (pastFinalLocation(loc))
                 done = true;
             //System.out.printf("Done? %b%n", done);
-         }
+        }
 
         printOnTraversalDone("reads", sum);
         walker.onTraversalDone();
