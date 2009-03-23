@@ -89,7 +89,7 @@ public class TraversalEngine {
     /**
      * our log, which we want to capture anything from this class
      */
-    private static Logger logger = Logger.getLogger(GenomeAnalysisTK.class);
+    private static Logger logger = Logger.getLogger(TraversalEngine.class);
 
 
     // Locations we are going to process during the traversal
