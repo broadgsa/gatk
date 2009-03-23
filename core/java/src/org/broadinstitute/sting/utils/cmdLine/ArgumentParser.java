@@ -268,9 +268,13 @@ public class ArgumentParser {
                     }
                 }
             }
+        }catch (UnrecognizedOptionException e) {
+            // we don't care about unknown exceptions right now
+            logger.warn(e.getMessage());
         } catch (ParseException e) {
             // we didn't get all the required arguments,
             // print out the help
+            e.printStackTrace();
             this.printHelp();
             System.exit(1);
         }
@@ -299,17 +303,17 @@ public class ArgumentParser {
                 ctor = f.getType().getConstructor(String.class);
                 return ctor.newInstance(str);
             } catch (NoSuchMethodException e) {
-                logger.fatal("constructFromString: cannot convert field " + f.toString());
-                throw new RuntimeException("constructFromString: Failed conversion " + e.getMessage());
+                logger.fatal("constructFromString:NoSuchMethodException: cannot convert field " + f.toString());
+                throw new RuntimeException("constructFromString:NoSuchMethodException: Failed conversion " + e.getMessage());
             } catch (IllegalAccessException e) {
-                logger.fatal("constructFromString: cannot convert field " + f.toString());
-                throw new RuntimeException("constructFromString: Failed conversion " + e.getMessage());
+                logger.fatal("constructFromString:IllegalAccessException: cannot convert field " + f.toString());
+                throw new RuntimeException("constructFromString:IllegalAccessException: Failed conversion " + e.getMessage());
             } catch (InvocationTargetException e) {
-                logger.fatal("constructFromString: cannot convert field " + f.toString());
-                throw new RuntimeException("constructFromString: Failed conversion " + e.getMessage());
+                logger.fatal("constructFromString:InvocationTargetException: cannot convert field " + f.toString());
+                throw new RuntimeException("constructFromString:InvocationTargetException: Failed conversion " + e.getMessage());
             } catch (InstantiationException e) {
-                logger.fatal("constructFromString: cannot convert field " + f.toString());
-                throw new RuntimeException("constructFromString: Failed conversion " + e.getMessage());
+                logger.fatal("constructFromString:InstantiationException: cannot convert field " + f.toString());
+                throw new RuntimeException("constructFromString:InstantiationException: Failed conversion " + e.getMessage());
             }
 
         }
