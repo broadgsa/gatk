@@ -15,21 +15,29 @@ import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
 
 public class FourBaseCaller {
-    public static void main(String[] args) {
+    public static void main(String[] argv) {
         // Parse args
-        File firecrestDirectory = new File(args[0]);
-        int lane = Integer.valueOf(args[1]);
-        String icrefpath = args[2];
+        File FIRECREST_DIR = new File(argv[0]);
+        int LANE = Integer.valueOf(argv[1]);
+        File SAM_OUT = new File(argv[2]);
+        int CYCLE_START = Integer.valueOf(argv[3]);
+        int CYCLE_STOP = Integer.valueOf(argv[4]);
 
-        // Load ic reference
-        ManyNucleotideSequences controls = new ManyNucleotideSequences(icrefpath);
-        controls.reverseComplement();
+        String IC_REF_PATH = "/seq/references/Synthetic_internal_controls_set1/v0/Synthetic_internal_controls_set1.fasta";
+
+        // Load ic reference in an ugly way
+        ManyNucleotideSequences fw_controls = new ManyNucleotideSequences(IC_REF_PATH);
+        ManyNucleotideSequences rc_controls = new ManyNucleotideSequences(IC_REF_PATH);
+        rc_controls.reverseComplement();
+        ManyNucleotideSequences controls = new ManyNucleotideSequences();
+        controls.addAll(fw_controls);
+        controls.addAll(rc_controls);
 
         // Loop through firecrest data, find ICs, and compute signal means
         Vector<FourIntensity[]> recoveredICs = new Vector<FourIntensity[]>();
         Vector<Integer> icids = new Vector<Integer>();
 
-        FirecrestFileParser ffp = new FirecrestFileParser(firecrestDirectory, lane);
+        FirecrestFileParser ffp = new FirecrestFileParser(FIRECREST_DIR, LANE, CYCLE_START, CYCLE_STOP);
 
         NucleotideChannelMeans[] cmeans = new NucleotideChannelMeans[controls.get(0).size()];
         for (int i = 0; i < cmeans.length; i++) {
@@ -37,9 +45,9 @@ public class FourBaseCaller {
         }
 
         int numReads = 0;
-        while (ffp.hasNext() && numReads < 100000) {
-            if (numReads % 10000 == 0) {
-                System.out.println("Processed " + numReads + " reads.");
+        while (ffp.hasNext()) {
+            if (numReads % 1000000 == 0) {
+                System.err.println("Processed " + numReads + " reads for parameters.");
             }
             FourIntensity[] intensities = ffp.next().getIntensities();
             NucleotideSequence rawread = toNucleotideSequence(intensities);
@@ -59,6 +67,8 @@ public class FourBaseCaller {
 
                         cmeans[cycle].add(nuc, sig);
                     }
+
+                    System.err.print("Found " + icids.size() + " ICs in " + numReads + " reads " + (((double) icids.size())/((double) numReads)) + ".\r");
 
                     break;
                 }
@@ -87,6 +97,15 @@ public class FourBaseCaller {
             }
         }
 
+        System.out.println("Found " + recoveredICs.size() + " in " + numReads + " reads.");
+
+        // Extend IC solutions to end of read length (if ICs are shorter than read)
+        System.err.println("Extending cycle " + (controls.get(0).size() - 1) + " parameters from cycle " + controls.get(0).size() + " to cycle " + recoveredICs.get(0).length);
+        for (int cycle = controls.get(0).size(); cycle < recoveredICs.get(0).length; cycle++) {
+            cmeans[cycle] = cmeans[controls.get(0).size() - 1];
+            ccov[cycle] = ccov[controls.get(0).size() - 1];
+        }
+
         // Now compute probabilities for the bases
         Algebra alg = new Algebra();
 
@@ -94,14 +113,17 @@ public class FourBaseCaller {
             ccov[cycle].invert();
         }
 
-        FirecrestFileParser ffp2 = new FirecrestFileParser(firecrestDirectory, lane);
-
-        numReads = 0;
+        FirecrestFileParser ffp2 = new FirecrestFileParser(FIRECREST_DIR, LANE, CYCLE_START, CYCLE_STOP);
 
         SAMFileHeader sfh = new SAMFileHeader();
-        SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, new File("/wga/scr1/GSA/kiran/basecalling/simulation/test.sam"));
+        SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, SAM_OUT);
 
-        while (ffp2.hasNext() && numReads < 100000) {
+        numReads = 0;
+        while (ffp2.hasNext()) {
+            if (numReads % 1000000 == 0) {
+                System.err.println("Basecalled " + numReads + " reads.");
+            }
+
             FourIntensity[] intensities = ffp2.next().getIntensities();
 
             byte[] asciiseq = new byte[intensities.length];
@@ -157,8 +179,6 @@ public class FourBaseCaller {
                 asciiseq[cycle] = (byte) call1.asChar();
                 bestqual[cycle] = toPhredScore(prob1);
                 nextbestqual[cycle] = toCompressedQuality(call2, prob2);
-
-                //System.out.print(call.asChar());
             }
 
             SAMRecord sr = new SAMRecord(sfh);
@@ -173,10 +193,12 @@ public class FourBaseCaller {
         }
 
         sfw.close();
+
+        System.out.println("Done.");
     }
 
     private static byte toPhredScore(double prob) {
-        byte qual = (prob - 1.0 < 0.00001) ? 40 : (byte) (-10*Math.log10(1.0 - prob));
+        byte qual = (1.0 - prob < 0.00001) ? 40 : (byte) (-10*Math.log10(1.0 - prob));
         return (qual > 40) ? 40 : qual;
     }
 

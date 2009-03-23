@@ -27,6 +27,8 @@ public class FirecrestFileParser extends AbstractFirecrestFileParser {
     private BasicTextFileParser parser;
     private final FormatUtil formatter = new FormatUtil();
     private final File[] intensityFiles;
+    private int cycle_start = -1;
+    private int cycle_stop = -1;
 
     /**
      * Constructor
@@ -37,6 +39,13 @@ public class FirecrestFileParser extends AbstractFirecrestFileParser {
     public FirecrestFileParser(final File firecrestDirectory, final int lane) {
         super(firecrestDirectory, lane);
         intensityFiles = getFilesMatchingRegexp("s_" + lane + "_\\d{4}_int.txt(.gz)?");
+    }
+
+    public FirecrestFileParser(final File firecrestDirectory, final int lane, final int cycle_start, final int cycle_stop) {
+        super(firecrestDirectory, lane);
+        intensityFiles = getFilesMatchingRegexp("s_" + lane + "_\\d{4}_int.txt(.gz)?");
+        this.cycle_start = cycle_start;
+        this.cycle_stop = cycle_stop;
     }
 
     @Override
@@ -90,8 +99,12 @@ public class FirecrestFileParser extends AbstractFirecrestFileParser {
             intensities[cycle] = new FourIntensity(fIntensities);
         }
 
+        FourIntensity[] intensities2 = new FourIntensity[(cycle_start > 0 && cycle_stop > 0 && cycle_stop > cycle_start) ? numIntensities : (cycle_stop - cycle_start)];
+        for (int cycle = 0, offset = (cycle_start >= 0 ? cycle_start : 0); cycle < intensities2.length; cycle++) {
+            intensities2[cycle] = intensities[offset + cycle];
+        }
 
-        return new FirecrestReadData(lane, tile, x, y, intensities);
+        return new FirecrestReadData(lane, tile, x, y, intensities2);
     }
 
     /**
