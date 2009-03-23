@@ -146,7 +146,7 @@ public class ConsensusSequence {
                 base = BASES[z];
             }
         }
-        return base;
+        return new Pair<Character,Integer>(base,bmax);
     }
 
 
