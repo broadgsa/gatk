@@ -2,6 +2,7 @@ package org.broadinstitute.sting.playground.indels;
 
 import java.util.*;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.Pair;
 
 
 public class MultipleAlignment implements Iterable<Integer>  {
@@ -12,12 +13,14 @@ public class MultipleAlignment implements Iterable<Integer>  {
 	private List<Integer>  alignment_offsets; // offset of seqs[i] w/respect to seqs[0] (i.e. in order the seqs were added)
 	private int best_mm; // mismatch count
 	private int next_mm; // next-best mismatch count
-		
+	private ConsensusSequence consensus;
+
 	public MultipleAlignment() {
 		index = new HashMap<Integer,Integer>();
 		seqs = new ArrayList<String>();
 		alignment_offsets = new ArrayList<Integer>();
 		ext_ids = new ArrayList<Integer>();
+        consensus = new ConsensusSequence(); // we use reference position 0, e.g. we hook onto the first read in the pile
 	}
 
 	public void clear() {
@@ -31,37 +34,46 @@ public class MultipleAlignment implements Iterable<Integer>  {
 	 * 
 	 * @param seq sequence to add
 	 * @param i id of the sequence (can be use later to query the pile)
+     * @see #add(String,int,int)
 	 */
 	public void add( String seq, int i ) throws IllegalStateException {
 		if ( size() != 0 ) throw new IllegalStateException("Single sequence can be added to an empty pile only");
-		index.put(i,0);
-		ext_ids.add(i);
-		seqs.add(seq);
-		alignment_offsets.add(0);
+        add(seq,i,0);
 	}
 	
+    /** Adds  single sequence with id set to i and places it at the specified offset wrt the first sequence
+     * in this pile (i.e. wrt reference position 0).
+     *
+     * @param seq sequence to add
+     * @param i id of the sequence (can be use later to query the pile)
+     * @see #add(String,int)
+     */
+    public void add( String seq, int i, int offset ) throws IllegalStateException {
+        index.put(i,index.size());
+        ext_ids.add(i);
+        seqs.add(seq);
+        alignment_offsets.add(offset);
+        consensus.addSequence(seq,offset);
+    }
+
 	public void add( PairwiseAlignment a) {
 		if ( a.id1() == -1 || a.id2() == -1 ) throw new IllegalArgumentException("Attempt to add pairwise alignemnt with sequence ids not properly set");
 		add(a,a.id1(),a.id2());
 	}
 	
 	/** Adds pair of aligned sequences to the pile, with the external ids of the first and second sequences being i and j,
-	 * respectively. Pairwise alignment can be always added to an empty pile. If the pile is non-empty and either both or 
-	 * none of the specified ids are already in the pile, an IllegalStateException will be thrown
+	 * respectively. Pairwise alignment can be always added to an empty pile. If the pile is non-empty, exactly
+     * one of the sequences held by the pair-wise alignment should be already in the pile; this sequence (and the
+     * pairwise alignment itself) will be used to stitch the other sequence to the pile. If either both or
+	 * none of the specified ids are already in the pile, an IllegalStateException will be thrown.
 	 * @param a
 	 * @param i
 	 * @param j
 	 */
 	public void add( PairwiseAlignment a, int i, int j ) throws IllegalStateException {
 		if ( seqs.size() == 0 ) {
-			index.put(i,0);
-			ext_ids.add(i);
-			seqs.add(a.getSequence1());
-			index.put(j,1);
-			ext_ids.add(j);
-			seqs.add(a.getSequence2());
-			alignment_offsets.add(0);
-			alignment_offsets.add(a.getBestOffset2wrt1());
+            add(a.getSequence1(),i,0);
+            add(a.getSequence2(),j,a.getBestOffset2wrt1());
 			return;
 		}
 		
@@ -76,22 +88,49 @@ public class MultipleAlignment implements Iterable<Integer>  {
 			throw new IllegalStateException("Attempt to add pairwise alignment for two sequences none of which is already in the pile");
 		}
 		
-		if ( second == null ) {
-			index.put(j,seqs.size());
-			seqs.add(a.getSequence2());
-            ext_ids.add(j);
-			alignment_offsets.add( a.getBestOffset2wrt1() + alignment_offsets.get( first ));
-		} else {
-			// first = null
-			index.put(i,seqs.size());
-			seqs.add(a.getSequence1());
-            ext_ids.add(i);
-			alignment_offsets.add( -a.getBestOffset2wrt1() + alignment_offsets.get( second ));
-		}
+		if ( second == null ) add(a.getSequence2(),j, a.getBestOffset2wrt1() + alignment_offsets.get( first ) );
+		else add(a.getSequence1(),i, -a.getBestOffset2wrt1() + alignment_offsets.get( second ) );
 	}
 
+    /** Adds another pile of aligned sequences to this pile, stitching them together using specified pairwise alignment
+     * p of the sequences with external ids i and j. One of the indices i, j must be in this pile, and the other in
+     * the pile being added, otherwise an IllegalArgumentException is thrown. Sequence id's i and j MUST be the ids
+     * of the first and second sequences in the pairwise alignment, in that order. Specified ids override
+     * ids, if any, set for the sequences in the pairwise alignment; it is not checked whether the specified and
+     * stored ids match. The piles can not overlap.
+     */
+    public void add(MultipleAlignment a, PairwiseAlignment p, int i, int j) {
+        int off2; // offset of the first sequence in pile 'a' wrt the first sequence in this pile
+        if ( this.contains(i) ) {
+            if ( ! a.contains(j)) throw new IllegalArgumentException("Sequence is not in the pile");
+            off2 = getOffsetById(i)+p.getBestOffset2wrt1()-a.getOffsetById(j);
+        } else {
+            if ( this.contains(j)) {
+                if ( ! a.contains(i)) throw new IllegalArgumentException("Sequence is not in the pile");
+                off2 = getOffsetById(j)-p.getBestOffset2wrt1()-a.getOffsetById(i);
+            } else throw new IllegalArgumentException("Sequence is not in the pile");
+        }
+        // stitch sequences from a into this pile:
+        for ( Integer id : a ) {
+            if ( this.contains(id) ) throw new IllegalArgumentException("Attempt to add a pile that shares sequences with the current one");
+            add(a.getSequenceById(id),id,off2+a.getOffsetById(id));
+        }
+    }
 
-	/** Returns sequence associated with the specified external id, or null if sequence with this external id is not found in the pile
+
+    /** Adds another pile of aligned sequences (a) to this pile, stitching them together using specified
+     * pairwise alignment p. Sequence ids must be set in the pairwise alignment, and one of those ids
+     * must be in this pile, and the other in the pile 'a' being added, otherwise an IllegalArgumentException
+     * is thrown. If pairwise alignment does not have sequence ids set, IllegalArgumentException is thrown.
+     * The piles can not overlap.
+     */
+    public void add(MultipleAlignment a, PairwiseAlignment p) {
+        if ( p.id1() == -1 || p.id2() == -1 ) throw new IllegalArgumentException("Attempt to add MSA based on pairwise alignemnt with sequence ids not properly set");
+        add(a,p,p.id1(),p.id2());
+    }
+
+	/** Returns sequence associated with the specified external id, or null if sequence with this external id is
+     * not found in the pile
 	 * 
 	 * @param id query id
 	 * @return sequence for specified id or null
@@ -101,49 +140,21 @@ public class MultipleAlignment implements Iterable<Integer>  {
 		return seqs.get(index.get(id));
 	}
 	
-	/** Returns offset relative to the first sequence in the pile for sequence associated with the specified external id
+	/** Returns offset relative to the first sequence in the pile for sequence associated with the specified
+     * external id. If sequence with specified id is not found in the pile, RuntimeException is thrown.
 	 * 
 	 * @param id query id
 	 * @return offset for sequence with specified id
 	 */
 	public int getOffsetById(int id) {
-		//TODO: do something meaningful when id is not in the pile (exception?)
-		if ( ! contains(id)) return 0;
+		if ( ! contains(id) ) throw new RuntimeException("Specified id is not in the pile");
 		return alignment_offsets.get(index.get(id));
 	}
 
-	/** Adds pile of aligned sequences to this pile, stitching them together using specified pairwise alignment
-	 * p of the sequences with external ids i and j. One of the indices i, j must be in this pile, and the other in the pile being added,
-	 * otherwise an IllegalArgumentException is thrown. The piles can not overlap.
-	 */
-	public void add(MultipleAlignment a, PairwiseAlignment p, int i, int j) {
-		int off2; // offset of the first sequence in pile 'a' wrt the first sequence in this pile
-		if ( this.contains(i) ) {
-			if ( ! a.contains(j)) throw new IllegalArgumentException("Sequence is not in the pile");
-			off2 = getOffsetById(i)+p.getBestOffset2wrt1()-a.getOffsetById(j);
-		} else {
-			if ( this.contains(j)) {
-				if ( ! a.contains(i)) throw new IllegalArgumentException("Sequence is not in the pile");
-				off2 = getOffsetById(j)-p.getBestOffset2wrt1()-a.getOffsetById(i);
-			} else throw new IllegalArgumentException("Sequence is not in the pile");
-		}
-		// stitch sequences from a into this pile:
-		for ( Integer id : a ) {
-			if ( this.contains(id) ) throw new IllegalArgumentException("Attempt to add a pile that shares sequences with the current one");
-			index.put(id,seqs.size());
-			ext_ids.add(id);
-			seqs.add(a.getSequenceById(id));
-			alignment_offsets.add(off2+a.getOffsetById(id));
-		}
-	}
 
 
-    public void add(MultipleAlignment a, PairwiseAlignment p) {
-        if ( p.id1() == -1 || p.id2() == -1 ) throw new IllegalArgumentException("Attempt to add MSA based on pairwise alignemnt with sequence ids not properly set");
-        add(a,p,p.id1(),p.id2());        
-    }
 
-	/** Returns true if the alignment already contains sequence with the specified id 
+	/** Returns true if the alignment already contains sequence with the specified id.
 	 * 
 	 * @param id
 	 * @return
@@ -151,7 +162,15 @@ public class MultipleAlignment implements Iterable<Integer>  {
 	public boolean contains(int id) {
 		return index.containsKey(id);
 	}
-	
+
+    /** Returns number of mismatches between sequences i and j (external ids) in the currently held multiple alignment.
+     * Will return 0 if sequences do not overlap. Will throw RuntimeException if any of the specified ids is not
+     * found in the current pile. 
+     * @param i id of the first sequence
+     * @param j id of the second sequence
+     * @return mismatch count
+     *
+     * */
 	public int countMismatches(int i, int j) {
 		return PairwiseAlignment.countMismatches(getSequenceById(i), getSequenceById(j), getOffsetById(j)-getOffsetById(i));
 	}
@@ -216,58 +235,63 @@ public class MultipleAlignment implements Iterable<Integer>  {
 		
 		if ( seqs.size() == 0 ) return b.toString();
 		
-		int skip_first = 0;
-        int msa_length = 0;
-		for ( int i = 0 ; i < seqs.size() ; i++ ) {
-			if ( -alignment_offsets.get(i) > skip_first ) skip_first = -alignment_offsets.get(i);
-            msa_length = Math.max( alignment_offsets.get(i)+seqs.get(i).length() , msa_length );
-		}
+//		int first_offset = 0; // offset of the first sequence wrt the start of the MSA
+        final int first_offset = -consensus.getStartOffset();
+//        int msa_length = 0;
+//		for ( int i = 0 ; i < seqs.size() ; i++ ) {
+//			if ( -alignment_offsets.get(i) > first_offset ) first_offset = -alignment_offsets.get(i);
+//            msa_length = Math.max( alignment_offsets.get(i)+seqs.get(i).length() , msa_length );
+//		}
 
-        msa_length += skip_first;
-        int [] cov = new int[4];
-        char[] bases = { 'A' , 'C', 'G', 'T' };
-        char[][] consensus = new char[4][msa_length];
+//        msa_length += first_offset;
+        final int msa_length = consensus.length();
+//        int [] cov = new int[4];
+//        char[] bases = { 'A' , 'C', 'G', 'T' };
+        char[][] consensusString = new char[4][msa_length];
 
-        for ( int i = 0 ; i < msa_length ; i++ ) {
-            cov[0] = cov[1] = cov[2] = cov[3] = 0;
-            for ( int j = 0 ; j < seqs.size(); j++ ) {
-                // offset of the sequence j wrt start of the msa region
-                int seq_offset = skip_first + alignment_offsets.get(j);
-                if ( i < seq_offset || i >= seq_offset + seqs.get(j).length() ) continue; // sequence j has no bases at position i
-                int base = -1;
-                switch( Character.toUpperCase(seqs.get(j).charAt(i-seq_offset)) ) {
-                    case 'A': base = 0; break;
-                    case 'C': base = 1 ; break;
-                    case 'G': base = 2 ; break;
-                    case 'T': base = 3 ; break;
-                }
-                if ( base >= 0 ) cov[base]++;
-            }
-            int total_cov = cov[0] + cov[1] + cov[2] + cov[3];
-            int bmax = 0;
-            int mm = 0;
-            consensus[3][i] = 'N';
-            for ( int z = 0; z < 4 ; z++ ) {
-                if ( cov[z] > bmax ) {
-                    bmax = cov[z];
-                    consensus[3][i] = bases[z];
-                    mm = total_cov - bmax;
-                }
-            }
+        for ( int i = -first_offset ; i < msa_length - first_offset ; i++ ) {
+//            cov[0] = cov[1] = cov[2] = cov[3] = 0;
+//            for ( int j = 0 ; j < seqs.size(); j++ ) {
+//                // offset of the sequence j wrt start of the msa region
+//                int seq_offset = first_offset + alignment_offsets.get(j);
+//                if ( i < seq_offset || i >= seq_offset + seqs.get(j).length() ) continue; // sequence j has no bases at position i
+//                int base = -1;
+//                switch( Character.toUpperCase(seqs.get(j).charAt(i-seq_offset)) ) {
+//                   case 'A': base = 0; break;
+//                    case 'C': base = 1 ; break;
+//                    case 'G': base = 2 ; break;
+//                    case 'T': base = 3 ; break;
+//                }
+//                if ( base >= 0 ) cov[base]++;
+//            }
+//            int total_cov = cov[0] + cov[1] + cov[2] + cov[3];
+//            int bmax = 0;
+//            int mm = 0;
+
+            Pair<Character,Integer> base = consensus.baseWithCountAt(i-first_offset);
+            consensusString[3][i] = base.first;
+//            for ( int z = 0; z < 4 ; z++ ) {
+//                if ( cov[z] > bmax ) {
+//                    bmax = cov[z];
+//                    consensus[3][i] = bases[z];
+//                    mm = total_cov - bmax;
+//                }
+//            }
+            int mm = consensus.coverageAt(i) - base.second;
             if ( mm > 0 ) {
-                consensus[2][i] = '*';
-                if ( mm > 9 ) consensus[0][i] = Character.forDigit(mm/10,10);
-                else consensus[0][i] = ' ';
-                consensus[1][i] = Character.forDigit(mm%10,10);
+                consensusString[2][i] = '*';
+                if ( mm > 9 ) consensusString[0][i] = Character.forDigit(mm/10,10);
+                else consensusString[0][i] = ' ';
+                consensusString[1][i] = Character.forDigit(mm%10,10);
             } else {
-                consensus[0][i] = consensus[1][i] = consensus[2][i] = ' ';
+                consensusString[0][i] = consensusString[1][i] = consensusString[2][i] = ' ';
             }
         }
 
-        b.append("    "); b.append(consensus[0]); b.append('\n');
-        b.append("    "); b.append(consensus[1]); b.append('\n');
-        b.append("    "); b.append(consensus[2]); b.append('\n');
-        b.append("    "); b.append(consensus[3]); b.append('\n');
+        b.append("    "); b.append(consensusString[0]); b.append('\n');
+        b.append("    "); b.append(consensusString[1]); b.append('\n');
+        b.append("    "); b.append(consensusString[2]); b.append('\n');
+        b.append("    "); b.append(consensusString[3]); b.append('\n');
 
         Integer[] perm = null;
         if ( inorder ) perm = Utils.SortPermutation(alignment_offsets);
@@ -275,7 +299,7 @@ public class MultipleAlignment implements Iterable<Integer>  {
 		for ( int i = 0 ; i < seqs.size() ; i++ ) {
             int index = (inorder ? perm[i] : i);
 			frmt.format("%3d:", ext_ids.get(index));
-			skipN(alignment_offsets.get(index)+skip_first,b);
+			skipN(alignment_offsets.get(index)+ first_offset,b);
 			b.append(seqs.get(index));
 			b.append('\n');
 		}

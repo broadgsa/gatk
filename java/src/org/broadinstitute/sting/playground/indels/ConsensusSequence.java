@@ -51,7 +51,9 @@ public class ConsensusSequence {
         // count bases from the sequence into the coverage
         int posOnConsensus = offset - startOffset;
         for ( int i = 0 ; i < seq.length() ; i++, posOnConsensus++ ) {
-            coverage.get(posOnConsensus)[baseToInt(seq.charAt(i))]++;
+            char base = Character.toUpperCase(seq.charAt(i));
+            if ( base == 'N') continue;
+            coverage.get(posOnConsensus)[baseToInt(base)]++;
         }
     }
 
@@ -73,9 +75,23 @@ public class ConsensusSequence {
         // subtract sequence bases from the coverage
         int posOnConsensus = offset - startOffset;
         for ( int i = 0 ; i < seq.length() ; i++, posOnConsensus++ ) {
-            coverage.get(posOnConsensus)[ baseToInt(seq.charAt(i)) ]--;
+            char base = Character.toUpperCase(seq.charAt(i));
+            if ( base == 'N') continue;
+            coverage.get(posOnConsensus)[ baseToInt(base) ]--;
         }
     }
+
+    /** Returns offset of the start of consensus sequence with respect to the reference position the
+     * consensus is pinned to.
+     * @return
+     */
+    public int getStartOffset() { return startOffset; }
+
+    /** Returns the length (number of bases) of the consensus sequence.
+     *
+     * @return
+     */
+    public int length() { return coverage.size(); }
 
     /** Returns the "distance" (score measuring the agreement) from the currently held consensus sequence to
      * the specified sequence <code>seq</code> starting at position <code>offset</code> wrt consenus reference position.
@@ -97,7 +113,7 @@ public class ConsensusSequence {
         int stop = Math.min(offset+seq.length(), startOffset+coverage.size() ) - offset;
 
         for (  ; i < stop ; i++, posOnConsensus++ ) {
-            int base = baseToInt(seq.charAt(posOnConsensus));
+            int base = baseToInt(Character.toUpperCase(seq.charAt(posOnConsensus)));
             int [] cov = coverage.get(posOnConsensus);
             int totalcov = cov[0]+cov[1]+cov[2]+cov[3];
 
@@ -109,7 +125,8 @@ public class ConsensusSequence {
      * Specified offset must be within the span of currently held consensus sequence. Consensus base is the
      * one with the maximum count of observations. If two different nucleotides were observed exactly the
      * same number of times (and that number is greater than the number of observations for othe nucleotides),
-     * the "lesser" one, (order being ACGT) will be returned.
+     * the "lesser" one, (order being ACGT) will be returned. If coverage at specified position is zero, 'N' will
+     * be returned.
      * @param offset
      * @return
      */
@@ -149,6 +166,29 @@ public class ConsensusSequence {
         return new Pair<Character,Integer>(base,bmax);
     }
 
+    /** Returns total coverage (all observations regardless of what base what observed) at position
+     * specified by offset with respect to the conensus' reference position. offset does not have to be within
+     * the bounds of the currently kept consensus sequence, if it falls outside, a 0 will be silently returned.
+     * @param offset
+     * @return
+     */
+    public int coverageAt(int offset) {
+        if ( offset < startOffset || offset >= startOffset + coverage.size() ) return 0;
+        int [] cov = coverage.get(offset+(int)referencePos);
+        return cov[0]+cov[1]+cov[2]+cov[3];
+    }
+
+    /** Returns consesus sequence as a astring of bases (ACGTN); N will be returned for positions with zero
+     * coverage.
+     * @return
+     */
+    public String getSequence() {
+        char [] b = new char[coverage.size()];
+        for ( int i = 0 ; i < b.length ; i++ ) {
+            b[i] = baseAt(i+startOffset);
+        }
+        return new String(b);
+    }
 
     private List<int[]> instantiateCoverageList(int n) {
         List< int[] > subseq = new ArrayList<int[] >(n);
@@ -163,7 +203,8 @@ public class ConsensusSequence {
             case 'C': base = 1; break;
             case 'G': base = 2; break;
             case 'T': base = 3; break;
-            default : throw new IllegalArgumentException("Sequence can contain only ACGT symbols");
+            case 'N': base = -1; break;
+            default : throw new IllegalArgumentException("Sequence can contain only ACGTN symbols");
         }
         return base;
     }

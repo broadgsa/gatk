@@ -36,7 +36,7 @@ public class IndelInspector extends CommandLineProgram {
     
 	protected int doWork() {
 
-        System.out.println("I am at version 0.2");
+        System.out.println("I am at version 0.3");
         GenomeLoc location = null;
         if ( GENOME_LOCATION != null ) {
             location = GenomeLoc.parseGenomeLoc(GENOME_LOCATION);

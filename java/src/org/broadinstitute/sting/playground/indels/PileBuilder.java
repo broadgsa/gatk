@@ -103,6 +103,9 @@ public class PileBuilder implements RecordPileReceiver {
            System.out.println("\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++") ;
 
            List<MultipleAlignment> piles = doMultipleAlignment2(seqs);
+
+            
+
 //           System.out.print("Distance between final piles: "+distance(alignments1, alignments2));
 //           System.out.print("; diameter of PILE1: "+ diameter(alignments1));
 //           System.out.println("; diameter of PILE2: "+ diameter(alignments2));
