@@ -149,8 +149,8 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         }
         engine.setSafetyChecking(!UNSAFE);
         engine.setSortOnFly(ENABLED_SORT_ON_FLY);
-
-        engine.initialize(ENABLED_THREADED_IO);
+        engine.setThreadedIO(ENABLED_THREADED_IO);
+        engine.initialize();
         //engine.testReference();
 
         //LocusWalker<Integer,Integer> walker = new PileupWalker();
