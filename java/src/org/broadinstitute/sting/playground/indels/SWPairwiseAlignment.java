@@ -147,7 +147,7 @@ public class SWPairwiseAlignment {
         lce.add(e);
         Collections.reverse(lce);
         alignmentCigar = new Cigar(lce);
-        alignment_offset = p.first;
+        alignment_offset = p.first - p.second;
     }
 
     /** Allows for separate gap opening end extension penalties, no direct backtracking.
@@ -254,7 +254,7 @@ public class SWPairwiseAlignment {
         lce.add(e);
         Collections.reverse(lce);
         alignmentCigar = new Cigar(lce);
-        alignment_offset = p.first;
+        alignment_offset = p.first - p.second ;
     }
 
 
@@ -402,7 +402,7 @@ public void align3(String a, String b) {
         lce.add(e);
         Collections.reverse(lce);
         alignmentCigar = new Cigar(lce);
-        alignment_offset = p.first;
+        alignment_offset = p.first - p.second;
     }
 
 
@@ -506,6 +506,57 @@ public void align3(String a, String b) {
         }
     }
 
+    public String toString() {
+        StringBuilder b1 = new StringBuilder();
+        StringBuilder b2 = new StringBuilder();
+
+        int pos1 = 0;
+        int pos2 = 0;
+        if ( alignment_offset < 0 ) {
+            for (  ; pos2 < -alignment_offset ; pos2++ ) {
+                b1.append(' ');
+                b2.append(s2.charAt(pos2));
+            }
+            // now pos2 = -alignment_offset;
+        } else {
+            for (  ; pos1 < alignment_offset ; pos1++ ) {
+                b2.append(' ');
+                b1.append(s1.charAt(pos1));
+            }
+            // now pos1 = alignment_offset
+        }
+
+        for ( int i = 0 ; i < getCigar().numCigarElements() ; i++ ) {
+            CigarElement ce = getCigar().getCigarElement(i) ;
+            switch( ce.getOperator() ) {
+                case M:
+                    int z = ce.getLength();
+                    b1.append(s1, pos1, pos1+z);
+                    b2.append(s2, pos2, pos2+z);
+                    pos1+=z; pos2+=z;
+                    break;
+                case I:
+                    for ( int k = 0 ; k < ce.getLength() ; k++ ) {
+                        b1.append('+');
+                        b2.append(s2.charAt(pos2++));
+                    }
+                    break;
+                case D:
+                    for ( int k = 0 ; k < ce.getLength() ; k++ ) {
+                        b1.append(s1.charAt(pos1++));
+                        b2.append('-');
+                    }
+                    break;
+            }
+        }
+        b1.append(s1,pos1,s1.length());
+        b2.append(s2,pos2,s2.length());
+        b1.append('\n');
+        b1.append(b2);
+        b1.append('\n');
+        return b1.toString();
+    }
+
     public static void testMe() {
 //        String s1 = "ACCTGGTGTATATAGGGTAAGGCTGAT";
 //        String s2 =       "TGTATATAGGGTAAGG";
@@ -513,8 +564,14 @@ public void align3(String a, String b) {
 //        String s1 = "GGTAAGGC";
 //        String s2 = "GGTCTCAA";
 
-        String s1 = "ACCTGGTGTATATAGGGTAAGGCTGAT";
-        String s2 =       "TGTTAGGGTCTCAAGG";
+//        String s1 = "ACCTGGTGTATATAGGGTAAGGCTGAT";
+//        String s2 =       "TGTTAGGGTCTCAAGG";
+
+//        String s1 = "ACCTGGTGTATATAGGGTAAGGCTGAT";
+//        String s2 =             "TAGGGTAAGGCTGATCCATGTACCG" ;
+
+        String s1 =           "ACCTGGTGTATATAGGGTAAGGCTGAT";
+        String s2 = "CCGTATCATTACCTGGTGTATATAGG";
 
 //          String s1 = "GGTGTATATAGGGT"  ;
 //          String s2 = "TGTTAGGG";
@@ -540,6 +597,8 @@ public void align3(String a, String b) {
         sp.addAlignedSequence(s2,false,swpa.getCigar(),swpa.getAlignmentStart2wrt1());
         System.out.println();
         System.out.println(sp.format());
+
+        System.out.println("--------\n"+swpa.toString());        
 
         //sp.colorprint(false);
     }
