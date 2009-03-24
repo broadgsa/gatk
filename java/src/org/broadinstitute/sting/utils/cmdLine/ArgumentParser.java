@@ -234,7 +234,7 @@ public class ArgumentParser {
      * 
      * @param args the command line arguments we recieved
      */
-    protected void processArgs(String[] args) {
+    public void processArgs(String[] args) {
         CommandLineParser parser = new PosixParser();
 
         try {
