@@ -97,7 +97,7 @@ public class SWPairwiseAlignment {
         // to that sequence
 
         int state = MSTATE;
-        int segment_length = 1; // length of the segment (continuous matches, insertions or deletions)
+        int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
 
         int [] scores = new int[3];
 
@@ -136,18 +136,25 @@ public class SWPairwiseAlignment {
 
         // post-process the last segment we are still keeping
         CigarOperator o=null;
+
         switch(state) {
             case MSTATE: o = CigarOperator.M; break;
             case ISTATE: o = CigarOperator.I; break;
             case DSTATE: o = CigarOperator.D; break;
         }
-        CigarElement e = new CigarElement(segment_length-1,o);
+
+        CigarElement e = new CigarElement(segment_length,o);
         lce.add(e);
         Collections.reverse(lce);
         alignmentCigar = new Cigar(lce);
         alignment_offset = p.first;
     }
 
+    /** Allows for separate gap opening end extension penalties, no direct backtracking.
+     *
+     * @param a
+     * @param b
+     */
     public void align2(String a, String b) {
         int n = a.length();
         int m = b.length();
@@ -163,7 +170,7 @@ public class SWPairwiseAlignment {
                 for ( int k = 1 ; k < i ; k++ ) step_down = Math.max(step_down,sw[i-k][j]+wk(a_base,'-',k));
                     
                 double step_right = 0;
-                for ( int k = 1 ; k < j ; k++ ) step_down = Math.max(step_down,sw[i][j-k]+wk('-',b_base,k));
+                for ( int k = 1 ; k < j ; k++ ) step_right = Math.max(step_right,sw[i][j-k]+wk('-',b_base,k));
 
                 sw[i][j] = Math.max(0, Math.max(step_diag,Math.max(step_down,step_right)));
             }
@@ -196,7 +203,7 @@ public class SWPairwiseAlignment {
         // to that sequence
 
         int state = MSTATE;
-        int segment_length = 1; // length of the segment (continuous matches, insertions or deletions)
+        int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
 
         double [] scores = new double[3];
 
@@ -243,7 +250,155 @@ public class SWPairwiseAlignment {
             case ISTATE: o = CigarOperator.I; break;
             case DSTATE: o = CigarOperator.D; break;
         }
-        CigarElement e = new CigarElement(segment_length-1,o);
+        CigarElement e = new CigarElement(segment_length,o);
+        lce.add(e);
+        Collections.reverse(lce);
+        alignmentCigar = new Cigar(lce);
+        alignment_offset = p.first;
+    }
+
+
+    /** Allows for separate gap opening and extension penalties, with backtracking.
+     *
+     * @param a
+     * @param b
+     */
+public void align3(String a, String b) {
+        int n = a.length();
+        int m = b.length();
+        double [][] sw = new double[n+1][m+1];
+
+        int [][] btrack = new int[n+1][m+1];
+
+        // build smith-waterman matrix and keep backtrack info:
+        for ( int i = 1 ; i < n+1 ; i++ ) {
+            char a_base = Character.toUpperCase(a.charAt(i-1)); // letter in a at the current pos
+            for ( int j = 1 ; j < m+1 ; j++ ) {
+                char b_base = Character.toUpperCase(b.charAt(j-1)); // letter in b at the current pos
+                double step_diag = sw[i-1][j-1] + wd(a_base,b_base);
+                double step_down = 0.0 ;
+                int kd = 0;
+                for ( int k = 1 ; k < i ; k++ ) {
+                    if ( step_down < sw[i-k][j]+wk(a_base,'-',k) ) {
+                        step_down=sw[i-k][j]+wk(a_base,'-',k);
+                        kd = k;
+                    }
+                }
+
+                double step_right = 0;
+                int ki = 0;
+                for ( int k = 1 ; k < j ; k++ ) {
+                    if ( step_right < sw[i][j-k]+wk('-',b_base,k) ) {
+                        step_right=sw[i][j-k]+wk('-',b_base,k);
+                        ki = k;
+                    }
+                }
+
+                if ( step_down > step_right ) {
+                    if ( step_down > step_diag ) {
+                        sw[i][j] = Math.max(0,step_down);
+                        btrack[i][j] = kd; // positive=vertical
+                    }
+                    else {
+                        sw[i][j] = Math.max(0,step_diag);
+                        btrack[i][j] = 0; // 0 = diagonal
+                    }
+                } else {
+                    // step_down < step_right
+                    if ( step_right > step_diag ) {
+                        sw[i][j] = Math.max(0,step_right);
+                        btrack[i][j] = -ki; // negative = horizontal
+                    } else {
+                        sw[i][j] = Math.max(0,step_diag);
+                        btrack[i][j] = 0; // 0 = diagonal
+                    }
+                }
+                sw[i][j] = Math.max(0, Math.max(step_diag,Math.max(step_down,step_right)));
+            }
+        }
+
+        print(sw,a,b);
+
+        PrimitivePair.Int p = new PrimitivePair.Int();
+        double maxscore = 0.0;
+        // look for largest score. we use >= combined with the traversal direction
+        // to ensure that if two scores are equal, the one closer to diagonal gets picked
+        for ( int i = 1 ; i < n+1 ; i++ ) {
+            if ( sw[i][m] >= maxscore ) { p.first = i; p.second = m ; maxscore = sw[i][m]; }
+        }
+        for ( int j = 1 ; j < m+1 ; j++ ) {
+            if ( sw[n][j] > maxscore ||
+                  sw[n][j] == maxscore && Math.abs(n-j) < Math.abs(p.first-p.second)) {
+                p.first = n;
+                p.second = j ;
+                maxscore = sw[n][j];
+            }
+        }
+
+        System.out.println("\ni="+p.first+"; j="+p.second);
+
+        // p holds the position we start backtracking from; we will be assembling a cigar in the backwards order
+
+
+        // we will be placing all insertions and deletions into sequence b, so the state are named w/regard
+        // to that sequence
+
+        int state = MSTATE;
+        int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
+
+        double [] scores = new double[3];
+
+        List<CigarElement> lce = new ArrayList<CigarElement>(5);
+
+        do {
+
+            int btr = btrack[p.first][p.second];
+            int step_left = ( btr < 0 ? -btr : 1);
+            int step_up = ( btr > 0 ? btr : 1 );
+
+            // moving left: same base on a, prev base on b = insertion on b:
+            scores[ISTATE] = sw[p.first][p.second-step_left] ;
+            scores[DSTATE] = sw[p.first - step_up][p.second];
+            scores[MSTATE] = sw[p.first-1][p.second-1]; // moving diagonal : match/mismatch
+
+            //            System.out.println("i = " + p.first + " ; j = " + p.second);
+            //            System.out.println("s(M)="+scores[MSTATE]+"; s(D)="+scores[DSTATE]+"; s(I)=" + scores[ISTATE]);
+            int new_state = findMaxInd(scores,MSTATE);
+
+            int step_length = 1;
+
+            // move to next best location in the sw matrix:
+            switch( new_state ) {
+                case MSTATE: p.first--; p.second--; break;
+                case ISTATE: p.second-=step_left; step_length = step_left; break;
+                case DSTATE: p.first-=step_up; step_length = step_up; break;
+            }
+
+            // now let's see if the state actually changed:
+            if ( new_state == state ) segment_length+=step_length;
+            else {
+                // state changed, lets emit previous segment, whatever it was (Insertion Deletion, or (Mis)Match).
+                CigarOperator o=null;
+                switch(state) {
+                    case MSTATE: o = CigarOperator.M; break;
+                    case ISTATE: o = CigarOperator.I; break;
+                    case DSTATE: o = CigarOperator.D; break;
+                }
+                CigarElement e = new CigarElement(segment_length,o);
+                lce.add(e);
+                segment_length = step_length;
+                state = new_state;
+            }
+        } while ( scores[state] != 0 );
+
+        // post-process the last segment we are still keeping
+        CigarOperator o=null;
+        switch(state) {
+            case MSTATE: o = CigarOperator.M; break;
+            case ISTATE: o = CigarOperator.I; break;
+            case DSTATE: o = CigarOperator.D; break;
+        }
+        CigarElement e = new CigarElement(segment_length,o);
         lce.add(e);
         Collections.reverse(lce);
         alignmentCigar = new Cigar(lce);
@@ -259,11 +414,11 @@ public class SWPairwiseAlignment {
 
     private double wd ( char x, char y ) {
         if ( x== y ) return 2.0;
-        else return -1;
+        else return -1.0;
     }
 
     private double wk(char x, char y, int k) {
-        return -2.0-k; // gap
+        return -2.0-k/6; // gap
         // return -1.0 ; // no extension penalty
         // return -1.0-Math.log(k+1); // weak extension penalty
     }
@@ -355,9 +510,14 @@ public class SWPairwiseAlignment {
 //        String s1 = "ACCTGGTGTATATAGGGTAAGGCTGAT";
 //        String s2 =       "TGTATATAGGGTAAGG";
 
+//        String s1 = "GGTAAGGC";
+//        String s2 = "GGTCTCAA";
+
         String s1 = "ACCTGGTGTATATAGGGTAAGGCTGAT";
         String s2 =       "TGTTAGGGTCTCAAGG";
 
+//          String s1 = "GGTGTATATAGGGT"  ;
+//          String s2 = "TGTTAGGG";
         testMe(s1,s2);
     }
 
@@ -365,11 +525,8 @@ public class SWPairwiseAlignment {
 
         SWPairwiseAlignment swpa = new SWPairwiseAlignment(s1,s2);
 
-        SequencePile sp = new SequencePile(s1);
-        sp.addAlignedSequence(s2,false,swpa.getCigar(),swpa.getAlignmentStart2wrt1());
 
         for ( int i = 0 ; i < swpa.getCigar().numCigarElements() ; i++ ) {
-            System.out.print(swpa.getCigar().getCigarElement(i).getLength());
             char c=' ';
             switch ( swpa.getCigar().getCigarElement(i).getOperator() ) {
             case M : c = 'M'; break;
@@ -377,7 +534,10 @@ public class SWPairwiseAlignment {
             case I : c = 'I'; break;
             }
             System.out.print(c);
+            System.out.print(swpa.getCigar().getCigarElement(i).getLength());
         }
+        SequencePile sp = new SequencePile(s1);
+        sp.addAlignedSequence(s2,false,swpa.getCigar(),swpa.getAlignmentStart2wrt1());
         System.out.println();
         System.out.println(sp.format());
 
