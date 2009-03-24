@@ -99,7 +99,8 @@ public class FirecrestFileParser extends AbstractFirecrestFileParser {
             intensities[cycle] = new FourIntensity(fIntensities);
         }
 
-        FourIntensity[] intensities2 = new FourIntensity[(cycle_start > 0 && cycle_stop > 0 && cycle_stop > cycle_start) ? numIntensities : (cycle_stop - cycle_start)];
+        FourIntensity[] intensities2 = new FourIntensity[(cycle_start > 0 && cycle_stop > 0 && cycle_stop > cycle_start) ? (cycle_stop - cycle_start) : numIntensities];
+
         for (int cycle = 0, offset = (cycle_start >= 0 ? cycle_start : 0); cycle < intensities2.length; cycle++) {
             intensities2[cycle] = intensities[offset + cycle];
         }
