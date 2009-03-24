@@ -59,12 +59,13 @@ public class ArgumentParser {
         // automatically generate the help statement
         HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp(100,
-                      "java -Xmx4096m -jar dist/GenomeAnalysisTK.jar",
-                      "",
-                      m_options,
-                      "",
-                      true);
+                "java -Xmx4096m -jar dist/GenomeAnalysisTK.jar",
+                "",
+                m_options,
+                "",
+                true);
     }
+
 
     /**
      * addOptionalArg
@@ -77,6 +78,7 @@ public class ArgumentParser {
      * @param fieldname   the field to set when we've parsed this option
      */
     public void addOptionalArg(String name, String letterform, String description, String fieldname) {
+
         // we always want the help option to be available
         Option opt = OptionBuilder.withLongOpt(name).withArgName(name)
                 .hasArg()
@@ -98,8 +100,14 @@ public class ArgumentParser {
      * @param opt        the option
      */
     private void AddToOptionStorage(String name, String letterform, String fieldname, Option opt) {
+
         // add to the option list
         m_options.addOption(opt);
+
+        // first check to see if we've already added an option with the same name
+        if (m_option_names.contains(letterform)) {
+            throw new IllegalArgumentException(letterform + " was already added as an option");
+        }
 
         // add the object with it's name to the storage location
         try {
@@ -159,6 +167,7 @@ public class ArgumentParser {
     }
 
 
+
     /**
      * addRequiredlArg
      * <p/>
@@ -170,6 +179,7 @@ public class ArgumentParser {
      * @param fieldname   what field it should be stuck into on the calling class
      */
     public void addRequiredlArgList(String name, String letterform, String description, String fieldname) {
+
         // we always want the help option to be available
         Option opt = OptionBuilder.isRequired()
                 .withLongOpt(name)
@@ -193,10 +203,21 @@ public class ArgumentParser {
      * @param fieldname   what field it should be stuck into on the calling class
      */
     public void addOptionalFlag(String name, String letterform, String description, String fieldname) {
+
+        // if they've passed a non-Boolean as a object, beat them
+        try {
+            if (!(prog.getClass().getField(fieldname).getType() == Boolean.class)) {
+                throw new IllegalArgumentException("Fields to addOptionalFlag must be of type Boolean");
+            }
+        } catch (NoSuchFieldException e) {
+            throw new IllegalArgumentException("Fields to addOptionalFlag must exist!");
+        }
+        
         // we always want the help option to be available
         Option opt = OptionBuilder.withLongOpt(name)
                 .withDescription(description)
                 .create(letterform);
+
 
         // add it to the option
         AddToOptionStorage(name, letterform, fieldname, opt);
@@ -215,6 +236,16 @@ public class ArgumentParser {
      * @param fieldname   what field it should be stuck into on the calling class
      */
     public void addRequiredlFlag(String name, String letterform, String description, String fieldname) {
+
+        // if they've passed a non-Boolean as a object, beat them
+        try {
+            if (!(prog.getClass().getField(fieldname).getType() == Boolean.class)) {
+                throw new IllegalArgumentException("Fields to addRequiredlFlag must be of type Boolean");
+            }
+        } catch (NoSuchFieldException e) {
+            throw new IllegalArgumentException("Fields to addRequiredlFlag must exist!");
+        }
+
         // we always want the help option to be available
         Option opt = OptionBuilder.isRequired()
                 .withLongOpt(name)
@@ -231,15 +262,15 @@ public class ArgumentParser {
      * This function is called to validate all the arguments to the program.
      * If a required Arg isn't found, we generate the help message, and
      * exit the program
-     * 
+     *
      * @param args the command line arguments we recieved
      */
-    public void processArgs(String[] args) {
+    public void processArgs(String[] args) throws ParseException {
         CommandLineParser parser = new PosixParser();
 
         try {
             Collection<Option> opts = m_options.getOptions();
-            
+
             CommandLine cmd = parser.parse(m_options, args);
 
             // logger.info("We have " + opts.size() + " options");
@@ -254,8 +285,7 @@ public class ArgumentParser {
                             logger.fatal("processArgs: cannot convert field " + f.toString());
                             throw new RuntimeException("processArgs: Failed conversion " + e.getMessage());
                         }
-                    }
-                    else {
+                    } else {
 
                         Field f = m_storageLocations.get(opt.getLongOpt());
                         try {
@@ -268,15 +298,9 @@ public class ArgumentParser {
                     }
                 }
             }
-        }catch (UnrecognizedOptionException e) {
+        } catch (UnrecognizedOptionException e) {
             // we don't care about unknown exceptions right now
             logger.warn(e.getMessage());
-        } catch (ParseException e) {
-            // we didn't get all the required arguments,
-            // print out the help
-            e.printStackTrace();
-            this.printHelp();
-            System.exit(1);
         }
     }
 

@@ -1,97 +1,144 @@
 <project name="Sting" default="dist" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
-  <description>Compile and distribute the Sting toolkit</description>
+    <description>Compile and distribute the Sting toolkit</description>
 
-  <!-- Set target based on STING_BUILD_TYPE environment variable -->
-  <property environment="env" />
-  <condition property="target" value="playground" else="core">
-    <equals arg1="${env.STING_BUILD_TYPE}" arg2="playground" casesensitive="false" />
-  </condition>
-  <condition property="target.is.playground" value="true">
-    <equals arg1="${target}" arg2="playground" />
-  </condition>
+    <!-- Set target based on STING_BUILD_TYPE environment variable -->
+    <property environment="env"/>
+    <condition property="target" value="playground" else="core">
+        <equals arg1="${env.STING_BUILD_TYPE}" arg2="playground" casesensitive="false"/>
+    </condition>
+    <condition property="target.is.playground" value="true">
+        <equals arg1="${target}" arg2="playground"/>
+    </condition>
 
-  <!-- set global properties for this build -->
-  <path id="thirdparty.dependencies">
-    <fileset dir="lib" includes="*.jar" />
-  </path>
+    <!-- set global properties for this build -->
+    <path id="thirdparty.dependencies">
+        <fileset dir="lib" includes="*.jar"/>
+    </path>
 
-  <path id="source">
-    <dirset dir="java/src">
-      <patternset>
-        <include name="org/broadinstitute/sting/*" />
-        <exclude name="**/playground/**" unless="target.is.playground" />
-      </patternset>
-    </dirset>
-  </path>
+    <path id="source">
+        <dirset dir="java/src">
+            <patternset>
+                <include name="org/broadinstitute/sting/*"/>
+                <exclude name="**/playground/**" unless="target.is.playground"/>
+            </patternset>
+        </dirset>
+    </path>
 
-  <!-- ivy properties -->
-  <property name="ivy.install.version" value="2.0.0" />
-  <property name="ivy.home" value="${user.home}/.ant" />
-  <property name="ivy.jar.dir" value="${ivy.home}/lib" />
-  <property name="ivy.jar.file" value="ivy-${ivy.install.version}.jar" />
-  <property name="ivy.settings.dir" value="settings" />
-  <property file="${ivy.settings.dir}/ivysettings.properties" />
+    <!-- ivy properties -->
+    <property name="ivy.install.version" value="2.0.0"/>
+    <property name="ivy.home" value="${user.home}/.ant"/>
+    <property name="ivy.jar.dir" value="${ivy.home}/lib"/>
+    <property name="ivy.jar.file" value="ivy-${ivy.install.version}.jar"/>
+    <property name="ivy.settings.dir" value="settings"/>
+    <property file="${ivy.settings.dir}/ivysettings.properties"/>
 
-  <target name="resolve" depends="init"
-          description="locate and download library dependencies">
-    <!-- retrieve ivy if necessary -->
-    <mkdir dir="${ivy.jar.dir}" />
-    <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
-         dest="${ivy.jar.dir}/${ivy.jar.file}" 
-         usetimestamp="true"/>
-    <!-- initialize and load ivy -->
-    <taskdef resource="org/apache/ivy/ant/antlib.xml" 
-             uri="antlib:org.apache.ivy.ant" 
-             classpath="${ivy.jar.dir}/${ivy.jar.file}" />
-    <ivy:settings file="${ivy.settings.dir}/ivysettings.xml" />
-    <!-- retrieve dependencies -->
-    <ivy:retrieve />
-  </target>
+    <target name="resolve" depends="init"
+            description="locate and download library dependencies">
+        <!-- retrieve ivy if necessary -->
+        <mkdir dir="${ivy.jar.dir}"/>
+        <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
+             dest="${ivy.jar.dir}/${ivy.jar.file}"
+             usetimestamp="true"/>
+        <!-- initialize and load ivy -->
+        <taskdef resource="org/apache/ivy/ant/antlib.xml"
+                 uri="antlib:org.apache.ivy.ant"
+                 classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
+        <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
+        <!-- retrieve dependencies -->
+        <ivy:retrieve/>
+    </target>
 
-  <target name="init">
-    <!-- Create the time stamp -->
-    <tstamp/>
 
-    <echo message="Compiling module ${target}" />
+    <!-- where to put reports and tests-->
+    <property name="report" value="build/report"/>
+    <property name="test.classes" value="build/testclasses"/>
+    <property name="test.output" value="dist/test"/>
+    <property name="test.sources" value="java/test"/>
+    <property name="classes" value="classes"/>
 
-    <!-- Create the build directory structure used by compile -->
-    <mkdir dir="build" />
-  </target>
 
-  <target name="compile" depends="init,resolve"
-          description="compile the source">
-    <!-- Compile the java code from ${src} into build -->
-    <javac destdir="build" classpathref="thirdparty.dependencies"
-           debug="true" debuglevel="lines,vars,source">
-       <src refid="source" />
-    </javac>
-  </target>
+    <target name="test.compile" depends="compile" description="Compile test cases">
+        <echo message="Sting: Compiling test cases!"/>
+        <mkdir dir="${test.classes}"/>
+        <javac destdir="${test.classes}" debug="on" optimize="on">
+            <src path="${test.sources}"/>
+            <classpath>
+                <path refid="thirdparty.dependencies"/>
+                <pathelement location="build"/>
+                <pathelement location="lib/junit-4.4.jar"/>
+            </classpath>
+        </javac>
+    </target>
 
-  <target name="dist" depends="compile"
-          description="generate the distribution" >
-    <mkdir dir="dist"/>
 
-    <copy todir="dist">
-      <fileset dir="lib" includes="*.jar" />
-    </copy>
+    <!-- TEST -->
+    <target name="test" depends="test.compile">
+        <mkdir dir="${report}"/>
+        <echo message="Sting: Running test cases!"/>
+        <junit printsummary="yes" clonevm="yes" haltonfailure="yes">
+            <formatter type="plain"/>
+            
+            <classpath>
+                <path refid="thirdparty.dependencies"/>
+                <pathelement location="build"/>
+                <pathelement location="${test.classes}"/>
+                <pathelement location="lib/junit-4.4.jar"/>
+            </classpath>
 
-    <jar jarfile="dist/StingUtils.jar">
-      <fileset dir="build" includes="**/utils/**/*.class" />
-    </jar>
+            <batchtest fork="yes" todir="${report}">
+                <fileset dir="${test.classes}">
+                    <include name="**/*.class"/>
+                </fileset>
+            </batchtest>
+        </junit>
 
-    <jar jarfile="dist/GenomeAnalysisTK.jar">
-      <fileset dir="build" includes="**/gatk/**/*.class" />
-      <manifest>
-        <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.GenomeAnalysisTK" />
-      </manifest>
-    </jar>
+    </target>
 
-    <jar jarfile="dist/FourBaseCaller.jar" whenmanifestonly="skip">
-      <fileset dir="build" includes="**/fourbasecaller/**/*.class" />
-      <manifest>
-        <attribute name="Main-Class" value="org.broadinstitute.sting.playground.fourbasecaller.FourBaseCaller" />
-      </manifest>
-    </jar>
+
+    <target name="init">
+        <!-- Create the time stamp -->
+        <tstamp/>
+
+        <echo message="Compiling module ${target}"/>
+
+        <!-- Create the build directory structure used by compile -->
+        <mkdir dir="build"/>
+    </target>
+
+    <target name="compile" depends="init,resolve"
+            description="compile the source">
+        <!-- Compile the java code from ${src} into build -->
+        <javac destdir="build" classpathref="thirdparty.dependencies"
+               debug="true" debuglevel="lines,vars,source">
+            <src refid="source"/>
+        </javac>
+    </target>
+
+    <target name="dist" depends="compile"
+            description="generate the distribution">
+        <mkdir dir="dist"/>
+
+        <copy todir="dist">
+            <fileset dir="lib" includes="*.jar"/>
+        </copy>
+
+        <jar jarfile="dist/StingUtils.jar">
+            <fileset dir="build" includes="**/utils/**/*.class"/>
+        </jar>
+
+        <jar jarfile="dist/GenomeAnalysisTK.jar">
+            <fileset dir="build" includes="**/gatk/**/*.class"/>
+            <manifest>
+                <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.GenomeAnalysisTK"/>
+            </manifest>
+        </jar>
+
+        <jar jarfile="dist/FourBaseCaller.jar" whenmanifestonly="skip">
+            <fileset dir="build" includes="**/fourbasecaller/**/*.class"/>
+            <manifest>
+                <attribute name="Main-Class" value="org.broadinstitute.sting.playground.fourbasecaller.FourBaseCaller"/>
+            </manifest>
+        </jar>
 
     <jar jarfile="dist/FourBaseRecaller.jar" whenmanifestonly="skip">
       <!--<fileset dir="build" includes="**/fourbasecaller/**/*.class" />-->
@@ -104,37 +151,37 @@
       </manifest>
     </jar>
 
-    <jar jarfile="dist/Playground.jar" whenmanifestonly="skip">
-      <fileset dir="build">
-        <include name="**/*.class" />
-        <exclude name="**/utils/**" />
-        <exclude name="**/gatk/**" />
-        <exclude name="**/fourbasecaller/**" />
-      </fileset>
-    </jar>
+        <jar jarfile="dist/Playground.jar" whenmanifestonly="skip">
+            <fileset dir="build">
+                <include name="**/*.class"/>
+                <exclude name="**/utils/**"/>
+                <exclude name="**/gatk/**"/>
+                <exclude name="**/fourbasecaller/**"/>
+            </fileset>
+        </jar>
 
-    <pathconvert property="jar.classpath" pathsep=" ">
-      <flattenmapper />
-      <fileset dir="dist" includes="*.jar" />
-    </pathconvert>
+        <pathconvert property="jar.classpath" pathsep=" ">
+            <flattenmapper/>
+            <fileset dir="dist" includes="*.jar"/>
+        </pathconvert>
 
-    <jar jarfile="dist/StingUtils.jar" update="true">
-      <manifest>
-        <attribute name="Class-Path" value="${jar.classpath}" />
-      </manifest>
-    </jar>
+        <jar jarfile="dist/StingUtils.jar" update="true">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}"/>
+            </manifest>
+        </jar>
 
-    <jar jarfile="dist/GenomeAnalysisTK.jar" update="true">
-      <manifest>
-        <attribute name="Class-Path" value="${jar.classpath}" />
-      </manifest>
-    </jar>
+        <jar jarfile="dist/GenomeAnalysisTK.jar" update="true">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}"/>
+            </manifest>
+        </jar>
 
-    <jar jarfile="dist/FourBaseCaller.jar" update="true" whenmanifestonly="skip">
-      <manifest>
-        <attribute name="Class-Path" value="${jar.classpath}" />
-      </manifest>
-    </jar>
+        <jar jarfile="dist/FourBaseCaller.jar" update="true" whenmanifestonly="skip">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}"/>
+            </manifest>
+        </jar>
 
     <jar jarfile="dist/FourBaseRecaller.jar" update="true" whenmanifestonly="skip">
       <manifest>
@@ -142,23 +189,23 @@
       </manifest>
     </jar>
 
-    <jar jarfile="dist/Playground.jar" update="true" whenmanifestonly="skip">
-      <manifest>
-        <attribute name="Class-Path" value="${jar.classpath}" />
-      </manifest>
-    </jar>
-  </target>
+        <jar jarfile="dist/Playground.jar" update="true" whenmanifestonly="skip">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}"/>
+            </manifest>
+        </jar>
+    </target>
 
-  <target name="javadoc">
-    <mkdir dir="javadoc" />
-    <javadoc sourcepathref="${target}.srcdir" destdir="javadoc" />
-  </target>
+    <target name="javadoc">
+        <mkdir dir="javadoc"/>
+        <javadoc sourcepathref="${target}.srcdir" destdir="javadoc"/>
+    </target>
 
-  <target name="clean"
-          description="clean up" >
-    <delete dir="out" />
-    <delete dir="build" />
-    <delete dir="dist" />
-    <delete dir="lib" />
-  </target>
+    <target name="clean"
+            description="clean up">
+        <delete dir="out"/>
+        <delete dir="build"/>
+        <delete dir="dist"/>
+        <delete dir="lib"/>
+    </target>
 </project>
