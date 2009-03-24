@@ -70,7 +70,7 @@ public class SWPairwiseAlignment {
             }
         }
 
-        print(sw,a,b);
+//        print(sw,a,b);
 
         PrimitivePair.Int p = new PrimitivePair.Int();
         int maxscore = 0;
@@ -88,7 +88,7 @@ public class SWPairwiseAlignment {
             }
         }
 
-        System.out.println("\ni="+p.first+"; j="+p.second);
+//        System.out.println("\ni="+p.first+"; j="+p.second);
 
         // p holds the position we start backtracking from; we will be assembling a cigar in the backwards order
 
@@ -176,7 +176,7 @@ public class SWPairwiseAlignment {
             }
         }
 
-        print(sw,a,b);
+//        print(sw,a,b);
 
         PrimitivePair.Int p = new PrimitivePair.Int();
         double maxscore = 0.0;
@@ -194,7 +194,7 @@ public class SWPairwiseAlignment {
             }
         }
 
-        System.out.println("\ni="+p.first+"; j="+p.second);
+//        System.out.println("\ni="+p.first+"; j="+p.second);
 
         // p holds the position we start backtracking from; we will be assembling a cigar in the backwards order
 
@@ -317,7 +317,7 @@ public void align3(String a, String b) {
             }
         }
 
-        print(sw,a,b);
+//        print(sw,a,b);
 
         PrimitivePair.Int p = new PrimitivePair.Int();
         double maxscore = 0.0;
