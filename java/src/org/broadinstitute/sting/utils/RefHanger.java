@@ -61,9 +61,15 @@ public class RefHanger<T> {
         hangers = new ArrayList<Hanger>();
     }
 
+    public void clear() {
+        hangers.clear();
+        //System.out.printf("leftLoc is %s%n", getLeftLoc());
+    }
+
     protected int getLeftOffset() { return 0; }
     protected int getRightOffset() { return hangers.size() - 1; }
     protected int getOffset(GenomeLoc loc) {
+        //System.out.printf("Loc: %s vs %s%n", loc, getLeftLoc());
         return loc.minus(getLeftLoc());
     }
     

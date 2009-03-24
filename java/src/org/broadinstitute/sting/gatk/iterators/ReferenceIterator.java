@@ -142,7 +142,7 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
 
         int cmpContigs = GenomeLoc.compareContigs(seekContigName, currentContig.getName());
 
-        if ( cmpContigs == -1 ) {
+        if ( cmpContigs == -1 && false ) {  // todo: fixed
             // The contig we are looking for is before the currentContig -- it's an error
             throw new IllegalArgumentException(String.format("Invalid seek to %s from %s, which is usually due to out of order reads%n",
                     new GenomeLoc(currentContig.getName(), seekOffset), new GenomeLoc(currentContig.getName(), offset)));

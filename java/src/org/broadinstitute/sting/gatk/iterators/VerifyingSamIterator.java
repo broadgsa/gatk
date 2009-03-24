@@ -19,6 +19,7 @@ public class VerifyingSamIterator implements Iterator<SAMRecord> {
     Iterator<SAMRecord> it;
     SAMRecord last = null;
     boolean checkOrderP = true;
+    long nOutOfOrderReads = 0; 
 
     public VerifyingSamIterator(Iterator<SAMRecord> it) {
         this.it = it;
@@ -44,14 +45,19 @@ public class VerifyingSamIterator implements Iterator<SAMRecord> {
     }
 
     public void verifyRecord( final SAMRecord last, final SAMRecord cur ) {
-        if ( checkOrderP && ! cur.getReadUnmappedFlag() ) {
+        if ( checkOrderP && isOutOfOrder(last, cur) ) {
+            this.last = null;
+            throw new RuntimeIOException(String.format("Reads are out of order:%nlast:%n%s%ncurrent:%n%s%n", last.format(), cur.format()) );
+        }
+    }
+
+    public static boolean isOutOfOrder( final SAMRecord last, final SAMRecord cur ) {
+        if ( last == null || cur.getReadUnmappedFlag() )
+            return false;
+        else {
             GenomeLoc lastLoc = Utils.genomicLocationOf( last );
             GenomeLoc curLoc = Utils.genomicLocationOf( cur );
-
-            //System.out.printf("VerifyingRecords %s %s%n", lastLoc, curLoc );
-
-            if ( curLoc.compareTo(lastLoc) == -1 )
-                throw new RuntimeIOException(String.format("Reads are out of order:%nlast:%n%s%ncurrent%n%s%n", last.format(), cur.format()) );
+            return curLoc.compareTo(lastLoc) == -1;
         }
     }
 

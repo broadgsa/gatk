@@ -166,7 +166,10 @@ public class GenomeAnalysisTK extends CommandLineProgram {
 
         try {
             LocusWalker<?, ?> walker = (LocusWalker<?, ?>) my_walker;
-            engine.traverseByLoci(walker);
+            if ( INTERVALS_FILE == null )
+                engine.traverseByLoci(walker);
+            else
+                engine.traverseByLociByInterval(walker);
         }
         catch (java.lang.ClassCastException e) {
             // I guess we're a read walker LOL

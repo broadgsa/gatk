@@ -62,8 +62,9 @@ public class SamQueryIterator implements Iterator<SAMRecord> {
      */
     private void bumpToNextSAMRecord() {
         // If there's a record still waiting in the current iterator, do nothing.
-        if( recordIter.hasNext() )
+        if( recordIter.hasNext() ) {
             return;
+        }
 
         // Otherwise, find the next record.
         recordIter.close();
