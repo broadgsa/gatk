@@ -51,7 +51,7 @@ public class FourBaseRecaller {
             FourIntensity[] intensities = ffp1.next().getIntensities();
             String rsq = (CYCLE_START == 0) ? bfp1.next().getFirstReadSequence() : bfp1.next().getSecondReadSequence();
 
-            for (int cycle = 0; cycle < intensities.length; cycle++) {
+            for (int cycle = 0; cycle < readLength; cycle++) {
                 FourIntensity sig = intensities[cycle];
 
                 if      (rsq.charAt(cycle) == 'A') { cmeans[cycle].add(Nucleotide.A, sig); }
@@ -73,7 +73,7 @@ public class FourBaseRecaller {
             FourIntensity[] intensities = ffp2.next().getIntensities();
             String rsq = (CYCLE_START == 0) ? bfp2.next().getFirstReadSequence() : bfp2.next().getSecondReadSequence();
 
-            for (int cycle = 0; cycle < intensities.length; cycle++) {
+            for (int cycle = 0; cycle < readLength; cycle++) {
                 FourIntensity sig = intensities[cycle];
                 NucleotideChannelMeans mus = cmeans[cycle];
 
@@ -103,11 +103,11 @@ public class FourBaseRecaller {
 
             FourIntensity[] intensities = ffp3.next().getIntensities();
 
-            byte[] asciiseq = new byte[intensities.length];
-            byte[] bestqual = new byte[intensities.length];
-            byte[] nextbestqual = new byte[intensities.length];
+            byte[] asciiseq = new byte[readLength];
+            byte[] bestqual = new byte[readLength];
+            byte[] nextbestqual = new byte[readLength];
 
-            for (int cycle = 0; cycle < intensities.length; cycle++) {
+            for (int cycle = 0; cycle < readLength; cycle++) {
                 FourIntensity fi = intensities[cycle];
 
                 double[] likes = new double[4];
