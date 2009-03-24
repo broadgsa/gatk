@@ -2,6 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.rodGFF;
 import org.broadinstitute.sting.gatk.walkers.BasicLociWalker;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
@@ -25,23 +26,14 @@ public class AlleleFrequencyMetricsWalker extends BasicLociWalker<AlleleFrequenc
     long num_loci_total=0;
     long num_loci_confident=0;
     double LOD_cutoff = 5;
+    long hapmap_tp=0;
+    long hapmap_fp=0;
 
     AlleleFrequencyWalker caller;
 
     public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) 
     {
         AlleleFrequencyEstimate alleleFreq = caller.map(rodData, ref, context);
-
-        boolean is_dbSNP_SNP = false;
-
-        for ( ReferenceOrderedDatum datum : rodData ) 
-        {
-            if ( datum != null && datum instanceof rodDbSNP) 
-            {
-                rodDbSNP dbsnp = (rodDbSNP)datum;
-                if (dbsnp.isSNP()) is_dbSNP_SNP = true;
-            }
-        }
 
         num_loci_total += 1;
 
@@ -53,7 +45,37 @@ public class AlleleFrequencyMetricsWalker extends BasicLociWalker<AlleleFrequenc
            
             num_variants += 1;
 
-            if (is_dbSNP_SNP) 
+            boolean is_dbSNP_SNP = false;
+            boolean hapmap_hit = false;
+
+            for ( ReferenceOrderedDatum datum : rodData )
+            {
+                if ( datum != null )
+                {
+                    if ( datum instanceof rodDbSNP )
+                    {
+                        rodDbSNP dbsnp = (rodDbSNP)datum;
+                        if (dbsnp.isSNP()) is_dbSNP_SNP = true;
+                    }
+
+                    if ( datum instanceof rodGFF )
+                    {
+                        rodGFF hapmap = (rodGFF) datum;
+                        String hapmap_genotype = hapmap.getFeature();
+                        String called_genotype = alleleFreq.asString();
+                        System.out.format("HAPMAP %s %s %.2f\n", hapmap_genotype, called_genotype, alleleFreq.getLOD());
+                        // There is a hapmap site here, is it correct?
+                        if (hapmap_genotype.equals(called_genotype))
+                        {
+                            hapmap_tp++;
+                        } else {
+                            hapmap_fp++;
+                        }
+                    }
+                }
+            }
+
+            if (is_dbSNP_SNP)
             {
                 dbsnp_hits += 1;
             }
@@ -69,12 +91,16 @@ public class AlleleFrequencyMetricsWalker extends BasicLociWalker<AlleleFrequenc
         System.out.printf("\n");
         System.out.printf("METRICS Allele Frequency Metrics (LOD >= %.0f)\n", LOD_cutoff);
         System.out.printf("METRICS -------------------------------------------------\n");
-        System.out.printf("METRICS Total loci                         : %d\n", num_loci_total);
-        System.out.printf("METRICS Total called with confidence       : %d (%.2f%%)\n", num_loci_confident, 100.0 * (float)num_loci_confident / (float)num_loci_total);
+        System.out.printf("METRICS Total loci                           : %d\n", num_loci_total);
+        System.out.printf("METRICS Total called with confidence         : %d (%.2f%%)\n", num_loci_confident, 100.0 * (float)num_loci_confident / (float)num_loci_total);
         if (num_variants != 0)
         {
-	        System.out.printf("METRICS Number of Variants                 : %d (%.2f%%) (1/%d)\n", num_variants, 100.0 * (float)num_variants / (float)num_loci_confident, num_loci_confident / num_variants);
-	        System.out.printf("METRICS Fraction of variant sites in dbSNP : %.2f%%\n", 100.0 * (float)dbsnp_hits / (float)num_variants);
+	        System.out.printf("METRICS Number of variants                   : %d (%.2f%%) (1/%d)\n", num_variants, 100.0 * (float)num_variants / (float)num_loci_confident, num_loci_confident / num_variants);
+            System.out.printf("METRICS Fraction of variant sites in dbSNP   : %.2f%%\n", 100.0 * (float)dbsnp_hits / (float)num_variants);
+            System.out.printf("METRICS Number of variants with hapmap calls : %d\n", hapmap_tp + hapmap_fp);
+            System.out.printf("METRICS Hapmap true positives                : %d\n", hapmap_tp);
+            System.out.printf("METRICS Hapmap false positives               : %d\n", hapmap_fp);
+            System.out.printf("METRICS Hapmap precision                     : %.2f%%\n", 100.0 * (float)hapmap_tp / (float)(hapmap_tp + hapmap_fp));
         }
         System.out.println();
     }

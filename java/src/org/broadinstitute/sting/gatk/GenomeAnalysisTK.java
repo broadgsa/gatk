@@ -34,6 +34,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     public String REGION_STR = null;
     public String Analysis_Name = null;
     public String DBSNP_FILE = null;
+    public String HAPMAP_FILE = null;
     public Boolean ENABLED_THREADED_IO = false;
     public Boolean UNSAFE = false;
     public Boolean ENABLED_SORT_ON_FLY = false;
@@ -66,6 +67,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalArg("genome_region", "L", "Genome region to operation on: from chr:start-end", "REGION_STR");
         m_parser.addRequiredlArg("analysis_type", "T", "Type of analysis to run", "Analysis_Name");
         m_parser.addOptionalArg("DBSNP", "D", "DBSNP file", "DBSNP_FILE");
+        m_parser.addOptionalArg("Hapmap", "H", "Hapmap file", "HAPMAP_FILE");
         m_parser.addOptionalFlag("threaded_IO", "P", "If set, enables threaded I/O operations", "ENABLED_THREADED_IO");
         m_parser.addOptionalFlag("unsafe", "U", "If set, enables unsafe operations, nothing will be checked at runtime.", "UNSAFE");
         m_parser.addOptionalFlag("sort_on_the_fly", "F", "If set, enables on fly sorting of reads file.", "ENABLED_SORT_ON_FLY");
@@ -85,7 +87,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         walkerManager = new WalkerManager(pluginPathName);
 
         final boolean TEST_ROD = false;
-        ReferenceOrderedData[] rods = null;
+        List<ReferenceOrderedData> rods = new ArrayList<ReferenceOrderedData>();
 
         if (TEST_ROD) {
             ReferenceOrderedData gff = new ReferenceOrderedData(new File("trunk/data/gFFTest.gff"), rodGFF.class);
@@ -94,13 +96,16 @@ public class GenomeAnalysisTK extends CommandLineProgram {
             //ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("trunk/data/dbSNP_head.txt"), rodDbSNP.class );
             ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("/Volumes/Users/mdepristo/broad/ATK/exampleSAMs/dbSNP_chr20.txt"), rodDbSNP.class);
             //dbsnp.testMe();
-            rods = new ReferenceOrderedData[]{dbsnp}; // { gff, dbsnp };
+            rods.add(dbsnp); // { gff, dbsnp };
         } else if (DBSNP_FILE != null) {
             ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File(DBSNP_FILE), rodDbSNP.class);
             //dbsnp.testMe();
-            rods = new ReferenceOrderedData[]{dbsnp}; // { gff, dbsnp };
-        } else {
-            rods = new ReferenceOrderedData[]{}; // { gff, dbsnp };
+            rods.add(dbsnp); // { gff, dbsnp };
+        }
+
+        if (HAPMAP_FILE != null) {
+            ReferenceOrderedData gff = new ReferenceOrderedData(new File(HAPMAP_FILE), rodGFF.class);
+            rods.add(gff);
         }
 
         this.engine = new TraversalEngine(INPUT_FILE, REF_FILE_ARG, rods);

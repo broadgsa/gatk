@@ -43,6 +43,10 @@ public class AlleleFrequencyEstimate {
         //        to use qstar, but make N (number of chormosomes) switch to n (number of reads at locus) for n=1
         long numNonrefBases = Math.round(qstar * N);
         long numRefBases = N - numNonrefBases;
-        return AlleleFrequencyWalker.repeat(ref, numRefBases) + AlleleFrequencyWalker.repeat(alt, numNonrefBases);
+        if (ref < alt) { // order bases alphabetically
+            return AlleleFrequencyWalker.repeat(ref, numRefBases) + AlleleFrequencyWalker.repeat(alt, numNonrefBases);
+        }else{
+            return AlleleFrequencyWalker.repeat(alt, numNonrefBases) + AlleleFrequencyWalker.repeat(ref, numRefBases);
+        }
     }
 }

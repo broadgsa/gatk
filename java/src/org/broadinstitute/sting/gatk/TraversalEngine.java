@@ -108,10 +108,10 @@ public class TraversalEngine {
      * @param ref   Reference file in FASTA format, assumes a .dict file is also available
      * @param rods  Array of reference ordered data sets
      */
-    public TraversalEngine(File reads, File ref, ReferenceOrderedData[] rods) {
+    public TraversalEngine(File reads, File ref, List<ReferenceOrderedData> rods) {
         readsFile = reads;
         refFileName = ref;
-        this.rods = Arrays.asList(rods);
+        this.rods = rods;
     }
 
     // --------------------------------------------------------------------------------------------------------------
