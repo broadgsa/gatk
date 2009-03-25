@@ -160,6 +160,7 @@ public class SWPairwiseAlignment {
             case DSTATE: o = CigarOperator.D; break;
         }
 
+        segment_length+=p.second;
         CigarElement e = new CigarElement(segment_length,o);
         lce.add(e);
         Collections.reverse(lce);
@@ -267,6 +268,7 @@ public class SWPairwiseAlignment {
             case ISTATE: o = CigarOperator.I; break;
             case DSTATE: o = CigarOperator.D; break;
         }
+        segment_length+=p.second;
         CigarElement e = new CigarElement(segment_length,o);
         lce.add(e);
         Collections.reverse(lce);
@@ -417,6 +419,7 @@ public void align3(String a, String b) {
             case ISTATE: o = CigarOperator.I; break;
             case DSTATE: o = CigarOperator.D; break;
         }
+        segment_length+=p.second;
         CigarElement e = new CigarElement(segment_length,o);
         lce.add(e);
         Collections.reverse(lce);
@@ -555,6 +558,7 @@ public void align3(String a, String b) {
                 case ISTATE: o = CigarOperator.I; break;
                 case DSTATE: o = CigarOperator.D; break;
             }
+            segment_length+=p.second;
             CigarElement e = new CigarElement(segment_length,o);
             lce.add(e);
             Collections.reverse(lce);
@@ -754,8 +758,13 @@ public void align3(String a, String b) {
         s2 = "AGACAGAGAAGG";
         testMe(s1,s2);
    */
-        String s1 = "CCAGCACACAGGTATCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTGTTTTTTGA";
-        String s2 = "CCAGCACACATCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTGTTTTTTGA";
+ //       String s1 = "CCAGCACACAGGTATCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTGTTTTTTGA";
+ //       String s2 = "CCAGCACACATCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTCTGTTTTTTGA";
+
+//        String s1 = "CCCATCTGTCTCCAATCTGCTGTTTTCCAAAAATTAGGGAACTTCAGTTTTCCCTTTGATACTCTGTATTTCTACCAACCACAACGCCAGGGCTGTCCTGCTTCTACAAGTGACAATGACAAATATAGGCCTGAAGGAAGATG";
+//        String s2 = "AAAATCTGTTTCCAATCTACTGTTTTCCAAAAATTAGGGAAGTTCAGTTTTCCCTTTGATACTCTGTTTCTACCAATCC";
+        String s1 = "CCCATCTGTCTCCAATCTGCTGTTTTCCAAAAATTAGGGAACTTCAGTTTTCCCTTTGATACTCTGTATTTCTACCAACCACAACGCCAGGGCTGTCCTGCTTCTACAAGTGACAATGACAAATATAGGCCTGAAGGAAGATG";
+        String s2 = "AAAATCTGTCTCCAATCTACTGTTTTCCAAAAATTAGGGAAGTTCAGTTTTCCCTTTGATACTCTGTTTCTACCAATCC";
            testMe(s1,s2);
     }
 
