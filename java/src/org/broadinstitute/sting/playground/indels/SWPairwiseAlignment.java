@@ -688,13 +688,19 @@ public void align3(String a, String b) {
             }
             // now pos1 = alignment_offset
         }
+                          System.out.println(AlignmentUtils.toString(getCigar()));
+                          System.out.println("seq1l="+s1.length()+"; seq2l=" + s2.length());
+                           System.out.println("offset="+alignment_offset);
 
+        try {
+        System.out.println("pos1="+pos1+"; pos2=" + pos2);
         for ( int i = 0 ; i < getCigar().numCigarElements() ; i++ ) {
             CigarElement ce = getCigar().getCigarElement(i) ;
             switch( ce.getOperator() ) {
                 case M:
                     for ( int k = 0 ; k < ce.getLength() ; k++ ) {
-                        if ( Character.toUpperCase(s1.charAt(pos1)) != Character.toUpperCase(s2.charAt(pos2)) ) bmm.append('*');
+                        if ( Character.toUpperCase(s1.charAt(pos1)) !=
+                                Character.toUpperCase(s2.charAt(pos2)) ) bmm.append('*');
                         else bmm.append(' ');
                         b1.append(s1.charAt(pos1++));
                         b2.append(s2.charAt(pos2++));
@@ -716,6 +722,10 @@ public void align3(String a, String b) {
                     break;
             }
         }
+        } catch(Exception e) {}
+        b1.append("<---");
+        b2.append("<---");
+        bmm.append("<---");
         bmm.append('\n');
         b1.append(s1,pos1,s1.length());
         bmm.append(b1);

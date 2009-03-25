@@ -1,13 +1,11 @@
 package org.broadinstitute.sting.playground.indels;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.TextCigarCodec;
+import net.sf.samtools.*;
 
 import java.util.*;
 import org.broadinstitute.sting.utils.PrimitivePair;
 import org.broadinstitute.sting.playground.utils.CountedObject;
+import org.broadinstitute.sting.playground.utils.CountedObjectComparatorAdapter;
 
 
 public class PileBuilder implements RecordPileReceiver {
@@ -100,7 +98,8 @@ public class PileBuilder implements RecordPileReceiver {
            String pileRef = referenceSequence.substring(startOnRef-1,stopOnRef);
 
            int totalMismatches = 0; // total mismatches across all reads
-           TreeSet< CountedObject<Indel> > all_indels = new TreeSet< CountedObject<Indel> >();
+           TreeSet< CountedObject<Indel> > all_indels = new TreeSet< CountedObject<Indel> >(
+                   new CountedObjectComparatorAdapter<Indel>(new IntervalComparator()));
 
            SequencePile originalAligns = new SequencePile(pileRef);
            for ( SAMRecord r : c ) {
@@ -121,9 +120,6 @@ public class PileBuilder implements RecordPileReceiver {
 //           System.out.print("; diameter of PILE1: "+ diameter(alignments1));
 //           System.out.println("; diameter of PILE2: "+ diameter(alignments2));
 
-//		   System.out.println("PILE 1: \n"+alignments1.toString());
-//		   System.out.println("PILE 2: \n"+alignments2.toString());
-
         SymmetricMatrix d = new SymmetricMatrix(piles.size());
         for ( int n = 0 ; n < piles.size() ; n++ ) {
             d.set(n,n,diameter(piles.get(n)));
@@ -133,15 +129,22 @@ public class PileBuilder implements RecordPileReceiver {
         }
 
         int new_mismatches = 0 ; // number of mismatches after re-alignment:
-        TreeSet< CountedObject<Indel> > new_indels = new TreeSet< CountedObject<Indel> >(); // new indels after realignment
+        TreeSet< CountedObject<Indel> > new_indels = new TreeSet< CountedObject<Indel> >(
+                new CountedObjectComparatorAdapter<Indel>(new IntervalComparator())
+        ); // new indels after realignment
         int shifted_reads = 0;
+        int smashed_reads = 0;
 
         List<SAMRecord> as_list = (List<SAMRecord>)c;        // ugly hack; need this to access records by ids
 
         System.out.println(d.format("%8.4g"));
         for ( int n = 0 ; n < piles.size() ; n++ ) {
 //            SWPairwiseAlignment consToRef = new SWPairwiseAlignment(pileRef,piles.get(n).getConsensus(),2.0,-10.0,-2.0,-1.0);
-            SWPairwiseAlignment consToRef = new SWPairwiseAlignment(pileRef,piles.get(n).getConsensus(),3.0,-1.0,-4,-0.5);
+            SWPairwiseAlignment consToRef = new SWPairwiseAlignment(pileRef,piles.get(n).getConsensus(),3.0,-1.0,-4.0,-0.5);
+
+            System.out.println("PILE " + n + " to REF ("+ (consToRef.getCigar().numCigarElements()-1)/2 +" indels):");
+            System.out.println(consToRef.toString());
+            System.out.println("PILE " + n +" (READS):\n" +piles.get(n).toString());
 
             MultipleAlignment ma = piles.get(n);
             for ( Integer id : ma ) {
@@ -150,14 +153,56 @@ public class PileBuilder implements RecordPileReceiver {
                 int ref_offset = cons_offset + startOnRef + consToRef.getAlignmentStart2wrt1();
                 if ( ref_offset != r.getAlignmentStart()) shifted_reads++;
                 Cigar cig = buildCigar(cons_offset, r.getReadLength(), consToRef.getCigar());
-                System.out.println(AlignmentUtils.toString(cig));
+                if ( cig.numCigarElements() != r.getCigar().numCigarElements() ) smashed_reads++;
+                SAMRecord rtest = new SAMRecord(r.getHeader());
+                rtest.setAlignmentStart(ref_offset);
+                rtest.setReadString(r.getReadString());
+                rtest.setReadUmappedFlag(r.getReadUnmappedFlag());
+                rtest.setCigar(cig);
+                AlignmentUtils.collectAndCountIndels(rtest,new_indels);
+                new_mismatches += AlignmentUtils.numMismatches(rtest,referenceSequence);
             }
 
-            System.out.println("PILE " + n + " to REF ("+ (consToRef.getCigar().numCigarElements()-1)/2 +" indels):");
-            System.out.println(consToRef.toString());
-            System.out.println("PILE " + n +" (READS):\n" +piles.get(n).toString());
         }
 
+        int discovered_indels = 0;
+        int discovered_support = 0;
+        int existing_indels = 0;
+        int existing_support = 0;
+        int existing_support_new = 0;
+        int discarded_indels = 0;
+        for ( CountedObject<Indel> ind : new_indels ) {
+            if ( ! all_indels.contains(ind) ) {
+                discovered_indels++;
+                discovered_support += ind.getCount();
+            } else {
+                existing_indels++;
+                existing_support_new += ind.getCount();
+            }
+        }
+        for ( CountedObject<Indel> ind : all_indels ) {
+            if ( ! new_indels.contains(ind )) {
+                discarded_indels++;
+            } else {
+                existing_support += ind.getCount();
+            }
+        }
+
+        System.out.print("TOTAL MISMATCHES: "+totalMismatches +" --> "+new_mismatches);
+        if ( totalMismatches > new_mismatches ) System.out.print("(-");
+        else System.out.print("(+");
+        System.out.println(Math.abs((new_mismatches - totalMismatches)*100.0/totalMismatches)+"%)");
+
+        System.out.println("CONFIRMED INDELS: "+existing_indels);
+        System.out.print("CONFIRMED INDEL SUPPORT: "+existing_support + " --> " + existing_support_new );
+        if ( existing_support > existing_support_new ) System.out.print("(-");
+        else System.out.print("(+");
+        System.out.println(Math.abs((existing_support- existing_support_new)*100.0/existing_support)+"%)");
+        System.out.println("DROPPED INDELS: " + discarded_indels);
+        System.out.println("DISCOVERED INDELS: " + discovered_indels) ;
+        System.out.println("DISCOVERED INDELS SUPPORT: "+discovered_support);
+        System.out.println("ALIGNMENTS SHIFTED: "+shifted_reads);
+        System.out.println("ALIGNMENTS WITH GAPS CHANGED: "+smashed_reads);
     }
 
     /** Assuming that a read of length l has a gapless, fully consumed align starting at s (ZERO-based) to some sequence X,
@@ -170,7 +215,7 @@ public class PileBuilder implements RecordPileReceiver {
      * @return
      */
     private Cigar buildCigar(int s, int l, Cigar baseCigar) {
-        int readpos = 0;
+   
         int refpos = 0;
 
         List<CigarElement> lce = new ArrayList<CigarElement>(5); // enough to keep 2 indels. should cover 99.999% of cases...
@@ -188,8 +233,9 @@ public class PileBuilder implements RecordPileReceiver {
 
         while ( refpos < s+l ) {
             celem = baseCigar.getCigarElement(i);
-            lce.add( new CigarElement(Math.min(celem.getLength(),l - refpos), celem.getOperator()) );
-            refpos += celem.getLength();
+     //       System.out.print("ref="+refpos+",s+l="+(s+l)+"len="+celem.getLength()+":");
+            lce.add( new CigarElement(Math.min(celem.getLength(),l + s - refpos), celem.getOperator()) );
+            if ( celem.getOperator() != CigarOperator.D ) refpos += celem.getLength();
             i++;
         }
         return new Cigar(lce);
