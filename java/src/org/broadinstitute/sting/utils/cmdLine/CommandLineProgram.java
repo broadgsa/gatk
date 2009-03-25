@@ -258,7 +258,7 @@ public abstract class CommandLineProgram {
 
     /**
      * Pass along a new set of valid command line arguments.  In this case,
-     * probably a class with @argument or @flag annotations.
+     * probably a class with @argument annotations.
      * @param source
      */
     private void addArgumentSource( Object source ) {

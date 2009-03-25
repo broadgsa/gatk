@@ -3,9 +3,12 @@ package org.broadinstitute.sting.utils.cmdLine;
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -289,9 +292,10 @@ public class ArgumentParser {
         }
         catch (UnrecognizedOptionException e) {
             // we don't care about unknown exceptions right now
-            logger.warn(e.getMessage());
-            if(!allowUnrecognized)
+            if(!allowUnrecognized) {
+                logger.warn(e.getMessage());
                 throw e;
+            }
         }
 
         // Apache CLI can ignore unrecognized arguments with a boolean flag, but
@@ -303,33 +307,26 @@ public class ArgumentParser {
         // logger.info("We have " + opts.size() + " options");
         for (Option opt : opts) {
             if (cmd.hasOption(opt.getOpt())) {
-                if (opt.hasArg()) {
-                    //logger.info("looking at " + m_storageLocations.get(opt.getLongOpt()));
-                    Object obj = m_storageLocations.get(opt.getLongOpt()).first;
-                    Field field = m_storageLocations.get(opt.getLongOpt()).second;
+                //logger.info("looking at " + m_storageLocations.get(opt.getLongOpt()));
+                Object obj = m_storageLocations.get(opt.getLongOpt()).first;
+                Field field = m_storageLocations.get(opt.getLongOpt()).second;
 
-                    try {
-                        field.set(obj, constructFromString(field, cmd.getOptionValue(opt.getOpt())));
-                    } catch (IllegalAccessException e) {
-                        logger.fatal("processArgs: cannot convert field " + field.toString());
-                        throw new RuntimeException("processArgs: Failed conversion " + e.getMessage());
-                    }
-                } else {
-                    Object obj = m_storageLocations.get(opt.getLongOpt()).first;
-                    Field field = m_storageLocations.get(opt.getLongOpt()).second;
-
-                    try {
-                        //logger.fatal("about to parse field " + f.getName());
+                try {
+                    if (opt.hasArg())
+                        field.set(obj, constructFromString(field, cmd.getOptionValues(opt.getOpt())));
+                    else
                         field.set(obj, new Boolean(true));
-                    } catch (IllegalAccessException e) {
-                        logger.fatal("processArgs: cannot convert field " + field.toString());
-                        throw new RuntimeException("processArgs: Failed conversion " + e.getMessage());
-                    }
+                } catch (IllegalAccessException e) {
+                    logger.fatal("processArgs: cannot convert field " + field.toString());
+                    throw new RuntimeException("processArgs: Failed conversion " + e.getMessage());
                 }
             }
         }
     }
 
+    /**
+     * Simple class to wrap the posix parser and get access to the parsed cmd object.
+     */
     private class OurPosixParser extends PosixParser {
         public CommandLine getCmd() { return cmd; }
     }
@@ -349,10 +346,19 @@ public class ArgumentParser {
             String shortName = (arg.shortName().length() != 0) ? arg.shortName() : fullName.substring(0,1);
             if(shortName.length() != 1)
                 throw new IllegalArgumentException("Invalid short name: " + shortName);
-            String description = arg.required() ? "(Required Flag) " + arg.doc() : arg.doc();
+            boolean isFlag = (field.getType() == Boolean.class) || (field.getType() == Boolean.TYPE);
+            boolean isCollection = field.getType().isArray() || Collection.class.isAssignableFrom(field.getType());
 
-            // TODO: Handle flags, handle lists
-            OptionBuilder ob = OptionBuilder.withLongOpt(fullName).withArgName(fullName).hasArg();
+            if( isFlag && isCollection )
+                throw new IllegalArgumentException("Can't have an array of flags.");
+
+            String description = arg.doc();
+            if( arg.required() )
+                description = (isFlag ? "(Required Flag) " : "(Required Option) ") + description;
+
+            OptionBuilder ob = OptionBuilder.withLongOpt(fullName);
+            if( !isFlag ) ob = ob.withArgName(fullName);
+            ob = isCollection ? ob.hasArgs() : ob.hasArg();
             if( arg.required() ) ob = ob.isRequired();
             if( description.length() != 0 ) ob = ob.withDescription( description );
 
@@ -362,8 +368,68 @@ public class ArgumentParser {
         }
     }
 
-    private Object constructFromString(Field f, String str) {
-        Type type = f.getType();
+    private Object constructFromString(Field f, String[] strs) {
+        Class type = f.getType();
+
+        if( Collection.class.isAssignableFrom(type) ) {
+            Collection collection = null;
+            Class containedType = null;
+
+            // If this is a parameterized collection, find the contained type.  If blow up if only one type exists.
+            if( f.getGenericType() instanceof ParameterizedType ) {
+                ParameterizedType parameterizedType = (ParameterizedType)f.getGenericType();
+                if( parameterizedType.getActualTypeArguments().length > 1 )
+                    throw new IllegalArgumentException("Unable to determine collection type of field: " + f.toString());
+                containedType = (Class)parameterizedType.getActualTypeArguments()[0];
+            }
+            else
+                containedType = String.class;
+
+            // If this is a generic interface, pick a concrete implementation to create and pass back.
+            // Because of type erasure, don't worry about creating one of exactly the correct type.
+            if( Modifier.isInterface(type.getModifiers()) || Modifier.isAbstract(type.getModifiers()) )
+            {
+                if( java.util.List.class.isAssignableFrom(type) ) type = ArrayList.class;
+                else if( java.util.Queue.class.isAssignableFrom(type) ) type = java.util.ArrayDeque.class;
+                else if( java.util.Set.class.isAssignableFrom(type) ) type = java.util.TreeSet.class;
+            }
+
+            try
+            {
+                collection = (Collection)type.newInstance();
+            }
+            catch( Exception ex ) {
+                // Runtime exceptions are definitely unexpected parsing simple collection classes.
+                throw new IllegalArgumentException(ex);
+            }
+
+            for( String str: strs )
+                collection.add( constructSingleElement(f,containedType,str) );
+
+            return collection;
+        }
+        else if( type.isArray() ) {
+            Class containedType = type.getComponentType();
+
+            Object arr = Array.newInstance(containedType,strs.length);
+            for( int i = 0; i < strs.length; i++ )
+                Array.set( arr,i,constructSingleElement(f,containedType,strs[i]) );
+            return arr;
+        }
+        else  {
+            if( strs.length != 1 )
+                throw new IllegalArgumentException("Passed multiple arguments to an object expecting a single value.");
+            return constructSingleElement(f,type,strs[0]);
+        }
+    }
+
+    /**
+     * Builds a single element of the given type.
+     * @param f Implies type of data to construct.
+     * @param str String representation of data.
+     * @return parsed form of String.
+     */
+    private Object constructSingleElement(Field f, Class type, String str) {
         // lets go through the types we support
         if (type == Boolean.TYPE) {
             boolean b = false;
@@ -378,10 +444,11 @@ public class ArgumentParser {
         } else if (type == Float.TYPE) {
             Float fl = Float.valueOf(str);
             return fl;
-        } else {
+        }
+        else {
             Constructor ctor = null;
             try {
-                ctor = f.getType().getConstructor(String.class);
+                ctor = type.getConstructor(String.class);
                 return ctor.newInstance(str);
             } catch (NoSuchMethodException e) {
                 logger.fatal("constructFromString:NoSuchMethodException: cannot convert field " + f.toString());
@@ -396,7 +463,6 @@ public class ArgumentParser {
                 logger.fatal("constructFromString:InstantiationException: cannot convert field " + f.toString());
                 throw new RuntimeException("constructFromString:InstantiationException: Failed conversion " + e.getMessage());
             }
-
         }
     }
 
