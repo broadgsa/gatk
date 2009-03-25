@@ -6,45 +6,95 @@ import java.util.LinkedList;
 import java.io.*;
 
 /**
- * Created by IntelliJ IDEA.
- * User: depristo
- * Date: Mar 25, 2009
- * Time: 10:46:07 AM
- * To change this template use File | Settings | File Templates.
+ * Support for Python-like xreadlines() function as a class.  This is an iterator and iterable over
+ * Strings, each corresponding a line in the file (minus newline).  Enables the very simple accessing
+ * of lines in a file as:
+ *
+ * xReadLines reader = new xReadLines(new File(file_name));
+ * List<String> lines = reader.readLines();
+ * reader.close();
+ *
+ * or
+ *
+ * for ( String line : new xReadLines(new File(file_name)) {
+ *   doSomeWork(line);
+ * }
+ *
+ * For the love of god, please use this system for reading lines in a file.
  */
 public class xReadLines implements Iterator<String>, Iterable<String> {
-    BufferedReader in;          // The stream we're reading from
-    String nextline = null;     // Return value of next call to next()
+    private BufferedReader in;          // The stream we're reading from
+    private String nextline = null;     // Return value of next call to next()
+    private boolean trimWhitespace = true;
+
+    /**
+     * Creates a new xReadLines object to read lines from filename
+     *
+     * @param filename
+     * @throws FileNotFoundException
+     */
+    public xReadLines(final File filename, final boolean trimWhitespace) throws FileNotFoundException {
+        this(new FileReader(filename), trimWhitespace);
+    }
 
     public xReadLines(final File filename) throws FileNotFoundException {
-        // Open the file and read and remember the first line.
-        // We peek ahead like this for the benefit of hasNext().
-        this(new FileReader(filename));
+        this(filename, true);
+    }
+
+    /**
+     * Creates a new xReadLines object to read lines from fileReader
+     *
+     * @param fileReader
+     * @throws FileNotFoundException
+     */
+    public xReadLines(final FileReader fileReader, final boolean trimWhitespace) throws FileNotFoundException {
+        this(new BufferedReader(fileReader), trimWhitespace);
     }
 
     public xReadLines(final FileReader fileReader) throws FileNotFoundException {
-        // Open the file and read and remember the first line.
-        // We peek ahead like this for the benefit of hasNext().
-        this(new BufferedReader(fileReader));
+        this(fileReader, true);
+    }
+
+    /**
+     * Creates a new xReadLines object to read lines from an input stream
+     *
+     * @param inputStream
+     * @throws FileNotFoundException
+     */
+    public xReadLines(final InputStream inputStream, final boolean trimWhitespace) throws FileNotFoundException {
+        this(new BufferedReader(new InputStreamReader(inputStream)), trimWhitespace);
     }
 
     public xReadLines(final InputStream inputStream) throws FileNotFoundException {
-        // Open the file and read and remember the first line.
-        // We peek ahead like this for the benefit of hasNext().
-        this(new BufferedReader(new InputStreamReader(inputStream)));
+        this(inputStream, true);
     }
 
-    public xReadLines(final BufferedReader in) throws FileNotFoundException {
-        // Open the file and read and remember the first line.
-        // We peek ahead like this for the benefit of hasNext().
+
+    /**
+     * Creates a new xReadLines object to read lines from an bufferedReader
+     *
+     * @param reader
+     * @throws FileNotFoundException
+     */
+    public xReadLines(final BufferedReader reader, final boolean trimWhitespace) throws FileNotFoundException {
         try {
-            this.in = in;
+            this.in = reader;
             nextline = readNextLine();
+            this.trimWhitespace = trimWhitespace;
         } catch(IOException e) {
             throw new IllegalArgumentException(e);
         }
     }
 
+    public xReadLines(final BufferedReader reader) throws FileNotFoundException {
+        this(reader, true);
+    }
+
+    /**
+     * Reads all of the lines in the file, and returns them as a list of strings
+     *
+     * @return
+     */
     public List<String> readLines() {
         List<String> lines = new LinkedList<String>();
         for ( String line : this ) {
@@ -53,25 +103,33 @@ public class xReadLines implements Iterator<String>, Iterable<String> {
         return lines;
     }
 
+    /**
+     * I'm an iterator too...
+     * @return
+     */
     public Iterator<String> iterator() {
         return this;
     }
 
-    // If the next line is non-null, then we have a next line
     public boolean hasNext() {
         return nextline != null;
     }
 
+    /**
+     * Actually reads the next line from the stream, not accessible publically
+     * @return
+     */
     private String readNextLine() throws IOException {
         String nextline = in.readLine();   // Read another line
-        if (nextline == null)
-            return null;
-        else
+        if (nextline != null && trimWhitespace )
             nextline = nextline.trim();
         return nextline;
     }
 
-    // Return the next line, but first read the line that follows it.
+    /**
+     * Returns the next line (minus whitespace) 
+     * @return
+     */
     public String next() {
         try {
             String result = nextline;
