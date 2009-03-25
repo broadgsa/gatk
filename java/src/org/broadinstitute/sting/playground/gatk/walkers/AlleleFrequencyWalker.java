@@ -12,12 +12,11 @@ import java.util.Arrays;
 
 public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstimate, Integer> {
 
+    int N=2;
 
-    public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
-
-        // Set number of chromosomes, N, to 2 for now
-        int N = 2;
-
+    public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) 
+    {
+        // Convert context data into bases and 4-base quals
         // Convert context data into bases and 4-base quals
         String bases = getBases(context);
         double quals[][] = getOneBaseQuals(context);
@@ -42,13 +41,19 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
 
         AlleleFrequencyEstimate alleleFreq = AlleleFrequencyEstimator(context.getLocation().toString(), N, bases.getBytes(), quals, refnum, altnum, bases.length());
 
+        alleleFreq.notes = String.format("A:%d C:%d G:%d T:%d", 
+                                            base_counts[nuc2num['A']],
+                                            base_counts[nuc2num['C']],
+                                            base_counts[nuc2num['G']],
+                                            base_counts[nuc2num['T']]);
+
         // Print dbSNP data if its there
-        if (false) {
+        if (true) {
             for ( ReferenceOrderedDatum datum : rodData ) {
                 if ( datum != null && datum instanceof rodDbSNP) {
                     rodDbSNP dbsnp = (rodDbSNP)datum;
                     //System.out.printf("  DBSNP %s on %s => %s%n", dbsnp.toSimpleString(), dbsnp.strand, Utils.join("/", dbsnp.getAllelesFWD()));
-                    System.out.printf("ROD: %s ",dbsnp.toMediumString());
+                    alleleFreq.notes += String.format(" ROD: %s ",dbsnp.toMediumString());
                 }
             }
         }
@@ -112,7 +117,7 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
         double qstar;
         int qstar_N;
 
-        double qstep = 0.01;
+        double qstep = 0.001;
         double qend = 1.0 + qstep / 10; // makes sure we get to 1.0 even with rounding error of qsteps accumulating
 
         double best_qstar     = Math.log10(0);
@@ -123,13 +128,15 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
         double best_pqG = Math.log10(0);
         double best_pG  = Math.log10(0);
 
-        for (double q=0.0; q <= qend; q += qstep) // hypothetic allele balance that we sample over
+        // hypothetic allele balance that we sample over
+        for (double q=0.0; q <= qend; q += qstep) 
         {
             long q_R = Math.round(q*bases.length);
-            for (qstar = epsilon + ((1.0 - 2*epsilon)/N), qstar_N = 1; qstar <= 1.0; qstar += (1.0 - 2*epsilon)/N, qstar_N++) // qstar - true allele balances
+            double pDq = P_D_q(bases, quals, q, refnum, altnum);
+
+            // qstar - true allele balances
+            for (qstar = epsilon + ((1.0 - 2*epsilon)/N), qstar_N = 1; qstar <= 1.0; qstar += (1.0 - 2*epsilon)/N, qstar_N++) 
             { 
-                // for N=2: these are 0.0 + epsilon, 0.5, 1.0 - epsilon corresponding to reference, het-SNP, homo-SNP
-                double pDq = P_D_q(bases, quals, q, refnum, altnum);
                 double pqG = P_q_G(bases, N, q, qstar, q_R);
                 double pG  = P_G(N, qstar_N); 
                 double posterior = pDq + pqG + pG;
@@ -195,7 +202,8 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
 
     static double P_q_G(byte [] bases, int N, double q, double qstar, long q_R) 
     {
-        return Math.log10(binomialProb(q_R, bases.length, qstar));
+        if (N != 2) { return 0.0; }
+        else { return Math.log10(binomialProb(q_R, bases.length, qstar)); }
     }
 
     static double P_G(int N, int qstar_N) 
@@ -219,11 +227,29 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
     }
 
     static double binomialProb(long k, long n, double p) {
-        // k - numebr of successes
+        // k - number of successes
         // n - number of Bernoulli trials
         // p - probability of success
 
-        return (double)nchoosek(n, k) * Math.pow(p, k) * Math.pow(1-p, n-k);
+        if ((n*p < 5) && (n*(1-p) < 5))
+        {
+            // For small n and the edges, compute it directly.
+            return (double)nchoosek(n, k) * Math.pow(p, k) * Math.pow(1-p, n-k);
+        }
+        else
+        {
+            // For large n, approximate with a gaussian.
+            double mean  = (double)(n*p);
+            double var   = Math.sqrt((double)(n*p)*(1.0-p));
+            double ans   = (double)(1.0 / (var*Math.sqrt(2*Math.PI)))*Math.exp(-1.0 * Math.pow((double)k-mean,2)/(2.0*var*var));
+            double check = (double)nchoosek(n, k) * Math.pow(p, k) * Math.pow(1-p, n-k);
+            double residual = ans - check;
+
+            //System.out.format("DBG: %d %.10f %.10f\n", nchoosek(n, k), Math.pow(p, k), Math.pow(1-p, n-k));
+            //System.out.format("RESIDUAL: (%d,%d,%f) %.10f %.10f %.10f\n", k, n, p, ans, check, residual);
+
+            return check;
+        }
     }
 
     static long nchoosek(long n, long k) {
@@ -253,10 +279,8 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
     {
         // Print RESULT data for confident calls
         if ((alleleFreq.LOD >= 5) || (alleleFreq.LOD <= -5)) { System.out.print(alleleFreq.asTabularString()); }
-
         return 0;
     }
-
 
     static int nuc2num[];
     static char num2nuc[];
@@ -276,6 +300,9 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
         num2nuc[1] = 'C';
         num2nuc[2] = 'T';
         num2nuc[3] = 'G';
+
+        if (System.getenv("N") != null) { this.N = (new Integer(System.getenv("N"))).intValue(); }
+        else { this.N = 2; }
     }
 
 
@@ -295,36 +322,157 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
 
     public static void main(String[] args)
     {
-        int N = 2;
 
-        byte[] het_bases = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  
-                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-        double[][] het_quals = {{0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
-                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
-                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
-                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
-                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
-                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
-                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
-                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
-                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
-                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
-                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
-                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
-                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
-                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
-                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
-                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
-                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
-                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
-                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
-                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0}};
+        AlleleFrequencyWalker.binomialProb(5,10,0.5);
+        AlleleFrequencyWalker.binomialProb(50,100,0.5);
+        AlleleFrequencyWalker.binomialProb(1500,2965,0.508065);
 
-        AlleleFrequencyWalker w = new AlleleFrequencyWalker();
-        AlleleFrequencyEstimate estimate = w.AlleleFrequencyEstimator("null", N, het_bases, het_quals, 0, 1, 20);
+        {
+            int N = 2;
+	        byte[] het_bases = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  
+	                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+	        double[][] het_quals = {{0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+	                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+	                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+	                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+	                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+	                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+	                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+	                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+	                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+	                                {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0}};
+	        AlleleFrequencyWalker w = new AlleleFrequencyWalker();
+	        AlleleFrequencyEstimate estimate = w.AlleleFrequencyEstimator("null", N, het_bases, het_quals, 0, 1, 20);
+	        System.out.print(String.format("50%% Het : %s %c %c %f %f %f %d %s\n", 
+	                                        "null", estimate.ref, estimate.alt, estimate.qhat, estimate.qstar, estimate.LOD, 20, "null"));
+        }
 
-        System.out.print(String.format("50/50 Het : %s %c %c %f %f %f %d %s\n", 
-                                        "null", estimate.ref, estimate.alt, estimate.qhat, estimate.qstar, estimate.LOD, 20, "null"));
+        {
+	        byte[] het_bases = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+	                        
+	        double[][] het_quals = {
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                    {0.999, 0.001/3.0, 0.001/3.0, 0.001/3.0},
+                                   };
+
+            assert(het_bases.length == het_quals.length);
+
+            int N = 10;
+	        AlleleFrequencyWalker w = new AlleleFrequencyWalker();
+            w.N = 10;
+	        AlleleFrequencyEstimate estimate = w.AlleleFrequencyEstimator("null", N, het_bases, het_quals, 0, 1, 20);
+	        System.out.print(String.format("10%% Het : %s %c %c %f %f %f %d %s\n", 
+	                                        "null", estimate.ref, estimate.alt, estimate.qhat, estimate.qstar, estimate.LOD, 20, "null"));
+        }
 
     }
 

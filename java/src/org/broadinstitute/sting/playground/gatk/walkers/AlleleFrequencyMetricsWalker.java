@@ -190,9 +190,10 @@ public class AlleleFrequencyMetricsWalker extends BasicLociWalker<AlleleFrequenc
     public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
     {
         // Print RESULT data for confident calls
-        if ((alleleFreq.LOD >= 5) || (alleleFreq.LOD <= -5)) { System.out.print(alleleFreq.asTabularString()); }
+        //if ((alleleFreq.LOD >= 5) || (alleleFreq.LOD <= -5)) { System.out.print(alleleFreq.asTabularString()); }
+        System.out.print(alleleFreq.asTabularString()); 
 
-        if (this.num_loci_total % 10000 == 0) { printMetrics(); }
+        if (this.num_loci_total % 1000 == 0) { printMetrics(); }
 
         return "null";
     }
