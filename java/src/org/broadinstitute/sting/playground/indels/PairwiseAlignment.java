@@ -128,10 +128,26 @@ public class PairwiseAlignment {
 				// lets extend these kmer matches and count mismatches:
 				
 				for ( Integer trial_offset : offsets ) {
-					int mm_cnt = countMismatches(is1.getSequence(), is2.getSequence(), trial_offset,next_mm); 
-					if ( mm_cnt < best_mm ) {
+					int mm_cnt = countMismatches(is1.getSequence(), is2.getSequence(), trial_offset,next_mm+1);
+//                    if ( (i1==4||i1==8) && i2==18) {
+//                        if ( i1== 18 ) System.out.print("to " + i2+" : ");
+//                        else  System.out.print("to " + i1+" : ");
+//                        System.out.println("offset="+trial_offset.toString()+
+//                                "; mm=" + countMismatches(is1.getSequence(),is2.getSequence(),trial_offset)+
+//                                "(mm_cnt="+mm_cnt+")"+
+//                                "; dist="+distance(is1.getSequence(),is2.getSequence(),trial_offset)+
+//                                "; overlap="+getOverlap(is1.getSequence(),is2.getSequence(),trial_offset));
+//                    }
+                    // save current offset if alignment at this offset has fewer mismatches tham everything we've
+                    // seen so far, or if it has same number of mismatches but has larger overlap (i.e. distance
+                    // between sequences is smaller)
+					if ( mm_cnt < best_mm ||
+                           ( ( mm_cnt == best_mm ) &&
+                            getOverlap(is1.getSequence(),is2.getSequence(),alignment_offset) <
+                                    0.8*getOverlap(is1.getSequence(),is2.getSequence(),trial_offset) ) ) {
+//                        if ( (i1==4||i1==8) && i2==18) System.out.println("Saved offset "+trial_offset.toString());
 						alignment_offset = trial_offset;
-						next_mm = best_mm;
+ 						next_mm = best_mm;
 						best_mm = mm_cnt;
 					} else {
 						if ( mm_cnt < next_mm ) next_mm = mm_cnt;

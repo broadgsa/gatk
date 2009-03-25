@@ -132,7 +132,7 @@ public class ConsensusSequence {
      */
     public char baseAt(int offset) {
         assert offset >= startOffset && offset < startOffset + coverage.size() : "Offset out of bounds";
-        int [] cov = coverage.get(offset+(int)referencePos);
+        int [] cov = coverage.get(offset-startOffset);
         int total_cov = cov[0] + cov[1] + cov[2] + cov[3];
         int bmax = 0;
         char base = 'N';
@@ -153,7 +153,7 @@ public class ConsensusSequence {
      */
     public Pair<Character,Integer> baseWithCountAt(int offset) {
         assert offset >= startOffset && offset < startOffset + coverage.size() : "Offset out of bounds";
-        int [] cov = coverage.get(offset+(int)referencePos);
+        int [] cov = coverage.get(offset-startOffset);
         int total_cov = cov[0] + cov[1] + cov[2] + cov[3];
         int bmax = 0;
         char base = 'N';
@@ -174,7 +174,7 @@ public class ConsensusSequence {
      */
     public int coverageAt(int offset) {
         if ( offset < startOffset || offset >= startOffset + coverage.size() ) return 0;
-        int [] cov = coverage.get(offset+(int)referencePos);
+        int [] cov = coverage.get(offset-startOffset);
         return cov[0]+cov[1]+cov[2]+cov[3];
     }
 

@@ -1,9 +1,13 @@
 package org.broadinstitute.sting.playground.indels;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.Cigar;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.TextCigarCodec;
 
 import java.util.*;
 import org.broadinstitute.sting.utils.PrimitivePair;
+import org.broadinstitute.sting.playground.utils.CountedObject;
 
 
 public class PileBuilder implements RecordPileReceiver {
@@ -84,27 +88,34 @@ public class PileBuilder implements RecordPileReceiver {
     public void receive(Collection<SAMRecord> c) {
            IndexedSequence[] seqs = new IndexedSequence[c.size()];
            int i = 0;
-           int left = 1000000000;
-           int right = 0;
+           int startOnRef = 1000000000;  // absolute start (leftmost) position of the pile of reads on the ref
+           int stopOnRef = 0; // absolute stop (rightmost) position of the pile of reads on the ref (rightmost alignment end)
            for ( SAMRecord r : c ) {
                 seqs[i++] = new IndexedSequence(r.getReadString(),KmerSize);
-                left = Math.min(left, r.getAlignmentStart() );
-                right = Math.max(right,r.getAlignmentEnd());
+                startOnRef = Math.min(startOnRef, r.getAlignmentStart() );
+                stopOnRef = Math.max(stopOnRef,r.getAlignmentEnd());
            }
 
-           SequencePile originalAligns = new SequencePile(referenceSequence.substring(left-1,right));
+           // part of the reference covered by original alignments:
+           String pileRef = referenceSequence.substring(startOnRef-1,stopOnRef);
+
+           int totalMismatches = 0; // total mismatches across all reads
+           TreeSet< CountedObject<Indel> > all_indels = new TreeSet< CountedObject<Indel> >();
+
+           SequencePile originalAligns = new SequencePile(pileRef);
            for ( SAMRecord r : c ) {
                originalAligns.addAlignedSequence(r.getReadString(), r.getReadNegativeStrandFlag(),
-                       r.getCigar(), r.getAlignmentStart() - left );
+                       r.getCigar(), r.getAlignmentStart() - startOnRef );
+               totalMismatches += AlignmentUtils.numMismatches(r,referenceSequence);
+               AlignmentUtils.collectAndCountIndels(r,all_indels);
            }
+
            System.out.println("\n#############################################################################");
            System.out.println("ORIGINAL ALIGNMENT: \n");
-           originalAligns.colorprint(true);
+           originalAligns.dotprint(true);
            System.out.println("\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++") ;
 
            List<MultipleAlignment> piles = doMultipleAlignment2(seqs);
-
-            
 
 //           System.out.print("Distance between final piles: "+distance(alignments1, alignments2));
 //           System.out.print("; diameter of PILE1: "+ diameter(alignments1));
@@ -120,10 +131,68 @@ public class PileBuilder implements RecordPileReceiver {
                 d.set(n,m,distance(piles.get(n), piles.get(m)));
             }
         }
+
+        int new_mismatches = 0 ; // number of mismatches after re-alignment:
+        TreeSet< CountedObject<Indel> > new_indels = new TreeSet< CountedObject<Indel> >(); // new indels after realignment
+        int shifted_reads = 0;
+
+        List<SAMRecord> as_list = (List<SAMRecord>)c;        // ugly hack; need this to access records by ids
+
         System.out.println(d.format("%8.4g"));
         for ( int n = 0 ; n < piles.size() ; n++ ) {
-            System.out.println("PILE " + n +"\n" +piles.get(n).toString());
+//            SWPairwiseAlignment consToRef = new SWPairwiseAlignment(pileRef,piles.get(n).getConsensus(),2.0,-10.0,-2.0,-1.0);
+            SWPairwiseAlignment consToRef = new SWPairwiseAlignment(pileRef,piles.get(n).getConsensus(),3.0,-1.0,-4,-0.5);
+
+            MultipleAlignment ma = piles.get(n);
+            for ( Integer id : ma ) {
+                SAMRecord r = as_list.get(id);
+                int cons_offset = ma.getOffsetWrtConsensus(id); // offset of the read 'id' wrt multiple alignment's full consensus seq
+                int ref_offset = cons_offset + startOnRef + consToRef.getAlignmentStart2wrt1();
+                if ( ref_offset != r.getAlignmentStart()) shifted_reads++;
+                Cigar cig = buildCigar(cons_offset, r.getReadLength(), consToRef.getCigar());
+                System.out.println(AlignmentUtils.toString(cig));
+            }
+
+            System.out.println("PILE " + n + " to REF ("+ (consToRef.getCigar().numCigarElements()-1)/2 +" indels):");
+            System.out.println(consToRef.toString());
+            System.out.println("PILE " + n +" (READS):\n" +piles.get(n).toString());
         }
+
+    }
+
+    /** Assuming that a read of length l has a gapless, fully consumed align starting at s (ZERO-based) to some sequence X,
+     * and that sequence's alignment to some reference Y is described by baseCigar, builds a cigar for the direct
+     * alignment of the read to Y (i.e. if the alignment of X to Y contains indel(s) and the read spans them, the
+     * indels will be inserted into the new cigar for read-Y alignment).
+     * @param s
+     * @param l
+     * @param baseCigar
+     * @return
+     */
+    private Cigar buildCigar(int s, int l, Cigar baseCigar) {
+        int readpos = 0;
+        int refpos = 0;
+
+        List<CigarElement> lce = new ArrayList<CigarElement>(5); // enough to keep 2 indels. should cover 99.999% of cases...
+
+        CigarElement celem = null;
+        int i = 0;
+        while ( refpos <= s ) {
+            celem = baseCigar.getCigarElement(i);
+            refpos+=celem.getLength();
+            i++;
+        }
+        // we now sit on cigar element that contains start s, and refpos points to the end of that element; i points to next element
+
+        lce.add( new CigarElement(Math.min(refpos-s,l),celem.getOperator()) );
+
+        while ( refpos < s+l ) {
+            celem = baseCigar.getCigarElement(i);
+            lce.add( new CigarElement(Math.min(celem.getLength(),l - refpos), celem.getOperator()) );
+            refpos += celem.getLength();
+            i++;
+        }
+        return new Cigar(lce);
     }
 
 	public void initPairwiseAlignments( IndexedSequence [] seqs ) {
@@ -308,7 +377,7 @@ public class PileBuilder implements RecordPileReceiver {
         return d_av;
     }
 
-    /** Computes average distance from sequence i to multiple alignment a for the specified offset of i wrt a
+    /** Computes average distance from sequence i to multiple alignment a for the specified offset of 'i' wrt 'a'
      *  and returns that distance and pair of sequence indices, on which the specified offset is realized
      * @param a
      * @param i

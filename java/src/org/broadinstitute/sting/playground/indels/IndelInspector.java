@@ -181,33 +181,7 @@ public class IndelInspector extends CommandLineProgram {
 		return errs;
 	}
 
-    private static int numMismatchesDirect(SAMRecord r, ReferenceSequence ref) {
-        if ( r.getReadUnmappedFlag() ) return 1000000;
-        int i_ref = r.getAlignmentStart()-1; // position on the ref
-        int i_read = 0;                    // position on the read
-        int mm_count = 0; // number of mismatches
-        Cigar c = r.getCigar();
-        for ( int k = 0 ; k < c.numCigarElements() ; k++ ) {
-            CigarElement ce = c.getCigarElement(k);
-            switch( ce.getOperator() ) {
-                case M:
-                    for ( int l = 0 ; l < ce.getLength() ; l++ ) {
-                        if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) !=
-                             Character.toUpperCase((char)ref.getBases()[i_ref]) ) mm_count++;
-                        i_ref++;
-                        i_read++;
-                    }
-                    break;
-                case I: i_read += ce.getLength(); break;
-                case D: i_ref += ce.getLength(); break;
-                default: throw new RuntimeException("Unrecognized cigar element");
-            }
-
-        }
-        return mm_count;
-    }
-	
-	/** This method is a HACK: it is designed to work around the current bug in NM tags created  at CRD */
+    /** This method is a HACK: it is designed to work around the current bug in NM tags created  at CRD */
 	private static int numMismatches(SAMRecord r) throws RuntimeException {
 		
 		// NM currently stores the total number of mismatches in all blocks + 1

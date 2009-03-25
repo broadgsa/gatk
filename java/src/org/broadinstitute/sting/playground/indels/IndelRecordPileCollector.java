@@ -191,8 +191,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
      * @param r
      * @throws RuntimeException
      */
-    @Override
-	public void receive(final SAMRecord r) throws RuntimeException {
+    public void receive(final SAMRecord r) throws RuntimeException {
 		
 		if ( r.getReadUnmappedFlag() ) return; // read did not align, nothing to do
 		

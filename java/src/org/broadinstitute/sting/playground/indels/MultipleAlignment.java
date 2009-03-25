@@ -151,8 +151,20 @@ public class MultipleAlignment implements Iterable<Integer>  {
 		return alignment_offsets.get(index.get(id));
 	}
 
+    /** Returns external id of the read the offsets of this multiple alignment are based upon (i.e. all the offsets
+     * are specified wrt the base read).
+     * @return
+     */
+    public int getBaseReadId() { return ext_ids.get(0); }
 
-
+    /** Returns offset of the read specified by its external id wrt the start of the consensus sequence in this
+     * multiple alignment (consenus sequence is a major vote union of all the reads in this alignment).
+     * @param id
+     * @return
+     */
+    public int getOffsetWrtConsensus(int id) {
+        return getOffsetById (id)- consensus.getStartOffset();
+    }
 
 	/** Returns true if the alignment already contains sequence with the specified id.
 	 * 
@@ -235,49 +247,16 @@ public class MultipleAlignment implements Iterable<Integer>  {
 		
 		if ( seqs.size() == 0 ) return b.toString();
 		
-//		int first_offset = 0; // offset of the first sequence wrt the start of the MSA
         final int first_offset = -consensus.getStartOffset();
-//        int msa_length = 0;
-//		for ( int i = 0 ; i < seqs.size() ; i++ ) {
-//			if ( -alignment_offsets.get(i) > first_offset ) first_offset = -alignment_offsets.get(i);
-//            msa_length = Math.max( alignment_offsets.get(i)+seqs.get(i).length() , msa_length );
-//		}
 
-//        msa_length += first_offset;
         final int msa_length = consensus.length();
-//        int [] cov = new int[4];
-//        char[] bases = { 'A' , 'C', 'G', 'T' };
         char[][] consensusString = new char[4][msa_length];
 
-        for ( int i = -first_offset ; i < msa_length - first_offset ; i++ ) {
-//            cov[0] = cov[1] = cov[2] = cov[3] = 0;
-//            for ( int j = 0 ; j < seqs.size(); j++ ) {
-//                // offset of the sequence j wrt start of the msa region
-//                int seq_offset = first_offset + alignment_offsets.get(j);
-//                if ( i < seq_offset || i >= seq_offset + seqs.get(j).length() ) continue; // sequence j has no bases at position i
-//                int base = -1;
-//                switch( Character.toUpperCase(seqs.get(j).charAt(i-seq_offset)) ) {
-//                   case 'A': base = 0; break;
-//                    case 'C': base = 1 ; break;
-//                    case 'G': base = 2 ; break;
-//                    case 'T': base = 3 ; break;
-//                }
-//                if ( base >= 0 ) cov[base]++;
-//            }
-//            int total_cov = cov[0] + cov[1] + cov[2] + cov[3];
-//            int bmax = 0;
-//            int mm = 0;
+        for ( int i = 0 ; i < msa_length ; i++ ) {
 
             Pair<Character,Integer> base = consensus.baseWithCountAt(i-first_offset);
             consensusString[3][i] = base.first;
-//            for ( int z = 0; z < 4 ; z++ ) {
-//                if ( cov[z] > bmax ) {
-//                    bmax = cov[z];
-//                    consensus[3][i] = bases[z];
-//                    mm = total_cov - bmax;
-//                }
-//            }
-            int mm = consensus.coverageAt(i) - base.second;
+            int mm = consensus.coverageAt(i-first_offset) - base.second;
             if ( mm > 0 ) {
                 consensusString[2][i] = '*';
                 if ( mm > 9 ) consensusString[0][i] = Character.forDigit(mm/10,10);
@@ -306,6 +285,10 @@ public class MultipleAlignment implements Iterable<Integer>  {
 //		b.append(best_mm+" mismatches, "+ next_mm + " next best, " + getOverlap() + " overlapping bases, distance=" + distance() + "\n");
 		return b.toString();
 	}
+
+    public String getConsensus() {
+        return consensus.getSequence();
+    }
 
     public String toString() { return toString(true); }
 
@@ -338,7 +321,6 @@ public class MultipleAlignment implements Iterable<Integer>  {
 
     }
 
-	@Override
 	public Iterator<Integer> iterator() {
 		return sequenceIdIterator();
 	}
