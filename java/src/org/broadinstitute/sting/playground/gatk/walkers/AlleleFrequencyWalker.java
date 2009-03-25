@@ -12,56 +12,35 @@ import java.util.Arrays;
 
 public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstimate, Integer> {
 
-    public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
 
-        // Convert context data into bases and 4-base quals
+    public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
 
         // Set number of chromosomes, N, to 2 for now
         int N = 2;
 
-        // Convert bases to CharArray
-        int numReads = context.getReads().size(); //numReads();
-        byte[] bases = new byte[numReads];
-        String base_string = "";
-        double[][] quals = new double[numReads][4];
-        int refnum = nuc2num[ref];
-
-        List<SAMRecord> reads = context.getReads();
-        List<Integer> offsets = context.getOffsets();
-        for (int i =0; i < numReads; i++ ) {
-            SAMRecord read = reads.get(i);
-            int offset = offsets.get(i);
-
-            bases[i] = read.getReadBases()[offset];
-            base_string += read.getReadString().charAt(offset);
-            int callednum = nuc2num[bases[i]];
-            quals[i][callednum] = 1 - Math.pow(10.0, (double)read.getBaseQualities()[offset] / -10.0);
-
-            // Set all nonref qual scores to their share of the remaining probality not "used" by the reference base's qual
-            double nonref_quals = (1.0 - quals[i][callednum]) / 3;
-            for (int b=0; b<4; b++)
-                if (b != callednum)
-                    quals[i][b] = nonref_quals;
-        }
+        // Convert context data into bases and 4-base quals
+        String bases = getBases(context);
+        double quals[][] = getOneBaseQuals(context);
 
         // Count bases
         int[] base_counts = new int[4];
-        for (byte b : bases)
+        for (byte b : bases.getBytes())
             base_counts[nuc2num[b]]++;
-        
+
         // Find alternate allele - 2nd most frequent non-ref allele
         // (maybe we should check for ties and eval both or check most common including quality scores)
         int altnum = -1; // start with first base numerical identity (0,1,2,3)
         double altcount = -1; // start with first base count
+        int refnum = nuc2num[ref];
 
         for (int b=0; b<4; b++) {
             if ((b != refnum) && (base_counts[b] > altcount)) {
-                altnum = b; altcount = base_counts[b]; 
+                altnum = b; altcount = base_counts[b];
             }
         }
         assert(altnum != -1);
 
-        AlleleFrequencyEstimate alleleFreq = AlleleFrequencyEstimator(context.getLocation().toString(), N, bases, quals, refnum, altnum, base_string.length());
+        AlleleFrequencyEstimate alleleFreq = AlleleFrequencyEstimator(context.getLocation().toString(), N, bases.getBytes(), quals, refnum, altnum, bases.length());
 
         // Print dbSNP data if its there
         if (false) {
@@ -74,6 +53,47 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
             }
         }
         return alleleFreq;
+    }
+
+    static public String getBases (LocusContext context) {
+        // Convert bases to CharArray
+        int numReads = context.getReads().size(); //numReads();
+        //byte[] bases = new byte[numReads];
+        String base_string = "";
+        //int refnum = nuc2num[ref];
+
+        List<SAMRecord> reads = context.getReads();
+        List<Integer> offsets = context.getOffsets();
+        for (int i =0; i < numReads; i++ ) {
+            SAMRecord read = reads.get(i);
+            int offset = offsets.get(i);
+
+            //bases[i] = read.getReadBases()[offset];
+            base_string += read.getReadString().charAt(offset);
+        }
+        return base_string;
+    }
+
+    static public double[][] getOneBaseQuals (LocusContext context) {
+        int numReads = context.getReads().size(); //numReads();
+        double[][] quals = new double[numReads][4];
+
+        List<SAMRecord> reads = context.getReads();
+        List<Integer> offsets = context.getOffsets();
+        for (int i =0; i < numReads; i++ ) {
+            SAMRecord read = reads.get(i);
+            int offset = offsets.get(i);
+            int callednum = nuc2num[read.getReadBases()[offset]];
+            quals[i][callednum] = 1 - Math.pow(10.0, (double)read.getBaseQualities()[offset] / -10.0);
+
+            // Set all nonref qual scores to their share of the remaining probality not "used" by the reference base's qual
+            double nonref_quals = (1.0 - quals[i][callednum]) / 3;
+            for (int b=0; b<4; b++)
+                if (b != callednum)
+                    quals[i][b] = nonref_quals;
+        }
+
+        return quals;
     }
 
     public AlleleFrequencyEstimate AlleleFrequencyEstimator(String location, int N, byte[] bases, double[][] quals, int refnum, int altnum, int depth)
@@ -114,7 +134,7 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
                 double pG  = P_G(N, qstar_N); 
                 double posterior = pDq + pqG + pG;
 
-                if (posterior > best_posterior) 
+                if (posterior > best_posterior)
                 {
                     best_qstar = qstar;
                     best_qhat  = q;
@@ -124,6 +144,7 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
                     best_pqG = pqG;
                     best_pG  = pG;
                 }
+                //System.out.format("%.2f %.2f %5.2f %5.2f %5.2f %5.2f\n", q, qstar, pDq, pqG, pG, posterior);
             }
         }
 
@@ -230,17 +251,9 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
 
     public Integer reduce(AlleleFrequencyEstimate alleleFreq, Integer sum) 
     {
-        if (alleleFreq.LOD >= 5)
-        {
-	        System.out.print(String.format("RESULT %s %c %c %f %f %f %d\n", 
-	                                        alleleFreq.location,
-	                                        alleleFreq.ref, 
-	                                        alleleFreq.alt, 
-	                                        alleleFreq.qhat, 
-	                                        alleleFreq.qstar, 
-	                                        alleleFreq.LOD, 
-	                                        alleleFreq.depth));
-        }
+        // Print RESULT data for confident calls
+        if ((alleleFreq.LOD >= 5) || (alleleFreq.LOD <= -5)) { System.out.print(alleleFreq.asTabularString()); }
+
         return 0;
     }
 
@@ -267,9 +280,10 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
 
 
 
-    void print_base_qual_matrix(double [][]quals, int numReads) {
+    static void print_base_qual_matrix(double [][]quals) {
         // Print quals for debugging
         System.out.println("Base quality matrix");
+        int numReads = quals.length;
         for (int b=0; b<4; b++) {
             System.out.print(num2nuc[b]);
             for (int i=0; i < numReads; i++){

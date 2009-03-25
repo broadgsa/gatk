@@ -597,7 +597,7 @@ public class TraversalEngine {
 
             // if we don't have a particular interval we're processing, check them all, otherwise only operate at this
             // location
-            if ( ( interval == null && inLocations(locus.getLocation()) ) || interval.overlapsP(locus.getLocation()) )  {
+            if ( ( interval == null && inLocations(locus.getLocation()) ) || (interval != null && interval.overlapsP(locus.getLocation())) )  {
 
                 //System.out.format("Working at %s\n", locus.getLocation().toString());
 
