@@ -12,6 +12,7 @@ public class AlleleFrequencyEstimate {
     public double qstar;
     public double LOD;
     public int depth;
+    public String notes;
 
     public double getQstar()
     {
@@ -33,17 +34,19 @@ public class AlleleFrequencyEstimate {
         this.qstar = qstar;
         this.LOD = LOD;
         this.depth = depth;
+        this.notes = "";
     }
 
     public String asTabularString() {
-        return String.format("RESULT %s %c %c %f %f %f %d\n",
+        return String.format("RESULT %s %c %c %f %f %f %d %s\n",
 	                                        location,
 	                                        ref,
 	                                        alt,
 	                                        qhat,
 	                                        qstar,
 	                                        LOD,
-	                                        depth);
+	                                        depth, 
+                                            notes);
     }
 
     public String asString() {
