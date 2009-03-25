@@ -6,6 +6,10 @@ import net.sf.samtools.SAMSequenceDictionary;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 
 import java.util.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.BufferedReader;
 
 /**
  * Created by IntelliJ IDEA.

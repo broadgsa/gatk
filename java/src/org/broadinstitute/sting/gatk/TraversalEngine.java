@@ -21,10 +21,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.utils.FastaSequenceFile2;
-import org.broadinstitute.sting.utils.FileProgressTracker;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.*;
 
 import java.io.*;
 import java.util.*;
@@ -187,32 +184,17 @@ public class TraversalEngine {
      * @param file_name
      */
     public void setLocationFromFile(final String file_name) {
-        StringBuilder locStr = new StringBuilder();
-
-        Scanner scanner = null;
         try {
-            scanner = new Scanner(new File(file_name));
-            while (scanner.hasNextLine()) {
-                String line = scanner.nextLine();
-                line.replaceAll("\n", "");
-                locStr.append(line);
-                if (scanner.hasNextLine()) {
-                    locStr.append(";");
-                }
-            }
-        }
-        catch (Exception e) {
+            xReadLines reader = new xReadLines(new File(file_name));
+            List<String> lines = reader.readLines();
+            reader.close();
+            String locStr = Utils.join(";", lines);
+            logger.debug("locStr: " + locStr);
+            this.locs = parseGenomeLocs(locStr);
+        } catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);
         }
-        finally {
-            //ensure the underlying stream is always closed
-            scanner.close();
-        }
-
-        logger.debug("DEBUG: locStr: " + locStr.toString());
-
-        this.locs = parseGenomeLocs(locStr.toString());
     }
 
     /**
@@ -233,7 +215,8 @@ public class TraversalEngine {
             Collection<GenomeLoc> result = Functions.map(f1, Arrays.asList(str.split(";")));
             GenomeLoc[] locs = (GenomeLoc[]) result.toArray(new GenomeLoc[0]);
             Arrays.sort(locs);
-            System.out.println("  Locations are: " + Utils.join("\n", Functions.map(Operators.toString, Arrays.asList(locs))));
+            logger.info(String.format("Going to process %d locations", locs.length));
+            //System.out.println("  Locations are: " + Utils.join("\n", Functions.map(Operators.toString, Arrays.asList(locs))));
             return locs;
         } catch (Exception e) {
             logger.fatal(String.format("Invalid locations string: %s, format is loc1;loc2; where each locN can be 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'", str));
@@ -339,7 +322,7 @@ public class TraversalEngine {
      */
     protected <T> void printOnTraversalDone(final String type, T sum) {
         printProgress(true, type, null);
-        System.out.printf(String.format("Traversal reduce result is %d%n", sum)); // TODO: fixme -- how do we use this logger?
+        System.out.println("Traversal reduce result is " + sum); // TODO: fixme -- how do we use this logger?
         logger.info(String.format("Traversal skipped %d reads out of %d total (%.2f%%)", nSkippedReads, nReads, (nSkippedReads * 100.0) / nReads));
         logger.info(String.format("  -> %d unmapped reads", nUnmappedReads));
         logger.info(String.format("  -> %d non-primary reads", nNotPrimary));
