@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 
+import org.broadinstitute.sting.utils.Pair;
+
 /**
  * User: aaron
  * Date: Mar 19, 2009
@@ -33,7 +35,7 @@ public class ArgumentParser {
     private ArrayList<String> m_option_names = new ArrayList<String>();
 
     // where we eventually want the values to land
-    private HashMap<String, Field> m_storageLocations = new HashMap<String, Field>();
+    private HashMap<String, Pair<Object,Field>> m_storageLocations = new HashMap<String, Pair<Object,Field>>();
 
     // create Options object
     protected Options m_options = new Options();
@@ -100,7 +102,18 @@ public class ArgumentParser {
      * @param opt        the option
      */
     private void AddToOptionStorage(String name, String letterform, String fieldname, Option opt) {
+        AddToOptionStorage(name, letterform, getField(prog, fieldname), opt);
+    }
 
+    /**
+     * Used locally to add to the options storage we have, for latter processing
+     *
+     * @param name       the name of the option
+     * @param letterform it's short form
+     * @param field      what field it should be stuck into on the calling class
+     * @param opt        the option
+     */
+    private void AddToOptionStorage(String name, String letterform, Pair<Object,Field> field, Option opt) {
         // add to the option list
         m_options.addOption(opt);
 
@@ -110,20 +123,23 @@ public class ArgumentParser {
         }
 
         // add the object with it's name to the storage location
-        try {
-            m_storageLocations.put(name, prog.getClass().getField(fieldname));
-        } catch (NoSuchFieldException e) {
-            logger.fatal("Failed to find the field specified by the fieldname parameter.");
-            throw new RuntimeException(e.getMessage());
-        }
+        m_storageLocations.put( name, field );
 
         // add to the list of m_options
         m_option_names.add(letterform);
     }
 
-
+    private Pair<Object,Field> getField( Object obj, String fieldName ) {
+        try {
+            return new Pair<Object,Field>( obj, obj.getClass().getField(fieldName) );
+        } catch (NoSuchFieldException e) {
+            logger.fatal("Failed to find the field specified by the fieldname parameter.");
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+    
     /**
-     * addRequiredlArg
+     * addRequiredArg
      * <p/>
      * Adds a required argument to check on the command line
      *
@@ -132,7 +148,7 @@ public class ArgumentParser {
      * @param description the description of the argument
      * @param fieldname   what field it should be stuck into on the calling class
      */
-    public void addRequiredlArg(String name, String letterform, String description, String fieldname) {
+    public void addRequiredArg(String name, String letterform, String description, String fieldname) {
         // we always want the help option to be available
         Option opt = OptionBuilder.isRequired()
                 .withLongOpt(name)
@@ -169,7 +185,7 @@ public class ArgumentParser {
 
 
     /**
-     * addRequiredlArg
+     * addRequiredArg
      * <p/>
      * Adds a required argument to check on the command line
      *
@@ -178,7 +194,7 @@ public class ArgumentParser {
      * @param description the description of the argument
      * @param fieldname   what field it should be stuck into on the calling class
      */
-    public void addRequiredlArgList(String name, String letterform, String description, String fieldname) {
+    public void addRequiredArgList(String name, String letterform, String description, String fieldname) {
 
         // we always want the help option to be available
         Option opt = OptionBuilder.isRequired()
@@ -226,7 +242,7 @@ public class ArgumentParser {
 
 
     /**
-     * addRequiredlFlag
+     * addRequiredFlag
      * <p/>
      * Adds a required argument to check on the command line
      *
@@ -235,7 +251,7 @@ public class ArgumentParser {
      * @param description the description of the argument
      * @param fieldname   what field it should be stuck into on the calling class
      */
-    public void addRequiredlFlag(String name, String letterform, String description, String fieldname) {
+    public void addRequiredFlag(String name, String letterform, String description, String fieldname) {
 
         // if they've passed a non-Boolean as a object, beat them
         try {
@@ -254,7 +270,6 @@ public class ArgumentParser {
 
         // add it to the option
         AddToOptionStorage(name, letterform, fieldname, opt);
-
     }
 
 
@@ -265,45 +280,87 @@ public class ArgumentParser {
      *
      * @param args the command line arguments we recieved
      */
-    public void processArgs(String[] args) throws ParseException {
-        CommandLineParser parser = new PosixParser();
+    public void processArgs(String[] args, boolean allowUnrecognized) throws ParseException {
+        OurPosixParser parser = new OurPosixParser();
+        Collection<Option> opts = m_options.getOptions();
 
         try {
-            Collection<Option> opts = m_options.getOptions();
+            parser.parse(m_options, args, !allowUnrecognized);
+        }
+        catch (UnrecognizedOptionException e) {
+            // we don't care about unknown exceptions right now
+            logger.warn(e.getMessage());
+            if(!allowUnrecognized)
+                throw e;
+        }
 
-            CommandLine cmd = parser.parse(m_options, args);
+        // Apache CLI can ignore unrecognized arguments with a boolean flag, but
+        // you can't get to the unparsed args.  Override PosixParser with a class
+        // that can reach in and extract the protected command line.
+        // TODO: Holy crap this is wacky.  Find a cleaner way.
+        CommandLine cmd = parser.getCmd();
 
-            // logger.info("We have " + opts.size() + " options");
-            for (Option opt : opts) {
-                if (cmd.hasOption(opt.getOpt())) {
-                    if (opt.hasArg()) {
-                        //logger.info("looking at " + m_storageLocations.get(opt.getLongOpt()));
-                        Field f = m_storageLocations.get(opt.getLongOpt());
-                        try {
-                            f.set(prog, constructFromString(f, cmd.getOptionValue(opt.getOpt())));
-                        } catch (IllegalAccessException e) {
-                            logger.fatal("processArgs: cannot convert field " + f.toString());
-                            throw new RuntimeException("processArgs: Failed conversion " + e.getMessage());
-                        }
-                    } else {
+        // logger.info("We have " + opts.size() + " options");
+        for (Option opt : opts) {
+            if (cmd.hasOption(opt.getOpt())) {
+                if (opt.hasArg()) {
+                    //logger.info("looking at " + m_storageLocations.get(opt.getLongOpt()));
+                    Object obj = m_storageLocations.get(opt.getLongOpt()).first;
+                    Field field = m_storageLocations.get(opt.getLongOpt()).second;
 
-                        Field f = m_storageLocations.get(opt.getLongOpt());
-                        try {
-                            //logger.fatal("about to parse field " + f.getName());
-                            f.set(prog, new Boolean(true));
-                        } catch (IllegalAccessException e) {
-                            logger.fatal("processArgs: cannot convert field " + f.toString());
-                            throw new RuntimeException("processArgs: Failed conversion " + e.getMessage());
-                        }
+                    try {
+                        field.set(obj, constructFromString(field, cmd.getOptionValue(opt.getOpt())));
+                    } catch (IllegalAccessException e) {
+                        logger.fatal("processArgs: cannot convert field " + field.toString());
+                        throw new RuntimeException("processArgs: Failed conversion " + e.getMessage());
+                    }
+                } else {
+                    Object obj = m_storageLocations.get(opt.getLongOpt()).first;
+                    Field field = m_storageLocations.get(opt.getLongOpt()).second;
+
+                    try {
+                        //logger.fatal("about to parse field " + f.getName());
+                        field.set(obj, new Boolean(true));
+                    } catch (IllegalAccessException e) {
+                        logger.fatal("processArgs: cannot convert field " + field.toString());
+                        throw new RuntimeException("processArgs: Failed conversion " + e.getMessage());
                     }
                 }
             }
-        } catch (UnrecognizedOptionException e) {
-            // we don't care about unknown exceptions right now
-            logger.warn(e.getMessage());
         }
     }
 
+    private class OurPosixParser extends PosixParser {
+        public CommandLine getCmd() { return cmd; }
+    }
+
+    /**
+     * Extract arguments stored in annotations from fields of a given class.
+     * @param source
+     */
+    public void addArgumentSource( Object source ) {
+        Field[] fields = source.getClass().getFields();
+        for(Field field: fields) {
+            Argument arg = field.getAnnotation(Argument.class);
+            if(arg == null)
+                continue;
+
+            String fullName = (arg.fullName().length() != 0) ? arg.fullName() : field.getName().trim().toLowerCase();
+            String shortName = (arg.shortName().length() != 0) ? arg.shortName() : fullName.substring(0,1);
+            if(shortName.length() != 1)
+                throw new IllegalArgumentException("Invalid short name: " + shortName);
+            String description = arg.required() ? "(Required Flag) " + arg.doc() : arg.doc();
+
+            // TODO: Handle flags, handle lists
+            OptionBuilder ob = OptionBuilder.withLongOpt(fullName).withArgName(fullName).hasArg();
+            if( arg.required() ) ob = ob.isRequired();
+            if( description.length() != 0 ) ob = ob.withDescription( description );
+
+            Option option = ob.create( shortName );
+
+            AddToOptionStorage(fullName, shortName, new Pair<Object,Field>( source, field ), option );
+        }
+    }
 
     private Object constructFromString(Field f, String str) {
         Type type = f.getType();
@@ -352,8 +409,8 @@ public class ArgumentParser {
  public static void main(String[] args) {
  ArgumentParser p = new ArgumentParser("CrapApp");
  p.setupDefaultArgs();
- p.addRequiredlArg("Flag","F","a required arg");
- p.addRequiredlFlag("Sub","S","a required flag");
+ p.addRequiredArg("Flag","F","a required arg");
+ p.addRequiredFlag("Sub","S","a required flag");
  p.addOptionalArg("Boat","T","Maybe you want a boat?");
  String[] str = {"--Flag","rrr","-T","ppp", "--Flag","ttt"};
  p.processArgs(str);

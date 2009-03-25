@@ -110,6 +110,7 @@
         <!-- Compile the java code from ${src} into build -->
         <javac destdir="build" classpathref="thirdparty.dependencies"
                debug="true" debuglevel="lines,vars,source">
+            <!--compilerarg value="-Xlint:unchecked" /-->
             <src refid="source"/>
         </javac>
     </target>
@@ -196,7 +197,7 @@
         </jar>
     </target>
 
-    <target name="javadoc">
+    <target name="javadoc" description="generates javadoc">
         <mkdir dir="javadoc"/>
         <javadoc sourcepathref="${target}.srcdir" destdir="javadoc"/>
     </target>

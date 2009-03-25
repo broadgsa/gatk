@@ -12,6 +12,7 @@ import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.rodGFF;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
@@ -42,6 +43,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
 
     // our walker manager
     private WalkerManager walkerManager = null;
+    private Walker my_walker = null;
 
     public String pluginPathName = null;
     private TraversalEngine engine = null;
@@ -60,18 +62,44 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      * Flags don't take an argument, the associated Boolean gets set to true if the flag appears on the command line.
      */
     protected void setupArgs() {
-        m_parser.addRequiredlArg("input_file", "I", "SAM or BAM file for validation", "INPUT_FILE");
+        m_parser.addRequiredArg("input_file", "I", "SAM or BAM file for validation", "INPUT_FILE");
         m_parser.addOptionalArg("maximum_reads", "M", "Maximum number of reads to process before exiting", "MAX_READS_ARG");
         m_parser.addOptionalArg("validation_strictness", "S", "How strict should we be with validation", "STRICTNESS_ARG");
         m_parser.addOptionalArg("reference_sequence", "R", "Reference sequence file", "REF_FILE_ARG");
         m_parser.addOptionalArg("genome_region", "L", "Genome region to operation on: from chr:start-end", "REGION_STR");
-        m_parser.addRequiredlArg("analysis_type", "T", "Type of analysis to run", "Analysis_Name");
+        m_parser.addRequiredArg("analysis_type", "T", "Type of analysis to run", "Analysis_Name");
         m_parser.addOptionalArg("DBSNP", "D", "DBSNP file", "DBSNP_FILE");
         m_parser.addOptionalArg("Hapmap", "H", "Hapmap file", "HAPMAP_FILE");
         m_parser.addOptionalFlag("threaded_IO", "P", "If set, enables threaded I/O operations", "ENABLED_THREADED_IO");
         m_parser.addOptionalFlag("unsafe", "U", "If set, enables unsafe operations, nothing will be checked at runtime.", "UNSAFE");
         m_parser.addOptionalFlag("sort_on_the_fly", "F", "If set, enables on fly sorting of reads file.", "ENABLED_SORT_ON_FLY");
         m_parser.addOptionalArg("intervals_file", "V", "File containing list of genomic intervals to operate on. line := <contig> <start> <end>", "INTERVALS_FILE");
+    }
+
+    /**
+     * GATK can add arguments dynamically based on analysis type.
+     * @return true
+     */
+    @Override
+    protected boolean canAddArgumentsDynamically() { return true; }
+
+    /**
+     * GATK provides the walker as an argument source.  As a side-effect, initializes the walker variable.
+     * @return List of walkers to load dynamically.
+     */
+    @Override
+    protected Object[] getArgumentSources() {
+        if( Analysis_Name == null )
+            throw new IllegalArgumentException("Must provide analysis name");
+
+        walkerManager = new WalkerManager( pluginPathName );
+
+        if( !walkerManager.doesWalkerExist(Analysis_Name) )
+            throw new IllegalArgumentException("Invalid analysis name");
+
+        my_walker = walkerManager.getWalkerByName(Analysis_Name);
+
+        return new Object[] { my_walker };
     }
 
     /**
@@ -82,10 +110,6 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     }
 
     protected int execute() {
-
-
-        walkerManager = new WalkerManager(pluginPathName);
-
         final boolean TEST_ROD = false;
         List<ReferenceOrderedData> rods = new ArrayList<ReferenceOrderedData>();
 
@@ -155,15 +179,10 @@ public class GenomeAnalysisTK extends CommandLineProgram {
 
         //LocusWalker<Integer,Integer> walker = new PileupWalker();
 
-        // Try to get the walker specified
-        Object my_walker;
-        if (walkerManager.doesWalkerExist(Analysis_Name)) {
-            my_walker = walkerManager.getWalkerByName(Analysis_Name);
-        } else {
-            logger.fatal("Could not find walker " + Analysis_Name);
-            return 0;
-        }
+        if( my_walker == null )
+            throw new RuntimeException( "Sanity check failed -- no walker present." );
 
+        // Try to get the walker specified
         try {
             LocusWalker<?, ?> walker = (LocusWalker<?, ?>) my_walker;
             if ( INTERVALS_FILE == null )

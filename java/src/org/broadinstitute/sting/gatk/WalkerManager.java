@@ -5,6 +5,7 @@ import net.sf.functionalj.reflect.JdkStdReflect;
 import net.sf.functionalj.FunctionN;
 import net.sf.functionalj.Functions;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.io.File;
 import java.io.FilenameFilter;
@@ -20,6 +21,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 /**
  * Created by IntelliJ IDEA.
@@ -88,7 +90,8 @@ public class WalkerManager {
      * @return The walker object if found; null otherwise.
      */
     public Walker getWalkerByName(String walkerName) {
-        return walkers.get(walkerName);
+        Walker walker = walkers.get(walkerName);
+        return walker;
     }
 
     /**

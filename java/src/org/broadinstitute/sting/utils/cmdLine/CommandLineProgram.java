@@ -70,6 +70,20 @@ public abstract class CommandLineProgram {
     protected abstract void setupArgs();
 
     /**
+     * Will this application want to vary its argument list dynamically?
+     * If so, parse the command-line options and then prompt the subclass to return
+     * a list of argument providers.
+     * @return Whether the application should vary command-line arguments dynamically.
+     */
+    protected boolean canAddArgumentsDynamically() { return false; }
+
+    /**
+     * Provide a list of object to inspect, looking for additional command-line arguments.
+     * @return A list of objects to inspect.
+     */
+    protected Object[] getArgumentSources() { return new Object[] {}; }
+
+    /**
      * this is the function that the inheriting class can expect to have called
      * when all the argument processing is done
      * 
@@ -111,8 +125,17 @@ public abstract class CommandLineProgram {
             clp.setupArgs();
 
             // process the args
-            clp.m_parser.processArgs(args);
-
+            if( clp.canAddArgumentsDynamically() ) {
+                // if the command-line program can toss in extra args, fetch them and reparse the arguments.
+                clp.m_parser.processArgs(args, true);
+                Object[] argumentSources = clp.getArgumentSources();
+                for( Object argumentSource: argumentSources )
+                    clp.addArgumentSource( argumentSource );
+                clp.m_parser.processArgs(args, false);
+            }
+            else {
+                clp.m_parser.processArgs(args, false);
+            }
 
             // if we're in debug mode, set the mode up
             if (clp.debugMode) {
@@ -164,13 +187,17 @@ public abstract class CommandLineProgram {
             // return the result
             System.exit(result);
         }
+        catch (org.apache.commons.cli.ParseException e) {
+            logger.fatal("Unable to pass command line arguments: " + e.getMessage() );
+            clp.m_parser.printHelp();
+        }
         catch (Exception e) {
             // we catch all exceptions here. if it makes it to this level, we're in trouble.  Let's bail!
             // TODO: what if the logger is the exception? hmm...
             logger.fatal("Exception caught by base Command Line Program, with message: " + e.getMessage());
             logger.fatal("with cause: " + e.getCause());
             e.printStackTrace();
-            throw new RuntimeException(e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 
@@ -229,6 +256,14 @@ public abstract class CommandLineProgram {
         logger.setLevel(par);
     }
 
+    /**
+     * Pass along a new set of valid command line arguments.  In this case,
+     * probably a class with @argument or @flag annotations.
+     * @param source
+     */
+    private void addArgumentSource( Object source ) {
+        m_parser.addArgumentSource(source);
+    }
 
     /**
      * we have some default options that should always get checked for in the
