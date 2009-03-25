@@ -187,7 +187,7 @@ public class TraversalEngine {
      * @param file_name
      */
     public void setLocationFromFile(final String file_name) {
-        String locStr = "";
+        StringBuilder locStr = new StringBuilder();
 
         Scanner scanner = null;
         try {
@@ -195,9 +195,9 @@ public class TraversalEngine {
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 line.replaceAll("\n", "");
-                locStr += line;
+                locStr.append(line);
                 if (scanner.hasNextLine()) {
-                    locStr += ";";
+                    locStr.append(";");
                 }
             }
         }
@@ -210,9 +210,9 @@ public class TraversalEngine {
             scanner.close();
         }
 
-        logger.debug("DEBUG: locStr: " + locStr);
+        logger.debug("DEBUG: locStr: " + locStr.toString());
 
-        this.locs = parseGenomeLocs(locStr);
+        this.locs = parseGenomeLocs(locStr.toString());
     }
 
     /**

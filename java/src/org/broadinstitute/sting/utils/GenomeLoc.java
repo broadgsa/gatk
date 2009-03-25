@@ -59,7 +59,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
 
     public static GenomeLoc parseGenomeLoc( final String str ) {
         // Ôchr2Õ, Ôchr2:1000000Õ or Ôchr2:1,000,000-2,000,000Õ
-        System.out.printf("Parsing location '%s'%n", str);
+        //System.out.printf("Parsing location '%s'%n", str);
 
         final Pattern regex1 = Pattern.compile("([\\w&&[^:]]+)$");             // matches case 1
         final Pattern regex2 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)$");      // matches case 2
@@ -102,7 +102,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         }
 
         GenomeLoc loc = new GenomeLoc(contig, start, stop);
-        System.out.printf("  => Parsed location '%s' into %s%n", str, loc);
+        //System.out.printf("  => Parsed location '%s' into %s%n", str, loc);
 
         return loc;
     }
