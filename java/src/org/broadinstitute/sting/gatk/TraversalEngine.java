@@ -244,6 +244,10 @@ public class TraversalEngine {
         }
     }
 
+    public boolean hasLocations() {
+        return this.locs != null;
+    }
+
     /**
      * Returns true iff we have a specified series of locations to process AND we are past the last
      * location in the list.  It means that, in a serial processing of the genome, that we are done.
@@ -551,15 +555,33 @@ public class TraversalEngine {
      * @return 0 on success
      */
     protected <M, T> int traverseByLoci(LocusWalker<M, T> walker) {
-        samReadIter = initializeReads();
+        samReader = initializeSAMFile(readsFile);
 
         verifySortOrder(true);
 
         // initialize the walker object
         walker.initialize();
-        
-        // We aren't locus oriented
-        T sum = carryWalkerOverInterval(walker, samReadIter, walker.reduceInit(), null);
+
+        T sum = walker.reduceInit();
+        if ( samReader.hasIndex() && hasLocations() ) {
+            // we are doing interval-based traversals
+            for ( GenomeLoc interval : locs ) {
+                logger.debug(String.format("Processing locus %s", interval.toString()));
+
+                CloseableIterator<SAMRecord> readIter = samReader.queryOverlapping( interval.getContig(),
+                        (int)interval.getStart(),
+                        (int)interval.getStop() );
+
+                Iterator<SAMRecord> wrappedIter = WrapReadsIterator( readIter, false );
+                sum = carryWalkerOverInterval(walker, wrappedIter, sum, interval);
+                readIter.close();
+            }
+        }
+        else {
+            // We aren't locus oriented
+            samReadIter = WrapReadsIterator(getReadsIterator(samReader), true);
+            sum = carryWalkerOverInterval(walker, samReadIter, sum, null);
+        }
 
         printOnTraversalDone("loci", sum);
         walker.onTraversalDone();
@@ -615,40 +637,6 @@ public class TraversalEngine {
             }
         }
         return sum;
-    }
-
-    /**
-     * Same as the normal locus traverser, but oriented by locus, rather than implicitly
-     *
-     * @param walker A locus walker object
-     * @param <M>    MapType -- the result of calling map() on walker
-     * @param <T>    ReduceType -- the result of calling reduce() on the walker
-     * @return 0 on success
-     */
-    protected <M, T> int traverseByLociByInterval(LocusWalker<M, T> walker) {
-        //verifySortOrder(true);
-
-        // initialize the walker object
-        walker.initialize();
-        // Initialize the T sum using the walker
-        T sum = walker.reduceInit();
-
-        samReader = initializeSAMFile(readsFile);
-        for ( GenomeLoc interval : locs ) {
-            logger.debug(String.format("Processing locus %s", interval.toString()));
-
-            CloseableIterator<SAMRecord> readIter = samReader.queryOverlapping( interval.getContig(),
-                                                                                (int)interval.getStart(),
-                                                                                (int)interval.getStop() );
-
-            Iterator<SAMRecord> wrappedIter = WrapReadsIterator( readIter, false );
-            sum = carryWalkerOverInterval(walker, wrappedIter, sum, interval);
-            readIter.close();
-        }
-
-        printOnTraversalDone("loci", sum);
-        walker.onTraversalDone();
-        return 0;
     }
 
     /**
