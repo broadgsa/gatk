@@ -8,7 +8,6 @@ import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
-import java.util.Arrays;
 
 public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstimate, Integer> {
 
@@ -88,17 +87,57 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
         for (int i =0; i < numReads; i++ ) {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
-            int callednum = nuc2num[read.getReadBases()[offset]];
+
+            // First, set the called base to the correct quality
+            int callednum = nuc2num[read.getReadBases()[offset]]; // number of the called base (0,1,2,3)
             quals[i][callednum] = 1 - Math.pow(10.0, (double)read.getBaseQualities()[offset] / -10.0);
 
-            // Set all nonref qual scores to their share of the remaining probality not "used" by the reference base's qual
-            double nonref_quals = (1.0 - quals[i][callednum]) / 3;
-            for (int b=0; b<4; b++)
-                if (b != callednum)
-                    quals[i][b] = nonref_quals;
+            // For other 3 bases, check if 2-base probs exist
+            assert (reads.size() > 0);
+            Object SQ_field = reads.get(0).getAttribute("SQ");
+            if (SQ_field == null) {
+                // Set all nonref qual scores to their share of the remaining probality not "used" by the reference base's qual
+                double nonref_quals = (1.0 - quals[i][callednum]) / 3;
+                for (int b=0; b<4; b++)
+                    if (b != callednum)
+                        quals[i][b] = nonref_quals;
+            }else{
+                assert (SQ_field instanceof byte[]);
+                byte[] hex_quals = (byte[]) SQ_field;
+                System.out.printf("SQ field (hex): %s\n", bytesToHexString(hex_quals));
+                System.out.printf("SAM record: %s\n", read.format());
+
+                int hex_qual = hex_quals[offset];
+                int called2num = hex_qual & 0x3;
+                double qual2 = (double)(hex_qual >> 2) / 100.0;
+                System.out.printf("2ND %x %d %f\n", hex_qual, called2num, qual2);
+                quals[i][called2num] = qual2;
+
+                // 
+                double nonref_quals = (1.0 - quals[i][callednum] - quals[i][called2num]) / 3;
+                for (int b=0; b<4; b++)
+                    if (b != callednum && b != called2num)
+                        quals[i][b] = nonref_quals;
+            }
         }
 
+        //print_base_qual_matrix(quals);
         return quals;
+    }
+
+    // Code pulled from SAMUtils for debugging 
+    static String bytesToHexString(final byte[] data) {
+        final char[] chars = new char[2 * data.length];
+        for (int i = 0; i < data.length; i++) {
+            final byte b = data[i];
+            chars[2*i] = toHexDigit((b >> 4) & 0xF);
+            chars[2*i+1] = toHexDigit(b & 0xF);
+        }
+        return new String(chars);
+    }
+
+    private static char toHexDigit(final int value) {
+        return (char) ((value < 10) ? ('0' + value) : ('A' + value - 10));
     }
 
     public AlleleFrequencyEstimate AlleleFrequencyEstimator(String location, int N, byte[] bases, double[][] quals, int refnum, int altnum, int depth)
