@@ -339,7 +339,7 @@ public class TraversalEngine {
      */
     protected <T> void printOnTraversalDone(final String type, T sum) {
         printProgress(true, type, null);
-        logger.info(String.format("Traversal reduce result is " + sum));
+        System.out.printf(String.format("Traversal reduce result is %d%n", sum)); // TODO: fixme -- how do we use this logger?
         logger.info(String.format("Traversal skipped %d reads out of %d total (%.2f%%)", nSkippedReads, nReads, (nSkippedReads * 100.0) / nReads));
         logger.info(String.format("  -> %d unmapped reads", nUnmappedReads));
         logger.info(String.format("  -> %d non-primary reads", nNotPrimary));
@@ -652,7 +652,7 @@ public class TraversalEngine {
 
         samReader = initializeSAMFile(readsFile);
         for ( GenomeLoc interval : locs ) {
-            System.out.printf("Processing locus %s%n", interval.toString());
+            logger.debug(String.format("Processing locus %s", interval.toString()));
 
             CloseableIterator<SAMRecord> readIter = samReader.queryOverlapping( interval.getContig(),
                                                                                 (int)interval.getStart(),

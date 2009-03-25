@@ -15,7 +15,7 @@ import java.util.List;
 public class DepthOfCoverageWalker extends BasicLociWalker<Integer, Integer> {
     public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
         System.out.printf("%s: %d%n", context.getLocation(), context.getReads().size() );
-        return 0;
+        return 1;
     }
 
     public Integer reduceInit() { return 0; }
