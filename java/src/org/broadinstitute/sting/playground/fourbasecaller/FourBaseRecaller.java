@@ -165,8 +165,6 @@ public class FourBaseRecaller {
             sr.setBaseQualities(bestqual);
             sr.setAttribute("SQ", nextbestqual);
             sfw.addAlignment(sr);
-
-            queryid++;
         }
 
         sfw.close();
