@@ -13,6 +13,9 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.broadinstitute.sting.utils.Pair;
 
@@ -33,9 +36,6 @@ public class ArgumentParser {
 
     // what program are we parsing for
     private String programName;
-
-    // our m_options
-    private ArrayList<String> m_option_names = new ArrayList<String>();
 
     // where we eventually want the values to land
     private HashMap<String, Pair<Object,Field>> m_storageLocations = new HashMap<String, Pair<Object,Field>>();
@@ -91,7 +91,7 @@ public class ArgumentParser {
                 .create(letterform);
 
         // add it to the option
-        AddToOptionStorage(name, letterform, fieldname, opt);
+        AddToOptionStorage(opt, fieldname);
 
 
     }
@@ -99,37 +99,50 @@ public class ArgumentParser {
     /**
      * Used locally to add to the options storage we have, for latter processing
      *
-     * @param name       the name of the option
-     * @param letterform it's short form
+     * @param opt        the option
      * @param fieldname  what field it should be stuck into on the calling class
-     * @param opt        the option
      */
-    private void AddToOptionStorage(String name, String letterform, String fieldname, Option opt) {
-        AddToOptionStorage(name, letterform, getField(prog, fieldname), opt);
+    private void AddToOptionStorage(Option opt, String fieldname) {
+        AddToOptionStorage( opt, getField(prog, fieldname) );
     }
 
     /**
      * Used locally to add to the options storage we have, for latter processing
      *
-     * @param name       the name of the option
-     * @param letterform it's short form
-     * @param field      what field it should be stuck into on the calling class
      * @param opt        the option
+     * @param field      what field it should be stuck into on the calling class
      */
-    private void AddToOptionStorage(String name, String letterform, Pair<Object,Field> field, Option opt) {
+    private void AddToOptionStorage(Option opt, Pair<Object,Field> field ) {
+        // first check to see if we've already added an option with the same name
+        if (m_options.hasOption( opt.getOpt() ))
+            throw new IllegalArgumentException(opt.getOpt() + " was already added as an option");
+
         // add to the option list
         m_options.addOption(opt);
 
-        // first check to see if we've already added an option with the same name
-        if (m_option_names.contains(letterform)) {
-            throw new IllegalArgumentException(letterform + " was already added as an option");
+        // add the object with it's name to the storage location
+        m_storageLocations.put( opt.getLongOpt(), field );
+    }
+
+    /**
+     * Used locally to add a group of mutually exclusive options to options storage.
+     * @param options A list of pairs of param, field to add.
+     */
+    private void AddToOptionStorage( List<Pair<Option,Pair<Object,Field>>> options ) {
+        OptionGroup optionGroup = new OptionGroup();
+        boolean isRequired = true;
+
+        for( Pair<Option,Pair<Object,Field>> option: options ) {
+            if (m_options.hasOption(option.first.getOpt()) )
+                throw new IllegalArgumentException(option.first.getOpt() + " was already added as an option");
+
+            optionGroup.addOption(option.first);
+            m_storageLocations.put( option.first.getLongOpt(), option.second );
+            isRequired &= option.first.isRequired();
         }
 
-        // add the object with it's name to the storage location
-        m_storageLocations.put( name, field );
-
-        // add to the list of m_options
-        m_option_names.add(letterform);
+        optionGroup.setRequired(isRequired);
+        m_options.addOptionGroup(optionGroup);
     }
 
     private Pair<Object,Field> getField( Object obj, String fieldName ) {
@@ -161,7 +174,7 @@ public class ArgumentParser {
                 .create(letterform);
 
         // add it to the option
-        AddToOptionStorage(name, letterform, fieldname, opt);
+        AddToOptionStorage( opt, fieldname );
 
     }
 
@@ -182,7 +195,7 @@ public class ArgumentParser {
                 .withDescription(description)
                 .create(letterform);
         // add it to the option
-        AddToOptionStorage(name, letterform, fieldname, opt);
+        AddToOptionStorage( opt, fieldname );
     }
 
 
@@ -207,7 +220,7 @@ public class ArgumentParser {
                 .withDescription("(Required Option) " + description)
                 .create(letterform);
         // add it to the option
-        AddToOptionStorage(name, letterform, fieldname, opt);
+        AddToOptionStorage(opt, fieldname);
 
     }
 
@@ -239,7 +252,7 @@ public class ArgumentParser {
 
 
         // add it to the option
-        AddToOptionStorage(name, letterform, fieldname, opt);
+        AddToOptionStorage( opt, fieldname );
 
     }
 
@@ -272,7 +285,7 @@ public class ArgumentParser {
                 .create(letterform);
 
         // add it to the option
-        AddToOptionStorage(name, letterform, fieldname, opt);
+        AddToOptionStorage( opt, fieldname );
     }
 
 
@@ -333,39 +346,112 @@ public class ArgumentParser {
 
     /**
      * Extract arguments stored in annotations from fields of a given class.
-     * @param source
+     * @param source Source of arguments, probably provided through Argument annotation.
      */
     public void addArgumentSource( Object source ) {
         Field[] fields = source.getClass().getFields();
+
+        for( Set<Field> optionGroup: groupExclusiveOptions(fields) ) {
+            List<Pair<Option,Pair<Object,Field>>> options = new ArrayList<Pair<Option,Pair<Object,Field>>>();
+            for( Field field: optionGroup ) {
+                Argument argument = field.getAnnotation(Argument.class);
+                Option option = createOptionFromField( source, field, argument );
+                options.add( new Pair<Option,Pair<Object,Field>>( option, new Pair<Object,Field>( source,field) ) );
+            }
+
+            if( options.size() == 1 )
+                AddToOptionStorage( options.get(0).first, new Pair<Object,Field>( source, options.get(0).second.second ) );
+            else {
+                AddToOptionStorage( options );
+            }
+        }
+    }
+
+    /**
+     * Group mutually exclusive options together into sets.  Non-exclusive options
+     * will be alone a set.  Every option should appear in exactly one set.
+     * WARNING: Has no concept of nested dependencies.
+     * @param fields list of fields for which to check options.
+     * @return
+     */
+    private List<Set<Field>> groupExclusiveOptions( Field[] fields ) {
+        List<Set<Field>> optionGroups = new ArrayList<Set<Field>>();
         for(Field field: fields) {
-            Argument arg = field.getAnnotation(Argument.class);
-            if(arg == null)
+            Argument argument = field.getAnnotation(Argument.class);
+            if(argument == null)
                 continue;
 
-            String fullName = (arg.fullName().length() != 0) ? arg.fullName() : field.getName().trim().toLowerCase();
-            String shortName = (arg.shortName().length() != 0) ? arg.shortName() : fullName.substring(0,1);
-            if(shortName.length() != 1)
-                throw new IllegalArgumentException("Invalid short name: " + shortName);
-            boolean isFlag = (field.getType() == Boolean.class) || (field.getType() == Boolean.TYPE);
-            boolean isCollection = field.getType().isArray() || Collection.class.isAssignableFrom(field.getType());
+            String[] exclusives = argument.exclusive().split(",");
+            if( exclusives.length != 0 ) {
+                HashSet<Field> matchingFields = new HashSet<Field>();
 
-            if( isFlag && isCollection )
-                throw new IllegalArgumentException("Can't have an array of flags.");
+                // Find the set of all options exclusive to this one.
+                matchingFields.add( field );
+                for( Field candidate: fields ) {
+                    for( String exclusive: exclusives ) {
+                        if( candidate.getName().equals( exclusive.trim() ) )
+                            matchingFields.add( candidate );
+                    }
+                }
 
-            String description = arg.doc();
-            if( arg.required() )
-                description = (isFlag ? "(Required Flag) " : "(Required Option) ") + description;
+                // Perform a set intersection to see whether this set of fields intersects
+                // with any existing set.
+                //
+                // If so, add any additional elements to the list.
+                boolean setExists = false;
+                for( Set<Field> optionGroup: optionGroups ) {
+                    Set<Field> working = new HashSet<Field>(optionGroup);
+                    working.retainAll( matchingFields );
+                    if( working.size() > 0 ) {
+                        optionGroup.addAll( matchingFields );
+                        setExists = true;
+                    }
+                }
 
-            OptionBuilder ob = OptionBuilder.withLongOpt(fullName);
-            if( !isFlag ) ob = ob.withArgName(fullName);
-            ob = isCollection ? ob.hasArgs() : ob.hasArg();
-            if( arg.required() ) ob = ob.isRequired();
-            if( description.length() != 0 ) ob = ob.withDescription( description );
-
-            Option option = ob.create( shortName );
-
-            AddToOptionStorage(fullName, shortName, new Pair<Object,Field>( source, field ), option );
+                // Otherwise, add a new option group.
+                if( !setExists )
+                    optionGroups.add( matchingFields );
+            }
         }
+
+        return optionGroups;
+    }
+
+    /**
+     * Given a field with some annotations, create a command-line option.  If not enough data is
+     * available to create a command-line option, return null.
+     * @param source Source class containing the field.
+     * @param field Field
+     * @return Option representing the field options.
+     */
+    private Option createOptionFromField( Object source, Field field, Argument argument ) {
+
+        String fullName = (argument.fullName().length() != 0) ? argument.fullName() : field.getName().trim().toLowerCase();
+        String shortName = (argument.shortName().length() != 0) ? argument.shortName() : fullName.substring(0,1);
+        if(shortName.length() != 1)
+            throw new IllegalArgumentException("Invalid short name: " + shortName);
+        boolean isFlag = (field.getType() == Boolean.class) || (field.getType() == Boolean.TYPE);
+        boolean isCollection = field.getType().isArray() || Collection.class.isAssignableFrom(field.getType());
+
+        if( isFlag && isCollection )
+            throw new IllegalArgumentException("Can't have an array of flags.");
+
+        String description = String.format("[%s] %s", source, argument.doc());
+
+        OptionBuilder ob = OptionBuilder.withLongOpt(fullName);
+        if( !isFlag ) {
+            ob = ob.withArgName(fullName);
+            ob = isCollection ? ob.hasArgs() : ob.hasArg();
+            if( argument.required() ) {
+                ob = ob.isRequired();
+                description = String.format("[%s] (Required Option) %s", source, argument.doc());
+            }
+        }
+        if( description.length() != 0 ) ob = ob.withDescription( description );
+
+        Option option = ob.create( shortName );
+
+        return option;
     }
 
     private Object constructFromString(Field f, String[] strs) {

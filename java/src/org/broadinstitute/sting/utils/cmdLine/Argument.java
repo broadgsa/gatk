@@ -23,4 +23,5 @@ public @interface Argument {
     String shortName() default "";
     String doc() default "";
     boolean required() default true;
+    String exclusive() default "";
 }
