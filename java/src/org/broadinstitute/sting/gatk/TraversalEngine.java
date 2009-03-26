@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk;
 import edu.mit.broad.picard.filter.FilteringIterator;
 import edu.mit.broad.picard.filter.SamRecordFilter;
 import edu.mit.broad.picard.reference.ReferenceSequence;
+import edu.mit.broad.picard.sam.SamFileHeaderMerger;
 import net.sf.functionalj.Function1;
 import net.sf.functionalj.FunctionN;
 import net.sf.functionalj.Functions;
@@ -327,6 +328,9 @@ public class TraversalEngine {
     protected <T> void printOnTraversalDone(final String type, T sum) {
         printProgress(true, type, null);
         System.out.println("Traversal reduce result is " + sum); // TODO: fixme -- how do we use this logger?
+        final long curTime = System.currentTimeMillis();
+        final double elapsed = (curTime - startTime) / 1000.0;
+        logger.info(String.format("Total runtime %.2f secs, %.2f min, %.2f hours%n", elapsed, elapsed / 60, elapsed / 3600));
         logger.info(String.format("Traversal skipped %d reads out of %d total (%.2f%%)", nSkippedReads, nReads, (nSkippedReads * 100.0) / nReads));
         logger.info(String.format("  -> %d unmapped reads", nUnmappedReads));
         logger.info(String.format("  -> %d non-primary reads", nNotPrimary));
@@ -361,6 +365,23 @@ public class TraversalEngine {
 
     private Iterator<SAMRecord> getReadsIterator(final SAMFileReader samReader) {
         // If the file has an index, querying functions are available.  Use them if possible...
+        if ( samReader == null && readsFile.toString().endsWith(".list") ) {
+            SAMFileHeader.SortOrder SORT_ORDER = SAMFileHeader.SortOrder.coordinate;
+
+            List<SAMFileReader> readers = new ArrayList<SAMFileReader>();
+            try {
+                for ( String fileName : new xReadLines(readsFile) ) {
+                    SAMFileReader reader = initializeSAMFile(new File(fileName));
+                    readers.add(reader);
+                }
+
+                SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers, SORT_ORDER);
+                return new MergingSamRecordIterator2(headerMerger);
+            }
+            catch ( FileNotFoundException e ) {
+                logger.fatal("Couldn't open file in sam file list: " + readsFile);
+            }
+        }
         if (samReader.hasIndex()) {
             return new SamQueryIterator(samReader, locs);
         } else {
@@ -386,13 +407,19 @@ public class TraversalEngine {
     }
 
     private SAMFileReader initializeSAMFile(final File samFile) {
-        SAMFileReader samReader = new SAMFileReader(samFile, true);
-        samReader.setValidationStringency(strictness);
+        // todo: fixme, this is a hack to try out dynamic merging
+        if ( samFile.toString().endsWith(".list") ) {
+            return null;
+            // todo: omg, this is just scary, just it's just for testing purposes.  fix with the new DataSource system
+        } else {
+            SAMFileReader samReader = new SAMFileReader(samFile, true);
+            samReader.setValidationStringency(strictness);
 
-        final SAMFileHeader header = samReader.getFileHeader();
-        logger.info(String.format("Sort order is: " + header.getSortOrder()));
+            final SAMFileHeader header = samReader.getFileHeader();
+            logger.info(String.format("Sort order is: " + header.getSortOrder()));
 
-        return samReader;
+            return samReader;
+        }
     }
 
     // cleaning up past mistakes
