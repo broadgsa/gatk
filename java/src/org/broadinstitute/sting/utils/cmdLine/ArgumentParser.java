@@ -136,7 +136,10 @@ public class ArgumentParser {
      * @param options A list of pairs of param, field to add.
      */
     private void AddToOptionStorage( List<Pair<Option,Field>> options ) {
+        // Create an option group and mark it 'required'.  If any of its constituent parameters
+        // are NOT required, they'll unset the required bit for the whole group.
         OptionGroup optionGroup = new OptionGroup();
+        optionGroup.setRequired(true);
 
         for( Pair<Option,Field> option: options ) {
             if (m_options.hasOption(option.first.getOpt()) )
@@ -401,7 +404,7 @@ public class ArgumentParser {
     /**
      * Given a field with some annotations, create a command-line option.  If not enough data is
      * available to create a command-line option, return null.
-     * @param source Source class containing the field.
+     * @param sourceName Source class containing the field.
      * @param field Field
      * @return Option representing the field options.
      */
