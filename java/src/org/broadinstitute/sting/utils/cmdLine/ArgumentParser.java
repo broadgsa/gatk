@@ -117,6 +117,10 @@ public class ArgumentParser {
         if (m_options.hasOption( opt.getOpt() ))
             throw new IllegalArgumentException(opt.getOpt() + " was already added as an option");
 
+        // Doesn't make much sense to have a single (ungrouped) required option.  Force to unrequired.
+        if( !opt.hasArg() && opt.isRequired() )
+                opt.setRequired(false);
+
         // add to the option list
         m_options.addOption(opt);
 
@@ -253,41 +257,7 @@ public class ArgumentParser {
 
         // add it to the option
         AddToOptionStorage( opt, fieldname );
-
     }
-
-
-    /**
-     * addRequiredFlag
-     * <p/>
-     * Adds a required argument to check on the command line
-     *
-     * @param name        the name of the argument, the long name
-     * @param letterform  the short form
-     * @param description the description of the argument
-     * @param fieldname   what field it should be stuck into on the calling class
-     */
-    public void addRequiredFlag(String name, String letterform, String description, String fieldname) {
-
-        // if they've passed a non-Boolean as a object, beat them
-        try {
-            if (!(prog.getClass().getField(fieldname).getType() == Boolean.class)) {
-                throw new IllegalArgumentException("Fields to addRequiredlFlag must be of type Boolean");
-            }
-        } catch (NoSuchFieldException e) {
-            throw new IllegalArgumentException("Fields to addRequiredlFlag must exist!");
-        }
-
-        // we always want the help option to be available
-        Option opt = OptionBuilder.isRequired()
-                .withLongOpt(name)
-                .withDescription("(Required Flag) " + description)
-                .create(letterform);
-
-        // add it to the option
-        AddToOptionStorage( opt, fieldname );
-    }
-
 
     /**
      * This function is called to validate all the arguments to the program.
@@ -442,10 +412,10 @@ public class ArgumentParser {
         if( !isFlag ) {
             ob = ob.withArgName(fullName);
             ob = isCollection ? ob.hasArgs() : ob.hasArg();
-            if( argument.required() ) {
-                ob = ob.isRequired();
-                description = String.format("[%s] (Required Option) %s", source, argument.doc());
-            }
+        }
+        if( argument.required() ) {
+            ob = ob.isRequired();
+            description = String.format("[%s] (Required Option) %s", source, argument.doc());
         }
         if( description.length() != 0 ) ob = ob.withDescription( description );
 
