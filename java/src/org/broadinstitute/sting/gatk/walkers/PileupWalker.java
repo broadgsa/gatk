@@ -14,7 +14,7 @@ import java.util.List;
  * Time: 3:22:14 PM
  * To change this template use File | Settings | File Templates.
  */
-public class PileupWalker extends BasicLociWalker<Integer, Integer> {
+public class PileupWalker extends LocusWalker<Integer, Integer> {
     public void initialize() {
     }
 

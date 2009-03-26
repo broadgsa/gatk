@@ -3,7 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.walkers.BasicLociWalker;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.Utils;
 import net.sf.samtools.SAMRecord;
 
@@ -12,7 +12,7 @@ import java.util.List;
 // Draft single sample genotyper
 // j.maguire 3-7-2009
 
-public class SingleSampleGenotyper extends BasicLociWalker<Integer, Integer> {
+public class SingleSampleGenotyper extends LocusWalker<Integer, Integer> {
     public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
         return true;    // We are keeping all the reads
     }

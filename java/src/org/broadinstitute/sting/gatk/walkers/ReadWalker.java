@@ -10,16 +10,19 @@ import org.broadinstitute.sting.gatk.LocusContext;
  * Time: 2:52:28 PM
  * To change this template use File | Settings | File Templates.
  */
-public interface ReadWalker<MapType, ReduceType> extends Walker {
-    boolean requiresOrderedReads();
+public abstract class ReadWalker<MapType, ReduceType> extends Walker {
+    public boolean requiresOrderedReads() { return false; }
     
     // Do we actually want to operate on the context?
-    boolean filter(LocusContext context, SAMRecord read);
+    public boolean filter(LocusContext context, SAMRecord read) {
+        // We are keeping all the reads
+        return true;
+    }
 
     // Map over the org.broadinstitute.sting.gatk.LocusContext
-    MapType map(LocusContext context, SAMRecord read);
+    public abstract MapType map(LocusContext context, SAMRecord read);
 
     // Given result of map function
-    ReduceType reduceInit();
-    ReduceType reduce(MapType value, ReduceType sum);
+    public abstract ReduceType reduceInit();
+    public abstract ReduceType reduce(MapType value, ReduceType sum);
 }

@@ -134,7 +134,6 @@ public class ArgumentParser {
      */
     private void AddToOptionStorage( List<Pair<Option,Pair<Object,Field>>> options ) {
         OptionGroup optionGroup = new OptionGroup();
-        boolean isRequired = true;
 
         for( Pair<Option,Pair<Object,Field>> option: options ) {
             if (m_options.hasOption(option.first.getOpt()) )
@@ -142,10 +141,9 @@ public class ArgumentParser {
 
             optionGroup.addOption(option.first);
             m_storageLocations.put( option.first.getLongOpt(), option.second );
-            isRequired &= option.first.isRequired();
+            optionGroup.setRequired( optionGroup.isRequired() & option.first.isRequired() );
         }
 
-        optionGroup.setRequired(isRequired);
         m_options.addOptionGroup(optionGroup);
     }
 

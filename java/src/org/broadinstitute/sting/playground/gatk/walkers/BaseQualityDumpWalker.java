@@ -2,7 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.walkers.BasicReadWalker;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.Utils;
 import edu.mit.broad.picard.reference.ReferenceSequence;
 
@@ -10,7 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import static java.lang.reflect.Array.*;
 
-public class BaseQualityDumpWalker extends BasicReadWalker<Integer, Integer> {
+public class BaseQualityDumpWalker extends ReadWalker<Integer, Integer> {
 
     protected final int MIN_TARGET_EDIT_DISTANCE = 0; //5;
     protected final int MAX_TARGET_EDIT_DISTANCE = 4; //10;

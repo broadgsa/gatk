@@ -3,7 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.rodGFF;
-import org.broadinstitute.sting.gatk.walkers.BasicLociWalker;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
@@ -18,7 +18,7 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 
-public class AlleleFrequencyMetricsWalker extends BasicLociWalker<AlleleFrequencyEstimate, String> 
+public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEstimate, String> 
 {
 
     long dbsnp_hits=0;

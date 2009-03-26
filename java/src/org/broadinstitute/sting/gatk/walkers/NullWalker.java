@@ -9,11 +9,7 @@ import java.util.List;
 // Null traversal. For ATK performance measuring.
 // j.maguire 3-7-2009
 
-public class NullWalker implements LocusWalker<Integer, Integer> {
-    public String getName() {
-        return "Null";
-    }
-
+public class NullWalker extends LocusWalker<Integer, Integer> {
     public void initialize() {
     }
 

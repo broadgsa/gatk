@@ -3,14 +3,14 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.walkers.BasicLociWalker;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 import java.util.Arrays;
 
-public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstimate, Integer> {
+public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, Integer> {
 
     int N=2;
 

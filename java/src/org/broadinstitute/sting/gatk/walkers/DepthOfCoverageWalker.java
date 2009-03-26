@@ -12,7 +12,7 @@ import java.util.List;
  * Time: 3:22:14 PM
  * To change this template use File | Settings | File Templates.
  */
-public class DepthOfCoverageWalker extends BasicLociWalker<Integer, Integer> {
+public class DepthOfCoverageWalker extends LocusWalker<Integer, Integer> {
     public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
         System.out.printf("%s: %d%n", context.getLocation(), context.getReads().size() );
         return 1;

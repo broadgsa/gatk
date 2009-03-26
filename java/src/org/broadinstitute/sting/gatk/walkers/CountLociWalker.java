@@ -12,7 +12,7 @@ import java.util.List;
  * Time: 3:22:14 PM
  * To change this template use File | Settings | File Templates.
  */
-public class CountLociWalker extends BasicLociWalker<Integer, Integer> {
+public class CountLociWalker extends LocusWalker<Integer, Integer> {
     public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
         return 1;
     }
