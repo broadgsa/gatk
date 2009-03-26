@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class GenomeAnalysisTK extends CommandLineProgram {
-
+    public static GenomeAnalysisTK Instance = null;
 
     // parameters and their defaults
     public File INPUT_FILE;
@@ -43,7 +43,6 @@ public class GenomeAnalysisTK extends CommandLineProgram {
 
     // our walker manager
     private WalkerManager walkerManager = null;
-    private Walker my_walker = null;
 
     public String pluginPathName = null;
     private TraversalEngine engine = null;
@@ -88,7 +87,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      * @return List of walkers to load dynamically.
      */
     @Override
-    protected Object[] getArgumentSources() {
+    protected Class[] getArgumentSources() {
         if( Analysis_Name == null )
             throw new IllegalArgumentException("Must provide analysis name");
 
@@ -97,16 +96,20 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         if( !walkerManager.doesWalkerExist(Analysis_Name) )
             throw new IllegalArgumentException("Invalid analysis name");
 
-        my_walker = walkerManager.getWalkerByName(Analysis_Name);
+        return new Class[] { walkerManager.getWalkerClassByName(Analysis_Name) };
+    }
 
-        return new Object[] { my_walker };
+    @Override
+    protected String getArgumentSourceName( Class argumentSource ) {
+        return WalkerManager.getWalkerName( (Class<Walker>)argumentSource );    
     }
 
     /**
      * Required main method implementation.
      */
     public static void main(String[] argv) {
-        start(new GenomeAnalysisTK(), argv);
+        Instance = new GenomeAnalysisTK();
+        start(Instance, argv);
     }
 
     protected int execute() {
@@ -175,12 +178,17 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         engine.setSortOnFly(ENABLED_SORT_ON_FLY);
         engine.setThreadedIO(ENABLED_THREADED_IO);
         engine.initialize();
-        //engine.testReference();
 
-        //LocusWalker<Integer,Integer> walker = new PileupWalker();
-
-        if( my_walker == null )
-            throw new RuntimeException( "Sanity check failed -- no walker present." );
+        Walker my_walker = null;
+        try {
+            my_walker = walkerManager.createWalkerByName( Analysis_Name );
+        }
+        catch( InstantiationException ex ) {
+            throw new RuntimeException( "Unable to instantiate walker.", ex );
+        }
+        catch( IllegalAccessException ex ) {
+            throw new RuntimeException( "Unable to access walker", ex );
+        }
 
         // Try to get the walker specified
         try {

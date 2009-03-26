@@ -2,6 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.LocusContext;
 
 /**
@@ -11,12 +12,9 @@ import org.broadinstitute.sting.gatk.LocusContext;
  * Time: 3:22:14 PM
  * To change this template use File | Settings | File Templates.
  */
+@WalkerName("Aligned_Reads_Histogram")
 public class AlignedReadsHistoWalker extends ReadWalker<Integer, Integer> {
     long[] alignCounts = new long[51];
-
-    public String getName() {
-        return "Aligned_Reads_Histogram";
-    }
 
     public void initialize() {
         for ( int i = 0; i < alignCounts.length; i++ ) {

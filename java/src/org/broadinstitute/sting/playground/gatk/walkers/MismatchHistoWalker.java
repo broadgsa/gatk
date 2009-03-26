@@ -3,6 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.Utils;
 import edu.mit.broad.picard.reference.ReferenceSequence;
 
@@ -10,15 +11,12 @@ import java.util.Iterator;
 import java.util.List;
 import static java.lang.reflect.Array.*;
 
+@WalkerName("Mismatch_Histogram")
 public class MismatchHistoWalker extends ReadWalker<Integer, Integer> {
 
     protected long[] mismatchCounts = new long[0];
     protected final int MIN_TARGET_EDIT_DISTANCE = 5;
     protected final int MAX_TARGET_EDIT_DISTANCE = 10;
-
-    public String getName() {
-        return "Mismatch_Histogram";
-    }
 
     // Do we actually want to operate on the context?
     public boolean filter(LocusContext context, SAMRecord read) {

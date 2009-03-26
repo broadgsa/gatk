@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
+import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
+
 /**
  * Created by IntelliJ IDEA.
  * User: hanna
@@ -9,13 +11,19 @@ package org.broadinstitute.sting.gatk.walkers;
  */
 public abstract class Walker {
     // TODO: Can a walker be templatized so that map and reduce live here?
-    public String getName() {
-        // Return name of class, trimming 'Walker' from the end if present.
-        String className = getClass().getSimpleName();
-        if(className.endsWith(Walker.class.getSimpleName()))
-            return className.substring(0,className.lastIndexOf(Walker.class.getSimpleName()));
-        else
-            return className;
+
+    protected Walker() {
+        GenomeAnalysisTK.Instance.loadArgumentsIntoObject(this);
+    }
+
+    /**
+     * Retrieve the toolkit, for peering into internal structures that can't
+     * otherwise be read.  Use sparingly, and discuss uses with software engineering
+     * team.
+     * @return The genome analysis toolkit.
+     */
+    protected GenomeAnalysisTK getToolkit() {
+        return GenomeAnalysisTK.Instance;
     }
 
     public void initialize() { }

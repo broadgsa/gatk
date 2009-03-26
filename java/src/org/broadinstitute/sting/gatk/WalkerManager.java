@@ -21,6 +21,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 /**
@@ -31,16 +32,16 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
  * To change this template use File | Settings | File Templates.
  */
 public class WalkerManager {
-    
-    private Map<String,Walker> walkers = null;
 
+    private Map<String,Class> walkers;
+    
     public WalkerManager( String pluginDirectory ) {
         try {
-            List<Class> walkerClasses = new ArrayList<Class>();
+            List<Class> walkerCandidates = new ArrayList<Class>();
 
             // Load all classes that live in this jar.
             final File location = getThisLocation();
-            walkerClasses.addAll( loadClassesFromLocation( location ) );
+            walkerCandidates.addAll( loadClassesFromLocation( location ) );
 
             // Load all classes that live in the extension path.
             if(pluginDirectory == null)
@@ -50,27 +51,19 @@ public class WalkerManager {
             File extensionPath = new File( pluginDirectory );
             if(extensionPath.exists()) {
                 List<String> filesInPath = findFilesInPath( extensionPath, "", "class", false );
-                walkerClasses.addAll( loadExternalClasses( extensionPath, filesInPath ) );
+                walkerCandidates.addAll( loadExternalClasses( extensionPath, filesInPath ) );
             }
 
-            walkerClasses = filterWalkers(walkerClasses);
+            walkerCandidates = filterWalkers(walkerCandidates);
 
-            if(walkerClasses.isEmpty())
+            if(walkerCandidates.isEmpty())
                 throw new RuntimeException("No walkers were found.");            
 
-            walkers = instantiateWalkers( walkerClasses );
+            walkers = createWalkerDatabase( walkerCandidates );
         }
         // IOExceptions here are suspect; they indicate that the WalkerManager can't open its containing jar.
         // Wrap in a RuntimeException.
         catch(IOException ex) {
-            throw new RuntimeException(ex);
-        }
-        // The following two catches are more 'expected'; someone might add a walker that can't be instantiated.
-        // TODO: Should these exceptions be handled differently?  Handling them like IOExceptions for the moment.
-        catch(InstantiationException ex) {
-            throw new RuntimeException(ex);
-        }
-        catch(IllegalAccessException ex) {
             throw new RuntimeException(ex);
         }
     }
@@ -89,9 +82,14 @@ public class WalkerManager {
      * @param walkerName Name of the walker to retrieve.
      * @return The walker object if found; null otherwise.
      */
-    public Walker getWalkerByName(String walkerName) {
-        Walker walker = walkers.get(walkerName);
-        return walker;
+    public Walker createWalkerByName(String walkerName)
+            throws InstantiationException, IllegalAccessException {
+        Class walker = walkers.get(walkerName);
+        return (Walker)walker.newInstance();
+    }
+
+    public Class getWalkerClassByName( String walkerName ) {
+        return walkers.get(walkerName);
     }
 
     /**
@@ -224,7 +222,7 @@ public class WalkerManager {
      * TODO: Test recursive traversal in the presence of a symlink.
      */
     private List<String> findFilesInPath(final File basePath, final String relativePrefix, final String extension, boolean recursive) {
-        List<String> filesInPath = new ArrayList();
+        List<String> filesInPath = new ArrayList<String>();
 
         File[] contents = basePath.listFiles( new OrFilenameFilter( new DirectoryFilter(), new ExtensionFilter( extension ) ) );
         for( File content: contents ) {
@@ -302,21 +300,37 @@ public class WalkerManager {
     /**
      * Instantiate the list of walker classes.  Add them to the walker hashmap.
      * @param walkerClasses Classes to instantiate.
-     * @throws InstantiationException
-     * @throws IllegalAccessException
+     * @return map of walker name to walker.
      */
-    private Map<String,Walker> instantiateWalkers(List<Class> walkerClasses)
-            throws InstantiationException, IllegalAccessException {
-        Map<String,Walker> walkers = new HashMap<String,Walker>();
+    private Map<String,Class> createWalkerDatabase(List<Class> walkerClasses) {
+        Map<String,Class> walkers = new HashMap<String,Class>();
 
-        for(Class walkerClass : walkerClasses) {
-            Walker walker = (Walker)walkerClass.newInstance();
-            String walkerName = walker.getName();
-
+        for(Class<Walker> walkerClass : walkerClasses) {
+            String walkerName = getWalkerName( walkerClass );
             System.out.printf("* Adding module %s%n", walkerName);            
-            walkers.put(walkerName,walker);
+            walkers.put(walkerName,walkerClass);
         }
 
         return walkers;
+    }
+
+    /**
+     * Create a name for this type of walker.
+     * @param walkerType The type of walker.
+     * @return A name for this type of walker.
+     */
+    public static String getWalkerName( Class<Walker> walkerType ) {
+        String walkerName = "";
+
+        if( walkerType.getAnnotation( WalkerName.class ) != null )
+            walkerName = walkerType.getAnnotation( WalkerName.class ).value().trim();
+
+        if( walkerName.length() == 0 ) {
+            walkerName = walkerType.getSimpleName();
+            if( walkerName.endsWith("Walker") )
+                walkerName = walkerName.substring( 0,walkerName.lastIndexOf("Walker") );
+        }
+
+        return walkerName;
     }
 }

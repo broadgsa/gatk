@@ -9,7 +9,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -37,8 +37,11 @@ public class ArgumentParser {
     // what program are we parsing for
     private String programName;
 
+    // the command-line options received.
+    private CommandLine cmd;
+
     // where we eventually want the values to land
-    private HashMap<String, Pair<Object,Field>> m_storageLocations = new HashMap<String, Pair<Object,Field>>();
+    private HashMap<String,Field> m_storageLocations = new HashMap<String,Field>();
 
     // create Options object
     protected Options m_options = new Options();
@@ -112,7 +115,7 @@ public class ArgumentParser {
      * @param opt        the option
      * @param field      what field it should be stuck into on the calling class
      */
-    private void AddToOptionStorage(Option opt, Pair<Object,Field> field ) {
+    private void AddToOptionStorage(Option opt, Field field ) {
         // first check to see if we've already added an option with the same name
         if (m_options.hasOption( opt.getOpt() ))
             throw new IllegalArgumentException(opt.getOpt() + " was already added as an option");
@@ -132,10 +135,10 @@ public class ArgumentParser {
      * Used locally to add a group of mutually exclusive options to options storage.
      * @param options A list of pairs of param, field to add.
      */
-    private void AddToOptionStorage( List<Pair<Option,Pair<Object,Field>>> options ) {
+    private void AddToOptionStorage( List<Pair<Option,Field>> options ) {
         OptionGroup optionGroup = new OptionGroup();
 
-        for( Pair<Option,Pair<Object,Field>> option: options ) {
+        for( Pair<Option,Field> option: options ) {
             if (m_options.hasOption(option.first.getOpt()) )
                 throw new IllegalArgumentException(option.first.getOpt() + " was already added as an option");
 
@@ -147,9 +150,9 @@ public class ArgumentParser {
         m_options.addOptionGroup(optionGroup);
     }
 
-    private Pair<Object,Field> getField( Object obj, String fieldName ) {
+    private Field getField( Object obj, String fieldName ) {
         try {
-            return new Pair<Object,Field>( obj, obj.getClass().getField(fieldName) );
+            return obj.getClass().getField(fieldName);
         } catch (NoSuchFieldException e) {
             logger.fatal("Failed to find the field specified by the fieldname parameter.");
             throw new RuntimeException(e.getMessage());
@@ -283,14 +286,24 @@ public class ArgumentParser {
         // you can't get to the unparsed args.  Override PosixParser with a class
         // that can reach in and extract the protected command line.
         // TODO: Holy crap this is wacky.  Find a cleaner way.
-        CommandLine cmd = parser.getCmd();
+        this.cmd = parser.getCmd();
+    }
+
+    public void loadArgumentsIntoObject( Object obj ) {
+        Collection<Option> opts = m_options.getOptions();
 
         // logger.info("We have " + opts.size() + " options");
         for (Option opt : opts) {
             if (cmd.hasOption(opt.getOpt())) {
                 //logger.info("looking at " + m_storageLocations.get(opt.getLongOpt()));
-                Object obj = m_storageLocations.get(opt.getLongOpt()).first;
-                Field field = m_storageLocations.get(opt.getLongOpt()).second;
+                Field field = m_storageLocations.get(opt.getLongOpt());
+
+                // Check to see if the object contains the specified field.  Iterate through
+                // the array rather than doing a name lookup in case field names overlap between
+                // multiple classes in the application.
+                List<Field> fieldsInObj = Arrays.asList(obj.getClass().getFields());
+                if( !fieldsInObj.contains(field) )
+                    continue;
 
                 try {
                     if (opt.hasArg())
@@ -316,19 +329,19 @@ public class ArgumentParser {
      * Extract arguments stored in annotations from fields of a given class.
      * @param source Source of arguments, probably provided through Argument annotation.
      */
-    public void addArgumentSource( Object source ) {
-        Field[] fields = source.getClass().getFields();
+    public void addArgumentSource( CommandLineProgram clp, Class source ) {
+        Field[] fields = source.getFields();
 
         for( Set<Field> optionGroup: groupExclusiveOptions(fields) ) {
-            List<Pair<Option,Pair<Object,Field>>> options = new ArrayList<Pair<Option,Pair<Object,Field>>>();
+            List<Pair<Option,Field>> options = new ArrayList<Pair<Option,Field>>();
             for( Field field: optionGroup ) {
                 Argument argument = field.getAnnotation(Argument.class);
-                Option option = createOptionFromField( source, field, argument );
-                options.add( new Pair<Option,Pair<Object,Field>>( option, new Pair<Object,Field>( source,field) ) );
+                Option option = createOptionFromField( clp.getArgumentSourceName( source ), field, argument );
+                options.add( new Pair<Option,Field>( option, field ) );
             }
 
             if( options.size() == 1 )
-                AddToOptionStorage( options.get(0).first, new Pair<Object,Field>( source, options.get(0).second.second ) );
+                AddToOptionStorage( options.get(0).first, options.get(0).second );
             else {
                 AddToOptionStorage( options );
             }
@@ -392,7 +405,7 @@ public class ArgumentParser {
      * @param field Field
      * @return Option representing the field options.
      */
-    private Option createOptionFromField( Object source, Field field, Argument argument ) {
+    private Option createOptionFromField( String sourceName, Field field, Argument argument ) {
 
         String fullName = (argument.fullName().length() != 0) ? argument.fullName() : field.getName().trim().toLowerCase();
         String shortName = (argument.shortName().length() != 0) ? argument.shortName() : fullName.substring(0,1);
@@ -404,7 +417,7 @@ public class ArgumentParser {
         if( isFlag && isCollection )
             throw new IllegalArgumentException("Can't have an array of flags.");
 
-        String description = String.format("[%s] %s", source, argument.doc());
+        String description = String.format("[%s] %s", sourceName, argument.doc());
 
         OptionBuilder ob = OptionBuilder.withLongOpt(fullName);
         if( !isFlag ) {
@@ -413,7 +426,7 @@ public class ArgumentParser {
         }
         if( argument.required() ) {
             ob = ob.isRequired();
-            description = String.format("[%s] (Required Option) %s", source, argument.doc());
+            description = String.format("[%s] (Required Option) %s", sourceName, argument.doc());
         }
         if( description.length() != 0 ) ob = ob.withDescription( description );
 

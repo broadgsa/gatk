@@ -81,7 +81,14 @@ public abstract class CommandLineProgram {
      * Provide a list of object to inspect, looking for additional command-line arguments.
      * @return A list of objects to inspect.
      */
-    protected Object[] getArgumentSources() { return new Object[] {}; }
+    protected Class[] getArgumentSources() { return new Class[] {}; }
+
+    /**
+     * Name this argument source.  Provides the (full) class name as a default.
+     * @param source The argument source.
+     * @return a name for the argument source.
+     */
+    protected String getArgumentSourceName( Class source ) { return source.toString(); }
 
     /**
      * this is the function that the inheriting class can expect to have called
@@ -128,13 +135,16 @@ public abstract class CommandLineProgram {
             if( clp.canAddArgumentsDynamically() ) {
                 // if the command-line program can toss in extra args, fetch them and reparse the arguments.
                 clp.m_parser.processArgs(args, true);
-                Object[] argumentSources = clp.getArgumentSources();
-                for( Object argumentSource: argumentSources )
+                clp.m_parser.loadArgumentsIntoObject( clp );
+
+                Class[] argumentSources = clp.getArgumentSources();
+                for( Class argumentSource: argumentSources )
                     clp.addArgumentSource( argumentSource );
                 clp.m_parser.processArgs(args, false);
             }
             else {
                 clp.m_parser.processArgs(args, false);
+                clp.m_parser.loadArgumentsIntoObject( clp );
             }
 
             // if we're in debug mode, set the mode up
@@ -202,6 +212,15 @@ public abstract class CommandLineProgram {
     }
 
     /**
+     * Find fields in the object obj that look like command-line arguments, and put command-line
+     * arguments into them.
+     * @param obj Object to inspect for command line arguments.
+     */
+    public void loadArgumentsIntoObject( Object obj ) {
+        m_parser.loadArgumentsIntoObject( obj );
+    }
+
+    /**
      * generateHeaderInformation
      * <p/>
      * 
@@ -261,8 +280,8 @@ public abstract class CommandLineProgram {
      * probably a class with @argument annotations.
      * @param source
      */
-    private void addArgumentSource( Object source ) {
-        m_parser.addArgumentSource(source);
+    private void addArgumentSource( Class source ) {
+        m_parser.addArgumentSource( this, source );
     }
 
     /**
