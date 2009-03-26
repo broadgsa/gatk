@@ -356,7 +356,7 @@ public class ArgumentParser {
      * will be alone a set.  Every option should appear in exactly one set.
      * WARNING: Has no concept of nested dependencies.
      * @param fields list of fields for which to check options.
-     * @return
+     * @return groupings of mutually exclusive options.
      */
     private List<Set<Field>> groupExclusiveOptions( Field[] fields ) {
         List<Set<Field>> optionGroups = new ArrayList<Set<Field>>();
@@ -414,30 +414,42 @@ public class ArgumentParser {
         String shortName = (argument.shortName().length() != 0) ? argument.shortName() : fullName.substring(0,1);
         if(shortName.length() != 1)
             throw new IllegalArgumentException("Invalid short name: " + shortName);
+        String description = argument.doc();
+        boolean isRequired = argument.required();
         boolean isFlag = (field.getType() == Boolean.class) || (field.getType() == Boolean.TYPE);
         boolean isCollection = field.getType().isArray() || Collection.class.isAssignableFrom(field.getType());
 
         if( isFlag && isCollection )
             throw new IllegalArgumentException("Can't have an array of flags.");
 
-        String description = String.format("[%s] %s", sourceName, argument.doc());
-
-        OptionBuilder ob = OptionBuilder.withLongOpt(fullName);
+        OptionBuilder.withLongOpt(fullName);
         if( !isFlag ) {
-            ob = ob.withArgName(fullName);
-            ob = isCollection ? ob.hasArgs() : ob.hasArg();
+            OptionBuilder.withArgName(fullName);
+            if( isCollection )
+                OptionBuilder.hasArgs();
+            else
+                OptionBuilder.hasArg();
         }
-        if( argument.required() ) {
-            ob = ob.isRequired();
-            description = String.format("[%s] (Required Option) %s", sourceName, argument.doc());
+        if( isRequired ) {
+            OptionBuilder.isRequired();
+            description = String.format("(Required Option) %s", description);
         }
-        if( description.length() != 0 ) ob = ob.withDescription( description );
 
-        Option option = ob.create( shortName );
+        sourceName = sourceName.trim();
+        if( sourceName.length() > 0 )
+            description = String.format("[%s] %s", sourceName, description );
 
-        return option;
+        if( description.length() != 0 ) OptionBuilder.withDescription( description );
+
+        return OptionBuilder.create( shortName );
     }
 
+    /**
+     * Constructs a command-line argument given a string and field.
+     * @param f Field type from which to infer the type.
+     * @param strs Collection of parameter strings to parse.
+     * @return Parsed object of the inferred type.
+     */
     private Object constructFromString(Field f, String[] strs) {
         Class type = f.getType();
 
