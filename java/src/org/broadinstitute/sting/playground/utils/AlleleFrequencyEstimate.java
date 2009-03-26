@@ -10,21 +10,12 @@ public class AlleleFrequencyEstimate {
     public int N;
     public double qhat;
     public double qstar;
-    public double LOD;
+    public double lodVsRef;
+    public double lodVsNextBest;
     public int depth;
     public String notes;
 
-    public double getQstar()
-    {
-        return qstar;
-    }
-
-    public double getLOD() 
-    {
-        return LOD;
-    }
-
-    public AlleleFrequencyEstimate(String location, char ref, char alt, int N, double qhat, double qstar, double LOD, int depth)
+    public AlleleFrequencyEstimate(String location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, int depth)
     {
         this.location = location;
         this.ref = ref;
@@ -32,19 +23,21 @@ public class AlleleFrequencyEstimate {
         this.N = N;
         this.qhat = qhat;
         this.qstar = qstar;
-        this.LOD = LOD;
+        this.lodVsRef = lodVsRef;
+        this.lodVsNextBest = lodVsNextBest;
         this.depth = depth;
         this.notes = "";
     }
 
     public String asTabularString() {
-        return String.format("RESULT %s %c %c %f %f %f %d %s\n",
+        return String.format("RESULT %s %c %c %f %f %f %f %d %s\n",
 	                                        location,
 	                                        ref,
 	                                        alt,
 	                                        qhat,
 	                                        qstar,
-	                                        LOD,
+                                            lodVsRef,
+                                            lodVsNextBest,
 	                                        depth, 
                                             notes);
     }

@@ -8,6 +8,7 @@ import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
+import java.util.Arrays;
 
 public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstimate, Integer> {
 
@@ -159,13 +160,14 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
         double qstep = 0.001;
         double qend = 1.0 + qstep / 10; // makes sure we get to 1.0 even with rounding error of qsteps accumulating
 
-        double best_qstar     = Math.log10(0);
-        double best_qhat      = Math.log10(0);
-        double best_posterior = Math.log10(0);
-
-        double best_pDq = Math.log10(0);
-        double best_pqG = Math.log10(0);
-        double best_pG  = Math.log10(0);
+        // Initialize empyt MixtureLikelihood holders for each possible qstar (N+1)
+        MixtureLikelihood[] bestMixtures = new MixtureLikelihood[N+1];
+        // Fill 1..N ML positions with 0 valued MLs
+        for (int i=1; i<=N; i++) bestMixtures[i] = new MixtureLikelihood();
+        // Calculate null hypothesis for qstar = 0, qhat = 0
+        double posterior_null_hyp = P_D_q(bases, quals, 0.0, refnum, altnum) + P_q_G(bases, N, 0.0, epsilon, 0) + P_G(N, 0);
+        // Put null hypothesis into ML[0] because that is our prob of that theory and we don't loop over it below
+        bestMixtures[0] = new MixtureLikelihood(posterior_null_hyp, 0.0, 0.0);
 
         // hypothetic allele balance that we sample over
         for (double q=0.0; q <= qend; q += qstep) 
@@ -180,30 +182,36 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
                 double pG  = P_G(N, qstar_N); 
                 double posterior = pDq + pqG + pG;
 
-                if (posterior > best_posterior)
-                {
-                    best_qstar = qstar;
-                    best_qhat  = q;
-                    best_posterior = posterior; 
+                if (posterior > bestMixtures[qstar_N].posterior)
+                    bestMixtures[qstar_N] = new MixtureLikelihood(posterior, qstar, q);
 
-                    best_pDq = pDq;
-                    best_pqG = pqG;
-                    best_pG  = pG;
-                }
                 //System.out.format("%.2f %.2f %5.2f %5.2f %5.2f %5.2f\n", q, qstar, pDq, pqG, pG, posterior);
             }
         }
 
-        double posterior_null_hyp = P_D_q(bases, quals, 0.0, refnum, altnum) + P_q_G(bases, N, 0.0, epsilon, 0) + P_G(N, 0);
-        double LOD = best_posterior - posterior_null_hyp;
+        // First reverset sort NONREF mixtures according to highest posterior probabililty
+        Arrays.sort(bestMixtures, 1, N+1);
+
+        // Calculate Lod of any variant call versus the reference call
+        // Answers how confident are we in the best variant (nonref) mixture versus the null hypothesis
+        // reference mixture - qhat = qstar = 0.0
+        double lodVarVsRef = bestMixtures[1].posterior - posterior_null_hyp;
+
+        // Now reverse sort ALL mixtures according to highest posterior probability
+        Arrays.sort(bestMixtures);
+
+        // Calculate Lod of the mixture versus other possible
+        // Answers how confident are we in the best mixture versus the next best mixture
+        double lodBestVsNextBest = bestMixtures[0].posterior - bestMixtures[1].posterior;
 
         AlleleFrequencyEstimate alleleFreq = new AlleleFrequencyEstimate(location,
                                                                          num2nuc[refnum], 
                                                                          num2nuc[altnum],
                                                                          N, 
-                                                                         best_qhat, 
-                                                                         best_qstar, 
-                                                                         LOD,
+                                                                         bestMixtures[0].qhat,
+                                                                         bestMixtures[0].qstar,
+                                                                         lodVarVsRef,
+                                                                         lodBestVsNextBest,
                                                                          depth);
         return alleleFreq;
     }
@@ -212,6 +220,12 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
         public double posterior;
         public double qstar;
         public double qhat;
+
+        MixtureLikelihood() {
+            this.posterior = Math.log10(0);
+            this.qstar = Math.log10(0);
+            this.qhat = Math.log10(0);
+        }
 
         MixtureLikelihood(double posterior, double qstar, double qhat) {
             this.posterior = posterior;
@@ -317,7 +331,7 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
     public Integer reduce(AlleleFrequencyEstimate alleleFreq, Integer sum) 
     {
         // Print RESULT data for confident calls
-        if ((alleleFreq.LOD >= 5) || (alleleFreq.LOD <= -5)) { System.out.print(alleleFreq.asTabularString()); }
+        if ((alleleFreq.lodVsRef >= 5) || (alleleFreq.lodVsRef <= -5)) { System.out.print(alleleFreq.asTabularString()); }
         return 0;
     }
 
@@ -393,7 +407,7 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
 	        AlleleFrequencyWalker w = new AlleleFrequencyWalker();
 	        AlleleFrequencyEstimate estimate = w.AlleleFrequencyEstimator("null", N, het_bases, het_quals, 0, 1, 20);
 	        System.out.print(String.format("50%% Het : %s %c %c %f %f %f %d %s\n", 
-	                                        "null", estimate.ref, estimate.alt, estimate.qhat, estimate.qstar, estimate.LOD, 20, "null"));
+	                                        "null", estimate.ref, estimate.alt, estimate.qhat, estimate.qstar, estimate.lodVsRef, 20, "null"));
         }
 
         {
@@ -510,7 +524,7 @@ public class AlleleFrequencyWalker extends BasicLociWalker<AlleleFrequencyEstima
             w.N = 10;
 	        AlleleFrequencyEstimate estimate = w.AlleleFrequencyEstimator("null", N, het_bases, het_quals, 0, 1, 20);
 	        System.out.print(String.format("10%% Het : %s %c %c %f %f %f %d %s\n", 
-	                                        "null", estimate.ref, estimate.alt, estimate.qhat, estimate.qstar, estimate.LOD, 20, "null"));
+	                                        "null", estimate.ref, estimate.alt, estimate.qhat, estimate.qstar, estimate.lodVsRef, 20, "null"));
         }
 
     }

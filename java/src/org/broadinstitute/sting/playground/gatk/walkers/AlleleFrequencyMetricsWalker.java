@@ -61,9 +61,9 @@ public class AlleleFrequencyMetricsWalker extends BasicLociWalker<AlleleFrequenc
             }
         }
 
-        if (Math.abs(alleleFreq.LOD) >= LOD_cutoff) { num_loci_confident += 1; }
+        if (Math.abs(alleleFreq.lodVsRef) >= LOD_cutoff) { num_loci_confident += 1; }
 
-        if (alleleFreq.qstar > 0.0 && alleleFreq.LOD >= LOD_cutoff)
+        if (alleleFreq.qstar > 0.0 && alleleFreq.lodVsRef >= LOD_cutoff)
         { 
             // Confident variant.
            
@@ -75,20 +75,7 @@ public class AlleleFrequencyMetricsWalker extends BasicLociWalker<AlleleFrequenc
             }
         }
 
-        // Convert qstar and LOD to give best qstar and a positive LOD for that qstar
-        double qstar;
-        double LOD;
-        if (alleleFreq.LOD < 0) {
-            qstar = 0.0;
-            LOD = -1 * alleleFreq.LOD;
-        }else{
-            qstar = alleleFreq.qstar;
-            LOD = alleleFreq.LOD;
-        }                              
-
-        //long confident_calls_at_hapmap_chip_sites = 0;
-        if (LOD >= LOD_cutoff && has_hapmap_chip_genotype) {
-            //confident_calls_at_hapmap_chip_sites++;
+        if (has_hapmap_chip_genotype) {
 
             // convert hapmap call to mixture of ref/nonref
             String hapmap_genotype = hapmap_chip_genotype.getFeature();
@@ -107,42 +94,38 @@ public class AlleleFrequencyMetricsWalker extends BasicLociWalker<AlleleFrequenc
             }
 
             // Hapmap debug info
-            System.out.format("HAPMAP %.2f %.2f %.2f ", hapmap_q, qstar, LOD);
+            System.out.format("HAPMAP %.2f %.2f %.2f ", hapmap_q, alleleFreq.qstar, alleleFreq.lodVsRef);
             String called_genotype = alleleFreq.asString();
-            System.out.format("%s %s %c %c %.2f", hapmap_genotype, called_genotype, alleleFreq.ref, alleleFreq.alt, alleleFreq.LOD);
+            System.out.format("%s %s %c %c", hapmap_genotype, called_genotype, alleleFreq.ref, alleleFreq.alt);
 
-            // Calculate genotyping performance - did we get the correct genotype of the N+1 choices?
-            if (hapmap_q != -1 && hapmap_q == qstar) {
-                hapmap_genotype_correct++;
-                System.out.print("\n");
-            }else{
-                hapmap_genotype_incorrect++;
-                System.out.printf(" INCORRECT GENOTYPE Bases: %s\n", AlleleFrequencyWalker.getBases(context));
-                AlleleFrequencyWalker.print_base_qual_matrix(AlleleFrequencyWalker.getOneBaseQuals(context));
+            if (alleleFreq.lodVsNextBest >= LOD_cutoff) {
+
+                // Calculate genotyping performance - did we get the correct genotype of the N+1 choices?
+                if (hapmap_q != -1 && hapmap_q == alleleFreq.qstar) {
+                    hapmap_genotype_correct++;
+                }else{
+                    hapmap_genotype_incorrect++;
+                    System.out.printf(" INCORRECT GENOTYPE    Bases: %s", AlleleFrequencyWalker.getBases(context));
+                    //AlleleFrequencyWalker.print_base_qual_matrix(AlleleFrequencyWalker.getOneBaseQuals(context));
+                }
             }
 
-            // Now calculate ref / var performance - did we correctly classify the site as
-            // reference or variant without regard to genotype; i.e. het/hom "miscalls" don't matter here
-            boolean hapmap_var = hapmap_q != 0.0;
-            boolean called_var = qstar != 0.0;
-            if (hapmap_var != called_var) {
-                hapmap_refvar_incorrect++;
-            }else{
-                hapmap_refvar_correct++;
+            if (alleleFreq.lodVsRef >= LOD_cutoff || -1 * alleleFreq.lodVsRef >= LOD_cutoff) {
+
+                // Now calculate ref / var performance - did we correctly classify the site as
+                // reference or variant without regard to genotype; i.e. het/hom "miscalls" don't matter here
+                boolean hapmap_var = hapmap_q != 0.0;
+                boolean called_var = alleleFreq.qstar != 0.0;
+                if (hapmap_q != -1 && hapmap_var != called_var) {
+                    hapmap_refvar_incorrect++;
+                }else{
+                    hapmap_refvar_correct++;
+                    System.out.printf(" INCORRECT REFVAR CALL Bases: %s\n", AlleleFrequencyWalker.getBases(context));
+                }
             }
 
+            System.out.print("\n");
         }
-
-        /*String hapmap_genotype = hapmap_chip_genotype.getFeature();
-        String called_genotype = alleleFreq.asString();
-        System.out.format("HAPMAP %s %s %.2f\n", hapmap_genotype, called_genotype, alleleFreq.LOD);
-        // There is a hapmap site here, is it correct?
-        if (hapmap_genotype.equals(called_genotype))
-        {
-            hapmap_tp++;
-        } else {
-            hapmap_fp++;
-        } */
 
         return alleleFreq;
     }
@@ -190,7 +173,7 @@ public class AlleleFrequencyMetricsWalker extends BasicLociWalker<AlleleFrequenc
     public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
     {
         // Print RESULT data for confident calls
-        //if ((alleleFreq.LOD >= 5) || (alleleFreq.LOD <= -5)) { System.out.print(alleleFreq.asTabularString()); }
+        //if ((alleleFreq.lodVsRef >= 5) || (alleleFreq.lodVsRef <= -5)) { System.out.print(alleleFreq.asTabularString()); }
         System.out.print(alleleFreq.asTabularString()); 
 
         if (this.num_loci_total % 1000 == 0) { printMetrics(); }
