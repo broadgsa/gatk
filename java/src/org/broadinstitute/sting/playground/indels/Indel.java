@@ -114,7 +114,7 @@ public class Indel implements Interval {
      * @param i Another interval
      * @return true iff intervals overlap
      */
-    @Override
+
     public boolean overlapsP(Interval i) {
         return ! disjointP(i);  //To change body of implemented methods use File | Settings | File Templates.
     }
@@ -126,7 +126,6 @@ public class Indel implements Interval {
      * @param i Another interval
      * @return true iff intervals do not overlap
      */
-    @Override
     public boolean disjointP(Interval i) {
         return i.getStop() < this.getStart() || i.getStart() > this.getStop();
     }
@@ -135,7 +134,6 @@ public class Indel implements Interval {
 	 *  has length of 0.
      *  @return length of the event on the original, unmodified reference
 	 */
-    @Override
 	public long getLength() {
 		if ( mType == IndelType.I ) return 0; 
 		return mLength;
@@ -150,6 +148,6 @@ public class Indel implements Interval {
 
     @Override
     public int hashCode() {
-        return (int)( mStart << 2 + mLength );
+        return (int)( mStart << 6 + mStart + mLength );
     }
 }

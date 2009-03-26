@@ -89,6 +89,8 @@ public class IndelRecordPileCollector implements RecordReceiver {
     private RecordReceiver defaultReceiver; // we will send there records that do not overlap with regions of interest
     private RecordPileReceiver indelPileReceiver; // piles over indel regions will be sent there
 
+    private SAMFileWriter controlWriter;
+
     private String referenceSequence;
 
     public String memStatsString() {
@@ -97,7 +99,12 @@ public class IndelRecordPileCollector implements RecordReceiver {
                 //+" Bndries="+mIndelRegionStart +":"+ mIndelRegionStop;
 	}
 	
-	public IndelRecordPileCollector(RecordReceiver rr, RecordPileReceiver rp) throws java.io.IOException {
+    public IndelRecordPileCollector(RecordReceiver rr, RecordPileReceiver rp) throws java.io.IOException {
+        this(rr,rp,null);
+    }
+
+
+	public IndelRecordPileCollector(RecordReceiver rr, RecordPileReceiver rp, SAMFileWriter cw) throws java.io.IOException {
 		mRecordPile = new LinkedList<SAMRecord>();
 		mAllIndels = new TreeSet<CountedObject<Indel> >(
                 new CountedObjectComparatorAdapter<Indel>(new IntervalComparator()));
@@ -113,6 +120,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
         defaultReceiver = rr;
         indelPileReceiver = rp;
         referenceSequence = null;
+        controlWriter = cw;
         setWaitState();
 	}
 
@@ -146,6 +154,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
             SAMRecord r = i.next();
             if ( r.getAlignmentEnd() <= pos ) {
                 defaultReceiver.receive(r);
+                if ( controlWriter != null ) controlWriter.addAlignment(r);
                 i.remove();
             } else break;
         }
@@ -161,6 +170,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
             SAMRecord r = i.next();
             if ( r.getAlignmentStart() >= pos ) {
                 defaultReceiver.receive(r);
+                if ( controlWriter != null ) controlWriter.addAlignment(r);
                 i.remove();
             } else break;
         }
@@ -250,7 +260,10 @@ public class IndelRecordPileCollector implements RecordReceiver {
             }
 
 			// no indels or avoiding indels in bad region: send all records to defaultReceiver and clear the pile
-            for ( SAMRecord r : mRecordPile ) defaultReceiver.receive(r);
+            for ( SAMRecord r : mRecordPile ) {
+                defaultReceiver.receive(r);
+                if ( controlWriter != null ) controlWriter.addAlignment(r);
+            }
             setWaitState();
 			return;
 		}
@@ -325,7 +338,13 @@ public class IndelRecordPileCollector implements RecordReceiver {
                      System.out.print(finalPile.size() + " reads in the pile;")  ;
                      System.out.println(formatRange(finalTrain));
                      indelPileReceiver.receive(finalPile);
-                } else for ( SAMRecord r : finalPile ) defaultReceiver.receive(r);
+                     if ( controlWriter != null ) for ( SAMRecord r : finalPile ) controlWriter.addAlignment(r);
+                } else {
+                    for ( SAMRecord r : finalPile ) {
+                        defaultReceiver.receive(r);
+                        controlWriter.addAlignment(r);
+                    }
+                }
                 finalPile.clear();
                 finalTrain.clear();
                 curr_stop = -1;

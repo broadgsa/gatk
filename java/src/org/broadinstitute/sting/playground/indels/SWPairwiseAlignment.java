@@ -91,6 +91,8 @@ public class SWPairwiseAlignment {
 
         PrimitivePair.Int p = new PrimitivePair.Int();
         int maxscore = 0;
+        int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
+
         // look for largest score. we use >= combined with the traversal direction
         // to ensure that if two scores are equal, the one closer to diagonal gets picked
         for ( int i = 1 ; i < n+1 ; i++ ) {
@@ -102,6 +104,7 @@ public class SWPairwiseAlignment {
                 p.first = n;
                 p.second = j ;
                 maxscore = sw[n][j];
+                segment_length = m - j; // end of sequence 2 is overhanging; we will just record it as 'M' segment
             }
         }
 
@@ -114,7 +117,6 @@ public class SWPairwiseAlignment {
         // to that sequence
 
         int state = MSTATE;
-        int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
 
         int [] scores = new int[3];
 
@@ -160,12 +162,12 @@ public class SWPairwiseAlignment {
             case DSTATE: o = CigarOperator.D; break;
         }
 
+        alignment_offset = p.first - p.second;
         segment_length+=p.second;
         CigarElement e = new CigarElement(segment_length,o);
         lce.add(e);
         Collections.reverse(lce);
         alignmentCigar = new Cigar(lce);
-        alignment_offset = p.first - p.second;
     }
 
     /** Allows for separate gap opening end extension penalties, no direct backtracking.
@@ -198,6 +200,8 @@ public class SWPairwiseAlignment {
 
         PrimitivePair.Int p = new PrimitivePair.Int();
         double maxscore = 0.0;
+        int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
+
         // look for largest score. we use >= combined with the traversal direction
         // to ensure that if two scores are equal, the one closer to diagonal gets picked
         for ( int i = 1 ; i < n+1 ; i++ ) {
@@ -209,6 +213,7 @@ public class SWPairwiseAlignment {
                 p.first = n;
                 p.second = j ;
                 maxscore = sw[n][j];
+                segment_length = m - j; // end of sequence 2 is overhanging; we will just record it as 'M' segment
             }
         }
 
@@ -221,7 +226,6 @@ public class SWPairwiseAlignment {
         // to that sequence
 
         int state = MSTATE;
-        int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
 
         double [] scores = new double[3];
 
@@ -268,12 +272,12 @@ public class SWPairwiseAlignment {
             case ISTATE: o = CigarOperator.I; break;
             case DSTATE: o = CigarOperator.D; break;
         }
+        alignment_offset = p.first - p.second;
         segment_length+=p.second;
         CigarElement e = new CigarElement(segment_length,o);
         lce.add(e);
         Collections.reverse(lce);
         alignmentCigar = new Cigar(lce);
-        alignment_offset = p.first - p.second ;
     }
 
 
@@ -342,6 +346,8 @@ public void align3(String a, String b) {
 
         PrimitivePair.Int p = new PrimitivePair.Int();
         double maxscore = 0.0;
+        int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
+
         // look for largest score. we use >= combined with the traversal direction
         // to ensure that if two scores are equal, the one closer to diagonal gets picked
         for ( int i = 1 ; i < n+1 ; i++ ) {
@@ -353,6 +359,7 @@ public void align3(String a, String b) {
                 p.first = n;
                 p.second = j ;
                 maxscore = sw[n][j];
+                segment_length = m - j ; // end of sequence 2 is overhanging; we will just record it as 'M' segment
             }
         }
 
@@ -365,7 +372,6 @@ public void align3(String a, String b) {
         // to that sequence
 
         int state = MSTATE;
-        int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
 
         double [] scores = new double[3];
 
@@ -419,12 +425,12 @@ public void align3(String a, String b) {
             case ISTATE: o = CigarOperator.I; break;
             case DSTATE: o = CigarOperator.D; break;
         }
+        alignment_offset = p.first - p.second;
         segment_length+=p.second;
         CigarElement e = new CigarElement(segment_length,o);
         lce.add(e);
         Collections.reverse(lce);
         alignmentCigar = new Cigar(lce);
-        alignment_offset = p.first - p.second;
     }
 
     public void align4(String a, String b) {
@@ -485,6 +491,8 @@ public void align3(String a, String b) {
 
             PrimitivePair.Int p = new PrimitivePair.Int();
             double maxscore = 0.0;
+            int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
+
             // look for largest score. we use >= combined with the traversal direction
             // to ensure that if two scores are equal, the one closer to diagonal gets picked
             for ( int i = 1 ; i < n+1 ; i++ ) {
@@ -496,6 +504,7 @@ public void align3(String a, String b) {
                     p.first = n;
                     p.second = j ;
                     maxscore = sw[n][j];
+                    segment_length = m - j ; // end of sequence 2 is overhanging; we will just record it as 'M' segment
                 }
             }
 
@@ -508,7 +517,6 @@ public void align3(String a, String b) {
             // to that sequence
 
             int state = MSTATE;
-            int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
 
             double [] scores = new double[3];
 
@@ -558,12 +566,12 @@ public void align3(String a, String b) {
                 case ISTATE: o = CigarOperator.I; break;
                 case DSTATE: o = CigarOperator.D; break;
             }
+            alignment_offset = p.first - p.second;
             segment_length+=p.second;
             CigarElement e = new CigarElement(segment_length,o);
             lce.add(e);
             Collections.reverse(lce);
             alignmentCigar = new Cigar(lce);
-            alignment_offset = p.first - p.second;
     }
 
     private int w(char x, char y) {
@@ -688,17 +696,21 @@ public void align3(String a, String b) {
             }
             // now pos1 = alignment_offset
         }
-                          System.out.println(AlignmentUtils.toString(getCigar()));
-                          System.out.println("seq1l="+s1.length()+"; seq2l=" + s2.length());
-                           System.out.println("offset="+alignment_offset);
-
-        try {
-        System.out.println("pos1="+pos1+"; pos2=" + pos2);
+/* debug prints: */
+//        System.out.println(AlignmentUtils.toString(getCigar()));
+//        System.out.println("seq1l="+s1.length()+"; seq2l=" + s2.length());
+//        System.out.println("offset="+alignment_offset);
+//        System.out.println("pos1="+pos1+"; pos2=" + pos2);
+/**/
         for ( int i = 0 ; i < getCigar().numCigarElements() ; i++ ) {
             CigarElement ce = getCigar().getCigarElement(i) ;
             switch( ce.getOperator() ) {
                 case M:
-                    for ( int k = 0 ; k < ce.getLength() ; k++ ) {
+                    int z = ( i == 0 ? pos2 : 0); // if we are in the first element and seq overhangs to the left,
+                                                  // start inside the first segment, at the position where actual matches begin
+                    // check separately for pos1 < s1.length() since seq2 is allowed to overhang beyond seq1's end
+                    for (  ; z < ce.getLength() && pos1 < s1.length() ; z++ ) {
+//                        System.out.println("pos1="+pos1+"; pos2="+pos2+"; k="+z);
                         if ( Character.toUpperCase(s1.charAt(pos1)) !=
                                 Character.toUpperCase(s2.charAt(pos2)) ) bmm.append('*');
                         else bmm.append(' ');
@@ -722,10 +734,7 @@ public void align3(String a, String b) {
                     break;
             }
         }
-        } catch(Exception e) {}
-        b1.append("<---");
-        b2.append("<---");
-        bmm.append("<---");
+
         bmm.append('\n');
         b1.append(s1,pos1,s1.length());
         bmm.append(b1);
@@ -733,6 +742,7 @@ public void align3(String a, String b) {
         b2.append(s2,pos2,s2.length());
         bmm.append(b2);
         bmm.append('\n');
+
         return bmm.toString();
     }
 

@@ -240,7 +240,7 @@ public class MultipleAlignment implements Iterable<Integer>  {
 	/** Returns a (multiline) string that represents the alignment visually: the sequences are appropriately
 	 *  shifted and ready for printout;  
 	 */
-	public String toString(boolean inorder) {
+	public String toString(boolean inorder, boolean dotprint) {
 
 		StringBuilder b = new StringBuilder();
 		java.util.Formatter frmt = new java.util.Formatter(b);
@@ -278,8 +278,16 @@ public class MultipleAlignment implements Iterable<Integer>  {
 		for ( int i = 0 ; i < seqs.size() ; i++ ) {
             int index = (inorder ? perm[i] : i);
 			frmt.format("%3d:", ext_ids.get(index));
-			skipN(alignment_offsets.get(index)+ first_offset,b);
-			b.append(seqs.get(index));
+            int pos = alignment_offsets.get(index)+ first_offset; // start position on the consensus sequence
+			skipN(pos,b);
+            String aSeq = seqs.get(index);
+            if ( dotprint ) {
+                for ( int j = 0 ; j < aSeq.length() ; j++, pos++ ) {
+                    if ( Character.toUpperCase(aSeq.charAt(j)) ==
+                             Character.toUpperCase(consensusString[3][pos]) ) b.append('.');
+                    else b.append(aSeq.charAt(j));
+                }
+            } else b.append(aSeq);
 			b.append('\n');
 		}
 //		b.append(best_mm+" mismatches, "+ next_mm + " next best, " + getOverlap() + " overlapping bases, distance=" + distance() + "\n");
@@ -290,7 +298,7 @@ public class MultipleAlignment implements Iterable<Integer>  {
         return consensus.getSequence();
     }
 
-    public String toString() { return toString(true); }
+    public String toString() { return toString(true, false); }
 
 	public int size() { return seqs.size(); }
 	

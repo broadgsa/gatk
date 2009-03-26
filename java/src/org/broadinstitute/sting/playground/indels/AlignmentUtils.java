@@ -113,8 +113,14 @@ public class AlignmentUtils {
             Indel curr_indel = null;
 
             switch(ce.getOperator()) {
-            case I: curr_indel = new Indel(runninglength, ce.getLength(), Indel.IndelType.I); break;
+            case I:
+                    curr_indel = new Indel(runninglength, ce.getLength(), Indel.IndelType.I);
+                    if ( i == 0 ) System.out.println("WARNING: Indel at start!");
+                    if ( i == c.numCigarElements() - 1) System.out.println("WARNING: Indel at end!");
+                    break;
             case D: curr_indel = new Indel(runninglength, ce.getLength(), Indel.IndelType.D);
+                    if ( i == 0 ) System.out.println("WARNING: Indel at start!");
+                    if ( i == c.numCigarElements() - 1) System.out.println("WARNING: Indel at end!");
                     runninglength += ce.getLength();
                     break;
             case M: runninglength += ce.getLength(); break; // advance along the gapless block in the alignment
@@ -152,6 +158,7 @@ public class AlignmentUtils {
         for ( Indel ind : indels ) {
             CountedObject<Indel> ci = new CountedObject<Indel>(ind);
             CountedObject<Indel> found = t.floor(ci);
+//            CountedObject<Indel> found2 = t.ceiling(ci);
 
             if ( ci.equals( found ) ) found.increment(); // we did find our indel, advance the counter
             else t.add(ci); // this is a new indel. Add it.

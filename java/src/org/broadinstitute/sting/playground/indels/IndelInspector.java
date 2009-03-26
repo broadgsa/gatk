@@ -11,8 +11,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import edu.mit.broad.picard.cmdline.CommandLineProgram;
 import edu.mit.broad.picard.cmdline.Option;
 import edu.mit.broad.picard.cmdline.Usage;
-import edu.mit.broad.picard.reference.ReferenceSequenceFile;
-import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
 import edu.mit.broad.picard.reference.ReferenceSequenceFileWalker;
 import edu.mit.broad.picard.reference.ReferenceSequence;
 
@@ -25,6 +23,10 @@ public class IndelInspector extends CommandLineProgram {
     @Usage(programVersion="1.0") public String USAGE = "Investigates indels called in the alignment data\n";
     @Option(shortName="I", doc="SAM or BAM file for calling",optional=true) public File INPUT_FILE;
     @Option(shortName="L",doc="Genomic interval to run on, as contig[:start[-stop]]; whole genome if not specified", optional=true) public String GENOME_LOCATION;
+    @Option(shortName="V",doc="Verbosity level: SILENT, PILESUMMARY, ALIGNMENTS", optional=true) public String VERBOSITY_LEVEL;
+    @Option(doc="Output file (sam or bam) for non-indel related reads and indel reads that were not improved") public String OUT1; 
+    @Option(doc="Output file (sam or bam) for improved (realigned) indel related reads") public String OUT2;
+    @Option(doc="[paranoid] Output \"control\" file (sam or bam): all reads picked and processed by this tool will be also saved, unmodified, into this file", optional=true) public String OUTC;
     @Option(doc="Error counting mode: MM - count mismatches only, ERR - count errors (arachne style), MG - count mismatches and gaps as one error each") public String ERR_MODE;
     @Option(doc="Maximum number of errors allowed (see ERR_MODE)") public Integer MAX_ERRS;
 //    @Option(shortName="R", doc="Reference fasta or fasta.gz file") public File REF_FILE;
@@ -46,7 +48,7 @@ public class IndelInspector extends CommandLineProgram {
 			System.out.println("Unknown value specified for ERR_MODE");
 			return 1;
 		}
-		
+
 		final SAMFileReader samReader = new SAMFileReader(getInputFile(INPUT_FILE,"/broad/1KG/"));
         samReader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
 
@@ -60,12 +62,26 @@ public class IndelInspector extends CommandLineProgram {
         ReferenceSequence contig_seq = null;
 
 		IndelRecordPileCollector col = null;
-        PileBuilder pileBuilder = new PileBuilder();
+        PassThroughWriter ptWriter = new PassThroughWriter(OUT1,samReader.getFileHeader());
+        PileBuilder pileBuilder = new PileBuilder(OUT2,samReader.getFileHeader(),ptWriter);
+
+        SAMFileWriter controlWriter = null;
+        if ( OUTC != null ) controlWriter = new SAMFileWriterFactory().makeSAMOrBAMWriter(samReader.getFileHeader(),false,new File(OUTC));
+
 		try {
-			col = new IndelRecordPileCollector(new DiscardingReceiver(), pileBuilder );
+			col = new IndelRecordPileCollector(ptWriter, pileBuilder, controlWriter );
 		} catch(Exception e) { System.err.println(e.getMessage()); }
 		if ( col == null ) return 1; 
-		
+
+        if ( VERBOSITY_LEVEL == null ) VERBOSITY_LEVEL = new String("SILENT");
+        if ( VERBOSITY_LEVEL.toUpperCase().equals("SILENT")) pileBuilder.setVerbosity(pileBuilder.SILENT);
+        else if ( VERBOSITY_LEVEL.toUpperCase().equals("PILESUMMARY") ) pileBuilder.setVerbosity(pileBuilder.PILESUMMARY);
+        else if ( VERBOSITY_LEVEL.toUpperCase().equals("ALIGNMENTS") ) pileBuilder.setVerbosity(pileBuilder.ALIGNMENTS);
+        else {
+            System.out.println("Unrecognized VERBOSITY_LEVEL setting.");
+            return 1;
+        }
+
         String cur_contig = null;
         int counter = 0;
 
@@ -120,9 +136,14 @@ public class IndelInspector extends CommandLineProgram {
         	col.receive(r);
 
         }
+        
+        pileBuilder.printStats();
         System.out.println("done.");
         col.printLengthHistograms();
         samReader.close();
+        pileBuilder.close();
+        ptWriter.close();
+        if ( controlWriter != null ) controlWriter.close();
         return 0;
 	}
 	

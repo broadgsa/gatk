@@ -231,7 +231,7 @@ public class SequencePile {
             if ( refC == '+' ) {
                  // count number of observations for insertion
                 for ( int j = 0 ; j < col.size() ; j++ ) {
-                     if ( col.charAt(j) != '*' ) count++;
+                     if ( col.charAt(j) != '*' && col.charAt(j) != ' ') count++;
                 }
             } else {
                 if ( headerGrid.charAt(i) == '-' ) {
