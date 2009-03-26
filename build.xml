@@ -199,7 +199,7 @@
 
     <target name="javadoc" description="generates javadoc">
         <mkdir dir="javadoc"/>
-        <javadoc sourcepathref="${target}.srcdir" destdir="javadoc"/>
+        <javadoc sourcepathref="source" destdir="javadoc"/>
     </target>
 
     <target name="clean"
