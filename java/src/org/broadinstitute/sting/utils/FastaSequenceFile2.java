@@ -14,6 +14,7 @@ import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.AsciiLineReader;
 import net.sf.samtools.util.StringUtil;
 import net.sf.samtools.util.RuntimeIOException;
+import org.apache.log4j.Logger;
 
 /**
  * Implementation of ReferenceSequenceFile for reading from FASTA files.
@@ -30,6 +31,11 @@ public class FastaSequenceFile2 implements ReferenceSequenceFile {
     private SAMSequenceDictionary sequenceDictionary = null;
     private String currentContigName = null;
 
+    /**
+     * our log, which we want to capture anything from this class
+     */
+    private static Logger logger = Logger.getLogger(FastaSequenceFile2.class);
+    
     /**
      * Set to true to see lots of debugging output during operation
      */
@@ -129,9 +135,9 @@ public class FastaSequenceFile2 implements ReferenceSequenceFile {
         assert contig1Rec != null : "Contig2 record is null: " + contig2;
 
         if ( DEBUG )
-            System.out.printf("Contig1=(%s, %d), contig2=(%s, %d)%n",
+            logger.debug(String.format("Contig1=(%s, %d), contig2=(%s, %d)%n",
                     contig1, contig1Rec.getSequenceIndex(),
-                    contig2, contig2Rec.getSequenceIndex());
+                    contig2, contig2Rec.getSequenceIndex()));
 
         int startIndex = Math.min(contig1Rec.getSequenceIndex(), contig2Rec.getSequenceIndex());
         int lastIndex = Math.max(contig1Rec.getSequenceIndex(), contig2Rec.getSequenceIndex());
@@ -141,14 +147,14 @@ public class FastaSequenceFile2 implements ReferenceSequenceFile {
             SAMSequenceRecord rec = seqDict.getSequence(i);
             bytesToTraverse += rec.getSequenceLength();
             if ( DEBUG )
-                System.out.printf("  -> Traversing from %15s to %15s requires reading at least %10d bytes to pass contig %15s, total bytes %10d%n",
-                    contig1, contig2, rec.getSequenceLength(), rec.getSequenceName(), bytesToTraverse);
+                logger.debug(String.format("  -> Traversing from %15s to %15s requires reading at least %10d bytes to pass contig %15s, total bytes %10d%n",
+                    contig1, contig2, rec.getSequenceLength(), rec.getSequenceName(), bytesToTraverse));
         }
 
         if ( contig1Rec.getSequenceIndex() > contig2Rec.getSequenceIndex() )
             bytesToTraverse *= -1;  // we are going backward!
 
-        if ( DEBUG ) System.out.printf("  -> total distance is %d%n", bytesToTraverse);
+        if ( DEBUG ) logger.debug(String.format("  -> total distance is %d%n", bytesToTraverse));
 
         return bytesToTraverse;
     }
@@ -180,13 +186,13 @@ public class FastaSequenceFile2 implements ReferenceSequenceFile {
      * @return true on success
      */
     public boolean seekToContig(final String seekContig, boolean enableBacktracking ) {
-        if ( DEBUG ) System.out.printf("seekToContig( %s, %b )%n", seekContig, enableBacktracking);
+        if ( DEBUG ) logger.debug(String.format("seekToContig( %s, %b )%n", seekContig, enableBacktracking));
 
         String curContig = getContigName();
         String nextContig = null;
         
         if ( curContig == null ) {
-            System.out.printf("CurrentContig is null");
+            logger.info(String.format("CurrentContig is null"));
             if ( this.sequenceDictionary == null )
                 throw new PicardException( String.format("Seeking within contigs requires FASTA dictionary, but none was available for %s", this.file ));
 
@@ -217,7 +223,7 @@ public class FastaSequenceFile2 implements ReferenceSequenceFile {
                 return false;       // we're not going backwards just yet
         }
         else {
-            if ( DEBUG ) System.out.printf("Going to seek to contig %s with skip %d%n", seekContig, dist);
+            if ( DEBUG ) logger.debug(String.format("Going to seek to contig %s with skip %d%n", seekContig, dist));
             // we're actually going to jump somewhere, so prepare the state
             this.nextContigName = null;         // reset the contig info
 
@@ -256,7 +262,7 @@ public class FastaSequenceFile2 implements ReferenceSequenceFile {
      * @return null if there are no more sequences in the fasta stream
      */
     public ReferenceSequence nextSequence() {
-        if ( DEBUG ) System.out.printf("Calling nextSequence()%n");
+        if ( DEBUG ) logger.debug(String.format("Calling nextSequence()%n"));
         
         // Read the header line
         currentContigName = getNextContigName();
@@ -309,8 +315,8 @@ public class FastaSequenceFile2 implements ReferenceSequenceFile {
 
         this.nextContigName = null; // we no longer know what the next contig name is
 
-        if ( DEBUG ) System.out.printf(" => nextSequence() is returning %s, known length = %d%n", this.currentContigName, knownLength);
-        if ( DEBUG ) System.out.printf(" => nextSequence() next is %s%n", this.getNextContigName());
+        if ( DEBUG ) logger.debug(String.format(" => nextSequence() is returning %s, known length = %d%n", this.currentContigName, knownLength));
+        if ( DEBUG ) logger.debug(String.format(" => nextSequence() next is %s%n", this.getNextContigName()));
 
         return new ReferenceSequence(currentContigName, index, bases);
     }
@@ -326,7 +332,7 @@ public class FastaSequenceFile2 implements ReferenceSequenceFile {
      * @return the name of the next contig, or null if there is no next contig
      */
     public String getNextContigName() {
-        if ( DEBUG ) System.out.printf("getNextContigName() => %s%n", this.nextContigName);
+        if ( DEBUG ) logger.debug(String.format("getNextContigName() => %s%n", this.nextContigName));
 
         if ( this.nextContigName == null ) {
             // If it's not null, we've already looked up the next contig name, just return it and happily continue
@@ -334,7 +340,7 @@ public class FastaSequenceFile2 implements ReferenceSequenceFile {
             this.nextContigName = readNextContigName();
         }
 
-        if ( DEBUG ) System.out.printf("nextContigName is now %s%n", nextContigName);
+        if ( DEBUG ) logger.debug(String.format("nextContigName is now %s%n", nextContigName));
         return this.nextContigName;
     }
 
@@ -400,7 +406,7 @@ public class FastaSequenceFile2 implements ReferenceSequenceFile {
                 if ( foundIndex == ourIndex ) {
                     // we found our target!
                     this.nextContigName = foundContig;   // store the right answer
-                    if ( DEBUG ) System.out.printf("seekForNextContig found %s%n", foundContig);
+                    if ( DEBUG ) logger.debug(String.format("seekForNextContig found %s%n", foundContig));
                     return foundContig;
                 }
                 else if ( foundIndex <= ourIndex )

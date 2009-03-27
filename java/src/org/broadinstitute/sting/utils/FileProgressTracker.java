@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils;
 
+import org.apache.log4j.Logger;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,6 +44,12 @@ public class FileProgressTracker<T> implements Iterator<T> {
     public FileProgressTracker( File file, Iterator<T> it, FileChannel channel ) {
         this(file, it, channel, DEFAULT_HISTORY_SIZE);
     }
+
+    /**
+        * our log, which we want to capture anything from this class
+        */
+       private static Logger logger = Logger.getLogger(FileProgressTracker.class);
+
 
     // -----------------------------------------------------------------
     //
@@ -126,18 +134,18 @@ public class FileProgressTracker<T> implements Iterator<T> {
     }
 
     public void printStatus() {
-        System.out.printf("FileProgressTracker:%n");
-        System.out.printf("  -> File size is:                                   %d%n", getFileSize());
-        System.out.printf("  -> Sampling depth:                                 %d%n", historyI);
-        System.out.printf("  -> File position:                                  %d%n", getPosition());
-        System.out.printf("  -> Number of records processed:                    %d%n", nRecordsProcessed());
-        System.out.printf("  -> Average record size is                          %d%n", averageRecordSize());
-        System.out.printf("  -> Elapsed time in secs is                         %.2f%n", elapsedTimeInSecs());
-        System.out.printf("  -> Processing rate (records per second)            %.2f%n", processingRate());
-        System.out.printf("  -> Estimated number of records in file             %d%n", estRecordsInFile());
-        System.out.printf("  -> Estimated percent progress through file         %.2f%n", estFractionProgressThroughFile() * 100.0);
-        System.out.printf("  -> Estimated time for entire processing            %.2f hrs / %.2f min / %.2f sec%n", estTimeTotal() / (60*60), estTimeTotal() / (60), estTimeTotal());
-        System.out.printf("  -> Estimated time remaining                        %.2f hrs / %.2f min / %.2f sec%n", estTimeRemaining() / (60*60), estTimeRemaining() / 60, estTimeRemaining());
+        logger.debug(String.format("FileProgressTracker:%n"));
+        logger.debug(String.format("  -> File size is:                                   %d%n", getFileSize()));
+        logger.debug(String.format("  -> Sampling depth:                                 %d%n", historyI));
+        logger.debug(String.format("  -> File position:                                  %d%n", getPosition()));
+        logger.debug(String.format("  -> Number of records processed:                    %d%n", nRecordsProcessed()));
+        logger.debug(String.format("  -> Average record size is                          %d%n", averageRecordSize()));
+        logger.debug(String.format("  -> Elapsed time in secs is                         %.2f%n", elapsedTimeInSecs()));
+        logger.debug(String.format("  -> Processing rate (records per second)            %.2f%n", processingRate()));
+        logger.debug(String.format("  -> Estimated number of records in file             %d%n", estRecordsInFile()));
+        logger.debug(String.format("  -> Estimated percent progress through file         %.2f%n", estFractionProgressThroughFile() * 100.0));
+        logger.debug(String.format("  -> Estimated time for entire processing            %.2f hrs / %.2f min / %.2f sec%n", estTimeTotal() / (60*60), estTimeTotal() / (60), estTimeTotal()));
+        logger.debug(String.format("  -> Estimated time remaining                        %.2f hrs / %.2f min / %.2f sec%n", estTimeRemaining() / (60*60), estTimeRemaining() / 60, estTimeRemaining()));
     }
 
     public String progressMeter() {
