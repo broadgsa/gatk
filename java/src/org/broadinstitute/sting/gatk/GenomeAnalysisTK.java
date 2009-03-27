@@ -19,6 +19,8 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 
 import java.io.File;
+import java.io.PrintStream;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -50,6 +52,33 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     public boolean WALK_ALL_LOCI = false;
 
     /**
+     * An output file presented to the walker.
+     */
+    public String outFileName = null;
+
+    /**
+     * An error output file presented to the walker.
+     */
+    public String errFileName = null;
+
+    /**
+     * A joint file for both 'normal' and error output presented to the walker.
+     */
+    public String outErrFileName = null;
+
+    /**
+     * The output stream, initialized from OUTFILENAME / OUTERRFILENAME.
+     * Used by the walker.
+     */
+    public PrintStream out = System.out;
+
+    /**
+     * The output stream, initialized from ERRFILENAME / OUTERRFILENAME.
+     * Used by the walker.
+     */
+    public PrintStream err = System.err;
+    
+    /**
      * our log, which we want to capture anything from this class
      */
     private static Logger logger = Logger.getLogger(GenomeAnalysisTK.class);
@@ -74,6 +103,9 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalFlag("sort_on_the_fly", "F", "If set, enables on fly sorting of reads file.", "ENABLED_SORT_ON_FLY");
         m_parser.addOptionalArg("intervals_file", "V", "File containing list of genomic intervals to operate on. line := <contig> <start> <end>", "INTERVALS_FILE");
         m_parser.addOptionalArg("all_loci", "A", "Should we process all loci, not just those covered by reads", "WALK_ALL_LOCI");
+        m_parser.addOptionalArg("out", "o", "An output file presented to the walker.  Will overwrite contents if file exists.", "outFileName" );
+        m_parser.addOptionalArg("err", "e", "An error output file presented to the walker.  Will overwrite contents if file exists.", "errFileName" );
+        m_parser.addOptionalArg("outerr", "oe", "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", "outErrFileName");        
     }
 
     /**
@@ -135,6 +167,8 @@ public class GenomeAnalysisTK extends CommandLineProgram {
             ReferenceOrderedData gff = new ReferenceOrderedData(new File(HAPMAP_FILE), rodGFF.class);
             rods.add(gff);
         }
+
+        initializeOutputStreams();
 
         this.engine = new TraversalEngine(INPUT_FILE, REF_FILE_ARG, rods);
 
@@ -204,6 +238,33 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         }
 
         return 0;
+    }
+
+    /**
+     * Initialize the output streams as specified by the user.
+     */
+    private void initializeOutputStreams() {
+        if( outErrFileName != null && (outFileName != null || errFileName != null) )
+            throw new IllegalArgumentException("Can't set output/error output file with either out file name or err file name");
+
+        try {
+            if( outErrFileName != null ) {
+                PrintStream outErrStream = new PrintStream( outErrFileName );
+                out = outErrStream;
+                err = outErrStream;
+            }
+
+            if ( outFileName != null ) {
+                out = new PrintStream( outFileName );
+            }
+
+            if( errFileName != null ) {
+                err = new PrintStream( errFileName );
+            }
+        }
+        catch( FileNotFoundException ex ) {
+            throw new RuntimeException("Unable to open a walker output file.", ex);
+        }
     }
 
     /**

@@ -18,8 +18,6 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
     public void initialize() {
     }
 
-    public String walkerType() { return "ByLocus"; }
-
     // Do we actually want to operate on the context?
     public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
         return true;    // We are keeping all the reads
@@ -55,7 +53,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
             rodString = "[ROD: " + rodString + "]";
 
         //if ( context.getLocation().getStart() % 1 == 0 ) {
-        System.out.printf("%s: %s %s %s %s%n", context.getLocation(), ref, bases, quals, rodString);
+        out.printf("%s: %s %s %s %s%n", context.getLocation(), ref, bases, quals, rodString);
         //}
 
         return 1;

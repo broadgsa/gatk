@@ -53,7 +53,7 @@ public class BaseQualityHistoWalker extends ReadWalker<Integer, Integer> {
         }
 
         for ( int i = 0; i < lastNonZero+1; i++ ) {
-            System.out.printf("%3d : %10d%n", i, this.qualCounts[i]);
+            out.printf("%3d : %10d%n", i, this.qualCounts[i]);
         }
     }
 }

@@ -126,7 +126,7 @@ public class SingleSampleGenotyper extends LocusWalker<Integer, Integer> {
 
         if ( context.getLocation().getStart() % 1 == 0 ) {
             //System.out.printf("%s: %s %s %s %s%n", context.getLocation(), ref, bases, quals, rodString);
-            System.out.printf("%s %s %s %s\n", ref, bases, G.toString(), rodString);
+            out.printf("%s %s %s %s\n", ref, bases, G.toString(), rodString);
         }
 
         return 1;

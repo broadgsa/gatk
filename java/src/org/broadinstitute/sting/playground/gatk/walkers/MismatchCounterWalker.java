@@ -27,10 +27,10 @@ public class MismatchCounterWalker extends ReadWalker<Integer, Integer> {
 
             assert(refSeq.size() == readBases.size());
 
-            System.out.printf("start, stop = %d %d%n", start, stop);
-            System.out.println(read.format());
-            System.out.println(Utils.baseList2string(refSeq));
-            System.out.println(Utils.baseList2string(readBases));
+            out.printf("start, stop = %d %d%n", start, stop);
+            out.println(read.format());
+            out.println(Utils.baseList2string(refSeq));
+            out.println(Utils.baseList2string(readBases));
         }
 
         return nMismatches;

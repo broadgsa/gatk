@@ -72,7 +72,7 @@ public class MismatchHistoWalker extends ReadWalker<Integer, Integer> {
 
     public void onTraversalDone() {
         for ( int i = 0; i < mismatchCounts.length; i++ )
-            System.out.println((i+1) + "\t" + mismatchCounts[i]);
+            out.println((i+1) + "\t" + mismatchCounts[i]);
     }
 
     private static Object resizeArray (Object oldArray, int newSize) {

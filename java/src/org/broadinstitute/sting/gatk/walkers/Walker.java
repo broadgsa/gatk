@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
+import java.io.PrintStream;
+
 import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
 
 /**
@@ -12,8 +14,20 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
 public abstract class Walker<ReduceType> {
     // TODO: Can a walker be templatized so that map and reduce live here?
 
+    /**
+     * A stream for writing normal (non-error) output.  System.out by default.
+     */
+    protected PrintStream out = null;
+
+    /**
+     * A stream for writing error output.  System.err by default.
+     */
+    protected PrintStream err = null;
+
     protected Walker() {
         GenomeAnalysisTK.Instance.loadArgumentsIntoObject(this);
+        out = GenomeAnalysisTK.Instance.out;
+        err = GenomeAnalysisTK.Instance.err;
     }
 
     /**

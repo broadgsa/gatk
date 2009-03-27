@@ -94,9 +94,9 @@ public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEst
             }
 
             // Hapmap debug info
-            System.out.format("HAPMAP %.2f %.2f %.2f ", hapmap_q, alleleFreq.qstar, alleleFreq.lodVsRef);
+            out.format("HAPMAP %.2f %.2f %.2f ", hapmap_q, alleleFreq.qstar, alleleFreq.lodVsRef);
             String called_genotype = alleleFreq.asString();
-            System.out.format("%s %s %c %c", hapmap_genotype, called_genotype, alleleFreq.ref, alleleFreq.alt);
+            out.format("%s %s %c %c", hapmap_genotype, called_genotype, alleleFreq.ref, alleleFreq.alt);
 
             if (alleleFreq.lodVsNextBest >= LOD_cutoff) {
 
@@ -124,7 +124,7 @@ public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEst
                 }
             }
 
-            System.out.print("\n");
+            out.print("\n");
         }
 
         return alleleFreq;
@@ -134,29 +134,29 @@ public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEst
     {
         if (num_loci_total == 0) { return; }
 
-        System.out.printf("\n");
-        System.out.printf("METRICS Allele Frequency Metrics (LOD >= %.0f)\n", LOD_cutoff);
-        System.out.printf("METRICS -------------------------------------------------\n");
-        System.out.printf("METRICS Total loci                            : %d\n", num_loci_total);
-        System.out.printf("METRICS Total called with confidence          : %d (%.2f%%)\n", num_loci_confident, 100.0 * (float)num_loci_confident / (float)num_loci_total);
+        out.printf("\n");
+        out.printf("METRICS Allele Frequency Metrics (LOD >= %.0f)\n", LOD_cutoff);
+        out.printf("METRICS -------------------------------------------------\n");
+        out.printf("METRICS Total loci                            : %d\n", num_loci_total);
+        out.printf("METRICS Total called with confidence          : %d (%.2f%%)\n", num_loci_confident, 100.0 * (float)num_loci_confident / (float)num_loci_total);
         if (num_variants != 0)
         {
-	        System.out.printf("METRICS Number of variants                    : %d (%.2f%%) (1/%d)\n", num_variants, 100.0 * (float)num_variants / (float)num_loci_confident, num_loci_confident / num_variants);
-            System.out.printf("METRICS Fraction of variant sites in dbSNP    : %.2f%%\n", 100.0 * (float)dbsnp_hits / (float)num_variants);
-            System.out.printf("METRICS -------------------------------------------------\n");
-            System.out.printf("METRICS        -- Hapmap Genotyping performance --\n");
-            System.out.printf("METRICS Num. conf. calls at Hapmap chip sites : %d\n", hapmap_genotype_correct + hapmap_genotype_incorrect);
-            System.out.printf("METRICS Conf. calls at chip sites correct     : %d\n", hapmap_genotype_correct);
-            System.out.printf("METRICS Conf. calls at chip sites incorrect   : %d\n", hapmap_genotype_incorrect);
-            System.out.printf("METRICS %% of confident calls that are correct : %.2f%%\n", 100.0 * (float) hapmap_genotype_correct / (float)(hapmap_genotype_correct + hapmap_genotype_incorrect));
-            System.out.printf("METRICS -------------------------------------------------\n");
-            System.out.printf("METRICS    -- Hapmap Reference/Variant performance --\n");
-            System.out.printf("METRICS Num. conf. calls at Hapmap chip sites : %d\n", hapmap_refvar_correct + hapmap_refvar_incorrect);
-            System.out.printf("METRICS Conf. calls at chip sites correct     : %d\n", hapmap_refvar_correct);
-            System.out.printf("METRICS Conf. calls at chip sites incorrect   : %d\n", hapmap_refvar_incorrect);
-            System.out.printf("METRICS %% of confident calls that are correct : %.2f%%\n", 100.0 * (float) hapmap_refvar_correct / (float)(hapmap_refvar_correct + hapmap_refvar_incorrect));
+	        out.printf("METRICS Number of variants                    : %d (%.2f%%) (1/%d)\n", num_variants, 100.0 * (float)num_variants / (float)num_loci_confident, num_loci_confident / num_variants);
+            out.printf("METRICS Fraction of variant sites in dbSNP    : %.2f%%\n", 100.0 * (float)dbsnp_hits / (float)num_variants);
+            out.printf("METRICS -------------------------------------------------\n");
+            out.printf("METRICS        -- Hapmap Genotyping performance --\n");
+            out.printf("METRICS Num. conf. calls at Hapmap chip sites : %d\n", hapmap_genotype_correct + hapmap_genotype_incorrect);
+            out.printf("METRICS Conf. calls at chip sites correct     : %d\n", hapmap_genotype_correct);
+            out.printf("METRICS Conf. calls at chip sites incorrect   : %d\n", hapmap_genotype_incorrect);
+            out.printf("METRICS %% of confident calls that are correct : %.2f%%\n", 100.0 * (float) hapmap_genotype_correct / (float)(hapmap_genotype_correct + hapmap_genotype_incorrect));
+            out.printf("METRICS -------------------------------------------------\n");
+            out.printf("METRICS    -- Hapmap Reference/Variant performance --\n");
+            out.printf("METRICS Num. conf. calls at Hapmap chip sites : %d\n", hapmap_refvar_correct + hapmap_refvar_incorrect);
+            out.printf("METRICS Conf. calls at chip sites correct     : %d\n", hapmap_refvar_correct);
+            out.printf("METRICS Conf. calls at chip sites incorrect   : %d\n", hapmap_refvar_incorrect);
+            out.printf("METRICS %% of confident calls that are correct : %.2f%%\n", 100.0 * (float) hapmap_refvar_correct / (float)(hapmap_refvar_correct + hapmap_refvar_incorrect));
         }
-        System.out.println();
+        out.println();
     }
 
     public void onTraversalDone() 
@@ -174,7 +174,7 @@ public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEst
     {
         // Print RESULT data for confident calls
         //if ((alleleFreq.lodVsRef >= 5) || (alleleFreq.lodVsRef <= -5)) { System.out.print(alleleFreq.asTabularString()); }
-        System.out.print(alleleFreq.asTabularString()); 
+        out.print(alleleFreq.asTabularString()); 
 
         if (this.num_loci_total % 1000 == 0) { printMetrics(); }
 

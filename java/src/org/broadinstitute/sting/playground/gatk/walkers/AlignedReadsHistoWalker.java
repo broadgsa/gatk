@@ -49,7 +49,7 @@ public class AlignedReadsHistoWalker extends ReadWalker<Integer, Integer> {
         int curTotal = 0;
         for ( int i = 0; i < alignCounts.length; i++ ) {
             curTotal += alignCounts[i];
-            System.out.printf("%3d %10d%n", i, curTotal);
+            out.printf("%3d %10d%n", i, curTotal);
         }
     }
 }

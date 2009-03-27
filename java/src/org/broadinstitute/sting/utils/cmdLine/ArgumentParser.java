@@ -412,8 +412,6 @@ public class ArgumentParser {
 
         String fullName = (argument.fullName().length() != 0) ? argument.fullName() : field.getName().trim().toLowerCase();
         String shortName = (argument.shortName().length() != 0) ? argument.shortName() : fullName.substring(0,1);
-        if(shortName.length() != 1)
-            throw new IllegalArgumentException("Invalid short name: " + shortName);
         String description = argument.doc();
         boolean isRequired = argument.required();
         boolean isFlag = (field.getType() == Boolean.class) || (field.getType() == Boolean.TYPE);

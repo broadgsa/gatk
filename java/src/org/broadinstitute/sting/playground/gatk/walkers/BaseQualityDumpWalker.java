@@ -38,8 +38,8 @@ public class BaseQualityDumpWalker extends ReadWalker<Integer, Integer> {
             for ( int i = 0; i < qualStr.length(); i++)
                 scores[(reverseFlag ? (qualStr.length()-1-i) : i)] += (int)qualStr.charAt(i) - 33;
             for ( int i = 0; i < scores.length; i++ )
-                System.out.print(scores[i] + " ");
-            System.out.println("");
+                out.print(scores[i] + " ");
+            out.println("");
         }
 
         return 1;
