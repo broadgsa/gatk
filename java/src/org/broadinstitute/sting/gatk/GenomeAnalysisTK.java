@@ -13,6 +13,9 @@ import org.broadinstitute.sting.gatk.refdata.rodGFF;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
+import org.broadinstitute.sting.gatk.traversals.TraverseByReads;
+import org.broadinstitute.sting.gatk.traversals.TraverseByLoci;
 import org.broadinstitute.sting.utils.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
@@ -170,7 +173,27 @@ public class GenomeAnalysisTK extends CommandLineProgram {
 
         initializeOutputStreams();
 
-        this.engine = new TraversalEngine(INPUT_FILE, REF_FILE_ARG, rods);
+        Walker my_walker = null;
+        try {
+            my_walker = walkerManager.createWalkerByName( Analysis_Name );
+        }
+        catch( InstantiationException ex ) {
+            throw new RuntimeException( "Unable to instantiate walker.", ex );
+        }
+        catch( IllegalAccessException ex ) {
+            throw new RuntimeException( "Unable to access walker", ex );
+        }
+
+        // Try to get the walker specified
+        try {
+            LocusWalker<?, ?> walker = (LocusWalker<?, ?>) my_walker;
+            this.engine = new TraverseByLoci(INPUT_FILE, REF_FILE_ARG, rods);
+        }
+        catch (java.lang.ClassCastException e) {
+            // I guess we're a read walker LOL
+            ReadWalker<?, ?> walker = (ReadWalker<?, ?>) my_walker;
+            this.engine = new TraverseByReads(INPUT_FILE, REF_FILE_ARG, rods);
+        }
 
         // Prepare the sort ordering w.r.t. the sequence dictionary
         if (REF_FILE_ARG != null) {
@@ -215,27 +238,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         engine.setWalkOverAllSites(WALK_ALL_LOCI);
         engine.initialize();
 
-        Walker my_walker = null;
-        try {
-            my_walker = walkerManager.createWalkerByName( Analysis_Name );
-        }
-        catch( InstantiationException ex ) {
-            throw new RuntimeException( "Unable to instantiate walker.", ex );
-        }
-        catch( IllegalAccessException ex ) {
-            throw new RuntimeException( "Unable to access walker", ex );
-        }
-
-        // Try to get the walker specified
-        try {
-            LocusWalker<?, ?> walker = (LocusWalker<?, ?>) my_walker;
-            engine.traverseByLoci(walker);
-        }
-        catch (java.lang.ClassCastException e) {
-            // I guess we're a read walker LOL
-            ReadWalker<?, ?> walker = (ReadWalker<?, ?>) my_walker;
-            engine.traverseByRead(walker);
-        }
+        engine.traverse(my_walker);
 
         return 0;
     }

@@ -11,7 +11,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
  * Time: 1:53:31 PM
  * To change this template use File | Settings | File Templates.
  */
-public abstract class Walker<ReduceType> {
+public abstract class Walker<MapType, ReduceType> {
     // TODO: Can a walker be templatized so that map and reduce live here?
 
     /**
