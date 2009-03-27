@@ -64,10 +64,10 @@ public class ArgumentParserTest {
 
         // setup the parser
         m_parser = new ArgumentParser("Test Program", this);
-        m_parser.addRequiredlFlag("testBool", "B", "our test bool", "testBool");
-        m_parser.addRequiredlArg("testString", "S", "our test string", "testString");
-        m_parser.addRequiredlArg("testInt", "I", "our test int", "testInt");
-        m_parser.addRequiredlArg("testFloat", "F", "our test float", "testFloat");
+        m_parser.addOptionalFlag("testBool", "B", "our test bool", "testBool");
+        m_parser.addRequiredArg("testString", "S", "our test string", "testString");
+        m_parser.addRequiredArg("testInt", "I", "our test int", "testInt");
+        m_parser.addRequiredArg("testFloat", "F", "our test float", "testFloat");
 
 
     }
@@ -93,7 +93,8 @@ public class ArgumentParserTest {
 
         try {
             // process the arguments
-            m_parser.processArgs(params);
+            m_parser.processArgs(params,false);
+            m_parser.loadArgumentsIntoObject(this);
         } catch (ParseException e) {
             fail("We received an unexpected parsing exception");
         }
@@ -114,7 +115,8 @@ public class ArgumentParserTest {
 
         try {
             // process the arguments
-            m_parser.processArgs(params);
+            m_parser.processArgs(params,false);
+            m_parser.loadArgumentsIntoObject(this);
         } catch (ParseException e) {
             fail("We received an unexpected parsing exception");
         }
@@ -132,7 +134,8 @@ public class ArgumentParserTest {
 
         try {
             // process the arguments
-            m_parser.processArgs(params);
+            m_parser.processArgs(params,false);
+            m_parser.loadArgumentsIntoObject(this);
         } catch (ParseException e) {
             fail("We received an unexpected parsing exception");
         }
@@ -150,7 +153,8 @@ public class ArgumentParserTest {
 
         try {
             // process the arguments
-            m_parser.processArgs(params);
+            m_parser.processArgs(params,false);
+            m_parser.loadArgumentsIntoObject(this);
         } catch (ParseException e) {
             fail("We received an unexpected parsing exception");
         }
@@ -166,35 +170,15 @@ public class ArgumentParserTest {
     public void testForUnpassedParameter() {
 
         // add a new required flag we won't send it
-        m_parser.addRequiredlArg("testNotTHere", "N", "our should be provided test", "testFloat");
+        m_parser.addRequiredArg("testNotTHere", "N", "our should be provided test", "testFloat");
 
         // setup the parameter list
         String[] params = {"-B", "-S", "String", "-I", "100", "-F", "100.0"};
 
         try {
             // process the arguments
-            m_parser.processArgs(params);
+            m_parser.processArgs(params,false);
             fail("We should have received a missing argument exception");
-        } catch (ParseException e) {
-            // do nothing but consume the exception
-        }
-    }
-
-    /**
-     * test to see that if we don't get a required flag we get an exception
-     */
-    @Test
-    public void testForRequiredFlag() {
-        // add a new required flag we won't send it
-        m_parser.addRequiredlFlag("testNotTHere", "N", "our should be provided test", "testBool");
-
-        // setup the parameter list
-        String[] params = {"-B", "-S", "String", "-I", "100", "-F", "100.0"};
-
-        try {
-            // process the arguments
-            m_parser.processArgs(params);
-            fail("We should have received a missing flag exception");
         } catch (ParseException e) {
             // do nothing but consume the exception
         }
@@ -207,7 +191,7 @@ public class ArgumentParserTest {
     public void testForBadArgFieldName() {
         try {
             // add a new required flag we won't send it
-            m_parser.addRequiredlFlag("testNotTHere", "N", "our should be provided test", "testDoesNotExist");
+            m_parser.addRequiredArg("testNotTHere", "N", "our should be provided test", "testDoesNotExist");
             fail("We should of recieved a runtime exception, add unavailable fields is Baaad");
         } catch (RuntimeException e) {
             // do nothing but consume the exception
