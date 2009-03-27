@@ -10,7 +10,6 @@
         <equals arg1="${target}" arg2="playground"/>
     </condition>
 
-    <!-- set global properties for this build -->
     <path id="thirdparty.dependencies">
         <fileset dir="lib" includes="*.jar"/>
     </path>
@@ -22,7 +21,7 @@
                 <exclude name="**/playground/**" unless="target.is.playground"/>
             </patternset>
         </dirset>
-    </path>
+    </path>    
 
     <!-- ivy properties -->
     <property name="ivy.install.version" value="2.0.0"/>
@@ -55,45 +54,6 @@
     <property name="test.output" value="dist/test"/>
     <property name="test.sources" value="java/test"/>
     <property name="classes" value="classes"/>
-
-
-    <target name="test.compile" depends="compile" description="Compile test cases">
-        <echo message="Sting: Compiling test cases!"/>
-        <mkdir dir="${test.classes}"/>
-        <javac destdir="${test.classes}" debug="on" optimize="on">
-            <src path="${test.sources}"/>
-            <classpath>
-                <path refid="thirdparty.dependencies"/>
-                <pathelement location="build"/>
-                <pathelement location="lib/junit-4.4.jar"/>
-            </classpath>
-        </javac>
-    </target>
-
-
-    <!-- TEST -->
-    <target name="test" depends="test.compile">
-        <mkdir dir="${report}"/>
-        <echo message="Sting: Running test cases!"/>
-        <junit printsummary="yes" clonevm="yes" haltonfailure="yes">
-            <formatter type="plain"/>
-            
-            <classpath>
-                <path refid="thirdparty.dependencies"/>
-                <pathelement location="build"/>
-                <pathelement location="${test.classes}"/>
-                <pathelement location="lib/junit-4.4.jar"/>
-            </classpath>
-
-            <batchtest fork="yes" todir="${report}">
-                <fileset dir="${test.classes}">
-                    <include name="**/*.class"/>
-                </fileset>
-            </batchtest>
-        </junit>
-
-    </target>
-
 
     <target name="init">
         <!-- Create the time stamp -->
@@ -184,17 +144,66 @@
             </manifest>
         </jar>
 
-    <jar jarfile="dist/FourBaseRecaller.jar" update="true" whenmanifestonly="skip">
-      <manifest>
-        <attribute name="Class-Path" value="${jar.classpath}" />
-      </manifest>
-    </jar>
+        <jar jarfile="dist/FourBaseRecaller.jar" update="true" whenmanifestonly="skip">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}" />
+            </manifest>
+        </jar>
 
         <jar jarfile="dist/Playground.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
             </manifest>
         </jar>
+    </target>
+
+    <target name="core" description="force a build of the Sting core code">
+        <antcall target="dist" inheritAll="true">
+            <param name="target" value="core" />
+        </antcall>
+    </target>
+
+    <target name="playground" description="force a build of the Sting experimental code">
+        <antcall target="dist" inheritAll="true">
+            <param name="target" value="playground" />
+        </antcall>
+    </target>
+
+    <target name="test.compile" depends="compile">
+        <echo message="Sting: Compiling test cases!"/>
+        <mkdir dir="${test.classes}"/>
+        <javac destdir="${test.classes}" debug="on" optimize="on">
+            <src path="${test.sources}"/>
+            <classpath>
+                <path refid="thirdparty.dependencies"/>
+                <pathelement location="build"/>
+                <pathelement location="lib/junit-4.4.jar"/>
+            </classpath>
+        </javac>
+    </target>
+
+
+    <!-- TEST -->
+    <target name="test" depends="test.compile" description="Run unit tests">
+        <mkdir dir="${report}"/>
+        <echo message="Sting: Running test cases!"/>
+        <junit printsummary="yes" clonevm="yes" haltonfailure="yes">
+            <formatter type="plain"/>
+
+            <classpath>
+                <path refid="thirdparty.dependencies"/>
+                <pathelement location="build"/>
+                <pathelement location="${test.classes}"/>
+                <pathelement location="lib/junit-4.4.jar"/>
+            </classpath>
+
+            <batchtest fork="yes" todir="${report}">
+                <fileset dir="${test.classes}">
+                    <include name="**/*.class"/>
+                </fileset>
+            </batchtest>
+        </junit>
+
     </target>
 
     <target name="javadoc" description="generates javadoc">
