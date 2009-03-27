@@ -29,14 +29,12 @@ import net.sf.samtools.*;
 import java.util.*;
 import java.lang.reflect.Constructor;
 
-import org.broadinstitute.sting.playground.gatk.iterators.SeekableSamIteration;
-
 /**
  * Provides an iterator interface for merging multiple underlying iterators into a single
  * iterable stream. The underlying iterators/files must all have the same sort order unless
  * the requested output format is unsorted, in which case any combination is valid.
  */
-public class MergingSamRecordIterator2 implements Iterator<SAMRecord>, SeekableSamIteration {
+public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
     protected PriorityQueue<ComparableSamRecordIterator> pq;
     protected final SamFileHeaderMerger samHeaderMerger;
     protected final SAMFileHeader.SortOrder sortOrder;
