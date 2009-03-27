@@ -230,17 +230,17 @@ public class GenomeAnalysisTK extends CommandLineProgram {
             final String startContigName = startContig.getSequenceName();
             for ( SAMSequenceRecord targetContig : refFile.getSequenceDictionary().getSequences() ) {
                 refFile.seekToContig(startContigName, true);
-                System.out.printf("Seeking: current=%s, target=%s%n", startContigName, targetContig.getSequenceName());
+                logger.info(String.format("Seeking: current=%s, target=%s%n", startContigName, targetContig.getSequenceName()));
                 long lastTime = System.currentTimeMillis();
                 final boolean success = refFile.seekToContig(targetContig.getSequenceName(), true);
                 long curTime = System.currentTimeMillis();
                 final double elapsed = (curTime - lastTime) / 1000.0;
                 timings.add(elapsed);
-                System.out.printf("  -> Elapsed time %.2f, averaging %.2f sec / seek for %d seeks%n",
-                        elapsed, Utils.averageDouble(timings), timings.size());
+                logger.info(String.format("  -> Elapsed time %.2f, averaging %.2f sec / seek for %d seeks%n",
+                        elapsed, Utils.averageDouble(timings), timings.size()));
 
                 if ( ! success ) {
-                    System.out.printf("Failured to seek to %s from %s%n", targetContig.getSequenceName(), lastContig );
+                    logger.error(String.format("Failured to seek to %s from %s%n", targetContig.getSequenceName(), lastContig ));
                 }
                 //System.exit(1);
             }
@@ -297,14 +297,14 @@ public class GenomeAnalysisTK extends CommandLineProgram {
 
         int i = 0;
         String prevNextContigName = null;
-        System.out.printf("Walking reference sequence:%n");
+        logger.info(String.format("Walking reference sequence:%n"));
         for ( SAMSequenceRecord refContig: refContigs ) {
             long curTime = System.currentTimeMillis();
             ReferenceSequence contig = refFile.nextSequence();
             final double elapsed = (curTime - lastTime) / 1000.0;
             timings.add(elapsed);
-            System.out.printf("%2d : expected %s contig, found %s with next of %s after %.2f seconds, average is %.2f%n", i,
-                    refContig.getSequenceName(), contig.getName(), refFile.getNextContigName(), elapsed, Utils.averageDouble(timings));
+            logger.info(String.format("%2d : expected %s contig, found %s with next of %s after %.2f seconds, average is %.2f%n", i,
+                    refContig.getSequenceName(), contig.getName(), refFile.getNextContigName(), elapsed, Utils.averageDouble(timings)));
             if ( prevNextContigName != null && contig.getName() != null && ! prevNextContigName.equals(contig.getName()) )
                 throw new RuntimeIOException(String.format("Unexpected contig ordering %s was expected next, but I found %s?",
                         prevNextContigName, contig.getName()));
@@ -313,8 +313,8 @@ public class GenomeAnalysisTK extends CommandLineProgram {
             lastTime = curTime;
             i++;
 
-            System.out.printf("  Traversing from chr1 to %s would require jumping %d bytes%n",
-                    contig.getName(), refFile.getDistanceBetweenContigs("chr1", contig.getName()));
+            logger.info(String.format("  Traversing from chr1 to %s would require jumping %d bytes%n",
+                    contig.getName(), refFile.getDistanceBetweenContigs("chr1", contig.getName())));
         }
     }
 }

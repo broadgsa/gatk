@@ -11,6 +11,7 @@ import java.io.IOException;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.FastaSequenceFile2;
+import org.apache.log4j.Logger;
 
 /**
  * Created by IntelliJ IDEA.
@@ -34,7 +35,10 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
     public ReferenceIterator( FastaSequenceFile2 refFile ) {
         this.refFile = refFile;
     }
-
+      /**
+     * our log, which we want to capture anything from this class
+     */
+    private static Logger logger = Logger.getLogger(ReferenceIterator.class);
     // --------------------------------------------------------------------------------------------------------------
     //
     // Accessing data
@@ -68,7 +72,7 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
 
     public ReferenceIterator next() {
         if ( currentContig != null ) {
-            if ( DEBUG ) System.out.printf("  -> %s:%d %d%n", currentContig.getName(), offset, currentContig.length());
+            if ( DEBUG ) logger.debug(String.format("  -> %s:%d %d%n", currentContig.getName(), offset, currentContig.length()));
         }
         offset++;  // move on to the next position
 
@@ -139,7 +143,7 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
         if ( currentContig == null )
             next();
 
-        if ( DEBUG ) System.out.printf("  -> Seeking to %s %d from %s %d%n", seekContigName, seekOffset, currentContig.getName(), offset);
+        if ( DEBUG ) logger.debug(String.format("  -> Seeking to %s %d from %s %d%n", seekContigName, seekOffset, currentContig.getName(), offset));
 
         int cmpContigs = GenomeLoc.compareContigs(seekContigName, currentContig.getName());
 
@@ -150,7 +154,7 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
         }
         else if ( cmpContigs == 1 ) {
             // we need to jump forward
-            if ( DEBUG ) System.out.printf("  -> Seeking in the fasta file to %s from %s%n", seekContigName, currentContig.getName());
+            if ( DEBUG ) logger.debug(String.format("  -> Seeking in the fasta file to %s from %s%n", seekContigName, currentContig.getName()));
 
             if ( ! refFile.seekToContig(seekContigName) ) { // ok, do the seek
                 // a false result indicates a failure, throw a somewhat cryptic call
