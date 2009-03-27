@@ -54,9 +54,9 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
         if ( rodString != "" )
             rodString = "[ROD: " + rodString + "]";
 
-        if ( context.getLocation().getStart() % 1 == 0 ) {
-            System.out.printf("%s: %s %s %s %s%n", context.getLocation(), ref, bases, quals, rodString);
-        }
+        //if ( context.getLocation().getStart() % 1 == 0 ) {
+        System.out.printf("%s: %s %s %s %s%n", context.getLocation(), ref, bases, quals, rodString);
+        //}
 
         return 1;
     }

@@ -47,7 +47,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     public String pluginPathName = null;
     private TraversalEngine engine = null;
     public boolean DEBUGGING = false;
-
+    public boolean WALK_ALL_LOCI = false;
 
     /**
      * our log, which we want to capture anything from this class
@@ -61,7 +61,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      * Flags don't take an argument, the associated Boolean gets set to true if the flag appears on the command line.
      */
     protected void setupArgs() {
-        m_parser.addRequiredArg("input_file", "I", "SAM or BAM file for validation", "INPUT_FILE");
+        m_parser.addRequiredArg("input_file", "I", "SAM or BAM file", "INPUT_FILE");
         m_parser.addOptionalArg("maximum_reads", "M", "Maximum number of reads to process before exiting", "MAX_READS_ARG");
         m_parser.addOptionalArg("validation_strictness", "S", "How strict should we be with validation", "STRICTNESS_ARG");
         m_parser.addOptionalArg("reference_sequence", "R", "Reference sequence file", "REF_FILE_ARG");
@@ -73,6 +73,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalFlag("unsafe", "U", "If set, enables unsafe operations, nothing will be checked at runtime.", "UNSAFE");
         m_parser.addOptionalFlag("sort_on_the_fly", "F", "If set, enables on fly sorting of reads file.", "ENABLED_SORT_ON_FLY");
         m_parser.addOptionalArg("intervals_file", "V", "File containing list of genomic intervals to operate on. line := <contig> <start> <end>", "INTERVALS_FILE");
+        m_parser.addOptionalArg("all_loci", "A", "Should we process all loci, not just those covered by reads", "WALK_ALL_LOCI");
     }
 
     /**
@@ -177,6 +178,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         engine.setSafetyChecking(!UNSAFE);
         engine.setSortOnFly(ENABLED_SORT_ON_FLY);
         engine.setThreadedIO(ENABLED_THREADED_IO);
+        engine.setWalkOverAllSites(WALK_ALL_LOCI);
         engine.initialize();
 
         Walker my_walker = null;

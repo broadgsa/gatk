@@ -50,6 +50,7 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
     public char getBaseAsChar() { return getBaseAsString().charAt(0); }
     public ReferenceSequence getCurrentContig() { return currentContig; }
     public long getPosition() { return offset + 1; }
+    public GenomeLoc getLocation() { return new GenomeLoc( getCurrentContig().getName(), getPosition() ); }
     
     // --------------------------------------------------------------------------------------------------------------
     //

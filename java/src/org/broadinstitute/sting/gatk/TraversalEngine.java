@@ -82,6 +82,7 @@ public class TraversalEngine {
     public boolean beSafeP = true;
     public boolean SORT_ON_FLY = false;
     public boolean FILTER_UNSORTED_READS = false;
+    public boolean walkOverAllSites = false;
     public int MAX_ON_FLY_SORTS = 100000;
     public long N_RECORDS_TO_PRINT = 100000;
     public boolean THREADED_IO = false;
@@ -132,6 +133,10 @@ public class TraversalEngine {
 
     public void setThreadedIO(final boolean threadedIO) {
         this.THREADED_IO = threadedIO;
+    }
+
+    public void setWalkOverAllSites(final boolean walkOverAllSites) {
+        this.walkOverAllSites = walkOverAllSites;
     }
 
     public void setDebugging(final boolean d) {
@@ -633,9 +638,7 @@ public class TraversalEngine {
 
                 //System.out.format("Working at %s\n", locus.getLocation().toString());
 
-                // Jump forward in the reference to this locus location
-                final ReferenceIterator refSite;
-                refSite = refIter.seekForward(locus.getLocation());
+                ReferenceIterator refSite = refIter.seekForward(locus.getLocation());
                 final char refBase = refSite.getBaseAsChar();
                 locus.setReferenceContig(refSite.getCurrentContig());
 
