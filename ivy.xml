@@ -3,7 +3,7 @@
   <dependencies>
     <dependency org="net.sf" name="functionalj" rev="latest.integration" />
     <dependency org="net.sf" name="sam" rev="latest.integration" />
-    <dependency org="edu.mit.broad" name="picard" rev="200903201733" />
+    <dependency org="edu.mit.broad" name="picard" rev="latest.integration" />
     <dependency org="junit" name="junit" rev="4.4" />
     <dependency org="log4j" name="log4j" rev="1.2.15" />
     <dependency org="colt" name="colt" rev="1.2.0" />
