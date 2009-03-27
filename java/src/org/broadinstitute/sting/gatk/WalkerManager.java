@@ -338,7 +338,7 @@ public class WalkerManager {
 
         for (Class<Walker> walkerClass : walkerClasses) {
             String walkerName = getWalkerName(walkerClass);
-            logger.info(String.format("* Adding module %s%n", walkerName));
+            logger.info(String.format("* Adding module %s", walkerName));
             walkers.put(walkerName, walkerClass);
         }
 

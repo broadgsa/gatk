@@ -10,7 +10,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
  * Time: 2:52:28 PM
  * To change this template use File | Settings | File Templates.
  */
-public abstract class ReadWalker<MapType, ReduceType> extends Walker {
+public abstract class ReadWalker<MapType, ReduceType> extends Walker<ReduceType> {
     public boolean requiresOrderedReads() { return false; }
     
     // Do we actually want to operate on the context?

@@ -9,7 +9,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
  * Time: 1:53:31 PM
  * To change this template use File | Settings | File Templates.
  */
-public abstract class Walker {
+public abstract class Walker<ReduceType> {
     // TODO: Can a walker be templatized so that map and reduce live here?
 
     protected Walker() {
@@ -27,5 +27,8 @@ public abstract class Walker {
     }
 
     public void initialize() { }
-    public void onTraversalDone() { }
+    public void onTraversalDone(ReduceType result) {
+        // TODO: replace with the correct output stream
+        System.out.println("[REDUCE RESULT] Traversal result is: " + result);
+    }
 }
