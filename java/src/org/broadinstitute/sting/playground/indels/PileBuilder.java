@@ -336,8 +336,8 @@ public class PileBuilder implements RecordPileReceiver {
                     failedPileReceiver.receive(r); // nothing to do, send failed piles directly for writing
                     continue;
                 }
-                // we improved stuff!! let's reset the alignment parameters!
 
+                // we improved stuff!! let's reset the alignment parameters!
                 int cons_offset = ma.getOffsetWrtConsensus(id); // offset of the read 'id' wrt multiple alignment's full consensus seq
 
                 //  offset of the realigned read r on the reference
@@ -351,12 +351,9 @@ public class PileBuilder implements RecordPileReceiver {
 
                 r.setAttribute("NM",new Integer(AlignmentUtils.numMismatches(r,referenceSequence)));
 
-                if ( r.getAlignmentStart() == 713655 ) {
-                    System.out.println("!!!----> "+r.format()); 
-                    System.out.println("!!!----> "+AlignmentUtils.toString(cig) +" --- " +AlignmentUtils.toString(r.getCigar()));
-                }
  //               System.out.println("writing " + id);
                 samWriter.addAlignment(r);
+
 
             }
         }

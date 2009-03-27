@@ -26,7 +26,7 @@ public class IndelInspector extends CommandLineProgram {
     @Option(shortName="V",doc="Verbosity level: SILENT, PILESUMMARY, ALIGNMENTS", optional=true) public String VERBOSITY_LEVEL;
     @Option(doc="Output file (sam or bam) for non-indel related reads and indel reads that were not improved") public String OUT1; 
     @Option(doc="Output file (sam or bam) for improved (realigned) indel related reads") public String OUT2;
-    @Option(doc="[paranoid] Output \"control\" file (sam or bam): all reads picked and processed by this tool will be also saved, unmodified, into this file", optional=true) public String OUTC;
+    @Option(doc="[paranoid] If true, all reads that would be otherwise picked and processed by this tool will be saved, unmodified, into OUT1", optional=true) public boolean CONTROL_RUN;
     @Option(doc="Error counting mode: MM - count mismatches only, ERR - count errors (arachne style), MG - count mismatches and gaps as one error each") public String ERR_MODE;
     @Option(doc="Maximum number of errors allowed (see ERR_MODE)") public Integer MAX_ERRS;
 //    @Option(shortName="R", doc="Reference fasta or fasta.gz file") public File REF_FILE;
@@ -63,23 +63,26 @@ public class IndelInspector extends CommandLineProgram {
 
 		IndelRecordPileCollector col = null;
         PassThroughWriter ptWriter = new PassThroughWriter(OUT1,samReader.getFileHeader());
-        PileBuilder pileBuilder = new PileBuilder(OUT2,samReader.getFileHeader(),ptWriter);
-
-        SAMFileWriter controlWriter = null;
-        if ( OUTC != null ) controlWriter = new SAMFileWriterFactory().makeSAMOrBAMWriter(samReader.getFileHeader(),false,new File(OUTC));
+        PileBuilder pileBuilder = null;
+        if ( ! CONTROL_RUN ) pileBuilder = new PileBuilder(OUT2,samReader.getFileHeader(),ptWriter);
 
 		try {
-			col = new IndelRecordPileCollector(ptWriter, pileBuilder, controlWriter );
+            if ( CONTROL_RUN ) col = new IndelRecordPileCollector(ptWriter, new DiscardingPileReceiver() );
+			else col = new IndelRecordPileCollector(ptWriter, pileBuilder );
 		} catch(Exception e) { System.err.println(e.getMessage()); }
 		if ( col == null ) return 1; 
 
-        if ( VERBOSITY_LEVEL == null ) VERBOSITY_LEVEL = new String("SILENT");
-        if ( VERBOSITY_LEVEL.toUpperCase().equals("SILENT")) pileBuilder.setVerbosity(pileBuilder.SILENT);
-        else if ( VERBOSITY_LEVEL.toUpperCase().equals("PILESUMMARY") ) pileBuilder.setVerbosity(pileBuilder.PILESUMMARY);
-        else if ( VERBOSITY_LEVEL.toUpperCase().equals("ALIGNMENTS") ) pileBuilder.setVerbosity(pileBuilder.ALIGNMENTS);
-        else {
-            System.out.println("Unrecognized VERBOSITY_LEVEL setting.");
-            return 1;
+        col.setControlRun(CONTROL_RUN);
+
+        if ( ! CONTROL_RUN ) {
+            if ( VERBOSITY_LEVEL == null ) VERBOSITY_LEVEL = new String("SILENT");
+            if ( VERBOSITY_LEVEL.toUpperCase().equals("SILENT")) pileBuilder.setVerbosity(pileBuilder.SILENT);
+            else if ( VERBOSITY_LEVEL.toUpperCase().equals("PILESUMMARY") ) pileBuilder.setVerbosity(pileBuilder.PILESUMMARY);
+            else if ( VERBOSITY_LEVEL.toUpperCase().equals("ALIGNMENTS") ) pileBuilder.setVerbosity(pileBuilder.ALIGNMENTS);
+            else {
+                System.out.println("Unrecognized VERBOSITY_LEVEL setting.");
+                return 1;
+            }
         }
 
         String cur_contig = null;
@@ -97,7 +100,7 @@ public class IndelInspector extends CommandLineProgram {
                     contig_seq = reference.get(r.getReferenceIndex());
                     String refstr = new String(contig_seq.getBases());
                     col.setReferenceSequence(refstr);
-                    pileBuilder.setReferenceSequence(refstr);
+                    if (!CONTROL_RUN) pileBuilder.setReferenceSequence(refstr);
                     System.out.println("loaded contig "+cur_contig+" (index="+r.getReferenceIndex()+"); length="+contig_seq.getBases().length+" tst="+contig_seq.toString());
                 }
             }
@@ -137,13 +140,14 @@ public class IndelInspector extends CommandLineProgram {
 
         }
         
-        pileBuilder.printStats();
+        if ( ! CONTROL_RUN ) {
+            pileBuilder.printStats();
+            pileBuilder.close();
+        }
         System.out.println("done.");
         col.printLengthHistograms();
         samReader.close();
-        pileBuilder.close();
         ptWriter.close();
-        if ( controlWriter != null ) controlWriter.close();
         return 0;
 	}
 	
