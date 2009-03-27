@@ -5,6 +5,7 @@ import org.apache.log4j.*;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.text.ParseException;
 
 /**
  * User: aaron
@@ -250,26 +251,30 @@ public abstract class CommandLineProgram {
      * this function checks the logger level passed in on the command line, taking the lowest
      * level that was provided.
      */
-    private void setupLoggerLevel() {
+    private void setupLoggerLevel() throws org.apache.commons.cli.ParseException {
 
         Level par = Level.ERROR;
         if (logging_level.equals("DEBUG")) {
             par = Level.DEBUG;
         }
-        if (logging_level.equals("ERROR")) {
+        else if (logging_level.equals("ERROR")) {
             par = Level.ERROR;
         }
-        if (logging_level.equals("FATAL")) {
+        else if (logging_level.equals("FATAL")) {
             par = Level.FATAL;
         }
-        if (logging_level.equals("INFO")) {
+        else if (logging_level.equals("INFO")) {
             par = Level.INFO;
         }
-        if (logging_level.equals("WARN")) {
+        else if (logging_level.equals("WARN")) {
             par = Level.WARN;
         }
-        if (logging_level.equals("OFF")) {
+        else if (logging_level.equals("OFF")) {
             par = Level.OFF;
+        }
+        else {
+            // we don't understand the logging level, let's get out of here
+            throw new org.apache.commons.cli.ParseException("Unable to match: " + logging_level + " to a logging level, make sure it's a valid level (INFO, DEBUG, ERROR, FATAL, OFF)");
         }
 
         logger.setLevel(par);
@@ -290,7 +295,7 @@ public abstract class CommandLineProgram {
      */
     private void setupDefaultArgs() {
         m_parser.addOptionalFlag("help", "h", "Generate this help message", "help");
-        m_parser.addOptionalArg("logging_level", "l", "Set the logging level", "logging_level");
+        m_parser.addOptionalArg("logging_level", "l", "Set the minimum level of logging, i.e. setting INFO get's you INFO up to FATAL, setting ERROR gets you ERROR and FATAL level logging. (DEBUG, INFO, WARN, ERROR, FATAL, OFF). ", "logging_level");
         m_parser.addOptionalArg("log_to_file", "log", "Set the logging location", "toFile");
         m_parser.addOptionalFlag("quiet_output_mode", "quiet", "Set the logging to quiet mode, no output to stdout", "quietMode");
         m_parser.addOptionalFlag("debug_mode", "debug", "Set the logging file string to include a lot of debugging information (SLOW!)", "debugMode");
