@@ -16,6 +16,7 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.traversals.TraverseByReads;
 import org.broadinstitute.sting.gatk.traversals.TraverseByLoci;
+import org.broadinstitute.sting.gatk.traversals.TraverseByLociByReference;
 import org.broadinstitute.sting.utils.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
@@ -187,7 +188,10 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         // Try to get the walker specified
         try {
             LocusWalker<?, ?> walker = (LocusWalker<?, ?>) my_walker;
-            this.engine = new TraverseByLoci(INPUT_FILE, REF_FILE_ARG, rods);
+            if ( WALK_ALL_LOCI )
+                this.engine = new TraverseByLociByReference(INPUT_FILE, REF_FILE_ARG, rods);
+            else
+                this.engine = new TraverseByLoci(INPUT_FILE, REF_FILE_ARG, rods);
         }
         catch (java.lang.ClassCastException e) {
             // I guess we're a read walker LOL
@@ -198,16 +202,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         // Prepare the sort ordering w.r.t. the sequence dictionary
         if (REF_FILE_ARG != null) {
             final ReferenceSequenceFile refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(REF_FILE_ARG);
-            List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary().getSequences();
-
-            HashMap<String, Integer> refContigOrdering = new HashMap<String, Integer>();
-            int i = 0;
-            for (SAMSequenceRecord contig : refContigs) {
-                refContigOrdering.put(contig.getSequenceName(), i);
-                i++;
-            }
-
-            GenomeLoc.setContigOrdering(refContigOrdering);
+            GenomeLoc.setupRefContigOrdering(refFile);
         }
         ValidationStringency strictness;
         if (STRICTNESS_ARG == null) {
@@ -232,6 +227,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         if (INTERVALS_FILE != null) {
             engine.setLocationFromFile(INTERVALS_FILE);
         }
+
         engine.setSafetyChecking(!UNSAFE);
         engine.setSortOnFly(ENABLED_SORT_ON_FLY);
         engine.setThreadedIO(ENABLED_THREADED_IO);
@@ -277,7 +273,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      */
     private static void testNewReferenceFeatures(final File refFileName) {
         final FastaSequenceFile2 refFile = new FastaSequenceFile2(refFileName);
-        Utils.setupRefContigOrdering(refFile);
+        GenomeLoc.setupRefContigOrdering(refFile);
 
         List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary().getSequences();
 

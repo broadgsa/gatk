@@ -93,7 +93,7 @@ public abstract class TraversalEngine {
 
 
     // Locations we are going to process during the traversal
-    protected GenomeLoc[] locs = null;
+    private ArrayList<GenomeLoc> locs = null;
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -175,7 +175,7 @@ public abstract class TraversalEngine {
      * @param locStr
      */
     public void setLocation(final String locStr) {
-        this.locs = parseGenomeLocs(locStr);
+        this.locs = GenomeLoc.parseGenomeLocs(locStr);
     }
 
     /**
@@ -194,75 +194,17 @@ public abstract class TraversalEngine {
             reader.close();
             String locStr = Utils.join(";", lines);
             logger.debug("locStr: " + locStr);
-            this.locs = parseGenomeLocs(locStr);
+            setLocation(locStr);
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);
         }
     }
 
-    /**
-     * Useful utility function that parses a location string into a coordinate-order sorted
-     * array of GenomeLoc objects
-     *
-     * @param str
-     * @return Array of GenomeLoc objects corresponding to the locations in the string, sorted by coordinate order
-     */
-    public static GenomeLoc[] parseGenomeLocs(final String str) {
-        // Of the form: loc1;loc2;...
-        // Where each locN can be:
-        // Ôchr2Õ, Ôchr2:1000000Õ or Ôchr2:1,000,000-2,000,000Õ
-        StdReflect reflect = new JdkStdReflect();
-        FunctionN<GenomeLoc> parseOne = reflect.staticFunction(GenomeLoc.class, "parseGenomeLoc", String.class);
-        Function1<GenomeLoc, String> f1 = parseOne.f1();
-        try {
-            Collection<GenomeLoc> result = Functions.map(f1, Arrays.asList(str.split(";")));
-            GenomeLoc[] locs = (GenomeLoc[]) result.toArray(new GenomeLoc[0]);
-            Arrays.sort(locs);
-            logger.info(String.format("Going to process %d locations", locs.length));
-            //System.out.println("  Locations are: " + Utils.join("\n", Functions.map(Operators.toString, Arrays.asList(locs))));
-            return locs;
-        } catch (Exception e) {
-            logger.fatal(String.format("Invalid locations string: %s, format is loc1;loc2; where each locN can be 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'", str));
-            throw new IllegalArgumentException("Invalid locations string: " + str + ", format is loc1;loc2; where each locN can be 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'");
-        }
-    }
 
-    /**
-     * A key function that returns true if the proposed GenomeLoc curr is within the list of
-     * locations we are processing in this TraversalEngine
-     *
-     * @param curr
-     * @return true if we should process GenomeLoc curr, otherwise false
-     */
-    public boolean inLocations(GenomeLoc curr) {
-        if (this.locs == null) {
-            return true;
-        } else {
-            for ( GenomeLoc loc : this.locs ) {
-                //System.out.printf("  Overlap %s vs. %s => %b%n", loc, curr, loc.overlapsP(curr));
-                if (loc.overlapsP(curr))
-                    return true;
-            }
-            return false;
-        }
-    }
 
     public boolean hasLocations() {
         return this.locs != null;
-    }
-
-    /**
-     * Returns true iff we have a specified series of locations to process AND we are past the last
-     * location in the list.  It means that, in a serial processing of the genome, that we are done.
-     *
-     * @param curr Current genome Location
-     * @return true if we are past the last location to process
-     */
-    protected boolean pastFinalLocation(GenomeLoc curr) {
-        boolean r = locs != null && locs[locs.length - 1].compareTo(curr) == -1 && !locs[locs.length - 1].overlapsP(curr);
-        //System.out.printf("  pastFinalLocation %s vs. %s => %d => %b%n", locs[locs.length-1], curr, locs[locs.length-1].compareTo( curr ), r);
-        return r;
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -433,11 +375,11 @@ public abstract class TraversalEngine {
             //this.refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFileName);
             this.refFile = new FastaSequenceFile2(refFileName);   // todo: replace when FastaSequenceFile2 is in picard
             this.refIter = new ReferenceIterator(this.refFile);
-            if (!Utils.setupRefContigOrdering(this.refFile)) {
-                // We couldn't process the reference contig ordering, fail since we need it
-                logger.fatal(String.format("We couldn't load the contig dictionary associated with %s.  At the current time we require this dictionary file to efficiently access the FASTA file.  In the near future this program will automatically construct the dictionary for you and save it down.", refFileName));
-                throw new RuntimeException("We couldn't load the contig dictionary associated with " + refFileName + ".  At the current time we require this dictionary file to efficiently access the FASTA file.  In the near future this program will automatically construct the dictionary for you and save it down.");
-            }
+//            if (!GenomeLoc.setupRefContigOrdering(this.refFile)) {
+//                // We couldn't process the reference contig ordering, fail since we need it
+//                logger.fatal(String.format("We couldn't load the contig dictionary associated with %s.  At the current time we require this dictionary file to efficiently access the FASTA file.  In the near future this program will automatically construct the dictionary for you and save it down.", refFileName));
+//                throw new RuntimeException("We couldn't load the contig dictionary associated with " + refFileName + ".  At the current time we require this dictionary file to efficiently access the FASTA file.  In the near future this program will automatically construct the dictionary for you and save it down.");
+//            }
         }
     }
 
@@ -510,14 +452,14 @@ public abstract class TraversalEngine {
     // --------------------------------------------------------------------------------------------------------------
 
     public <M, T> T traverse(Walker<M, T> walker) {
-        List<GenomeLoc> l = new ArrayList<GenomeLoc>();
+        ArrayList<GenomeLoc> l = new ArrayList<GenomeLoc>();
         if ( hasLocations() )
-            l = Arrays.asList(locs);
+            l = locs;
 
         return traverse(walker, l);
     }
 
-    public <M, T> T traverse(Walker<M, T> walker, List<GenomeLoc> locations) {
+    public <M, T> T traverse(Walker<M, T> walker, ArrayList<GenomeLoc> locations) {
         return null;
     }
     

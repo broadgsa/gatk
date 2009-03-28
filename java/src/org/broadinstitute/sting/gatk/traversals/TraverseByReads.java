@@ -11,6 +11,7 @@ import org.broadinstitute.sting.utils.Utils;
 
 import java.util.List;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.io.File;
 
 import net.sf.samtools.SAMRecord;
@@ -28,7 +29,7 @@ public class TraverseByReads extends TraversalEngine {
         super(reads, ref, rods);        
     }
 
-    public <M,T> T traverse(Walker<M,T> walker, List<GenomeLoc> locations) {
+    public <M,T> T traverse(Walker<M,T> walker, ArrayList<GenomeLoc> locations) {
         if ( walker instanceof ReadWalker ) {
             Walker x = walker;
             ReadWalker<?, ?> readWalker = (ReadWalker<?, ?>)x;
@@ -46,10 +47,10 @@ public class TraverseByReads extends TraversalEngine {
      *
      * @param walker A read walker object
      * @param <M>    MapType -- the result of calling map() on walker
-     * @param <R>    ReduceType -- the result of calling reduce() on the walker
+     * @param <>    ReduceType -- the result of calling reduce() on the walker
      * @return 0 on success
      */
-    public <M, T> Object traverseByRead(ReadWalker<M, T> walker, List<GenomeLoc> locations) {
+    public <M, T> Object traverseByRead(ReadWalker<M, T> walker, ArrayList<GenomeLoc> locations) {
         samReadIter = initializeReads();
 
         if (refFileName == null && !walker.requiresOrderedReads() && verifyingSamReadIter != null) {
@@ -83,7 +84,7 @@ public class TraverseByReads extends TraversalEngine {
                 locus.setReferenceContig(refSite.getCurrentContig());
             }
 
-            if (inLocations(loc)) {
+            if (GenomeLoc.inLocations(loc, locations)) {
 
                 //
                 // execute the walker contact
@@ -101,7 +102,7 @@ public class TraverseByReads extends TraversalEngine {
             }
             printProgress("reads", loc);
 
-            if (pastFinalLocation(loc))
+            if (GenomeLoc.pastFinalLocation(loc, locations))
                 done = true;
             //System.out.printf("Done? %b%n", done);
         }

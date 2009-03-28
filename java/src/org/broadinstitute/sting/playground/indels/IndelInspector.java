@@ -259,19 +259,7 @@ public class IndelInspector extends CommandLineProgram {
             setDefaultContigOrdering();
             return;
         }
-        List<SAMSequenceRecord> seqs = h.getSequenceDictionary().getSequences();
-        if ( seqs == null ) {
-            System.out.println("No reference sequence records found in SAM file header, " +
-                               "falling back to default contig ordering");
-            setDefaultContigOrdering();
-            return;
-        }
-        int i = 0;
-        Map<String,Integer> rco = new HashMap<String,Integer>();
-        for ( SAMSequenceRecord sr : seqs) {
-            rco.put(sr.getSequenceName(),i++);
-        }
-        GenomeLoc.setContigOrdering(rco);
+        GenomeLoc.setupRefContigOrdering(h.getSequenceDictionary());
     }
 
     private void setDefaultContigOrdering() {

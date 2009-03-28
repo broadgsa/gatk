@@ -27,19 +27,19 @@ public class Utils {
     private static Logger logger = Logger.getLogger(FileProgressTracker.class);
 
     public static void warnUser(final String msg) {
-        logger.warn(String.format("********************************************************************************%n"));
-        logger.warn(String.format("* WARNING:%n"));
-        logger.warn(String.format("*%n"));
-        logger.warn(String.format("* %s%n", msg));
-        logger.warn(String.format("********************************************************************************%n"));
+        logger.warn(String.format("********************************************************************************"));
+        logger.warn(String.format("* WARNING:"));
+        logger.warn(String.format("*"));
+        logger.warn(String.format("* %s", msg));
+        logger.warn(String.format("********************************************************************************"));
     }
 
     public static void scareUser(final String msg) {
-        logger.fatal(String.format("********************************************************************************%n"));
-        logger.fatal(String.format("* ERROR:%n"));
-        logger.fatal(String.format("*%n"));
-        logger.fatal(String.format("* %s%n", msg));
-        logger.fatal(String.format("********************************************************************************%n"));
+        logger.fatal(String.format("********************************************************************************"));
+        logger.fatal(String.format("* ERROR:"));
+        logger.fatal(String.format("*"));
+        logger.fatal(String.format("* %s", msg));
+        logger.fatal(String.format("********************************************************************************"));
         throw new RuntimeException(msg);
     }
 
@@ -230,30 +230,6 @@ public class Utils {
 
     public static double averageDouble(List<Double> vals) {
         return averageDouble(vals, vals.size());
-    }
-
-    public static boolean setupRefContigOrdering(final ReferenceSequenceFile refFile) {
-        final SAMSequenceDictionary seqDict = refFile.getSequenceDictionary();
-
-        if (seqDict == null) // we couldn't load the reference dictionary
-            return false;
-
-        List<SAMSequenceRecord> refContigs = seqDict.getSequences();
-        HashMap<String, Integer> refContigOrdering = new HashMap<String, Integer>();
-
-        if (refContigs != null) {
-            int i = 0;
-            logger.info(String.format("Prepared reference sequence contig dictionary%n  order ->"));
-            for (SAMSequenceRecord contig : refContigs) {
-                logger.info(String.format(" %s (%d bp)", contig.getSequenceName(), contig.getSequenceLength()));
-                refContigOrdering.put(contig.getSequenceName(), i);
-                i++;
-            }
-            logger.info(String.format("%n  Total elements -> %d%n", refContigOrdering.size()));
-        }
-
-        GenomeLoc.setContigOrdering(refContigOrdering);
-        return refContigs != null;
     }
 
     // Java Generics can't do primitive types, so I had to do this the simplistic way

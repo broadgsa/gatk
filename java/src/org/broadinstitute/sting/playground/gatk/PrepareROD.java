@@ -47,16 +47,7 @@ public class PrepareROD extends CommandLineProgram {
 
         // Prepare the sort ordering w.r.t. the sequence dictionary
         final ReferenceSequenceFile refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(REF_FILE_ARG);
-        List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary().getSequences();
-        HashMap<String, Integer> refContigOrdering = new HashMap<String, Integer>();
-
-        int i = 0;
-        for ( SAMSequenceRecord contig : refContigs ) {
-            System.out.println(contig.getSequenceName());
-            refContigOrdering.put(contig.getSequenceName(), i);
-            i++;
-        }
-        GenomeLoc.setContigOrdering(refContigOrdering);
+        GenomeLoc.setupRefContigOrdering(refFile);
 
         Class rodClass = Types.get(ROD_TYPE.toLowerCase());
 

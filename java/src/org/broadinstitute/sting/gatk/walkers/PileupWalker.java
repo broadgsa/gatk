@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
@@ -15,6 +16,8 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class PileupWalker extends LocusWalker<Integer, Integer> {
+    public boolean FLAG_UNCOVERED_BASES = true;     // todo: how do I make this a command line argument?
+    
     public void initialize() {
     }
 
@@ -35,6 +38,10 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
 
             bases += read.getReadString().charAt(offset);
             quals += read.getBaseQualityString().charAt(offset);
+        }
+
+        if ( bases.equals("") && FLAG_UNCOVERED_BASES ) {
+            bases = "*** UNCOVERED SITE ***";
         }
 
         String rodString = "";

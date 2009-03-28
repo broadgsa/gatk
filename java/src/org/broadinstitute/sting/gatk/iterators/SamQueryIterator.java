@@ -24,14 +24,14 @@ public class SamQueryIterator implements Iterator<SAMRecord> {
     Iterator<GenomeLoc> locIter = null;
     CloseableIterator<SAMRecord> recordIter = null;
 
-    public SamQueryIterator( SAMFileReader reader, GenomeLoc[] locs ) {
+    public SamQueryIterator( SAMFileReader reader, ArrayList<GenomeLoc> locs ) {
         this.reader = reader;
 
         // Our internal contract for the class guarantees that locIter and recordIter are never null.
         // Initialize them and seed them with empty data as necessary.
         if(locs != null) {
             // The user requested a specific set of locations, set up the iterators accordly.
-            locIter = Arrays.asList(locs).iterator();
+            locIter = locs.iterator();
             recordIter = new NullCloseableIterator<SAMRecord>();
         }
         else {
