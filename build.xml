@@ -12,7 +12,7 @@
         <equals arg1="${target}" arg2="playground"/>
     </condition>
 
-    <path id="thirdparty.dependencies">
+    <path id="external.dependencies">
         <fileset dir="lib" includes="*.jar"/>
     </path>
 
@@ -70,7 +70,7 @@
     <target name="compile" depends="init,resolve"
             description="compile the source">
         <!-- Compile the java code from ${src} into build -->
-        <javac destdir="build" classpathref="thirdparty.dependencies"
+        <javac destdir="build" classpathref="external.dependencies"
                debug="true" debuglevel="lines,vars,source">
             <!--compilerarg value="-Xlint:unchecked" /-->
             <src refid="source"/>
@@ -177,7 +177,7 @@
         <javac destdir="${test.classes}" debug="on" optimize="on">
             <src path="${test.sources}"/>
             <classpath>
-                <path refid="thirdparty.dependencies"/>
+                <path refid="external.dependencies"/>
                 <pathelement location="build"/>
                 <pathelement location="lib/junit-4.4.jar"/>
             </classpath>
@@ -193,7 +193,7 @@
             <formatter type="plain"/>
 
             <classpath>
-                <path refid="thirdparty.dependencies"/>
+                <path refid="external.dependencies"/>
                 <pathelement location="build"/>
                 <pathelement location="${test.classes}"/>
                 <pathelement location="lib/junit-4.4.jar"/>
@@ -208,14 +208,17 @@
 
     </target>
 
-    <target name="javadoc" description="generates javadoc">
+    <target name="javadoc" depends="init,resolve" description="generates javadoc">
         <mkdir dir="javadoc"/>
 	<!-- Javadoc can't take the same dirsets as javac; it only likes getting the base directory -->
 	<!-- Exclude playground files with excludepackagenames instead of the "source" dirset -->
 	<condition property="package.excludes" value="" else="org.broadinstitute.sting.playground.*">
           <equals arg1="${target.is.playground}" arg2="true"/>
 	</condition>
-        <javadoc destdir="javadoc" sourcepath="${source.dir}" excludepackagenames="${package.excludes}" />
+        <javadoc destdir="javadoc" 
+		 sourcepath="${source.dir}" 
+		 classpathref="external.dependencies"
+		 excludepackagenames="${package.excludes}" />
     </target>
 
     <target name="clean"
