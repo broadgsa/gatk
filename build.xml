@@ -1,6 +1,8 @@
 <project name="Sting" default="dist" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
     <description>Compile and distribute the Sting toolkit</description>
 
+    <property name="source.dir" value="java/src" />
+
     <!-- Set target based on STING_BUILD_TYPE environment variable -->
     <property environment="env"/>
     <condition property="target" value="playground" else="core">
@@ -15,7 +17,7 @@
     </path>
 
     <path id="source">
-        <dirset dir="java/src">
+        <dirset dir="${source.dir}">
             <patternset>
                 <include name="org/broadinstitute/sting/*"/>
                 <exclude name="**/playground/**" unless="target.is.playground"/>
@@ -208,7 +210,12 @@
 
     <target name="javadoc" description="generates javadoc">
         <mkdir dir="javadoc"/>
-        <javadoc sourcepathref="source" destdir="javadoc"/>
+	<!-- Javadoc can't take the same dirsets as javac; it only likes getting the base directory -->
+	<!-- Exclude playground files with excludepackagenames instead of the "source" dirset -->
+	<condition property="package.excludes" value="" else="org.broadinstitute.sting.playground.*">
+          <equals arg1="${target.is.playground}" arg2="true"/>
+	</condition>
+        <javadoc destdir="javadoc" sourcepath="${source.dir}" excludepackagenames="${package.excludes}" />
     </target>
 
     <target name="clean"
