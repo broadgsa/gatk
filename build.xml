@@ -8,22 +8,10 @@
     <condition property="target" value="playground" else="core">
         <equals arg1="${env.STING_BUILD_TYPE}" arg2="playground" casesensitive="false"/>
     </condition>
-    <condition property="target.is.playground" value="true">
-        <equals arg1="${target}" arg2="playground"/>
-    </condition>
 
     <path id="external.dependencies">
         <fileset dir="lib" includes="*.jar"/>
     </path>
-
-    <path id="source">
-        <dirset dir="${source.dir}">
-            <patternset>
-                <include name="org/broadinstitute/sting/*"/>
-                <exclude name="**/playground/**" unless="target.is.playground"/>
-            </patternset>
-        </dirset>
-    </path>    
 
     <!-- ivy properties -->
     <property name="ivy.install.version" value="2.0.0"/>
@@ -69,11 +57,24 @@
 
     <target name="compile" depends="init,resolve"
             description="compile the source">
+	<condition property="target.is.playground" value="true">
+          <equals arg1="${target}" arg2="playground"/>
+	</condition>
+
+        <path id="source">
+          <dirset dir="${source.dir}">
+	    <patternset>
+              <include name="org/broadinstitute/sting/*"/>
+              <exclude name="**/playground/**" unless="target.is.playground"/>
+	    </patternset>
+          </dirset>
+	</path>
+
         <!-- Compile the java code from ${src} into build -->
         <javac destdir="build" classpathref="external.dependencies"
                debug="true" debuglevel="lines,vars,source">
             <!--compilerarg value="-Xlint:unchecked" /-->
-            <src refid="source"/>
+            <src refid="source" />
         </javac>
     </target>
 
@@ -168,7 +169,7 @@
     <target name="playground" description="force a build of the Sting experimental code">
         <antcall target="dist" inheritAll="true">
             <param name="target" value="playground" />
-        </antcall>
+	</antcall>
     </target>
 
     <target name="test.compile" depends="compile">
@@ -213,7 +214,7 @@
 	<!-- Javadoc can't take the same dirsets as javac; it only likes getting the base directory -->
 	<!-- Exclude playground files with excludepackagenames instead of the "source" dirset -->
 	<condition property="package.excludes" value="" else="org.broadinstitute.sting.playground.*">
-          <equals arg1="${target.is.playground}" arg2="true"/>
+          <equals arg1="${target}" arg2="playground" />
 	</condition>
         <javadoc destdir="javadoc" 
 		 sourcepath="${source.dir}" 
