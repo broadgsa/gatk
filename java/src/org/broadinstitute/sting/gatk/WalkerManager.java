@@ -5,24 +5,18 @@ import net.sf.functionalj.reflect.JdkStdReflect;
 import net.sf.functionalj.FunctionN;
 import net.sf.functionalj.Functions;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.io.File;
-import java.io.FilenameFilter;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.jar.JarEntry;
-import java.util.jar.JarInputStream;
 
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.JVMUtils;
+import org.broadinstitute.sting.utils.PathUtils;
 import org.apache.log4j.Logger;
 
 /**
@@ -46,7 +40,7 @@ public class WalkerManager {
             List<Class> walkerCandidates = new ArrayList<Class>();
 
             // Load all classes that live in this jar.
-            final File location = getThisLocation();
+            final File location = JVMUtils.getLocationFor( getClass() );
             walkerCandidates.addAll(loadClassesFromLocation(location));
 
             // Load all classes that live in the extension path.
@@ -56,8 +50,13 @@ public class WalkerManager {
 
             File extensionPath = new File(pluginDirectory);
             if (extensionPath.exists()) {
-                List<String> filesInPath = findFilesInPath(extensionPath, "", "class", false);
-                walkerCandidates.addAll(loadExternalClasses(extensionPath, filesInPath));
+                List<String> classFilesInPath = PathUtils.findFilesInPath(extensionPath, "", "class", false);
+                walkerCandidates.addAll(JVMUtils.loadExternalClasses(extensionPath, classFilesInPath));
+                List<String> jarsInPath = PathUtils.findFilesInPath(extensionPath, "", "jar", false);
+                for( String jarFileName: jarsInPath ) {
+                    File jarFile = new File( extensionPath, jarFileName );
+                    walkerCandidates.addAll(JVMUtils.loadExternalClassesFromJar(jarFile) );
+                }
             }
 
             walkerCandidates = filterWalkers(walkerCandidates);
@@ -101,22 +100,6 @@ public class WalkerManager {
     }
 
     /**
-     * Determines which jar file contains the WalkerManager class.
-     *
-     * @return Jar file containing the WalkerManager class.
-     */
-    private File getThisLocation() throws IOException {
-        try {
-            java.net.URI locationURI = getClass().getProtectionDomain().getCodeSource().getLocation().toURI();
-            return new File(locationURI);
-        }
-        catch (java.net.URISyntaxException ex) {
-            // a URISyntaxException here must be an IO error; wrap as such.
-            throw new IOException(ex);
-        }
-    }
-
-    /**
      * Load classes internal to the classpath from an arbitrary location.
      *
      * @param location Location from which to load classes.
@@ -126,175 +109,10 @@ public class WalkerManager {
     private List<Class> loadClassesFromLocation(File location)
             throws IOException {
         if (location.getAbsolutePath().endsWith(".jar"))
-            return loadClassesFromJar(location);
+            return JVMUtils.loadInternalClassesFromJar(location);
         else {
-            List<String> classFileNames = findFilesInPath(location, "", "class", true);
-            return loadInternalClasses(classFileNames);
-        }
-    }
-
-    /**
-     * Loads concrete classes from a jar which are both in the same package or 'sub-package' of baseClass,
-     * and which extend from baseClass.
-     *
-     * @param jarFile The jar file to search.
-     * @return A list of classes derived from baseClass.
-     */
-    private List<Class> loadClassesFromJar(final File jarFile)
-            throws IOException {
-        List<Class> subclasses = new ArrayList<Class>();
-
-        JarInputStream jarInputStream = new JarInputStream(new FileInputStream(jarFile));
-
-        try {
-            JarEntry jarEntry = jarInputStream.getNextJarEntry();
-
-            while (jarEntry != null) {
-                String jarEntryName = jarEntry.getName();
-                if (jarEntryName.endsWith(".class")) {
-                    String className = fileNameToClassName(jarEntryName);
-                    subclasses.add(Class.forName(className));
-                }
-                jarEntry = jarInputStream.getNextJarEntry();
-            }
-        }
-        catch (ClassNotFoundException ex) {
-            // A ClassNotFoundException here must be an IO error; wrap as such.
-            throw new IOException(ex);
-        }
-        finally {
-            jarInputStream.close();
-        }
-
-        return subclasses;
-    }
-
-    /**
-     * Loads a list of classes currently on the classpath.
-     *
-     * @param classFileNames List of files representing classes.
-     * @return class objects.
-     * @throws IOException Unable to open any of the found classes.
-     */
-    private List<Class> loadInternalClasses(List<String> classFileNames)
-            throws IOException {
-        List<Class> internalClasses = new ArrayList<Class>();
-
-        for (String classFileName : classFileNames) {
-            String className = fileNameToClassName(classFileName);
-            try {
-                internalClasses.add(Class.forName(className));
-            }
-            catch (ClassNotFoundException ex) {
-                // A ClassNotFoundException here must be an IO error; wrap as such.
-                throw new IOException(ex);
-            }
-        }
-
-        return internalClasses;
-    }
-
-    /**
-     * Load loose classes, external to the classloader, from the specified directory.
-     *
-     * @param path source path from which to load classes.
-     * @return A list of all loose classes contained in the path directory.
-     */
-    private List<Class> loadExternalClasses(final File path, List<String> classFileNames)
-            throws IOException {
-        List<Class> subclasses = new ArrayList<Class>();
-
-        URL pathURL = path.toURI().toURL();
-
-        ClassLoader cl = new URLClassLoader(new URL[]{pathURL});
-
-        List<String> filesInPath = findFilesInPath(path, "", "class", false);
-        for (String file : filesInPath) {
-            String className = fileNameToClassName(file);
-            try {
-                subclasses.add(cl.loadClass(className));
-            }
-            catch (ClassNotFoundException ex) {
-                // Class not found from a list of classes just looked up is an IO error.  Wrap and throw.
-                throw new IOException(ex);
-            }
-        }
-
-        return subclasses;
-    }
-
-    /**
-     * Find the files in the given directory matching the given extension.
-     *
-     * @param basePath       Path to search.
-     * @param relativePrefix What directory should the given files be presented relative to?
-     * @param extension      Extension for which to search.
-     * @param recursive      Search recursively.  Beware of symlinks!
-     * @return A list of files matching the specified criteria.
-     *         TODO: Move to a utils class.
-     *         TODO: Test recursive traversal in the presence of a symlink.
-     */
-    private List<String> findFilesInPath(final File basePath, final String relativePrefix, final String extension, boolean recursive) {
-        List<String> filesInPath = new ArrayList<String>();
-
-        File[] contents = basePath.listFiles(new OrFilenameFilter(new DirectoryFilter(), new ExtensionFilter(extension)));
-        for (File content : contents) {
-            String relativeFileName = relativePrefix.trim().length() != 0 ?
-                    relativePrefix + File.separator + content.getName() :
-                    content.getName();
-            if (relativeFileName.endsWith(extension))
-                filesInPath.add(relativeFileName);
-            else if (content.isDirectory() && recursive)
-                filesInPath.addAll(findFilesInPath(content, relativeFileName, extension, recursive));
-        }
-
-        return filesInPath;
-    }
-
-    /**
-     * Convert a filename of the form a/b/c.class to a.b.c.  Makes no assurances about whether the
-     * class is valid on any classloader.
-     *
-     * @param fileName Filename to convert.
-     * @return classname represented by that file.
-     *         TODO: Move to a utils class.
-     */
-    private String fileNameToClassName(String fileName) {
-        return fileName.substring(0, fileName.lastIndexOf(".class")).replace('/', '.');
-    }
-
-    /**
-     * The following are general-purpose file selection filters.
-     * TODO: Move to a utils class.
-     */
-    private class ExtensionFilter implements FilenameFilter {
-        private String extensionName = null;
-
-        public ExtensionFilter(String extensionName) {
-            this.extensionName = extensionName;
-        }
-
-        public boolean accept(File f, String s) {
-            return s.endsWith("." + extensionName);
-        }
-    }
-
-    private class DirectoryFilter implements FilenameFilter {
-        public boolean accept(File f, String s) {
-            return new File(f, s).isDirectory();
-        }
-    }
-
-    private class OrFilenameFilter implements FilenameFilter {
-        private FilenameFilter lhs = null, rhs = null;
-
-        public OrFilenameFilter(FilenameFilter lhs, FilenameFilter rhs) {
-            this.lhs = lhs;
-            this.rhs = rhs;
-        }
-
-        public boolean accept(File f, String s) {
-            return lhs.accept(f, s) || rhs.accept(f, s);
+            List<String> classFileNames = PathUtils.findFilesInPath(location, "", "class", true);
+            return JVMUtils.loadInternalClasses(classFileNames);
         }
     }
 
@@ -306,25 +124,8 @@ public class WalkerManager {
      */
     private List<Class> filterWalkers(List<Class> classes) {
         StdReflect reflect = new JdkStdReflect();
-        FunctionN<Boolean> filterFunc = reflect.instanceFunction(new ClassFilter(Walker.class), "filter", Class.class);
+        FunctionN<Boolean> filterFunc = reflect.instanceFunction(new JVMUtils.ClassFilter(Walker.class), "filter", Class.class);
         return Functions.findAll(filterFunc.f1(), classes);
-    }
-
-    /**
-     * A functor returning true for classes which extend from baseClass.
-     */
-    private class ClassFilter {
-        private Class baseClass;
-
-        public ClassFilter(Class baseClass) {
-            this.baseClass = baseClass;
-        }
-
-        public Boolean filter(Class clazz) {
-            return baseClass.isAssignableFrom(clazz) &&
-                    !Modifier.isAbstract(clazz.getModifiers()) &&
-                    !Modifier.isInterface(clazz.getModifiers());
-        }
     }
 
     /**
