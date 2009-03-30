@@ -24,4 +24,5 @@ public @interface Argument {
     String doc() default "";
     boolean required() default true;
     String exclusive() default "";
+    String defaultValue() default "";
 }

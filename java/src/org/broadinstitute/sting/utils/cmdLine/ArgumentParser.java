@@ -297,17 +297,17 @@ public class ArgumentParser {
 
         // logger.info("We have " + opts.size() + " options");
         for (Option opt : opts) {
+            //logger.info("looking at " + m_storageLocations.get(opt.getLongOpt()));
+            Field field = m_storageLocations.get(opt.getLongOpt());
+
+            // Check to see if the object contains the specified field.  Iterate through
+            // the array rather than doing a name lookup in case field names overlap between
+            // multiple classes in the application.
+            List<Field> fieldsInObj = Arrays.asList(obj.getClass().getFields());
+            if( !fieldsInObj.contains(field) )
+                continue;
+
             if (cmd.hasOption(opt.getOpt())) {
-                //logger.info("looking at " + m_storageLocations.get(opt.getLongOpt()));
-                Field field = m_storageLocations.get(opt.getLongOpt());
-
-                // Check to see if the object contains the specified field.  Iterate through
-                // the array rather than doing a name lookup in case field names overlap between
-                // multiple classes in the application.
-                List<Field> fieldsInObj = Arrays.asList(obj.getClass().getFields());
-                if( !fieldsInObj.contains(field) )
-                    continue;
-
                 try {
                     if (opt.hasArg())
                         field.set(obj, constructFromString(field, cmd.getOptionValues(opt.getOpt())));
@@ -318,7 +318,43 @@ public class ArgumentParser {
                     throw new RuntimeException("processArgs: Failed conversion " + e.getMessage());
                 }
             }
+            else {
+                if( hasDefaultValue( field ) ) {
+                    try {
+                        field.set(obj, constructFromString(field, new String[] { getDefaultValue(field) }) );
+                    }
+                    catch (IllegalAccessException e) {
+                        logger.fatal("processArgs: cannot convert field " + field.toString());
+                        throw new RuntimeException("processArgs: Failed conversion " + e.getMessage());
+                    }
+                }
+            }
         }
+    }
+
+    /**
+     * Returns whether this field is annotated with a default value.
+     * @param f the field to check for a default.
+     * @return whether a default value exists.
+     */
+    private boolean hasDefaultValue( Field f ) {
+        return getDefaultValue( f ) != null;
+    }
+
+    /**
+     * Gets the String representation for the default value of a given argument.
+     * @return The string of a default value, or null if no default exists.
+     */
+    private String getDefaultValue( Field f ) {
+        Argument arg = f.getAnnotation( Argument.class );
+        if( arg == null )
+            return null;
+
+        String defaultValue = arg.defaultValue().trim();
+        if( defaultValue.length() == 0 )
+            return null;
+
+        return defaultValue;
     }
 
     /**
