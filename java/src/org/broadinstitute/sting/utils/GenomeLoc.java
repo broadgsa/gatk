@@ -252,7 +252,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
      * @return true if we are past the last location to process
      */
     public static boolean pastFinalLocation(GenomeLoc curr, ArrayList<GenomeLoc> locs) {
-        if ( locs == null )
+        if ( locs.size() == 0 )
             return false;
         else {
             GenomeLoc last = locs.get(locs.size() - 1);
@@ -268,7 +268,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
      * @return true if we should process GenomeLoc curr, otherwise false
      */
     public static boolean inLocations(GenomeLoc curr, ArrayList<GenomeLoc> locs) {
-        if (locs == null) {
+        if ( locs.size() == 0 ) {
             return true;
         } else {
             for ( GenomeLoc loc : locs ) {
