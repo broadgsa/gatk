@@ -13,6 +13,8 @@ import java.util.Arrays;
 public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, Integer> {
 
     int N=2;
+    int DOWNSAMPLE = 0;
+    java.util.Random random;
 
     public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) 
     {
@@ -20,6 +22,29 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         // Convert context data into bases and 4-base quals
         String bases = getBases(context);
         double quals[][] = getOneBaseQuals(context);
+
+        if ((DOWNSAMPLE != 0) && (DOWNSAMPLE < bases.length()))
+        {
+            String downsampled_bases     = "";
+            double downsampled_quals[][] = new double[DOWNSAMPLE][4];
+           
+            int picked_bases[] = new int[bases.length()];
+            for (int i = 0; i < picked_bases.length; i++) { picked_bases[i] = 0; }
+            while (downsampled_bases.length() < DOWNSAMPLE)
+            {
+                int choice;
+                for (choice = random.nextInt(bases.length()); picked_bases[choice] == 1; choice = random.nextInt(bases.length()));
+                picked_bases[choice] = 1;
+                downsampled_bases += bases.charAt(choice);
+                downsampled_quals[downsampled_bases.length()-1] = quals[choice];
+            } 
+
+            //System.out.printf("From: %s\n", bases);
+            //System.out.printf("To  : %s\n", downsampled_bases);
+
+            bases = downsampled_bases;
+            quals = downsampled_quals;
+        }
 
         // Count bases
         int[] base_counts = new int[4];
@@ -53,7 +78,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                 if ( datum != null && datum instanceof rodDbSNP) {
                     rodDbSNP dbsnp = (rodDbSNP)datum;
                     //System.out.printf("  DBSNP %s on %s => %s%n", dbsnp.toSimpleString(), dbsnp.strand, Utils.join("/", dbsnp.getAllelesFWD()));
-                    alleleFreq.notes += String.format(" ROD: %s ",dbsnp.toMediumString());
+                    alleleFreq.notes += String.format(" ROD: %s ",dbsnp.toString());
                 }
             }
         }
@@ -63,8 +88,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
     static public String getBases (LocusContext context) {
         // Convert bases to CharArray
         int numReads = context.getReads().size(); //numReads();
-        //byte[] bases = new byte[numReads];
-        String base_string = "";
+        char[] bases = new char[numReads];
         //int refnum = nuc2num[ref];
 
         List<SAMRecord> reads = context.getReads();
@@ -72,11 +96,9 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         for (int i =0; i < numReads; i++ ) {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
-
-            //bases[i] = read.getReadBases()[offset];
-            base_string += read.getReadString().charAt(offset);
+            bases[i] = read.getReadString().charAt(offset);
         }
-        return base_string;
+        return new String(bases);
     }
 
     static public double[][] getOneBaseQuals (LocusContext context) {
@@ -189,7 +211,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
             }
         }
 
-        // First reverset sort NONREF mixtures according to highest posterior probabililty
+        // First reverse sort NONREF mixtures according to highest posterior probabililty
         Arrays.sort(bestMixtures, 1, N+1);
 
         // Calculate Lod of any variant call versus the reference call
@@ -354,8 +376,13 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         num2nuc[2] = 'T';
         num2nuc[3] = 'G';
 
+        this.random = new java.util.Random(0);
+
         if (System.getenv("N") != null) { this.N = (new Integer(System.getenv("N"))).intValue(); }
         else { this.N = 2; }
+
+        if (System.getenv("DOWNSAMPLE") != null) { this.DOWNSAMPLE = (new Integer(System.getenv("DOWNSAMPLE"))).intValue(); }
+        else { this.DOWNSAMPLE = 0; }
     }
 
 
