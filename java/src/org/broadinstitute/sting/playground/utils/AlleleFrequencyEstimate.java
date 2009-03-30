@@ -29,6 +29,20 @@ public class AlleleFrequencyEstimate {
         this.notes = "";
     }
 
+    public String asGFFString()
+    {
+        String[] tokens;
+        tokens = location.split(":");
+        return String.format("%s\tCALLER\tVARIANT\t%s\t%s\t%f\t.\t.\tREF \"%c\"\t;\tALT \"%c\"\t;\tFREQ %f\n",
+                               tokens[0],
+                               tokens[1],
+                               tokens[1],
+                               lodVsRef,
+                               ref,
+                               alt,
+                               qhat);
+    }
+
     public String asTabularString() {
         return String.format("RESULT %s %c %c %f %f %f %f %d %s\n",
 	                                        location,

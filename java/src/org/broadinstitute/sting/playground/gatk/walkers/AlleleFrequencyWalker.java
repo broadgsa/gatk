@@ -353,7 +353,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
     public Integer reduce(AlleleFrequencyEstimate alleleFreq, Integer sum) 
     {
         // Print RESULT data for confident calls
-        if ((alleleFreq.lodVsRef >= 5) || (alleleFreq.lodVsRef <= -5)) { System.out.print(alleleFreq.asTabularString()); }
+        if ((alleleFreq.lodVsRef >= 5) || (alleleFreq.lodVsRef <= -5)) { System.out.print(alleleFreq.asGFFString()); }
         return 0;
     }
 
