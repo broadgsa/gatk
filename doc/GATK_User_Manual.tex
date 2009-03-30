@@ -32,7 +32,27 @@ member variables annotated with @Argument in the walker.  The
   \item [exclusive] Specifies that this argument is mutually
     exclusive of another argument in the same walker.  Defaults to not
     mutually exclusive of any other arguments.
+  \item [defaultValue] Specifies the default value for this parameter,
+    in string form.  
 \end{enumerate}
+
+Examples:
+
+Create an required int parameter with full name --myint, short name
+-m.
+Pass this argument by adding ``--myint 6'' or -m6 to the command line.
+\begin{verbatim}
+@Argument
+public int myInt;
+\end{verbatim}
+
+Create an optional float parameter with full name
+--myFloatingPointArgument, short name -m.  Pass this argument by
+adding --myFloatingPointArgument 2.71 or -m2.71.
+\begin{verbatim}
+@Argument(fullName="myFloatingPointArgument",required=false,defaultValue="3.14159")
+public float myFloat;
+\end{verbatim}
 
 The GATK will parse the argument differently depending on the type of
 the public member variable's type.  Many different argument types are 
