@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.dataSources.chunks;
+package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.dataSources.datum.LocusDatum;

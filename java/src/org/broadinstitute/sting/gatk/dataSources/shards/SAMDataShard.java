@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.dataSources.chunks;
+package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import edu.mit.broad.picard.sam.MergingSamRecordIterator;
 import net.sf.samtools.SAMRecord;

@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.dataSources;
 
-import org.broadinstitute.sting.gatk.dataSources.chunks.DataShard;
+import org.broadinstitute.sting.gatk.dataSources.shards.DataShard;
 
 /**
  * User: aaron

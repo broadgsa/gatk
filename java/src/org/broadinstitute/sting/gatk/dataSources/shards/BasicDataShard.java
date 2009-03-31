@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.dataSources.chunks;
+package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import java.util.ArrayList;
 import java.util.List;
