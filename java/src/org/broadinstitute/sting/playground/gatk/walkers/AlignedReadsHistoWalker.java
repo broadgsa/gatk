@@ -45,7 +45,7 @@ public class AlignedReadsHistoWalker extends ReadWalker<Integer, Integer> {
         return value + sum;
     }
 
-    public void onTraversalDone() {
+    public void onTraversalDone(Integer result) {
         int curTotal = 0;
         for ( int i = 0; i < alignCounts.length; i++ ) {
             curTotal += alignCounts[i];

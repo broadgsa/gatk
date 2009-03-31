@@ -4,12 +4,6 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
-import org.broadinstitute.sting.utils.Utils;
-import edu.mit.broad.picard.reference.ReferenceSequence;
-
-import java.util.Iterator;
-import java.util.List;
-import static java.lang.reflect.Array.*;
 
 @WalkerName("Base_Quality_Dump")
 public class BaseQualityDumpWalker extends ReadWalker<Integer, Integer> {

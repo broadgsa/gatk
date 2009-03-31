@@ -70,7 +70,7 @@ public class MismatchHistoWalker extends ReadWalker<Integer, Integer> {
         return value + sum;
     }
 
-    public void onTraversalDone() {
+    public void onTraversalDone(Integer result) {
         for ( int i = 0; i < mismatchCounts.length; i++ )
             out.println((i+1) + "\t" + mismatchCounts[i]);
     }

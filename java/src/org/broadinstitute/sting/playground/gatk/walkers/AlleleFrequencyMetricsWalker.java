@@ -159,7 +159,7 @@ public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEst
         out.println();
     }
 
-    public void onTraversalDone() 
+    public void onTraversalDone(String result) 
     {
         printMetrics();
     }
