@@ -36,22 +36,52 @@ member variables annotated with @Argument in the walker.  The
     in string form.  
 \end{enumerate}
 
-Examples:
+\subsubsection{Passing Command-line Arguments}
+Arguments can be passed to the walker using either the full name or
+the short name.  If passing arguments using the full name, the syntax
+is $--$$<$arg full name$>$ $<$value$>$.
+\begin{verbatim}
+--myint 6
+\end{verbatim}
+
+If passing arguments using the short name,
+the syntax is -$<$arg short name$>$$<$value$>$.  Note that there is no space
+between the short name and the value:
+\begin{verbatim}
+-m6
+\end{verbatim}
+
+Boolean (class) and boolean (primitive) arguments are a special in
+that they require no argument.  The presence of a boolean indicates
+true, and its absence indicates false.  The following example sets a
+flag to true.
+\begin{verbatim}
+-B
+
+\end{verbatim}
+
+\subsubsection{Examples}
 
 Create an required int parameter with full name --myint, short name
 -m.
 Pass this argument by adding ``--myint 6'' or -m6 to the command line.
 \begin{verbatim}
-@Argument
-public int myInt;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+
+public class HelloWalker extends ReadWalker<Integer,Long> {
+    @Argument
+    public int myInt;
 \end{verbatim}
 
 Create an optional float parameter with full name
 --myFloatingPointArgument, short name -m.  Pass this argument by
 adding --myFloatingPointArgument 2.71 or -m2.71.
 \begin{verbatim}
-@Argument(fullName="myFloatingPointArgument",required=false,defaultValue="3.14159")
-public float myFloat;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+
+public class HelloWalker extends ReadWalker<Integer,Long> {
+    @Argument(fullName="myFloatingPointArgument",required=false,defaultValue="3.14159")
+    public float myFloat;
 \end{verbatim}
 
 The GATK will parse the argument differently depending on the type of
