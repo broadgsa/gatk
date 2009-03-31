@@ -14,11 +14,11 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>> {
-    @Argument(fullName="printall",required=false,defaultValue="true")
-    public String printAllLoci;  // booleans don't work
+    @Argument(fullName="suppressLocusPrinting",required=false,defaultValue="false")
+    public boolean suppressPrinting;
 
     public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
-        if (printAllLoci.equals("true"))
+        if ( !suppressPrinting )
             out.printf("%s: %d%n", context.getLocation(), context.getReads().size() );
         return context.getReads().size();
     }
