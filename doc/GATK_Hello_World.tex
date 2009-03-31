@@ -48,8 +48,8 @@ To be loaded by GATK, the walker must satisfy the following properties:
   \item It must be in the unnamed package (in other words, the source
     should not start with a package declaration).
   \item It must subclass one of the basic walkers in the 
-    org.broadinstitute.sting.gatk.walkers package: BasicReadWalker or 
-    BasicLociWalker.
+    org.broadinstitute.sting.gatk.walkers package: ReadWalker or 
+    LociWalker.
   \item It must live in the directory \$STING\_HOME/dist/walkers.
 \end{enumerate}
 
@@ -65,13 +65,13 @@ Copy the following text into the file \$STING\_HOME/dist/walkers/HelloWalker.jav
 import net.sf.samtools.SAMRecord;
 
 import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.walkers.BasicReadWalker;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 
 /**
- * Define a class extending from BasicReadWalker with types
+ * Define a class extending from ReadWalker with types
  * <MapType,ReduceType>.  
  */
-public class HelloWalker extends BasicReadWalker<Integer,Long> {
+public class HelloWalker extends ReadWalker<Integer,Long> {
     private Long currentRead = 0L;
 
     // Maps each read to the value 1.
