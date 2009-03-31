@@ -5,16 +5,23 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 import java.util.Arrays;
+import java.util.Random;
+import java.io.PrintStream;
 
-public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, Integer> {
+public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, String> 
+{
 
-    int N=2;
-    int DOWNSAMPLE = 0;
-    java.util.Random random;
+    @Argument public int    N;
+    @Argument public int    DOWNSAMPLE;
+    @Argument public String GFF_OUTPUT_FILE;
+
+    Random random;
+    PrintStream output;
 
     public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) 
     {
@@ -347,14 +354,17 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         return result;
     }
 
+    private String  confident_interval_start   = "";
+    private double  confident_interval_min_LOD = 0;
+    private double  confident_interval_max_LOD = 0;
+    private boolean inside_confident_interval  = false;
 
-    public Integer reduceInit() { return 0; }
-
-    public Integer reduce(AlleleFrequencyEstimate alleleFreq, Integer sum) 
+    public String reduceInit() { return ""; }
+    public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
     {
         // Print RESULT data for confident calls
-        if ((alleleFreq.lodVsRef >= 5) || (alleleFreq.lodVsRef <= -5)) { System.out.print(alleleFreq.asGFFString()); }
-        return 0;
+        if ((alleleFreq.lodVsRef >= 5) || (alleleFreq.lodVsRef <= -5)) { this.output.print(alleleFreq.asGFFString()); }
+        return "";
     }
 
     static int nuc2num[];
@@ -376,16 +386,37 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         num2nuc[2] = 'T';
         num2nuc[3] = 'G';
 
-        this.random = new java.util.Random(0);
+        try
+        {
+            this.random = new java.util.Random(0);
+            this.output = new PrintStream(GFF_OUTPUT_FILE);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            System.exit(-1);
+        }
 
-        if (System.getenv("N") != null) { this.N = (new Integer(System.getenv("N"))).intValue(); }
-        else { this.N = 2; }
-
-        if (System.getenv("DOWNSAMPLE") != null) { this.DOWNSAMPLE = (new Integer(System.getenv("DOWNSAMPLE"))).intValue(); }
-        else { this.DOWNSAMPLE = 0; }
+        //if (System.getenv("N") != null) { this.N = (new Integer(System.getenv("N"))).intValue(); }
+        //else { this.N = 2; }
+        //
+        //if (System.getenv("DOWNSAMPLE") != null) { this.DOWNSAMPLE = (new Integer(System.getenv("DOWNSAMPLE"))).intValue(); }
+        //else { this.DOWNSAMPLE = 0; }
     }
 
-
+    public void onTraversalDone(String result) 
+    {
+        try
+        {
+	        this.output.flush();
+	        this.output.close();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+    }
 
     static void print_base_qual_matrix(double [][]quals) {
         // Print quals for debugging

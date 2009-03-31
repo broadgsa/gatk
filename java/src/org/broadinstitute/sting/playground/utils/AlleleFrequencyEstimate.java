@@ -33,7 +33,7 @@ public class AlleleFrequencyEstimate {
     {
         String[] tokens;
         tokens = location.split(":");
-        return String.format("%s\tCALLER\tVARIANT\t%s\t%s\t%f\t.\t.\tREF \"%c\"\t;\tALT \"%c\"\t;\tFREQ %f\n",
+        return String.format("%s\tCALLER\tVARIANT\t%s\t%s\t%f\t.\t.\tREF %c\t;\tALT %c\t;\tFREQ %f\n",
                                tokens[0],
                                tokens[1],
                                tokens[1],

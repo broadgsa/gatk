@@ -172,13 +172,8 @@ public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEst
 
     public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
     {
-        // Print RESULT data for confident calls
-        //if ((alleleFreq.lodVsRef >= 5) || (alleleFreq.lodVsRef <= -5)) { System.out.print(alleleFreq.asTabularString()); }
-        //out.print(alleleFreq.asTabularString()); 
         if ((alleleFreq.lodVsRef >= 5) || (alleleFreq.lodVsRef <= -5)) { System.out.print(alleleFreq.asGFFString()); }
-
         if (this.num_loci_total % 1000 == 0) { printMetrics(); }
-
         return "null";
     }
 
