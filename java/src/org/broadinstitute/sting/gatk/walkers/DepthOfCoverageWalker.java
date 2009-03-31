@@ -23,12 +23,12 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
         return context.getReads().size();
     }
 
-    public Pair<Long, Long> reduceInit() { return new Pair<Long, Long>((long)0,(long)0); }
+    public Pair<Long, Long> reduceInit() { return new Pair(0l,0l); }
 
     public Pair<Long, Long> reduce(Integer value, Pair<Long, Long> sum) {
-        long left = new Long(value.longValue() + sum.getFirst().longValue());
-        long right = new Long(sum.getSecond().longValue() + 1);
-        return new Pair<Long, Long>(left, right);
+        long left = value.longValue() + sum.getFirst();
+        long right = sum.getSecond() + 1l;
+        return new Pair(left, right);
     }
 
     public void onTraversalDone(Pair<Long, Long> result) {
