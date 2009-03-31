@@ -120,7 +120,7 @@ public class TraverseByLoci extends TraversalEngine {
                 // Iterate forward to get all reference ordered data covering this locus
                 final List<ReferenceOrderedDatum> rodData = getReferenceOrderedDataAtLocus(rodIters, locus.getLocation());
 
-                walkAtLocus( walker, sum, locus, refSite, rodData );
+                sum = walkAtLocus( walker, sum, locus, refSite, rodData );
 
                 //System.out.format("Working at %s\n", locus.getLocation().toString());
 
