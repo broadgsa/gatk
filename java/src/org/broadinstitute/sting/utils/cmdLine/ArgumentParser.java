@@ -269,17 +269,21 @@ public class ArgumentParser {
      * exit the program
      *
      * @param args the command line arguments we recieved
+     * @param args whether to allow incomplete command-line arguments
      */
-    public void processArgs(String[] args, boolean allowUnrecognized) throws ParseException {
+    public void processArgs(String[] args, boolean allowIncomplete) throws ParseException {
         OurPosixParser parser = new OurPosixParser();
         Collection<Option> opts = m_options.getOptions();
 
         try {
-            parser.parse(m_options, args, !allowUnrecognized);
+            parser.parse(m_options, args, false);
         }
-        catch (UnrecognizedOptionException e) {
-            // we don't care about unknown exceptions right now
-            if(!allowUnrecognized) {
+        catch( ParseException e ) {
+            boolean isIncomplete = e instanceof MissingArgumentException ||
+                                   e instanceof MissingOptionException ||
+                                   e instanceof UnrecognizedOptionException;
+
+            if( !(allowIncomplete && isIncomplete) ) {
                 logger.warn(e.getMessage());
                 throw e;
             }
