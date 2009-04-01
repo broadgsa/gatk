@@ -118,6 +118,46 @@ public class Utils {
         return c;
     }
 
+    public static String basePileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
+        StringBuilder bases = new StringBuilder();
+        for ( byte base : basePileup(reads, offsets)) {
+            bases.append((char)base);
+        }
+        return bases.toString();
+    }
+
+    public static ArrayList<Byte> basePileup( List<SAMRecord> reads, List<Integer> offsets ) {
+        ArrayList<Byte> bases = new ArrayList(reads.size());
+        for ( int i = 0; i < reads.size(); i++ ) {
+            SAMRecord read = reads.get(i);
+            int offset = offsets.get(i);
+            bases.add(read.getReadBases()[offset]);
+        }
+        return bases;
+    }
+
+    public static ArrayList<Byte> qualPileup( List<SAMRecord> reads, List<Integer> offsets ) {
+        ArrayList<Byte> quals = new ArrayList(reads.size());
+        for ( int i = 0; i < reads.size(); i++ ) {
+            SAMRecord read = reads.get(i);
+            int offset = offsets.get(i);
+            byte qual = (byte)read.getBaseQualities()[offset];
+            quals.add(qual);
+        }
+        return quals;
+    }
+
+    public static String qualPileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
+        StringBuilder quals = new StringBuilder();
+        for ( int qual : qualPileup(reads, offsets)) {
+            qual = Math.min(qual, 63);              // todo: fixme, this isn't a good idea
+            char qualChar = (char) (33 + qual);     // todo: warning, this is illegal for qual > 63
+            quals.append(qualChar);
+        }
+
+        return quals.toString();
+    }
+
     public static ArrayList<Byte> subseq(byte[] fullArray) {
         return subseq(fullArray, 0, fullArray.length);
     }

@@ -4,9 +4,11 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.Utils;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Created by IntelliJ IDEA.
@@ -26,19 +28,11 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
         return true;    // We are keeping all the reads
     }
 
-    // Map over the org.broadinstitute.sting.gatk.LocusContext
     public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
-        String bases = "";
-        String quals = "";
-        for ( int i = 0; i < reads.size(); i++ ) {
-            SAMRecord read = reads.get(i);
-            int offset = offsets.get(i);
-
-            bases += read.getReadString().charAt(offset);
-            quals += read.getBaseQualityString().charAt(offset);
-        }
+        String bases = Utils.basePileupAsString(reads, offsets);
+        String quals = Utils.qualPileupAsString(reads, offsets);
 
         if ( bases.equals("") && FLAG_UNCOVERED_BASES ) {
             bases = "*** UNCOVERED SITE ***";
