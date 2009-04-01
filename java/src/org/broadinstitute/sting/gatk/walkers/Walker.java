@@ -48,7 +48,6 @@ public abstract class Walker<MapType, ReduceType> {
 
     public void initialize() { }
     public void onTraversalDone(ReduceType result) {
-        // TODO: replace with the correct output stream
-        System.out.println("[REDUCE RESULT] Traversal result is: " + result);
+        out.println("[REDUCE RESULT] Traversal result is: " + result);
     }
 }
