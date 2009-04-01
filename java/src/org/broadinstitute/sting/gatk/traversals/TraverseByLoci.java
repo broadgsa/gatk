@@ -110,6 +110,8 @@ public class TraverseByLoci extends TraversalEngine {
 
             // actually get the read and hand it to the walker
             LocusContext locus = iter.next();
+            if ( DOWNSAMPLE_BY_COVERAGE )
+                locus.downsampleToCoverage(downsamplingCoverage);
 
             // if we don't have a particular interval we're processing, check them all, otherwise only operate at this
             // location

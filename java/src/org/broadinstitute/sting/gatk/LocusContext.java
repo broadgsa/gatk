@@ -3,7 +3,10 @@ package org.broadinstitute.sting.gatk;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
-import java.lang.ref.Reference;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.TreeSet;
+import java.util.Random;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import edu.mit.broad.picard.reference.ReferenceSequence;
@@ -97,5 +100,38 @@ public class LocusContext {
      */
     public void setReferenceContig(final ReferenceSequence contig) {
         refContig = contig;
+    }
+
+    public void downsampleToCoverage(int coverage) {
+        if ( numReads() <= coverage )
+            return;
+
+        // randomly choose numbers corresponding to positions in the reads list
+        Random generator = new Random();
+        TreeSet positions = new TreeSet();
+        int i = 0;
+        while ( i < coverage ) {
+            if (positions.add(new Integer(generator.nextInt(reads.size()))))
+                i++;
+        }
+
+        ArrayList downsampledReads = new ArrayList();
+        Iterator positionIter = positions.iterator();
+        Iterator readsIter = reads.iterator();
+        int currentRead = 0;
+        while ( positionIter.hasNext() ) {
+            int nextReadToKeep = (Integer)positionIter.next();
+
+            // fast-forward to the right read
+            while ( currentRead < nextReadToKeep ) {
+                readsIter.next();
+                currentRead++;
+            }
+
+            downsampledReads.add(readsIter.next());
+            currentRead++;
+        }
+
+        reads = downsampledReads;
     }
 }

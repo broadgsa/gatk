@@ -80,10 +80,12 @@ public abstract class TraversalEngine {
     protected boolean beSafeP = true;
     protected boolean SORT_ON_FLY = false;
     protected boolean DOWNSAMPLE_BY_FRACTION = false;
+    protected boolean DOWNSAMPLE_BY_COVERAGE = false;
     protected boolean FILTER_UNSORTED_READS = false;
     protected boolean walkOverAllSites = false;
     protected int maxOnFlySorts = 100000;
     protected double downsamplingFraction = 1.0;
+    protected int downsamplingCoverage = 0;
     protected long N_RECORDS_TO_PRINT = 100000;
     protected boolean THREADED_IO = false;
     protected int THREADED_IO_BUFFER_SIZE = 10000;
@@ -167,6 +169,12 @@ public abstract class TraversalEngine {
         logger.info("Downsampling to approximately " + (fraction * 100.0) + "% of filtered reads");
         DOWNSAMPLE_BY_FRACTION = true;
         downsamplingFraction = fraction;
+    }
+
+    public void setDownsampleByCoverage(final int coverage) {
+        logger.info("Downsampling to coverage " + coverage);
+        DOWNSAMPLE_BY_COVERAGE = true;
+        downsamplingCoverage = coverage;
     }
 
     // --------------------------------------------------------------------------------------------------------------

@@ -77,6 +77,8 @@ public class TraverseByLociByReference extends TraverseByLoci {
                 locus = new LocusContext(current, NO_READS, NO_OFFSETS);    // make the empty locus that has no reads
 
             locus.setReferenceContig(refSite.getCurrentContig());            
+            if ( DOWNSAMPLE_BY_COVERAGE )
+                locus.downsampleToCoverage(downsamplingCoverage);
             sum = walkAtLocus( walker, sum, locus, refSite, rodData );
 
             if (this.maxReads > 0 && this.nRecords > this.maxReads) {
