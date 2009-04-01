@@ -44,7 +44,9 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     public String HAPMAP_FILE = null;
     public Boolean ENABLED_THREADED_IO = false;
     public Boolean UNSAFE = false;
-    public Boolean ENABLED_SORT_ON_FLY = false;
+    public String MAX_ON_FLY_SORTS = null;
+    public String DOWNSAMPLE_FRACTION = null;
+    public String DOWNSAMPLE_COVERAGE = null;
     public String INTERVALS_FILE = null;
 
     // our walker manager
@@ -104,7 +106,9 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalArg("Hapmap", "H", "Hapmap file", "HAPMAP_FILE");
         m_parser.addOptionalFlag("threaded_IO", "P", "If set, enables threaded I/O operations", "ENABLED_THREADED_IO");
         m_parser.addOptionalFlag("unsafe", "U", "If set, enables unsafe operations, nothing will be checked at runtime.", "UNSAFE");
-        m_parser.addOptionalFlag("sort_on_the_fly", "F", "If set, enables on fly sorting of reads file.", "ENABLED_SORT_ON_FLY");
+        m_parser.addOptionalArg("sort_on_the_fly", "sort", "Maximum number of reads to sort on the fly", "MAX_ON_FLY_SORTS");
+        m_parser.addOptionalArg("downsample_to_fraction", "dfrac", "Fraction of reads to downsample to", "DOWNSAMPLE_FRACTION");
+        m_parser.addOptionalArg("downsample_to_coverage", "dcov", "Coverage to downsample to", "DOWNSAMPLE_COVERAGE");
         m_parser.addOptionalArg("intervals_file", "V", "File containing list of genomic intervals to operate on. line := <contig> <start> <end>", "INTERVALS_FILE");
         m_parser.addOptionalArg("all_loci", "A", "Should we process all loci, not just those covered by reads", "WALK_ALL_LOCI");
         m_parser.addOptionalArg("out", "o", "An output file presented to the walker.  Will overwrite contents if file exists.", "outFileName" );
@@ -228,8 +232,19 @@ public class GenomeAnalysisTK extends CommandLineProgram {
             engine.setLocationFromFile(INTERVALS_FILE);
         }
 
+        if (MAX_ON_FLY_SORTS != null) {
+            engine.setSortOnFly(Integer.parseInt(MAX_ON_FLY_SORTS));
+        }
+
+        if (DOWNSAMPLE_FRACTION != null) {
+            engine.setDownsampleByFraction(Double.parseDouble(DOWNSAMPLE_FRACTION));
+        }
+
+        if (DOWNSAMPLE_COVERAGE != null) {
+            ; // TO DO: (Double.parseDouble(DOWNSAMPLE_COVERAGE));
+        }
+
         engine.setSafetyChecking(!UNSAFE);
-        engine.setSortOnFly(ENABLED_SORT_ON_FLY);
         engine.setThreadedIO(ENABLED_THREADED_IO);
         engine.setWalkOverAllSites(WALK_ALL_LOCI);
         engine.initialize();

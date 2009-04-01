@@ -1,10 +1,7 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.util.RuntimeIOException;
 
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;

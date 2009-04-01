@@ -79,9 +79,11 @@ public abstract class TraversalEngine {
     protected boolean DEBUGGING = false;
     protected boolean beSafeP = true;
     protected boolean SORT_ON_FLY = false;
+    protected boolean DOWNSAMPLE_BY_FRACTION = false;
     protected boolean FILTER_UNSORTED_READS = false;
     protected boolean walkOverAllSites = false;
-    protected int MAX_ON_FLY_SORTS = 100000;
+    protected int maxOnFlySorts = 100000;
+    protected double downsamplingFraction = 1.0;
     protected long N_RECORDS_TO_PRINT = 100000;
     protected boolean THREADED_IO = false;
     protected int THREADED_IO_BUFFER_SIZE = 10000;
@@ -153,10 +155,18 @@ public abstract class TraversalEngine {
         this.FILTER_UNSORTED_READS = filterUnsorted;
     }
 
-    public void setSortOnFly(final boolean SORT_ON_FLY) {
-        if (SORT_ON_FLY)
-            logger.info("Sorting read file on the fly: max reads allowed is " + MAX_ON_FLY_SORTS);
-        this.SORT_ON_FLY = SORT_ON_FLY;
+    public void setSortOnFly(final int maxReadsToSort) {
+        logger.info("Sorting read file on the fly: max reads allowed is " + maxReadsToSort);
+        SORT_ON_FLY = true;
+        maxOnFlySorts = maxReadsToSort;
+    }
+
+    public void setSortOnFly() { setSortOnFly(100000); }
+
+    public void setDownsampleByFraction(final double fraction) {
+        logger.info("Downsampling to approximately " + (fraction * 100.0) + "% of filtered reads");
+        DOWNSAMPLE_BY_FRACTION = true;
+        downsamplingFraction = fraction;
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -337,8 +347,13 @@ public abstract class TraversalEngine {
     protected Iterator<SAMRecord> WrapReadsIterator( final Iterator<SAMRecord> rawIterator, final boolean enableVerification ) {
         Iterator<SAMRecord> wrappedIterator = rawIterator;
 
+        // NOTE: this (and other filtering) should be done before on-the-fly sorting
+        //  as there is no reason to sort something that we will end of throwing away
+        if (DOWNSAMPLE_BY_FRACTION)
+            wrappedIterator = new DownsampleIterator(wrappedIterator, downsamplingFraction);
+
         if (SORT_ON_FLY)
-            wrappedIterator = new SortSamIterator(wrappedIterator, MAX_ON_FLY_SORTS);
+            wrappedIterator = new SortSamIterator(wrappedIterator, maxOnFlySorts);
 
         if (beSafeP && enableVerification)
             wrappedIterator = new VerifyingSamIterator(wrappedIterator);
