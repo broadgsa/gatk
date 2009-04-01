@@ -276,7 +276,7 @@ public class ArgumentParser {
         Collection<Option> opts = m_options.getOptions();
 
         try {
-            parser.parse(m_options, args, false);
+            parser.parse(m_options, args, !allowIncomplete);
         }
         catch( ParseException e ) {
             boolean isIncomplete = e instanceof MissingArgumentException ||
