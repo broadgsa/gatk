@@ -356,6 +356,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
     private String  confident_ref_interval_start   = "";
     private double  confident_ref_interval_LOD_sum = 0;
     private double  confident_ref_interval_length  = 0;
+    private int     last_position_considered       = -1;
     private boolean inside_confident_ref_interval  = false;
 
     public String reduceInit() 
@@ -363,6 +364,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         confident_ref_interval_start   = "";
         confident_ref_interval_LOD_sum = 0;
         confident_ref_interval_length  = 0;
+        last_position_considered       = -1;
         inside_confident_ref_interval  = false;
         return ""; 
     }
@@ -371,17 +373,21 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
     {
         // Print RESULT data for confident calls
 
-        if (inside_confident_ref_interval && (alleleFreq.lodVsRef > -5.0))
+        String[] tokens;
+        tokens = alleleFreq.location.split(":");
+        int current_offset = Integer.parseInt(tokens[1]);
+
+        if (inside_confident_ref_interval && 
+                ((alleleFreq.lodVsRef > -5.0) || (current_offset != last_position_considered + 1)))
         {
             // No longer hom-ref, so output a ref line.
-            String[] tokens;
             tokens = confident_ref_interval_start.split(":");
 
             String contig = tokens[0];
             int    start  = Integer.parseInt(tokens[1]);
 
             tokens = alleleFreq.location.split(":");
-            int end = Integer.parseInt(tokens[1])-1;
+            int end = last_position_considered;
 
             double lod = confident_ref_interval_LOD_sum / confident_ref_interval_length;
 
@@ -412,6 +418,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
             confident_ref_interval_length  = 1;
             inside_confident_ref_interval  = true;
         }
+
+        last_position_considered = current_offset;
         
         if (alleleFreq.lodVsRef >= 5) { this.output.print(alleleFreq.asGFFString()); }
         return "";
