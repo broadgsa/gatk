@@ -28,9 +28,9 @@
 			<key>GanttGroupShading</key>
 			<false/>
 			<key>GanttVisibleRect</key>
-			<string>{{520, 2}, {722, 923}}</string>
+			<string>{{-35, 39}, {1025, 1033}}</string>
 			<key>OutlineVisibleRect</key>
-			<string>{{0, 2}, {789, 923}}</string>
+			<string>{{0, 39}, {789, 1033}}</string>
 			<key>ScaleWidths</key>
 			<dict>
 				<key>Automatic</key>
@@ -177,9 +177,9 @@
 				</dict>
 			</dict>
 			<key>side</key>
-			<real>0.4829619824886322</real>
+			<real>0.56861674785614014</real>
 			<key>window</key>
-			<string>{{49, 118}, {1535, 1060}}</string>
+			<string>{{49, 8}, {1838, 1170}}</string>
 		</dict>
 	</array>
 	<key>displaySeconds</key>
@@ -249,7 +249,7 @@
 	<key>resourceDifferenceEngine</key>
 	<dict>
 		<key>nextId</key>
-		<integer>18</integer>
+		<integer>24</integer>
 	</dict>
 	<key>resourceUserKeys</key>
 	<array/>
@@ -587,7 +587,7 @@
 	<key>taskDifferenceEngine</key>
 	<dict>
 		<key>nextId</key>
-		<integer>106</integer>
+		<integer>109</integer>
 	</dict>
 	<key>taskUserKeys</key>
 	<array/>
@@ -831,7 +831,7 @@
 				<real>12</real>
 			</dict>
 			<key>task</key>
-			<string>Error and condition checking -- reads, refordered data sort order, lots of other places</string>
+			<string>Handle argument type checking -- throw errors for bad types -- handle problem with providing arguments to flag causing problems everywhere</string>
 			<key>workDone</key>
 			<real>8</real>
 			<key>workSeconds</key>
@@ -1698,8 +1698,8 @@
 				<integer>71</integer>
 				<integer>1</integer>
 				<integer>10</integer>
-				<integer>72</integer>
 				<integer>45</integer>
+				<integer>106</integer>
 				<integer>63</integer>
 			</array>
 			<key>objectId</key>
@@ -1959,35 +1959,6 @@
 			<real>28800</real>
 			<key>workTime</key>
 			<real>8</real>
-		</dict>
-		<dict>
-			<key>assignments</key>
-			<array>
-				<dict>
-					<key>id</key>
-					<integer>11</integer>
-					<key>units</key>
-					<real>0.25</real>
-				</dict>
-			</array>
-			<key>doneSeconds</key>
-			<real>115200</real>
-			<key>effort</key>
-			<real>28800</real>
-			<key>effortDone</key>
-			<real>28800</real>
-			<key>forcedStart</key>
-			<string>20090323080000</string>
-			<key>objectId</key>
-			<integer>72</integer>
-			<key>task</key>
-			<string>Dynamic merging of multiple input BAM files into single stream</string>
-			<key>workDone</key>
-			<real>32</real>
-			<key>workSeconds</key>
-			<real>115200</real>
-			<key>workTime</key>
-			<real>32</real>
 		</dict>
 		<dict>
 			<key>effort</key>
@@ -2346,6 +2317,67 @@
 			<key>workTime</key>
 			<real>32</real>
 		</dict>
+		<dict>
+			<key>children</key>
+			<array>
+				<integer>107</integer>
+				<integer>108</integer>
+			</array>
+			<key>forcedStart</key>
+			<string>20090323080000</string>
+			<key>objectId</key>
+			<integer>106</integer>
+			<key>task</key>
+			<string>Dynamic merging of multiple input BAM files into single stream</string>
+		</dict>
+		<dict>
+			<key>assignments</key>
+			<array>
+				<dict>
+					<key>id</key>
+					<integer>11</integer>
+					<key>units</key>
+					<real>0.75</real>
+				</dict>
+			</array>
+			<key>doneSeconds</key>
+			<real>38400</real>
+			<key>effort</key>
+			<real>28800</real>
+			<key>effortDone</key>
+			<real>28800</real>
+			<key>objectId</key>
+			<integer>107</integer>
+			<key>task</key>
+			<string>Basic code support</string>
+			<key>workDone</key>
+			<real>10.666666984558105</real>
+			<key>workSeconds</key>
+			<real>38400</real>
+			<key>workTime</key>
+			<real>10.666666984558105</real>
+		</dict>
+		<dict>
+			<key>assignments</key>
+			<array>
+				<dict>
+					<key>id</key>
+					<integer>3</integer>
+					<key>units</key>
+					<real>1</real>
+				</dict>
+			</array>
+			<key>effort</key>
+			<real>28800</real>
+			<key>objectId</key>
+			<integer>108</integer>
+			<key>task</key>
+			<string>Support in new data shard system</string>
+			<key>workSeconds</key>
+			<real>28800</real>
+			<key>workTime</key>
+			<real>8</real>
+		</dict>
 	</array>
 	<key>topResources</key>
 	<array>
@@ -2356,7 +2388,7 @@
 		<integer>-1</integer>
 	</array>
 	<key>uuid</key>
-	<string>EA770DBD-47E5-481D-8ACF-E943D483FAC0</string>
+	<string>7E48C9E3-9ADF-4CC6-BB69-412F6D01690A</string>
 	<key>version</key>
 	<integer>2</integer>
 </dict>
