@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.*;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
@@ -15,7 +16,6 @@ import java.io.PrintStream;
 
 public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, String> 
 {
-
     @Argument public int    N;
     @Argument public int    DOWNSAMPLE;
     @Argument public String GFF_OUTPUT_FILE;
@@ -25,7 +25,6 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 
     public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) 
     {
-        // Convert context data into bases and 4-base quals
         // Convert context data into bases and 4-base quals
         String bases = getBases(context);
         double quals[][] = getOneBaseQuals(context);
@@ -354,16 +353,67 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         return result;
     }
 
-    private String  confident_interval_start   = "";
-    private double  confident_interval_min_LOD = 0;
-    private double  confident_interval_max_LOD = 0;
-    private boolean inside_confident_interval  = false;
+    private String  confident_ref_interval_start   = "";
+    private double  confident_ref_interval_LOD_sum = 0;
+    private double  confident_ref_interval_length  = 0;
+    private boolean inside_confident_ref_interval  = false;
 
-    public String reduceInit() { return ""; }
+    public String reduceInit() 
+    { 
+        confident_ref_interval_start   = "";
+        confident_ref_interval_LOD_sum = 0;
+        confident_ref_interval_length  = 0;
+        inside_confident_ref_interval  = false;
+        return ""; 
+    }
+
     public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
     {
         // Print RESULT data for confident calls
-        if ((alleleFreq.lodVsRef >= 5) || (alleleFreq.lodVsRef <= -5)) { this.output.print(alleleFreq.asGFFString()); }
+
+        if (inside_confident_ref_interval && (alleleFreq.lodVsRef > -5.0))
+        {
+            // No longer hom-ref, so output a ref line.
+            String[] tokens;
+            tokens = confident_ref_interval_start.split(":");
+
+            String contig = tokens[0];
+            int    start  = Integer.parseInt(tokens[1]);
+
+            tokens = alleleFreq.location.split(":");
+            int end = Integer.parseInt(tokens[1])-1;
+
+            double lod = confident_ref_interval_LOD_sum / confident_ref_interval_length;
+
+            output.format("%s\tCALLER\tREFERENCE\t%d\t%d\t%f\t.\t.\tLENGTH %d\n",
+                            contig,
+                            start,
+                            end,
+                            lod,
+                            (int)(confident_ref_interval_length));
+
+            inside_confident_ref_interval = false;
+        }
+        else if (inside_confident_ref_interval && (alleleFreq.lodVsRef <= -5.0))
+        {
+            // Still hom-ref so increment the counters.
+            confident_ref_interval_LOD_sum += alleleFreq.lodVsRef;
+            confident_ref_interval_length  += 1;
+        }
+        else if ((!inside_confident_ref_interval) && (alleleFreq.lodVsRef > -5.0))
+        {
+            // do nothing.
+        }
+        else if ((!inside_confident_ref_interval) && (alleleFreq.lodVsRef <= -5.0))
+        {
+            // We moved into a hom-ref region so start a new interval.
+            confident_ref_interval_start   = alleleFreq.location;
+            confident_ref_interval_LOD_sum = alleleFreq.lodVsRef;
+            confident_ref_interval_length  = 1;
+            inside_confident_ref_interval  = true;
+        }
+        
+        if (alleleFreq.lodVsRef >= 5) { this.output.print(alleleFreq.asGFFString()); }
         return "";
     }
 
