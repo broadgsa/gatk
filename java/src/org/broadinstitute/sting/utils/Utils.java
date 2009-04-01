@@ -212,11 +212,15 @@ public class Utils {
     }
 
     public static String join(String separator, String[] strings) {
-        if (strings.length == 0) {
+        return join(separator, strings, 0, strings.length);
+    }
+
+    public static String join(String separator, String[] strings, int start, int end) {
+        if ((end - start) == 0) {
             return "";
         }
-        StringBuilder ret = new StringBuilder(strings[0]);
-        for (int i = 1; i < strings.length; ++i) {
+        StringBuilder ret = new StringBuilder(strings[start]);
+        for (int i = start+1; i < end; ++i) {
             ret.append(separator);
             ret.append(strings[i]);
         }

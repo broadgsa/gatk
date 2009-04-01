@@ -1,9 +1,14 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import java.util.HashMap;
+import java.util.Scanner;
+import java.util.Map;
+import java.util.regex.MatchResult;
+import java.util.regex.Pattern;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 
 /**
  * Class for representing arbitrary reference ordered data sets
@@ -75,13 +80,31 @@ public class rodGFF extends ReferenceOrderedDatum {
         return attributes.get(key);
     }
 
+    public boolean containsAttribute(final String key) {
+        return attributes.containsKey(key);
+    }
+
+    public HashMap<String,String> getAttributes() {
+        return attributes;
+    }
+
+    public String getAttributeString() {
+        String[] strings = new String[attributes.size()];
+        int i = 0;
+        for ( Map.Entry<String, String> pair : attributes.entrySet() ) {
+            strings[i++] = pair.getKey() + " " + pair.getValue();
+            //strings[i++] = "(" + pair.getKey() + ") (" + pair.getValue() + ")";
+        }
+        return Utils.join(" ; ", strings);
+    }
+
     // ----------------------------------------------------------------------
     //
     // formatting
     //
     // ----------------------------------------------------------------------
     public String toString() {
-        return String.format("%s\t%s\t%s\t%d\t%d\t%f\t%s\t%s", contig, source, feature, start, stop, score, strand, frame);
+        return String.format("%s\t%s\t%s\t%d\t%d\t%f\t%s\t%s\t%s", contig, source, feature, start, stop, score, strand, frame, getAttributeString());
     }
 
     public String repl() {
@@ -90,6 +113,25 @@ public class rodGFF extends ReferenceOrderedDatum {
 
     public String toSimpleString() {
         return String.format("%s", feature);
+    }
+
+
+    private static Pattern GFF_DELIM = Pattern.compile("\\s+;\\s*");
+    private static Pattern GFF_ATTRIBUTE_PATTERN = Pattern.compile("([A-Za-z][A-Za-z0-9_]*)((?:\\s+\\S+)+)");
+    final private HashMap<String, String> parseAttributes( final String attributeLine ) {
+        HashMap<String, String> attributes = new HashMap<String, String>();
+        Scanner scanner = new Scanner(attributeLine);
+        scanner.useDelimiter(GFF_DELIM);
+        while ( scanner.hasNext(GFF_ATTRIBUTE_PATTERN) ) {
+            MatchResult result = scanner.match();
+            String key = result.group(1);
+            String value = result.group(2).replace("\"", "").trim();
+            //System.out.printf("  Adding %s / %s (total %d)%n", key, value, result.groupCount());
+            attributes.put(key, value);
+            String n = scanner.next();
+            //System.out.printf("  next is %s%n", n);
+        }
+        return attributes;
     }
 
     public void parseLine(final String[] parts) {
@@ -107,7 +149,8 @@ public class rodGFF extends ReferenceOrderedDatum {
 
         final String strand = parts[6];
         final String frame = parts[7];
-        HashMap<String, String> attributes = null;
+        final String attributeParts = Utils.join(" ", parts, 8, parts.length);
+        HashMap<String, String> attributes = parseAttributes(attributeParts);
         setValues(contig, source, feature, start, stop, score, strand, frame, attributes);
     }
 }

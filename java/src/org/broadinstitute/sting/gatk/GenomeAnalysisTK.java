@@ -158,7 +158,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         List<ReferenceOrderedData> rods = new ArrayList<ReferenceOrderedData>();
 
         if (TEST_ROD) {
-            ReferenceOrderedData gff = new ReferenceOrderedData(new File("trunk/data/gFFTest.gff"), rodGFF.class);
+            ReferenceOrderedData gff = new ReferenceOrderedData(new File("single.gff"), rodGFF.class);
             gff.testMe();
 
             //ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("trunk/data/dbSNP_head.txt"), rodDbSNP.class );

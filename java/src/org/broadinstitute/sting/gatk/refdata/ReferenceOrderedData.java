@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.refdata;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.FileNotFoundException;
 import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,6 +11,8 @@ import java.util.Collections;
 import edu.mit.broad.picard.util.TabbedTextFileParser;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.xReadLines;
+import org.broadinstitute.sting.utils.Utils;
 
 /**
  * Class for representing arbitrary reference ordered data sets
@@ -38,12 +41,14 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     //
     // ----------------------------------------------------------------------
     public void testMe() {
-        ReferenceOrderedDatum last = null;
         for ( ReferenceOrderedDatum rec : this ) {
-            if ( last == null || ! last.getLocation().onSameContig(rec.getLocation()) ) {
-                System.out.println(rec.toString());
+            System.out.println(rec.toString());
+
+            rodGFF gff = (rodGFF)rec;
+            String[] keys = {"LENGTH", "ALT", "FOBARBAR"};
+            for ( String key : keys) {
+                System.out.printf("  -> %s is (%s)%n", key, gff.containsAttribute(key) ? gff.getAttribute(key) : "none");
             }
-            last = rec;
         }
         System.exit(1);
     }
@@ -98,19 +103,25 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     //
     // ----------------------------------------------------------------------
     private class SimpleRODIterator implements Iterator<ROD> {
-        //private WhitespaceTextFileParser parser = null;
-        private TabbedTextFileParser parser = null;
+        private xReadLines parser = null;
 
         public SimpleRODIterator() {
-            parser = new TabbedTextFileParser(true, file);
+            try {
+                parser = new xReadLines(file);
+            } catch ( FileNotFoundException e ) {
+                Utils.scareUser("Couldn't open file: " + file);
+            }
         }
 
         public boolean hasNext() {
+            //System.out.printf("Parser has next: %b%n", parser.hasNext());
             return parser.hasNext();
         }
 
         public ROD next() {
-            String parts[] = parser.next();
+            final String line = parser.next();
+            //System.out.printf("Line is %s%n", line);
+            String parts[] = line.split("\t");
             return parseLine(parts);
         }
  
@@ -118,6 +129,28 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
             throw new UnsupportedOperationException();
         }
     }
+
+//    private class SimpleRODIterator implements Iterator<ROD> {
+//        //private WhitespaceTextFileParser parser = null;
+//        private TabbedTextFileParser parser = null;
+//
+//        public SimpleRODIterator() {
+//            parser = new TabbedTextFileParser(true, file);
+//        }
+//
+//        public boolean hasNext() {
+//            return parser.hasNext();
+//        }
+//
+//        public ROD next() {
+//            String parts[] = parser.next();
+//            return parseLine(parts);
+//        }
+//
+//        public void remove() {
+//            throw new UnsupportedOperationException();
+//        }
+//    }
 
     public class RODIterator implements Iterator<ROD> {
         private PushbackIterator<ROD> it;
