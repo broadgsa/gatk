@@ -32,6 +32,6 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
     }
 
     public void onTraversalDone(Pair<Long, Long> result) {
-        out.println("Average depth of coverage is: " + ((double)result.getFirst() / (double)result.getSecond()));
+        out.printf("Average depth of coverage is: %.2f\n", ((double)result.getFirst() / (double)result.getSecond()));
     }
 }
