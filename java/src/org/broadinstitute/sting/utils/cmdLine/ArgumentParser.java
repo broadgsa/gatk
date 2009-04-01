@@ -269,11 +269,10 @@ public class ArgumentParser {
      * exit the program
      *
      * @param args the command line arguments we recieved
-     * @param args whether to allow incomplete command-line arguments
+     * @param allowIncomplete whether to allow incomplete command-line arguments
      */
     public void processArgs(String[] args, boolean allowIncomplete) throws ParseException {
         OurPosixParser parser = new OurPosixParser();
-        Collection<Option> opts = m_options.getOptions();
 
         try {
             parser.parse(m_options, args, !allowIncomplete);
@@ -292,7 +291,6 @@ public class ArgumentParser {
         // Apache CLI can ignore unrecognized arguments with a boolean flag, but
         // you can't get to the unparsed args.  Override PosixParser with a class
         // that can reach in and extract the protected command line.
-        // TODO: Holy crap this is wacky.  Find a cleaner way.
         this.cmd = parser.getCmd();
     }
 

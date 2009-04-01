@@ -142,6 +142,10 @@ public abstract class CommandLineProgram {
                 for( Class argumentSource: argumentSources )
                     clp.addArgumentSource( argumentSource );
                 clp.m_parser.processArgs(args, false);
+
+                // HACK: Load arguments into object again.  Apache CLI always stops processing when an option
+                //       is unrecognized, so if core arguments were intermixed with walker arguments, stop processing.
+                clp.m_parser.loadArgumentsIntoObject( clp );
             }
             else {
                 clp.m_parser.processArgs(args, false);
