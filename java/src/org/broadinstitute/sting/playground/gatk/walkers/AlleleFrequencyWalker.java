@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
+import org.apache.log4j.Logger;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
@@ -18,7 +19,11 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 {
     @Argument public int    N;
     @Argument public int    DOWNSAMPLE;
-    @Argument public String GFF_OUTPUT_FILE;
+    @Argument(required=false,defaultValue="")
+    public String GFF_OUTPUT_FILE;
+
+
+    protected static Logger logger = Logger.getLogger(AlleleFrequencyWalker.class);
 
     Random random;
     PrintStream output;
@@ -28,6 +33,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         // Convert context data into bases and 4-base quals
         String bases = getBases(context);
         double quals[][] = getOneBaseQuals(context);
+
+        logger.debug(String.format("In alleleFrequnecy walker: N=%d, d=%d", N, DOWNSAMPLE));
 
         if ((DOWNSAMPLE != 0) && (DOWNSAMPLE < bases.length()))
         {
@@ -88,6 +95,9 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                 }
             }
         }
+
+        logger.debug(String.format(" => result is %s", alleleFreq));
+
         return alleleFreq;
     }
 
@@ -447,7 +457,10 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         try
         {
             this.random = new java.util.Random(0);
-            this.output = new PrintStream(GFF_OUTPUT_FILE);
+            if ( GFF_OUTPUT_FILE == null )
+                this.output = out;
+            else
+                this.output = new PrintStream(GFF_OUTPUT_FILE);
         }
         catch (Exception e)
         {
@@ -467,7 +480,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         try
         {
 	        this.output.flush();
-	        this.output.close();
+            if ( GFF_OUTPUT_FILE != null )
+                this.output.close();
         }
         catch (Exception e)
         {

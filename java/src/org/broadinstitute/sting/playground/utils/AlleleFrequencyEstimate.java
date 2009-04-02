@@ -56,6 +56,8 @@ public class AlleleFrequencyEstimate {
                                             notes);
     }
 
+    public String toString() { return asTabularString(); }
+
     public String asString() {
         // Print out the called bases
         // Notes: switched from qhat to qstar because qhat doesn't work at n=1 (1 observed base) where having a single non-ref
