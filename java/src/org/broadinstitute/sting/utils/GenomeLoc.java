@@ -41,6 +41,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     //public static Map<String, Integer> refContigOrdering = null;
     private static SAMSequenceDictionary contigInfo = null;
     private static HashMap<String, String> interns = null;
+    private static int lastGoodIntervalIndex = 0;
 
     public static boolean hasKnownContigOrdering() {
         return contigInfo != null;
@@ -271,10 +272,24 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         if ( locs.size() == 0 ) {
             return true;
         } else {
-            for ( GenomeLoc loc : locs ) {
+            for ( int i = lastGoodIntervalIndex; i < locs.size(); i++ ) {
+                GenomeLoc loc = locs.get(i);
+                // since it's ordered, we can do some simple checks to save us tons of time
+                if ( hasKnownContigOrdering() ) {
+                    int curIndex = getContigIndex(curr.contig);
+                    int locIndex = getContigIndex(loc.contig);
+                    // skip loci before intervals begin
+                    if (curIndex < locIndex)
+                        return false;
+                    // skip loci between intervals
+                    if (curIndex == locIndex && curr.stop < loc.start)
+                        return false;
+                }
                 //System.out.printf("  Overlap %s vs. %s => %b%n", loc, curr, loc.overlapsP(curr));
-                if (loc.overlapsP(curr))
+                if (loc.overlapsP(curr)) {
+                    lastGoodIntervalIndex = i;
                     return true;
+                }
             }
             return false;
         }
@@ -402,6 +417,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         {
             int thisIndex = getContigIndex(thisContig);
             int thatIndex = getContigIndex(thatContig);
+
 
             if ( thisIndex == -1 )
             {

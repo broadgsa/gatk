@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.FastaSequenceFile2;
 
 import java.util.List;
 import java.util.Arrays;
@@ -52,6 +53,7 @@ public class TraverseByReads extends TraversalEngine {
      */
     public <M, T> Object traverseByRead(ReadWalker<M, T> walker, ArrayList<GenomeLoc> locations) {
         samReadIter = initializeReads();
+        GenomeLoc.setupRefContigOrdering(new FastaSequenceFile2(refFileName));
 
         if (refFileName == null && !walker.requiresOrderedReads() && verifyingSamReadIter != null) {
             logger.warn(String.format("STATUS: No reference file provided and unordered reads are tolerated, enabling out of order read processing."));
