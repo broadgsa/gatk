@@ -57,7 +57,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     public String pluginPathName = null;
     private TraversalEngine engine = null;
     public boolean DEBUGGING = false;
-    public boolean WALK_ALL_LOCI = false;
+    public Boolean WALK_ALL_LOCI = false;
 
     /**
      * An output file presented to the walker.
