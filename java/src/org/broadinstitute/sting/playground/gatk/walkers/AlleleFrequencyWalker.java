@@ -18,7 +18,7 @@ import java.io.PrintStream;
 public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, String> 
 {
     @Argument public int    N;
-    @Argument public int    DOWNSAMPLE;
+    @Argument(required=false,defaultValue="0") public int DOWNSAMPLE;
     @Argument public String GFF_OUTPUT_FILE;
 
     protected static Logger logger = Logger.getLogger(AlleleFrequencyWalker.class);
@@ -31,6 +31,18 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         // Convert context data into bases and 4-base quals
         String bases = getBases(context);
         double quals[][] = getOneBaseQuals(context);
+
+        /*
+        // DEBUG: print the data for a read 
+        {
+            List<SAMRecord> reads = context.getReads();
+            for (int i = 0; i < reads.size(); i++)
+            {
+                String cigar = reads.get(i).getCigarString();
+                System.out.println("DEBUG " + cigar);
+            }
+        }
+        */
 
         logger.debug(String.format("In alleleFrequnecy walker: N=%d, d=%d", N, DOWNSAMPLE));
 
@@ -99,7 +111,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         return alleleFreq;
     }
 
-    static public String getBases (LocusContext context) {
+    static public String getBases (LocusContext context) 
+    {
         // Convert bases to CharArray
         int numReads = context.getReads().size(); //numReads();
         char[] bases = new char[numReads];
@@ -115,7 +128,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         return new String(bases);
     }
 
-    static public double[][] getOneBaseQuals (LocusContext context) {
+    static public double[][] getOneBaseQuals (LocusContext context) 
+    {
         int numReads = context.getReads().size(); //numReads();
         double[][] quals = new double[numReads][4];
 
@@ -472,6 +486,27 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 
     public void onTraversalDone(String result) 
     {
+        if (inside_confident_ref_interval)
+        {
+            // if we have a confident reference interval still hanging open, close it.
+            String tokens[] = confident_ref_interval_start.split(":");
+            String contig   = tokens[0];
+            int    start    = Integer.parseInt(tokens[1]);
+            int    end      = last_position_considered;
+
+            double lod = confident_ref_interval_LOD_sum / confident_ref_interval_length;
+
+            output.format("%s\tCALLER\tREFERENCE\t%d\t%d\t%f\t.\t.\tLENGTH %d\n",
+                            contig,
+                            start,
+                            end,
+                            lod,
+                            (int)(confident_ref_interval_length));
+
+            inside_confident_ref_interval = false;
+        }
+
+
         try
         {
 	        this.output.flush();
