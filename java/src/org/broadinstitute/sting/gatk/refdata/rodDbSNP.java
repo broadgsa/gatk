@@ -7,6 +7,7 @@ import java.util.*;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 
 /**
  * Example format:
@@ -18,7 +19,7 @@ import org.broadinstitute.sting.utils.Utils;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class rodDbSNP extends ReferenceOrderedDatum {
+public class rodDbSNP extends ReferenceOrderedDatum implements AllelicVariant {
     public GenomeLoc loc;       // genome location of SNP
                                 // Reference sequence chromosome or scaffold
                                 // Start and stop positions in chrom
@@ -64,12 +65,29 @@ public class rodDbSNP extends ReferenceOrderedDatum {
         return strand.equals("+");
     }
 
-    // Get the reference bases on the forward strand
-    public String getRefBasesFWD() {
+    /** Returns bases in the reference allele as a String. String can be empty (as in insertion into
+     * the reference), can contain a single character (as in SNP or one-base deletion), or multiple characters
+     * (for longer indels).
+     *
+     * @return reference allele, forward strand
+     */
+ public String getRefBasesFWD() {
         if ( onFwdStrand() )
             return refBases;
         else
             return SequenceUtil.reverseComplement(refBases);
+    }
+
+    /**
+     * Returns reference (major) allele base for a SNP variant as a character; should throw IllegalStateException
+     * if variant is not a SNP.
+     *
+     * @return reference base on the forward strand
+     */
+    public char getRefSnpFWD() throws IllegalStateException {
+        if ( isIndel() ) throw new IllegalStateException("Variant is not a SNP");
+        if ( onFwdStrand() ) return refBases.charAt(0);
+        else return SequenceUtil.reverseComplement(refBases).charAt(0);
     }
 
     public List<String> getAllelesFWD() {
@@ -95,7 +113,7 @@ public class rodDbSNP extends ReferenceOrderedDatum {
     public boolean isSNP() { return varType.contains("single"); }
     public boolean isInsertion() { return varType.contains("insertion"); }
     public boolean isDeletion() { return varType.contains("deletion"); }
-    public boolean isIndel() { return varType.contains("in-del"); }
+    public boolean isIndel() { return isInsertion() || isDeletion() || varType.contains("in-del"); }
 
     public boolean isHapmap() { return validationStatus.contains("by-hapmap"); }
     public boolean is2Hit2Allele() { return validationStatus.contains("by-2hit-2allele"); }
@@ -154,4 +172,52 @@ public class rodDbSNP extends ReferenceOrderedDatum {
             throw e;
         }
     }
+
+	@Override
+	public String getAltBasesFWD() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public char getAltSnpFWD() throws IllegalStateException {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public double getConsensusConfidence() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public List<String> getGenotype() throws IllegalStateException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public double getMAF() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public int getPloidy() throws IllegalStateException {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public double getVariationConfidence() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public boolean isGenotype() {
+		// TODO Auto-generated method stub
+		return false;
+	}
 }
