@@ -19,9 +19,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 {
     @Argument public int    N;
     @Argument public int    DOWNSAMPLE;
-    @Argument(required=false,defaultValue="")
-    public String GFF_OUTPUT_FILE;
-
+    @Argument public String GFF_OUTPUT_FILE;
 
     protected static Logger logger = Logger.getLogger(AlleleFrequencyWalker.class);
 
@@ -457,10 +455,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         try
         {
             this.random = new java.util.Random(0);
-            if ( GFF_OUTPUT_FILE == null )
-                this.output = out;
-            else
-                this.output = new PrintStream(GFF_OUTPUT_FILE);
+            this.output = new PrintStream(GFF_OUTPUT_FILE);
         }
         catch (Exception e)
         {
@@ -480,8 +475,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         try
         {
 	        this.output.flush();
-            if ( GFF_OUTPUT_FILE != null )
-                this.output.close();
+            this.output.close();
         }
         catch (Exception e)
         {
