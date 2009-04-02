@@ -538,4 +538,6 @@ public abstract class TraversalEngine {
                 logger.warn(msg);
         }
     }
+
+    public SAMFileReader getSamReader() { return this.samReader; }
 }

@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk;
 import edu.mit.broad.picard.reference.ReferenceSequence;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.RuntimeIOException;
@@ -395,4 +396,6 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                     contig.getName(), refFile.getDistanceBetweenContigs("chr1", contig.getName())));
         }
     }
+
+    public SAMFileReader getSamReader() { return this.engine.getSamReader(); }
 }
