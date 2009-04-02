@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.refdata;
+package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.GenomeLoc;
