@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.rodGFF;
+import org.broadinstitute.sting.gatk.refdata.HapMapAlleleFrequenciesROD;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -26,7 +27,6 @@ import java.io.File;
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class GenomeAnalysisTK extends CommandLineProgram {
@@ -83,7 +83,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      * Used by the walker.
      */
     public PrintStream err = System.err;
-    
+
     /**
      * our log, which we want to capture anything from this class
      */
@@ -103,7 +103,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalArg("genome_region", "L", "Genome region to operation on: from chr:start-end", "REGION_STR");
         m_parser.addRequiredArg("analysis_type", "T", "Type of analysis to run", "Analysis_Name");
         m_parser.addOptionalArg("DBSNP", "D", "DBSNP file", "DBSNP_FILE");
-        m_parser.addOptionalArg("Hapmap", "H", "Hapmap file", "HAPMAP_FILE");
+        m_parser.addOptionalArg("hapmap", "H", "Hapmap file", "HAPMAP_FILE");
         m_parser.addOptionalFlag("threaded_IO", "P", "If set, enables threaded I/O operations", "ENABLED_THREADED_IO");
         m_parser.addOptionalFlag("unsafe", "U", "If set, enables unsafe operations, nothing will be checked at runtime.", "UNSAFE");
         m_parser.addOptionalArg("sort_on_the_fly", "sort", "Maximum number of reads to sort on the fly", "MAX_ON_FLY_SORTS");
@@ -113,7 +113,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalArg("all_loci", "A", "Should we process all loci, not just those covered by reads", "WALK_ALL_LOCI");
         m_parser.addOptionalArg("out", "o", "An output file presented to the walker.  Will overwrite contents if file exists.", "outFileName" );
         m_parser.addOptionalArg("err", "e", "An error output file presented to the walker.  Will overwrite contents if file exists.", "errFileName" );
-        m_parser.addOptionalArg("outerr", "oe", "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", "outErrFileName");        
+        m_parser.addOptionalArg("outerr", "oe", "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", "outErrFileName");
     }
 
     /**
@@ -142,7 +142,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
 
     @Override
     protected String getArgumentSourceName( Class argumentSource ) {
-        return WalkerManager.getWalkerName( (Class<Walker>)argumentSource );    
+        return WalkerManager.getWalkerName( (Class<Walker>)argumentSource );
     }
 
     /**
@@ -157,23 +157,27 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         final boolean TEST_ROD = false;
         List<ReferenceOrderedData> rods = new ArrayList<ReferenceOrderedData>();
 
-        if (TEST_ROD) {
-            ReferenceOrderedData gff = new ReferenceOrderedData(new File("single.gff"), rodGFF.class);
+
+
+        if ( TEST_ROD ) {
+            ReferenceOrderedData gff = new ReferenceOrderedData(new File("trunk/data/gFFTest.gff"), rodGFF.class );
             gff.testMe();
 
             //ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("trunk/data/dbSNP_head.txt"), rodDbSNP.class );
-            ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("/Volumes/Users/mdepristo/broad/ATK/exampleSAMs/dbSNP_chr20.txt"), rodDbSNP.class);
+            ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("/Volumes/Users/mdepristo/broad/ATK/exampleSAMs/dbSNP_chr20.txt"), rodDbSNP.class );
             //dbsnp.testMe();
             rods.add(dbsnp); // { gff, dbsnp };
-        } else if (DBSNP_FILE != null) {
-            ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File(DBSNP_FILE), rodDbSNP.class);
-            //dbsnp.testMe();
-            rods.add(dbsnp); // { gff, dbsnp };
-        }
-
-        if (HAPMAP_FILE != null) {
-            ReferenceOrderedData gff = new ReferenceOrderedData(new File(HAPMAP_FILE), rodGFF.class);
-            rods.add(gff);
+        } else {
+            if ( DBSNP_FILE != null ) {
+                ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File(DBSNP_FILE), rodDbSNP.class );
+                //dbsnp.testMe();
+                rods.add(dbsnp); // { gff, dbsnp };
+            }
+            if ( HAPMAP_FILE != null ) {
+                ReferenceOrderedData hapmap = new ReferenceOrderedData(new File(HAPMAP_FILE), HapMapAlleleFrequenciesROD.class );
+                //dbsnp.testMe();
+                rods.add(hapmap); // { gff, dbsnp };
+            }
         }
 
         initializeOutputStreams();

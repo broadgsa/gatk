@@ -8,10 +8,7 @@ import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.refdata.rodGFF;
+import org.broadinstitute.sting.gatk.refdata.*;
 
 import java.io.*;
 import java.util.HashMap;
@@ -36,6 +33,7 @@ public class PrepareROD extends CommandLineProgram {
     static {
         addModule("GFF", rodGFF.class);
         addModule("dbSNP", rodDbSNP.class);
+        addModule("HapMapAlleleFrequencies", HapMapAlleleFrequenciesROD.class);
     }
 
     /** Required main method implementation. */
