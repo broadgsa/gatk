@@ -24,8 +24,8 @@ public class PrepareROD extends CommandLineProgram {
     @Option(shortName="RODNAME", doc="Name of the data") public String ROD_NAME = null;
     @Option(shortName="RODTYPE", doc="Referenced Ordered Data type") public String ROD_TYPE = null;
 
-    public static HashMap<String, Class> Types = new HashMap<String,Class>();
-    public static void addModule(final String name, final Class rodType) {
+    public static HashMap<String, Class<? extends ReferenceOrderedDatum>> Types = new HashMap<String,Class<? extends ReferenceOrderedDatum>>();
+    public static void addModule(final String name, final Class<? extends ReferenceOrderedDatum> rodType) {
         System.out.printf("* Adding rod class %s%n", name);
         Types.put(name.toLowerCase(), rodType);
     }
@@ -47,9 +47,9 @@ public class PrepareROD extends CommandLineProgram {
         final ReferenceSequenceFile refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(REF_FILE_ARG);
         GenomeLoc.setupRefContigOrdering(refFile);
 
-        Class rodClass = Types.get(ROD_TYPE.toLowerCase());
+        Class<? extends ReferenceOrderedDatum> rodClass = Types.get(ROD_TYPE.toLowerCase());
 
-        ReferenceOrderedData rod = new ReferenceOrderedData(new File(ROD_FILE), rodClass );
+        ReferenceOrderedData<? extends ReferenceOrderedDatum> rod = new ReferenceOrderedData(new File(ROD_FILE), rodClass );
         try {
             rod.validateFile();
         } catch ( Exception e ) {

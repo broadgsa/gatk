@@ -31,14 +31,13 @@ import edu.mit.broad.picard.filter.FilteringIterator;
  */
 public class TraverseByLoci extends TraversalEngine {
 
-    public TraverseByLoci(File reads, File ref, List<ReferenceOrderedData> rods) {
+    public TraverseByLoci(File reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         super(reads, ref, rods);
     }
 
     public <M,T> T traverse(Walker<M,T> walker, ArrayList<GenomeLoc> locations) {
         if ( walker instanceof LocusWalker ) {
-            Walker x = walker;
-            LocusWalker<?, ?> locusWalker = (LocusWalker<?, ?>)x;
+            LocusWalker<M, T> locusWalker = (LocusWalker<M, T>)walker;
             return (T)this.traverseByLoci(locusWalker, locations);
         } else {
             throw new IllegalArgumentException("Walker isn't a loci walker!");

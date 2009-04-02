@@ -29,7 +29,7 @@ import edu.mit.broad.picard.filter.FilteringIterator;
  */
 public class TraverseByLociByReference extends TraverseByLoci {
 
-    public TraverseByLociByReference(File reads, File ref, List<ReferenceOrderedData> rods) {
+    public TraverseByLociByReference(File reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         super(reads, ref, rods);
     }
 

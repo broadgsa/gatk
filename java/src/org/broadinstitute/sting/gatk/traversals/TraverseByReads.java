@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
@@ -26,7 +27,7 @@ import net.sf.samtools.SAMRecord;
  */
 public class TraverseByReads extends TraversalEngine {
 
-    public TraverseByReads(File reads, File ref, List<ReferenceOrderedData> rods) {
+    public TraverseByReads(File reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         super(reads, ref, rods);        
     }
 

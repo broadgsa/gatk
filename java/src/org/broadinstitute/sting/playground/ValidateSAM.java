@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.playground;
+package org.broadinstitute.sting.playground;
 
 import net.sf.samtools.*;
 import net.sf.samtools.SAMFileReader.ValidationStringency;

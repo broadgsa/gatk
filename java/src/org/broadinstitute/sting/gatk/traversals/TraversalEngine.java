@@ -30,10 +30,10 @@ import java.util.*;
 
 public abstract class TraversalEngine {
     // list of reference ordered data objects
-    protected List<ReferenceOrderedData> rods = null;
+    protected List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods = null;
 
     // Iterator over rods
-    List<ReferenceOrderedData.RODIterator> rodIters;
+    List<ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator> rodIters;
 
     // How strict should we be with SAM/BAM parsing?
     protected ValidationStringency strictness = ValidationStringency.STRICT;
@@ -112,7 +112,7 @@ public abstract class TraversalEngine {
      * @param ref   Reference file in FASTA format, assumes a .dict file is also available
      * @param rods  Array of reference ordered data sets
      */
-    public TraversalEngine(File reads, File ref, List<ReferenceOrderedData> rods) {
+    public TraversalEngine(File reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         readsFile = reads;
         refFileName = ref;
         this.rods = rods;
@@ -411,10 +411,10 @@ public abstract class TraversalEngine {
      *
      * @return A list of ROD iterators for getting data from each ROD
      */
-    protected List<ReferenceOrderedData.RODIterator> initializeRODs() {
+    protected List<ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator> initializeRODs() {
         // set up reference ordered data
-        rodIters = new ArrayList<ReferenceOrderedData.RODIterator>();
-        for (ReferenceOrderedData data : rods) {
+        rodIters = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator>();
+        for (ReferenceOrderedData<? extends ReferenceOrderedDatum> data : rods) {
             rodIters.add(data.iterator());
         }
         return rodIters;
@@ -459,10 +459,10 @@ public abstract class TraversalEngine {
      * @param loc      The location to get the rods at
      * @return A list of ReferenceOrderDatum at loc.  ROD without a datum at loc will be null in the list
      */
-    protected List<ReferenceOrderedDatum> getReferenceOrderedDataAtLocus(List<ReferenceOrderedData.RODIterator> rodIters,
+    protected List<ReferenceOrderedDatum> getReferenceOrderedDataAtLocus(List<ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator> rodIters,
                                                                          final GenomeLoc loc) {
         List<ReferenceOrderedDatum> data = new ArrayList<ReferenceOrderedDatum>();
-        for (ReferenceOrderedData.RODIterator iter : rodIters) {
+        for (ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator iter : rodIters) {
             data.add(iter.seekForward(loc));
         }
         return data;

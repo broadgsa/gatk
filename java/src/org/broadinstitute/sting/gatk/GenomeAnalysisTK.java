@@ -8,6 +8,7 @@ import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.rodGFF;
 import org.broadinstitute.sting.gatk.refdata.HapMapAlleleFrequenciesROD;
@@ -155,26 +156,24 @@ public class GenomeAnalysisTK extends CommandLineProgram {
 
     protected int execute() {
         final boolean TEST_ROD = false;
-        List<ReferenceOrderedData> rods = new ArrayList<ReferenceOrderedData>();
-
-
+        List<ReferenceOrderedData<? extends ReferenceOrderedDatum> > rods = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum> >();
 
         if ( TEST_ROD ) {
-            ReferenceOrderedData gff = new ReferenceOrderedData(new File("trunk/data/gFFTest.gff"), rodGFF.class );
+            ReferenceOrderedData<rodGFF> gff = new ReferenceOrderedData<rodGFF>(new File("trunk/data/gFFTest.gff"), rodGFF.class );
             gff.testMe();
 
             //ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("trunk/data/dbSNP_head.txt"), rodDbSNP.class );
-            ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("/Volumes/Users/mdepristo/broad/ATK/exampleSAMs/dbSNP_chr20.txt"), rodDbSNP.class );
+            ReferenceOrderedData<rodDbSNP> dbsnp = new ReferenceOrderedData<rodDbSNP>(new File("/Volumes/Users/mdepristo/broad/ATK/exampleSAMs/dbSNP_chr20.txt"), rodDbSNP.class );
             //dbsnp.testMe();
             rods.add(dbsnp); // { gff, dbsnp };
         } else {
             if ( DBSNP_FILE != null ) {
-                ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File(DBSNP_FILE), rodDbSNP.class );
+                ReferenceOrderedData<rodDbSNP> dbsnp = new ReferenceOrderedData<rodDbSNP>(new File(DBSNP_FILE), rodDbSNP.class );
                 //dbsnp.testMe();
                 rods.add(dbsnp); // { gff, dbsnp };
             }
             if ( HAPMAP_FILE != null ) {
-                ReferenceOrderedData hapmap = new ReferenceOrderedData(new File(HAPMAP_FILE), HapMapAlleleFrequenciesROD.class );
+                ReferenceOrderedData<HapMapAlleleFrequenciesROD> hapmap = new ReferenceOrderedData<HapMapAlleleFrequenciesROD>(new File(HAPMAP_FILE), HapMapAlleleFrequenciesROD.class );
                 //dbsnp.testMe();
                 rods.add(hapmap); // { gff, dbsnp };
             }
@@ -182,7 +181,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
 
         initializeOutputStreams();
 
-        Walker my_walker = null;
+        Walker<?,?> my_walker = null;
         try {
             my_walker = walkerManager.createWalkerByName( Analysis_Name );
         }
