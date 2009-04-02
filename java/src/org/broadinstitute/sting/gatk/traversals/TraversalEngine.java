@@ -345,11 +345,11 @@ public abstract class TraversalEngine {
                 logger.fatal("Couldn't open file in sam file list: " + readsFile);
             }
         }
-        if (samReader.hasIndex()) {
-            return new SamQueryIterator(samReader, locs);
-        } else {
-            return samReader.iterator();
-        }
+        //if (samReader.hasIndex()) {
+        //    return new SamQueryIterator(samReader, locs);
+        //} else {
+        return samReader.iterator();
+        //}
     }
 
     protected Iterator<SAMRecord> WrapReadsIterator( final Iterator<SAMRecord> rawIterator, final boolean enableVerification ) {

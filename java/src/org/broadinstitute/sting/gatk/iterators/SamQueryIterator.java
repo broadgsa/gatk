@@ -75,6 +75,8 @@ public class SamQueryIterator implements Iterator<SAMRecord> {
                                                   (int)currentLoc.getStop() );
             if( recordIter.hasNext() )
                 break;
+            else
+                recordIter.close();
         }
     }
     

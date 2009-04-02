@@ -125,8 +125,8 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
         // we're somewhere on this contig
         if ( seekOffset < offset ) {
             // bad boy -- can't go backward safely
-            throw new IllegalArgumentException(String.format("Invalid seek to %s from %s, which is usually due to out of order reads%n",
-                    new GenomeLoc(currentContig.getName(), seekOffset), new GenomeLoc(currentContig.getName(), offset)));
+            throw new IllegalArgumentException(String.format("Invalid seek %s => %s, which is usually due to out of order reads%n",
+                    new GenomeLoc(currentContig.getName(), offset), new GenomeLoc(currentContig.getName(), seekOffset)));
         }
         else if ( seekOffset >= currentContig.length() ) {
             // bad boy -- can't go beyond the contig length
@@ -154,8 +154,8 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
 
         if ( cmpContigs == -1 && false ) {  // todo: fixed
             // The contig we are looking for is before the currentContig -- it's an error
-            throw new IllegalArgumentException(String.format("Invalid seek to %s from %s, which is usually due to out of order reads%n",
-                    new GenomeLoc(currentContig.getName(), seekOffset), new GenomeLoc(currentContig.getName(), offset)));
+            throw new IllegalArgumentException(String.format("Invalid seek %s => %s, which is usually due to out of order reads%n",
+                    new GenomeLoc(currentContig.getName(), offset), new GenomeLoc(currentContig.getName(), seekOffset)));
         }
         else if ( cmpContigs == 1 ) {
             // we need to jump forward
@@ -163,8 +163,8 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
 
             if ( ! refFile.seekToContig(seekContigName) ) { // ok, do the seek
                 // a false result indicates a failure, throw a somewhat cryptic call
-                throw new RuntimeIOException(String.format("Unexpected seek failure from %s from %s%n",
-                        new GenomeLoc(currentContig.getName(), seekOffset), new GenomeLoc(currentContig.getName(), offset)));
+                throw new RuntimeIOException(String.format("Unexpected seek failure from %s to %s%n",
+                        new GenomeLoc(currentContig.getName(), offset), new GenomeLoc(currentContig.getName(), seekOffset)));
             }
 
             readNextContig(); // since we haven't failed, we just read in the next contig (which is seekContigName)
