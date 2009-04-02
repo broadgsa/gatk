@@ -112,7 +112,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalArg("downsample_to_fraction", "dfrac", "Fraction [0.0-1.0] of reads to downsample to", "DOWNSAMPLE_FRACTION");
         m_parser.addOptionalArg("downsample_to_coverage", "dcov", "Coverage [integer] to downsample to", "DOWNSAMPLE_COVERAGE");
         m_parser.addOptionalArg("intervals_file", "V", "File containing list of genomic intervals to operate on. line := <contig> <start> <end>", "INTERVALS_FILE");
-        m_parser.addOptionalArg("all_loci", "A", "Should we process all loci, not just those covered by reads", "WALK_ALL_LOCI");
+        m_parser.addOptionalFlag("all_loci", "A", "Should we process all loci, not just those covered by reads", "WALK_ALL_LOCI");
         m_parser.addOptionalArg("out", "o", "An output file presented to the walker.  Will overwrite contents if file exists.", "outFileName" );
         m_parser.addOptionalArg("err", "e", "An error output file presented to the walker.  Will overwrite contents if file exists.", "errFileName" );
         m_parser.addOptionalArg("outerr", "oe", "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", "outErrFileName");
