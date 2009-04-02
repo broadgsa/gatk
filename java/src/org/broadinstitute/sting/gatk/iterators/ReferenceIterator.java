@@ -123,10 +123,15 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
         assert seekContigName.equals(currentContig.getName()) : String.format("only works on this contig, but the current %s and sought %s contigs are different!", currentContig.getName(), seekContigName);
 
         // we're somewhere on this contig
-        if ( seekOffset < offset || seekOffset >= currentContig.length() ) {
-            // bad boy -- can't go backward safely or just beyond the contig length
+        if ( seekOffset < offset ) {
+            // bad boy -- can't go backward safely
             throw new IllegalArgumentException(String.format("Invalid seek to %s from %s, which is usually due to out of order reads%n",
                     new GenomeLoc(currentContig.getName(), seekOffset), new GenomeLoc(currentContig.getName(), offset)));
+        }
+        else if ( seekOffset >= currentContig.length() ) {
+            // bad boy -- can't go beyond the contig length
+            throw new IllegalArgumentException(String.format("Invalid seek to %s, which is beyond the end of the contig%n",
+                    new GenomeLoc(currentContig.getName(), seekOffset+1)));
         }
         else {
             offset = seekOffset - 1;
