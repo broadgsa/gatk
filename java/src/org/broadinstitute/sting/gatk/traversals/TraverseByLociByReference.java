@@ -86,6 +86,7 @@ public class TraverseByLociByReference extends TraverseByLoci {
                 done = true;
             }
             
+            printProgress("loci", locus.getLocation());
             refSite = refIter.next();                                       // update our location
         }
 

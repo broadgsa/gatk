@@ -399,8 +399,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         tokens = alleleFreq.location.split(":");
         int current_offset = Integer.parseInt(tokens[1]);
 
-        if (inside_confident_ref_interval && 
-                ((alleleFreq.lodVsRef > -5.0) || (current_offset != last_position_considered + 1)))
+        if (inside_confident_ref_interval &&
+                ((alleleFreq.lodVsRef > -5.0) || (current_offset != last_position_considered + 1)) )
         {
             // No longer hom-ref, so output a ref line.
             tokens = confident_ref_interval_start.split(":");
@@ -469,7 +469,10 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         try
         {
             this.random = new java.util.Random(0);
-            this.output = new PrintStream(GFF_OUTPUT_FILE);
+            if ( GFF_OUTPUT_FILE.equals("-") )
+                this.output = out;
+            else
+                this.output = new PrintStream(GFF_OUTPUT_FILE);
         }
         catch (Exception e)
         {
@@ -510,6 +513,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         try
         {
 	        this.output.flush();
+            if ( ! GFF_OUTPUT_FILE.equals("-") )
+                this.output.close();
             this.output.close();
         }
         catch (Exception e)

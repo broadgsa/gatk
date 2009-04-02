@@ -131,6 +131,7 @@ public class TraverseByLoci extends TraversalEngine {
                     done = true;
                 }
 
+                printProgress("loci", locus.getLocation());
             }
 
             done = interval != null && locus.getLocation().isPast(interval);

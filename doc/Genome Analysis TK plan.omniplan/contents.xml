@@ -28,9 +28,9 @@
 			<key>GanttGroupShading</key>
 			<false/>
 			<key>GanttVisibleRect</key>
-			<string>{{-35, 39}, {1025, 1033}}</string>
+			<string>{{-35, 124}, {1025, 1033}}</string>
 			<key>OutlineVisibleRect</key>
-			<string>{{0, 39}, {789, 1033}}</string>
+			<string>{{0, 124}, {789, 1033}}</string>
 			<key>ScaleWidths</key>
 			<dict>
 				<key>Automatic</key>
@@ -86,7 +86,7 @@
 			<key>calendarController</key>
 			<dict>
 				<key>OutlineVisibleRect</key>
-				<string>{{0, 0}, {474, 720}}</string>
+				<string>{{0, 0}, {571, 830}}</string>
 				<key>activeColumnIdentifiers</key>
 				<array>
 					<string>IM</string>
@@ -103,13 +103,13 @@
 					<key>Notes</key>
 					<real>20</real>
 					<key>Resource</key>
-					<real>339</real>
+					<real>436</real>
 					<key>Type</key>
 					<real>48</real>
 				</dict>
 			</dict>
 			<key>calendarSplit</key>
-			<real>0.67955440282821655</real>
+			<real>0.67960631847381592</real>
 			<key>columnWidths</key>
 			<dict>
 				<key>Effort</key>
@@ -124,13 +124,13 @@
 			<key>dayWidth</key>
 			<real>54</real>
 			<key>resourceSplit</key>
-			<real>0.56749671697616577</real>
+			<real>0.56752324104309082</real>
 			<key>resourcesController</key>
 			<dict>
 				<key>DayWidth</key>
 				<real>25</real>
 				<key>OutlineVisibleRect</key>
-				<string>{{0, 0}, {645, 923}}</string>
+				<string>{{0, 0}, {776, 1033}}</string>
 				<key>ScaleWidths</key>
 				<dict>
 					<key>Automatic</key>
@@ -153,7 +153,7 @@
 				<key>SelectedScale</key>
 				<string>Automatic</string>
 				<key>TimelineVisibleRect</key>
-				<string>{{-1467, 0}, {823, 923}}</string>
+				<string>{{-1467, 0}, {995, 1033}}</string>
 				<key>activeColumnIdentifiers</key>
 				<array>
 					<string>IM</string>
@@ -171,7 +171,7 @@
 					<key>Notes</key>
 					<real>20</real>
 					<key>Resource</key>
-					<real>460</real>
+					<real>591</real>
 					<key>Type</key>
 					<real>64</real>
 				</dict>
@@ -587,7 +587,7 @@
 	<key>taskDifferenceEngine</key>
 	<dict>
 		<key>nextId</key>
-		<integer>109</integer>
+		<integer>111</integer>
 	</dict>
 	<key>taskUserKeys</key>
 	<array/>
@@ -1230,6 +1230,7 @@
 			<key>children</key>
 			<array>
 				<integer>18</integer>
+				<integer>109</integer>
 				<integer>19</integer>
 				<integer>37</integer>
 				<integer>33</integer>
@@ -2378,6 +2379,18 @@
 			<key>workTime</key>
 			<real>8</real>
 		</dict>
+		<dict>
+			<key>effort</key>
+			<real>28800</real>
+			<key>objectId</key>
+			<integer>109</integer>
+			<key>task</key>
+			<string>Add mapping function from dict -&gt; dict so we can process 1KG data against HS_18 assembly</string>
+			<key>workSeconds</key>
+			<real>28800</real>
+			<key>workTime</key>
+			<real>8</real>
+		</dict>
 	</array>
 	<key>topResources</key>
 	<array>
@@ -2388,7 +2401,7 @@
 		<integer>-1</integer>
 	</array>
 	<key>uuid</key>
-	<string>7E48C9E3-9ADF-4CC6-BB69-412F6D01690A</string>
+	<string>E50852A9-C0BE-452A-A050-4FF83DEF06D7</string>
 	<key>version</key>
 	<integer>2</integer>
 </dict>
