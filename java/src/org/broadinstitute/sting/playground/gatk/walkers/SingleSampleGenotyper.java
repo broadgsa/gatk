@@ -3,6 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.Utils;
 import net.sf.samtools.SAMRecord;
@@ -13,7 +14,7 @@ import java.util.List;
 // j.maguire 3-7-2009
 
 public class SingleSampleGenotyper extends LocusWalker<Integer, Integer> {
-    public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
+    public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) {
         return true;    // We are keeping all the reads
     }
 
@@ -82,7 +83,7 @@ public class SingleSampleGenotyper extends LocusWalker<Integer, Integer> {
     }
 
     // Map over the org.broadinstitute.sting.gatk.LocusContext
-    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         //System.out.printf("Reads %s:%d %d%n", context.getContig(), context.getPosition(), context.getReads().size());
         //for ( SAMRecord read : context.getReads() ) {
         //    System.out.println("  -> " + read.getReadName());
@@ -96,7 +97,7 @@ public class SingleSampleGenotyper extends LocusWalker<Integer, Integer> {
 
         // Look up hapmap and dbsnp priors
         String rodString = "";
-        for ( ReferenceOrderedDatum datum : rodData ) 
+        for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) 
         {
             if ( datum != null ) 
             {

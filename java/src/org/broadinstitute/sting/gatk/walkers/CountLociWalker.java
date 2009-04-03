@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
 import java.util.List;
 
@@ -13,7 +14,7 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class CountLociWalker extends LocusWalker<Integer, Integer> {
-    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         return 1;
     }
 

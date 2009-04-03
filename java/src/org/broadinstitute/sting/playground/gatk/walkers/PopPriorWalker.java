@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.HapMapAlleleFrequenciesROD;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import net.sf.samtools.SAMRecord;
@@ -30,7 +31,7 @@ public class PopPriorWalker extends LocusWalker<Integer, Integer> {
     public String walkerType() { return "ByLocus"; }
 
     // Do we actually want to operate on the context?
-    public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
+    public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) {
         return true;    // We are keeping all the reads
     }
 
@@ -95,7 +96,7 @@ public class PopPriorWalker extends LocusWalker<Integer, Integer> {
     }
 
     // Map over the org.broadinstitute.sting.gatk.LocusContext
-    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         char upRef = Character.toUpperCase(ref);
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
@@ -106,7 +107,7 @@ public class PopPriorWalker extends LocusWalker<Integer, Integer> {
         rodDbSNP dbsnpInfo = null;
         HapMapAlleleFrequenciesROD hapmap = null;
 
-        for ( ReferenceOrderedDatum datum : rodData )
+        for ( ReferenceOrderedDatum datum : tracker.getAllRods() )
         {
             if ( datum != null )
             {

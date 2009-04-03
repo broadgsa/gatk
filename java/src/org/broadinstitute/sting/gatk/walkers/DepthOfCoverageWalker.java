@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Pair;
 import java.util.List;
@@ -17,7 +18,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
     @Argument(fullName="suppressLocusPrinting",required=false,defaultValue="false")
     public boolean suppressPrinting;
 
-    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         if ( !suppressPrinting )
             out.printf("%s: %d%n", context.getLocation(), context.getReads().size() );
         return context.getReads().size();

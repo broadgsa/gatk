@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
 import java.util.List;
 
@@ -14,12 +15,12 @@ public class NullWalker extends LocusWalker<Integer, Integer> {
     }
 
     // Do we actually want to operate on the context?
-    public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
+    public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) {
         return true;    // We are keeping all the reads
     }
 
     // Map over the org.broadinstitute.sting.gatk.LocusContext
-    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) 
+    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) 
     {
         return 1;
     }

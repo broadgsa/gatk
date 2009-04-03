@@ -35,6 +35,8 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         this.name = name;
     }
 
+    public String getName() { return name; }
+
     public RODIterator iterator() {
         return new RODIterator(new SimpleRODIterator());
     }

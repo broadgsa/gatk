@@ -19,6 +19,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -33,7 +34,7 @@ public abstract class TraversalEngine {
     protected List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods = null;
 
     // Iterator over rods
-    List<ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator> rodIters;
+    List<Pair<String, ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator>> rodIters;
 
     // How strict should we be with SAM/BAM parsing?
     protected ValidationStringency strictness = ValidationStringency.STRICT;
@@ -411,13 +412,12 @@ public abstract class TraversalEngine {
      *
      * @return A list of ROD iterators for getting data from each ROD
      */
-    protected List<ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator> initializeRODs() {
+    protected void initializeRODs() {
         // set up reference ordered data
-        rodIters = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator>();
+        rodIters = new ArrayList<Pair<String, ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator>>();
         for (ReferenceOrderedData<? extends ReferenceOrderedDatum> data : rods) {
-            rodIters.add(data.iterator());
+            rodIters.add(new Pair<String, ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator>(data.getName(), data.iterator()));
         }
-        return rodIters;
     }
 
     /**
@@ -459,13 +459,13 @@ public abstract class TraversalEngine {
      * @param loc      The location to get the rods at
      * @return A list of ReferenceOrderDatum at loc.  ROD without a datum at loc will be null in the list
      */
-    protected List<ReferenceOrderedDatum> getReferenceOrderedDataAtLocus(List<ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator> rodIters,
-                                                                         final GenomeLoc loc) {
-        List<ReferenceOrderedDatum> data = new ArrayList<ReferenceOrderedDatum>();
-        for (ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator iter : rodIters) {
-            data.add(iter.seekForward(loc));
+    protected RefMetaDataTracker getReferenceOrderedDataAtLocus(final GenomeLoc loc) {
+        RefMetaDataTracker tracks = new RefMetaDataTracker();
+        for (Pair<String, ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator> pair : rodIters) {
+            String name = pair.getFirst();
+            tracks.bind(name, pair.getSecond().seekForward(loc));
         }
-        return data;
+        return tracks;
     }
 
     // --------------------------------------------------------------------------------------------------------------

@@ -3,6 +3,7 @@ package org.broadinstitute.sting.playground.utils;
 import org.broadinstitute.sting.gatk.refdata.rodGFF;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
 
 import java.util.List;
@@ -44,14 +45,14 @@ public class AlleleMetrics {
         }
     }
 
-    public void nextPosition(AlleleFrequencyEstimate alleleFreq, List<ReferenceOrderedDatum> rodData) {
+    public void nextPosition(AlleleFrequencyEstimate alleleFreq, RefMetaDataTracker tracker) {
         num_loci_total += 1;
 
         boolean is_dbSNP_SNP = false;
         boolean has_hapmap_chip_genotype = false;
         rodGFF hapmap_chip_genotype = null;
 
-        for ( ReferenceOrderedDatum datum : rodData )
+        for ( ReferenceOrderedDatum datum : tracker.getAllRods() )
         {
             if ( datum != null )
             {

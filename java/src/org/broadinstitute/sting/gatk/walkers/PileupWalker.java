@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Utils;
 import net.sf.samtools.SAMRecord;
@@ -24,11 +25,11 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
     }
 
     // Do we actually want to operate on the context?
-    public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
+    public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) {
         return true;    // We are keeping all the reads
     }
 
-    public Integer map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
         String bases = Utils.basePileupAsString(reads, offsets);
@@ -39,17 +40,15 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
         }
 
         String rodString = "";
-        for ( ReferenceOrderedDatum datum : rodData ) {
-            if ( datum != null ) {
-                if ( datum instanceof rodDbSNP) {
-                    rodDbSNP dbsnp = (rodDbSNP)datum;
-                    rodString += dbsnp.toMediumString();
-                }
-                else {
-                    rodString += datum.toSimpleString();
-                }
+        for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
+            if ( datum != null && ! (datum instanceof rodDbSNP)) {
+                rodString += datum.toSimpleString();
             }
         }
+        rodDbSNP dbsnp = (rodDbSNP)tracker.lookup("dbSNP", null);
+        if ( dbsnp != null )
+            rodString += dbsnp.toMediumString();
+
         if ( rodString != "" )
             rodString = "[ROD: " + rodString + "]";
 

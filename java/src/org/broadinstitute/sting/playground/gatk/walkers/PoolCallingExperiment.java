@@ -4,6 +4,7 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.rodGFF;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
@@ -20,7 +21,7 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
 
     @Argument public int DOWNSAMPLE;
 
-    public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) 
+    public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) 
     {
         for (int i = 0; i < context.getReads().size(); i++)
         {

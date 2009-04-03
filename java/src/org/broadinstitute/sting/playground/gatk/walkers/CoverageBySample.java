@@ -3,10 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.*;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.refdata.rodGFF;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
@@ -36,7 +33,7 @@ public class CoverageBySample extends LocusWalker<String, String>
         } 
     }
 
-    public String map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) 
+    public String map(RefMetaDataTracker tracker, char ref, LocusContext context) 
     {
         String line = context.getLocation().getContig() + " " + context.getLocation().getStart() + " " ;
         for (int i = 0; i < sample_names.size(); i++)

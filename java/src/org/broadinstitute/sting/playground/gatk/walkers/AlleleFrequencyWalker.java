@@ -3,6 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.playground.utils.AlleleMetrics;
@@ -32,7 +33,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 
     public boolean requiresReads()     { return true; }    
 
-    public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) 
+    public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) 
     {
         // Convert context data into bases and 4-base quals
         String bases = getBases(context);
@@ -103,7 +104,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 
         // Print dbSNP data if its there
         if (true) {
-            for ( ReferenceOrderedDatum datum : rodData ) {
+            for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
                 if ( datum != null && datum instanceof rodDbSNP) {
                     rodDbSNP dbsnp = (rodDbSNP)datum;
                     //System.out.printf("  DBSNP %s on %s => %s%n", dbsnp.toSimpleString(), dbsnp.strand, Utils.join("/", dbsnp.getAllelesFWD()));
@@ -114,7 +115,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 
         logger.debug(String.format(" => result is %s", alleleFreq));
 
-        if (LOG_METRICS) metrics.nextPosition(alleleFreq, rodData);
+        if (LOG_METRICS) metrics.nextPosition(alleleFreq, tracker);
 
         return alleleFreq;
     }

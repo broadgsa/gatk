@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.LocusContext;
 
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.List;
  */
 public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
-    public boolean filter(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) {
+    public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) {
         return true;    // We are keeping all the reads
     }
 
@@ -26,7 +27,7 @@ public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, R
     public boolean cannotHandleReads() { return false; }
 
     // Map over the org.broadinstitute.sting.gatk.LocusContext
-    public abstract MapType map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context);
+    public abstract MapType map(RefMetaDataTracker tracker, char ref, LocusContext context);
 
     // Given result of map function
     public abstract ReduceType reduceInit();

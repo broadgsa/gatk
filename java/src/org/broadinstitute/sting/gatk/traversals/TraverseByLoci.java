@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByHanger;
@@ -120,9 +121,9 @@ public class TraverseByLoci extends TraversalEngine {
                 locus.setReferenceContig(refSite.getCurrentContig());
 
                 // Iterate forward to get all reference ordered data covering this locus
-                final List<ReferenceOrderedDatum> rodData = getReferenceOrderedDataAtLocus(rodIters, locus.getLocation());
+                final RefMetaDataTracker tracker = getReferenceOrderedDataAtLocus(locus.getLocation());
 
-                sum = walkAtLocus( walker, sum, locus, refSite, rodData );
+                sum = walkAtLocus( walker, sum, locus, refSite, tracker );
 
                 //System.out.format("Working at %s\n", locus.getLocation().toString());
 
@@ -144,7 +145,7 @@ public class TraverseByLoci extends TraversalEngine {
                                     T sum, 
                                     final LocusContext locus,
                                     final ReferenceIterator refSite,
-                                    final List<ReferenceOrderedDatum> rodData ) {
+                                    final RefMetaDataTracker tracker ) {
         final char refBase = refSite.getBaseAsChar();
 
         //logger.debug(String.format("  Reference: %s:%d %c", refSite.getCurrentContig().getName(), refSite.getPosition(), refBase));
@@ -152,9 +153,9 @@ public class TraverseByLoci extends TraversalEngine {
         //
         // Execute our contract with the walker.  Call filter, map, and reduce
         //
-        final boolean keepMeP = walker.filter(rodData, refBase, locus);
+        final boolean keepMeP = walker.filter(tracker, refBase, locus);
         if (keepMeP) {
-            M x = walker.map(rodData, refBase, locus);
+            M x = walker.map(tracker, refBase, locus);
             sum = walker.reduce(x, sum);
         }
 

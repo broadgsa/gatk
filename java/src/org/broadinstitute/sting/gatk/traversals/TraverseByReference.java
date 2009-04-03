@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -90,11 +91,11 @@ public class TraverseByReference extends TraverseByLoci {
             GenomeLoc current = refSite.getLocation();
 
             // Iterate forward to get all reference ordered data covering this locus
-            final List<ReferenceOrderedDatum> rodData = getReferenceOrderedDataAtLocus(rodIters, current);
+            final RefMetaDataTracker tracker = getReferenceOrderedDataAtLocus(current);
 
             LocusContext locus = new LocusContext(current, NO_READS, NO_OFFSETS);    // make the empty locus that has no reads
             locus.setReferenceContig(refSite.getCurrentContig());
-            sum = walkAtLocus( walker, sum, locus, refSite, rodData );
+            sum = walkAtLocus( walker, sum, locus, refSite, tracker );
 
             if (this.maxReads > 0 && this.nRecords > this.maxReads) {
                 logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + this.nRecords));
