@@ -102,9 +102,9 @@ public class AlleleMetrics {
             }
 
             // Hapmap debug info
-            out.format("HAPMAP %.2f %.2f %.2f ", hapmap_q, alleleFreq.qstar, alleleFreq.lodVsRef);
-            String called_genotype = alleleFreq.asString();
-            out.format("%s %s %c %c", hapmap_genotype, called_genotype, alleleFreq.ref, alleleFreq.alt);
+            //out.format("HAPMAP DEBUG %.2f %.2f %.2f ", hapmap_q, alleleFreq.qstar, alleleFreq.lodVsRef);
+            //String called_genotype = alleleFreq.asString();
+            //out.format("%s %s %c %c", hapmap_genotype, called_genotype, alleleFreq.ref, alleleFreq.alt);
 
             if (alleleFreq.lodVsNextBest >= LOD_cutoff) {
 
@@ -114,7 +114,7 @@ public class AlleleMetrics {
                 }else{
                     hapmap_genotype_incorrect++;
                     //System.out.printf(" INCORRECT GENOTYPE    Bases: %s", AlleleFrequencyWalker.getBases(context));
-                    System.out.printf(" INCORRECT GENOTYPE");
+                    //out.printf(" INCORRECT GENOTYPE");
                     //AlleleFrequencyWalker.print_base_qual_matrix(AlleleFrequencyWalker.getOneBaseQuals(context));
                 }
             }
@@ -127,13 +127,13 @@ public class AlleleMetrics {
                 boolean called_var = alleleFreq.qstar != 0.0;
                 if (hapmap_q != -1 && hapmap_var != called_var) {
                     hapmap_refvar_incorrect++;
-                    System.out.printf(" INCORRECT REFVAR CALL");
+                    //out.printf(" INCORRECT REFVAR CALL");
                 }else{
                     hapmap_refvar_correct++;
                 }
             }
 
-            out.print("\n");
+            //out.print("\n");
         }
     }
 

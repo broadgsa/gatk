@@ -18,11 +18,12 @@ import java.io.PrintStream;
 
 public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, String>// implements AllelicVariant
 {
-    @Argument public int    N;
+    @Argument(doc="Number of chromosomes in data") public int    N;
     @Argument(required=false,defaultValue="0") public int DOWNSAMPLE;
-    @Argument public String GFF_OUTPUT_FILE;
+    @Argument(doc="File to output GFF formatted allele frequency calls") public String GFF_OUTPUT_FILE;
     @Argument(shortName="met", doc="Turns on logging of metrics on the fly with AlleleFrequency calculation") public boolean LOG_METRICS;
-    @Argument(required=false, defaultValue="", doc="Name of file where metrics will output") public String METRICS_OUTPUT_FILE;
+    @Argument(required=false, defaultValue="metrics.out", doc="Name of file where metrics will output") public String METRICS_OUTPUT_FILE;
+    @Argument(required=false, doc="Ignores 4-base probabilities and only uses the quality of the best/called base") public static boolean FORCE_1BASE_PROBS;
 
     protected static Logger logger = Logger.getLogger(AlleleFrequencyWalker.class);
 
@@ -118,7 +119,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         return alleleFreq;
     }
 
-    static public String getBases (LocusContext context) 
+    static public String getBases (LocusContext context)
     {
         // Convert bases to CharArray
         int numReads = context.getReads().size(); //numReads();
@@ -135,7 +136,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         return new String(bases);
     }
 
-    static public double[][] getQuals (LocusContext context) 
+    static public double[][] getQuals (LocusContext context)
     {
         int numReads = context.getReads().size(); //numReads();
         double[][] quals = new double[numReads][4];
@@ -153,7 +154,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
             // For other 3 bases, check if 2-base probs exist
             assert (reads.size() > 0);
             Object SQ_field = reads.get(0).getAttribute("SQ");
-            if (SQ_field == null) {
+            if (SQ_field == null || FORCE_1BASE_PROBS) {
                 // Set all nonref qual scores to their share of the remaining probality not "used" by the reference base's qual
                 double nonref_quals = (1.0 - quals[i][callednum]) / 3;
                 for (int b=0; b<4; b++)
@@ -398,7 +399,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         confident_ref_interval_length  = 0;
         last_position_considered       = -1;
         inside_confident_ref_interval  = false;
-        if (LOG_METRICS) metrics = new AlleleMetrics("SNTH");//METRICS_OUTPUT_FILE);
+        if (LOG_METRICS) metrics = new AlleleMetrics(METRICS_OUTPUT_FILE);
         return "";
     }
 
@@ -508,6 +509,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
             inside_confident_ref_interval = false;
         }
 
+        if (LOG_METRICS) metrics.printMetrics();
 
         try
         {
@@ -522,7 +524,6 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
             System.exit(-1);
         }
 
-        if (LOG_METRICS) metrics.printMetrics();
     }
 
     static void print_base_qual_matrix(double [][]quals) {

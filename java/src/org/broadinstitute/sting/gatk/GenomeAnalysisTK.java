@@ -41,6 +41,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     public String Analysis_Name = null;
     public String DBSNP_FILE = null;
     public String HAPMAP_FILE = null;
+    public String HAPMAP_CHIP_FILE = null;
     public Boolean ENABLED_THREADED_IO = false;
     public Boolean UNSAFE = false;
     public String MAX_ON_FLY_SORTS = null;
@@ -104,6 +105,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addRequiredArg("analysis_type", "T", "Type of analysis to run", "Analysis_Name");
         m_parser.addOptionalArg("DBSNP", "D", "DBSNP file", "DBSNP_FILE");
         m_parser.addOptionalArg("hapmap", "H", "Hapmap file", "HAPMAP_FILE");
+        m_parser.addOptionalArg("hapmap_chip", "hc", "Hapmap chip file", "HAPMAP_CHIP_FILE");
         m_parser.addOptionalFlag("threaded_IO", "P", "If set, enables threaded I/O operations", "ENABLED_THREADED_IO");
         m_parser.addOptionalFlag("unsafe", "U", "If set, enables unsafe operations, nothing will be checked at runtime.", "UNSAFE");
         m_parser.addOptionalArg("sort_on_the_fly", "sort", "Maximum number of reads to sort on the fly", "MAX_ON_FLY_SORTS");
@@ -175,6 +177,10 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                 ReferenceOrderedData<HapMapAlleleFrequenciesROD> hapmap = new ReferenceOrderedData<HapMapAlleleFrequenciesROD>("hapmap", new File(HAPMAP_FILE), HapMapAlleleFrequenciesROD.class );
                 //dbsnp.testMe();
                 rods.add(hapmap); // { gff, dbsnp };
+            }
+            if ( HAPMAP_CHIP_FILE != null ) {
+                ReferenceOrderedData<rodGFF> hapmapChip = new ReferenceOrderedData<rodGFF>(new File(HAPMAP_CHIP_FILE), rodGFF.class );
+                rods.add(hapmapChip);
             }
         }
 
