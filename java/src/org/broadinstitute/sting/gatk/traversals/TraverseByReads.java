@@ -8,12 +8,12 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.FastaSequenceFile2;
 
 import java.util.List;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.io.File;
 
 import net.sf.samtools.SAMRecord;
@@ -54,7 +54,8 @@ public class TraverseByReads extends TraversalEngine {
      */
     public <M, T> Object traverseByRead(ReadWalker<M, T> walker, ArrayList<GenomeLoc> locations) {
         samReadIter = initializeReads();
-        GenomeLoc.setupRefContigOrdering(new FastaSequenceFile2(refFileName));
+        if ( refFileName != null && !locations.isEmpty() )
+            GenomeLoc.setupRefContigOrdering(new FastaSequenceFile2(refFileName));
 
         if (refFileName == null && !walker.requiresOrderedReads() && verifyingSamReadIter != null) {
             logger.warn(String.format("STATUS: No reference file provided and unordered reads are tolerated, enabling out of order read processing."));
@@ -72,13 +73,15 @@ public class TraverseByReads extends TraversalEngine {
         List<Integer> offsets = Arrays.asList(0);   // Offset of a single read is always 0
 
         boolean done = false;
+        // copy the locations here in case we ever want to use the full list again later and so that we can remove efficiently
+        LinkedList notYetTraversedLocations = new LinkedList(locations);
         while (samReadIter.hasNext() && !done) {
             this.nRecords++;
 
             // get the next read
             final SAMRecord read = samReadIter.next();
             final List<SAMRecord> reads = Arrays.asList(read);
-            GenomeLoc loc = Utils.genomicLocationOf(read);
+            GenomeLoc loc = GenomeLoc.genomicLocationOf(read);
 
             // Jump forward in the reference to this locus location
             LocusContext locus = new LocusContext(loc, reads, offsets);
@@ -87,7 +90,8 @@ public class TraverseByReads extends TraversalEngine {
                 locus.setReferenceContig(refSite.getCurrentContig());
             }
 
-            if (GenomeLoc.inLocations(loc, locations)) {
+            GenomeLoc.removePastLocs(loc, notYetTraversedLocations);
+            if (GenomeLoc.overlapswithSortedLocsP(loc, notYetTraversedLocations, locations.isEmpty())) {
 
                 //
                 // execute the walker contact

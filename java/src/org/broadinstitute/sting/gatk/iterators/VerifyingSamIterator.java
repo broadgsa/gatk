@@ -55,8 +55,8 @@ public class VerifyingSamIterator implements Iterator<SAMRecord> {
         if ( last == null || cur.getReadUnmappedFlag() )
             return false;
         else {
-            GenomeLoc lastLoc = Utils.genomicLocationOf( last );
-            GenomeLoc curLoc = Utils.genomicLocationOf( cur );
+            GenomeLoc lastLoc = GenomeLoc.genomicLocationOf( last );
+            GenomeLoc curLoc = GenomeLoc.genomicLocationOf( cur );
             return curLoc.compareTo(lastLoc) == -1;
         }
     }

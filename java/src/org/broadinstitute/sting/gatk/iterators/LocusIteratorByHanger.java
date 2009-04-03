@@ -155,7 +155,7 @@ public class LocusIteratorByHanger extends LocusIterator {
             return true;
         else {
             final SAMRecord read = it.peek();
-            GenomeLoc readLoc = Utils.genomicLocationOf(read);
+            GenomeLoc readLoc = GenomeLoc.genomicLocationOf(read);
             final boolean coveredP = currentPositionIsFullyCovered(readLoc);
             //System.out.printf("CoverP = %s => %b%n", readLoc, coveredP);
             return coveredP;
@@ -177,7 +177,7 @@ public class LocusIteratorByHanger extends LocusIterator {
             SAMRecord read = it.next();
             justCleared = false;
 
-            GenomeLoc readLoc = Utils.genomicLocationOf(read);
+            GenomeLoc readLoc = GenomeLoc.genomicLocationOf(read);
             if ( DEBUG ) {
                 logger.debug(String.format("  Expanding window sizes %d with %d : left=%s, right=%s, readLoc = %s, cmp=%d%n",
                         readHanger.size(), incrementSize,

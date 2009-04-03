@@ -60,6 +60,6 @@ public class ReadDatum implements Datum {
      * @return a genome loc that details the region that our read spans.
      */
     public GenomeLoc getSequenceLocation() {
-        return Utils.genomicLocationOf(sam);
+        return GenomeLoc.genomicLocationOf(sam);
     }
 }

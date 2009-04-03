@@ -8,6 +8,7 @@ import net.sf.functionalj.Functions;
 import net.sf.functionalj.util.Operators;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.SAMRecord;
 
 import java.util.*;
 import java.util.regex.Pattern;
@@ -41,7 +42,6 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     //public static Map<String, Integer> refContigOrdering = null;
     private static SAMSequenceDictionary contigInfo = null;
     private static HashMap<String, String> interns = null;
-    private static int lastGoodIntervalIndex = 0;
 
     public static boolean hasKnownContigOrdering() {
         return contigInfo != null;
@@ -129,6 +129,10 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         this( new String(toCopy.getContig()), toCopy.getStart(), toCopy.getStop() );
     }
 
+    public static GenomeLoc genomicLocationOf(final SAMRecord read) {
+        return new GenomeLoc(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentEnd());
+    }
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // Parsing string representations
@@ -140,7 +144,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     }
 
     public static GenomeLoc parseGenomeLoc( final String str ) {
-        // Ôchr2Õ, Ôchr2:1000000Õ or Ôchr2:1,000,000-2,000,000Õ
+        // 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
         //System.out.printf("Parsing location '%s'%n", str);
 
         final Pattern regex1 = Pattern.compile("([\\w&&[^:]]+)$");             // matches case 1
@@ -204,7 +208,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     public static ArrayList<GenomeLoc> parseGenomeLocs(final String str) {
         // Of the form: loc1;loc2;...
         // Where each locN can be:
-        // Ôchr2Õ, Ôchr2:1000000Õ or Ôchr2:1,000,000-2,000,000Õ
+        // 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
         StdReflect reflect = new JdkStdReflect();
         FunctionN<GenomeLoc> parseOne = reflect.staticFunction(GenomeLoc.class, "parseGenomeLoc", String.class);
         Function1<GenomeLoc, String> f1 = parseOne.f1();
@@ -272,27 +276,38 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         if ( locs.size() == 0 ) {
             return true;
         } else {
-            for ( int i = lastGoodIntervalIndex; i < locs.size(); i++ ) {
-                GenomeLoc loc = locs.get(i);
-                // since it's ordered, we can do some simple checks to save us tons of time
-                if ( hasKnownContigOrdering() ) {
-                    int curIndex = getContigIndex(curr.contig);
-                    int locIndex = getContigIndex(loc.contig);
-                    // skip loci before intervals begin
-                    if (curIndex < locIndex)
-                        return false;
-                    // skip loci between intervals
-                    if (curIndex == locIndex && curr.stop < loc.start)
-                        return false;
-                }
+            for ( GenomeLoc loc : locs ) {
                 //System.out.printf("  Overlap %s vs. %s => %b%n", loc, curr, loc.overlapsP(curr));
-                if (loc.overlapsP(curr)) {
-                    lastGoodIntervalIndex = i;
+                if (loc.overlapsP(curr))
                     return true;
-                }
             }
             return false;
         }
+    }
+
+    public static void removePastLocs(GenomeLoc curr, List<GenomeLoc> locs) {
+        while ( !locs.isEmpty() && curr.isPast(locs.get(0)) ) {
+            //System.out.println("At: " + curr + ", removing: " + locs.get(0));
+            locs.remove(0);
+        }
+    }
+
+    public static boolean overlapswithSortedLocsP(GenomeLoc curr, List<GenomeLoc> locs, boolean returnTrueIfEmpty) {
+        if ( locs.isEmpty() )
+            return returnTrueIfEmpty;
+
+        // skip loci before intervals begin
+        if ( hasKnownContigOrdering() && getContigIndex(curr.contig) < getContigIndex(locs.get(0).contig) )
+            return false;
+
+        for ( GenomeLoc loc : locs ) {
+            //System.out.printf("  Overlap %s vs. %s => %b%n", loc, curr, loc.overlapsP(curr));
+            if ( loc.overlapsP(curr) )
+                return true;
+            if ( curr.compareTo(loc) < 0 )
+                return false;
+        }
+        return false;
     }
 
     //
@@ -417,7 +432,6 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         {
             int thisIndex = getContigIndex(thisContig);
             int thatIndex = getContigIndex(thatContig);
-
 
             if ( thisIndex == -1 )
             {

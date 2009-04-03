@@ -66,7 +66,7 @@ public class ReadShard implements DataShard {
         final List<SAMRecord> reads = Arrays.asList(read);
 
         // put together the genome location
-        final GenomeLoc loc = Utils.genomicLocationOf(read);
+        final GenomeLoc loc = GenomeLoc.genomicLocationOf(read);
 
         // Offset of a single read is always 0
         List<Integer> offsets = Arrays.asList(0);

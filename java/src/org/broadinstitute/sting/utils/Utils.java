@@ -180,10 +180,6 @@ public class Utils {
         return new String(basesAsbytes);
     }
 
-    public static GenomeLoc genomicLocationOf(final SAMRecord read) {
-        return new GenomeLoc(read.getReferenceName(), read.getAlignmentStart());
-    }
-
     private static final Map<Integer, String> readFlagNames
             = new HashMap<Integer, String>();
 

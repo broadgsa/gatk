@@ -188,7 +188,7 @@ public abstract class TraversalEngine {
      * regions specified by the location string.  The string is of the form:
      * Of the form: loc1;loc2;...
      * Where each locN can be:
-     * Ôchr2Õ, Ôchr2:1000000Õ or Ôchr2:1,000,000-2,000,000Õ
+     * 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
      *
      * @param locStr
      */
@@ -201,7 +201,7 @@ public abstract class TraversalEngine {
      * regions specified by the location string.  The string is of the form:
      * Of the form: loc1;loc2;...
      * Where each locN can be:
-     * Ôchr2Õ, Ôchr2:1000000Õ or Ôchr2:1,000,000-2,000,000Õ
+     * 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
      *
      * @param file_name
      */
