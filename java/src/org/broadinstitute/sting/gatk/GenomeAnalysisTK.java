@@ -179,7 +179,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                 rods.add(hapmap); // { gff, dbsnp };
             }
             if ( HAPMAP_CHIP_FILE != null ) {
-                ReferenceOrderedData<rodGFF> hapmapChip = new ReferenceOrderedData<rodGFF>(new File(HAPMAP_CHIP_FILE), rodGFF.class );
+                ReferenceOrderedData<rodGFF> hapmapChip = new ReferenceOrderedData<rodGFF>("hapmap-chip", new File(HAPMAP_CHIP_FILE), rodGFF.class );
                 rods.add(hapmapChip);
             }
         }
