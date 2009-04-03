@@ -1,10 +1,11 @@
 package org.broadinstitute.sting.playground.utils;
 
 import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 public class AlleleFrequencyEstimate {
     //AlleleFrequencyEstimate();
-    public String location;
+    public GenomeLoc location;
     public char ref;
     public char alt;
     public int N;
@@ -15,7 +16,9 @@ public class AlleleFrequencyEstimate {
     public int depth;
     public String notes;
 
-    public AlleleFrequencyEstimate(String location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, int depth)
+    GenomeLoc l;
+
+    public AlleleFrequencyEstimate(GenomeLoc location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, int depth)
     {
         this.location = location;
         this.ref = ref;
@@ -31,12 +34,10 @@ public class AlleleFrequencyEstimate {
 
     public String asGFFString()
     {
-        String[] tokens;
-        tokens = location.split(":");
         return String.format("%s\tCALLER\tVARIANT\t%s\t%s\t%f\t.\t.\tREF %c\t;\tALT %c\t;\tFREQ %f\n",
-                               tokens[0],
-                               tokens[1],
-                               tokens[1],
+                               location.getContig(),
+                               location.getStart(),
+                               location.getStart(),
                                lodVsRef,
                                ref,
                                alt,

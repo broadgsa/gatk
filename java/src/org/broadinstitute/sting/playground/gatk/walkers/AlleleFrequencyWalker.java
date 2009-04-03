@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
+import org.broadinstitute.sting.playground.utils.AlleleMetrics;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
 import org.apache.log4j.Logger;
@@ -15,11 +16,13 @@ import java.util.Arrays;
 import java.util.Random;
 import java.io.PrintStream;
 
-public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, String> 
+public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, String>// implements AllelicVariant
 {
     @Argument public int    N;
     @Argument(required=false,defaultValue="0") public int DOWNSAMPLE;
     @Argument public String GFF_OUTPUT_FILE;
+    @Argument(shortName="met", doc="Turns on logging of metrics on the fly with AlleleFrequency calculation") public boolean LOG_METRICS;
+    @Argument(required=false, defaultValue="", doc="Name of file where metrics will output") public String METRICS_OUTPUT_FILE;
 
     protected static Logger logger = Logger.getLogger(AlleleFrequencyWalker.class);
 
@@ -30,7 +33,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
     {
         // Convert context data into bases and 4-base quals
         String bases = getBases(context);
-        double quals[][] = getOneBaseQuals(context);
+        double quals[][] = getQuals(context);
 
         /*
         // DEBUG: print the data for a read 
@@ -87,7 +90,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         }
         assert(altnum != -1);
 
-        AlleleFrequencyEstimate alleleFreq = AlleleFrequencyEstimator(context.getLocation().toString(), N, bases.getBytes(), quals, refnum, altnum, bases.length());
+        AlleleFrequencyEstimate alleleFreq = AlleleFrequencyEstimator(context.getLocation(), N, bases.getBytes(), quals, refnum, altnum, bases.length());
 
         alleleFreq.notes = String.format("A:%d C:%d G:%d T:%d", 
                                             base_counts[nuc2num['A']],
@@ -107,6 +110,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         }
 
         logger.debug(String.format(" => result is %s", alleleFreq));
+
+        if (LOG_METRICS) metrics.nextPosition(alleleFreq, rodData);
 
         return alleleFreq;
     }
@@ -128,7 +133,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         return new String(bases);
     }
 
-    static public double[][] getOneBaseQuals (LocusContext context) 
+    static public double[][] getQuals (LocusContext context) 
     {
         int numReads = context.getReads().size(); //numReads();
         double[][] quals = new double[numReads][4];
@@ -155,13 +160,13 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
             }else{
                 assert (SQ_field instanceof byte[]);
                 byte[] hex_quals = (byte[]) SQ_field;
-                System.out.printf("SQ field (hex): %s\n", bytesToHexString(hex_quals));
-                System.out.printf("SAM record: %s\n", read.format());
+                //System.out.printf("SQ field (hex): %s\n", bytesToHexString(hex_quals));
+                //System.out.printf("SAM record: %s\n", read.format());
 
                 int hex_qual = hex_quals[offset];
                 int called2num = hex_qual & 0x3;
                 double qual2 = (double)(hex_qual >> 2) / 100.0;
-                System.out.printf("2ND %x %d %f\n", hex_qual, called2num, qual2);
+                //System.out.printf("2ND %x %d %f\n", hex_qual, called2num, qual2);
                 quals[i][called2num] = qual2;
 
                 // 
@@ -191,7 +196,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         return (char) ((value < 10) ? ('0' + value) : ('A' + value - 10));
     }
 
-    public AlleleFrequencyEstimate AlleleFrequencyEstimator(String location, int N, byte[] bases, double[][] quals, int refnum, int altnum, int depth)
+    public AlleleFrequencyEstimate AlleleFrequencyEstimator(GenomeLoc location, int N, byte[] bases, double[][] quals, int refnum, int altnum, int depth)
     {
 
         // q = hypothetical %nonref
@@ -251,7 +256,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         Arrays.sort(bestMixtures);
 
         // Calculate Lod of the mixture versus other possible
-        // Answers how confident are we in the best mixture versus the next best mixture
+        // Answers how confident are we in the best mixture versus the nextPosition best mixture
         double lodBestVsNextBest = bestMixtures[0].posterior - bestMixtures[1].posterior;
 
         AlleleFrequencyEstimate alleleFreq = new AlleleFrequencyEstimate(location,
@@ -375,48 +380,42 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         return result;
     }
 
-    private String  confident_ref_interval_start   = "";
+    private String  confident_ref_interval_contig  = "";
+    private long    confident_ref_interval_start   = 0;
     private double  confident_ref_interval_LOD_sum = 0;
     private double  confident_ref_interval_length  = 0;
-    private int     last_position_considered       = -1;
+    private long    last_position_considered       = -1;
     private boolean inside_confident_ref_interval  = false;
+    AlleleMetrics   metrics;    
 
     public String reduceInit() 
     { 
-        confident_ref_interval_start   = "";
+        confident_ref_interval_contig  = "";
+        confident_ref_interval_start   = 0;
         confident_ref_interval_LOD_sum = 0;
         confident_ref_interval_length  = 0;
         last_position_considered       = -1;
         inside_confident_ref_interval  = false;
-        return ""; 
+        if (LOG_METRICS) metrics = new AlleleMetrics("SNTH");//METRICS_OUTPUT_FILE);
+        return "";
     }
 
     public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
     {
         // Print RESULT data for confident calls
 
-        String[] tokens;
-        tokens = alleleFreq.location.split(":");
-        int current_offset = Integer.parseInt(tokens[1]);
+       long current_offset = alleleFreq.location.getStart(); //Integer.parseInt(tokens[1]);
 
         if (inside_confident_ref_interval &&
                 ((alleleFreq.lodVsRef > -5.0) || (current_offset != last_position_considered + 1)) )
         {
             // No longer hom-ref, so output a ref line.
-            tokens = confident_ref_interval_start.split(":");
-
-            String contig = tokens[0];
-            int    start  = Integer.parseInt(tokens[1]);
-
-            tokens = alleleFreq.location.split(":");
-            int end = last_position_considered;
-
             double lod = confident_ref_interval_LOD_sum / confident_ref_interval_length;
 
             output.format("%s\tCALLER\tREFERENCE\t%d\t%d\t%f\t.\t.\tLENGTH %d\n",
-                            contig,
-                            start,
-                            end,
+                            confident_ref_interval_contig,
+                            confident_ref_interval_start,
+                            last_position_considered,
                             lod,
                             (int)(confident_ref_interval_length));
 
@@ -435,7 +434,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         else if ((!inside_confident_ref_interval) && (alleleFreq.lodVsRef <= -5.0))
         {
             // We moved into a hom-ref region so start a new interval.
-            confident_ref_interval_start   = alleleFreq.location;
+            confident_ref_interval_contig  = alleleFreq.location.getContig();
+            confident_ref_interval_start   = alleleFreq.location.getStart();
             confident_ref_interval_LOD_sum = alleleFreq.lodVsRef;
             confident_ref_interval_length  = 1;
             inside_confident_ref_interval  = true;
@@ -444,6 +444,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         last_position_considered = current_offset;
         
         if (alleleFreq.lodVsRef >= 5) { this.output.print(alleleFreq.asGFFString()); }
+        if (LOG_METRICS) metrics.printMetricsAtLocusIntervals(1000);
         return "";
     }
 
@@ -492,17 +493,13 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         if (inside_confident_ref_interval)
         {
             // if we have a confident reference interval still hanging open, close it.
-            String tokens[] = confident_ref_interval_start.split(":");
-            String contig   = tokens[0];
-            int    start    = Integer.parseInt(tokens[1]);
-            int    end      = last_position_considered;
 
             double lod = confident_ref_interval_LOD_sum / confident_ref_interval_length;
 
             output.format("%s\tCALLER\tREFERENCE\t%d\t%d\t%f\t.\t.\tLENGTH %d\n",
-                            contig,
-                            start,
-                            end,
+                            confident_ref_interval_contig,
+                            confident_ref_interval_start,
+                            last_position_considered,
                             lod,
                             (int)(confident_ref_interval_length));
 
@@ -522,6 +519,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
             e.printStackTrace();
             System.exit(-1);
         }
+
+        if (LOG_METRICS) metrics.printMetrics();
     }
 
     static void print_base_qual_matrix(double [][]quals) {
@@ -569,7 +568,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0},
 	                                {0.001/3.0, 0.999, 0.001/3.0, 0.001/3.0}};
 	        AlleleFrequencyWalker w = new AlleleFrequencyWalker();
-	        AlleleFrequencyEstimate estimate = w.AlleleFrequencyEstimator("null", N, het_bases, het_quals, 0, 1, 20);
+	        AlleleFrequencyEstimate estimate = w.AlleleFrequencyEstimator(null, N, het_bases, het_quals, 0, 1, 20);
 	        System.out.print(String.format("50%% Het : %s %c %c %f %f %f %d %s\n", 
 	                                        "null", estimate.ref, estimate.alt, estimate.qhat, estimate.qstar, estimate.lodVsRef, 20, "null"));
         }
@@ -686,7 +685,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
             int N = 10;
 	        AlleleFrequencyWalker w = new AlleleFrequencyWalker();
             w.N = 10;
-	        AlleleFrequencyEstimate estimate = w.AlleleFrequencyEstimator("null", N, het_bases, het_quals, 0, 1, 20);
+	        AlleleFrequencyEstimate estimate = w.AlleleFrequencyEstimator(null, N, het_bases, het_quals, 0, 1, 20);
 	        System.out.print(String.format("10%% Het : %s %c %c %f %f %f %d %s\n", 
 	                                        "null", estimate.ref, estimate.alt, estimate.qhat, estimate.qstar, estimate.lodVsRef, 20, "null"));
         }

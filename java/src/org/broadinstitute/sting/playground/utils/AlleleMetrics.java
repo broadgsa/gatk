@@ -1,25 +1,21 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.playground.utils;
 
+import org.broadinstitute.sting.gatk.refdata.rodGFF;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.refdata.rodGFF;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
-import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 
 import java.util.List;
+import java.io.PrintStream;
 
 /**
  * Created by IntelliJ IDEA.
  * User: andrewk
- * Date: Mar 18, 2009
- * Time: 5:28:58 PM
+ * Date: Apr 1, 2009
+ * Time: 5:53:21 PM
  * To change this template use File | Settings | File Templates.
  */
-
-public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEstimate, String> 
-{
+public class AlleleMetrics {
 
     long dbsnp_hits=0;
     long num_variants=0;
@@ -31,12 +27,24 @@ public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEst
     long hapmap_refvar_correct = 0;
     long hapmap_refvar_incorrect = 0;
 
-    AlleleFrequencyWalker caller;
+    protected PrintStream out;
 
-    public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) 
-    {
-        AlleleFrequencyEstimate alleleFreq = caller.map(rodData, ref, context);
+    public AlleleMetrics(String MetricsOutputFile) {
+        try
+        {
+            /*if ( MetricsOutputFile.equals("-") )
+                this.out = out;
+            else*/
+            this.out = new PrintStream(MetricsOutputFile);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+    }
 
+    public void nextPosition(AlleleFrequencyEstimate alleleFreq, List<ReferenceOrderedDatum> rodData) {
         num_loci_total += 1;
 
         boolean is_dbSNP_SNP = false;
@@ -47,7 +55,7 @@ public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEst
         {
             if ( datum != null )
             {
-                if ( datum instanceof rodDbSNP )
+                if ( datum instanceof rodDbSNP)
                 {
                     rodDbSNP dbsnp = (rodDbSNP)datum;
                     if (dbsnp.isSNP()) is_dbSNP_SNP = true;
@@ -64,9 +72,9 @@ public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEst
         if (Math.abs(alleleFreq.lodVsRef) >= LOD_cutoff) { num_loci_confident += 1; }
 
         if (alleleFreq.qstar > 0.0 && alleleFreq.lodVsRef >= LOD_cutoff)
-        { 
+        {
             // Confident variant.
-           
+
             num_variants += 1;
 
             if (is_dbSNP_SNP)
@@ -105,7 +113,8 @@ public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEst
                     hapmap_genotype_correct++;
                 }else{
                     hapmap_genotype_incorrect++;
-                    System.out.printf(" INCORRECT GENOTYPE    Bases: %s", AlleleFrequencyWalker.getBases(context));
+                    //System.out.printf(" INCORRECT GENOTYPE    Bases: %s", AlleleFrequencyWalker.getBases(context));
+                    System.out.printf(" INCORRECT GENOTYPE");
                     //AlleleFrequencyWalker.print_base_qual_matrix(AlleleFrequencyWalker.getOneBaseQuals(context));
                 }
             }
@@ -118,16 +127,14 @@ public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEst
                 boolean called_var = alleleFreq.qstar != 0.0;
                 if (hapmap_q != -1 && hapmap_var != called_var) {
                     hapmap_refvar_incorrect++;
+                    System.out.printf(" INCORRECT REFVAR CALL");
                 }else{
                     hapmap_refvar_correct++;
-                    System.out.printf(" INCORRECT REFVAR CALL Bases: %s\n", AlleleFrequencyWalker.getBases(context));
                 }
             }
 
             out.print("\n");
         }
-
-        return alleleFreq;
     }
 
     public void printMetrics()
@@ -159,23 +166,9 @@ public class AlleleFrequencyMetricsWalker extends LocusWalker<AlleleFrequencyEst
         out.println();
     }
 
-    public void onTraversalDone(String result) 
-    {
-        printMetrics();
+    public void printMetricsAtLocusIntervals(int loci_interval) {
+        if (num_loci_total % loci_interval == 0) printMetrics();
     }
 
-    public String reduceInit() 
-    { 
-        caller = new AlleleFrequencyWalker();
-        return ""; 
-    }
 
-    public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
-    {
-        if ((alleleFreq.lodVsRef >= 5) || (alleleFreq.lodVsRef <= -5)) { System.out.print(alleleFreq.asGFFString()); }
-        if (this.num_loci_total % 1000 == 0) { printMetrics(); }
-        return "null";
-    }
-
-    
 }
