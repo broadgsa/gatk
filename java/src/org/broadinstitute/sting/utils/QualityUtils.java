@@ -11,7 +11,7 @@ public class QualityUtils {
         return (byte) Math.round(-10.0*Math.log10(1.0 - prob + 0.0001));
     }
 
-    static public byte qualAndProbToCompressedQuality(int baseIndex, double prob) {
+    static public byte baseAndProbToCompressedQuality(int baseIndex, double prob) {
         byte compressedQual = (byte) baseIndex;
         byte cprob = (byte) (100.0*prob);
         byte qualmask = (byte) 252;
