@@ -475,8 +475,11 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         if ( cmpContig != 0 ) return cmpContig;
         if ( this.getStart() < that.getStart() ) return -1;
         if ( this.getStart() > that.getStart() ) return 1;
-        if ( this.getStop() < that.getStop() ) return -1;
-        if ( this.getStop() > that.getStop() ) return 1;
+
+        // TODO: and error is being thrown because we are treating reads with the same start positions
+        // but different stop as out of order
+        //if ( this.getStop() < that.getStop() ) return -1;
+        //if ( this.getStop() > that.getStop() ) return 1;
         return 0;
     }
 }
