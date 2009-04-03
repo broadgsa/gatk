@@ -8,6 +8,16 @@ import cern.colt.matrix.linalg.Algebra;
 
 import org.broadinstitute.sting.utils.QualityUtils;
 
+/**
+ * BasecallingBaseModel is a class that represents the statistical
+ * model for all bases at a given cycle.  It allows for easy, one
+ * pass training via the addTrainingPoint() method.  Once the model
+ * is trained, computeLikelihoods will return the probability matrix
+ * over previous cycle's base hypotheses and current cycle base
+ * hypotheses (contextual prior is included in these likelihoods).
+ *
+ * @author Kiran Garimella
+ */
 public class BasecallingBaseModel {
     private double[][] counts;
 
@@ -19,8 +29,11 @@ public class BasecallingBaseModel {
     private DoubleMatrix2D[][] inverseCovariances;
     private double[][] norms;
 
-    Algebra alg;
+    private Algebra alg;
 
+    /**
+     * Constructor for BasecallingBaseModel
+     */
     public BasecallingBaseModel() {
         counts = new double[4][4];
 
@@ -44,6 +57,13 @@ public class BasecallingBaseModel {
         alg = new Algebra();
     }
 
+    /**
+     * Add a single training point to the model.
+     * @param basePrev       the previous cycle's base call (A, C, G, T, or * for the first cycle)
+     * @param baseCur        the current cycle's base call (A, C, G, T)
+     * @param qualCur        the quality score for the current cycle's base call
+     * @param fourintensity  the four intensities for the current cycle's base call
+     */
     public void addTrainingPoint(char basePrev, char baseCur, byte qualCur, double[] fourintensity) {
         int basePrevIndex = baseToBaseIndex(basePrev);
         int baseCurIndex = baseToBaseIndex(baseCur);
@@ -67,6 +87,9 @@ public class BasecallingBaseModel {
         readyToCall = false;
     }
 
+    /**
+     * Precompute all the matrix inversions and determinants we'll need for computing the likelihood distributions.
+     */
     public void prepareToCallBases() {
         for (int basePrevIndex = 0; basePrevIndex < 4; basePrevIndex++) {
             for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
@@ -88,6 +111,16 @@ public class BasecallingBaseModel {
         readyToCall = true;
     }
 
+    /**
+     * Compute the likelihood matrix for a base (contextual priors included).
+     *
+     * @param cycle         the cycle we're calling right now
+     * @param basePrev      the previous cycle's base
+     * @param qualPrev      the previous cycle's quality score
+     * @param fourintensity the four intensities of the current cycle's base
+     * @return              a 4x4 matrix of likelihoods, where the row is the previous cycle base hypothesis and
+     *                      the column is the current cycle base hypothesis
+     */
     public double[][] computeLikelihoods(int cycle, char basePrev, byte qualPrev, double[] fourintensity) {
         if (!readyToCall) {
             prepareToCallBases();
@@ -115,6 +148,11 @@ public class BasecallingBaseModel {
         return probdist;
     }
 
+    /**
+     * Utility method for converting a base ([Aa*], [Cc], [Gg], [Tt]) to an index (0, 1, 2, 3);
+     * @param base
+     * @return 0, 1, 2, 3, or -1 if the base can't be understood.
+     */
     private int baseToBaseIndex(char base) {
         switch (base) {
             case 'A':

@@ -85,8 +85,6 @@ public class FourBaseRecaller extends CommandLineProgram {
             byte[] nextbestqual = new byte[bases.length()];
 
             for (int cycle = 0; cycle < bases.length(); cycle++) {
-                //char basePrev = (cycle == 0) ? '*' : bases.charAt(cycle - 1);
-                //byte qualPrev = (cycle == 0) ? 0 : quals[cycle - 1];
                 char basePrev = (cycle == 0) ? '*' : (char) asciiseq[cycle - 1];
                 byte qualPrev = (cycle == 0) ? 0 : bestqual[cycle - 1];
                 double[] fourintensity = intensities[cycle + cycle_offset];
