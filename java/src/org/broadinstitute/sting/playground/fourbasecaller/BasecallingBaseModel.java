@@ -94,6 +94,8 @@ public class BasecallingBaseModel {
         }
 
         double[][] probdist = new double[4][4];
+        double probPrev = (cycle == 0) ? 1.0 : QualityUtils.qualToProb(qualPrev);
+        int baseIndex = (cycle == 0) ? 0 : baseToBaseIndex(basePrev);
 
         for (int basePrevIndex = 0; basePrevIndex < ((cycle == 0) ? 1 : 4); basePrevIndex++) {
             for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
@@ -106,7 +108,7 @@ public class BasecallingBaseModel {
                 DoubleMatrix1D Ax = alg.mult(inverseCovariances[basePrevIndex][baseCurIndex], sub);
 
                 double exparg = -0.5*alg.mult(sub, Ax);
-                probdist[basePrevIndex][baseCurIndex] = norms[basePrevIndex][baseCurIndex]*Math.exp(exparg);
+                probdist[basePrevIndex][baseCurIndex] = (baseIndex == basePrevIndex ? probPrev : 1.0 - probPrev)*norms[basePrevIndex][baseCurIndex]*Math.exp(exparg);
             }
         }
 
