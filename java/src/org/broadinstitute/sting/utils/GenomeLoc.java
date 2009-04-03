@@ -398,7 +398,8 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     }
 
     public final boolean isPast( GenomeLoc that ) {
-        return this.compareContigs(that) == 1 || this.getStart() > that.getStop();
+        int comparison = this.compareContigs(that);
+        return ( comparison == 1 || ( comparison == 0 && this.getStart() > that.getStop() ));
     }
 
     public final void incPos() {
