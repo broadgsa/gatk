@@ -19,6 +19,8 @@ public class CoverageBySample extends LocusWalker<String, String>
 {
     List<String> sample_names = null;
 
+    public boolean requiresReads()     { return true; }    
+
     public void initialize() 
     { 
         GenomeAnalysisTK toolkit = this.getToolkit();

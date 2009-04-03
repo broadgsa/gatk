@@ -38,7 +38,8 @@ public class TraverseByLoci extends TraversalEngine {
     public <M,T> T traverse(Walker<M,T> walker, ArrayList<GenomeLoc> locations) {
         if ( walker instanceof LocusWalker ) {
             LocusWalker<M, T> locusWalker = (LocusWalker<M, T>)walker;
-            return (T)this.traverseByLoci(locusWalker, locations);
+            T sum = traverseByLoci(locusWalker, locations);
+            return sum;
         } else {
             throw new IllegalArgumentException("Walker isn't a loci walker!");
         }

@@ -16,10 +16,7 @@ import org.broadinstitute.sting.gatk.refdata.HapMapAlleleFrequenciesROD;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.gatk.traversals.TraverseByReads;
-import org.broadinstitute.sting.gatk.traversals.TraverseByLoci;
-import org.broadinstitute.sting.gatk.traversals.TraverseByLociByReference;
+import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.utils.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
@@ -35,7 +32,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     public static GenomeAnalysisTK Instance = null;
 
     // parameters and their defaults
-    public File INPUT_FILE;
+    public File INPUT_FILE = null;
     public String MAX_READS_ARG = "-1";
     public String STRICTNESS_ARG = "strict";
     public File REF_FILE_ARG = null;
@@ -98,7 +95,8 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      * Flags don't take an argument, the associated Boolean gets set to true if the flag appears on the command line.
      */
     protected void setupArgs() {
-        m_parser.addRequiredArg("input_file", "I", "SAM or BAM file", "INPUT_FILE");
+        m_parser.addOptionalArg("input_file", "I", "SAM or BAM file", "INPUT_FILE");
+        //m_parser.addRequiredArg("input_file", "I", "SAM or BAM file", "INPUT_FILE");
         m_parser.addOptionalArg("maximum_reads", "M", "Maximum number of reads to process before exiting", "MAX_READS_ARG");
         m_parser.addOptionalArg("validation_strictness", "S", "How strict should we be with validation (lenient|silent|strict)", "STRICTNESS_ARG");
         m_parser.addOptionalArg("reference_sequence", "R", "Reference sequence file", "REF_FILE_ARG");
@@ -196,10 +194,21 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         // Try to get the walker specified
         try {
             LocusWalker<?, ?> walker = (LocusWalker<?, ?>) my_walker;
-            if ( WALK_ALL_LOCI )
-                this.engine = new TraverseByLociByReference(INPUT_FILE, REF_FILE_ARG, rods);
-            else
-                this.engine = new TraverseByLoci(INPUT_FILE, REF_FILE_ARG, rods);
+
+            if ( INPUT_FILE == null ) {
+                if ( walker.requiresReads() )
+                    Utils.scareUser(String.format("Analysis %s requires reads, but none were given", Analysis_Name));
+                this.engine = new TraverseByReference(null, REF_FILE_ARG, rods);
+            } else {
+                if ( walker.cannotHandleReads() )
+                    Utils.scareUser(String.format("Analysis %s doesn't support SAM/BAM reads, but a read file %s was provided", Analysis_Name, INPUT_FILE));
+
+
+                if ( WALK_ALL_LOCI )
+                    this.engine = new TraverseByLociByReference(INPUT_FILE, REF_FILE_ARG, rods);
+                else
+                    this.engine = new TraverseByLoci(INPUT_FILE, REF_FILE_ARG, rods);
+            }
         }
         catch (java.lang.ClassCastException e) {
             // I guess we're a read walker LOL

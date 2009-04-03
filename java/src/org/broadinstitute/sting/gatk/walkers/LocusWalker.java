@@ -18,6 +18,13 @@ public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, R
         return true;    // We are keeping all the reads
     }
 
+    /**
+     * These two functions state whether we're don't make any sense without reads (requiresRead())
+     * or whether we can't take any reads at all (cannotHandleRead())
+     */
+    public boolean requiresReads()     { return false; }
+    public boolean cannotHandleReads() { return false; }
+
     // Map over the org.broadinstitute.sting.gatk.LocusContext
     public abstract MapType map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context);
 

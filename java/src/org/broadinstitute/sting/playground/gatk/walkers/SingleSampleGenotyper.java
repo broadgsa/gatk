@@ -17,6 +17,8 @@ public class SingleSampleGenotyper extends LocusWalker<Integer, Integer> {
         return true;    // We are keeping all the reads
     }
 
+    public boolean requiresReads()     { return true; }    
+
     protected class GenotypeLikelihoods
     {
         public double[] likelihoods;

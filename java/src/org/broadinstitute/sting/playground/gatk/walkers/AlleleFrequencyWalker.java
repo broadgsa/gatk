@@ -29,6 +29,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
     Random random;
     PrintStream output;
 
+    public boolean requiresReads()     { return true; }    
+
     public AlleleFrequencyEstimate map(List<ReferenceOrderedDatum> rodData, char ref, LocusContext context) 
     {
         // Convert context data into bases and 4-base quals
