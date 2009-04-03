@@ -38,14 +38,17 @@ public class FourBaseRecaller extends CommandLineProgram {
     protected int execute() {
         boolean isPaired = (END > 0);
 
-        BustardFileParser bfp = new BustardFileParser(DIR, LANE, isPaired, "BS");
-        BustardReadData bread = bfp.next();
+        BustardFileParser bfp;
+        BustardReadData bread;
+
+        bfp = new BustardFileParser(DIR, LANE, isPaired, "FB");
+        bread = bfp.next();
 
         int cycle_offset = (END <= 1) ? 0 : bread.getIntensities().length/2;
         BasecallingReadModel p = new BasecallingReadModel(bread.getFirstReadSequence().length());
         int queryid;
 
-        // learn parameters
+        // learn initial parameters
         queryid = 0;
         do {
             String bases = (END <= 1) ? bread.getFirstReadSequence() : bread.getSecondReadSequence();
@@ -67,6 +70,9 @@ public class FourBaseRecaller extends CommandLineProgram {
         // call bases
         SAMFileHeader sfh = new SAMFileHeader();
         SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, OUT);
+        
+        bfp = new BustardFileParser(DIR, LANE, isPaired, "FB");
+        bread = bfp.next();
 
         queryid = 0;
         do {
@@ -79,19 +85,21 @@ public class FourBaseRecaller extends CommandLineProgram {
             byte[] nextbestqual = new byte[bases.length()];
 
             for (int cycle = 0; cycle < bases.length(); cycle++) {
-                char basePrev = (cycle == 0) ? '*' : bases.charAt(cycle - 1);
-                byte qualPrev = (cycle == 0) ? 0 : quals[cycle - 1];
+                //char basePrev = (cycle == 0) ? '*' : bases.charAt(cycle - 1);
+                //byte qualPrev = (cycle == 0) ? 0 : quals[cycle - 1];
+                char basePrev = (cycle == 0) ? '*' : (char) asciiseq[cycle - 1];
+                byte qualPrev = (cycle == 0) ? 0 : bestqual[cycle - 1];
                 double[] fourintensity = intensities[cycle + cycle_offset];
 
                 FourProb fp = p.computeProbabilities(cycle, basePrev, qualPrev, fourintensity);
 
                 asciiseq[cycle] = (byte) fp.baseAtRank(0);
                 bestqual[cycle] = fp.qualAtRank(0);
-                nextbestqual[cycle] = QualityUtils.qualAndProbToCompressedQuality(fp.indexAtRank(1), fp.probAtRank(1));
+                nextbestqual[cycle] = QualityUtils.baseAndProbToCompressedQuality(fp.indexAtRank(1), fp.probAtRank(1));
             }
 
             SAMRecord sr = new SAMRecord(sfh);
-            sr.setReadName(bread.getReadName());
+            sr.setReadName("KIR_" + bread.getReadName());
             sr.setReadUmappedFlag(true);
             sr.setReadBases(asciiseq);
             sr.setBaseQualities(bestqual);
@@ -105,13 +113,26 @@ public class FourBaseRecaller extends CommandLineProgram {
             }
             sfw.addAlignment(sr);
 
+            SAMRecord sr2 = new SAMRecord(sfh);
+            sr2.setReadName("BUS_" + bread.getReadName());
+            sr2.setReadUmappedFlag(true);
+            sr2.setReadString(bases);
+            sr2.setBaseQualities(quals);
+            sr2.setReadFailsVendorQualityCheckFlag(!bread.isPf());
+            sr2.setReadPairedFlag(isPaired);
+            if (isPaired) {
+                sr2.setMateUnmappedFlag(true);
+                sr2.setFirstOfPairFlag(END <= 1);
+                sr2.setSecondOfPairFlag(END > 1);
+            }
+            sfw.addAlignment(sr2);
+
             /*
             System.out.println(sr.format());
-            System.out.println(sr.getReadString());
-            System.out.println(bases);
+            System.out.println(sr2.format());
             System.out.println("\n");
             */
-
+            
             queryid++;
         } while (queryid < CALLING_LIMIT && bfp.hasNext() && (bread = bfp.next()) != null);
 
