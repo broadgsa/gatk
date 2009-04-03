@@ -28,9 +28,9 @@
 			<key>GanttGroupShading</key>
 			<false/>
 			<key>GanttVisibleRect</key>
-			<string>{{-35, 124}, {1025, 1033}}</string>
+			<string>{{-35, 141}, {1025, 1033}}</string>
 			<key>OutlineVisibleRect</key>
-			<string>{{0, 124}, {789, 1033}}</string>
+			<string>{{0, 141}, {789, 1033}}</string>
 			<key>ScaleWidths</key>
 			<dict>
 				<key>Automatic</key>
@@ -587,7 +587,7 @@
 	<key>taskDifferenceEngine</key>
 	<dict>
 		<key>nextId</key>
-		<integer>111</integer>
+		<integer>112</integer>
 	</dict>
 	<key>taskUserKeys</key>
 	<array/>
@@ -1373,6 +1373,7 @@
 				<integer>83</integer>
 				<integer>95</integer>
 				<integer>96</integer>
+				<integer>111</integer>
 			</array>
 			<key>objectId</key>
 			<integer>41</integer>
@@ -2391,6 +2392,18 @@
 			<key>workTime</key>
 			<real>8</real>
 		</dict>
+		<dict>
+			<key>effort</key>
+			<real>28800</real>
+			<key>objectId</key>
+			<integer>111</integer>
+			<key>task</key>
+			<string>Fix rodDBSNP</string>
+			<key>workSeconds</key>
+			<real>28800</real>
+			<key>workTime</key>
+			<real>8</real>
+		</dict>
 	</array>
 	<key>topResources</key>
 	<array>
@@ -2401,7 +2414,7 @@
 		<integer>-1</integer>
 	</array>
 	<key>uuid</key>
-	<string>E50852A9-C0BE-452A-A050-4FF83DEF06D7</string>
+	<string>85860500-DAB8-4D75-95EE-F86F00907D5D</string>
 	<key>version</key>
 	<integer>2</integer>
 </dict>

@@ -7,6 +7,8 @@ import java.io.FileNotFoundException;
 import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 import edu.mit.broad.picard.util.TabbedTextFileParser;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
@@ -23,12 +25,14 @@ import org.broadinstitute.sting.utils.Utils;
  * To change this template use File | Settings | File Templates.
  */
 public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements Iterable<ROD> {
+    private String name;
     private File file = null;
     private Class<ROD> type = null; // runtime type information for object construction
 
-    public ReferenceOrderedData(File file, Class<ROD> type ) {
+    public ReferenceOrderedData(final String name, File file, Class<ROD> type ) {
         this.file = file;
         this.type = type;
+        this.name = name;
     }
 
     public RODIterator iterator() {
@@ -232,7 +236,9 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     ROD parseLine(final String[] parts) {
         //System.out.printf("Parsing GFFLine %s%n", Utils.join(" ", parts));
         try {
-            ROD obj = type.newInstance();
+            //ROD obj = type.newInstance();
+            Constructor c = type.getConstructor(String.class);
+            ROD obj = (ROD)c.newInstance(name);
             obj.parseLine(parts);
             return obj;
         } catch ( java.lang.InstantiationException e ) {
@@ -241,6 +247,12 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         } catch ( java.lang.IllegalAccessException e ) {
             System.out.println(e);
             return null; // wow, unsafe!
-        }       
+        } catch ( java.lang.NoSuchMethodException e ) {
+            System.out.println(e);
+            return null; // wow, unsafe!
+        } catch ( InvocationTargetException e ) {
+            System.out.println(e);
+            return null; // wow, unsafe!
+        }
     }
 }

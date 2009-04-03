@@ -158,21 +158,21 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         List<ReferenceOrderedData<? extends ReferenceOrderedDatum> > rods = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum> >();
 
         if ( TEST_ROD ) {
-            ReferenceOrderedData<rodGFF> gff = new ReferenceOrderedData<rodGFF>(new File("trunk/data/gFFTest.gff"), rodGFF.class );
+            ReferenceOrderedData<rodGFF> gff = new ReferenceOrderedData<rodGFF>("test", new File("trunk/data/gFFTest.gff"), rodGFF.class );
             gff.testMe();
 
             //ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("trunk/data/dbSNP_head.txt"), rodDbSNP.class );
-            ReferenceOrderedData<rodDbSNP> dbsnp = new ReferenceOrderedData<rodDbSNP>(new File("/Volumes/Users/mdepristo/broad/ATK/exampleSAMs/dbSNP_chr20.txt"), rodDbSNP.class );
+            ReferenceOrderedData<rodDbSNP> dbsnp = new ReferenceOrderedData<rodDbSNP>("dbSNP", new File("/Volumes/Users/mdepristo/broad/ATK/exampleSAMs/dbSNP_chr20.txt"), rodDbSNP.class );
             //dbsnp.testMe();
             rods.add(dbsnp); // { gff, dbsnp };
         } else {
             if ( DBSNP_FILE != null ) {
-                ReferenceOrderedData<rodDbSNP> dbsnp = new ReferenceOrderedData<rodDbSNP>(new File(DBSNP_FILE), rodDbSNP.class );
+                ReferenceOrderedData<rodDbSNP> dbsnp = new ReferenceOrderedData<rodDbSNP>("dbSNP", new File(DBSNP_FILE), rodDbSNP.class );
                 //dbsnp.testMe();
                 rods.add(dbsnp); // { gff, dbsnp };
             }
             if ( HAPMAP_FILE != null ) {
-                ReferenceOrderedData<HapMapAlleleFrequenciesROD> hapmap = new ReferenceOrderedData<HapMapAlleleFrequenciesROD>(new File(HAPMAP_FILE), HapMapAlleleFrequenciesROD.class );
+                ReferenceOrderedData<HapMapAlleleFrequenciesROD> hapmap = new ReferenceOrderedData<HapMapAlleleFrequenciesROD>("hapmap", new File(HAPMAP_FILE), HapMapAlleleFrequenciesROD.class );
                 //dbsnp.testMe();
                 rods.add(hapmap); // { gff, dbsnp };
             }

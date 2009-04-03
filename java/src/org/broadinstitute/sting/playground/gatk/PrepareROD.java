@@ -49,7 +49,7 @@ public class PrepareROD extends CommandLineProgram {
 
         Class<? extends ReferenceOrderedDatum> rodClass = Types.get(ROD_TYPE.toLowerCase());
 
-        ReferenceOrderedData<? extends ReferenceOrderedDatum> rod = new ReferenceOrderedData(new File(ROD_FILE), rodClass );
+        ReferenceOrderedData<? extends ReferenceOrderedDatum> rod = new ReferenceOrderedData("ROD", new File(ROD_FILE), rodClass );
         try {
             rod.validateFile();
         } catch ( Exception e ) {
@@ -68,7 +68,7 @@ public class PrepareROD extends CommandLineProgram {
         }
 
         System.out.printf("Validating output file %s%n", rodData.size(), OUTPUT_FILE);
-        ReferenceOrderedData outputRod = new ReferenceOrderedData(new File(OUTPUT_FILE), rodClass );
+        ReferenceOrderedData outputRod = new ReferenceOrderedData("ROD", new File(OUTPUT_FILE), rodClass );
         try {
             outputRod.validateFile();
             //outputRod.hasSameContents(ROD_FILE);

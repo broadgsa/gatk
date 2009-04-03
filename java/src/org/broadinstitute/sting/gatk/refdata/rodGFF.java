@@ -29,8 +29,8 @@ public class rodGFF extends ReferenceOrderedDatum {
     // Constructors
     //
     // ----------------------------------------------------------------------
-    public rodGFF() {
-        
+    public rodGFF(final String name) {
+        super(name);        
     }
 
     public void setValues(final String contig, final String source, final String feature,

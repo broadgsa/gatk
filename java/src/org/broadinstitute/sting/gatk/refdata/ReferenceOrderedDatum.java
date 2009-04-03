@@ -10,8 +10,13 @@ import org.broadinstitute.sting.utils.GenomeLoc;
  * To change this template use File | Settings | File Templates.
  */
 public abstract class ReferenceOrderedDatum implements Comparable<ReferenceOrderedDatum> {
+    protected String name;
 
-    public ReferenceOrderedDatum() { }
+    public ReferenceOrderedDatum(String name) {
+        this.name = name;
+    }
+
+    public String getName() { return this.name; }
 
     public abstract void parseLine(final String[] parts);
 

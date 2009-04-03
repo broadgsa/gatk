@@ -52,7 +52,9 @@ public class rodDbSNP extends ReferenceOrderedDatum implements AllelicVariant {
     // Constructors
     //
     // ----------------------------------------------------------------------
-    public rodDbSNP() {}
+    public rodDbSNP(final String name) {
+        super(name);
+    }
 
     // ----------------------------------------------------------------------
     //

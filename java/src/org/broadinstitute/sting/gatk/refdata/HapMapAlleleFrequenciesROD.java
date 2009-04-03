@@ -35,6 +35,9 @@ public class HapMapAlleleFrequenciesROD extends ReferenceOrderedDatum {
     public Integer varCounts; // maybe we don't need these?
     public Integer totalCounts; // maybe we don't need these?
 
+    public HapMapAlleleFrequenciesROD(String name) {
+        super(name);
+    }
 
     public GenomeLoc getLocation() { return loc; }
 
