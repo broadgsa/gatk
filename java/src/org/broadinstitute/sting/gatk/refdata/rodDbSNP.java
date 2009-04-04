@@ -222,4 +222,10 @@ public class rodDbSNP extends ReferenceOrderedDatum implements AllelicVariant {
 		// TODO Auto-generated method stub
 		return false;
 	}
+
+	@Override
+	public boolean isBiallelic() {
+		// TODO Auto-generated method stub
+		return observed.indexOf('/')==observed.lastIndexOf('/');
+	}
 }

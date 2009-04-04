@@ -119,4 +119,12 @@ public interface AllelicVariant extends Comparable<ReferenceOrderedDatum> {
      * @return
      */
     int getPloidy() throws IllegalStateException;
+    
+    /** Returns true if the site has at most two known or observed alleles (ref and non-ref), or false if there are > 2 allelic variants known or observed. When
+     * the implementing class is a genotype, alleles should be always counted including the reference allele whether it was observed in the particular
+     * individual or not: i.e. if the reference is 'C', then both 'CA' and 'AA' genotypes must be reported as bi-allelic, while 'AT' is <i>not</i> bi-allelic (since there are
+     * two allelic variants, 'A' and 'T' <i>in addition</i> to the (known) reference variant 'C'). 
+     * @return
+     */
+    boolean isBiallelic() ;
 }
