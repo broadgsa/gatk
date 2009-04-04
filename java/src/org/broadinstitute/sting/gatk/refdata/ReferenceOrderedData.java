@@ -10,7 +10,6 @@ import java.util.Collections;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-import edu.mit.broad.picard.util.TabbedTextFileParser;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.xReadLines;
@@ -239,7 +238,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         //System.out.printf("Parsing GFFLine %s%n", Utils.join(" ", parts));
         try {
             //ROD obj = type.newInstance();
-            Constructor c = type.getConstructor(String.class);
+            Constructor<ROD> c = type.getConstructor(String.class);
             ROD obj = (ROD)c.newInstance(name);
             obj.parseLine(parts);
             return obj;
