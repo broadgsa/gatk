@@ -96,44 +96,30 @@ public class FourBaseRecaller extends CommandLineProgram {
                 nextbestqual[cycle] = QualityUtils.baseAndProbToCompressedQuality(fp.indexAtRank(1), fp.probAtRank(1));
             }
 
-            SAMRecord sr = new SAMRecord(sfh);
-            sr.setReadName("KIR_" + bread.getReadName());
-            sr.setReadUmappedFlag(true);
-            sr.setReadBases(asciiseq);
-            sr.setBaseQualities(bestqual);
-            sr.setAttribute("SQ", nextbestqual);
-            sr.setReadFailsVendorQualityCheckFlag(!bread.isPf());
-            sr.setReadPairedFlag(isPaired);
-            if (isPaired) {
-                sr.setMateUnmappedFlag(true);
-                sr.setFirstOfPairFlag(END <= 1);
-                sr.setSecondOfPairFlag(END > 1);
-            }
-            sfw.addAlignment(sr);
+            sfw.addAlignment(constructSAMRecord("KIR_", new String(asciiseq), bestqual, nextbestqual, isPaired, END, bread, sfh));
+            sfw.addAlignment(constructSAMRecord("BUS_", bases,                quals,    null,         isPaired, END, bread, sfh));
 
-            SAMRecord sr2 = new SAMRecord(sfh);
-            sr2.setReadName("BUS_" + bread.getReadName());
-            sr2.setReadUmappedFlag(true);
-            sr2.setReadString(bases);
-            sr2.setBaseQualities(quals);
-            sr2.setReadFailsVendorQualityCheckFlag(!bread.isPf());
-            sr2.setReadPairedFlag(isPaired);
-            if (isPaired) {
-                sr2.setMateUnmappedFlag(true);
-                sr2.setFirstOfPairFlag(END <= 1);
-                sr2.setSecondOfPairFlag(END > 1);
-            }
-            sfw.addAlignment(sr2);
-
-            /*
-            System.out.println(sr.format());
-            System.out.println(sr2.format());
-            System.out.println("\n");
-            */
-            
             queryid++;
         } while (queryid < CALLING_LIMIT && bfp.hasNext() && (bread = bfp.next()) != null);
 
         return 0;
+    }
+
+    private SAMRecord constructSAMRecord(String readNamePrefix, String bases, byte[] bestqual, byte[] nextbestqual, boolean isPaired, int END, BustardReadData bread, SAMFileHeader sfh) {
+        SAMRecord sr = new SAMRecord(sfh);
+        
+        sr.setReadName(readNamePrefix + bread.getReadName());
+        sr.setReadUmappedFlag(true);
+        sr.setReadString(bases);
+        sr.setBaseQualities(bestqual);
+        if (nextbestqual != null) { sr.setAttribute("SQ", nextbestqual); }
+        sr.setReadFailsVendorQualityCheckFlag(!bread.isPf());
+        if (isPaired) {
+            sr.setMateUnmappedFlag(true);
+            sr.setFirstOfPairFlag(END <= 1);
+            sr.setFirstOfPairFlag(END > 1);
+        }
+
+        return sr;
     }
 }
