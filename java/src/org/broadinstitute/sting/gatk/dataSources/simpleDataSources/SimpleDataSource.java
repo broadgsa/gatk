@@ -1,6 +1,10 @@
 package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
+import org.broadinstitute.sting.utils.GenomeLoc;
+
 import java.io.Serializable;
+import java.util.Iterator;
+
 
 /**
  * User: aaron
@@ -14,17 +18,20 @@ import java.io.Serializable;
  * <p/>
  * This software is supplied without any warranty or guaranteed support whatsoever. Neither
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
+ *
  */
+
+/** This class is the interface for all data sources */
 public interface SimpleDataSource extends Serializable {
 
-    /**
-     * recommend how many data chunks we should be breaking the file into,
-     * as a recommendated number.  If not specified (and even if specified)
-     * the chunking data source can make decisions to chunk differently.
-     *
-     * @param chunkCount
-     */
-    public void chunk(int chunkCount);
 
+    /**
+     * Query the data source for a region of interest, specified by the genome location.
+     * The iterator will generate successive calls
+     *
+     * @param location the genome location to extract data for
+     * @return an iterator of the appropriate type, that is limited by the region
+     */
+    public Iterator seek(GenomeLoc location);
 
 }
