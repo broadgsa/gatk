@@ -8,6 +8,8 @@ import cern.colt.matrix.linalg.Algebra;
 
 import org.broadinstitute.sting.utils.QualityUtils;
 
+import java.io.*;
+
 /**
  * BasecallingBaseModel is a class that represents the statistical
  * model for all bases at a given cycle.  It allows for easy, one
@@ -59,15 +61,34 @@ public class BasecallingBaseModel {
 
     /**
      * Add a single training point to the model.
+     *
      * @param basePrev       the previous cycle's base call (A, C, G, T, or * for the first cycle)
      * @param baseCur        the current cycle's base call (A, C, G, T)
      * @param qualCur        the quality score for the current cycle's base call
      * @param fourintensity  the four intensities for the current cycle's base call
      */
     public void addTrainingPoint(char basePrev, char baseCur, byte qualCur, double[] fourintensity) {
-        int basePrevIndex = baseToBaseIndex(basePrev);
-        int baseCurIndex = baseToBaseIndex(baseCur);
+        int actualBasePrevIndex = baseToBaseIndex(basePrev);
+        int actualBaseCurIndex = baseToBaseIndex(baseCur);
+        double actualWeight = QualityUtils.qualToProb(qualCur);
+        double otherTheories = (basePrev == '*') ? 3.0 : 15.0;
 
+        cern.jet.math.Functions F = cern.jet.math.Functions.functions;
+
+        for (int basePrevIndex = 0; basePrevIndex < 4; basePrevIndex++) {
+            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+                // We want to upweight the correct theory as much as we can and spread the remainder out evenly between all other hypotheses.
+                double weight = (basePrevIndex == actualBasePrevIndex && baseCurIndex == actualBaseCurIndex) ? actualWeight : ((1.0 - actualWeight)/otherTheories);
+
+                DoubleMatrix1D weightedChannelIntensities = (DoubleFactory1D.dense).make(fourintensity);
+                weightedChannelIntensities.assign(F.mult(weight));
+
+                runningChannelSums[basePrevIndex][baseCurIndex].assign(weightedChannelIntensities, F.plus);
+                counts[basePrevIndex][baseCurIndex] += weight;
+            }
+        }
+
+        /*
         if (basePrevIndex >= 0 && baseCurIndex >= 0) {
             for (int channel = 0; channel < 4; channel++) {
                 double weight = QualityUtils.qualToProb(qualCur);
@@ -83,6 +104,7 @@ public class BasecallingBaseModel {
 
             counts[basePrevIndex][baseCurIndex]++;
         }
+        */
 
         readyToCall = false;
     }
@@ -148,6 +170,27 @@ public class BasecallingBaseModel {
         return probdist;
     }
 
+    public void write(File outparam) {
+        try {
+            PrintWriter writer = new PrintWriter(outparam);
+
+            for (int basePrevIndex = 0; basePrevIndex < 4; basePrevIndex++) {
+                for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+                    writer.print("mean_" + baseIndexToBase(basePrevIndex) + "" + baseIndexToBase(baseCurIndex) + " : [ ");
+                    for (int channel = 0; channel < 4; channel++) {
+                        writer.print(runningChannelSums[basePrevIndex][baseCurIndex].getQuick(channel)/counts[basePrevIndex][baseCurIndex]);
+                        writer.print(" ");
+                    }
+                    writer.print("]\n");
+                }
+            }
+
+            writer.close();
+        } catch (IOException e) {
+
+        }
+    }
+
     /**
      * Utility method for converting a base ([Aa*], [Cc], [Gg], [Tt]) to an index (0, 1, 2, 3);
      * @param base
@@ -170,5 +213,15 @@ public class BasecallingBaseModel {
         }
 
         return -1;
+    }
+
+    private char baseIndexToBase(int baseIndex) {
+        switch (baseIndex) {
+            case 0: return 'A';
+            case 1: return 'C';
+            case 2: return 'G';
+            case 3: return 'T';
+            default: return '.';
+        }
     }
 }

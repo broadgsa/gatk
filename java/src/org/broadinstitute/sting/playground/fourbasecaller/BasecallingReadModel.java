@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.playground.fourbasecaller;
 
+import java.io.File;
+
 /**
  * BasecallingReadModel represents the statistical models for
  * all bases in all cycles.  It allows for easy, one-pass
@@ -28,6 +30,7 @@ public class BasecallingReadModel {
 
     /**
      * Add a single training point to the model.
+     *
      * @param cycle         the cycle for which this point should be added
      * @param basePrev      the previous base
      * @param baseCur       the current base
@@ -81,5 +84,17 @@ public class BasecallingReadModel {
         }
 
         return new FourProb(baseindices, probs);
+    }
+
+    /**
+     * Writes model parameters to a file per cycle.
+     *
+     * @param dir  the directory where the parameters should be written
+     */
+    public void write(File dir) {
+        for (int cycle = 0; cycle < basemodels.length; cycle++) {
+            File outparam = new File(dir.getPath() + "/param." + cycle);
+            basemodels[cycle].write(outparam);
+        }
     }
 }

@@ -45,7 +45,7 @@ public class FourBaseRecaller extends CommandLineProgram {
         bread = bfp.next();
 
         int cycle_offset = (END <= 1) ? 0 : bread.getIntensities().length/2;
-        BasecallingReadModel p = new BasecallingReadModel(bread.getFirstReadSequence().length());
+        BasecallingReadModel model = new BasecallingReadModel(bread.getFirstReadSequence().length());
         int queryid;
 
         // learn initial parameters
@@ -61,11 +61,15 @@ public class FourBaseRecaller extends CommandLineProgram {
                 byte qualCur  = quals[cycle];
                 double[] fourintensity = intensities[cycle + cycle_offset];
 
-                p.addTrainingPoint(cycle, basePrev, baseCur, qualCur, fourintensity);
+                model.addTrainingPoint(cycle, basePrev, baseCur, qualCur, fourintensity);
             }
 
             queryid++;
         } while (queryid < TRAINING_LIMIT && bfp.hasNext() && (bread = bfp.next()) != null);
+
+        File debugout = new File(OUT.getParentFile().getPath() + "/model/");
+        debugout.mkdir();
+        model.write(debugout);
 
         // call bases
         SAMFileHeader sfh = new SAMFileHeader();
@@ -89,7 +93,7 @@ public class FourBaseRecaller extends CommandLineProgram {
                 byte qualPrev = (cycle == 0) ? 0 : bestqual[cycle - 1];
                 double[] fourintensity = intensities[cycle + cycle_offset];
 
-                FourProb fp = p.computeProbabilities(cycle, basePrev, qualPrev, fourintensity);
+                FourProb fp = model.computeProbabilities(cycle, basePrev, qualPrev, fourintensity);
 
                 asciiseq[cycle] = (byte) fp.baseAtRank(0);
                 bestqual[cycle] = fp.qualAtRank(0);
@@ -101,6 +105,8 @@ public class FourBaseRecaller extends CommandLineProgram {
 
             queryid++;
         } while (queryid < CALLING_LIMIT && bfp.hasNext() && (bread = bfp.next()) != null);
+
+        sfw.close();
 
         return 0;
     }
