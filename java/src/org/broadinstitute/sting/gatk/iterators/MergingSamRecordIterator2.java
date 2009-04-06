@@ -50,8 +50,8 @@ public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
 
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
-            if (this.sortOrder != SAMFileHeader.SortOrder.unsorted && reader.getFileHeader().getSortOrder() != this.sortOrder){
-                throw new PicardException("Files are not compatible with sort order: " + this.sortOrder );
+            if (this.sortOrder != SAMFileHeader.SortOrder.unsorted && reader.getFileHeader().getSortOrder() != this.sortOrder) {
+                throw new PicardException("Files are not compatible with sort order: " + reader.getFileHeader().getSortOrder() + " vrs " + this.sortOrder);
             }
 
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, comparator);
@@ -59,18 +59,41 @@ public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
         }
     }
 
+    /**
+     * Constructs a new merging iterator with the same set of readers and sort order as
+     * provided by the header merger parameter.
+     */
+    public MergingSamRecordIterator2(MergingSamRecordIterator2 iter) {
+        this.samHeaderMerger = iter.samHeaderMerger;
+        this.sortOrder = iter.sortOrder;
+        initializePQ();
+
+        final SAMRecordComparator comparator = getComparator();
+        for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
+            if (this.sortOrder != SAMFileHeader.SortOrder.unsorted && reader.getFileHeader().getSortOrder() != this.sortOrder) {
+                throw new PicardException("Files are not compatible with sort order: " + this.sortOrder);
+            }
+
+            final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, comparator);
+            addIfNotEmpty(iterator);
+        }
+    }
+
+
     protected void initializePQ() {
         this.pq = new PriorityQueue<ComparableSamRecordIterator>(samHeaderMerger.getReaders().size());
     }
 
-    public boolean supportsSeeking() { return true; }
+    public boolean supportsSeeking() {
+        return true;
+    }
 
-    public void queryOverlapping( final String contig, final int start, final int stop ) {
+    public void queryOverlapping(final String contig, final int start, final int stop) {
         initializePQ();     // reinitialize the system
         final SAMRecordComparator comparator = getComparator();
 
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
-            Iterator<SAMRecord> recordIter = reader.queryOverlapping( contig, start, stop);
+            Iterator<SAMRecord> recordIter = reader.queryOverlapping(contig, start, stop);
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, recordIter, comparator);
             addIfNotEmpty(iterator);
         }
@@ -80,7 +103,7 @@ public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
         initializePQ();     // reinitialize the system
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
-            Iterator<SAMRecord> recordIter = reader.query( contig, start, stop, contained);
+            Iterator<SAMRecord> recordIter = reader.query(contig, start, stop, contained);
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, recordIter, comparator);
             addIfNotEmpty(iterator);
         }
@@ -90,19 +113,19 @@ public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
         initializePQ();     // reinitialize the system
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
-            Iterator<SAMRecord> recordIter = reader.queryContained( contig, start, stop );
+            Iterator<SAMRecord> recordIter = reader.queryContained(contig, start, stop);
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, recordIter, comparator);
             addIfNotEmpty(iterator);
         }
     }
 
     /** Returns true if any of the underlying iterators has more records, otherwise false. */
-    public boolean hasNext() {
+    public synchronized boolean hasNext() {
         return !this.pq.isEmpty();
     }
 
     /** Returns the next record from the top most iterator during merging. */
-    public SAMRecord next() {
+    public synchronized SAMRecord next() {
         final ComparableSamRecordIterator iterator = this.pq.poll();
         final SAMRecord record = iterator.next();
         addIfNotEmpty(iterator);
@@ -131,8 +154,7 @@ public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
         //System.out.printf("Adding %s %s %d%n", iterator.peek().getReadName(), iterator.peek().getReferenceName(), iterator.peek().getAlignmentStart());
         if (iterator.hasNext()) {
             pq.offer(iterator);
-        }
-        else {
+        } else {
             iterator.close();
         }
     }
@@ -196,7 +218,7 @@ class ComparableSamRecordIterator extends PeekableIterator<SAMRecord> implements
      * able to compare itself to other ComparableSAMRecordIterator instances using
      * the supplied comparator for ordering SAMRecords.
      *
-     * @param sam the SAM file to read records from
+     * @param sam        the SAM file to read records from
      * @param comparator the Comparator to use to provide ordering fo SAMRecords
      */
     public ComparableSamRecordIterator(final SAMFileReader sam, final Comparator<SAMRecord> comparator) {
