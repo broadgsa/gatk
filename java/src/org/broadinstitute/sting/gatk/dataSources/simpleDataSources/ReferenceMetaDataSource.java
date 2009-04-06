@@ -1,13 +1,13 @@
 package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
-import org.broadinstitute.sting.gatk.refdata.HapMapAlleleFrequenciesROD;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
-import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  *
@@ -92,7 +92,7 @@ public class ReferenceMetaDataSource implements SimpleDataSource {
     }
 
     public ReferenceMetaDataSource(HashMap<String, RODTYPE> files) {
-
+        /*
         // setup a rod list
         List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum>>();
 
@@ -114,5 +114,6 @@ public class ReferenceMetaDataSource implements SimpleDataSource {
                 }
             }
         }
+        */
     }
 }
