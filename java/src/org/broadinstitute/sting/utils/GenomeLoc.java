@@ -130,7 +130,10 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     }
 
     public static GenomeLoc genomicLocationOf(final SAMRecord read) {
-        return new GenomeLoc(read.getReferenceName(), read.getAlignmentStart(), read.getAlignmentEnd());
+        String contig = read.getReferenceName();
+        if (read.getReadUnmappedFlag())
+            contig = null;
+        return new GenomeLoc(contig, read.getAlignmentStart(), read.getAlignmentEnd());
     }
 
     // --------------------------------------------------------------------------------------------------------------
