@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
+import org.broadinstitute.sting.gatk.iterators.BoundedReferenceIterator;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.utils.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -44,17 +45,11 @@ public class ReferenceDataSource implements SimpleDataSource {
      * @param location the genome location to extract data for
      * @return an iterator of the appropriate type, that is limited by the region
      */
-    public ReferenceIterator seek(GenomeLoc location) {
-        ReferenceIterator refSite = refIter.seekForward(location);
-        return refSite;
+    public BoundedReferenceIterator seek(GenomeLoc location) {
+        BoundedReferenceIterator ret = new BoundedReferenceIterator(refIter.seekForward(location), location);
+        return ret;
     }
 
-    /**
-     * Constructor - ReferenceDataSource
-     *
-     * @param refFileName the reference file
-     * @throws SimpleDataSourceLoadException
-     */
     public ReferenceDataSource(String refFileName) throws SimpleDataSourceLoadException {
         if (refFileName == null) {
             throw new SimpleDataSourceLoadException("ReferenceDataSource: refFileName passed in is null");
@@ -63,6 +58,7 @@ public class ReferenceDataSource implements SimpleDataSource {
         if (!infile.canRead()) {
             throw new SimpleDataSourceLoadException("ReferenceDataSource: Unable to load file: " + refFileName);
         }
+        //this.refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFileName);
         refFile = new FastaSequenceFile2(new File(refFileName));
         refIter = new ReferenceIterator(this.refFile);
 
