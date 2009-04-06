@@ -163,6 +163,7 @@ public class Utils {
     }
 
     public static ArrayList<Byte> subseq(byte[] fullArray, int start, int end) {
+        assert end < fullArray.length;
         ArrayList<Byte> dest = new ArrayList<Byte>(end - start + 1);
         for (int i = start; i < end; i++) {
             dest.add(fullArray[i]);

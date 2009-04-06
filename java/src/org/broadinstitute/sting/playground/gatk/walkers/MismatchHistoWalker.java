@@ -37,10 +37,12 @@ public class MismatchHistoWalker extends ReadWalker<Integer, Integer> {
 
             int start = read.getAlignmentStart()-1;
             int stop  = read.getAlignmentEnd();
+            // sometimes BWA outputs screwy reads
+            if ( stop >= context.getReferenceContig().getBases().length )
+                return 0;
 
             List<Byte> refSeq = Utils.subseq(context.getReferenceContig().getBases(), start, stop);
             List<Byte> readBases = Utils.subseq(read.getReadBases());
-
             assert(refSeq.size() == readBases.size());
 
             // it's actually faster to reallocate a resized array than to use ArrayLists...
