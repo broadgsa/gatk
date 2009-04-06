@@ -26,7 +26,7 @@ import java.util.Iterator;
  * @version 1.0
  * @date Apr 2, 2009
  * <p/>
- * Class EnclosedIterator
+ * Class BoundedReferenceIterator
  * <p/>
  * This class is a decorator class from Reference Iterator (though it is constrained
  * by the fact that referenceIterator.seekForwardOffset explicitly returns a referenceIterator
