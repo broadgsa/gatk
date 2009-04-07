@@ -399,11 +399,10 @@ public abstract class TraversalEngine {
             //this.refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFileName);
             this.refFile = new FastaSequenceFile2(refFileName);   // todo: replace when FastaSequenceFile2 is in picard
             this.refIter = new ReferenceIterator(this.refFile);
-//            if (!GenomeLoc.setupRefContigOrdering(this.refFile)) {
-//                // We couldn't process the reference contig ordering, fail since we need it
-//                logger.fatal(String.format("We couldn't load the contig dictionary associated with %s.  At the current time we require this dictionary file to efficiently access the FASTA file.  In the near future this program will automatically construct the dictionary for you and save it down.", refFileName));
-//                throw new RuntimeException("We couldn't load the contig dictionary associated with " + refFileName + ".  At the current time we require this dictionary file to efficiently access the FASTA file.  In the near future this program will automatically construct the dictionary for you and save it down.");
-//            }
+            if (!GenomeLoc.setupRefContigOrdering(this.refFile)) {
+              // We couldn't process the reference contig ordering, fail since we need it
+                Utils.scareUser(String.format("We couldn't load the contig dictionary associated with %s.  At the current time we require this dictionary file to efficiently access the FASTA file.  Please use /seq/software/picard/current/bin/CreateSequenceDictionary.jar to create a sequence dictionary for your file", refFileName));
+            }
         }
     }
 

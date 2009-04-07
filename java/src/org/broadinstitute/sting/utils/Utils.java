@@ -35,11 +35,12 @@ public class Utils {
     }
 
     public static void scareUser(final String msg) {
-        logger.fatal(String.format("********************************************************************************"));
-        logger.fatal(String.format("* ERROR:"));
-        logger.fatal(String.format("*"));
-        logger.fatal(String.format("* %s", msg));
-        logger.fatal(String.format("********************************************************************************"));
+        System.out.printf("********************************************************************************%n");
+        System.out.printf("* ERROR:%n");
+        System.out.printf("*%n");
+        System.out.printf("* %s%n", msg);
+        System.out.printf("********************************************************************************%n");
+        logger.fatal(msg);
         throw new RuntimeException(msg);
     }
 
