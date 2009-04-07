@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.rodGFF;
 import org.broadinstitute.sting.gatk.refdata.HapMapAlleleFrequenciesROD;
+import org.broadinstitute.sting.gatk.refdata.rodSAMPileup;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -49,6 +50,12 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     public String DOWNSAMPLE_COVERAGE = null;
     public String INTERVALS_FILE = null;
 
+   // added for mendelian walker. 
+   //TODO: when walkers can ask for their tracks this should be removed!
+    public String MOTHER_GENOTYPE_FILE = null;
+    public String FATHER_GENOTYPE_FILE = null;
+    public String DAUGHTER_GENOTYPE_FILE = null;
+    
     // our walker manager
     private WalkerManager walkerManager = null;
 
@@ -116,6 +123,12 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalArg("out", "o", "An output file presented to the walker.  Will overwrite contents if file exists.", "outFileName" );
         m_parser.addOptionalArg("err", "e", "An error output file presented to the walker.  Will overwrite contents if file exists.", "errFileName" );
         m_parser.addOptionalArg("outerr", "oe", "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", "outErrFileName");
+
+        //TODO: remove when walkers can ask for tracks
+        m_parser.addOptionalArg("mother", "MOM", "Mother's genotype (SAM pileup)", "MOTHER_GENOTYPE_FILE");
+        m_parser.addOptionalArg("father", "DAD", "Father's genotype (SAM pileup)", "FATHER_GENOTYPE_FILE");
+        m_parser.addOptionalArg("daughter", "KID", "Daughter's genotype (SAM pileup)", "DAUGHTER_GENOTYPE_FILE");
+        
     }
 
     /**
@@ -182,7 +195,15 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                 ReferenceOrderedData<rodGFF> hapmapChip = new ReferenceOrderedData<rodGFF>("hapmap-chip", new File(HAPMAP_CHIP_FILE), rodGFF.class );
                 rods.add(hapmapChip);
             }
-        }
+            //TODO: remove when walkers can ask for tracks
+            if ( MOTHER_GENOTYPE_FILE != null ) 
+                rods.add( new ReferenceOrderedData<rodSAMPileup>("mother", new File(MOTHER_GENOTYPE_FILE), rodSAMPileup.class ) );
+            if ( FATHER_GENOTYPE_FILE != null ) 
+                rods.add( new ReferenceOrderedData<rodSAMPileup>("father", new File(FATHER_GENOTYPE_FILE), rodSAMPileup.class ) );
+            if ( DAUGHTER_GENOTYPE_FILE != null ) 
+                rods.add( new ReferenceOrderedData<rodSAMPileup>("daughter", new File(DAUGHTER_GENOTYPE_FILE), rodSAMPileup.class ) );
+            
+       }
 
         initializeOutputStreams();
 
@@ -211,9 +232,9 @@ public class GenomeAnalysisTK extends CommandLineProgram {
 
 
                 if ( WALK_ALL_LOCI )
-                    this.engine = new TraverseByLociByReference(INPUT_FILE, REF_FILE_ARG, rods);
+                	this.engine = new TraverseByLociByReference(INPUT_FILE, REF_FILE_ARG, rods); 
                 else
-                    this.engine = new TraverseByLoci(INPUT_FILE, REF_FILE_ARG, rods);
+                	this.engine = new TraverseByLoci(INPUT_FILE, REF_FILE_ARG, rods);
             }
         }
         catch (java.lang.ClassCastException e) {
