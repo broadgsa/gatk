@@ -48,7 +48,9 @@ public class FourBaseRecaller extends CommandLineProgram {
         BasecallingReadModel model = new BasecallingReadModel(bread.getFirstReadSequence().length());
         int queryid;
 
-        // learn initial parameters
+        // learn mean parameters
+        //System.out.println("intensity int_a int_c int_g int_t base");
+
         queryid = 0;
         do {
             String bases = (END <= 1) ? bread.getFirstReadSequence() : bread.getSecondReadSequence();
@@ -56,22 +58,50 @@ public class FourBaseRecaller extends CommandLineProgram {
             double[][] intensities = bread.getIntensities();
 
             for (int cycle = 0; cycle < bases.length(); cycle++) {
-                char basePrev = (cycle == 0) ? '*' : bases.charAt(cycle - 1);
                 char baseCur  = bases.charAt(cycle);
                 byte qualCur  = quals[cycle];
                 double[] fourintensity = intensities[cycle + cycle_offset];
 
-                model.addTrainingPoint(cycle, basePrev, baseCur, qualCur, fourintensity);
+                /*
+                if (cycle == 0) {
+                    System.out.println("intensity " + intensities[0][0] + " " + intensities[0][1] + " " + intensities[0][2] + " " + intensities[0][3] + " " + baseCur);
+                }
+                */
+
+                model.addMeanPoint(cycle, baseCur, qualCur, fourintensity);
             }
 
             queryid++;
         } while (queryid < TRAINING_LIMIT && bfp.hasNext() && (bread = bfp.next()) != null);
 
+        // learn covariance parameters
+        bfp = new BustardFileParser(DIR, LANE, isPaired, "FB");
+        bread = bfp.next();
+
+        queryid = 0;
+        do {
+            String bases = (END <= 1) ? bread.getFirstReadSequence() : bread.getSecondReadSequence();
+            byte[] quals = (END <= 1) ? bread.getFirstReadPhredBinaryQualities() : bread.getSecondReadPhredBinaryQualities();
+            double[][] intensities = bread.getIntensities();
+
+            for (int cycle = 0; cycle < bases.length(); cycle++) {
+                char baseCur  = bases.charAt(cycle);
+                byte qualCur  = quals[cycle];
+                double[] fourintensity = intensities[cycle + cycle_offset];
+
+                model.addCovariancePoint(cycle, baseCur, qualCur, fourintensity);
+            }
+
+            queryid++;
+        } while (queryid < TRAINING_LIMIT && bfp.hasNext() && (bread = bfp.next()) != null);
+
+        // write debugging info
         File debugout = new File(OUT.getParentFile().getPath() + "/model/");
         debugout.mkdir();
         model.write(debugout);
 
         // call bases
+        /*
         SAMFileHeader sfh = new SAMFileHeader();
         SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, OUT);
         
@@ -107,6 +137,7 @@ public class FourBaseRecaller extends CommandLineProgram {
         } while (queryid < CALLING_LIMIT && bfp.hasNext() && (bread = bfp.next()) != null);
 
         sfw.close();
+        */
 
         return 0;
     }

@@ -32,13 +32,16 @@ public class BasecallingReadModel {
      * Add a single training point to the model.
      *
      * @param cycle         the cycle for which this point should be added
-     * @param basePrev      the previous base
      * @param baseCur       the current base
      * @param qualCur       the current base's quality
      * @param fourintensity the four intensities of the current base
      */
-    public void addTrainingPoint(int cycle, char basePrev, char baseCur, byte qualCur, double[] fourintensity) {
-        basemodels[cycle].addTrainingPoint(basePrev, baseCur, qualCur, fourintensity);
+    public void addMeanPoint(int cycle, char baseCur, byte qualCur, double[] fourintensity) {
+        basemodels[cycle].addMeanPoint(baseCur, qualCur, fourintensity);
+    }
+
+    public void addCovariancePoint(int cycle, char baseCur, byte qualCur, double[] fourintensity) {
+        basemodels[cycle].addCovariancePoint(baseCur, qualCur, fourintensity);
     }
 
     /**
