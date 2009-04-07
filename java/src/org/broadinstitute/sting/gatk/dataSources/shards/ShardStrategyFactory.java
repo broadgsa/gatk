@@ -28,7 +28,7 @@ import net.sf.samtools.SAMSequenceDictionary;
  * <p/>
  * A descriptions should go here. Blame aaron if it's missing.
  */
-public class ShardFactory {
+public class ShardStrategyFactory {
     public enum SHATTER_STRATEGY {
         ADAPTIVE, LINEAR
     }
@@ -41,13 +41,13 @@ public class ShardFactory {
      * @param startingSize the starting size
      * @return
      */
-    static public Shard shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize) {
-        Shard d = null;
+    static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize) {
+        ShardStrategy d = null;
         switch (strat) {
             case ADAPTIVE:
-                d = new AdaptiveShard(dic, startingSize);
+                d = new AdaptiveShardStrategy(dic, startingSize);
             default:
-                d = new LinearShard(dic, startingSize); // default
+                d = new LinearShardStrategy(dic, startingSize); // default
         }
         return d;
     }
@@ -59,8 +59,8 @@ public class ShardFactory {
      * @param startingSize the starting size
      * @return
      */
-    static public AdaptiveShard getAdaptiveShard(SAMSequenceDictionary dic, long startingSize) {
-        return new AdaptiveShard(dic, startingSize);
+    static public AdaptiveShardStrategy getAdaptiveShard(SAMSequenceDictionary dic, long startingSize) {
+        return new AdaptiveShardStrategy(dic, startingSize);
     }
 
 }

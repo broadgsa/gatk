@@ -29,7 +29,7 @@ import java.util.Iterator;
  * <p/>
  * The shard interface, which controls how data is divided
  */
-public abstract class Shard implements Iterator<GenomeLoc> {
+public abstract class ShardStrategy implements Iterator<GenomeLoc> {
 
     // this stores the seq dictionary, which is a reference for the
     // lengths and names of contigs, which you need to generate an iterative stratagy
@@ -53,7 +53,7 @@ public abstract class Shard implements Iterator<GenomeLoc> {
      *
      * @param dic the seq dictionary
      */
-    Shard(SAMSequenceDictionary dic) {
+    ShardStrategy(SAMSequenceDictionary dic) {
         this.dic = dic;
         mLoc = new GenomeLoc(dic.getSequence(0).getSequenceName(), 0, 0);
         if (dic.getSequences().size() > 0) {

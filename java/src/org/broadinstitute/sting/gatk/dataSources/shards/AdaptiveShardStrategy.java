@@ -28,7 +28,7 @@ import net.sf.samtools.SAMSequenceDictionary;
  * <p/>
  * A descriptions should go here. Blame aaron if it's missing.
  */
-class AdaptiveShard extends Shard {
+class AdaptiveShardStrategy extends ShardStrategy {
 
     // default the next size to 100,000
     private long nextShardSize = 100000;
@@ -38,7 +38,7 @@ class AdaptiveShard extends Shard {
      *
      * @param dic the seq dictionary
      */
-    AdaptiveShard(SAMSequenceDictionary dic, long startSize) {
+    AdaptiveShardStrategy(SAMSequenceDictionary dic, long startSize) {
         super(dic);
         this.nextShardSize = startSize;
     }

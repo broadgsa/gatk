@@ -28,7 +28,7 @@ import net.sf.samtools.SAMSequenceDictionary;
  * <p/>
  * A descriptions should go here. Blame aaron if it's missing.
  */
-public class LinearShard extends Shard {
+public class LinearShardStrategy extends ShardStrategy {
 
     // fixed size
     private long nextShardSize = 100000;
@@ -38,7 +38,7 @@ public class LinearShard extends Shard {
      *
      * @param dic the seq dictionary
      */
-    LinearShard(SAMSequenceDictionary dic, long startSize) {
+    LinearShardStrategy(SAMSequenceDictionary dic, long startSize) {
         super(dic);
         this.nextShardSize = startSize;
     }
