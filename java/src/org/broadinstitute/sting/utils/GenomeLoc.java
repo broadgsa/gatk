@@ -94,9 +94,10 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     }
 
     public static boolean setupRefContigOrdering(final SAMSequenceDictionary seqDict) {
-        if (seqDict == null) // we couldn't load the reference dictionary
+        if (seqDict == null)  { // we couldn't load the reference dictionary
+        	logger.info("Failed to load reference dictionary, falling back to lexicographic order for contigs");
             return false;
-        else {
+        }  else {
             contigInfo = seqDict;
             logger.info(String.format("Prepared reference sequence contig dictionary%n  order ->"));
             for (SAMSequenceRecord contig : seqDict.getSequences() ) {
@@ -196,7 +197,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         }
 
         GenomeLoc loc = new GenomeLoc(contig, start, stop);
-        //System.out.printf("  => Parsed location '%s' into %s%n", str, loc);
+ //       System.out.printf("  => Parsed location '%s' into %s%n", str, loc);
 
         return loc;
     }
