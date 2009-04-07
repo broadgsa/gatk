@@ -29,11 +29,11 @@ import java.util.Iterator;
  * <p/>
  * The shard interface, which controls how data is divided
  */
-public abstract class ShardStrategy implements Iterator<GenomeLoc> {
+public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> {
 
     // this stores the seq dictionary, which is a reference for the
     // lengths and names of contigs, which you need to generate an iterative stratagy
-    protected static SAMSequenceDictionary dic = null;
+    protected final SAMSequenceDictionary dic;
 
     // the current genome location
     protected GenomeLoc mLoc = null;
@@ -61,20 +61,53 @@ public abstract class ShardStrategy implements Iterator<GenomeLoc> {
         }
     }
 
+    /**
+     * the copy constructor,
+     *
+     * @param old the old strategy
+     */
+    ShardStrategy(ShardStrategy old) {
+        this.dic = old.dic;
+        this.mLoc = old.mLoc;
+        this.seqLoc = old.seqLoc;
+        this.lastGenomeLocSize = old.lastGenomeLocSize;
+        this.nextContig = old.nextContig;
+    }
+
+    /**
+     *
+     * Abstract methods that each strategy has to implement
+     *
+     */
+
+    /**
+     * set the next shards size
+     *
+     * @param size adjust the next size to this
+     */
+    public abstract void adjustNextShardSize(long size);
+
 
     /**
      * This is how the various shards strategies implements their approach
      *
      * @return the next shard size
      */
-    protected abstract long nextShardSize();
+    abstract long nextShardSize();
+
+
+    /**
+     *
+     * Concrete methods that each strategy does not have to implement
+     *
+     */
 
     /**
      * get the next shard, based on the return size of nextShardSize
      *
      * @return
      */
-    public GenomeLoc next() {
+    public Shard next() {
         // lets get some background info on the problem
         long length = dic.getSequence(seqLoc).getSequenceLength();
         long proposedSize = nextShardSize();
@@ -83,7 +116,7 @@ public abstract class ShardStrategy implements Iterator<GenomeLoc> {
         if (nextStart + proposedSize < length) {
             lastGenomeLocSize = proposedSize;
             mLoc = new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + proposedSize);
-            return new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + proposedSize);
+            return Shard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + proposedSize));
         }
         // else we can't make it in the current location, we have to stitch one together
         else {
@@ -92,7 +125,7 @@ public abstract class ShardStrategy implements Iterator<GenomeLoc> {
 
             // move to the next contig
             jumpContig();
-            return new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, lastGenomeLocSize);
+            return Shard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, lastGenomeLocSize));
         }
 
     }
@@ -123,4 +156,16 @@ public abstract class ShardStrategy implements Iterator<GenomeLoc> {
     public void remove() {
         throw new UnsupportedOperationException("Can not remove records from a shard iterator!");
     }
+
+
+    /**
+     * to be for-each(able), we must implement this method
+     *
+     * @return
+     */
+    public Iterator<Shard> iterator() {
+        return this;
+    }
+
+
 }

@@ -30,7 +30,7 @@ import net.sf.samtools.SAMSequenceDictionary;
  */
 public class ShardStrategyFactory {
     public enum SHATTER_STRATEGY {
-        ADAPTIVE, LINEAR
+        LINEAR, EXPONENTIAL
     }
 
     /**
@@ -42,25 +42,34 @@ public class ShardStrategyFactory {
      * @return
      */
     static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize) {
-        ShardStrategy d = null;
         switch (strat) {
-            case ADAPTIVE:
-                d = new AdaptiveShardStrategy(dic, startingSize);
+            case LINEAR:
+                return new LinearShardStrategy(dic, startingSize);
+            case EXPONENTIAL:
+                return new ExpGrowthShardStrategy(dic, startingSize);
             default:
-                d = new LinearShardStrategy(dic, startingSize); // default
+                throw new RuntimeException("Strategy: " + strat + " isn't implemented");
         }
-        return d;
+
     }
 
     /**
-     * if you know what you want
+     * convert between types
      *
-     * @param dic          the seq dictionary
-     * @param startingSize the starting size
+     * @param strat       the strategy
+     * @param convertFrom convert from this strategy
      * @return
      */
-    static public AdaptiveShardStrategy getAdaptiveShard(SAMSequenceDictionary dic, long startingSize) {
-        return new AdaptiveShardStrategy(dic, startingSize);
+    static public ShardStrategy transitionToShardStrategy(SHATTER_STRATEGY strat, ShardStrategy convertFrom) {
+        switch (strat) {
+            case LINEAR:
+                return new LinearShardStrategy(convertFrom);
+            case EXPONENTIAL:
+                return new ExpGrowthShardStrategy(convertFrom);
+            default:
+                throw new RuntimeException("Strategy: " + strat + " isn't implemented");
+
+        }
     }
 
 }

@@ -6,7 +6,7 @@ import net.sf.samtools.SAMSequenceDictionary;
  *
  * User: aaron
  * Date: Apr 6, 2009
- * Time: 7:18:19 PM
+ * Time: 8:23:19 PM
  *
  * The Broad Institute
  * SOFTWARE COPYRIGHT NOTICE AGREEMENT 
@@ -24,23 +24,25 @@ import net.sf.samtools.SAMSequenceDictionary;
  * @version 1.0
  * @date Apr 6, 2009
  * <p/>
- * Class AdaptiveShard
+ * Class LinearShard
  * <p/>
- * allows you to change the sharding length as you traverse
+ * A linear strategy, very very similar to adaptive
  */
-class LinearShardStrategy extends ShardStrategy {
+public class ExpGrowthShardStrategy extends ShardStrategy {
 
-    // default the next size to 100,000
-    private long nextShardSize = 100000;
+    // fixed size
+    private long baseSize = 100000;
+    private long currentExp = 1;
 
     /**
      * the constructor, taking a seq dictionary to parse out contigs
      *
      * @param dic the seq dictionary
      */
-    LinearShardStrategy(SAMSequenceDictionary dic, long startSize) {
+    ExpGrowthShardStrategy(SAMSequenceDictionary dic, long startSize) {
         super(dic);
-        this.nextShardSize = startSize;
+        this.baseSize = startSize;
+        currentExp = 1;
     }
 
     /**
@@ -48,11 +50,11 @@ class LinearShardStrategy extends ShardStrategy {
      *
      * @param strat the shatter to convert from
      */
-    LinearShardStrategy(ShardStrategy strat) {
+    ExpGrowthShardStrategy(ShardStrategy strat) {
         super(strat);
-        this.nextShardSize = strat.nextShardSize();
+        this.baseSize = strat.nextShardSize();
+        currentExp = 1;
     }
-
 
     /**
      * set the next shards size
@@ -60,7 +62,8 @@ class LinearShardStrategy extends ShardStrategy {
      * @param size adjust the next size to this
      */
     public void adjustNextShardSize(long size) {
-        nextShardSize = size;
+        baseSize = size;
+        currentExp = 1;
     }
 
     /**
@@ -69,7 +72,7 @@ class LinearShardStrategy extends ShardStrategy {
      * @return the next shard size
      */
     protected long nextShardSize() {
-        return nextShardSize;
+        return (long) Math.floor(Math.pow((double) baseSize, (double) currentExp));
     }
 
 }
