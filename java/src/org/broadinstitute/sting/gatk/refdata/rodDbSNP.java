@@ -116,6 +116,7 @@ public class rodDbSNP extends ReferenceOrderedDatum implements AllelicVariant {
     public boolean isInsertion() { return varType.contains("insertion"); }
     public boolean isDeletion() { return varType.contains("deletion"); }
     public boolean isIndel() { return isInsertion() || isDeletion() || varType.contains("in-del"); }
+    public boolean isReference() { return false; } // snp locations are never "reference", there's always a snp!!
 
     public boolean isHapmap() { return validationStatus.contains("by-hapmap"); }
     public boolean is2Hit2Allele() { return validationStatus.contains("by-2hit-2allele"); }

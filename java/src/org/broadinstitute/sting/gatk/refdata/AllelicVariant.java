@@ -53,6 +53,13 @@ public interface AllelicVariant extends Comparable<ReferenceOrderedDatum> {
      * @return alternative allele base on the forward starnd
      */
     char getAltSnpFWD() throws IllegalStateException;
+    
+    /** Returns true if all observed alleles are reference alleles. All is<Variant> methods (where Variant=SNP,Insertion, etc) should
+     * return false at such site to ensure consistency. This method is included for use with genotyping calls (isGenotype()==true), it makes
+     * no sense for, e.g. dbSNP and should return false for the latter.
+     * @return
+     */
+    boolean isReference();
 
     /** Is this variant a SNP?
      *
