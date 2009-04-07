@@ -134,10 +134,10 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
         assert seekContigName.equals(currentContig.getName()) : String.format("only works on this contig, but the current %s and sought %s contigs are different!", currentContig.getName(), seekContigName);
 
         // we're somewhere on this contig
-        if (seekOffset < offset) {
+        if (seekOffset < offset  ) {  
             // bad boy -- can't go backward safely
             throw new IllegalArgumentException(String.format("Invalid seek %s => %s, which is usually due to out of order reads%n",
-                    new GenomeLoc(currentContig.getName(), offset), new GenomeLoc(currentContig.getName(), seekOffset)));
+                    new GenomeLoc(currentContig.getName(), offset), new GenomeLoc(seekContigName, seekOffset)));
         } else if (seekOffset >= currentContig.length()) {
             // bad boy -- can't go beyond the contig length
             throw new IllegalArgumentException(String.format("Invalid seek to %s, which is beyond the end of the contig%n",
@@ -161,20 +161,22 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
             logger.debug(String.format("  -> Seeking to %s %d from %s %d%n", seekContigName, seekOffset, currentContig.getName(), offset));
 
         int cmpContigs = GenomeLoc.compareContigs(seekContigName, currentContig.getName());
-
-        if (cmpContigs == -1 && false) {  // todo: fixed
+        
+        if ( cmpContigs < 0 && GenomeLoc.hasKnownContigOrdering() ) {  // if we know the order of contigs and we are already past the contig we seek, it's too late! 
             // The contig we are looking for is before the currentContig -- it's an error
-            throw new IllegalArgumentException(String.format("Invalid seek %s => %s, which is usually due to out of order reads%n",
-                    new GenomeLoc(currentContig.getName(), offset), new GenomeLoc(currentContig.getName(), seekOffset)));
-        } else if (cmpContigs == 1) {
-            // we need to jump forward
+            throw new IllegalArgumentException(String.format("Invalid seek %s => %s, contigs/sequences are out of order%n",
+                    new GenomeLoc(currentContig.getName(), offset), new GenomeLoc(seekContigName, seekOffset)));
+        } 
+        
+        if ( cmpContigs > 0 ||  (! GenomeLoc.hasKnownContigOrdering() ) && cmpContigs != 0 ) { // if contig we seek is still ahead, or if we have no idea what the order is and current contig is not what we seek
+            // then try to seek forward in the reference file until we get the contig we need
             if (DEBUG)
                 logger.debug(String.format("  -> Seeking in the fasta file to %s from %s%n", seekContigName, currentContig.getName()));
 
             if (!refFile.seekToContig(seekContigName)) { // ok, do the seek
                 // a false result indicates a failure, throw a somewhat cryptic call
                 throw new RuntimeIOException(String.format("Unexpected seek failure from %s to %s%n",
-                        new GenomeLoc(currentContig.getName(), offset), new GenomeLoc(currentContig.getName(), seekOffset)));
+                        new GenomeLoc(currentContig.getName(), offset), new GenomeLoc(seekContigName, seekOffset)));
             }
 
             readNextContig(); // since we haven't failed, we just read in the next contig (which is seekContigName)
