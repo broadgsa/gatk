@@ -1,6 +1,9 @@
 package org.broadinstitute.sting.playground.fourbasecaller;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -38,6 +41,15 @@ public class FourBaseRecaller extends CommandLineProgram {
     protected int execute() {
         boolean isPaired = (END > 0);
 
+        // Set up debugging paths
+        File debugdir = new File(OUT.getPath() + ".debug/");
+        debugdir.mkdir();
+        PrintWriter debugout = null;
+        try {
+            debugout = new PrintWriter(debugdir.getPath() + "/debug.out");
+        } catch (IOException e) {
+        }
+
         BustardFileParser bfp;
         BustardReadData bread;
 
@@ -49,7 +61,7 @@ public class FourBaseRecaller extends CommandLineProgram {
         int queryid;
 
         // learn mean parameters
-        //System.out.println("intensity int_a int_c int_g int_t base");
+        if (debugout != null) { debugout.println("intensity int_a int_c int_g int_t base"); }
 
         queryid = 0;
         do {
@@ -62,11 +74,9 @@ public class FourBaseRecaller extends CommandLineProgram {
                 byte qualCur  = quals[cycle];
                 double[] fourintensity = intensities[cycle + cycle_offset];
 
-                /*
-                if (cycle == 0) {
-                    System.out.println("intensity " + intensities[0][0] + " " + intensities[0][1] + " " + intensities[0][2] + " " + intensities[0][3] + " " + baseCur);
+                if (debugout != null && cycle == 0) {
+                    debugout.println("intensity " + intensities[0][0] + " " + intensities[0][1] + " " + intensities[0][2] + " " + intensities[0][3] + " " + baseCur);
                 }
-                */
 
                 model.addMeanPoint(cycle, baseCur, qualCur, fourintensity);
             }
@@ -96,12 +106,9 @@ public class FourBaseRecaller extends CommandLineProgram {
         } while (queryid < TRAINING_LIMIT && bfp.hasNext() && (bread = bfp.next()) != null);
 
         // write debugging info
-        File debugout = new File(OUT.getParentFile().getPath() + "/model/");
-        debugout.mkdir();
-        model.write(debugout);
+        model.write(debugdir);
 
         // call bases
-        /*
         SAMFileHeader sfh = new SAMFileHeader();
         SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, OUT);
         
@@ -119,11 +126,13 @@ public class FourBaseRecaller extends CommandLineProgram {
             byte[] nextbestqual = new byte[bases.length()];
 
             for (int cycle = 0; cycle < bases.length(); cycle++) {
-                char basePrev = (cycle == 0) ? '*' : (char) asciiseq[cycle - 1];
-                byte qualPrev = (cycle == 0) ? 0 : bestqual[cycle - 1];
                 double[] fourintensity = intensities[cycle + cycle_offset];
 
-                FourProb fp = model.computeProbabilities(cycle, basePrev, qualPrev, fourintensity);
+                FourProb fp = model.computeProbabilities(cycle, fourintensity);
+
+                //if (cycle == 0) {
+                //    System.out.println("result " + intensities[0][0] + " " + intensities[0][1] + " " + intensities[0][2] + " " + intensities[0][3] + " " + bases.charAt(0) + " " + fp.toString());
+                //}
 
                 asciiseq[cycle] = (byte) fp.baseAtRank(0);
                 bestqual[cycle] = fp.qualAtRank(0);
@@ -137,7 +146,6 @@ public class FourBaseRecaller extends CommandLineProgram {
         } while (queryid < CALLING_LIMIT && bfp.hasNext() && (bread = bfp.next()) != null);
 
         sfw.close();
-        */
 
         return 0;
     }

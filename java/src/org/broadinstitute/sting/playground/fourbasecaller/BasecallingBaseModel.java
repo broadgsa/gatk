@@ -23,9 +23,13 @@ import java.io.*;
 public class BasecallingBaseModel {
     private double[] counts;
     private DoubleMatrix1D[] sums;
+    private DoubleMatrix2D[] unscaledCovarianceSums;
+
+    private DoubleMatrix1D[] means;
     private DoubleMatrix2D[] inverseCovariances;
     private double[] norms;
 
+    private cern.jet.math.Functions F = cern.jet.math.Functions.functions;
     private Algebra alg;
 
     private boolean readyToCall = false;
@@ -37,11 +41,17 @@ public class BasecallingBaseModel {
         counts = new double[4];
 
         sums = new DoubleMatrix1D[4];
+        unscaledCovarianceSums = new DoubleMatrix2D[4];
+
+        means = new DoubleMatrix1D[4];
         inverseCovariances = new DoubleMatrix2D[4];
         norms = new double[4];
 
         for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
             sums[baseCurIndex] = (DoubleFactory1D.dense).make(4);
+            unscaledCovarianceSums[baseCurIndex] = (DoubleFactory2D.dense).make(4, 4);
+
+            means[baseCurIndex] = (DoubleFactory1D.dense).make(4);
             inverseCovariances[baseCurIndex] = (DoubleFactory2D.dense).make(4, 4);
         }
 
@@ -49,7 +59,7 @@ public class BasecallingBaseModel {
     }
 
     /**
-     * Add a single training point to the model.
+     * Add a single training point to the model to estimate the means.
      *
      * @param baseCur        the current cycle's base call (A, C, G, T)
      * @param qualCur        the quality score for the current cycle's base call
@@ -58,8 +68,6 @@ public class BasecallingBaseModel {
     public void addMeanPoint(char baseCur, byte qualCur, double[] fourintensity) {
         int actualBaseCurIndex = baseToBaseIndex(baseCur);
         double actualWeight = QualityUtils.qualToProb(qualCur);
-
-        cern.jet.math.Functions F = cern.jet.math.Functions.functions;
 
         for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
             // We want to upweight the correct theory as much as we can and spread the remainder out evenly between all other hypotheses.
@@ -75,11 +83,16 @@ public class BasecallingBaseModel {
         readyToCall = false;
     }
 
+    /**
+     * Add a single training point to the model to estimate the covariances.
+     * 
+     * @param baseCur        the current cycle's base call (A, C, G, T)
+     * @param qualCur        the quality score for the current cycle's base call
+     * @param fourintensity  the four intensities for the current cycle's base call
+     */
     public void addCovariancePoint(char baseCur, byte qualCur, double[] fourintensity) {
         int actualBaseCurIndex = baseToBaseIndex(baseCur);
         double actualWeight = QualityUtils.qualToProb(qualCur);
-
-        cern.jet.math.Functions F = cern.jet.math.Functions.functions;
 
         for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
             // We want to upweight the correct theory as much as we can and spread the remainder out evenly between all other hypotheses.
@@ -95,73 +108,58 @@ public class BasecallingBaseModel {
             alg.multOuter(sub, sub, cov);
 
             cov.assign(F.mult(weight));
-            inverseCovariances[baseCurIndex].assign(cov, F.plus);
+            unscaledCovarianceSums[baseCurIndex].assign(cov, F.plus);
         }
+        
+        readyToCall = false;
     }
 
     /**
      * Precompute all the matrix inversions and determinants we'll need for computing the likelihood distributions.
      */
     public void prepareToCallBases() {
-        /*
-        for (int basePrevIndex = 0; basePrevIndex < 4; basePrevIndex++) {
-            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
-                for (int channel = 0; channel < 4; channel++) {
-                    sums[baseCurIndex].setQuick(channel, runningChannelSums[basePrevIndex][baseCurIndex].getQuick(channel)/counts[basePrevIndex][baseCurIndex]);
-                    
-                    for (int cochannel = 0; cochannel < 4; cochannel++) {
-                        // Cov(Xi, Xj) = E(XiXj) - E(Xi)E(Xj)
-                        inverseCovariances[basePrevIndex][baseCurIndex].setQuick(channel, cochannel, (runningChannelProductSums[basePrevIndex][baseCurIndex].getQuick(channel, cochannel)/counts[basePrevIndex][baseCurIndex]) - (runningChannelSums[basePrevIndex][baseCurIndex].getQuick(channel)/counts[basePrevIndex][baseCurIndex])*(runningChannelSums[basePrevIndex][baseCurIndex].getQuick(cochannel)/counts[basePrevIndex][baseCurIndex]));
-                    }
-                }
+        for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+            means[baseCurIndex] = sums[baseCurIndex].copy();
+            means[baseCurIndex].assign(F.div(counts[baseCurIndex]));
 
-                DoubleMatrix2D invcov = alg.inverse(inverseCovariances[basePrevIndex][baseCurIndex]);
-                inverseCovariances[basePrevIndex][baseCurIndex] = invcov;
-                norms[basePrevIndex][baseCurIndex] = Math.pow(alg.det(invcov), 0.5)/Math.pow(2.0*Math.PI, 2.0);
-            }
+            inverseCovariances[baseCurIndex] = unscaledCovarianceSums[baseCurIndex].copy();
+            inverseCovariances[baseCurIndex].assign(F.div(counts[baseCurIndex]));
+            DoubleMatrix2D invcov = alg.inverse(inverseCovariances[baseCurIndex]);
+            inverseCovariances[baseCurIndex] = invcov;
+
+            norms[baseCurIndex] = Math.pow(alg.det(invcov), 0.5)/Math.pow(2.0*Math.PI, 2.0);
         }
-        */
 
         readyToCall = true;
     }
 
     /**
-     * Compute the likelihood matrix for a base (contextual priors included).
+     * Compute the likelihood matrix for a base
      *
      * @param cycle         the cycle we're calling right now
-     * @param basePrev      the previous cycle's base
-     * @param qualPrev      the previous cycle's quality score
      * @param fourintensity the four intensities of the current cycle's base
      * @return              a 4x4 matrix of likelihoods, where the row is the previous cycle base hypothesis and
      *                      the column is the current cycle base hypothesis
      */
-    public double[][] computeLikelihoods(int cycle, char basePrev, byte qualPrev, double[] fourintensity) {
+    public double[] computeLikelihoods(int cycle, double[] fourintensity) {
         if (!readyToCall) {
             prepareToCallBases();
         }
 
-        double[][] probdist = new double[4][4];
-        /*
-        double probPrev = (cycle == 0) ? 1.0 : QualityUtils.qualToProb(qualPrev);
-        int baseIndex = (cycle == 0) ? 0 : baseToBaseIndex(basePrev);
+        double[] likedist = new double[4];
+        for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+            double norm = norms[baseCurIndex];
 
-        for (int basePrevIndex = 0; basePrevIndex < ((cycle == 0) ? 1 : 4); basePrevIndex++) {
-            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
-                double[] diff = new double[4];
-                for (int channel = 0; channel < 4; channel++) {
-                    diff[channel] = fourintensity[channel] - sums[basePrevIndex][baseCurIndex].getQuick(channel);
-                }
-                
-                DoubleMatrix1D sub = (DoubleFactory1D.dense).make(diff);
-                DoubleMatrix1D Ax = alg.mult(inverseCovariances[basePrevIndex][baseCurIndex], sub);
+            DoubleMatrix1D sub = (DoubleFactory1D.dense).make(fourintensity);
+            sub.assign(means[baseCurIndex], F.minus);
 
-                double exparg = -0.5*alg.mult(sub, Ax);
-                probdist[basePrevIndex][baseCurIndex] = (baseIndex == basePrevIndex ? probPrev : 1.0 - probPrev)*norms[basePrevIndex][baseCurIndex]*Math.exp(exparg);
-            }
+            DoubleMatrix1D Ax = alg.mult(inverseCovariances[baseCurIndex], sub);
+            double exparg = -0.5*alg.mult(sub, Ax);
+
+            likedist[baseCurIndex] = norm*Math.exp(exparg);
         }
-        */
 
-        return probdist;
+        return likedist;
     }
 
     public void write(File outparam) {
@@ -176,8 +174,7 @@ public class BasecallingBaseModel {
                 }
                 writer.print("] (" + counts[baseCurIndex] + ")\n");
 
-                DoubleMatrix2D cov = inverseCovariances[baseCurIndex].copy();
-                cern.jet.math.Functions F = cern.jet.math.Functions.functions;
+                DoubleMatrix2D cov = unscaledCovarianceSums[baseCurIndex].copy();
                 cov.assign(F.div(counts[baseCurIndex]));
 
                 writer.println("cov_" + baseIndexToBase(baseCurIndex) + " : " + cov + "\n");

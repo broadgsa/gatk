@@ -15,10 +15,11 @@ public class FourProb {
     /**
      * Constructor for FourProb.
      *
-     * @param baseIndices the unsorted base indices (A:0, C:1, G:2, T:3).  Now that I think about it, this is stupid.
-     * @param baseProbs   the unsorted base hypothesis probabilities.
+     * @param baseProbs   the unsorted base hypothesis probabilities (in ACGT order).
      */
-    public FourProb(int[] baseIndices, double[] baseProbs) {
+    public FourProb(double[] baseProbs) {
+        int[] baseIndices = {0, 1, 2, 3};
+        
         Integer[] perm = Utils.SortPermutation(baseProbs);
         double[] ascendingBaseProbs = Utils.PermuteArray(baseProbs, perm);
         int[] ascendingBaseIndices = Utils.PermuteArray(baseIndices, perm);
