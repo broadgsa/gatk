@@ -24,9 +24,10 @@ import net.sf.samtools.SAMSequenceDictionary;
  * @version 1.0
  * @date Apr 6, 2009
  * <p/>
- * Class ShardBuilder
+ * Class ShardStrategyFactory
  * <p/>
- * A descriptions should go here. Blame aaron if it's missing.
+ * The Shard Strategy Factory,  use this class to create and transfer shard strategies
+ * between different approaches.
  */
 public class ShardStrategyFactory {
     public enum SHATTER_STRATEGY {
