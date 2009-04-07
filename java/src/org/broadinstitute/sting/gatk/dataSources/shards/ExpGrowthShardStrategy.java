@@ -26,13 +26,13 @@ import net.sf.samtools.SAMSequenceDictionary;
  * <p/>
  * Class LinearShard
  * <p/>
- * A linear strategy, very very similar to adaptive
+ * A exponential strategy
  */
 public class ExpGrowthShardStrategy extends ShardStrategy {
 
     // fixed size
     private long baseSize = 100000;
-    private long currentExp = 1;
+    private long currentExp = 0;
 
     /**
      * the constructor, taking a seq dictionary to parse out contigs
@@ -42,7 +42,7 @@ public class ExpGrowthShardStrategy extends ShardStrategy {
     ExpGrowthShardStrategy(SAMSequenceDictionary dic, long startSize) {
         super(dic);
         this.baseSize = startSize;
-        currentExp = 1;
+        currentExp = 0;
     }
 
     /**
@@ -53,7 +53,7 @@ public class ExpGrowthShardStrategy extends ShardStrategy {
     ExpGrowthShardStrategy(ShardStrategy strat) {
         super(strat);
         this.baseSize = strat.nextShardSize();
-        currentExp = 1;
+        currentExp = 0;
     }
 
     /**
@@ -63,7 +63,7 @@ public class ExpGrowthShardStrategy extends ShardStrategy {
      */
     public void adjustNextShardSize(long size) {
         baseSize = size;
-        currentExp = 1;
+        currentExp = 0;
     }
 
     /**
@@ -72,6 +72,8 @@ public class ExpGrowthShardStrategy extends ShardStrategy {
      * @return the next shard size
      */
     protected long nextShardSize() {
+        // we grow the exponentially, we just have to make sure we start at zero
+        ++currentExp;
         return (long) Math.floor(Math.pow((double) baseSize, (double) currentExp));
     }
 
