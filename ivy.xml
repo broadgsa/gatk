@@ -8,5 +8,10 @@
     <dependency org="log4j" name="log4j" rev="1.2.15" />
     <dependency org="colt" name="colt" rev="1.2.0" />
     <dependency org="commons-cli" name="commons-cli" rev="1.2" />
+
+    <!-- The following are all castor dependencies. Remove when transitive dependencies are working -->
+    <dependency org="commons-logging" name="commons-logging" rev="latest.integration" />
+    <dependency org="org.codehaus.castor" name="castor-core" rev="1.3" />
+    <dependency org="org.codehaus.castor" name="castor-xml" rev="1.3" />
   </dependencies>
 </ivy-module>
