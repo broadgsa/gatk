@@ -141,7 +141,7 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
     public void onTraversalDone(int[] sum) {
         for (int cycle = 0; cycle < sum.length - 1; cycle++) {
             double errorrate = ((double) sum[cycle])/((double) sum[sum.length - 1]);
-            System.out.println("[ERROR_RATE] " + cycle + " " + errorrate);
+            out.println("[ERROR_RATE] " + cycle + " " + errorrate);
         }
     }
 }
