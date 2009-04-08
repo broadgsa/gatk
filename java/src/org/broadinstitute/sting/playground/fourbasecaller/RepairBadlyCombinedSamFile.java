@@ -50,7 +50,7 @@ public class RepairBadlyCombinedSamFile extends CommandLineProgram {
                         case 'C': newbase = 'G'; break;
                         case 'G': newbase = 'C'; break;
                         case 'T': newbase = 'A'; break;
-                        default: newbase = '.';
+                        default: newbase = 'A'; // hack.  This is so downstream applications don't barf on an ambiguous base 'matching' the reference
                     }
                     newbases[i] = newbase;
                     newquals[i] = quals[bases.length - i - 1];
