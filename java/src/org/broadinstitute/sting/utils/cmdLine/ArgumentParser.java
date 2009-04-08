@@ -99,6 +99,11 @@ public class ArgumentParser {
 
     }
 
+    public void addOptionalArg(Option opt, String fieldname) {
+        // add it to the option
+        AddToOptionStorage(opt, fieldname);
+    }
+
     /**
      * Used locally to add to the options storage we have, for latter processing
      *

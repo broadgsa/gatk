@@ -8,6 +8,8 @@ import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
+import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.Option;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
@@ -96,6 +98,8 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      */
     private static Logger logger = Logger.getLogger(GenomeAnalysisTK.class);
 
+    public static ArrayList<String> ROD_BINDINGS = null;
+
 
     /**
      * setup our arguments, both required and optional
@@ -128,7 +132,13 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalArg("mother", "MOM", "Mother's genotype (SAM pileup)", "MOTHER_GENOTYPE_FILE");
         m_parser.addOptionalArg("father", "DAD", "Father's genotype (SAM pileup)", "FATHER_GENOTYPE_FILE");
         m_parser.addOptionalArg("daughter", "KID", "Daughter's genotype (SAM pileup)", "DAUGHTER_GENOTYPE_FILE");
-        
+
+        // --rodBind <name> <type> <file>
+        Option rodBinder = OptionBuilder.withArgName("rodBind")
+                                        .hasArgs()
+                                        .withDescription( "Bind rod with <name> and <type> to <file>" )
+                                        .create("B");
+        m_parser.addOptionalArg(rodBinder, "ROD_BINDINGS");        
     }
 
     /**
@@ -171,6 +181,11 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     protected int execute() {
         final boolean TEST_ROD = false;
         List<ReferenceOrderedData<? extends ReferenceOrderedDatum> > rods = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum> >();
+
+        if ( ROD_BINDINGS != null ) {
+            System.out.printf("ROD BINDINGS are %s%n", Utils.join(":", ROD_BINDINGS));
+        }
+
 
         if ( TEST_ROD ) {
             ReferenceOrderedData<rodGFF> gff = new ReferenceOrderedData<rodGFF>("test", new File("trunk/data/gFFTest.gff"), rodGFF.class );
