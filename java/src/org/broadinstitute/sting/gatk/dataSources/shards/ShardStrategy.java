@@ -3,10 +3,8 @@ package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
-import java.io.File;
 import java.util.Iterator;
 /**
  *
@@ -178,9 +176,5 @@ public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> 
         return this;
     }
 
-
-    public static void main (String[] strs) {
-        
-    }
 
 }
