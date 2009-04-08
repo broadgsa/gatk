@@ -43,11 +43,84 @@ public class QualityUtils {
      * @return a byte containing the index and the probability
      */
     static public byte baseAndProbToCompressedQuality(int baseIndex, double prob) {
-        byte compressedQual = (byte) baseIndex;
+        byte compressedQual = 0;
+
+        compressedQual = (byte) baseIndex;
+
         byte cprob = (byte) (100.0*prob);
         byte qualmask = (byte) 252;
         compressedQual += ((cprob << 2) & qualmask);
-
+        
         return compressedQual;
+    }
+
+    /**
+     * From a compressed base, extract the base index (0:A, 1:C, 2:G, 3:T)
+     *
+     * @param compressedQual the compressed quality score, as returned by baseAndProbToCompressedQuality
+     * @return base index
+     */
+    static public int compressedQualityToBaseIndex(byte compressedQual) {
+        return (int) (compressedQual & 0x3);
+    }
+
+    /**
+     * From a compressed base, extract the base probability
+     *
+     * @param compressedQual the compressed quality score, as returned by baseAndProbToCompressedQuality
+     * @return the probability
+     */
+    static public double compressedQualityToProb(byte compressedQual) {
+        // Because java natives are signed, extra care must be taken to avoid
+        // shifting a 1 into the sign bit in the implicit promotion of 2 to an int.
+        int x2 = ((int) compressedQual) & 0xff;
+        x2 = (x2 >>> 2);
+
+        return ((double) x2)/100.0;
+    }
+
+    /**
+     * Return the complement of a base index.
+     * 
+     * @param baseIndex  the base index (0:A, 1:C, 2:G, 3:T)
+     * @return the complementary base index
+     */
+    static public byte complement(int baseIndex) {
+        switch (baseIndex) {
+            case 0: return 3; // a -> t
+            case 1: return 2; // c -> g
+            case 2: return 1; // g -> c
+            case 3: return 0; // t -> a
+            default: return -1; // wtf?
+        }
+    }
+
+    /**
+     * Return the complement of a compressed quality
+     *
+     * @param compressedQual  the compressed quality score (as returned by baseAndProbToCompressedQuality)
+     * @return the complementary compressed quality
+     */
+    static public byte complementCompressedQuality(byte compressedQual) {
+        int baseIndex = compressedQualityToBaseIndex(compressedQual);
+        double prob = compressedQualityToProb(compressedQual);
+
+        return baseAndProbToCompressedQuality(complement(baseIndex), prob);
+    }
+
+    /**
+     * Return the reverse complement of a byte array of compressed qualities
+     *
+     * @param compressedQuals  a byte array of compressed quality scores
+     * @return the reverse complement of the byte array
+     */
+    static public byte[] reverseComplementCompressedQualityArray(byte[] compressedQuals) {
+        byte[] rcCompressedQuals = new byte[compressedQuals.length];
+
+        for (int pos = 0; pos < compressedQuals.length; pos++) {
+            rcCompressedQuals[compressedQuals.length - pos - 1] = complementCompressedQuality(compressedQuals[pos]);
+        }
+
+        return rcCompressedQuals;
     }
 }
