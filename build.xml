@@ -81,6 +81,9 @@
     <target name="dist" depends="compile"
             description="generate the distribution">
         <mkdir dir="dist"/>
+        <delete>
+          <fileset dir="dist" includes="*.jar" />
+        </delete>
 
         <copy todir="dist">
             <fileset dir="lib" includes="*.jar"/>
