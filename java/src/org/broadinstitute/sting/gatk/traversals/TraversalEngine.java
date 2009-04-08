@@ -4,6 +4,8 @@ import edu.mit.broad.picard.filter.FilteringIterator;
 import edu.mit.broad.picard.filter.SamRecordFilter;
 import edu.mit.broad.picard.reference.ReferenceSequence;
 import edu.mit.broad.picard.sam.SamFileHeaderMerger;
+import edu.mit.broad.picard.directed.IntervalList;
+import edu.mit.broad.picard.util.Interval;
 import net.sf.functionalj.Function1;
 import net.sf.functionalj.FunctionN;
 import net.sf.functionalj.Functions;
@@ -207,16 +209,32 @@ public abstract class TraversalEngine {
      * @param file_name
      */
     public void setLocationFromFile(final String file_name) {
+
+        // first try to read it as an interval file since that's well structured
+        // we'll fail quickly if it's not a valid file.  Then try to parse it as
+        // a location string file
         try {
-            xReadLines reader = new xReadLines(new File(file_name));
-            List<String> lines = reader.readLines();
-            reader.close();
-            String locStr = Utils.join(";", lines);
-            logger.debug("locStr: " + locStr);
-            setLocation(locStr);
+            IntervalList il = IntervalList.fromFile(new File(file_name));
+
+            // iterate through the list of merged intervals and add then as GenomeLocs
+            ArrayList<GenomeLoc> locList = new ArrayList<GenomeLoc>();
+            for(Interval interval : il.getUniqueIntervals()) { 
+                locList.add(new GenomeLoc(interval.getSequence(), interval.getStart(), interval.getEnd()));
+            }
+            this.locs = locList;
+
         } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(-1);
+            try {
+                xReadLines reader = new xReadLines(new File(file_name));
+                List<String> lines = reader.readLines();
+                reader.close();
+                String locStr = Utils.join(";", lines);
+                logger.debug("locStr: " + locStr);
+                setLocation(locStr);
+            } catch (Exception e2) {
+                e2.printStackTrace();
+                System.exit(-1);
+            }
         }
     }
 
