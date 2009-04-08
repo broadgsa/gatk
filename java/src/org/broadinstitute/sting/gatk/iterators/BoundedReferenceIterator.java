@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.FastaSequenceFile2;
 
 import java.util.Iterator;
 
@@ -30,7 +31,7 @@ import java.util.Iterator;
  * <p/>
  * This class is a decorator class from Reference Iterator (though it is constrained
  * by the fact that referenceIterator.seekForwardOffset explicitly returns a referenceIterator
- * for now
+ * for now).
  * <p/>
  * TODO: Fix the underlying iterator and this class to model a real decorator pattern
  */
@@ -50,6 +51,16 @@ public class BoundedReferenceIterator implements Iterator<ReferenceIterator> {
         this.mLoc = loc;
     }
 
+
+    /**
+     * Create a BoundedReferenceIterator from a fasta seq and a genome loc
+     * @param refFile the fasta file, see the ReferenceIterator constructor
+     * @param loc our genome location
+     */
+    public BoundedReferenceIterator(FastaSequenceFile2 refFile, GenomeLoc loc) {
+        this.referenceIterator = new ReferenceIterator(refFile);
+        this.mLoc = loc;
+    }
 
     /**
      * isSubRegion

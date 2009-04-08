@@ -103,7 +103,7 @@ public class SAMBAMDataSource implements SimpleDataSource {
      * @return an iterator for that region
      */
     public MergingSamRecordIterator2 seek(GenomeLoc location) {
-        MergingSamRecordIterator2 iter = new MergingSamRecordIterator2(this.mergeIterator);
+        MergingSamRecordIterator2 iter =  null; // new MergingSamRecordIterator2(this.mergeIterator.getMergedHeader().);
         if (locusMode) {
             iter.query(location.getContig(), (int) location.getStart(), (int) location.getStop(), true);
         } else {

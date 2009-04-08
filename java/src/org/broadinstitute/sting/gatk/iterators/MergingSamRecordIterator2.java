@@ -59,26 +59,6 @@ public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
         }
     }
 
-    /**
-     * Constructs a new merging iterator with the same set of readers and sort order as
-     * provided by the header merger parameter.
-     */
-    public MergingSamRecordIterator2(MergingSamRecordIterator2 iter) {
-        this.samHeaderMerger = iter.samHeaderMerger;
-        this.sortOrder = iter.sortOrder;
-        initializePQ();
-
-        final SAMRecordComparator comparator = getComparator();
-        for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
-            if (this.sortOrder != SAMFileHeader.SortOrder.unsorted && reader.getFileHeader().getSortOrder() != this.sortOrder) {
-                throw new PicardException("Files are not compatible with sort order: " + this.sortOrder);
-            }
-
-            final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, comparator);
-            addIfNotEmpty(iterator);
-        }
-    }
-
 
     protected void initializePQ() {
         this.pq = new PriorityQueue<ComparableSamRecordIterator>(samHeaderMerger.getReaders().size());
