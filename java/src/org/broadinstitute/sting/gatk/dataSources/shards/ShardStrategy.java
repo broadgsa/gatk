@@ -1,8 +1,12 @@
 package org.broadinstitute.sting.gatk.dataSources.shards;
 
+
 import net.sf.samtools.SAMSequenceDictionary;
+import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
+import java.io.File;
 import java.util.Iterator;
 /**
  *
@@ -46,6 +50,9 @@ public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> 
 
     // do we have another contig?
     private boolean nextContig = false;
+
+    /** our log, which we want to capture anything from this class */
+    private static Logger logger = Logger.getLogger(ShardStrategy.class);
 
 
     /**
@@ -110,7 +117,7 @@ public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> 
     public Shard next() {
         // lets get some background info on the problem
         long length = dic.getSequence(seqLoc).getSequenceLength();
-        long proposedSize = nextShardSize();
+        long proposedSize = nextShardSize() - 1;
         long nextStart = mLoc.getStop() + 1;
         // can we fit it into the current seq size?
         if (nextStart + proposedSize < length) {
@@ -120,12 +127,14 @@ public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> 
         }
         // else we can't make it in the current location, we have to stitch one together
         else {
-            lastGenomeLocSize = nextStart + proposedSize - length;
-
-
+            long overflow = nextStart + proposedSize - length;
+            logger.debug("Overflow = " + overflow + " length: " + length);
+            lastGenomeLocSize = lastGenomeLocSize - overflow;
             // move to the next contig
+            // the next sequence should start at the begining of the next contig
+            Shard ret = Shard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + lastGenomeLocSize));
             jumpContig();
-            return Shard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, lastGenomeLocSize));
+            return ret;
         }
 
     }
@@ -133,13 +142,15 @@ public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> 
     /** jump to the next contig */
     private void jumpContig() {
         ++seqLoc;
-        if (dic.getSequences().size() <= seqLoc) {
+
+        if (!(seqLoc < dic.getSequences().size())) {
             nextContig = false;
             return;
         }
-
-        // the next sequence should start at the begining of the next contig
+        logger.debug("Next contig, name = " + dic.getSequence(seqLoc).getSequenceName());
         mLoc = new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), 0, 0);
+
+
 
     }
 
@@ -167,5 +178,9 @@ public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> 
         return this;
     }
 
+
+    public static void main (String[] strs) {
+        
+    }
 
 }

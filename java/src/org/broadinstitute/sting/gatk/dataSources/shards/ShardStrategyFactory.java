@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
+import org.apache.log4j.Logger;
 
 /**
  *
@@ -33,6 +34,10 @@ public class ShardStrategyFactory {
     public enum SHATTER_STRATEGY {
         LINEAR, EXPONENTIAL
     }
+
+    /** our log, which we want to capture anything from this class */
+    private static Logger logger = Logger.getLogger(ShardStrategyFactory.class);
+
 
     /**
      * get a new shatter strategy
