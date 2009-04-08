@@ -112,9 +112,15 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
             	}
             	if ( observedAlleles.get(0).charAt(0) == refBaseChar && observedAlleles.get(1).charAt(0) == refBaseChar ) varType = NO_VARIANT;
             	else {
+            		// we know that at least one allele is non-ref;
+            		// if one is ref and the other is non-ref, or if both are non ref but they are the same (i.e.
+            		// homozygous non-ref), we still have 2 allelic variants at the site (e.g. one ref and one nonref)
             		varType = SNP_VARIANT;
-                	if ( observedAlleles.get(0).charAt(0) == refBaseChar || observedAlleles.get(1).charAt(0) == refBaseChar ) nNonref = 1;
-                	else nNonref = 2;
+                	if ( observedAlleles.get(0).charAt(0) == refBaseChar || 
+                			observedAlleles.get(1).charAt(0) == refBaseChar ||
+                			observedAlleles.get(0) == observedAlleles.get(1)
+                	   ) nNonref = 1;
+                	else nNonref = 2; // if both observations differ from ref and they are not equal to one another, then we get multiallelic site...
             	}
             }
         } catch ( RuntimeException e ) {
