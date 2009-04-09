@@ -34,9 +34,6 @@ public class SAMBAMDataSource implements SimpleDataSource {
     // our sam file readers
     private final ArrayList<SAMFileReader> readers = new ArrayList<SAMFileReader>();
 
-    // do we care that the SAM files respect the sort order.
-    private boolean matchedSortOrders = true;
-
     // are we set to locus mode or read mode for dividing
     private boolean locusMode = true;
 
