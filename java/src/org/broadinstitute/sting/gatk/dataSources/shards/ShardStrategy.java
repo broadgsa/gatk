@@ -115,19 +115,19 @@ public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> 
     public Shard next() {
         // lets get some background info on the problem
         long length = dic.getSequence(seqLoc).getSequenceLength();
-        long proposedSize = nextShardSize() - 1;
+        long proposedSize = nextShardSize();
         long nextStart = mLoc.getStop() + 1;
         // can we fit it into the current seq size?
-        if (nextStart + proposedSize < length) {
+        if (nextStart + proposedSize - 1 < length) {
             lastGenomeLocSize = proposedSize;
-            mLoc = new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + proposedSize);
-            return Shard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + proposedSize));
+            mLoc = new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + proposedSize-1);
+            return Shard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + proposedSize-1));
         }
         // else we can't make it in the current location, we have to stitch one together
         else {
-            long overflow = nextStart + proposedSize - length;
+            long overflow = nextStart + proposedSize -1 - length;
             logger.debug("Overflow = " + overflow + " length: " + length);
-            lastGenomeLocSize = lastGenomeLocSize - overflow;
+            lastGenomeLocSize = proposedSize - overflow;
             // move to the next contig
             // the next sequence should start at the begining of the next contig
             Shard ret = Shard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + lastGenomeLocSize));

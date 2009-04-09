@@ -10,34 +10,29 @@
 */
 package org.broadinstitute.sting.gatk.iterators;
 
-import edu.mit.broad.picard.sam.SamFileHeaderMerger;
-import edu.mit.broad.picard.sam.ReservedTagConstants;
 import edu.mit.broad.picard.PicardException;
+import edu.mit.broad.picard.sam.ReservedTagConstants;
+import edu.mit.broad.picard.sam.SamFileHeaderMerger;
 import edu.mit.broad.picard.util.PeekableIterator;
 import net.sf.samtools.*;
+import net.sf.samtools.util.CloseableIterator;
 
-/*
-* The Broad Institute
-* SOFTWARE COPYRIGHT NOTICE AGREEMENT
-* This software and its documentation are copyright 2009 by the
-* Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
-*
-* This software is supplied without any warranty or guaranteed support whatsoever.
-* Neither the Broad Institute nor MIT can be responsible for its use, misuse, or
-* functionality.
-*/
-import java.util.*;
 import java.lang.reflect.Constructor;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.PriorityQueue;
 
 /**
  * Provides an iterator interface for merging multiple underlying iterators into a single
  * iterable stream. The underlying iterators/files must all have the same sort order unless
  * the requested output format is unsorted, in which case any combination is valid.
  */
-public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
-    protected PriorityQueue<ComparableSamRecordIterator> pq;
+public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, Iterable<SAMRecord> {
+    protected PriorityQueue<ComparableSamRecordIterator> pq = null;
     protected final SamFileHeaderMerger samHeaderMerger;
     protected final SAMFileHeader.SortOrder sortOrder;
+
+    protected boolean initialized = false;
 
     /**
      * Constructs a new merging iterator with the same set of readers and sort order as
@@ -46,8 +41,18 @@ public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
     public MergingSamRecordIterator2(final SamFileHeaderMerger headerMerger) {
         this.samHeaderMerger = headerMerger;
         this.sortOrder = headerMerger.getMergedHeader().getSortOrder();
-        initializePQ();
+        this.pq = new PriorityQueue<ComparableSamRecordIterator>(samHeaderMerger.getReaders().size());
 
+    }
+
+    /**
+     * this class MUST only be initialized once, since the creation of the
+     */
+    private void lazyInitialization() {
+        if (initialized) {
+            throw new UnsupportedOperationException("You cannot double initialize a MergingSamRecordIterator2");
+        }
+        initialized = true;
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
             if (this.sortOrder != SAMFileHeader.SortOrder.unsorted && reader.getFileHeader().getSortOrder() != this.sortOrder) {
@@ -59,17 +64,15 @@ public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
         }
     }
 
-
-    protected void initializePQ() {
-        this.pq = new PriorityQueue<ComparableSamRecordIterator>(samHeaderMerger.getReaders().size());
-    }
-
-    public boolean supportsSeeking() {
+      public boolean supportsSeeking() {
         return true;
     }
 
     public void queryOverlapping(final String contig, final int start, final int stop) {
-        initializePQ();     // reinitialize the system
+        if (initialized) {
+            throw new IllegalStateException("You cannot double initialize a MergingSamRecordIterator2");
+        }
+        initialized = true;
         final SAMRecordComparator comparator = getComparator();
 
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
@@ -80,9 +83,13 @@ public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
     }
 
     public void query(final String contig, final int start, final int stop, final boolean contained) {
-        initializePQ();     // reinitialize the system
+        if (initialized) {
+            throw new IllegalStateException("You cannot double initialize a MergingSamRecordIterator2");
+        }
+        initialized = true;
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
+            //reader.close();
             Iterator<SAMRecord> recordIter = reader.query(contig, start, stop, contained);
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, recordIter, comparator);
             addIfNotEmpty(iterator);
@@ -90,7 +97,10 @@ public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
     }
 
     public void queryContained(final String contig, final int start, final int stop) {
-        initializePQ();     // reinitialize the system
+        if (initialized) {
+            throw new IllegalStateException("You cannot double initialize a MergingSamRecordIterator2");
+        }
+        initialized = true;
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
             Iterator<SAMRecord> recordIter = reader.queryContained(contig, start, stop);
@@ -106,6 +116,9 @@ public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
 
     /** Returns the next record from the top most iterator during merging. */
     public synchronized SAMRecord next() {
+        if (!initialized) {
+            lazyInitialization();
+        }
         final ComparableSamRecordIterator iterator = this.pq.poll();
         final SAMRecord record = iterator.next();
         addIfNotEmpty(iterator);
@@ -185,6 +198,26 @@ public class MergingSamRecordIterator2 implements Iterator<SAMRecord> {
     /** Returns the merged header that the merging iterator is working from. */
     public SAMFileHeader getMergedHeader() {
         return this.samHeaderMerger.getMergedHeader();
+    }
+
+
+    /**
+     * closes all the file handles for the readers....DO THIS or you will run out of handles
+     * with sharding.  
+     */
+    public void close() {
+        for (SAMFileReader reader : samHeaderMerger.getReaders()) {
+            reader.close();
+        }
+    }
+
+
+    /**
+     * allows us to be used in the new style for loops
+     * @return
+     */
+    public Iterator<SAMRecord> iterator() {
+        return this;
     }
 }
 

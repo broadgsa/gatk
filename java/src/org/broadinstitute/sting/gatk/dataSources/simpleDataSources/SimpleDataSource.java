@@ -32,6 +32,6 @@ public interface SimpleDataSource extends Serializable {
      * @param location the genome location to extract data for
      * @return an iterator of the appropriate type, that is limited by the region
      */
-    public Iterator seek(GenomeLoc location);
+    public Iterator seek(GenomeLoc location) throws SimpleDataSourceLoadException;
 
 }

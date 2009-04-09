@@ -37,14 +37,14 @@ public class SAMBAMDataSource implements SimpleDataSource {
     // do we care that the SAM files respect the sort order.
     private boolean matchedSortOrders = true;
 
-    // our merged sam iterator for spliting up the files
-    MergingSamRecordIterator2 mergeIterator;
-
     // are we set to locus mode or read mode for dividing
     private boolean locusMode = true;
 
     // How strict should we be with SAM/BAM parsing?
     protected SAMFileReader.ValidationStringency strictness = SAMFileReader.ValidationStringency.STRICT;
+
+    // our list of readers
+    private final List<File> samFileList = new ArrayList<File>();
 
     /**
      * constructor, given a single sam file
@@ -52,20 +52,16 @@ public class SAMBAMDataSource implements SimpleDataSource {
      * @param samFiles the list of sam files
      */
     public SAMBAMDataSource(List<String> samFiles) throws SimpleDataSourceLoadException {
-        List<SAMFileReader> readers = new ArrayList<SAMFileReader>();
         for (String fileName : samFiles) {
             File smFile = new File(fileName);
             if (!smFile.canRead()) {
                 throw new SimpleDataSourceLoadException("SAMBAMDataSource: Unable to load file: " + fileName);
             }
-            SAMFileReader reader = initializeSAMFile(smFile);
-            if (reader != null) {
-                readers.add(reader);
-            }
+            samFileList.add(smFile);
+
         }
 
-        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers, SORT_ORDER);
-        this.mergeIterator = new MergingSamRecordIterator2(headerMerger);
+        //SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(samFileList, SORT_ORDER);
     }
 
 
@@ -73,6 +69,7 @@ public class SAMBAMDataSource implements SimpleDataSource {
         if (samFile.toString().endsWith(".list")) {
             return null;
         } else {
+            System.err.println("initializeSAMFile");
             SAMFileReader samReader = new SAMFileReader(samFile, true);
             samReader.setValidationStringency(strictness);
 
@@ -96,19 +93,43 @@ public class SAMBAMDataSource implements SimpleDataSource {
 
     /**
      * <p>
-     * getQueryRegionIterator
+     * seek
      * </p>
      *
      * @param location the genome location to extract data for
      * @return an iterator for that region
      */
-    public MergingSamRecordIterator2 seek(GenomeLoc location) {
-        MergingSamRecordIterator2 iter =  null; // new MergingSamRecordIterator2(this.mergeIterator.getMergedHeader().);
+    public MergingSamRecordIterator2 seek(GenomeLoc location) throws SimpleDataSourceLoadException {
+
+        // right now this is pretty damn heavy, it copies the file list into a reader list every time
+        List<SAMFileReader> lst = new ArrayList<SAMFileReader>();
+        for (File f : this.samFileList) {
+            SAMFileReader reader = initializeSAMFile(f);
+            if (reader == null) {
+                throw new SimpleDataSourceLoadException("SAMBAMDataSource: Unable to load file: " + f);
+            }
+            lst.add(reader);
+        }
+
+        // now merge the headers
+        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(lst, SORT_ORDER);
+
+        // make a merging iterator for this record
+        MergingSamRecordIterator2 iter =  new MergingSamRecordIterator2(headerMerger);
+
+
+        System.err.println("About to query");
+        // we do different things for locus and read modes
         if (locusMode) {
             iter.query(location.getContig(), (int) location.getStart(), (int) location.getStop(), true);
         } else {
             iter.queryContained(location.getContig(), (int) location.getStart(), (int) location.getStop());
         }
-        return iter;  //To change body of implemented methods use File | Settings | File Templates.
+
+        // return the iterator
+        return iter;
     }
+
+    
+
 }
