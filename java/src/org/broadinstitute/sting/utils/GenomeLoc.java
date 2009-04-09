@@ -206,10 +206,13 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
      * Useful utility function that parses a location string into a coordinate-order sorted
      * array of GenomeLoc objects
      *
-     * @param str
+     * @param str String representation of genome locs.  Null string corresponds to no filter.
      * @return Array of GenomeLoc objects corresponding to the locations in the string, sorted by coordinate order
      */
     public static ArrayList<GenomeLoc> parseGenomeLocs(final String str) {
+        // Null string means no filter.
+        if( str == null ) return null;
+
         // Of the form: loc1;loc2;...
         // Where each locN can be:
         // 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'

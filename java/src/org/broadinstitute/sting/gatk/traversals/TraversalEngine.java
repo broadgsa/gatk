@@ -1,31 +1,21 @@
 package org.broadinstitute.sting.gatk.traversals;
 
-import edu.mit.broad.picard.filter.FilteringIterator;
 import edu.mit.broad.picard.filter.SamRecordFilter;
 import edu.mit.broad.picard.reference.ReferenceSequence;
 import edu.mit.broad.picard.sam.SamFileHeaderMerger;
 import edu.mit.broad.picard.directed.IntervalList;
 import edu.mit.broad.picard.util.Interval;
-import net.sf.functionalj.Function1;
-import net.sf.functionalj.FunctionN;
-import net.sf.functionalj.Functions;
-import net.sf.functionalj.reflect.JdkStdReflect;
-import net.sf.functionalj.reflect.StdReflect;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.RuntimeIOException;
-import net.sf.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.*;
 
 import java.io.*;
@@ -65,16 +55,6 @@ public abstract class TraversalEngine {
     //private ReferenceSequenceFile refFile = null;
     protected FastaSequenceFile2 refFile = null;              // todo: merge FastaSequenceFile2 into picard!
     protected ReferenceIterator refIter = null;
-
-    // Number of records (loci, reads) we've processed
-    protected long nRecords = 0;
-    // How many reads have we processed, along with those skipped for various reasons
-    protected int nReads = 0;
-    protected int nSkippedReads = 0;
-    protected int nUnmappedReads = 0;
-    protected int nNotPrimary = 0;
-    protected int nBadAlignments = 0;
-    protected int nSkippedIndels = 0;
 
     // Progress tracker for the sam file
     protected FileProgressTracker samReadingTracker = null;
@@ -277,7 +257,7 @@ public abstract class TraversalEngine {
      * @param loc       Current location
      */
     public void printProgress(boolean mustPrint, final String type, GenomeLoc loc) {
-        final long nRecords = this.nRecords;
+        final long nRecords = TraversalStatistics.nRecords;
         final long curTime = System.currentTimeMillis();
         final double elapsed = (curTime - startTime) / 1000.0;
         //System.out.printf("Cur = %d, last print = %d, elapsed=%.2f, nRecords=%d, met=%b%n", curTime, lastProgressPrintTime, elapsed, nRecords, maxElapsedIntervalForPrinting(curTime));
@@ -307,17 +287,20 @@ public abstract class TraversalEngine {
      * @param sum  The reduce result of the traversal
      * @param <T>  ReduceType of the traversal
      */
-    protected <T> void printOnTraversalDone(final String type, T sum) {
+    public <T> void printOnTraversalDone(final String type, T sum) {
         printProgress(true, type, null);
         logger.info("Traversal reduce result is " + sum);
         final long curTime = System.currentTimeMillis();
         final double elapsed = (curTime - startTime) / 1000.0;
         logger.info(String.format("Total runtime %.2f secs, %.2f min, %.2f hours%n", elapsed, elapsed / 60, elapsed / 3600));
-        logger.info(String.format("Traversal skipped %d reads out of %d total (%.2f%%)", nSkippedReads, nReads, (nSkippedReads * 100.0) / nReads));
-        logger.info(String.format("  -> %d unmapped reads", nUnmappedReads));
-        logger.info(String.format("  -> %d non-primary reads", nNotPrimary));
-        logger.info(String.format("  -> %d reads with bad alignments", nBadAlignments));
-        logger.info(String.format("  -> %d reads with indels", nSkippedIndels));
+        logger.info(String.format("Traversal skipped %d reads out of %d total (%.2f%%)",
+                    TraversalStatistics.nSkippedReads,
+                    TraversalStatistics.nReads,
+                    (TraversalStatistics.nSkippedReads * 100.0) / TraversalStatistics.nReads));
+        logger.info(String.format("  -> %d unmapped reads", TraversalStatistics.nUnmappedReads));
+        logger.info(String.format("  -> %d non-primary reads", TraversalStatistics.nNotPrimary));
+        logger.info(String.format("  -> %d reads with bad alignments", TraversalStatistics.nBadAlignments));
+        logger.info(String.format("  -> %d reads with indels", TraversalStatistics.nSkippedIndels));
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -520,27 +503,27 @@ public abstract class TraversalEngine {
             boolean result = false;
             String why = "";
             if (rec.getReadUnmappedFlag()) {
-                nUnmappedReads++;
+                TraversalStatistics.nUnmappedReads++;
                 result = true;
                 why = "Unmapped";
             } else if (rec.getNotPrimaryAlignmentFlag()) {
-                nNotPrimary++;
+                TraversalStatistics.nNotPrimary++;
                 result = true;
                 why = "Not Primary";
             } else if (rec.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START) {
-                nBadAlignments++;
+                TraversalStatistics.nBadAlignments++;
                 result = true;
                 why = "No alignment start";
-            } 
+            }
             else {
                 result = false;
             }
 
             if (result) {
-                nSkippedReads++;
+                TraversalStatistics.nSkippedReads++;
                 //System.out.printf("  [filter] %s => %b %s", rec.getReadName(), result, why);
             } else {
-                nReads++;
+                TraversalStatistics.nReads++;
             }
             return result;
         }

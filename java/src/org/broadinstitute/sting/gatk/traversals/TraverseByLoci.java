@@ -107,7 +107,7 @@ public class TraverseByLoci extends TraversalEngine {
         boolean done = false;
         LocusIterator iter = new LocusIteratorByHanger(filterIter);
         while (iter.hasNext() && !done) {
-            this.nRecords++;
+            TraversalStatistics.nRecords++;
 
             // actually get the read and hand it to the walker
             LocusContext locus = iter.next();
@@ -127,8 +127,8 @@ public class TraverseByLoci extends TraversalEngine {
 
                 //System.out.format("Working at %s\n", locus.getLocation().toString());
 
-                if (this.maxReads > 0 && this.nRecords > this.maxReads) {
-                    logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + this.nRecords));
+                if (this.maxReads > 0 && TraversalStatistics.nRecords > this.maxReads) {
+                    logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + TraversalStatistics.nRecords));
                     done = true;
                 }
 

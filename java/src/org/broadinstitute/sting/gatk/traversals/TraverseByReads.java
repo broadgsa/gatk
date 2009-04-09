@@ -76,7 +76,7 @@ public class TraverseByReads extends TraversalEngine {
         // copy the locations here in case we ever want to use the full list again later and so that we can remove efficiently
         LinkedList notYetTraversedLocations = new LinkedList(locations);
         while (samReadIter.hasNext() && !done) {
-            this.nRecords++;
+            TraversalStatistics.nRecords++;
 
             // get the next read
             final SAMRecord read = samReadIter.next();
@@ -102,8 +102,8 @@ public class TraverseByReads extends TraversalEngine {
                     sum = walker.reduce(x, sum);
                 }
 
-                if (this.maxReads > 0 && this.nRecords > this.maxReads) {
-                    logger.warn(String.format(("Maximum number of reads encountered, terminating traversal " + this.nRecords)));
+                if (this.maxReads > 0 && TraversalStatistics.nRecords > this.maxReads) {
+                    logger.warn(String.format(("Maximum number of reads encountered, terminating traversal " + TraversalStatistics.nRecords)));
                     done = true;
                 }
             }

@@ -20,6 +20,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.traversals.*;
+import org.broadinstitute.sting.gatk.executive.MicroManager;
 import org.broadinstitute.sting.utils.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
@@ -65,6 +66,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     private TraversalEngine engine = null;
     public boolean DEBUGGING = false;
     public Boolean WALK_ALL_LOCI = false;
+    public Boolean ENABLE_THREADING = false;
 
     /**
      * An output file presented to the walker.
@@ -80,6 +82,11 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      * A joint file for both 'normal' and error output presented to the walker.
      */
     public String outErrFileName = null;
+
+    /**
+     * How many threads should be allocated to this analysis.
+     */
+    public int numThreads = 1;    
 
     /**
      * The output stream, initialized from OUTFILENAME / OUTERRFILENAME.
@@ -127,7 +134,9 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalArg("out", "o", "An output file presented to the walker.  Will overwrite contents if file exists.", "outFileName" );
         m_parser.addOptionalArg("err", "e", "An error output file presented to the walker.  Will overwrite contents if file exists.", "errFileName" );
         m_parser.addOptionalArg("outerr", "oe", "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", "outErrFileName");
-
+        
+        m_parser.addOptionalArg("numthreads", "nt", "How many threads should be allocated to running this analysis.", "numThreads");
+        m_parser.addOptionalFlag("enablethreading", "et", "Enable experimental threading support.", "ENABLE_THREADING");
         //TODO: remove when walkers can ask for tracks
         m_parser.addOptionalArg("mother", "MOM", "Mother's genotype (SAM pileup)", "MOTHER_GENOTYPE_FILE");
         m_parser.addOptionalArg("father", "DAD", "Father's genotype (SAM pileup)", "FATHER_GENOTYPE_FILE");
@@ -138,7 +147,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                                         .hasArgs()
                                         .withDescription( "Bind rod with <name> and <type> to <file>" )
                                         .create("B");
-        m_parser.addOptionalArg(rodBinder, "ROD_BINDINGS");        
+        m_parser.addOptionalArg(rodBinder, "ROD_BINDINGS");
     }
 
     /**
@@ -233,6 +242,15 @@ public class GenomeAnalysisTK extends CommandLineProgram {
             throw new RuntimeException( "Unable to access walker", ex );
         }
 
+        // Prepare the sort ordering w.r.t. the sequence dictionary
+        FastaSequenceFile2 refFile = null;
+        if (REF_FILE_ARG != null) {
+            refFile = new FastaSequenceFile2(REF_FILE_ARG);
+            GenomeLoc.setupRefContigOrdering(refFile);
+        }
+
+        MicroManager microManager = null;
+
         // Try to get the walker specified
         try {
             LocusWalker<?, ?> walker = (LocusWalker<?, ?>) my_walker;
@@ -245,9 +263,18 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                 if ( walker.cannotHandleReads() )
                     Utils.scareUser(String.format("Analysis %s doesn't support SAM/BAM reads, but a read file %s was provided", Analysis_Name, INPUT_FILE));
 
-
-                if ( WALK_ALL_LOCI )
-                	this.engine = new TraverseByLociByReference(INPUT_FILE, REF_FILE_ARG, rods); 
+                if ( WALK_ALL_LOCI ) {
+                    // TODO: Temporary debugging code.  Activate the new debugging code only when the MicroManager
+                    //                                  is not filtered.
+                    if( ENABLE_THREADING && REGION_STR == null ) {
+                        logger.warn("Preliminary threading support enabled");
+                        microManager = new MicroManager( INPUT_FILE, REF_FILE_ARG, numThreads );
+                        this.engine = microManager.getTraversalEngine();
+                    }
+                    else {
+                        this.engine = new TraverseByLociByReference(INPUT_FILE, REF_FILE_ARG, rods);
+                    }
+                }
                 else
                 	this.engine = new TraverseByLoci(INPUT_FILE, REF_FILE_ARG, rods);
             }
@@ -263,14 +290,13 @@ public class GenomeAnalysisTK extends CommandLineProgram {
             final ReferenceSequenceFile refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(REF_FILE_ARG);
             GenomeLoc.setupRefContigOrdering(refFile);
         }
+
+        // Determine the validation stringency.  Default to ValidationStringency.STRICT.
         ValidationStringency strictness;
-        if (STRICTNESS_ARG == null) {
-            strictness = ValidationStringency.STRICT;
-        } else if (STRICTNESS_ARG.toLowerCase().equals("lenient")) {
-            strictness = ValidationStringency.LENIENT;
-        } else if (STRICTNESS_ARG.toLowerCase().equals("silent")) {
-            strictness = ValidationStringency.SILENT;
-        } else {
+        try {
+            strictness = Enum.valueOf(ValidationStringency.class, STRICTNESS_ARG);
+        }
+        catch( IllegalArgumentException ex ) {
             strictness = ValidationStringency.STRICT;
         }
         logger.info("Strictness is " + strictness);
@@ -304,7 +330,12 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         engine.setWalkOverAllSites(WALK_ALL_LOCI);
         engine.initialize();
 
-        engine.traverse(my_walker);
+        if( microManager != null ) {
+            List<GenomeLoc> locations = GenomeLoc.parseGenomeLocs( REGION_STR );
+            microManager.execute( my_walker, locations );
+        }
+        else
+            engine.traverse(my_walker);
 
         return 0;
     }

@@ -87,7 +87,7 @@ public class TraverseByReference extends TraverseByLoci {
         
         // We keep processing while the next reference location is within the interval
         while ( (interval == null || interval.containsP(refSite.getLocation())) && ! done ) {
-            this.nRecords++;
+            TraversalStatistics.nRecords++;
             GenomeLoc current = refSite.getLocation();
 
             // Iterate forward to get all reference ordered data covering this locus
@@ -97,8 +97,8 @@ public class TraverseByReference extends TraverseByLoci {
             locus.setReferenceContig(refSite.getCurrentContig());
             sum = walkAtLocus( walker, sum, locus, refSite, tracker );
 
-            if (this.maxReads > 0 && this.nRecords > this.maxReads) {
-                logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + this.nRecords));
+            if (this.maxReads > 0 && TraversalStatistics.nRecords > this.maxReads) {
+                logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + TraversalStatistics.nRecords));
                 done = true;
             }
 
