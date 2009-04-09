@@ -80,23 +80,21 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
                     }
 
                     if (nextBestBase != '.') {
-                        errorsPerCycle[cycle] = !(bases[cycle] == compBase || nextBestBase == compBase);
-                        totalMismatches = (!(bases[cycle] == compBase || nextBestBase == compBase)) ? 1 : 0;
+                        if (read.getReadNegativeStrandFlag()) {
+                            errorsPerCycle[bases.length - cycle - 1] = !(bases[cycle] == compBase || nextBestBase == compBase);
+                        } else {
+                            errorsPerCycle[cycle] = !(bases[cycle] == compBase || nextBestBase == compBase);
+                        }
                     }
                 } else {
-                    errorsPerCycle[cycle] = !(bases[cycle] == compBase);
-                    totalMismatches += (!(bases[cycle] == compBase)) ? 1 : 0;
+                    if (read.getReadNegativeStrandFlag()) {
+                        errorsPerCycle[bases.length - cycle - 1] = !(bases[cycle] == compBase);
+                    } else {
+                        errorsPerCycle[cycle] = !(bases[cycle] == compBase);
+                    }
                 }
             }
         }
-
-        /*
-        if (totalMismatches > 4) {
-            for (int cycle = 0; cycle < bases.length; cycle++) { System.out.print((char) bases[cycle]); } System.out.print("\n");
-            for (int cycle = 0, offset = (int) context.getPosition(); cycle < bases.length; cycle++, offset++) { System.out.print((char) contig[offset]); } System.out.print("\n");
-            System.out.println(totalMismatches + "\n");
-        }
-        */
 
         // We encode that we saw a read in the last position of the array.
         // That way we know what to normalize by, and we get thread safety!
