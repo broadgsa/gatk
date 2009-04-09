@@ -167,9 +167,9 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                 //System.out.printf("SQ field (hex): %s\n", bytesToHexString(hex_quals));
                 //System.out.printf("SAM record: %s\n", read.format());
 
-                int hex_qual = hex_quals[offset];
-                int called2num = hex_qual & 0x3;
-                double qual2 = (double)(hex_qual >> 2) / 100.0;
+                byte hex_qual = hex_quals[offset];
+                int called2num = QualityUtils.compressedQualityToBaseIndex(hex_qual);
+                double qual2 = QualityUtils.compressedQualityToProb(hex_qual);
                 //System.out.printf("2ND %x %d %f\n", hex_qual, called2num, qual2);
                 quals[i][called2num] = qual2;
 
