@@ -1,6 +1,9 @@
 package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
+import org.broadinstitute.sting.utils.GenomeLoc;
+
+import java.util.List;
 
 /**
  *
@@ -53,7 +56,16 @@ class LinearShardStrategy extends ShardStrategy {
         this.nextShardSize = strat.nextShardSize();
     }
 
-
+    /**
+     * the constructor, taking a seq dictionary to parse out contigs
+     *
+     * @param dic the seq dictionary
+     * @param lst the list of genome locations to iterate over
+     */
+    LinearShardStrategy(SAMSequenceDictionary dic, long startSize, List<GenomeLoc> lst) {
+        super(dic, lst);
+        this.nextShardSize = startSize;
+    }
     /**
      * set the next shards size
      *

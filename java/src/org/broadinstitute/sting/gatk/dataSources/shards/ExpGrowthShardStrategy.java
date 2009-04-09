@@ -1,6 +1,9 @@
 package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
+import org.broadinstitute.sting.utils.GenomeLoc;
+
+import java.util.List;
 
 /**
  *
@@ -41,6 +44,17 @@ public class ExpGrowthShardStrategy extends ShardStrategy {
      */
     ExpGrowthShardStrategy(SAMSequenceDictionary dic, long startSize) {
         super(dic);
+        this.baseSize = startSize;
+        currentExp = 0;
+    }
+
+    /**
+     * the constructor, taking a seq dictionary to parse out contigs
+     *
+     * @param dic the seq dictionary
+     */
+    ExpGrowthShardStrategy(SAMSequenceDictionary dic, long startSize, List<GenomeLoc> lst) {
+        super(dic, lst);
         this.baseSize = startSize;
         currentExp = 0;
     }

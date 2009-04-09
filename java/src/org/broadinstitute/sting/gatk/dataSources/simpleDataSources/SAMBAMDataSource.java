@@ -31,9 +31,6 @@ public class SAMBAMDataSource implements SimpleDataSource {
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(SAMBAMDataSource.class);
 
-    // our sam file readers
-    private final ArrayList<SAMFileReader> readers = new ArrayList<SAMFileReader>();
-
     // are we set to locus mode or read mode for dividing
     private boolean locusMode = true;
 

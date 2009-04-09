@@ -2,6 +2,9 @@ package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.GenomeLoc;
+
+import java.util.List;
 
 /**
  *
@@ -53,6 +56,26 @@ public class ShardStrategyFactory {
                 return new LinearShardStrategy(dic, startingSize);
             case EXPONENTIAL:
                 return new ExpGrowthShardStrategy(dic, startingSize);
+            default:
+                throw new RuntimeException("Strategy: " + strat + " isn't implemented");
+        }
+
+    }
+
+    /**
+     * get a new shatter strategy
+     *
+     * @param strat        what's our strategy - SHATTER_STRATEGY type
+     * @param dic          the seq dictionary
+     * @param startingSize the starting size
+     * @return
+     */
+    static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, List<GenomeLoc> lst) {
+        switch (strat) {
+            case LINEAR:
+                return new LinearShardStrategy(dic, startingSize, lst);
+            case EXPONENTIAL:
+                return new ExpGrowthShardStrategy(dic, startingSize, lst);
             default:
                 throw new RuntimeException("Strategy: " + strat + " isn't implemented");
         }

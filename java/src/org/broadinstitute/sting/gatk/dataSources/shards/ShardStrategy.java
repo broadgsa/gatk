@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.Iterator;
+import java.util.List;
 /**
  *
  * User: aaron
@@ -52,6 +53,10 @@ public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> 
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(ShardStrategy.class);
 
+    /** our interal list * */
+    private List<GenomeLoc> intervals = null;
+    /** our interal list * */
+    private int currentInterval = -1;
 
     /**
      * the constructor, taking a seq dictionary to parse out contigs
@@ -77,6 +82,23 @@ public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> 
         this.seqLoc = old.seqLoc;
         this.lastGenomeLocSize = old.lastGenomeLocSize;
         this.nextContig = old.nextContig;
+    }
+
+    /**
+     * the constructor, taking a seq dictionary to parse out contigs
+     *
+     * @param dic       the seq dictionary
+     * @param intervals file
+     */
+    ShardStrategy(SAMSequenceDictionary dic, List<GenomeLoc> intervals) {
+        this.dic = dic;
+        this.intervals = intervals;
+        this.currentInterval = 0;
+
+        mLoc = new GenomeLoc(intervals.get(0).getContig(), intervals.get(0).getStart() - 1, intervals.get(0).getStart() - 1);
+        if (dic.getSequences().size() > 0) {
+            nextContig = true;
+        }
     }
 
     /**
@@ -110,31 +132,88 @@ public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> 
     /**
      * get the next shard, based on the return size of nextShardSize
      *
-     * @return
+     * @return the next shard
      */
     public Shard next() {
+
         // lets get some background info on the problem
         long length = dic.getSequence(seqLoc).getSequenceLength();
         long proposedSize = nextShardSize();
         long nextStart = mLoc.getStop() + 1;
+
+        // if we don't have an interval file, use the non interval based approach.  Simple, eh?
+        if (this.intervals == null) {
+            return nonIntervaledNext(length, proposedSize, nextStart);
+        } else {
+            return intervaledNext(length, proposedSize, nextStart);
+        }
+
+    }
+
+    private Shard intervaledNext(long length, long proposedSize, long nextStart) {
+        // get the current genome location
+        GenomeLoc loc = intervals.get(currentInterval);
+        if (nextStart + proposedSize > loc.getStop()) {
+            // we need to move the next interval
+            proposedSize = loc.getStop() - nextStart;
+            lastGenomeLocSize = proposedSize;
+
+            // the next sequence should start at the begining of the next contig
+            Shard ret = Shard.toShard(new GenomeLoc(intervals.get(currentInterval).getContig(), nextStart, nextStart + proposedSize - 1));
+
+            ++currentInterval;
+            if (intervals.size() > currentInterval) {
+                mLoc = new GenomeLoc(intervals.get(currentInterval).getContig(), intervals.get(currentInterval).getStart() - 1, intervals.get(currentInterval).getStart() - 1);
+            }
+            return ret;// return 
+
+        } else {
+            // we need to move the next interval
+            lastGenomeLocSize = proposedSize;
+
+            // the next sequence should start at the begining of the next contig
+            Shard ret = Shard.toShard(new GenomeLoc(intervals.get(currentInterval).getContig(), nextStart, nextStart + proposedSize - 1));
+
+            mLoc = new GenomeLoc(intervals.get(currentInterval).getContig(), nextStart, nextStart + proposedSize - 1);
+
+            return ret;// return
+        }
+    }
+
+    /**
+     * Get the next shard, if we don't have intervals to traverse over
+     *
+     * @param length       the length of the contig
+     * @param proposedSize the proposed size
+     * @param nextStart    the next start location
+     * @return the shard to return to the user
+     */
+    private Shard nonIntervaledNext(long length, long proposedSize, long nextStart) {
         // can we fit it into the current seq size?
         if (nextStart + proposedSize - 1 < length) {
             lastGenomeLocSize = proposedSize;
-            mLoc = new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + proposedSize-1);
-            return Shard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + proposedSize-1));
+            mLoc = new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + proposedSize - 1);
+            return Shard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + proposedSize - 1));
         }
         // else we can't make it in the current location, we have to stitch one together
         else {
-            long overflow = nextStart + proposedSize -1 - length;
+            // lets find out the remaining size of the current contig
+            long overflow = nextStart + proposedSize - 1 - length;
             logger.debug("Overflow = " + overflow + " length: " + length);
+
+            // set our last size counter to the remaining size
             lastGenomeLocSize = proposedSize - overflow;
+
             // move to the next contig
             // the next sequence should start at the begining of the next contig
             Shard ret = Shard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), nextStart, nextStart + lastGenomeLocSize));
+
+            // now  jump ahead to the next contig
             jumpContig();
+
+            // return the shard
             return ret;
         }
-
     }
 
     /** jump to the next contig */
@@ -149,7 +228,6 @@ public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> 
         mLoc = new GenomeLoc(dic.getSequence(seqLoc).getSequenceName(), 0, 0);
 
 
-
     }
 
     /**
@@ -158,7 +236,12 @@ public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> 
      * @return
      */
     public boolean hasNext() {
-        return nextContig;
+        // if we don't have an interval file, use the non interval based approach.  Simple, eh?
+        if (this.intervals == null) {
+            return nextContig;
+        } else {
+            return (this.currentInterval < this.intervals.size());
+        }
     }
 
     /** we don't support remove */
@@ -177,4 +260,5 @@ public abstract class ShardStrategy implements Iterator<Shard>, Iterable<Shard> 
     }
 
 
+    
 }

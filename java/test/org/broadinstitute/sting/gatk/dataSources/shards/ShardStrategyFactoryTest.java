@@ -1,11 +1,16 @@
 package org.broadinstitute.sting.gatk.dataSources.shards;
 
+import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.fail;
+import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.utils.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.junit.*;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.util.ArrayList;
 
 /**
  *
@@ -94,7 +99,62 @@ public class ShardStrategyFactoryTest {
 
         } catch (Exception e) {
             e.printStackTrace();
-            fail("We Shouldn't of seen an exception! : " + e.getMessage() + "; shard count " +  shardCount);
+            fail("We Shouldn't of seen an exception! : " + e.getMessage() + "; shard count " + shardCount);
+        }
+    }
+
+
+    /** Tests that we got a string parameter in correctly */
+    @Test
+    public void testIntervalGenomeCycle() {
+        SAMSequenceDictionary dic = seq.getSequenceDictionary();
+        SAMSequenceRecord s = dic.getSequence(1);
+        // Character stream writing
+
+        System.err.println("Trying to sleep");
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        int stop = s.getSequenceLength();
+        int size = 10000;
+        int location = 1;
+        System.err.println("done to sleep");
+        // keep track of the number of genome locs we build
+        int genomeLocs = 0;
+        ArrayList<GenomeLoc> locations = new ArrayList<GenomeLoc>();
+        while (location + size < stop) {
+            // lets make up some fake locations
+            GenomeLoc gl = new GenomeLoc(s.getSequenceName(), location, location + size - 1);
+
+            // let's move the location up, with a size space
+            location += (size * 2);
+
+            // add our current location to the list
+            locations.add(gl);
+
+            // add another genome location
+            ++genomeLocs;
+        }
+
+        ShardStrategy strategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 5000, locations);
+        int shardCount = 0;
+        try {
+            FileWriter writer = new FileWriter("myfile.txt");
+            for (Shard sh : strategy) {
+                GenomeLoc l = sh.getGenomeLoc();
+
+                writer.write("Shard start: " + l.getStart() + " stop " + l.getStop() + " contig " + l.getContig());
+                //logger.debug("Shard start: " + l.getStart() + " stop " + l.getStop() + " contig " + l.getContig());
+                shardCount++;
+            }
+            writer.close();
+            assertEquals(shardCount, genomeLocs * 2);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail("testIntervalGenomeCycle: ne exception expected");
         }
     }
 
