@@ -10,7 +10,7 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.playground.illumina.FirecrestFileParser;
 import org.broadinstitute.sting.playground.illumina.FirecrestReadData;
 import org.broadinstitute.sting.playground.illumina.FourIntensity;
-import org.broadinstitute.sting.playground.illumina.IlluminaParser;
+//import org.broadinstitute.sting.playground.illumina.IlluminaParser;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
