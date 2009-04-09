@@ -19,7 +19,7 @@ public class FirecrestReadData {
     final private int tileNumber;
     final private int xCoordinate;
     final private int yCoordinate;
-    final private FourIntensity[] intensities;
+    final private double[][] intensities;
 
 
     /**
@@ -31,7 +31,7 @@ public class FirecrestReadData {
      * @param yCoordinate
      * @param intensities
      */
-    public FirecrestReadData(int laneNumber, int tileNumber, int xCoordinate, int yCoordinate, FourIntensity[] intensities) {
+    public FirecrestReadData(int laneNumber, int tileNumber, int xCoordinate, int yCoordinate, double[][] intensities) {
         this.laneNumber = laneNumber;
         this.tileNumber = tileNumber;
         this.xCoordinate = xCoordinate;
@@ -52,6 +52,6 @@ public class FirecrestReadData {
     public int getTileNumber() { return tileNumber; }
     public int getXCoordinate() { return xCoordinate; }
     public int getYCoordinate() { return yCoordinate; }
-    public FourIntensity[] getIntensities() { return intensities; }
+    public double[][] getIntensities() { return intensities; }
 
 }
