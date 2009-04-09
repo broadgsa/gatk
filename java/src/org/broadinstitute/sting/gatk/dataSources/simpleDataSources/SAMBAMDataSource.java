@@ -69,7 +69,6 @@ public class SAMBAMDataSource implements SimpleDataSource {
         if (samFile.toString().endsWith(".list")) {
             return null;
         } else {
-            System.err.println("initializeSAMFile");
             SAMFileReader samReader = new SAMFileReader(samFile, true);
             samReader.setValidationStringency(strictness);
 
@@ -118,7 +117,6 @@ public class SAMBAMDataSource implements SimpleDataSource {
         MergingSamRecordIterator2 iter =  new MergingSamRecordIterator2(headerMerger);
 
 
-        System.err.println("About to query");
         // we do different things for locus and read modes
         if (locusMode) {
             iter.query(location.getContig(), (int) location.getStart(), (int) location.getStop(), true);
