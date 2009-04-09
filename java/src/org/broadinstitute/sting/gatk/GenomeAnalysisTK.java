@@ -242,13 +242,6 @@ public class GenomeAnalysisTK extends CommandLineProgram {
             throw new RuntimeException( "Unable to access walker", ex );
         }
 
-        // Prepare the sort ordering w.r.t. the sequence dictionary
-        FastaSequenceFile2 refFile = null;
-        if (REF_FILE_ARG != null) {
-            refFile = new FastaSequenceFile2(REF_FILE_ARG);
-            GenomeLoc.setupRefContigOrdering(refFile);
-        }
-
         MicroManager microManager = null;
 
         // Try to get the walker specified
