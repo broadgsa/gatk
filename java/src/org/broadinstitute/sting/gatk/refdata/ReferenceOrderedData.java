@@ -4,9 +4,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.FileNotFoundException;
-import java.util.Iterator;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
@@ -14,6 +12,7 @@ import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.xReadLines;
 import org.broadinstitute.sting.utils.Utils;
+import org.apache.log4j.Logger;
 
 /**
  * Class for representing arbitrary reference ordered data sets
@@ -28,6 +27,98 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     private File file = null;
     private Class<ROD> type = null; // runtime type information for object construction
 
+    // ----------------------------------------------------------------------
+    //
+    // Static ROD type management
+    //
+    // ----------------------------------------------------------------------
+    public static class RODBinding {
+        public final String name;
+        public final Class<? extends ReferenceOrderedDatum> type;
+        public RODBinding(final String name, final Class<? extends ReferenceOrderedDatum> type) {
+            this.name = name;
+            this.type = type;
+        }
+    }
+
+    public static HashMap<String, RODBinding> Types = new HashMap<String, RODBinding>();
+    public static void addModule(final String name, final Class<? extends ReferenceOrderedDatum> rodType) {
+        System.out.printf("* Adding rod class %s%n", name);
+        Types.put(name.toLowerCase(), new RODBinding(name, rodType));
+    }
+
+    static {
+        // All known ROD types
+        addModule("GFF", rodGFF.class);
+        addModule("dbSNP", rodDbSNP.class);
+        addModule("HapMapAlleleFrequencies", HapMapAlleleFrequenciesROD.class);
+        addModule("SAMPileup", rodSAMPileup.class);
+    }
+
+
+    /**
+     * Parse the ROD bindings.  These are of the form of a single list of strings, each triplet of the
+     * form <name> <type> <file>.  After this function, the List of RODs contains new RODs bound to each of
+     * name, of type, ready to read from the file.  This function does check for the strings to be well formed
+     * and such.
+     *
+     * @param logger
+     * @param bindings
+     * @param rods
+     */
+    public static void parseBindings(Logger logger, ArrayList<String> bindings, List<ReferenceOrderedData<? extends ReferenceOrderedDatum> > rods)
+    {
+        logger.info("Processing ROD bindings: " + bindings.size() + " -> " + Utils.join(" : ", bindings));
+        if ( bindings.size() % 3 != 0 )
+            Utils.scareUser(String.format("Invalid ROD specification: requires triplets of <name> <type> <file> but got %s", Utils.join(" ", bindings)));
+
+        // Loop over triplets
+        for ( int i = 0; i < bindings.size(); i += 3) {
+            final String name = bindings.get(i);
+            final String typeName = bindings.get(i+1);
+            final String fileName = bindings.get(i+2);
+
+            ReferenceOrderedData<?> rod = parse1Binding(logger, name, typeName, fileName);
+
+            // check that we're not generating duplicate bindings
+            for ( ReferenceOrderedData rod2 : rods )
+                if ( rod2.getName().equals(rod.getName()) )
+                    Utils.scareUser(String.format("Found duplicate rod bindings", rod.getName()));
+
+            rods.add(rod);
+        }
+    }
+
+    /**
+     * Helpful function that parses a single triplet of <name> <type> <file> and returns the corresponding ROD with
+     * <name>, of type <type> that reads its input from <file>.
+     * 
+     * @param logger
+     * @param trackName
+     * @param typeName
+     * @param fileName
+     * @return
+     */
+    private static ReferenceOrderedData<?> parse1Binding( Logger logger, final String trackName, final String typeName, final String fileName )
+    {
+        // Gracefully fail if we don't have the type
+        if ( ReferenceOrderedData.Types.get(typeName.toLowerCase()) == null )
+            Utils.scareUser(String.format("Unknown ROD type: %s", typeName));
+
+        // Lookup the type
+        Class rodClass = ReferenceOrderedData.Types.get(typeName.toLowerCase()).type;
+
+        // Create the ROD
+        ReferenceOrderedData<?> rod = new ReferenceOrderedData<ReferenceOrderedDatum>(trackName.toLowerCase(), new File(fileName), rodClass );
+        logger.info(String.format("Created binding from %s to %s of type %s", trackName.toLowerCase(), fileName, rodClass));
+        return rod;
+    }
+
+    // ----------------------------------------------------------------------
+    //
+    // Constructors
+    //
+    // ----------------------------------------------------------------------
     public ReferenceOrderedData(final String name, File file, Class<ROD> type ) {
         this.file = file;
         this.type = type;

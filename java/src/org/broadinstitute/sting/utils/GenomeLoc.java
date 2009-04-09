@@ -99,9 +99,9 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
             return false;
         }  else {
             contigInfo = seqDict;
-            logger.info(String.format("Prepared reference sequence contig dictionary%n  order ->"));
+            logger.debug(String.format("Prepared reference sequence contig dictionary"));
             for (SAMSequenceRecord contig : seqDict.getSequences() ) {
-                logger.info(String.format(" %s (%d bp)", contig.getSequenceName(), contig.getSequenceLength()));
+                logger.debug(String.format(" %s (%d bp)", contig.getSequenceName(), contig.getSequenceLength()));
             }
         }
         
@@ -225,7 +225,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
             Collections.sort(locs);
             //logger.info(String.format("Going to process %d locations", locs.length));
             locs = mergeOverlappingLocations(locs);
-            logger.info("  Locations are:\n" + Utils.join("\n", Functions.map(Operators.toString, locs)));
+            logger.info("Locations are:" + Utils.join(", ", Functions.map(Operators.toString, locs)));
             return locs;
         } catch (Exception e) {
             e.printStackTrace();
@@ -235,7 +235,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     }
 
     public static ArrayList<GenomeLoc> mergeOverlappingLocations(final ArrayList<GenomeLoc> raw) {
-        logger.info("  Raw locations are:\n" + Utils.join("\n", Functions.map(Operators.toString, raw)));        
+        logger.debug("  Raw locations are:\n" + Utils.join("\n", Functions.map(Operators.toString, raw)));        
         if ( raw.size() <= 1 )
             return raw;
         else {

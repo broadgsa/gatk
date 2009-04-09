@@ -105,7 +105,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      */
     private static Logger logger = Logger.getLogger(GenomeAnalysisTK.class);
 
-    public static ArrayList<String> ROD_BINDINGS = null;
+    public static ArrayList<String> ROD_BINDINGS = new ArrayList<String>();
 
 
     /**
@@ -143,9 +143,11 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalArg("daughter", "KID", "Daughter's genotype (SAM pileup)", "DAUGHTER_GENOTYPE_FILE");
 
         // --rodBind <name> <type> <file>
+        //m_parser.addOptionalArg("rods", "B", "Bind rod with <name> and <type> to <file>", "ROD_BINDINGS");
+
         Option rodBinder = OptionBuilder.withArgName("rodBind")
                                         .hasArgs()
-                                        .withDescription( "Bind rod with <name> and <type> to <file>" )
+                                        .withDescription( "" )
                                         .create("B");
         m_parser.addOptionalArg(rodBinder, "ROD_BINDINGS");
     }
@@ -187,48 +189,38 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         start(Instance, argv);
     }
 
+    /**
+     * Convenience function that binds RODs using the old-style command line parser to the new style list for
+     * a uniform processing.
+     * 
+     * @param name
+     * @param type
+     * @param file
+     */
+    private static void bindConvenienceRods(final String name, final String type, final String file )
+    {
+        ROD_BINDINGS.add(name);
+        ROD_BINDINGS.add(type);
+        ROD_BINDINGS.add(file);
+    }
+
     protected int execute() {
         final boolean TEST_ROD = false;
         List<ReferenceOrderedData<? extends ReferenceOrderedDatum> > rods = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum> >();
 
-        if ( ROD_BINDINGS != null ) {
-            System.out.printf("ROD BINDINGS are %s%n", Utils.join(":", ROD_BINDINGS));
-        }
+        //
+        // please don't use these in the future, use the new syntax
+        //
+        if ( DBSNP_FILE != null )               bindConvenienceRods("dbSNP", "dbsnp", DBSNP_FILE);
+        if ( HAPMAP_FILE != null )              bindConvenienceRods("hapmap", "HapMapAlleleFrequencies", HAPMAP_FILE);
+        if ( HAPMAP_CHIP_FILE != null )         bindConvenienceRods("hapmap-chip", "GFF", HAPMAP_CHIP_FILE);
+        //TODO: remove when walkers can ask for tracks
+        if ( MOTHER_GENOTYPE_FILE != null )     bindConvenienceRods("mother", "SAMPileup", MOTHER_GENOTYPE_FILE);
+        if ( FATHER_GENOTYPE_FILE != null )     bindConvenienceRods("father", "SAMPileup", FATHER_GENOTYPE_FILE);
+        if ( DAUGHTER_GENOTYPE_FILE != null )   bindConvenienceRods("daughter", "SAMPileup", DAUGHTER_GENOTYPE_FILE);
 
-
-        if ( TEST_ROD ) {
-            ReferenceOrderedData<rodGFF> gff = new ReferenceOrderedData<rodGFF>("test", new File("trunk/data/gFFTest.gff"), rodGFF.class );
-            gff.testMe();
-
-            //ReferenceOrderedData dbsnp = new ReferenceOrderedData(new File("trunk/data/dbSNP_head.txt"), rodDbSNP.class );
-            ReferenceOrderedData<rodDbSNP> dbsnp = new ReferenceOrderedData<rodDbSNP>("dbSNP", new File("/Volumes/Users/mdepristo/broad/ATK/exampleSAMs/dbSNP_chr20.txt"), rodDbSNP.class );
-            //dbsnp.testMe();
-            rods.add(dbsnp); // { gff, dbsnp };
-        } else {
-            if ( DBSNP_FILE != null ) {
-                ReferenceOrderedData<rodDbSNP> dbsnp = new ReferenceOrderedData<rodDbSNP>("dbSNP", new File(DBSNP_FILE), rodDbSNP.class );
-                //dbsnp.testMe();
-                rods.add(dbsnp); // { gff, dbsnp };
-            }
-            if ( HAPMAP_FILE != null ) {
-                ReferenceOrderedData<HapMapAlleleFrequenciesROD> hapmap = new ReferenceOrderedData<HapMapAlleleFrequenciesROD>("hapmap", new File(HAPMAP_FILE), HapMapAlleleFrequenciesROD.class );
-                //dbsnp.testMe();
-                rods.add(hapmap); // { gff, dbsnp };
-            }
-            if ( HAPMAP_CHIP_FILE != null ) {
-                ReferenceOrderedData<rodGFF> hapmapChip = new ReferenceOrderedData<rodGFF>("hapmap-chip", new File(HAPMAP_CHIP_FILE), rodGFF.class );
-                rods.add(hapmapChip);
-            }
-            //TODO: remove when walkers can ask for tracks
-            if ( MOTHER_GENOTYPE_FILE != null ) 
-                rods.add( new ReferenceOrderedData<rodSAMPileup>("mother", new File(MOTHER_GENOTYPE_FILE), rodSAMPileup.class ) );
-            if ( FATHER_GENOTYPE_FILE != null ) 
-                rods.add( new ReferenceOrderedData<rodSAMPileup>("father", new File(FATHER_GENOTYPE_FILE), rodSAMPileup.class ) );
-            if ( DAUGHTER_GENOTYPE_FILE != null ) 
-                rods.add( new ReferenceOrderedData<rodSAMPileup>("daughter", new File(DAUGHTER_GENOTYPE_FILE), rodSAMPileup.class ) );
-            
-       }
-
+        ReferenceOrderedData.parseBindings(logger, ROD_BINDINGS, rods);
+        
         initializeOutputStreams();
 
         Walker<?,?> my_walker = null;
@@ -281,7 +273,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         // Prepare the sort ordering w.r.t. the sequence dictionary
         if (REF_FILE_ARG != null) {
             final ReferenceSequenceFile refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(REF_FILE_ARG);
-            GenomeLoc.setupRefContigOrdering(refFile);
+            //GenomeLoc.setupRefContigOrdering(refFile);
         }
 
         // Determine the validation stringency.  Default to ValidationStringency.STRICT.
