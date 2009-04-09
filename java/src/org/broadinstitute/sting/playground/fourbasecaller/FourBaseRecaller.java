@@ -7,6 +7,10 @@ import java.io.PrintWriter;
 
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.playground.illumina.FirecrestFileParser;
+import org.broadinstitute.sting.playground.illumina.FirecrestReadData;
+import org.broadinstitute.sting.playground.illumina.FourIntensity;
+import org.broadinstitute.sting.playground.illumina.IlluminaParser;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
@@ -23,6 +27,7 @@ public class FourBaseRecaller extends CommandLineProgram {
     public int END = 0;
     public int TRAINING_LIMIT = 1000000000;
     public int CALLING_LIMIT = 1000000000;
+    public Boolean RAW = false;
 
     public static void main(String[] argv) {
         Instance = new FourBaseRecaller();
@@ -36,10 +41,14 @@ public class FourBaseRecaller extends CommandLineProgram {
         m_parser.addOptionalArg("end",  "E", "End of read to process (0 = whole read, i.e. unpaired; 1 = first end; 2 = second end)", "END");
         m_parser.addOptionalArg("tlim", "T", "Number of reads to use for parameter initialization", "TRAINING_LIMIT");
         m_parser.addOptionalArg("clim", "C", "Number of reads to basecall", "CALLING_LIMIT");
+        m_parser.addOptionalFlag("raw", "R", "Use raw intensities?", "RAW");
     }
 
     protected int execute() {
         boolean isPaired = (END > 0);
+
+        //IlluminaParser ip = new IlluminaParser(DIR, LANE, 0);
+        //System.exit(1);
 
         // Set up debugging paths
         File debugdir = new File(OUT.getPath() + ".debug/");
@@ -53,57 +62,68 @@ public class FourBaseRecaller extends CommandLineProgram {
         BustardFileParser bfp;
         BustardReadData bread;
 
+        FirecrestFileParser ffp;
+        FirecrestReadData fread;
+
         bfp = new BustardFileParser(DIR, LANE, isPaired, "FB");
         bread = bfp.next();
+        ffp = new FirecrestFileParser(DIR.getParentFile(), LANE);
+        fread = ffp.next();
 
         int cycle_offset = (END <= 1) ? 0 : bread.getIntensities().length/2;
         BasecallingReadModel model = new BasecallingReadModel(bread.getFirstReadSequence().length());
         int queryid;
 
         // learn mean parameters
-        if (debugout != null) { debugout.println("intensity int_a int_c int_g int_t base"); }
+        if (debugout != null) { debugout.println("intensity cycle int_a int_c int_g int_t base"); }
 
         queryid = 0;
         do {
             String bases = (END <= 1) ? bread.getFirstReadSequence() : bread.getSecondReadSequence();
             byte[] quals = (END <= 1) ? bread.getFirstReadPhredBinaryQualities() : bread.getSecondReadPhredBinaryQualities();
             double[][] intensities = bread.getIntensities();
+            double[][] rawintensities = fread.getIntensities();
 
             for (int cycle = 0; cycle < bases.length(); cycle++) {
                 char baseCur  = bases.charAt(cycle);
                 byte qualCur  = quals[cycle];
-                double[] fourintensity = intensities[cycle + cycle_offset];
+                double[] fourintensity = (RAW) ? rawintensities[cycle + cycle_offset] : intensities[cycle + cycle_offset];
 
-                if (debugout != null && cycle == 0) {
-                    debugout.println("intensity " + intensities[0][0] + " " + intensities[0][1] + " " + intensities[0][2] + " " + intensities[0][3] + " " + baseCur);
+                if (debugout != null && cycle >= 31 && cycle <= 33) {
+                    debugout.println("intensity " + cycle + " " + fourintensity[0] + " " + fourintensity[1] + " " + fourintensity[2] + " " + fourintensity[3] + " " + baseCur);
                 }
 
                 model.addMeanPoint(cycle, baseCur, qualCur, fourintensity);
             }
 
             queryid++;
-        } while (queryid < TRAINING_LIMIT && bfp.hasNext() && (bread = bfp.next()) != null);
+        } while (queryid < TRAINING_LIMIT && bfp.hasNext() && (bread = bfp.next()) != null && (fread = ffp.next()) != null);
+
+        debugout.close();
 
         // learn covariance parameters
         bfp = new BustardFileParser(DIR, LANE, isPaired, "FB");
         bread = bfp.next();
+        ffp = new FirecrestFileParser(DIR.getParentFile(), LANE);
+        fread = ffp.next();
 
         queryid = 0;
         do {
             String bases = (END <= 1) ? bread.getFirstReadSequence() : bread.getSecondReadSequence();
             byte[] quals = (END <= 1) ? bread.getFirstReadPhredBinaryQualities() : bread.getSecondReadPhredBinaryQualities();
             double[][] intensities = bread.getIntensities();
+            double[][] rawintensities = fread.getIntensities();
 
             for (int cycle = 0; cycle < bases.length(); cycle++) {
                 char baseCur  = bases.charAt(cycle);
                 byte qualCur  = quals[cycle];
-                double[] fourintensity = intensities[cycle + cycle_offset];
+                double[] fourintensity = (RAW) ? rawintensities[cycle + cycle_offset] : intensities[cycle + cycle_offset];
 
                 model.addCovariancePoint(cycle, baseCur, qualCur, fourintensity);
             }
 
             queryid++;
-        } while (queryid < TRAINING_LIMIT && bfp.hasNext() && (bread = bfp.next()) != null);
+        } while (queryid < TRAINING_LIMIT && bfp.hasNext() && (bread = bfp.next()) != null && (fread = ffp.next()) != null);
 
         // write debugging info
         model.write(debugdir);
@@ -114,25 +134,24 @@ public class FourBaseRecaller extends CommandLineProgram {
         
         bfp = new BustardFileParser(DIR, LANE, isPaired, "FB");
         bread = bfp.next();
+        ffp = new FirecrestFileParser(DIR.getParentFile(), LANE);
+        fread = ffp.next();
 
         queryid = 0;
         do {
             String bases = (END <= 1) ? bread.getFirstReadSequence() : bread.getSecondReadSequence();
             byte[] quals = (END <= 1) ? bread.getFirstReadPhredBinaryQualities() : bread.getSecondReadPhredBinaryQualities();
             double[][] intensities = bread.getIntensities();
+            double[][] rawintensities = fread.getIntensities();
 
             byte[] asciiseq = new byte[bases.length()];
             byte[] bestqual = new byte[bases.length()];
             byte[] nextbestqual = new byte[bases.length()];
 
             for (int cycle = 0; cycle < bases.length(); cycle++) {
-                double[] fourintensity = intensities[cycle + cycle_offset];
+                double[] fourintensity = (RAW) ? rawintensities[cycle + cycle_offset] : intensities[cycle + cycle_offset];
 
                 FourProb fp = model.computeProbabilities(cycle, fourintensity);
-
-                //if (cycle == 0) {
-                //    System.out.println("result " + intensities[0][0] + " " + intensities[0][1] + " " + intensities[0][2] + " " + intensities[0][3] + " " + bases.charAt(0) + " " + fp.toString());
-                //}
 
                 asciiseq[cycle] = (byte) fp.baseAtRank(0);
                 bestqual[cycle] = fp.qualAtRank(0);
