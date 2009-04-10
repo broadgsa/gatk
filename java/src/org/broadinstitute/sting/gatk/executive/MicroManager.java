@@ -56,26 +56,41 @@ public class MicroManager {
 
     public void execute( Walker walker,                        // the analysis technique to use.
                          List<GenomeLoc> locations ) {         // list of work to do
-        ShardStrategy shardStrategy = ShardStrategyFactory.shatter( ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
-                                                                    ref.getSequenceDictionary(),
-                                                                    SHARD_SIZE );
+        ShardStrategy shardStrategy = null;
+        if( locations != null )
+            shardStrategy = ShardStrategyFactory.shatter( ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
+                                                          ref.getSequenceDictionary(),
+                                                          SHARD_SIZE,
+                                                          locations );
+        else
+            shardStrategy = ShardStrategyFactory.shatter( ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
+                                                          ref.getSequenceDictionary(),
+                                                          SHARD_SIZE );
+
         ReferenceIterator refIter = new ReferenceIterator(ref);
+        SAMBAMDataSource dataSource = null;
+
+        try {
+            dataSource = new SAMBAMDataSource( Arrays.asList( new String[] { reads.getCanonicalPath() } ) );
+        }
+        catch( SimpleDataSourceLoadException ex ) {
+            throw new RuntimeException( ex );
+        }        
+        catch( IOException ex ) {
+            throw new RuntimeException( ex );
+        }
 
         Object accumulator = ((LocusWalker<?,?>)walker).reduceInit();
 
         for(Shard shard: shardStrategy) {
             Iterator<SAMRecord> readShard = null;
             try {
-                SAMBAMDataSource dataSource = new SAMBAMDataSource( Arrays.asList( new String[] { reads.getCanonicalPath() } ) );
                 readShard = dataSource.seek( shard.getGenomeLoc() );
             }
             catch( SimpleDataSourceLoadException ex ) {
                 throw new RuntimeException( ex );
             }
-            catch( IOException ex ) {
-                throw new RuntimeException( ex );
-            }
-            
+
             ReferenceProvider referenceProvider = new ReferenceProvider( refIter );
             LocusContextProvider locusProvider = new LocusContextProvider( readShard );
 
