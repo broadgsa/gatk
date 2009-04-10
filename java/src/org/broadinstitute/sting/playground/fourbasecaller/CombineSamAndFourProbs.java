@@ -63,13 +63,14 @@ public class CombineSamAndFourProbs extends CommandLineProgram {
                 String readname = sr.getReadName();
                 byte[] sq = (byte[]) fourprobMap.get(readname);
 
-                if (sr.getReadNegativeStrandFlag()) {
-                    sq = QualityUtils.reverseComplementCompressedQualityArray(sq);
-                }
-                
-                sr.setAttribute("SQ", sq);
+                if (sq != null) {
+                    if (sr.getReadNegativeStrandFlag()) {
+                        sq = QualityUtils.reverseComplementCompressedQualityArray(sq);
+                    }
 
-                sw.addAlignment(sr);
+                    sr.setAttribute("SQ", sq);
+                    sw.addAlignment(sr);
+                }
             }
 
             sf.close();
