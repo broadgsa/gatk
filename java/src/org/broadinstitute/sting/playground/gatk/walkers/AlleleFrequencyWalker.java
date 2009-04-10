@@ -150,11 +150,12 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 
             // First, set the called base to the correct quality
             int callednum = nuc2num[read.getReadBases()[offset]]; // number of the called base (0,1,2,3)
+
             quals[i][callednum] = 1 - Math.pow(10.0, (double)read.getBaseQualities()[offset] / -10.0);
 
             // For other 3 bases, check if 2-base probs exist
             assert (reads.size() > 0);
-            Object SQ_field = reads.get(0).getAttribute("SQ");
+            Object SQ_field = reads.get(i).getAttribute("SQ");
             if (SQ_field == null || FORCE_1BASE_PROBS) {
                 // Set all nonref qual scores to their share of the remaining probality not "used" by the reference base's qual
                 double nonref_quals = (1.0 - quals[i][callednum]) / 3;
@@ -168,13 +169,22 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                 //System.out.printf("SAM record: %s\n", read.format());
 
                 byte hex_qual = hex_quals[offset];
-                int called2num = QualityUtils.compressedQualityToBaseIndex(hex_qual);
+                int baseIndex = QualityUtils.compressedQualityToBaseIndex(hex_qual);
+                // Todo: Andrew indexes his nucleotides as 0:A, 1:C, 2:T, 3:G.  Kiran indexes his nucleotides as 0:A, 1:C, 2:G, 3:T.  This must be reconciled.  Here, I just translate appropriately.
+                int called2num = 0;
+                switch (baseIndex) {
+                    case 0: called2num = 0; break;
+                    case 1: called2num = 1; break;
+                    case 2: called2num = 3; break;
+                    case 3: called2num = 2; break;
+                    default: assert(baseIndex >= 0 && baseIndex < 4); break;
+                }
+
                 double qual2 = QualityUtils.compressedQualityToProb(hex_qual);
                 //System.out.printf("2ND %x %d %f\n", hex_qual, called2num, qual2);
                 quals[i][called2num] = qual2;
 
-                // 
-                double nonref_quals = (1.0 - quals[i][callednum] - quals[i][called2num]) / 3;
+                double nonref_quals = (1.0 - quals[i][callednum] - quals[i][called2num]) / 2;
                 for (int b=0; b<4; b++)
                     if (b != callednum && b != called2num)
                         quals[i][b] = nonref_quals;
