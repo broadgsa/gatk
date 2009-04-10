@@ -35,8 +35,8 @@ public class TraverseByLociByReference extends TraverseByLoci {
     }
 
     public <M,T> T traverse(Walker<M,T> walker, ArrayList<GenomeLoc> locations) {
-        if ( locations.isEmpty() )
-            Utils.scareUser("Requested all locations be processed without providing locations to be processed!");
+        //if ( locations.isEmpty() )
+        //    Utils.scareUser("Requested all locations be processed without providing locations to be processed!");
 
         return super.traverse(walker, locations);
     }
@@ -54,11 +54,21 @@ public class TraverseByLociByReference extends TraverseByLoci {
 
         FilteringIterator filterIter = new FilteringIterator(readIter, new locusStreamFilterFunc());
         LocusIterator locusIter = new LocusIteratorByHanger(filterIter);        // prepare the iterator by loci from reads
-        ReferenceIterator refSite = refIter.seekForward(interval);              // jump to the first reference site
-        LocusContext locusFromReads = advanceReadsToLoc(locusIter, interval);    // load up the next locus by reads
+
+        ReferenceIterator refSite = null;
+        LocusContext locusFromReads = null;
+
+        if( interval != null ) {
+            refSite = refIter.seekForward(interval);              // jump to the first reference site
+            locusFromReads = advanceReadsToLoc(locusIter, interval);    // load up the next locus by reads
+        }
+        else {
+            refSite = refIter.next();
+            locusFromReads = locusIter.next();
+        }
 
         // We keep processing while the next reference location is within the interval
-        while ( interval.containsP(refSite.getLocation()) && ! done ) {
+        while ( (interval == null || interval.containsP(refSite.getLocation())) && ! done ) {
             logger.debug(String.format("  LocusFromReads is %s", locusFromReads == null ? null : locusFromReads.getLocation()));
 
             TraversalStatistics.nRecords++;
