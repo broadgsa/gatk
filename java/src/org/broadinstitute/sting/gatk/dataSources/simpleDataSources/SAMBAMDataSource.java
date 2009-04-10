@@ -113,7 +113,7 @@ public class SAMBAMDataSource implements SimpleDataSource {
 
         // we do different things for locus and read modes
         if (locusMode) {
-            iter.query(location.getContig(), (int) location.getStart(), (int) location.getStop(), true);
+            iter.queryOverlapping(location.getContig(), (int) location.getStart(), (int) location.getStop());
         } else {
             iter.queryContained(location.getContig(), (int) location.getStart(), (int) location.getStop());
         }
