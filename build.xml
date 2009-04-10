@@ -111,6 +111,17 @@
           </manifest>
         </jar>
 
+        <jar jarfile="dist/CombineSamAndFourProbs.jar" whenmanifestonly="skip">
+          <!--<fileset dir="build" includes="**/fourbasecaller/**/*.class" />-->
+          <fileset dir="build">
+            <include name="**/fourbasecaller/**/*.class" />
+            <include name="**/illumina/**/*.class" />
+          </fileset>
+          <manifest>
+            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.fourbasecaller.CombineSamAndFourProbs" />
+          </manifest>
+        </jar>
+
         <jar jarfile="dist/Playground.jar" whenmanifestonly="skip">
             <fileset dir="build">
                 <include name="**/*.class"/>
@@ -138,6 +149,12 @@
         </jar>
 
         <jar jarfile="dist/FourBaseRecaller.jar" update="true" whenmanifestonly="skip">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}" />
+            </manifest>
+        </jar>
+
+        <jar jarfile="dist/CombineSamAndFourProbs.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
