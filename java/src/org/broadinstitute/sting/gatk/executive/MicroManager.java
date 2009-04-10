@@ -59,6 +59,8 @@ public class MicroManager {
         ShardStrategy shardStrategy = ShardStrategyFactory.shatter( ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
                                                                     ref.getSequenceDictionary(),
                                                                     SHARD_SIZE );
+        ReferenceIterator refIter = new ReferenceIterator(ref);
+
         Object accumulator = ((LocusWalker<?,?>)walker).reduceInit();
 
         for(Shard shard: shardStrategy) {
@@ -74,7 +76,7 @@ public class MicroManager {
                 throw new RuntimeException( ex );
             }
             
-            ReferenceProvider referenceProvider = new ReferenceProvider( new ReferenceIterator(ref) );
+            ReferenceProvider referenceProvider = new ReferenceProvider( refIter );
             LocusContextProvider locusProvider = new LocusContextProvider( readShard );
 
             accumulator = traversalEngine.traverse( walker, shard, referenceProvider, locusProvider, accumulator );
