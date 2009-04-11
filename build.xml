@@ -197,7 +197,7 @@
     <target name="test" depends="test.compile" description="Run unit tests">
         <mkdir dir="${report}"/>
         <echo message="Sting: Running test cases!"/>
-        <junit printsummary="yes" clonevm="yes" haltonfailure="yes">
+        <junit printsummary="yes" showoutput="yes" clonevm="yes" haltonfailure="yes">
             <formatter type="plain"/>
 
             <classpath>
