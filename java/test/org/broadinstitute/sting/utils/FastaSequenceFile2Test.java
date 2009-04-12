@@ -1,9 +1,7 @@
 package org.broadinstitute.sting.utils;
 
-import org.junit.Test;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.After;
+import org.junit.*;
+import org.apache.log4j.BasicConfigurator;
 
 import java.io.File;
 
@@ -25,6 +23,11 @@ public class FastaSequenceFile2Test {
     private final String firstBasesOfChr1 = "taaccctaaccctaacccta";
     private final String firstBasesOfChr8 = "GCAATTATGACACAAAAAAT";
 
+    @BeforeClass
+    public static void initialize() {
+        BasicConfigurator.configure();
+    }
+
     @Before
     public void doForEachTest() {
         sequenceFile = new FastaSequenceFile2( new File(sequenceFileName) );
@@ -43,20 +46,32 @@ public class FastaSequenceFile2Test {
 
     @Test
     public void testOpenFile() {
+        System.err.println("starting testOpenFile");
+
+        long startTime = System.currentTimeMillis();
         Assert.assertNotNull( sequenceFile );
+        long endTime = System.currentTimeMillis();
+
+        System.err.printf("testOpenFile runtime: %dms%n", (endTime - startTime)) ;
     }
 
     @Test
     public void testFirstSequence() {
+        long startTime = System.currentTimeMillis();
         ReferenceSequence sequence = sequenceFile.nextSequence();
         Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chrM");
         Assert.assertEquals( "First n bases of chrM are incorrect",
                              StringUtil.bytesToString( sequence.getBases(), 0, firstBasesOfChrM.length() ),
                              firstBasesOfChrM );
+        long endTime = System.currentTimeMillis();
+
+        System.err.printf("testFirstSequence runtime: %dms%n", (endTime - startTime)) ;
     }
 
     @Test
     public void testNextSequence() {
+        long startTime = System.currentTimeMillis();
+
         ReferenceSequence sequence = null;
 
         // Advance to chrM.
@@ -72,10 +87,16 @@ public class FastaSequenceFile2Test {
         System.arraycopy(sequence.getBases(), 0, firstOfSequence, 0, firstOfSequence.length );
 
         Assert.assertArrayEquals("First bases of chr1 are not correct", firstOfChr1, firstOfSequence );
+
+        long endTime = System.currentTimeMillis();
+
+        System.err.printf("testNextSequence runtime: %dms%n", (endTime - startTime)) ;
     }
 
     @Test
     public void testSeekToSequence() {
+        long startTime = System.currentTimeMillis();
+
         boolean success = sequenceFile.seekToContig("chr8");
         Assert.assertTrue("Seek to seq chr8 failed", success );
 
@@ -84,16 +105,30 @@ public class FastaSequenceFile2Test {
         Assert.assertEquals( "First n bases of chrc are incorrect",
                              StringUtil.bytesToString( sequence.getBases(), 0, firstBasesOfChr8.length() ),
                              firstBasesOfChr8 );
+
+        long endTime = System.currentTimeMillis();
+
+        System.err.printf("testSeekToSequence runtime: %dms%n", (endTime - startTime)) ;
     }
 
     // TODO: Is NullPointerException *really* the right exception when a sequence is missing?
     @Test(expected=NullPointerException.class)
     public void testSeekToMissingSequence() {
-        boolean success = sequenceFile.seekToContig("absent");
+        long startTime = 0L, endTime = 0L;
+
+        try {
+            startTime = System.currentTimeMillis();
+        }
+        finally {
+            endTime = System.currentTimeMillis();
+            System.err.printf("testSeekToMissingSequence runtime: %dms%n", (endTime - startTime)) ;
+        }
     }
 
     @Test
     public void testSeekBackward() {
+        long startTime = System.currentTimeMillis();
+
         boolean success = sequenceFile.seekToContig("chr9");
         Assert.assertTrue("Unable to seek to contig 'chr9'", success);
 
@@ -104,15 +139,45 @@ public class FastaSequenceFile2Test {
         Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chr8");
         Assert.assertEquals( "First n bases of chrc are incorrect",
                              StringUtil.bytesToString( sequence.getBases(), 0, firstBasesOfChr8.length() ),
-                             firstBasesOfChr8 );        
+                             firstBasesOfChr8 );
+
+        long endTime = System.currentTimeMillis();
+
+        System.err.printf("testSeekBackward runtime: %dms%n", (endTime - startTime)) ;
     }
 
     @Test
     public void testInvalidSeekBackward() {
+        long startTime = System.currentTimeMillis();
+
         boolean success = sequenceFile.seekToContig("chr9");
         Assert.assertTrue("Unable to seek to contig 'chr9'", success);
 
         success = sequenceFile.seekToContig("chr8");
         Assert.assertFalse("Unable to seek backward to contig 'chr8'", success);
+
+        long endTime = System.currentTimeMillis();
+
+        System.err.printf("testInvalidSeekBackward runtime: %dms%n", (endTime - startTime)) ;
+    }
+
+    @Test
+    public void testSimultaneousAccess() {
+        long startTime = System.currentTimeMillis();
+
+        FastaSequenceFile2 other = (FastaSequenceFile2)sequenceFile.clone();
+
+        sequenceFile.seekToContig("chr1");
+        ReferenceSequence chr1 = sequenceFile.nextSequence();
+
+//        other.seekToContig("chr8");
+//        ReferenceSequence chr8 = other.nextSequence();
+
+//        System.err.printf( "sequenceFile contig: %s%n", sequenceFile.getContigName() );
+//        System.err.printf( "other contig: %s%n", other.getContigName() );
+
+        long endTime = System.currentTimeMillis();
+
+        System.err.printf("testSimultaneousAccess runtime: %dms%n", (endTime - startTime)) ;
     }
 }
