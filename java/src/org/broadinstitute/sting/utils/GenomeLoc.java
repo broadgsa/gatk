@@ -30,7 +30,7 @@ import org.apache.log4j.Logger;
 public class GenomeLoc implements Comparable<GenomeLoc> {
     private static Logger logger = Logger.getLogger(GenomeLoc.class);
 
-    private String contig;
+    private Integer contigIndex;
     private long start;
     private long stop;
 
@@ -41,7 +41,6 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     // --------------------------------------------------------------------------------------------------------------
     //public static Map<String, Integer> refContigOrdering = null;
     private static SAMSequenceDictionary contigInfo = null;
-    private static HashMap<String, String> interns = null;
 
     public static boolean hasKnownContigOrdering() {
         return contigInfo != null;
@@ -52,6 +51,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     }
     
     public static int getContigIndex( final String contig ) {
+        // if the conig isn't found, a null is returned which will NPE here (which is what we want right now)
         return contigInfo.getSequenceIndex(contig);
     }
 
@@ -113,28 +113,32 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     // constructors
     //
     // --------------------------------------------------------------------------------------------------------------
-    public GenomeLoc( String contig, final long start, final long stop ) {
-        if ( interns != null )
-            contig = interns.get(contig);
+    public GenomeLoc( int contigIndex, final long start, final long stop ) {
 
-        this.contig = contig;
+        this.contigIndex = contigIndex;
         this.start = start;
         this.stop = stop;
     }
 
+    public GenomeLoc( String contig, final long start, final long stop ) {
+        this(contigInfo.getSequenceIndex(contig), start, stop);
+    }
+
     public GenomeLoc( final String contig, final long pos ) {
-        this( contig, pos, pos );
+        this(contig, pos, pos );
+    }
+
+    public GenomeLoc( final int contig, final long pos ) {
+        this(contig, pos, pos );
     }
 
     public GenomeLoc( final GenomeLoc toCopy ) {
-        this( new String(toCopy.getContig()), toCopy.getStart(), toCopy.getStop() );
+        this( toCopy.contigIndex, toCopy.getStart(), toCopy.getStop() );
     }
 
+    // TODO: why isn't this just a constructor?
     public static GenomeLoc genomicLocationOf(final SAMRecord read) {
-        String contig = read.getReferenceName();
-        if (read.getReadUnmappedFlag())
-            contig = null;
-        return new GenomeLoc(contig, read.getAlignmentStart(), read.getAlignmentEnd());
+        return new GenomeLoc(read.getReferenceIndex(), read.getAlignmentStart(), read.getAlignmentEnd());
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -171,6 +175,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
             else if ( match2.matches() ) {
                 contig = match2.group(1);
                 start = parsePosition(match2.group(2));
+                stop = start;                
             }
             else if ( match3.matches() ) {
                 contig = match3.group(1);
@@ -304,7 +309,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
             return returnTrueIfEmpty;
 
         // skip loci before intervals begin
-        if ( hasKnownContigOrdering() && getContigIndex(curr.contig) < getContigIndex(locs.get(0).contig) )
+        if ( hasKnownContigOrdering() && curr.contigIndex < locs.get(0).contigIndex )
             return false;
 
         for ( GenomeLoc loc : locs ) {
@@ -320,7 +325,8 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     //
     // Accessors and setters
     //
-    public final String getContig() { return this.contig; }
+    public final String getContig() { return contigInfo.getSequence(this.contigIndex).getSequenceName(); }
+    public final int getContigIndex() { return this.contigIndex; }
     public final long getStart()    { return this.start; }
     public final long getStop()     { return this.stop; }
     public final String toString()  {
@@ -333,12 +339,12 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     }
 
 
-    public final boolean isUnmapped() { return this.contig == null; }
+    public final boolean isUnmapped() { return this.contigIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX; }
     public final boolean throughEndOfContigP() { return this.stop == Integer.MAX_VALUE; }
     public final boolean atBeginningOfContigP() { return this.start == 1; }
 
     public void setContig(String contig) {
-        this.contig = contig;
+        this.contigIndex = contigInfo.getSequenceIndex(contig);
     }
 
     public void setStart(long start) {
@@ -351,16 +357,16 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     public final boolean isSingleBP() { return stop == start; }
 
     public final boolean disjointP(GenomeLoc that) {
-        if ( compareContigs(this.contig, that.contig) != 0 ) return true;   // different chromosomes
-        if ( this.start > that.stop ) return true;                          // this guy is past that
-        if ( that.start > this.stop ) return true;                          // that guy is past our start
+        if ( this.contigIndex != that.contigIndex ) return true;    // different chromosomes
+        if ( this.start > that.stop ) return true;                  // this guy is past that
+        if ( that.start > this.stop ) return true;                  // that guy is past our start
         return false;
     }
 
     public final boolean discontinuousP(GenomeLoc that) {
-        if ( compareContigs(this.contig, that.contig) != 0 ) return true;   // different chromosomes
-        if ( (this.start - 1) > that.stop ) return true;                          // this guy is past that
-        if ( (that.start - 1) > this.stop ) return true;                          // that guy is past our start
+        if ( this.contigIndex != that.contigIndex ) return true;    // different chromosomes
+        if ( (this.start - 1) > that.stop ) return true;            // this guy is past that
+        if ( (that.start - 1) > this.stop ) return true;            // that guy is past our start
         return false;
     }
 
@@ -386,11 +392,11 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     }
 
     public final boolean onSameContig(GenomeLoc that) {
-        return this.contig.equals(that.contig);
+        return (this.contigIndex == that.contigIndex);
     }
 
     public final int minus( final GenomeLoc that ) {
-        if ( this.getContig().equals(that.getContig()) )
+        if ( this.contigIndex == that.contigIndex )
             return (int) (this.getStart() - that.getStart());
         else
             return Integer.MAX_VALUE;
@@ -425,6 +431,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     //
     // Comparison operations
     //
+    // TODO: get rid of this method because it's sloooooooooooooow
     public static int compareContigs( final String thisContig, final String thatContig ) 
     {
         if ( thisContig == thatContig )
@@ -471,15 +478,16 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         }
     }
 
-    public int compareContigs( GenomeLoc that ) {
-        return compareContigs( this.contig, that.contig );
+    public final int compareContigs( GenomeLoc that ) {
+        return (this.contigIndex == that.contigIndex)?0:((this.contigIndex < that.contigIndex)?-1:1);
     }
 
 
     public int compareTo( GenomeLoc that ) {
         if ( this == that ) return 0;
 
-        final int cmpContig = compareContigs( this.getContig(), that.getContig() );
+        final int cmpContig = compareContigs(that);
+
         if ( cmpContig != 0 ) return cmpContig;
         if ( this.getStart() < that.getStart() ) return -1;
         if ( this.getStart() > that.getStart() ) return 1;

@@ -113,7 +113,7 @@ public class LocusIteratorByHanger extends LocusIterator {
     }
 
     protected void hangRead(final SAMRecord read) {
-        GenomeLoc readLoc = new GenomeLoc(read.getReferenceName(), read.getAlignmentStart());
+        GenomeLoc readLoc = new GenomeLoc(read.getReferenceIndex(), read.getAlignmentStart());
         //System.out.printf("Adding read %s at %d%n", read.getReadName(), read.getAlignmentStart());
         
         /*
@@ -128,7 +128,7 @@ public class LocusIteratorByHanger extends LocusIterator {
             if ( DEBUG )
                 logger.debug(String.format("Processing block %s len=%d%n", block, block.getLength()));
             for ( int i = 0; i < block.getLength(); i++ ) {
-                GenomeLoc offset = new GenomeLoc(readLoc.getContig(), block.getReferenceStart() + i);
+                GenomeLoc offset = new GenomeLoc(readLoc.getContigIndex(), block.getReferenceStart() + i);
                 readHanger.expandingPut(offset, read);
                 offsetHanger.expandingPut(offset, block.getReadStart() + i - 1);
                 if ( DEBUG )

@@ -43,8 +43,10 @@ public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
     int tumorCovered;
     int normalCovered;
     int somaticCovered;
+    long start = 0;
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+        if (start ==0) { start = System.currentTimeMillis(); }
 
         List<SAMRecord> reads = context.getReads();
         int tumorDepth = 0;
@@ -58,10 +60,10 @@ public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
             // that come from fully mapped pairs with a mappign quality threshold >= x
             if (read.getNotPrimaryAlignmentFlag() ||
                 read.getDuplicateReadFlag() ||
-                read.getReadUnmappedFlag()
-        ||
-                read.getMateUnmappedFlag() ||
+                read.getReadUnmappedFlag() ||
                 read.getMappingQuality() < MAPPING_QUALITY_THRESHOLD
+//        ||
+//                read.getMateUnmappedFlag() ||
                     ) {
                 continue;
             }
@@ -90,10 +92,15 @@ public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
         if (isTumorCovered && isNormalCovered) {somaticCovered++; }
         totalSites++;
 
-        if (totalSites % 20000 == 0) {
-            out.println(String.format("%s:%d %d %d %d %d", context.getContig(), context.getPosition(), totalSites, tumorCovered, normalCovered, somaticCovered));
-        }
+//        if (totalSites % 100000 == 0) {
+//            long now = System.currentTimeMillis();
+//            out.println(String.format("%s:%d %d %d %d %d %dms", context.getContig(), context.getPosition(), totalSites, tumorCovered, normalCovered, somaticCovered, (now-start)));
+//        }
 
+        StringBuilder sb = new StringBuilder();
+        sb.append(context.getContig()).append(" ");
+        sb.append(context.getPosition());
+        out.println(sb.toString());
         return 1;
     }
 
@@ -107,7 +114,7 @@ public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
 
     @Override
     public void onTraversalDone(Integer result) {
-        out.println(String.format("FINAL - %d %d %d %d", totalSites, tumorCovered, normalCovered, somaticCovered));
+//        out.println(String.format("FINAL - %d %d %d %d", totalSites, tumorCovered, normalCovered, somaticCovered));
     }
 
 
