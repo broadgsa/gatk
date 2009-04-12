@@ -273,7 +273,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         // Prepare the sort ordering w.r.t. the sequence dictionary
         if (REF_FILE_ARG != null) {
             final ReferenceSequenceFile refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(REF_FILE_ARG);
-            //GenomeLoc.setupRefContigOrdering(refFile);
+            GenomeLoc.setupRefContigOrdering(refFile);
         }
 
         // Determine the validation stringency.  Default to ValidationStringency.STRICT.
