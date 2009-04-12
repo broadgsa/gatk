@@ -81,7 +81,7 @@ public class BasecallingReadModel {
      */
     public void write(File dir) {
         for (int cycle = 0; cycle < basemodels.length; cycle++) {
-            File outparam = new File(dir.getPath() + "/param." + cycle);
+            File outparam = new File(dir.getPath() + "/param." + cycle + ".r");
             basemodels[cycle].write(outparam);
         }
     }

@@ -167,22 +167,30 @@ public class BasecallingBaseModel {
             PrintWriter writer = new PrintWriter(outparam);
 
             for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
-                writer.print("mean_" + baseIndexToBase(baseCurIndex) + " : [ ");
+                writer.print("mean_" + baseIndexToBase(baseCurIndex) + " = c(");
                 for (int channel = 0; channel < 4; channel++) {
                     writer.print(sums[baseCurIndex].getQuick(channel)/counts[baseCurIndex]);
-                    writer.print(" ");
+
+                    if (channel < 3) {
+                        writer.print(", ");
+                    }
                 }
-                writer.print("] (" + counts[baseCurIndex] + ")\n");
+                writer.println(");");
 
                 DoubleMatrix2D cov = unscaledCovarianceSums[baseCurIndex].copy();
                 cov.assign(F.div(counts[baseCurIndex]));
 
-                writer.println("cov_" + baseIndexToBase(baseCurIndex) + " : " + cov + "\n");
+                writer.print("cov_" + baseIndexToBase(baseCurIndex) + " = matrix(c(");
+                for (int channel1 = 0; channel1 < 4; channel1++) {
+                    for (int channel2 = 0; channel2 < 4; channel2++) {
+                        writer.print(cov.get(channel2, channel1) + (channel1 == 3 && channel2 == 3 ? "" : ","));
+                    }
+                }
+                writer.println("), nr=4, nc=4);\n");
             }
 
             writer.close();
         } catch (IOException e) {
-
         }
     }
 
