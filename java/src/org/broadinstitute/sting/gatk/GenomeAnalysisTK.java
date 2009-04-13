@@ -117,7 +117,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalArg("input_file", "I", "SAM or BAM file", "INPUT_FILE");
         //m_parser.addRequiredArg("input_file", "I", "SAM or BAM file", "INPUT_FILE");
         m_parser.addOptionalArg("maximum_reads", "M", "Maximum number of reads to process before exiting", "MAX_READS_ARG");
-        m_parser.addOptionalArg("validation_strictness", "S", "How strict should we be with validation (lenient|silent|strict)", "STRICTNESS_ARG");
+        m_parser.addOptionalArg("validation_strictness", "S", "How strict should we be with validation (LENIENT|SILENT|STRICT)", "STRICTNESS_ARG");
         m_parser.addOptionalArg("reference_sequence", "R", "Reference sequence file", "REF_FILE_ARG");
         m_parser.addOptionalArg("genome_region", "L", "Genome region to operation on: from chr:start-end", "REGION_STR");
         m_parser.addRequiredArg("analysis_type", "T", "Type of analysis to run", "Analysis_Name");
@@ -284,6 +284,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         catch( IllegalArgumentException ex ) {
             strictness = ValidationStringency.STRICT;
         }
+
         logger.info("Strictness is " + strictness);
         engine.setStrictness(strictness);
 
