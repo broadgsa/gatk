@@ -11,6 +11,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.playground.illumina.FirecrestFileParser;
 import org.broadinstitute.sting.playground.illumina.FirecrestReadData;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 
 import java.io.File;
@@ -139,6 +140,9 @@ public class FourBaseRecaller extends CommandLineProgram {
         ffp = new FirecrestFileParser(DIR.getParentFile(), LANE);
         fread = ffp.next();
 
+        int[][] base_counts = new int[4][bread.getFirstReadSequence().length()];
+        int bases_incorrect = 0, bases_total = 0;
+
         if (debugout != null) { debugout.println("cycle int_a int_c int_g int_t bustard_base kiran_base bustard_prob kiran_prob"); }
 
         queryid = 0;
@@ -163,10 +167,14 @@ public class FourBaseRecaller extends CommandLineProgram {
                 bestqual[cycle] = fp.qualAtRank(0);
                 nextbestqual[cycle] = QualityUtils.baseAndProbToCompressedQuality(fp.indexAtRank(1), fp.probAtRank(1));
 
-                if (debugout != null && queryid < 5000 && bases.charAt(cycle) != '.') {
+                if (debugout != null && bases.charAt(cycle) != '.' && base_counts[BaseUtils.simpleBaseToBaseIndex(bases.charAt(cycle))][cycle] < 1000) {
                     debugout.println(cycle + " " + fourintensity[0] + " " + fourintensity[1] + " " + fourintensity[2] + " " + fourintensity[3] + " " + (bases.charAt(cycle)) + " " + ((char) asciiseq[cycle]) + " " + bestqual[cycle] + " " + quals[cycle]);
-                    //System.out.println(cycle + " " + fourintensity[0] + " " + fourintensity[1] + " " + fourintensity[2] + " " + fourintensity[3] + " " + (bases.charAt(cycle)) + " " + ((char) asciiseq[cycle]) + " " + bestqual[cycle] + " " + quals[cycle]);
+
+                    base_counts[BaseUtils.simpleBaseToBaseIndex(bases.charAt(cycle))][cycle]++;
                 }
+
+                bases_incorrect += (bases.charAt(cycle) == (char) asciiseq[cycle]) ? 0 : 1;
+                bases_total++;
             }
 
             sfw.addAlignment(constructSAMRecord("KIR_", new String(asciiseq), bestqual, nextbestqual, bread, sfh));
@@ -179,6 +187,8 @@ public class FourBaseRecaller extends CommandLineProgram {
             debugout.close();
         }
         sfw.close();
+
+        System.out.println("Nonmatch rate: " + ((double) bases_incorrect)/((double) bases_total));
 
         return 0;
     }
