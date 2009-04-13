@@ -31,7 +31,13 @@ public class MendelianInheritanceWalker  extends RefWalker<TrioConcordanceRecord
 		AllelicVariant dad = (rodSAMPileup)rodData.lookup("father", null);
 		AllelicVariant kid = (rodSAMPileup)rodData.lookup("daughter", null);
 		
-		if ( ! hasCall(mom)  || ! hasCall(dad) || ! hasCall(kid) ) return t; // at least one person is not called; nothing to do, bail out
+		if ( hasCall(mom)) t.mom_assessed = 1;
+		if ( hasCall(dad)) t.dad_assessed = 1;
+		if ( hasCall(kid)) t.kid_assessed = 1;
+		
+		if ( hasCall(mom) && mom.isIndel() ) System.out.println("GOT INDEL: "+mom.toString());
+		
+		if (( t.mom_assessed + t.dad_assessed + t.kid_assessed) != 3 ) return t; // at least one person is not called; nothing to do, bail out
 			
 		// proceed only if we got confident calls
 			
@@ -62,11 +68,11 @@ public class MendelianInheritanceWalker  extends RefWalker<TrioConcordanceRecord
 				mom_alleles.contains(kid_allele_2) && dad_alleles.contains(kid_allele_1) ) {
 			t.consistent_snp = 1;
 			
-			logger.info("consistent SNP at "+context.getLocation() + 
-					"("+ref+") " + mom_alleles.get(0)+"/" +mom_alleles.get(1) + "  " +
-					dad_alleles.get(0)+"/" +dad_alleles.get(1) + "  " +
-					kid_allele_1+"/" +kid_allele_2  
-					);
+//			logger.info("consistent SNP at "+context.getLocation() + 
+//					"("+ref+") " + mom_alleles.get(0)+"/" +mom_alleles.get(1) + "  " +
+//					dad_alleles.get(0)+"/" +dad_alleles.get(1) + "  " +
+//					kid_allele_1+"/" +kid_allele_2  
+//					);
 			return t;
 	    }
 		

@@ -27,50 +27,56 @@ public class IndelInspector extends CommandLineProgram {
     @Option(doc="Output file (sam or bam) for non-indel related reads and indel reads that were not improved") public String OUT1; 
     @Option(doc="Output file (sam or bam) for improved (realigned) indel related reads") public String OUT2;
     @Option(doc="[paranoid] If true, all reads that would be otherwise picked and processed by this tool will be saved, unmodified, into OUT1", optional=true) public boolean CONTROL_RUN;
-    @Option(doc="Error counting mode: MM - count mismatches only, ERR - count errors (arachne style), MG - count mismatches and gaps as one error each") public String ERR_MODE;
+    @Option(doc="Error counting mode: MM - mismatches only (from sam tags), MC - mismatches only doing actual mismatch count on the fly (use this if tags are incorrectly set); ERR - errors (arachne style: mm+gap lengths), MG - count mismatches and gaps as one error each") public String ERR_MODE;
     @Option(doc="Maximum number of errors allowed (see ERR_MODE)") public Integer MAX_ERRS;
-//    @Option(shortName="R", doc="Reference fasta or fasta.gz file") public File REF_FILE;
+    @Option(shortName="R", doc="Reference fasta or fasta.gz file") public File REF_FILE;
 
     /** Required main method implementation. */
     public static void main(final String[] argv) {
         System.exit(new IndelInspector().instanceMain(argv));
     }
     
-	protected int doWork() {
+    protected int doWork() {
 
-        System.out.println("I am at version 0.3");
+        int discarded_count = 0;
+
+        ReferenceSequenceFileWalker reference = new ReferenceSequenceFileWalker(
+                    REF_FILE
+            );
+
+        if ( reference.getSequenceDictionary() == null ) {
+            System.out.println("No reference sequence dictionary found. Abort.");
+        }
+
+        GenomeLoc.setupRefContigOrdering(reference.getSequenceDictionary());
         GenomeLoc location = null;
         if ( GENOME_LOCATION != null ) {
             location = GenomeLoc.parseGenomeLoc(GENOME_LOCATION);
         }
+        
+        if ( ! ERR_MODE.equals("MM") && ! ERR_MODE.equals("MG") && ! ERR_MODE.equals("ERR") && ! ERR_MODE.equals("MC") ) {
+            System.out.println("Unknown value specified for ERR_MODE: "+ERR_MODE);
+            return 1;
+        }
 
-		if ( ! ERR_MODE.equals("MM") && ! ERR_MODE.equals("MG") && ! ERR_MODE.equals("ERR") ) {
-			System.out.println("Unknown value specified for ERR_MODE");
-			return 1;
-		}
-
-		final SAMFileReader samReader = new SAMFileReader(getInputFile(INPUT_FILE,"/broad/1KG/"));
+        final SAMFileReader samReader = new SAMFileReader(getInputFile(INPUT_FILE,"/broad/1KG/"));
         samReader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
 
-        setContigOrdering(samReader);
-
-        ReferenceSequenceFileWalker reference = new ReferenceSequenceFileWalker(
-                    new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta")
-            );
+        //        setContigOrdering(samReader);
 
 
         ReferenceSequence contig_seq = null;
 
-		IndelRecordPileCollector col = null;
+        IndelRecordPileCollector col = null;
         PassThroughWriter ptWriter = new PassThroughWriter(OUT1,samReader.getFileHeader());
         PileBuilder pileBuilder = null;
         if ( ! CONTROL_RUN ) pileBuilder = new PileBuilder(OUT2,samReader.getFileHeader(),ptWriter);
 
-		try {
+        try {
             if ( CONTROL_RUN ) col = new IndelRecordPileCollector(ptWriter, new DiscardingPileReceiver() );
-			else col = new IndelRecordPileCollector(ptWriter, pileBuilder );
-		} catch(Exception e) { System.err.println(e.getMessage()); }
-		if ( col == null ) return 1; 
+            else col = new IndelRecordPileCollector(ptWriter, pileBuilder );
+        } catch(Exception e) { System.err.println(e.getMessage()); }
+        if ( col == null ) return 1; 
 
         col.setControlRun(CONTROL_RUN);
 
@@ -91,9 +97,9 @@ public class IndelInspector extends CommandLineProgram {
         for ( SAMRecord r : samReader ) {
 
             if ( r.getReadUnmappedFlag() ) continue; 
-        	if ( r.getReferenceName() != cur_contig) {
-        		cur_contig = r.getReferenceName();
-        		System.out.println("Contig "+cur_contig);
+            if ( r.getReferenceName() != cur_contig) {
+                cur_contig = r.getReferenceName();
+                System.out.println("Contig "+cur_contig);
                 // if contig is specified and we are past that contig, we are done:
                 if ( location != null && GenomeLoc.compareContigs(cur_contig, location.getContig()) == 1 ) break;
                 if ( location == null || GenomeLoc.compareContigs(cur_contig, location.getContig()) == 0 ) {
@@ -105,18 +111,33 @@ public class IndelInspector extends CommandLineProgram {
                 }
             }
 
-            // if contig is specified and wqe did not reach it yet, skip the records until we reach that contig:
-        	if ( location != null && GenomeLoc.compareContigs(cur_contig, location.getContig()) == -1 ) continue;
+            // if contig is specified and we did not reach it yet, skip the records until we reach that contig:
+            if ( location != null && GenomeLoc.compareContigs(cur_contig, location.getContig()) == -1 ) continue;
 
 
             if ( location != null && r.getAlignmentEnd() < location.getStart() ) continue;
 
             // if stop position is specified and we are past that, stop reading:
-        	if ( location != null && r.getAlignmentStart() > location.getStop() ) break;
+            if ( location != null && r.getAlignmentStart() > location.getStop() ) break;
 
-        	if ( cur_contig.equals("chrM") || GenomeLoc.compareContigs(cur_contig,"chrY")==1 ) continue; // skip chrM and unplaced contigs for now
-        	
-        	int err = -1;
+            //    if ( cur_contig.equals("chrM") || GenomeLoc.compareContigs(cur_contig,"chrY") > 0 ) continue; // skip chrM and unplaced contigs for now
+
+            // we currently do not know how to deal with cigars containing elements other than M,I,D, so 
+            // let's just skip the reads that contain those other elements (clipped reads?)
+            Cigar c = r.getCigar();
+            boolean cigar_acceptable = true;
+            for ( int z = 0 ; z < c.numCigarElements() ; z++ ) {
+                CigarElement ce = c.getCigarElement(z);
+                switch ( ce.getOperator() ) {
+                case M:
+                case I:
+                case D: break;
+                default: cigar_acceptable = false;
+                }
+            }
+            if ( ! cigar_acceptable ) continue;
+
+            int err = -1;
 /*
             System.out.println("MM:     "+numMismatches(r));
             System.out.println("direct: "+numMismatchesDirect(r,contig_seq));
@@ -130,13 +151,14 @@ public class IndelInspector extends CommandLineProgram {
             continue;
 */
 
-        	if ( ERR_MODE.equals("MM")) err = numMismatches(r);
-        	else if ( ERR_MODE.equals("ERR")) err = numErrors(r);
-        	else if ( ERR_MODE.equals("MG")) err = numMismatchesGaps(r);
-        	if ( err > MAX_ERRS.intValue() ) continue;
-//        	counter++;
-//        	if ( counter % 1000000 == 0 ) System.out.println(counter+" records; "+col.memStatsString());
-        	col.receive(r);
+            if ( ERR_MODE.equals("MM")) err = numMismatches(r,contig_seq);
+            else if ( ERR_MODE.equals("MC") ) err = AlignmentUtils.numMismatches(r,contig_seq);
+            else if ( ERR_MODE.equals("ERR")) err = numErrors(r,contig_seq);
+            else if ( ERR_MODE.equals("MG")) err = numMismatchesGaps(r,contig_seq);
+            if ( err > MAX_ERRS.intValue() ) continue;
+            //        	counter++;
+            //        	if ( counter % 1000000 == 0 ) System.out.println(counter+" records; "+col.memStatsString());
+            col.receive(r);
 
         }
         
@@ -149,7 +171,7 @@ public class IndelInspector extends CommandLineProgram {
         samReader.close();
         ptWriter.close();
         return 0;
-	}
+    }
 	
 	/** This method is a HACK: it is designed to work around the current bug in NM tags created  at CRD 
 	 * 
@@ -157,10 +179,10 @@ public class IndelInspector extends CommandLineProgram {
 	 * @return number of errors (number of mismatches plus total length of all insertions/deletions
 	 * @throws RuntimeException
 	 */
-	private static int numErrors(SAMRecord r) throws RuntimeException {
+    private static int numErrors(SAMRecord r, ReferenceSequence refseq) throws RuntimeException {
 		
 		// NM currently stores the total number of mismatches in all blocks + 1
-		int errs = numMismatches(r);
+        int errs = numMismatches(r,refseq);
 		
 		// now we have to add the total length of all indels:
 		Cigar c = r.getCigar();
@@ -185,10 +207,10 @@ public class IndelInspector extends CommandLineProgram {
 	 * deletion will be counted as a single error regardless of the length)
 	 * @throws RuntimeException
 	 */
-	private static int numMismatchesGaps(SAMRecord r) throws RuntimeException {
+    private static int numMismatchesGaps(SAMRecord r,ReferenceSequence refseq) throws RuntimeException {
 		
 		// NM currently stores the total number of mismatches in all blocks + 1
-		int errs = numMismatches(r);
+        int errs = numMismatches(r,refseq);
 		
 		// now we have to add the total length of all indels:
 		Cigar c = r.getCigar();
@@ -207,12 +229,14 @@ public class IndelInspector extends CommandLineProgram {
 	}
 
     /** This method is a HACK: it is designed to work around the current bug in NM tags created  at CRD */
-	private static int numMismatches(SAMRecord r) throws RuntimeException {
+    private static int numMismatches(SAMRecord r, ReferenceSequence refseq) throws RuntimeException {
 		
-		// NM currently stores the total number of mismatches in all blocks + 1
-		return ((Integer)r.getAttribute("NM")).intValue() - 1;
+        // NM currently stores the total number of mismatches in all blocks + 1
+        Integer i = (Integer)r.getAttribute("NM");
+        if ( i == null ) return AlignmentUtils.numMismatches(r,refseq);
+        return ((Integer)r.getAttribute("NM")).intValue() - 1;
 		
-	}
+    }
 
     /** Trivial utility method that goes some distance trying to ensure that the input file is there;
      * the only purpose is reducing clutter in main(). Receives a default
@@ -265,7 +289,7 @@ public class IndelInspector extends CommandLineProgram {
     private void setDefaultContigOrdering() {
         Map<String,Integer> rco = new HashMap<String,Integer>();
         rco.put("chrM",0);
-        for ( int i = 1 ; i <= 22 ; i++ ) rco.put("chr"+i,i);
+        for ( int i = 1 ; i <= 22 ; i++ ) rco.put(Integer.toString(i),i);//rco.put("chr"+i,i);
         rco.put("chrX",23);
         rco.put("chrY",24);
     }

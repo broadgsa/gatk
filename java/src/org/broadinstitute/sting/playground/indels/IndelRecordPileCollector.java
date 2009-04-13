@@ -65,26 +65,26 @@ import net.sf.samtools.*;
  */
 public class IndelRecordPileCollector implements RecordReceiver {
 
-	private final int WAIT_STATE = 0;
-	private final int ACTIVE_STATE = 1;
-
-	private boolean avoiding_region; // some regions are too funky (contain very long indel trains)-
-                                     // we will determine their span and report them,
+    private final int WAIT_STATE = 0;
+    private final int ACTIVE_STATE = 1;
+    
+    private boolean avoiding_region; // some regions are too funky (contain very long indel trains)-
+    // we will determine their span and report them,
                                      // but we won't be counting any indels there or building piles
 
-	private List<SAMRecord> mRecordPile; // here we keep the records before we decide how we want to emit them
-	private TreeSet<CountedObject<Indel> > mAllIndels; ///< individual indels encountered, with observation counts
-	private int mLastContig ;    ///< keeps the index of the contig last alignment was on
-	private int mLastStartOnRef; ///< keeps the start position of the last alignment
-	private int mState; ///< WAIT_STATE or ACTIVE_STATE
-	private int mIndelSeparation; ///< Indels that are farther away from one another than this value
-	                               ///< will be emitted separately; trains of indels with less then
-		                           ///< mIndelSeparation bases between each adjacent pair will be emitted 
-		                           ///< as one pile.
+    private List<SAMRecord> mRecordPile; // here we keep the records before we decide how we want to emit them
+    private TreeSet<CountedObject<Indel> > mAllIndels; ///< individual indels encountered, with observation counts
+    private int mLastContig ;    ///< keeps the index of the contig last alignment was on
+    private int mLastStartOnRef; ///< keeps the start position of the last alignment
+    private int mState; ///< WAIT_STATE or ACTIVE_STATE
+    private int mIndelSeparation; ///< Indels that are farther away from one another than this value
+    ///< will be emitted separately; trains of indels with less then
+    ///< mIndelSeparation bases between each adjacent pair will be emitted 
+    ///< as one pile.
 	
-	// we will build histograms (distributions) of encountered indel lengths on the fly
-	private List<Integer> mIndelLengthHistI;
-	private List<Integer> mIndelLengthHistD;
+    // we will build histograms (distributions) of encountered indel lengths on the fly
+    private List<Integer> mIndelLengthHistI;
+    private List<Integer> mIndelLengthHistD;
 
     private RecordReceiver defaultReceiver; // we will send there records that do not overlap with regions of interest
     private RecordPileReceiver indelPileReceiver; // piles over indel regions will be sent there
@@ -97,27 +97,27 @@ public class IndelRecordPileCollector implements RecordReceiver {
 		String s = "mRecordPile: ";
 		return s+mRecordPile.size() + " mAllIndels: "+mAllIndels.size() + " mLastContig=" +mLastContig + " mLastStartOnref="+mLastStartOnRef;
                 //+" Bndries="+mIndelRegionStart +":"+ mIndelRegionStop;
-	}
+    }
 	
 
-	public IndelRecordPileCollector(RecordReceiver rr, RecordPileReceiver rp) throws java.io.IOException {
-		mRecordPile = new LinkedList<SAMRecord>();
-		mAllIndels = new TreeSet<CountedObject<Indel> >(
-                new CountedObjectComparatorAdapter<Indel>(new IntervalComparator()));
-		mLastContig = -1;
-		mLastStartOnRef = -1;
-		mIndelSeparation = 51;
-		mIndelLengthHistI = new ArrayList<Integer>();
-		mIndelLengthHistD = new ArrayList<Integer>();
-		for ( int i = 0 ; i < 5 ; i++ ) {
-			mIndelLengthHistI.add(0);
-			mIndelLengthHistD.add(0);
-		}
+    public IndelRecordPileCollector(RecordReceiver rr, RecordPileReceiver rp) throws java.io.IOException {
+        mRecordPile = new LinkedList<SAMRecord>();
+        mAllIndels = new TreeSet<CountedObject<Indel> >(
+              new CountedObjectComparatorAdapter<Indel>(new IntervalComparator()));
+        mLastContig = -1;
+        mLastStartOnRef = -1;
+        mIndelSeparation = 51;
+        mIndelLengthHistI = new ArrayList<Integer>();
+        mIndelLengthHistD = new ArrayList<Integer>();
+        for ( int i = 0 ; i < 5 ; i++ ) {
+            mIndelLengthHistI.add(0);
+            mIndelLengthHistD.add(0);
+        }
         defaultReceiver = rr;
         indelPileReceiver = rp;
         referenceSequence = null;
         setWaitState();
-	}
+    }
 
     /** Fully reinitializes wait state: clears record pile and indel list, resets flags and states.
      * Does not emit records, just clears/resets the variables.
@@ -136,16 +136,16 @@ public class IndelRecordPileCollector implements RecordReceiver {
     public void setReferenceSequence(String contig) {
         referenceSequence = contig;
     }
-
-	/** A utility method: emits into nonindelReceiver and purges from the currently held SAM record pile
+    
+    /** A utility method: emits into nonindelReceiver and purges from the currently held SAM record pile
      * all the consequtive records with alignment end positions less than or equal to the specified
      * position <code>pos</code>, until the first record is encountered that does not meet this condition. Note that
      * there might be more alignments that end at or before <code>pos</code> later on in the pile, but
      * they will <i> nit</i> be emitted/removed by this method.
-	 * @param pos all leading records with alignments ending before or at this position will be purged from the pile,
+     * @param pos all leading records with alignments ending before or at this position will be purged from the pile,
      * up to the first record that does not end at or before pos.
-	 */
-	protected void purgeRecordsEndingAtOrBefore(final long pos) {
+     */
+    protected void purgeRecordsEndingAtOrBefore(final long pos) {
         Iterator<SAMRecord> i = mRecordPile.iterator();
         while ( i.hasNext() ) {
             SAMRecord r = i.next();
@@ -154,13 +154,13 @@ public class IndelRecordPileCollector implements RecordReceiver {
                 i.remove();
             } else break;
         }
-	}
+    }
 	
 	/** A utility method: purges from the currently held SAM record pile all the records with alignment
 	 * start positions greater than or equal to the specified position <code>pos</code>
 	 * @param pos all records with alignments starting at or after this position will be purged from the pile
 	 */
-	protected void purgeRecordsStartingAtOrAfter(final int pos) {
+    protected void purgeRecordsStartingAtOrAfter(final int pos) {
         Iterator<SAMRecord> i = mRecordPile.iterator();
         while ( i.hasNext() ) {
             SAMRecord r = i.next();
@@ -169,7 +169,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
                 i.remove();
             } else break;
         }
-	}
+    }
 
     /** This is the main interface method of the collector: it receives alignments, inspects them, detects indels,
      *  updates and purges the read pile it keeps and emits alignments as needed.
@@ -198,46 +198,46 @@ public class IndelRecordPileCollector implements RecordReceiver {
      */
     public void receive(final SAMRecord r) throws RuntimeException {
 		
-		if ( r.getReadUnmappedFlag() ) return; // read did not align, nothing to do
+        if ( r.getReadUnmappedFlag() ) return; // read did not align, nothing to do
 
         if ( controlRun ) {
             defaultReceiver.receive(r);
             return;
         }
 
-		int currContig = r.getReferenceIndex();
-		int currPos = r.getAlignmentStart();
+        int currContig = r.getReferenceIndex();
+        int currPos = r.getAlignmentStart();
 		
-		if ( currContig < mLastContig ) throw new RuntimeException("SAM file is not ordered by contigs");
-		if ( currContig == mLastContig && currPos < mLastStartOnRef ) throw new RuntimeException("SAM file is not ordered by start positions");
-		
-		if ( currContig > mLastContig ) {
-			// we jumped onto a new contig; emit everything we might have been building and purge the piles:
-			emit();
-		} else { // still on the same contig:
+        if ( currContig < mLastContig ) throw new RuntimeException("SAM file is not ordered by contigs");
+        if ( currContig == mLastContig && currPos < mLastStartOnRef ) throw new RuntimeException("SAM file is not ordered by start positions");
+	
+        if ( currContig > mLastContig ) {
+            // we jumped onto a new contig; emit everything we might have been building and purge the piles:
+            emit();
+        } else { // still on the same contig:
 
             switch (mState) {
-			            // everything ending up to currPos is guaranteed to have no overlaps with indels yet to come
-			    case WAIT_STATE: purgeRecordsEndingAtOrBefore(currPos); break;
-
-                       // next indel can start only after currPos (whether it is in the current read or in the
-                       // reads yet to come). If it is far enough from the last indel we have seen, we can emit
-                case ACTIVE_STATE: if ( currPos - mAllIndels.last().getObject().getStop() > mIndelSeparation ) emit(); break;
-                default: throw new RuntimeException("Unknown state");
+                // everything ending up to currPos is guaranteed to have no overlaps with indels yet to come
+            case WAIT_STATE: purgeRecordsEndingAtOrBefore(currPos); break;
+                
+                // next indel can start only after currPos (whether it is in the current read or in the
+                // reads yet to come). If it is far enough from the last indel we have seen, we can emit
+            case ACTIVE_STATE: if ( currPos - mAllIndels.last().getObject().getStop() > mIndelSeparation ) emit(); break;
+            default: throw new RuntimeException("Unknown state");
             }
         }
 
         // does nothing if alignment has no indels, otherwise adds the indels to the list and (re)sets state to 'active'
         extractIndelsAndUpdateState(r.getCigar(),currPos);
 
-		if ( ! avoiding_region && mAllIndels.size() > 20 ) avoiding_region = true;
+        if ( mState == ACTIVE_STATE && ( ! avoiding_region ) && ( mAllIndels.size() > 20 || mRecordPile.size() > 1000 ) ) avoiding_region = true;
 
-		if ( ! avoiding_region ) mRecordPile.add(r); // add new record if this is not some crazy region
+        if ( ! avoiding_region ) mRecordPile.add(r); // add new record if this is not some crazy region
 
-		mLastContig = currContig;
-		mLastStartOnRef = currPos;
+        mLastContig = currContig;
+        mLastStartOnRef = currPos;
 		
-	}
+    }
 
     /** Emits all reads from the currently held pile, cleans the pile and fully reinitializes wait state
      * (clears indel list etc).
@@ -247,35 +247,37 @@ public class IndelRecordPileCollector implements RecordReceiver {
      * splits the train (and the pile) into multiple trains/piles as needed (i.e. if there are pairs of adjacent
      * indels that are not overlapped by any read), and emits the final piles of records into indelReceiver.
       */
-	private void emit() {
+    private void emit() {
 
-		if ( mState == WAIT_STATE || avoiding_region ) {
+        if ( mState == WAIT_STATE || avoiding_region ) {
             if ( avoiding_region )  {
                 long start = mAllIndels.first().getObject().getStart();
                 long stop = mAllIndels.last().getObject().getStop();
                 System.out.println("Genomic region "+mLastContig+":"+ start + "-"+ stop +
-                                   " was ignored: "+mAllIndels.size() +" unique indels with average distance of "+
+                                   " was ignored: ");
+                System.out.println("   "+mAllIndels.size() +" unique indels with average distance of "+
                                    ((double)(stop - start))/((double)mAllIndels.size()-1) +
                                    " bases between indels");
+                System.out.println("   "+mRecordPile.size() +" reads collected before aborting");
             }
 
-			// no indels or avoiding indels in bad region: send all records to defaultReceiver and clear the pile
+            // no indels or avoiding indels in bad region: send all records to defaultReceiver and clear the pile
             for ( SAMRecord r : mRecordPile ) {
                 defaultReceiver.receive(r);
             }
             setWaitState();
-			return;
-		}
-		
-		// last minute cleanup:
-		// at this stage we have all the indels collected conservatively (in a sense
-		// that they can be farther away than it is needed) - this means that there actually
-		// can be more than one pile in what we have stored. Also, we can still have gapless reads
-		// at the ends of the piles that do not really overlap with indel sites.
-		
-		if ( mAllIndels.size() == 0 ) throw new RuntimeException("Attempt to emit pile with no indels");
-
-		HistogramAsNeeded(mAllIndels);
+            return;
+        }
+        
+        // last minute cleanup:
+        // at this stage we have all the indels collected conservatively (in a sense
+        // that they can be farther away than it is needed) - this means that there actually
+        // can be more than one pile in what we have stored. Also, we can still have gapless reads
+        // at the ends of the piles that do not really overlap with indel sites.
+	
+        if ( mAllIndels.size() == 0 ) throw new RuntimeException("Attempt to emit pile with no indels");
+        
+        HistogramAsNeeded(mAllIndels);
 
 
         // indels are in a sorted map, and reads were added to the pile in the order they were received (also sorted).
@@ -350,19 +352,19 @@ public class IndelRecordPileCollector implements RecordReceiver {
         }
 
         setWaitState();
-	}
+    }
 		
 	
-	/** Looks for indels in the cigar and, if finds any, updates list of indels in the current train ans sets
+    /** Looks for indels in the cigar and, if finds any, updates list of indels in the current train ans sets
      * the state to 'active'. If cigar contains no indels, this method does not do anything (it does <i>not</i>
      * set state back to 'wait' either!). If this method finds any indels in the cigar, it first tries to find them
      * in the list of previously seen indels. If the indel was already seen before, its counter is updated (indels
      * are stored in the list as counted objects), oherwise indel is added to the list with initial count of 1.
-	 *
-	 * @param c alignment cigar; if it contains no indels, nothing will be done
-	 * @param start position, at which the alignment represented by cigar <code>c</code> starts on the reference
-	 */
-	private void extractIndelsAndUpdateState(final Cigar c, final int start) {
+     *
+     * @param c alignment cigar; if it contains no indels, nothing will be done
+     * @param start position, at which the alignment represented by cigar <code>c</code> starts on the reference
+     */
+    private void extractIndelsAndUpdateState(final Cigar c, final int start) {
 		//
 		// firstpos,lastpos span of the indel will be interpreted as follows:
 		// any alignment that ends strictly before firstpos or starts strictly after lastpos
@@ -387,12 +389,12 @@ public class IndelRecordPileCollector implements RecordReceiver {
 
         if ( c.numCigarElements() == 1 ) return; // most of the reads have no indels, save a few cycles by returning early
 
-		for ( int i = 0 ; i < c.numCigarElements() ; i++ ) {
+        for ( int i = 0 ; i < c.numCigarElements() ; i++ ) {
 			
-			final CigarElement ce = c.getCigarElement(i);
+            final CigarElement ce = c.getCigarElement(i);
             Indel indel = null;
 
-			switch(ce.getOperator()) {
+            switch(ce.getOperator()) {
     		case I: indel = new Indel(runninglength, ce.getLength(), IndelType.I); break;
     		case D: indel = new Indel(runninglength, ce.getLength(), IndelType.D);
     				runninglength += ce.getLength();
@@ -400,9 +402,9 @@ public class IndelRecordPileCollector implements RecordReceiver {
     		case M: runninglength += ce.getLength(); break; // advance along the gapless block in the alignment
     		default :
     			throw new IllegalArgumentException("Unexpected operator in cigar string");
-			}
+            }
 
-			if ( indel == null ) continue; // element was not an indel, go grab next element...
+            if ( indel == null ) continue; // element was not an indel, go grab next element...
 
             mState = ACTIVE_STATE; // this is redundant and will be executed unnecessarily many times, but it's cheap...
 
@@ -411,82 +413,82 @@ public class IndelRecordPileCollector implements RecordReceiver {
             
             if ( indelWithCount.equals( found ) ) found.increment(); // we did find our indel, advance the counter
             else mAllIndels.add(indelWithCount); // this is a new indel. Add it.
-		} // end for loop over all alignment cigar elements
+        } // end for loop over all alignment cigar elements
 		
-	} // end extractIndels() method
+    } // end extractIndels() method
 
 
 
-	/** Counts the size of the passed <indel> argument into the appropriate size histogram 
-	 * 
-	 * @param indel size of this indel will be counted in
-	 */
-	private void addToSizeHistogram(Indel indel) {
-		// count this indel's size into the appropriate bin of the appropriate histogram
-		// (we count insertions and deletions separately), resizing the histogram array if needed:
-		List<Integer> histogram;
-		if ( indel.getType() == Indel.IndelType.D ) {
-			histogram = mIndelLengthHistD; 
-		} else if ( indel.getType() == Indel.IndelType.I ) {
-			histogram = mIndelLengthHistI; 
-		} else {
-			throw new RuntimeException("Indel of unknown type");
-		}
-		if( indel.getIndelLength() > histogram.size() ) {
-			for ( int j = histogram.size() ; j < indel.getIndelLength() ; j++ ) histogram.add(0);
-			histogram.set((int)indel.getIndelLength()-1, 1); // we are seeing this length for the first time, so count == 1
-		} else {
-			int n = histogram.get((int)indel.getIndelLength()-1);
-			histogram.set((int)indel.getIndelLength()-1, n+1);
-		}		
-	}
+    /** Counts the size of the passed <indel> argument into the appropriate size histogram 
+     * 
+     * @param indel size of this indel will be counted in
+     */
+    private void addToSizeHistogram(Indel indel) {
+        // count this indel's size into the appropriate bin of the appropriate histogram
+        // (we count insertions and deletions separately), resizing the histogram array if needed:
+        List<Integer> histogram;
+        if ( indel.getType() == Indel.IndelType.D ) {
+            histogram = mIndelLengthHistD; 
+        } else if ( indel.getType() == Indel.IndelType.I ) {
+            histogram = mIndelLengthHistI; 
+        } else {
+            throw new RuntimeException("Indel of unknown type");
+        }
+        if( indel.getIndelLength() > histogram.size() ) {
+            for ( int j = histogram.size() ; j < indel.getIndelLength() ; j++ ) histogram.add(0);
+            histogram.set((int)indel.getIndelLength()-1, 1); // we are seeing this length for the first time, so count == 1
+        } else {
+            int n = histogram.get((int)indel.getIndelLength()-1);
+            histogram.set((int)indel.getIndelLength()-1, n+1);
+        }		
+    }
 	
-	/** Adds sizes of the indels from the list that pass some filters to the histograms
-	 * 
-	 * @param indels collection of indels with counts
-	 */
-	private void HistogramAsNeeded(Collection<CountedObject<Indel>> indels) {
-		for ( CountedObject<Indel> o : indels ) {
-			if ( o.getCount() >= 2 ) addToSizeHistogram(o.getObject());
-		}
-	}
+    /** Adds sizes of the indels from the list that pass some filters to the histograms
+     * 
+     * @param indels collection of indels with counts
+     */
+    private void HistogramAsNeeded(Collection<CountedObject<Indel>> indels) {
+        for ( CountedObject<Indel> o : indels ) {
+            if ( o.getCount() >= 2 ) addToSizeHistogram(o.getObject());
+        }
+    }
 	
-	/** Retruns true if the indel run has to be printed into output; currently, indel run is acceptable
-	 * if it contains at least one indel onbserved more than once.
-	 * @param indels list of indels with counts to check for being acceptable
-	 * @return true if the indel run has to be printed
-	 */
-	private boolean shouldAcceptForOutput(List<CountedObject<Indel>> indels) {
-		for ( CountedObject<Indel> o :  indels ) {
-			if ( o.getCount() >= 2 ) return true;
-		}
-		return false;
-	}
+    /** Retruns true if the indel run has to be printed into output; currently, indel run is acceptable
+     * if it contains at least one indel onbserved more than once.
+     * @param indels list of indels with counts to check for being acceptable
+     * @return true if the indel run has to be printed
+     */
+    private boolean shouldAcceptForOutput(List<CountedObject<Indel>> indels) {
+        for ( CountedObject<Indel> o :  indels ) {
+            if ( o.getCount() >= 2 ) return true;
+        }
+        return false;
+    }
 
-	private String formatRange(List<CountedObject<Indel>> indels) {
-		StringBuffer b = new StringBuffer();
-		StringBuffer all = new StringBuffer();
-		
-		long min = 1000000000;
-		long max = 0;
-
+    private String formatRange(List<CountedObject<Indel>> indels) {
+        StringBuffer b = new StringBuffer();
+        StringBuffer all = new StringBuffer();
+	
+        long min = 1000000000;
+        long max = 0;
+        
         all.append("; passing indels:");
-		for ( CountedObject<Indel> o :  indels ) {
-			if ( o.getCount() < 2 ) continue;
+        for ( CountedObject<Indel> o :  indels ) {
+            if ( o.getCount() < 2 ) continue;
             all.append(" ");
             all.append(o.getObject().getIndelLength());
-			if ( o.getObject().getIndelLength() < min ) min = o.getObject().getIndelLength();
-			if ( o.getObject().getIndelLength() > max ) max = o.getObject().getIndelLength();
-		}
+            if ( o.getObject().getIndelLength() < min ) min = o.getObject().getIndelLength();
+            if ( o.getObject().getIndelLength() > max ) max = o.getObject().getIndelLength();
+        }
         if ( max == 0 ) return new String(); // no passinf indels, return empty string
-
-		b.append(" passing min length: ");
-		b.append(min);
-		b.append("; passing max length: ");
-		b.append(max);
-		b.append(all);
-		return b.toString();
-	}
+        
+        b.append(" passing min length: ");
+        b.append(min);
+        b.append("; passing max length: ");
+        b.append(max);
+        b.append(all);
+        return b.toString();
+    }
 
     public void printLengthHistograms() {
         if ( mIndelLengthHistD.size() < mIndelLengthHistI.size() ) {

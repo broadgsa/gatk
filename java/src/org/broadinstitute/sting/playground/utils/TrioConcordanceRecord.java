@@ -19,6 +19,15 @@ public class TrioConcordanceRecord {
 	public int inconsistent_indels_in_parent  = 0 ;
 	public int inconsistent_indels_in_kid  = 0 ;
 	public int non_biallelic = 0; // number of variant calls that are not biallelic
+	public long mom_assessed = 0; // number of assessed loci for mother (i.e. passing confidence threshold filter)
+	public long dad_assessed = 0;
+	public long kid_assessed = 0;
+	public long mom_ref = 0; // number of reference calls (out of total assessed)
+	public long dad_ref = 0;
+	public long kid_ref = 0;
+	public long mom_snp = 0; // number of snp calls (out of total assessed)
+	public long dad_snp = 0;
+	public long kid_snp = 0;
 	
 	public TrioConcordanceRecord add(TrioConcordanceRecord other) {
 		this.assessed_loci += other.assessed_loci;
@@ -32,6 +41,15 @@ public class TrioConcordanceRecord {
 		this.inconsistent_indels_in_parent += other.inconsistent_indels_in_parent;
 		this.inconsistent_indels_in_kid += other.inconsistent_indels_in_kid;
 		this.non_biallelic += other.non_biallelic;
+		this.mom_assessed += other.mom_assessed;
+		this.dad_assessed += other.dad_assessed;
+		this.kid_assessed += other.kid_assessed;
+		this.mom_ref += other.mom_ref;
+		this.dad_ref += other.dad_ref;
+		this.kid_ref += other.kid_ref;
+		this.mom_snp += other.mom_snp;
+		this.dad_snp += other.dad_snp;
+		this.kid_snp += other.kid_snp;
 		
 		return this;
 	}
@@ -39,8 +57,11 @@ public class TrioConcordanceRecord {
 	public int totalSNP() { return consistent_snp + inconsistent_snp + non_biallelic; }
 	
 	public String toString() {
-		return String.format("assessed: %d; reference: %d (%3.2f);  total snp: %d;  consistent snp: %d (%3.2f); multiallelic: %d (%3.2f); " , 
+		return String.format("%ntotal assessed in trio: %d%n   reference: %d (%3.2f)%n   total snp: %d%n      consistent snp: %d (%3.2f)%n      multiallelic: %d (%3.2f)%nper trio individual:%n   assessed:%n      mother: %d%n      father: %d%n      daughter: %d%n" , 
 				assessed_loci, consistent_ref, ((double)consistent_ref*100.00)/assessed_loci,totalSNP(), consistent_snp, ((double)consistent_snp*100.0)/totalSNP(),
-				non_biallelic, ((double)non_biallelic*100.0)/totalSNP());
+				non_biallelic, ((double)non_biallelic*100.0)/totalSNP(),mom_assessed,dad_assessed,kid_assessed);
+//		return String.format("total assessed in trio: %d%n   reference: %d (%3.2f)%n   total snp: %d%n      consistent snp: %d (%3.2f)%n      multiallelic: %d (%3.2f)" , 
+//				assessed_loci, consistent_ref, ((double)consistent_ref*100.00)/assessed_loci,totalSNP(), consistent_snp, ((double)consistent_snp*100.0)/totalSNP(),
+//				non_biallelic, ((double)non_biallelic*100.0)/totalSNP());
 	}
 }

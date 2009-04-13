@@ -127,7 +127,7 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
             System.out.printf("  Exception caught during parsing Pileup line:  %s%n", Utils.join(" <=> ", parts));
             throw e;
         }
-        if ( nNonref > 1 ) System.out.println("SAM pileup: WARNING: multi-allelic variant at "+ loc.toString());
+        if ( nNonref > 1 ) System.out.println("SAM pileup: WARNING: multi-allelic variant :  ("+refBaseChar+") -->"+toMediumString());
     }
 
     
@@ -243,10 +243,13 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
     }
 
     public String toMediumString() {
-        String s = String.format("%s:%s:%s", getLocation().toString(), name, observedString);
+    	
+        String s = null;
+        if ( refBaseChar == '*' ) s = String.format("%s:%s:%s", getLocation().toString(), name,observedString);
+        else s = String.format("%s:%s:%s/%s", getLocation().toString(), name, observedAlleles.get(0),observedAlleles.get(1));
         if ( isSNP() ) s += ": SNP";
         else {
-        	if ( isInsertion() ) s += ": Insertoin";
+        	if ( isInsertion() ) s += ": Insertion";
         	else {
         		if ( isDeletion() ) s+= ": Deletion";
         		else {
