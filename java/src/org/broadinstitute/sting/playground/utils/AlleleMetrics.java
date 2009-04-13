@@ -28,6 +28,8 @@ public class AlleleMetrics {
     long hapmap_refvar_correct = 0;
     long hapmap_refvar_incorrect = 0;
 
+    private final double dbl_cmp_precision = 0.0001;
+
     protected PrintStream out;
 
     public AlleleMetrics(String MetricsOutputFile) {
@@ -97,9 +99,9 @@ public class AlleleMetrics {
             }
 
             if (refs+alts > 0) {
-                hapmap_q = (float)alts / (refs+alts);
+                hapmap_q = ((double) alts) / ((double) (refs+alts));
             }else{
-                hapmap_q = -1;
+                hapmap_q = -1.0;
             }
 
             // Hapmap debug info
@@ -110,7 +112,8 @@ public class AlleleMetrics {
             if (alleleFreq.lodVsNextBest >= LOD_cutoff) {
 
                 // Calculate genotyping performance - did we get the correct genotype of the N+1 choices?
-                if (hapmap_q != -1 && hapmap_q == alleleFreq.qstar) {
+                //if (hapmap_q != -1 && hapmap_q == alleleFreq.qstar) {
+                if (Math.abs(hapmap_q - -1.0) > dbl_cmp_precision && Math.abs(hapmap_q - alleleFreq.qstar) <= dbl_cmp_precision) {
                     hapmap_genotype_correct++;
                 }else{
                     hapmap_genotype_incorrect++;
@@ -126,7 +129,8 @@ public class AlleleMetrics {
                 // reference or variant without regard to genotype; i.e. het/hom "miscalls" don't matter here
                 boolean hapmap_var = hapmap_q != 0.0;
                 boolean called_var = alleleFreq.qstar != 0.0;
-                if (hapmap_q != -1 && hapmap_var != called_var) {
+                //if (hapmap_q != -1 && hapmap_var != called_var) {
+                if (Math.abs(hapmap_q - -1.0) > dbl_cmp_precision && hapmap_var != called_var) {
                     hapmap_refvar_incorrect++;
                     //out.printf(" INCORRECT REFVAR CALL");
                 }else{
