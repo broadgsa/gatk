@@ -46,8 +46,6 @@ public class FastaSequenceFile2Test {
 
     @Test
     public void testOpenFile() {
-        System.err.println("starting testOpenFile");
-
         long startTime = System.currentTimeMillis();
         Assert.assertNotNull( sequenceFile );
         long endTime = System.currentTimeMillis();
@@ -165,7 +163,7 @@ public class FastaSequenceFile2Test {
     public void testSimultaneousAccess() {
         long startTime = System.currentTimeMillis();
 
-        FastaSequenceFile2 other = (FastaSequenceFile2)sequenceFile.clone();
+        //        FastaSequenceFile2 other = (FastaSequenceFile2)sequenceFile.clone();
 
         sequenceFile.seekToContig("chr1");
         ReferenceSequence chr1 = sequenceFile.nextSequence();
