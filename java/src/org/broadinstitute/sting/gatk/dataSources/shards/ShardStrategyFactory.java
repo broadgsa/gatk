@@ -1,10 +1,6 @@
 package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
-import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.GenomeLoc;
-
-import java.util.List;
 
 /**
  *
@@ -35,12 +31,8 @@ import java.util.List;
  */
 public class ShardStrategyFactory {
     public enum SHATTER_STRATEGY {
-        LINEAR, EXPONENTIAL
+        LINEAR, EXPONENTIAL, READS
     }
-
-    /** our log, which we want to capture anything from this class */
-    private static Logger logger = Logger.getLogger(ShardStrategyFactory.class);
-
 
     /**
      * get a new shatter strategy
@@ -53,29 +45,9 @@ public class ShardStrategyFactory {
     static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize) {
         switch (strat) {
             case LINEAR:
-                return new LinearShardStrategy(dic, startingSize);
+                return new LinearLocusShardStrategy(dic, startingSize);
             case EXPONENTIAL:
-                return new ExpGrowthShardStrategy(dic, startingSize);
-            default:
-                throw new RuntimeException("Strategy: " + strat + " isn't implemented");
-        }
-
-    }
-
-    /**
-     * get a new shatter strategy
-     *
-     * @param strat        what's our strategy - SHATTER_STRATEGY type
-     * @param dic          the seq dictionary
-     * @param startingSize the starting size
-     * @return
-     */
-    static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, List<GenomeLoc> lst) {
-        switch (strat) {
-            case LINEAR:
-                return new LinearShardStrategy(dic, startingSize, lst);
-            case EXPONENTIAL:
-                return new ExpGrowthShardStrategy(dic, startingSize, lst);
+                return new ExpGrowthLocusShardStrategy(dic, startingSize);
             default:
                 throw new RuntimeException("Strategy: " + strat + " isn't implemented");
         }
@@ -89,16 +61,26 @@ public class ShardStrategyFactory {
      * @param convertFrom convert from this strategy
      * @return
      */
-    static public ShardStrategy transitionToShardStrategy(SHATTER_STRATEGY strat, ShardStrategy convertFrom) {
+    static public ShardStrategy transitionToShardStrategy(SHATTER_STRATEGY strat, LocusShardStrategy convertFrom) {
         switch (strat) {
             case LINEAR:
-                return new LinearShardStrategy(convertFrom);
+                return new LinearLocusShardStrategy(convertFrom);
             case EXPONENTIAL:
-                return new ExpGrowthShardStrategy(convertFrom);
+                return new ExpGrowthLocusShardStrategy(convertFrom);
             default:
                 throw new RuntimeException("Strategy: " + strat + " isn't implemented");
 
         }
+    }
+
+    /**
+     * convert between types
+     *
+     * @param readCount the number of reads to include in each shard
+     * @return
+     */
+    static public ShardStrategy shatterByReadCount(long readCount) {
+        return null;    
     }
 
 }

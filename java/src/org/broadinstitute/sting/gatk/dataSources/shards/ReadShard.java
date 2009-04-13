@@ -2,12 +2,11 @@ package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 
-import java.io.Serializable;
 /**
  *
  * User: aaron
  * Date: Apr 10, 2009
- * Time: 5:00:27 PM
+ * Time: 5:03:13 PM
  *
  * The Broad Institute
  * SOFTWARE COPYRIGHT NOTICE AGREEMENT 
@@ -19,26 +18,40 @@ import java.io.Serializable;
  *
  */
 
+
 /**
  * @author aaron
  * @version 1.0
  * @date Apr 10, 2009
  * <p/>
- * Interface Shard
+ * Class ReadShard
  * <p/>
- * The base interface for shards.
+ * A class for sharded reads.
  */
-public interface Shard extends Serializable {
-    enum ShardType {
-        READ, LOCUS
+public class ReadShard implements Shard {
+
+    // the count of the reads we want to copy off
+    int size = 0;
+
+    /**
+     * create a read shard, given a read size
+     * @param size
+     */
+    public ReadShard(int size) {
+        this.size = size;     
     }
 
     /** @return the genome location represented by this shard */
-    public GenomeLoc getGenomeLoc();
+    public GenomeLoc getGenomeLoc() {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
 
     /**
      * what kind of shard do we return
+     *
      * @return ShardType, indicating the type
      */
-    public ShardType getShardType();
+    public ShardType getShardType() {
+        return ShardType.READ;
+    }
 }
