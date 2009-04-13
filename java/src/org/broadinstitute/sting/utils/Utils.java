@@ -372,6 +372,24 @@ public class Utils {
     }
 
 
+    /** Draw N random elements from list. */
+    public static <T> List<T> RandomSubset(List<T> list, int N)
+    {
+        if (list.size() <= N) { return list; }
+
+        java.util.Random random = new java.util.Random();
+
+        int idx[] = new int[list.size()];
+        for (int i = 0; i < list.size(); i++) { idx[i] = random.nextInt(); }
+
+        Integer[] perm = SortPermutation(idx);        
+
+        List<T> ans = new ArrayList<T>();
+        for (int i = 0; i < N; i++) { ans.add(list.get(perm[i])); }
+
+        return ans;
+    }
+
 /* TEST ME
     public static void main(String[] argv) {
         List<Integer> l1 = new LinkedList<Integer>();
