@@ -1,6 +1,10 @@
 package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
+import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.GenomeLoc;
+
+import java.util.List;
 
 /**
  *
@@ -33,6 +37,12 @@ public class ShardStrategyFactory {
     public enum SHATTER_STRATEGY {
         LINEAR, EXPONENTIAL, READS
     }
+
+    /** our log, which we want to capture anything from this class */
+        private static Logger logger = Logger.getLogger(ShardStrategyFactory.class);
+
+
+
 
     /**
      * get a new shatter strategy
@@ -71,6 +81,27 @@ public class ShardStrategyFactory {
                 throw new RuntimeException("Strategy: " + strat + " isn't implemented");
 
         }
+    }
+
+
+    /**
+     * get a new shatter strategy
+     *
+     * @param strat        what's our strategy - SHATTER_STRATEGY type
+     * @param dic          the seq dictionary
+     * @param startingSize the starting size
+     * @return
+     */
+    static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, List<GenomeLoc> lst) {
+        switch (strat) {
+            case LINEAR:
+                return new LinearLocusShardStrategy(dic, startingSize); // , lst);
+            case EXPONENTIAL:
+                return new ExpGrowthLocusShardStrategy(dic, startingSize); // , lst);
+            default:
+                throw new RuntimeException("Strategy: " + strat + " isn't implemented");
+        }
+
     }
 
     /**

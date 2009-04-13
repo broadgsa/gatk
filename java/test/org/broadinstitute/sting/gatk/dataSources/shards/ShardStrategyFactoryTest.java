@@ -40,7 +40,7 @@ import java.util.ArrayList;
  */
 public class ShardStrategyFactoryTest {
 
-    FastaSequenceFile2 seq = null;
+    private static FastaSequenceFile2 seq;
 
     /**
      * This function (because of the @BeforeClass tag) gets called only once ever,
@@ -48,7 +48,7 @@ public class ShardStrategyFactoryTest {
      */
     @BeforeClass
     public static void doBeforeAnyTests() {
-
+        seq = new FastaSequenceFile2(new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
     }
 
     /**
@@ -68,7 +68,7 @@ public class ShardStrategyFactoryTest {
      */
     @Before
     public void doForEachTest() {
-        seq = new FastaSequenceFile2(new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+
     }
 
     /**
@@ -111,12 +111,7 @@ public class ShardStrategyFactoryTest {
         SAMSequenceRecord s = dic.getSequence(1);
         // Character stream writing
 
-        System.err.println("Trying to sleep");
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
+       
         int stop = s.getSequenceLength();
         int size = 10000;
         int location = 1;
