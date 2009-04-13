@@ -26,10 +26,11 @@ public class IndelInspector extends CommandLineProgram {
     @Option(shortName="V",doc="Verbosity level: SILENT, PILESUMMARY, ALIGNMENTS", optional=true) public String VERBOSITY_LEVEL;
     @Option(doc="Output file (sam or bam) for non-indel related reads and indel reads that were not improved") public String OUT1; 
     @Option(doc="Output file (sam or bam) for improved (realigned) indel related reads") public String OUT2;
-    @Option(doc="[paranoid] If true, all reads that would be otherwise picked and processed by this tool will be saved, unmodified, into OUT1", optional=true) public boolean CONTROL_RUN;
+    @Option(doc="[paranoid] If true, all reads that would be otherwise picked and processed by this tool will be saved, unmodified, into OUT1", optional=true) public Boolean CONTROL_RUN;
     @Option(doc="Error counting mode: MM - mismatches only (from sam tags), MC - mismatches only doing actual mismatch count on the fly (use this if tags are incorrectly set); ERR - errors (arachne style: mm+gap lengths), MG - count mismatches and gaps as one error each") public String ERR_MODE;
     @Option(doc="Maximum number of errors allowed (see ERR_MODE)") public Integer MAX_ERRS;
     @Option(shortName="R", doc="Reference fasta or fasta.gz file") public File REF_FILE;
+    @Option(doc="Ignore reads that are longer than the specified cutoff (not a good way to do things but might be necessary because of performance issues)", optional=true) public Integer MAX_READ_LENGTH;
 
     /** Required main method implementation. */
     public static void main(final String[] argv) {
@@ -38,7 +39,8 @@ public class IndelInspector extends CommandLineProgram {
     
     protected int doWork() {
 
-        int discarded_count = 0;
+        int discarded_cigar_count = 0;
+        int discarded_long_read_count = 0;
 
         ReferenceSequenceFileWalker reference = new ReferenceSequenceFileWalker(
                     REF_FILE
@@ -65,11 +67,14 @@ public class IndelInspector extends CommandLineProgram {
         //        setContigOrdering(samReader);
 
 
+        if ( MAX_READ_LENGTH == null ) MAX_READ_LENGTH = 1000000000;
+         
         ReferenceSequence contig_seq = null;
 
         IndelRecordPileCollector col = null;
         PassThroughWriter ptWriter = new PassThroughWriter(OUT1,samReader.getFileHeader());
         PileBuilder pileBuilder = null;
+        if ( CONTROL_RUN == null ) CONTROL_RUN=false;
         if ( ! CONTROL_RUN ) pileBuilder = new PileBuilder(OUT2,samReader.getFileHeader(),ptWriter);
 
         try {
@@ -82,9 +87,9 @@ public class IndelInspector extends CommandLineProgram {
 
         if ( ! CONTROL_RUN ) {
             if ( VERBOSITY_LEVEL == null ) VERBOSITY_LEVEL = new String("SILENT");
-            if ( VERBOSITY_LEVEL.toUpperCase().equals("SILENT")) pileBuilder.setVerbosity(pileBuilder.SILENT);
-            else if ( VERBOSITY_LEVEL.toUpperCase().equals("PILESUMMARY") ) pileBuilder.setVerbosity(pileBuilder.PILESUMMARY);
-            else if ( VERBOSITY_LEVEL.toUpperCase().equals("ALIGNMENTS") ) pileBuilder.setVerbosity(pileBuilder.ALIGNMENTS);
+            if ( VERBOSITY_LEVEL.toUpperCase().equals("SILENT")) pileBuilder.setVerbosity(PileBuilder.SILENT);
+            else if ( VERBOSITY_LEVEL.toUpperCase().equals("PILESUMMARY") ) pileBuilder.setVerbosity(PileBuilder.PILESUMMARY);
+            else if ( VERBOSITY_LEVEL.toUpperCase().equals("ALIGNMENTS") ) pileBuilder.setVerbosity(PileBuilder.ALIGNMENTS);
             else {
                 System.out.println("Unrecognized VERBOSITY_LEVEL setting.");
                 return 1;
@@ -132,10 +137,19 @@ public class IndelInspector extends CommandLineProgram {
                 case M:
                 case I:
                 case D: break;
-                default: cigar_acceptable = false;
+                default: 
+                	cigar_acceptable = false;
                 }
             }
-            if ( ! cigar_acceptable ) continue;
+            if ( ! cigar_acceptable ) {
+               	discarded_cigar_count++;
+               	continue;
+            }
+            
+            if ( r.getReadLength() > MAX_READ_LENGTH ) {
+            		discarded_long_read_count++;
+            		continue;
+            }
 
             int err = -1;
 /*
@@ -167,6 +181,9 @@ public class IndelInspector extends CommandLineProgram {
             pileBuilder.close();
         }
         System.out.println("done.");
+        System.out.println("Discarded reads with non-M,I,D cigar elements: "+ discarded_cigar_count);
+        System.out.println("Discarded long reads (above "+MAX_READ_LENGTH+" bp): "+ discarded_long_read_count);
+        System.out.println();
         col.printLengthHistograms();
         samReader.close();
         ptWriter.close();
