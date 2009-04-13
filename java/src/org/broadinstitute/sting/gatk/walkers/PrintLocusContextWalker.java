@@ -1,0 +1,45 @@
+package org.broadinstitute.sting.gatk.walkers;
+
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
+
+import net.sf.samtools.SAMRecord;
+
+/**
+ * Created by IntelliJ IDEA.
+ * User: hanna
+ * Date: 13 Apr, 2009
+ * Time: 11:23:14 AM
+ * To change this template use File | Settings | File Templates.
+ */
+public class PrintLocusContextWalker extends LocusWalker<LocusContext, Integer> {
+    public LocusContext map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+        out.printf( "In map: ref = %c, loc = %s, reads = %s%n", ref,
+                                                                context.getLocation(),
+                                                                Arrays.deepToString( getReadNames(context.getReads()) ) );
+        return context;
+    }
+
+    public Integer reduceInit() { return 0; }
+
+    public Integer reduce(LocusContext context, Integer sum) {
+        out.printf( "In reduce: loc = %s, reads = %s, sum =%d%n", context.getLocation(),
+                                                                  Arrays.deepToString( getReadNames(context.getReads()) ),
+                                                                  sum );
+
+
+        return sum + 1;
+    }
+
+    private String[] getReadNames( List<SAMRecord> reads ) {
+        String[] readNames = new String[ reads.size() ];
+        for( int i = 0; i < reads.size(); i++ )
+            readNames[i] = reads.get(i).getReadName();
+        return readNames;
+    }
+}
