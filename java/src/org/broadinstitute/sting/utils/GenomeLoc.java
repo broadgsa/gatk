@@ -325,7 +325,14 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     //
     // Accessors and setters
     //
-    public final String getContig() { return contigInfo.getSequence(this.contigIndex).getSequenceName(); }
+    public final String getContig() {
+        if (contigInfo != null && contigInfo.getSequence(this.contigIndex) != null) {
+            return contigInfo.getSequence(this.contigIndex).getSequenceName();
+        }
+
+        return null;
+    }
+
     public final int getContigIndex() { return this.contigIndex; }
     public final long getStart()    { return this.start; }
     public final long getStop()     { return this.stop; }
