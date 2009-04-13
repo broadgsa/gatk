@@ -61,14 +61,24 @@ public class AlleleFrequencyEstimate {
 
     public String asGFFString()
     {
-        return String.format("%s\tCALLER\tVARIANT\t%s\t%s\t%f\t.\t.\tREF %c\t;\tALT %c\t;\tFREQ %f\n",
+        String s = "";
+        s += String.format("%s\tCALLER\tVARIANT\t%s\t%s\t%f\t.\t.\t",
                                location.getContig(),
                                location.getStart(),
                                location.getStart(),
-                               lodVsRef,
-                               ref,
-                               alt,
-                               qhat);
+                               lodVsRef);
+        s += String.format("REF %c\t;\t", ref);
+        s += String.format("ALT %c\t;\t", alt);
+        s += String.format("FREQ %f\t;\t;", qstar);
+        s += String.format("DEPTH %d\t;\t", depth);
+        s += String.format("LODvsREF %f\t;\t", lodVsRef);
+        s += String.format("LODvsNEXTBEST %f\t;\t", lodVsNextBest);
+
+        s += "\n";
+
+        // add bases and quals.
+
+        return s;
     }
 
     public String asTabularString() {
