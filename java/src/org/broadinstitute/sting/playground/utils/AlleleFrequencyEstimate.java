@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.playground.utils;
 
 import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
+import java.util.Arrays;
+import java.lang.Math;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 public class AlleleFrequencyEstimate {
@@ -13,12 +15,14 @@ public class AlleleFrequencyEstimate {
     public double qstar;
     public double lodVsRef;
     public double lodVsNextBest;
+    public double pBest;
+    public double pRef;
     public int depth;
     public String notes;
 
     GenomeLoc l;
 
-    public AlleleFrequencyEstimate(GenomeLoc location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, int depth)
+    public AlleleFrequencyEstimate(GenomeLoc location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, double pBest, double pRef, int depth)
     {
         this.location = location;
         this.ref = ref;
@@ -30,6 +34,29 @@ public class AlleleFrequencyEstimate {
         this.lodVsNextBest = lodVsNextBest;
         this.depth = depth;
         this.notes = "";
+    }
+
+    /** Return the most likely genotype. */
+    public String genotype()
+    {
+        int alt_count = (int)(qstar * N);
+        int ref_count = N-alt_count;
+        char[] alleles = new char[N];
+        int i;
+        for (i = 0; i < ref_count; i++) { alleles[i] = ref; }
+        for (; i < N; i++) { alleles[i] = alt; }
+        Arrays.sort(alleles);
+        return new String(alleles);
+    }
+
+    public double emperical_allele_frequency()
+    {
+        return (double)Math.round((double)qhat * (double)N) / (double)N;
+    }
+
+    public double emperical_allele_frequency(int N)
+    {
+        return (double)Math.round((double)qhat * (double)N) / (double)N;
     }
 
     public String asGFFString()

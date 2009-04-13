@@ -31,25 +31,39 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
     Random random;
     PrintStream output;
 
+    private boolean initalized = false;
+    public void initalize()
+    {
+        if (initalized) { return; }
+
+        try
+        {
+            this.random = new java.util.Random(0);
+            if ( GFF_OUTPUT_FILE.equals("-") )
+                this.output = out;
+            else
+                this.output = new PrintStream(GFF_OUTPUT_FILE);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+
+        initalized = true;
+    }
+
     public boolean requiresReads()     { return true; }    
 
     public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) 
     {
-        // Convert context data into bases and 4-base quals
-        String bases = getBases(context);
-        double quals[][] = getQuals(context);
+        // init in the map because GATK doesn't appear to be initing me today. no problemo.
+        this.initalize();
 
-        /*
-        // DEBUG: print the data for a read 
-        {
-            List<SAMRecord> reads = context.getReads();
-            for (int i = 0; i < reads.size(); i++)
-            {
-                String cigar = reads.get(i).getCigarString();
-                System.out.println("DEBUG " + cigar);
-            }
-        }
-        */
+        // Convert context data into bases and 4-base quals
+        String bases     = getBases(context);
+        double quals[][] = getQuals(context);
+        //String[] indels  = getIndels(context);
 
         logger.debug(String.format("In alleleFrequnecy walker: N=%d, d=%d", N, DOWNSAMPLE));
 
@@ -63,6 +77,14 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
             while (downsampled_bases.length() < DOWNSAMPLE)
             {
                 int choice;
+
+                /*
+                System.out.printf("DBG %b %b %b\n", 
+                                    random == null,
+                                    bases == null,
+                                    picked_bases == null);
+                */
+
                 for (choice = random.nextInt(bases.length()); picked_bases[choice] == 1; choice = random.nextInt(bases.length()));
                 picked_bases[choice] = 1;
                 downsampled_bases += bases.charAt(choice);
@@ -136,6 +158,56 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         }
         return new String(bases);
     }
+
+    /*
+    static public String[] getIndels(LocusContext context)
+    {
+        List<SAMRecord> reads = context.getReads();
+        List<Integer> offsets = context.getOffsets();
+        String[] indels = new String[reads.size()];
+
+        for (int i = 0; i < reads.size(); i++)
+        {
+            SAMRecord read = reads.get(i);
+            Cigar cigar    = read.getCigar();
+
+            int k = 0;
+            for (int j = 0; j < cigar.numCigarElements(); j++)
+            {
+                CigarOperator operator = cigar.getCigarElement(j).getOperator();
+                int           length   = cigar.getCigarElement(j).getLength();
+                if (operator == CigarOperator.M) 
+                { 
+                    k += length; 
+                }
+                else if ((k != offset) && (operator == CigarOperator.I)) 
+                { 
+                    k += length; 
+                }
+                else if ((k == offset) && (operator == CigarOperator.I))
+                {
+                    // this insertion is associated with this offset.
+                    
+                    break;
+                }
+                else if ((k == offset) && (operator == CigarOperator.D))
+                {
+
+                    break;
+                }
+                else if ((k == offset) && 
+                         ((operator == CigarOperator.I) || (operator == CigarOperator.D))) 
+                {
+                    // no indel here.
+                    indels[i] = "";
+                    break;
+                }
+            }
+        }
+
+        return indels;
+    }
+    */
 
     static public double[][] getQuals (LocusContext context)
     {
@@ -220,51 +292,48 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         // alt = alternate hypothesis base (most frequent nonref base)
         // ref = reference base
 
-        // b = number of bases at locus
-
-        double epsilon = 0; //  1e-2;
         double qstar;
         int qstar_N;
 
         double qstep = 0.001;
         double qend = 1.0 + qstep / 10; // makes sure we get to 1.0 even with rounding error of qsteps accumulating
 
+        double posterior_null_hyp;
+
         // Initialize empyt MixtureLikelihood holders for each possible qstar (N+1)
         MixtureLikelihood[] bestMixtures = new MixtureLikelihood[N+1];
-        // Fill 1..N ML positions with 0 valued MLs
-        for (int i=1; i<=N; i++) bestMixtures[i] = new MixtureLikelihood();
-        // Calculate null hypothesis for qstar = 0, qhat = 0
-        double posterior_null_hyp = P_D_q(bases, quals, 0.0, refnum, altnum) + P_q_G(bases, N, 0.0, epsilon, 0) + P_G(N, 0);
-        // Put null hypothesis into ML[0] because that is our prob of that theory and we don't loop over it below
-        bestMixtures[0] = new MixtureLikelihood(posterior_null_hyp, 0.0, 0.0);
 
-        // hypothetic allele balance that we sample over
-        for (double q=0.0; q <= qend; q += qstep) 
         {
-            long q_R = Math.round(q*bases.length);
+            double q = ML_q(bases, quals, refnum, altnum);
             double pDq = P_D_q(bases, quals, q, refnum, altnum);
+            long q_R = Math.round(q*bases.length);
+
+            posterior_null_hyp = P_D_q(bases, quals, 0.0, refnum, altnum) + P_q_G(bases, N, 0.0, 0, 0) + P_G(N, 0);
+            bestMixtures[0] = new MixtureLikelihood(posterior_null_hyp, 0.0, 0.0);
 
             // qstar - true allele balances
-            for (qstar = epsilon + ((1.0 - 2*epsilon)/N), qstar_N = 1; qstar <= 1.0; qstar += (1.0 - 2*epsilon)/N, qstar_N++) 
+            //for (qstar = epsilon + ((1.0 - 2*epsilon)/N), qstar_N = 1; qstar <= 1.0; qstar += (1.0 - 2*epsilon)/N, qstar_N++) 
+            for (qstar_N = 1; qstar_N <= N; qstar_N += 1)
             { 
+                qstar = (double)qstar_N / (double)N;
+
                 double pqG = P_q_G(bases, N, q, qstar, q_R);
                 double pG  = P_G(N, qstar_N); 
                 double posterior = pDq + pqG + pG;
 
-                if (posterior > bestMixtures[qstar_N].posterior)
-                    bestMixtures[qstar_N] = new MixtureLikelihood(posterior, qstar, q);
+                bestMixtures[qstar_N] = new MixtureLikelihood(posterior, qstar, q);
 
-                //System.out.format("%.2f %.2f %5.2f %5.2f %5.2f %5.2f\n", q, qstar, pDq, pqG, pG, posterior);
+                //System.out.format("DBG %s %.2f %.2f %5.2f %5.2f %5.2f %5.2f %d %d %s\n", location, q, qstar, pDq, pqG, pG, posterior, (int)(q*bases.length), (int)((1.0-q)*bases.length), new String(bases));
             }
         }
 
         // First reverse sort NONREF mixtures according to highest posterior probabililty
-        Arrays.sort(bestMixtures, 1, N+1);
+        Arrays.sort(bestMixtures);
 
         // Calculate Lod of any variant call versus the reference call
         // Answers how confident are we in the best variant (nonref) mixture versus the null hypothesis
         // reference mixture - qhat = qstar = 0.0
-        double lodVarVsRef = bestMixtures[1].posterior - posterior_null_hyp;
+        double lodVarVsRef = bestMixtures[0].posterior - posterior_null_hyp;
 
         // Now reverse sort ALL mixtures according to highest posterior probability
         Arrays.sort(bestMixtures);
@@ -272,6 +341,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         // Calculate Lod of the mixture versus other possible
         // Answers how confident are we in the best mixture versus the nextPosition best mixture
         double lodBestVsNextBest = bestMixtures[0].posterior - bestMixtures[1].posterior;
+
+        if (lodVarVsRef == 0) { lodVarVsRef = -1.0 * lodBestVsNextBest; }
 
         AlleleFrequencyEstimate alleleFreq = new AlleleFrequencyEstimate(location,
                                                                          num2nuc[refnum], 
@@ -281,6 +352,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                                                                          bestMixtures[0].qstar,
                                                                          lodVarVsRef,
                                                                          lodBestVsNextBest,
+                                                                         bestMixtures[0].posterior,
+                                                                         posterior_null_hyp,
                                                                          depth);
         return alleleFreq;
     }
@@ -310,7 +383,19 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         }
     }
 
-    static double P_D_q(byte[] bases, double[][]quals, double q, int refnum, int altnum) 
+    double ML_q(byte[] bases, double[][]quals, int refnum, int altnum) 
+    {
+        double ref_count = 0;
+        double alt_count = 0;
+        for (int i=0; i<bases.length; i++) 
+        {
+            if (bases[i] == num2nuc[refnum]) { ref_count += 1; }
+            if (bases[i] == num2nuc[altnum]) { alt_count += 1; }
+        }
+        return alt_count / (alt_count + ref_count);
+    }
+
+    double P_D_q(byte[] bases, double[][]quals, double q, int refnum, int altnum) 
     {
         double p = 0.0;
 
@@ -322,15 +407,25 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         return p;
     }
 
-    static double P_q_G(byte [] bases, int N, double q, double qstar, long q_R) 
+    double P_q_G(byte [] bases, int N, double q, double qstar, long q_R) 
     {
+        double epsilon = 1e-3;
+        if (qstar == 0) { qstar = epsilon; }
+        if (qstar == 1) { qstar = 1.0 - epsilon; }
+
         if (N != 2) { return 0.0; }
         else { return Math.log10(binomialProb(q_R, bases.length, qstar)); }
     }
 
-    static double P_G(int N, int qstar_N) 
+    double P_G(int N, int qstar_N) 
     {
         // badly hard coded right now.
+        
+        if ((N == 2) && (prior_alt_frequency != -1))
+        {
+            return ((double)qstar_N * prior_alt_frequency) + (((double)N-(double)qstar_N)*(1.0-prior_alt_frequency));
+        }
+        
         if      (qstar_N == 0) { return Math.log10(0.999); }
         else if (qstar_N == N) { return Math.log10(1e-5);  }
         else                   { return Math.log10(1e-3);  }
@@ -462,6 +557,12 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         return "";
     }
 
+    private double prior_alt_frequency = -1.0;
+    public void setAlleleFrequencyPrior(double frequency)
+    {
+        this.prior_alt_frequency = frequency;
+    }
+
     static int nuc2num[];
     static char num2nuc[];
     public AlleleFrequencyWalker() {
@@ -480,20 +581,6 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         num2nuc[1] = 'C';
         num2nuc[2] = 'T';
         num2nuc[3] = 'G';
-
-        try
-        {
-            this.random = new java.util.Random(0);
-            if ( GFF_OUTPUT_FILE.equals("-") )
-                this.output = out;
-            else
-                this.output = new PrintStream(GFF_OUTPUT_FILE);
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-            System.exit(-1);
-        }
 
         //if (System.getenv("N") != null) { this.N = (new Integer(System.getenv("N"))).intValue(); }
         //else { this.N = 2; }
