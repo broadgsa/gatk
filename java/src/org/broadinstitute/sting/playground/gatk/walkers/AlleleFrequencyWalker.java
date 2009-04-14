@@ -32,6 +32,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
     PrintStream output;
 
     private boolean initalized = false;
+    static private double quality_precision = 1e-5;
     public void initalize()
     {
         if (initalized) { return; }
@@ -233,7 +234,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                 double nonref_quals = (1.0 - quals[i][callednum]) / 3;
                 for (int b=0; b<4; b++)
                     if (b != callednum)
-                        quals[i][b] = nonref_quals;
+                        quals[i][b] = nonref_quals + quality_precision;
             }else{
                 assert (SQ_field instanceof byte[]);
                 byte[] hex_quals = (byte[]) SQ_field;
@@ -255,7 +256,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                 */
                     double qual2 = QualityUtils.compressedQualityToProb(hex_qual);
                     //System.out.printf("2ND %x %d %f\n", hex_qual, called2num, qual2);
-                    quals[i][called2num] = qual2;
+                    quals[i][called2num] = qual2 + quality_precision;
 
                     double nonref_quals = (1.0 - quals[i][callednum] - quals[i][called2num]) / 2.0;
                     for (int b=0; b<4; b++)
@@ -313,6 +314,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
             posterior_null_hyp = P_D_q(bases, quals, 0.0, refnum, altnum) + P_q_G(bases, N, 0.0, 0, 0) + P_G(N, 0);
             bestMixtures[0] = new MixtureLikelihood(posterior_null_hyp, 0.0, 0.0);
 
+            System.out.format("DBG %s %.2f %.2f %5.2f %5.2f %5.2f %5.2f %d %d %s\n", location, 0.0, 0.0, P_D_q(bases, quals, 0.0, refnum, altnum), P_q_G(bases, N, 0.0, 0, 0), P_G(N, 0), posterior_null_hyp, (int)(q*bases.length), (int)((1.0-q)*bases.length), new String(bases));
+
             // qstar - true allele balances
             //for (qstar = epsilon + ((1.0 - 2*epsilon)/N), qstar_N = 1; qstar <= 1.0; qstar += (1.0 - 2*epsilon)/N, qstar_N++) 
             for (qstar_N = 1; qstar_N <= N; qstar_N += 1)
@@ -325,7 +328,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 
                 bestMixtures[qstar_N] = new MixtureLikelihood(posterior, qstar, q);
 
-                //System.out.format("DBG %s %.2f %.2f %5.2f %5.2f %5.2f %5.2f %d %d %s\n", location, q, qstar, pDq, pqG, pG, posterior, (int)(q*bases.length), (int)((1.0-q)*bases.length), new String(bases));
+                System.out.format("DBG %s %.2f %.2f %5.2f %5.2f %5.2f %5.2f %d %d %s\n", location, q, qstar, pDq, pqG, pG, posterior, (int)(q*bases.length), (int)((1.0-q)*bases.length), new String(bases));
             }
         }
 
@@ -572,7 +575,22 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 
         last_position_considered = current_offset;
         
-        if (alleleFreq.lodVsRef >= 5) { this.output.print(alleleFreq.asGFFString()); }
+        if (alleleFreq.lodVsRef >= 5) {
+            this.output.print(alleleFreq.asGFFString());
+
+            /*
+            String gtype = genotypeTypeString(alleleFreq.qstar, alleleFreq.N);
+            System.out.print("DEBUG " + gtype + " ");
+            if (gtype.contentEquals("het")) {
+                System.out.println(alleleFreq.ref + "" + alleleFreq.alt);
+            } else if (gtype.contentEquals("hom")) {
+                System.out.println(alleleFreq.ref + "" + alleleFreq.ref);
+            } else {
+                System.out.println(alleleFreq.alt + "" + alleleFreq.alt);
+            }
+            */
+        }
+
         if (LOG_METRICS) metrics.printMetricsAtLocusIntervals(1000);
         return "";
     }
