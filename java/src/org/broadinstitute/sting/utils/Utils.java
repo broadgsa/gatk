@@ -148,6 +148,16 @@ public class Utils {
         return quals;
     }
 
+    public static ArrayList<Byte> mappingQualPileup( List<SAMRecord> reads) {
+        ArrayList<Byte> quals = new ArrayList(reads.size());
+        for ( int i = 0; i < reads.size(); i++ ) {
+            SAMRecord read = reads.get(i);
+            byte qual = (byte)read.getMappingQuality();
+            quals.add(qual);
+        }
+        return quals;
+    }
+
     public static String qualPileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
         StringBuilder quals = new StringBuilder();
         for ( int qual : qualPileup(reads, offsets)) {
