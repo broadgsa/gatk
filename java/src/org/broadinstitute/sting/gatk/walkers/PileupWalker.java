@@ -44,6 +44,23 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
 
         String extras = "";
         if ( VERBOSE ) {
+            String sqbases = Utils.secondaryBasePileupAsString(reads, offsets);
+            String sqquals = Utils.secondaryQualPileupAsString(reads, offsets);
+
+            if (sqbases != null && sqquals != null) {
+                assert(sqbases.length() == sqquals.length());
+
+                extras += " SQ=";
+                for (int i = 0; i < sqbases.length(); i++) {
+                    extras += sqbases.charAt(i);
+                    extras += sqquals.charAt(i);
+
+                    if (i < sqbases.length() - 1) {
+                        extras += ',';
+                    }
+                }
+            }
+
             extras += " BQ=" + Utils.join(",", Utils.qualPileup(reads, offsets));
             extras += " MQ=" + Utils.join(",", Utils.mappingQualPileup(reads));
         }
