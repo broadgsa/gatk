@@ -1,6 +1,17 @@
 package org.broadinstitute.sting.utils;
 
+/**
+ * BaseUtils contains some basic utilities for manipulating nucleotides.
+ *
+ * @author Kiran Garimella
+ */
 public class BaseUtils {
+    /**
+     * Converts a simple base to a base index
+     *
+     * @param base  [AaCcGgTt]
+     * @return 0, 1, 2, 3, or -1 if the base can't be understood
+     */
     static public int simpleBaseToBaseIndex(char base) {
         switch (base) {
             case 'A':
@@ -19,6 +30,12 @@ public class BaseUtils {
         }
     }
 
+    /**
+     * Converts a base index to a simple base
+     *
+     * @param baseIndex  0, 1, 2, 3
+     * @return A, C, G, T, or '.' if the index can't be understood
+     */
     static public char baseIndexToSimpleBase(int baseIndex) {
         switch (baseIndex) {
             case 0: return 'A';
@@ -27,5 +44,30 @@ public class BaseUtils {
             case 3: return 'T';
             default: return '.';
         }
+    }
+
+    /**
+     * Converts a base index to a base index representing its cross-talk partner
+     *
+     * @param baseIndex  0, 1, 2, 3
+     * @return 1, 0, 3, 2, or -1 if the index can't be understood
+     */
+    static public int crossTalkPartnerIndex(int baseIndex) {
+        switch (baseIndex) {
+            case 0: return 1; // A -> C
+            case 1: return 0; // C -> A
+            case 2: return 3; // G -> T
+            case 3: return 2; // T -> G
+            default: return -1;
+        }
+    }
+
+    /**
+     * Converts a base to the base representing its cross-talk partner
+     * @param base  [AaCcGgTt]
+     * @return C, A, T, G, or '.' if the base can't be understood
+     */
+    static public char crossTalkPartnerBase(char base) {
+        return baseIndexToSimpleBase(crossTalkPartnerIndex(simpleBaseToBaseIndex(base)));
     }
 }
