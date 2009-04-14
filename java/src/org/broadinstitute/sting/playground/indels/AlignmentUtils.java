@@ -25,7 +25,7 @@ public class AlignmentUtils {
      * @return
      */
     public static int numMismatches(SAMRecord r, ReferenceSequence ref) {
-        return numMismatches(r, ref.getBases().toString());
+        return numMismatches(r, new String(ref.getBases()));
     }
 
     public static int numMismatches(SAMRecord r, String ref) {
