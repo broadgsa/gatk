@@ -314,7 +314,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
             posterior_null_hyp = P_D_q(bases, quals, 0.0, refnum, altnum) + P_q_G(bases, N, 0.0, 0, 0) + P_G(N, 0);
             bestMixtures[0] = new MixtureLikelihood(posterior_null_hyp, 0.0, 0.0);
 
-            System.out.format("DBG %s %.2f %.2f %5.2f %5.2f %5.2f %5.2f %d %d %s\n", location, 0.0, 0.0, P_D_q(bases, quals, 0.0, refnum, altnum), P_q_G(bases, N, 0.0, 0, 0), P_G(N, 0), posterior_null_hyp, (int)(q*bases.length), (int)((1.0-q)*bases.length), new String(bases));
+            //System.out.format("DBG %s %.2f %.2f %5.2f %5.2f %5.2f %5.2f %d %d %s\n", location, 0.0, 0.0, P_D_q(bases, quals, 0.0, refnum, altnum), P_q_G(bases, N, 0.0, 0, 0), P_G(N, 0), posterior_null_hyp, (int)(q*bases.length), (int)((1.0-q)*bases.length), new String(bases));
 
             // qstar - true allele balances
             //for (qstar = epsilon + ((1.0 - 2*epsilon)/N), qstar_N = 1; qstar <= 1.0; qstar += (1.0 - 2*epsilon)/N, qstar_N++) 
@@ -328,7 +328,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 
                 bestMixtures[qstar_N] = new MixtureLikelihood(posterior, qstar, q);
 
-                System.out.format("DBG %s %.2f %.2f %5.2f %5.2f %5.2f %5.2f %d %d %s\n", location, q, qstar, pDq, pqG, pG, posterior, (int)(q*bases.length), (int)((1.0-q)*bases.length), new String(bases));
+                //System.out.format("DBG %s %.2f %.2f %5.2f %5.2f %5.2f %5.2f %d %d %s\n", location, q, qstar, pDq, pqG, pG, posterior, (int)(q*bases.length), (int)((1.0-q)*bases.length), new String(bases));
             }
         }
 
