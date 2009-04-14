@@ -356,7 +356,9 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                                                                          lodBestVsNextBest,
                                                                          bestMixtures[0].posterior,
                                                                          posterior_null_hyp,
-                                                                         depth);
+                                                                         depth,
+                                                                         new String(bases),
+                                                                         quals);
         return alleleFreq;
     }
 

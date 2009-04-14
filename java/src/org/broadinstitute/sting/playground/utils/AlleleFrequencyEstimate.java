@@ -19,10 +19,12 @@ public class AlleleFrequencyEstimate {
     public double pRef;
     public int depth;
     public String notes;
+    public String bases;
+    public double[][] quals;
 
     GenomeLoc l;
 
-    public AlleleFrequencyEstimate(GenomeLoc location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, double pBest, double pRef, int depth)
+    public AlleleFrequencyEstimate(GenomeLoc location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, double pBest, double pRef, int depth, String bases, double[][] quals)
     {
         this.location = location;
         this.ref = ref;
@@ -34,6 +36,8 @@ public class AlleleFrequencyEstimate {
         this.lodVsNextBest = lodVsNextBest;
         this.depth = depth;
         this.notes = "";
+        this.bases = bases;
+        this.quals = quals;
     }
 
     /** Return the most likely genotype. */
@@ -67,16 +71,19 @@ public class AlleleFrequencyEstimate {
                                location.getStart(),
                                location.getStart(),
                                lodVsRef);
-        s += String.format("REF %c\t;\t", ref);
-        s += String.format("ALT %c\t;\t", alt);
-        s += String.format("FREQ %f\t;\t;", qstar);
-        s += String.format("DEPTH %d\t;\t", depth);
-        s += String.format("LODvsREF %f\t;\t", lodVsRef);
-        s += String.format("LODvsNEXTBEST %f\t;\t", lodVsNextBest);
+        s += String.format("\t;\tREF %c", ref);
+        s += String.format("\t;\tALT %c", alt);
+        s += String.format("\t;\tFREQ %f", qstar);
+        s += String.format("\t;\tDEPTH %d", depth);
+        s += String.format("\t;\tLODvsREF %f", lodVsRef);
+        s += String.format("\t;\tLODvsNEXTBEST %f", lodVsNextBest);
+        s += String.format("\t;\tQHAT %f", qhat);
+        s += String.format("\t;\tQSTAR %f", qstar);
+        s += String.format("\t;\tBASES %s", bases);
 
-        s += "\n";
+        s += ";\n";
 
-        // add bases and quals.
+        // add quals.
 
         return s;
     }
