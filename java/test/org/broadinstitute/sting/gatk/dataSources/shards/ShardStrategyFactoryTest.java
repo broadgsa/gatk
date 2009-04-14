@@ -9,7 +9,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.junit.*;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.util.ArrayList;
 
 /**
@@ -84,6 +83,8 @@ public class ShardStrategyFactoryTest {
     /** Tests that we got a string parameter in correctly */
     @Test
     public void testFullGenomeCycle() {
+        GenomeLoc.setupRefContigOrdering(seq.getSequenceDictionary());
+
         ShardStrategy strategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
         int shardCount = 0;
         try {
@@ -106,7 +107,7 @@ public class ShardStrategyFactoryTest {
 
     /** Tests that we got a string parameter in correctly */
     @Test
-    public void testIntervalGenomeCycle() {
+    public void testIntervalGenomeCycle() throws InterruptedException {
         SAMSequenceDictionary dic = seq.getSequenceDictionary();
         SAMSequenceRecord s = dic.getSequence(1);
         // Character stream writing
@@ -115,13 +116,18 @@ public class ShardStrategyFactoryTest {
         int stop = s.getSequenceLength();
         int size = 10000;
         int location = 1;
+        GenomeLoc.setupRefContigOrdering(dic);
         System.err.println("done to sleep");
         // keep track of the number of genome locs we build
         int genomeLocs = 0;
         ArrayList<GenomeLoc> locations = new ArrayList<GenomeLoc>();
-        while (location + size < stop) {
+        System.err.println("done to sleep2");
+        try {
+            while (location + size < stop) {
+            System.err.println("s = " + s.getSequenceName() + " " + location + " " + size);
             // lets make up some fake locations
             GenomeLoc gl = new GenomeLoc(s.getSequenceName(), location, location + size - 1);
+            System.err.println("loc = " + location);
 
             // let's move the location up, with a size space
             location += (size * 2);
@@ -132,19 +138,21 @@ public class ShardStrategyFactoryTest {
             // add another genome location
             ++genomeLocs;
         }
-
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.err.println("Location count = " + genomeLocs);
         ShardStrategy strategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 5000, locations);
         int shardCount = 0;
         try {
-            FileWriter writer = new FileWriter("myfile.txt");
             for (Shard sh : strategy) {
                 GenomeLoc l = sh.getGenomeLoc();
 
-                writer.write("Shard start: " + l.getStart() + " stop " + l.getStop() + " contig " + l.getContig());
-                //logger.debug("Shard start: " + l.getStart() + " stop " + l.getStop() + " contig " + l.getContig());
+                System.err.println("Shard start: " + l.getStart() + " stop " + l.getStop() + " contig " + l.getContig());
                 shardCount++;
             }
-            writer.close();
+
+             System.err.println("Shard count = " + shardCount); 
             assertEquals(shardCount, genomeLocs * 2);
 
         } catch (Exception e) {

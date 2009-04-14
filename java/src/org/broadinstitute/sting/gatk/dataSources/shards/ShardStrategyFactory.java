@@ -39,9 +39,7 @@ public class ShardStrategyFactory {
     }
 
     /** our log, which we want to capture anything from this class */
-        private static Logger logger = Logger.getLogger(ShardStrategyFactory.class);
-
-
+    private static Logger logger = Logger.getLogger(ShardStrategyFactory.class);
 
 
     /**
@@ -95,9 +93,9 @@ public class ShardStrategyFactory {
     static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, List<GenomeLoc> lst) {
         switch (strat) {
             case LINEAR:
-                return new LinearLocusShardStrategy(dic, startingSize); // , lst);
+                return new LinearLocusShardStrategy(dic, startingSize , lst);
             case EXPONENTIAL:
-                return new ExpGrowthLocusShardStrategy(dic, startingSize); // , lst);
+                return new ExpGrowthLocusShardStrategy(dic, startingSize , lst);
             default:
                 throw new RuntimeException("Strategy: " + strat + " isn't implemented");
         }
@@ -111,7 +109,7 @@ public class ShardStrategyFactory {
      * @return
      */
     static public ShardStrategy shatterByReadCount(long readCount) {
-        return null;    
+        return null;
     }
 
 }
