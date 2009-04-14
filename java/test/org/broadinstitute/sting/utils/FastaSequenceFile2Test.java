@@ -1,12 +1,11 @@
 package org.broadinstitute.sting.utils;
 
-import org.junit.*;
-import org.apache.log4j.BasicConfigurator;
-
-import java.io.File;
-
 import edu.mit.broad.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
+import org.broadinstitute.sting.BaseTest;
+import org.junit.*;
+
+import java.io.File;
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,9 +13,9 @@ import net.sf.samtools.util.StringUtil;
  * Date: Apr 11, 2009
  * Time: 2:32:52 PM
  */
-public class FastaSequenceFile2Test {
+public class FastaSequenceFile2Test extends BaseTest {
 
-    private final String sequenceFileName = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
+    private static String sequenceFileName;
     private FastaSequenceFile2 sequenceFile = null;
 
     private final String firstBasesOfChrM = "GATCACAGGTCTATCACCCT";
@@ -25,7 +24,7 @@ public class FastaSequenceFile2Test {
 
     @BeforeClass
     public static void initialize() {
-        BasicConfigurator.configure();
+         sequenceFileName = seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
     }
 
     @Before
@@ -116,6 +115,7 @@ public class FastaSequenceFile2Test {
 
         try {
             startTime = System.currentTimeMillis();
+            boolean success = sequenceFile.seekToContig("absent");
         }
         finally {
             endTime = System.currentTimeMillis();

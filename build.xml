@@ -199,7 +199,7 @@
     <target name="test.compile" depends="compile">
         <echo message="Sting: Compiling test cases!"/>
         <mkdir dir="${test.classes}"/>
-        <javac destdir="${test.classes}" debug="on" optimize="on">
+        <javac destdir="${test.classes}" debug="true" optimize="on">
             <src path="${test.sources}"/>
             <classpath>
                 <path refid="external.dependencies"/>
@@ -214,9 +214,8 @@
     <target name="test" depends="test.compile" description="Run unit tests">
         <mkdir dir="${report}"/>
         <echo message="Sting: Running test cases!"/>
-        <junit printsummary="yes" showoutput="yes" clonevm="yes" haltonfailure="yes">
-            <formatter type="plain"/>
-
+        <junit printsummary="yes" showoutput="yes" clonevm="yes" haltonfailure="yes" failureProperty="test.failure">
+            <formatter type="brief" usefile="false" />
             <classpath>
                 <path refid="external.dependencies"/>
                 <pathelement location="build"/>
@@ -227,9 +226,11 @@
             <batchtest fork="yes" todir="${report}">
                 <fileset dir="${test.classes}">
                     <include name="**/*.class"/>
+                    <exclude name="**/BaseTest.class"/>
                 </fileset>
             </batchtest>
         </junit>
+        <fail message="test failed" if="test.failure" />
 
     </target>
 

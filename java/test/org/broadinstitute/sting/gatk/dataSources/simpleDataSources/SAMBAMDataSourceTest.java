@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
 import static junit.framework.Assert.fail;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
@@ -42,7 +43,7 @@ import java.util.List;
  * <p/>
  * A descriptions should go here. Blame aaron if it's missing.
  */
-public class SAMBAMDataSourceTest {
+public class SAMBAMDataSourceTest extends BaseTest {
 
     private List<String> fl;
     private FastaSequenceFile2 seq;
@@ -57,7 +58,7 @@ public class SAMBAMDataSourceTest {
         fl = new ArrayList<String>();
 
         // sequence
-        seq = new FastaSequenceFile2(new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
         GenomeLoc.setupRefContigOrdering(seq.getSequenceDictionary());
     }
 
@@ -81,7 +82,7 @@ public class SAMBAMDataSourceTest {
         int count = 0;
 
         // setup the data
-        fl.add("/humgen/gsa-scr1/aaron/stink/NA12892.bam");
+        fl.add(oneKGLocation + "/pilot3/sams/NA12892.bam");
 
 
         try {
@@ -90,8 +91,8 @@ public class SAMBAMDataSourceTest {
                 int readCount = 0;
                 count++;
 
-                System.out.println("Start : " + sh.getGenomeLoc().getStart() + " stop : " + sh.getGenomeLoc().getStop() + " contig " + sh.getGenomeLoc().getContig());
-                System.out.println("count = " + count);
+                logger.debug("Start : " + sh.getGenomeLoc().getStart() + " stop : " + sh.getGenomeLoc().getStop() + " contig " + sh.getGenomeLoc().getContig());
+                logger.debug("count = " + count);
                 MergingSamRecordIterator2 datum = data.seek(sh.getGenomeLoc());
 
                 // for the first couple of shards make sure we can see the reads
@@ -118,7 +119,7 @@ public class SAMBAMDataSourceTest {
 
 
         // setup the test files
-        fl.add("/seq/dirseq/analysis/cancer_exome/sams/TCGA-06-0188.aligned.duplicates_marked.bam");
+        fl.add(seqLocation + "/dirseq/analysis/cancer_exome/sams/TCGA-06-0188.aligned.duplicates_marked.bam");
 
         ArrayList<Integer> readcountPerShard = new ArrayList<Integer>();
         ArrayList<Integer> readcountPerShard2 = new ArrayList<Integer>();
@@ -143,7 +144,7 @@ public class SAMBAMDataSourceTest {
 
                 }
                 readcountPerShard.add(readCount);
-                System.out.println("read count = " + readCount);
+                logger.debug("read count = " + readCount);
                 datum.close();
             }
         }
@@ -155,13 +156,13 @@ public class SAMBAMDataSourceTest {
 
         // setup the data and the counter before our second run
         fl.clear();
-        fl.add("/seq/dirseq/analysis/cancer_exome/sams/TCGA-06-0188-01A-01W.aligned.duplicates_marked.bam");
-        fl.add("/seq/dirseq/analysis/cancer_exome/sams/TCGA-06-0188-10B-01W.aligned.duplicates_marked.bam");
+        fl.add(seqLocation + "/dirseq/analysis/cancer_exome/sams/TCGA-06-0188-01A-01W.aligned.duplicates_marked.bam");
+        fl.add(seqLocation + "/dirseq/analysis/cancer_exome/sams/TCGA-06-0188-10B-01W.aligned.duplicates_marked.bam");
         count = 0;
         // the sharding strat.
         strat = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
 
-        System.err.println("Pile two:");
+        logger.debug("Pile two:");
         try {
             SAMBAMDataSource data = new SAMBAMDataSource(fl);
             for (Shard sh : strat) {
@@ -180,7 +181,7 @@ public class SAMBAMDataSourceTest {
                 }
 
                 readcountPerShard2.add(readCount);
-                System.out.println("read count = " + readCount);
+                logger.debug("read count = " + readCount);
                 datum.close();
             }
         }

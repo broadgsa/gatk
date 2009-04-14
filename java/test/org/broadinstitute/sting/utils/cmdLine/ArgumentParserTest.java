@@ -7,6 +7,7 @@ package org.broadinstitute.sting.utils.cmdLine;
 import org.junit.*;
 import static org.junit.Assert.*;
 import org.apache.commons.cli.ParseException;
+import org.broadinstitute.sting.BaseTest;
 
 /**
  * The ArgumentParserTest test class.  In JUnit 4, you don't have to extent the
@@ -24,7 +25,7 @@ import org.apache.commons.cli.ParseException;
  * <p/>
  * You should use the methods like
  */
-public class ArgumentParserTest {
+public class ArgumentParserTest extends BaseTest {
 
     // our argument parser
     private ArgumentParser m_parser = null;

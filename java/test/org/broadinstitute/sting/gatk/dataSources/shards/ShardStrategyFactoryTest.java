@@ -4,6 +4,7 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.fail;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
+import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.junit.*;
@@ -37,7 +38,7 @@ import java.util.ArrayList;
  * <p/>
  * A descriptions should go here. Blame aaron if it's missing.
  */
-public class ShardStrategyFactoryTest {
+public class ShardStrategyFactoryTest extends BaseTest {
 
     private static FastaSequenceFile2 seq;
 
@@ -47,7 +48,7 @@ public class ShardStrategyFactoryTest {
      */
     @BeforeClass
     public static void doBeforeAnyTests() {
-        seq = new FastaSequenceFile2(new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
     }
 
     /**
@@ -117,17 +118,17 @@ public class ShardStrategyFactoryTest {
         int size = 10000;
         int location = 1;
         GenomeLoc.setupRefContigOrdering(dic);
-        System.err.println("done to sleep");
+        logger.debug("done to sleep");
         // keep track of the number of genome locs we build
         int genomeLocs = 0;
         ArrayList<GenomeLoc> locations = new ArrayList<GenomeLoc>();
-        System.err.println("done to sleep2");
+        logger.debug("done to sleep2");
         try {
             while (location + size < stop) {
-            System.err.println("s = " + s.getSequenceName() + " " + location + " " + size);
+            logger.debug("s = " + s.getSequenceName() + " " + location + " " + size);
             // lets make up some fake locations
             GenomeLoc gl = new GenomeLoc(s.getSequenceName(), location, location + size - 1);
-            System.err.println("loc = " + location);
+            logger.debug("loc = " + location);
 
             // let's move the location up, with a size space
             location += (size * 2);
@@ -141,18 +142,18 @@ public class ShardStrategyFactoryTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        System.err.println("Location count = " + genomeLocs);
+        logger.debug("Location count = " + genomeLocs);
         ShardStrategy strategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 5000, locations);
         int shardCount = 0;
         try {
             for (Shard sh : strategy) {
                 GenomeLoc l = sh.getGenomeLoc();
 
-                System.err.println("Shard start: " + l.getStart() + " stop " + l.getStop() + " contig " + l.getContig());
+                logger.debug("Shard start: " + l.getStart() + " stop " + l.getStop() + " contig " + l.getContig());
                 shardCount++;
             }
 
-             System.err.println("Shard count = " + shardCount); 
+             logger.debug("Shard count = " + shardCount); 
             assertEquals(shardCount, genomeLocs * 2);
 
         } catch (Exception e) {
