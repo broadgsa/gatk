@@ -53,8 +53,8 @@ public class SortSamIterator implements Iterator<SAMRecord> {
         }
 
         public int compareTo(ComparableSAMRecord o) {
-            GenomeLoc myLoc = GenomeLoc.genomicLocationOf(record);
-            GenomeLoc hisLoc = GenomeLoc.genomicLocationOf(o.getRecord());
+            GenomeLoc myLoc = new GenomeLoc(record);
+            GenomeLoc hisLoc = new GenomeLoc(o.getRecord());
             return myLoc.compareTo(hisLoc);
         }
     }

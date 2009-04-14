@@ -81,7 +81,7 @@ public class TraverseByReads extends TraversalEngine {
             // get the next read
             final SAMRecord read = samReadIter.next();
             final List<SAMRecord> reads = Arrays.asList(read);
-            GenomeLoc loc = GenomeLoc.genomicLocationOf(read);
+            GenomeLoc loc = new GenomeLoc(read);
 
             // Jump forward in the reference to this locus location
             LocusContext locus = new LocusContext(loc, reads, offsets);
