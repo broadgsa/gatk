@@ -109,7 +109,14 @@ public class AlleleMetrics {
             //String called_genotype = alleleFreq.asString();
             //out.format("%s %s %c %c", hapmap_genotype, called_genotype, alleleFreq.ref, alleleFreq.alt);
 
+            System.out.printf("DBG %f %s\n", LOD_cutoff, alleleFreq.asTabularString());
             if (alleleFreq.lodVsNextBest >= LOD_cutoff) {
+
+                System.out.printf("DBG %f %f %f %f\n",
+                                        hapmap_q,
+                                        alleleFreq.qhat,
+                                        alleleFreq.qstar,
+                                        alleleFreq.lodVsNextBest);
 
                 // Calculate genotyping performance - did we get the correct genotype of the N+1 choices?
                 //if (hapmap_q != -1 && hapmap_q == alleleFreq.qstar) {

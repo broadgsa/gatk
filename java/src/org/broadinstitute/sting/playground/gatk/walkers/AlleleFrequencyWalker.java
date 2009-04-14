@@ -304,9 +304,9 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 
         // Initialize empyt MixtureLikelihood holders for each possible qstar (N+1)
         MixtureLikelihood[] bestMixtures = new MixtureLikelihood[N+1];
-
+            
         {
-            double q = ML_q(bases, quals, refnum, altnum);
+            double q = ML_q_byEM(bases, quals, refnum, altnum);
             double pDq = P_D_q(bases, quals, q, refnum, altnum);
             long q_R = Math.round(q*bases.length);
 
@@ -397,6 +397,22 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
             if (bases[i] == num2nuc[altnum]) { alt_count += 1; }
         }
         return alt_count / (alt_count + ref_count);
+    }
+
+    double ML_q_byEM(byte[] bases, double[][]quals, int refnum, int altnum) 
+    {
+        double best_q = 0;
+        double best_likelihood = -1000000;
+        for (double q = 0.0; q <= 1.0; q += 0.001)
+        {
+            double likelihood = P_D_q(bases, quals, q, refnum, altnum);
+            if (likelihood >= best_likelihood)
+            { 
+                best_likelihood = likelihood; 
+                best_q = q;
+            }
+        }
+        return best_q;
     }
 
     double P_D_q(byte[] bases, double[][]quals, double q, int refnum, int altnum) 

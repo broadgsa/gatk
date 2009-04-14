@@ -24,11 +24,10 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
     AlleleFrequencyWalker       pooled_caller = null;
     List<String> sample_names = null;
 
-    //@Argument public int DOWNSAMPLE;
-    public int DOWNSAMPLE = 4;
-    public int DOWNSAMPLE_NOISE = 3;
-    public boolean LOG_METRICS = true;
-
+    @Argument(required=false, shortName="downsample", defaultValue="4") public int DOWNSAMPLE;
+    @Argument(required=false, shortName="downsample_noise", defaultValue="3") public int DOWNSAMPLE_NOISE;
+    @Argument(required=false, shortName="log_metrics", defaultValue="true") public boolean LOG_METRICS;
+    
     private Random random;
 
     public void initialize() 
@@ -70,9 +69,6 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
         pooled_caller.N = sample_names.size() * 2;
         pooled_caller.DOWNSAMPLE = 0;
         pooled_caller.GFF_OUTPUT_FILE = "/dev/null";
-        //pooled_caller.LOG_METRICS = LOG_METRICS;
-        //pooled_caller.METRICS_OUTPUT_FILE = "metrics.out";
-        //pooled_caller.METRICS_INTERVAL = 1; 
         pooled_caller.initalize();
         pooled_caller.reduceInit();
     }
@@ -135,10 +131,10 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
 	    System.out.print("POOLED_CALL " + pooled_call.asTabularString());
 
         // (this loop is the EM cycle)
-	    EM_alt_freq = pooled_call.qhat;
+	    EM_alt_freq = pooled_call.qstar; //pooled_call.qhat;
         int num_iterations = 10;
         double[] trajectory = new double[num_iterations + 1]; trajectory[0] = EM_alt_freq;
-        double[] likelihood_trajectory = new double[num_iterations + 1]; 
+        double[] likelihood_trajectory = new double[num_iterations + 1]; likelihood_trajectory[0] = pooled_call.pBest;
         for (int iterations = 0; iterations < num_iterations; iterations++)
         { 
 	        // 6. Re-call from shallow coverage using the estimated frequency as a prior, 
@@ -157,9 +153,11 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
 	            if ((deep_calls[i].lodVsNextBest >= 5.0) || (deep_calls[i].lodVsRef <= -5.0))
 	            {
 	                shallow_callers.get(i).setAlleleFrequencyPrior(EM_alt_freq);
-	                shallow_calls[i] = shallow_callers.get(i).map(tracker, ref, filterLocusContext(context, sample_names.get(i), DOWNSAMPLE + (int)(random.nextGaussian() * DOWNSAMPLE_NOISE)));
+	                shallow_calls[i] = shallow_callers.get(i).map(tracker, ref, downsampled_contexts[i]);
 	                String deep_genotype = deep_calls[i].genotype();
 	                String shallow_genotype = shallow_calls[i].genotype();
+
+                    likelihood += shallow_calls[i].lodVsNextBest;
 	
                     /*
 	                System.out.printf("DBG: %f %f %f %f\n", 
@@ -179,6 +177,7 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
 	        EM_alt_freq = EM_sum / EM_N;
 	        shallow_calls_fraction_correct = correct_shallow_calls / total_shallow_calls;
             trajectory[iterations+1] = EM_alt_freq;
+            likelihood_trajectory[iterations+1] = likelihood/(double)total_shallow_calls;
         }
 
         // 7. Compare to estimation from the pool.
@@ -196,12 +195,11 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
                                 correct_shallow_calls, 
                                 shallow_calls_fraction_correct,
                                 EM_alt_freq);
-        System.out.print("TRAJECTORY "); 
-        for (int i = 0; i < trajectory.length; i++)
+        for (int i = 0; i < likelihood_trajectory.length; i++)
         {
-            System.out.printf("%f ", trajectory[i]);
+            System.out.printf("TRAJECTORY %f %f\n", trajectory[i], likelihood_trajectory[i]);
         }
-        System.out.print("\n");
+        System.out.print("\n\n");
 
         return null;
     }
