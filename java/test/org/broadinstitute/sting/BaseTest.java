@@ -33,7 +33,8 @@ import java.util.Enumeration;
  * <p/>
  * Class BaseTest
  * <p/>
- * A descriptions should go here. Blame aaron if it's missing.
+ * This is the base test class for all of our test cases.  All test cases should extend from this
+ * class, since it sets up the logger, and resolves any data directories that we rely on.
  */
 public abstract class BaseTest {
     /** our log, which we want to capture anything from org.broadinstitute.sting */

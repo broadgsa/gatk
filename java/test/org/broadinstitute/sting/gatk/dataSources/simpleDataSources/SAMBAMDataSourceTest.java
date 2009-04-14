@@ -41,7 +41,7 @@ import java.util.List;
  * <p/>
  * Class SAMBAMDataSourceTest
  * <p/>
- * A descriptions should go here. Blame aaron if it's missing.
+ * The test of the SAMBAM simple data source.
  */
 public class SAMBAMDataSourceTest extends BaseTest {
 

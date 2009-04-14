@@ -36,7 +36,9 @@ import java.util.ArrayList;
  * <p/>
  * Class ShardFactoryTest
  * <p/>
- * A descriptions should go here. Blame aaron if it's missing.
+ * Tests the shard strategy factory.  This tests the whole sharding interface, and should be
+ * split in the future into seperate test cases.
+ * TODO: split out for the seperate sharding classes
  */
 public class ShardStrategyFactoryTest extends BaseTest {
 
