@@ -77,6 +77,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
     /** Test out that we can shard the file and iterate over every read */
     //@Test
     public void testLinearBreakIterateAll() {
+        logger.warn("Executing testLinearBreakIterateAll");
         // the sharding strat.
         ShardStrategy strat = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
         int count = 0;
@@ -114,12 +115,13 @@ public class SAMBAMDataSourceTest extends BaseTest {
     /** Test out that we can shard the file and iterate over every read */
     @Test
     public void testMergingTwoBAMFiles() {
+        logger.warn("Executing testMergingTwoBAMFiles");
         // the sharding strat.
         ShardStrategy strat = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
 
 
         // setup the test files
-        fl.add(seqLocation + "/dirseq/analysis/cancer_exome/sams/TCGA-06-0188.aligned.duplicates_marked.bam");
+        fl.add(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188.aligned.duplicates_marked.bam");
 
         ArrayList<Integer> readcountPerShard = new ArrayList<Integer>();
         ArrayList<Integer> readcountPerShard2 = new ArrayList<Integer>();
@@ -156,8 +158,8 @@ public class SAMBAMDataSourceTest extends BaseTest {
 
         // setup the data and the counter before our second run
         fl.clear();
-        fl.add(seqLocation + "/dirseq/analysis/cancer_exome/sams/TCGA-06-0188-01A-01W.aligned.duplicates_marked.bam");
-        fl.add(seqLocation + "/dirseq/analysis/cancer_exome/sams/TCGA-06-0188-10B-01W.aligned.duplicates_marked.bam");
+        fl.add(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188-01A-01W.aligned.duplicates_marked.bam");
+        fl.add(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188-10B-01W.aligned.duplicates_marked.bam");
         count = 0;
         // the sharding strat.
         strat = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);

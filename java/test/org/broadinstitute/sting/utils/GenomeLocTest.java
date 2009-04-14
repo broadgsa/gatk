@@ -4,25 +4,24 @@ package org.broadinstitute.sting.utils;
 
 // the imports for unit testing.
 
-import org.junit.*;
-import static org.junit.Assert.*;
-import org.apache.commons.cli.ParseException;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentParser;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
-import java.util.ArrayList;
 import java.io.File;
 
 /**
  * Basic unit test for GenomeLoc
  */
-public class GenomeLocTest {
+public class GenomeLocTest extends BaseTest {
     private static FastaSequenceFile2 seq;
 
     @BeforeClass
     public static void init() {
         // sequence
-        seq = new FastaSequenceFile2(new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
     }
 
     /**
@@ -30,6 +29,7 @@ public class GenomeLocTest {
      */
     @Test
     public void testIsBetween() {
+        logger.warn("Executing testIsBetween");
         GenomeLoc.setupRefContigOrdering(seq);
         GenomeLoc locMiddle = new GenomeLoc("chr1", 3, 3);
 
@@ -43,6 +43,7 @@ public class GenomeLocTest {
     }
     @Test
     public void testContigIndex() {
+        logger.warn("Executing testContigIndex");
         GenomeLoc locOne = new GenomeLoc("chr1",1,1);
         Assert.assertEquals(locOne.getContigIndex(), 1);
         Assert.assertEquals(locOne.getContig(), "chr1");
@@ -60,6 +61,7 @@ public class GenomeLocTest {
 
     @Test
     public void testCompareTo() {
+        logger.warn("Executing testCompareTo");
         GenomeLoc twoOne = new GenomeLoc("chr2", 1);
         GenomeLoc twoFive = new GenomeLoc("chr2", 5);
         GenomeLoc twoOtherFive = new GenomeLoc("chr2", 5);

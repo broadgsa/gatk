@@ -86,6 +86,8 @@ public class ShardStrategyFactoryTest extends BaseTest {
     /** Tests that we got a string parameter in correctly */
     @Test
     public void testFullGenomeCycle() {
+        logger.warn("Executing testFullGenomeCycle");
+
         GenomeLoc.setupRefContigOrdering(seq.getSequenceDictionary());
 
         ShardStrategy strategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
@@ -111,6 +113,8 @@ public class ShardStrategyFactoryTest extends BaseTest {
     /** Tests that we got a string parameter in correctly */
     @Test
     public void testIntervalGenomeCycle() throws InterruptedException {
+        logger.warn("Executing testIntervalGenomeCycle");
+
         SAMSequenceDictionary dic = seq.getSequenceDictionary();
         SAMSequenceRecord s = dic.getSequence(1);
         // Character stream writing

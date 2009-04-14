@@ -44,6 +44,7 @@ public abstract class BaseTest {
     protected static String oneKGLocation = "/broad/1KG";
 
     protected static boolean alreadySetup = false;
+    private static long startTime;
 
     /** before the class starts up */
     @BeforeClass
@@ -55,7 +56,7 @@ public abstract class BaseTest {
 
             // setup our log layout
             PatternLayout layout = new PatternLayout();
-            layout.setConversionPattern("TEST %C{1} - %d{HH:mm:ss,SSS} - %m%n");
+            layout.setConversionPattern("TEST %C{1}.%M - %d{HH:mm:ss,SSS} - %m%n");
 
             // now set the layout of all the loggers to our layout
             Enumeration<Appender> en = logger.getAllAppenders();
@@ -148,12 +149,14 @@ public abstract class BaseTest {
     // pass through to the junit 3 calls, which are not annotated
     @Before
     final public void baseSetup() throws Exception {
-
+        startTime = System.currentTimeMillis();
     }
 
     @After
     public void baseTearDown() throws Exception {
-
+        long endTime = System.currentTimeMillis();
+        
+        logger.warn(String.format("runtime: %dms", (endTime - startTime)));
     }
 
 }

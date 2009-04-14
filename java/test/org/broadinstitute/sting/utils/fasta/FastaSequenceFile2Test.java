@@ -45,6 +45,8 @@ public class FastaSequenceFile2Test extends BaseTest {
 
     @Test
     public void testOpenFile() {
+        logger.warn("Executing testOpenFile");
+
         long startTime = System.currentTimeMillis();
         Assert.assertNotNull( sequenceFile );
         long endTime = System.currentTimeMillis();
@@ -54,6 +56,8 @@ public class FastaSequenceFile2Test extends BaseTest {
 
     @Test
     public void testFirstSequence() {
+        logger.warn("Executing testFirstSequence");
+
         long startTime = System.currentTimeMillis();
         ReferenceSequence sequence = sequenceFile.nextSequence();
         Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chrM");
@@ -67,6 +71,8 @@ public class FastaSequenceFile2Test extends BaseTest {
 
     @Test
     public void testNextSequence() {
+        logger.warn("Executing testNextSequence");
+
         long startTime = System.currentTimeMillis();
 
         ReferenceSequence sequence = null;
@@ -92,6 +98,8 @@ public class FastaSequenceFile2Test extends BaseTest {
 
     @Test
     public void testSeekToSequence() {
+        logger.warn("Executing testSeekToSequence");
+
         long startTime = System.currentTimeMillis();
 
         boolean success = sequenceFile.seekToContig("chr8");
@@ -111,6 +119,8 @@ public class FastaSequenceFile2Test extends BaseTest {
     // TODO: Is NullPointerException *really* the right exception when a sequence is missing?
     @Test(expected=NullPointerException.class)
     public void testSeekToMissingSequence() {
+        logger.warn("Executing testSeekToMissingSequence");
+
         long startTime = 0L, endTime = 0L;
 
         try {
@@ -125,6 +135,8 @@ public class FastaSequenceFile2Test extends BaseTest {
 
     @Test
     public void testSeekBackward() {
+        logger.warn("Executing testSeekBackward");
+
         long startTime = System.currentTimeMillis();
 
         boolean success = sequenceFile.seekToContig("chr9");
@@ -146,6 +158,8 @@ public class FastaSequenceFile2Test extends BaseTest {
 
     @Test
     public void testInvalidSeekBackward() {
+        logger.warn("Executing testInvalidSeekBackward");
+
         long startTime = System.currentTimeMillis();
 
         boolean success = sequenceFile.seekToContig("chr9");
@@ -161,6 +175,8 @@ public class FastaSequenceFile2Test extends BaseTest {
 
     @Test
     public void testSimultaneousAccess() {
+        logger.warn("Executing testSimultaneousAccess");
+
         long startTime = System.currentTimeMillis();
 
         //        FastaSequenceFile2 other = (FastaSequenceFile2)sequenceFile.clone();

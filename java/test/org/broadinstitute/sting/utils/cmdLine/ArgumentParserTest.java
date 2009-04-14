@@ -89,6 +89,7 @@ public class ArgumentParserTest extends BaseTest {
      */
     @Test
     public void testStringParameter() {
+        logger.warn("Executing testStringParameter");
         // setup the parameter list
         String[] params = {"-B", "-S", "String", "-I", "100", "-F", "100.0"};
 
@@ -111,6 +112,7 @@ public class ArgumentParserTest extends BaseTest {
      */
     @Test
     public void testBooleanParameter() {
+        logger.warn("Executing testBooleanParameter");
         // setup the parameter list
         String[] params = {"-B", "-S", "String", "-I", "100", "-F", "100.0"};
 
@@ -130,6 +132,8 @@ public class ArgumentParserTest extends BaseTest {
      */
     @Test
     public void testFloatParameter() {
+        logger.warn("Executing testFloatParameter");
+
         // setup the parameter list
         String[] params = {"-B", "-S", "String", "-I", "100", "-F", "100.0"};
 
@@ -149,6 +153,8 @@ public class ArgumentParserTest extends BaseTest {
      */
     @Test
     public void testIntegerParameter() {
+        logger.warn("Executing testIntegerParameter");
+
         // setup the parameter list
         String[] params = {"-B", "-S", "String", "-I", "100", "-F", "100.0"};
 
@@ -169,6 +175,8 @@ public class ArgumentParserTest extends BaseTest {
      */
     @Test
     public void testForUnpassedParameter() {
+        logger.warn("Executing testForUnpassedParameter");
+
 
         // add a new required flag we won't send it
         m_parser.addRequiredArg("testNotTHere", "N", "our should be provided test", "testFloat");
@@ -190,6 +198,8 @@ public class ArgumentParserTest extends BaseTest {
      */
     @Test
     public void testForBadArgFieldName() {
+        logger.warn("Executing testForBadArgFieldName");
+
         try {
             // add a new required flag we won't send it
             m_parser.addRequiredArg("testNotTHere", "N", "our should be provided test", "testDoesNotExist");

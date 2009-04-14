@@ -1,16 +1,14 @@
 package org.broadinstitute.sting.utils.fasta;
 
-import org.junit.BeforeClass;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.Assert;
-import org.apache.log4j.BasicConfigurator;
+import edu.mit.broad.picard.PicardException;
 import org.broadinstitute.sting.BaseTest;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-
-import edu.mit.broad.picard.PicardException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -35,6 +33,8 @@ public class FastaSequenceIndexTest extends BaseTest {
 
     @Test
     public void testInitialContig() {
+        logger.warn("Executing testInitialContig");
+
         Assert.assertTrue("Contig chrM is not present", sequenceIndex.hasIndexEntry("chrM"));
         FastaSequenceIndexEntry entry = sequenceIndex.getIndexEntry("chrM");
         Assert.assertEquals("Contig chrM name is incorrect",entry.getContig(),"chrM");
@@ -46,6 +46,8 @@ public class FastaSequenceIndexTest extends BaseTest {
 
     @Test
     public void testMiddleContig() {
+        logger.warn("Executing testMiddleContig");
+
         Assert.assertTrue("Contig chr8 is not present", sequenceIndex.hasIndexEntry("chr8"));
         FastaSequenceIndexEntry entry = sequenceIndex.getIndexEntry("chr8");
         Assert.assertEquals("Contig chr8 name is incorrect",entry.getContig(),"chr8");
@@ -57,6 +59,8 @@ public class FastaSequenceIndexTest extends BaseTest {
 
     @Test
     public void testLastContig() {
+        logger.warn("Executing testLastContig");
+
         Assert.assertTrue("Contig chrX_random is not present", sequenceIndex.hasIndexEntry("chrX_random"));
         FastaSequenceIndexEntry entry = sequenceIndex.getIndexEntry("chrX_random");
         Assert.assertEquals("Contig chrX_random name is incorrect",entry.getContig(),"chrX_random");
@@ -68,6 +72,8 @@ public class FastaSequenceIndexTest extends BaseTest {
 
     @Test
     public void testAllContigsPresent() {
+        logger.warn("Executing testAllContigsPresent");
+
         Assert.assertTrue("Contig chrM is not present", sequenceIndex.hasIndexEntry("chrM"));
         Assert.assertTrue("Contig chr1 is not present", sequenceIndex.hasIndexEntry("chr1"));
         Assert.assertTrue("Contig chr2 is not present", sequenceIndex.hasIndexEntry("chr2"));
@@ -117,11 +123,15 @@ public class FastaSequenceIndexTest extends BaseTest {
 
     @Test
     public void testHasInvalidEntry() {
+        logger.warn("Executing testHasInvalidEntry");
+
         Assert.assertFalse("Found an invalid entry", sequenceIndex.hasIndexEntry("invalid"));
     }
 
     @Test(expected= PicardException.class)
     public void testGetInvalidEntry() {
+        logger.warn("Executing testGetInvalidEntry");
+
         sequenceIndex.getIndexEntry("invalid");
     }
 
