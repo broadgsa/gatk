@@ -5,6 +5,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.Assert;
 import org.apache.log4j.BasicConfigurator;
+import org.broadinstitute.sting.BaseTest;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -18,13 +19,13 @@ import edu.mit.broad.picard.PicardException;
  * Time: 10:34:15 AM
  * To change this template use File | Settings | File Templates.
  */
-public class FastaSequenceIndexTest {
-    private final String sequenceIndexName = "/Volumes/ifs/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta.fai";
+public class FastaSequenceIndexTest extends BaseTest {
+    private static String sequenceIndexName = null;
     private FastaSequenceIndex sequenceIndex = null;
 
     @BeforeClass
     public static void initialize() {
-        BasicConfigurator.configure();
+        sequenceIndexName = seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta.fai";
     }
 
     @Before
