@@ -53,12 +53,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     public String DOWNSAMPLE_COVERAGE = null;
     public String INTERVALS_FILE = null;
 
-   // added for mendelian walker. 
-   //TODO: when walkers can ask for their tracks this should be removed!
-    public String MOTHER_GENOTYPE_FILE = null;
-    public String FATHER_GENOTYPE_FILE = null;
-    public String DAUGHTER_GENOTYPE_FILE = null;
-    
+     
     // our walker manager
     private WalkerManager walkerManager = null;
 
@@ -137,10 +132,6 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         
         m_parser.addOptionalArg("numthreads", "nt", "How many threads should be allocated to running this analysis.", "numThreads");
         m_parser.addOptionalFlag("enablethreading", "et", "Enable experimental threading support.", "ENABLE_THREADING");
-        //TODO: remove when walkers can ask for tracks
-        m_parser.addOptionalArg("mother", "MOM", "Mother's genotype (SAM pileup)", "MOTHER_GENOTYPE_FILE");
-        m_parser.addOptionalArg("father", "DAD", "Father's genotype (SAM pileup)", "FATHER_GENOTYPE_FILE");
-        m_parser.addOptionalArg("daughter", "KID", "Daughter's genotype (SAM pileup)", "DAUGHTER_GENOTYPE_FILE");
 
         // --rodBind <name> <type> <file>
         //m_parser.addOptionalArg("rods", "B", "Bind rod with <name> and <type> to <file>", "ROD_BINDINGS");
@@ -214,10 +205,6 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         if ( DBSNP_FILE != null )               bindConvenienceRods("dbSNP", "dbsnp", DBSNP_FILE);
         if ( HAPMAP_FILE != null )              bindConvenienceRods("hapmap", "HapMapAlleleFrequencies", HAPMAP_FILE);
         if ( HAPMAP_CHIP_FILE != null )         bindConvenienceRods("hapmap-chip", "GFF", HAPMAP_CHIP_FILE);
-        //TODO: remove when walkers can ask for tracks
-        if ( MOTHER_GENOTYPE_FILE != null )     bindConvenienceRods("mother", "SAMPileup", MOTHER_GENOTYPE_FILE);
-        if ( FATHER_GENOTYPE_FILE != null )     bindConvenienceRods("father", "SAMPileup", FATHER_GENOTYPE_FILE);
-        if ( DAUGHTER_GENOTYPE_FILE != null )   bindConvenienceRods("daughter", "SAMPileup", DAUGHTER_GENOTYPE_FILE);
 
         ReferenceOrderedData.parseBindings(logger, ROD_BINDINGS, rods);
         
