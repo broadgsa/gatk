@@ -169,6 +169,76 @@ public class Utils {
         return quals.toString();
     }
 
+    public static ArrayList<Byte> secondaryBasePileup( List<SAMRecord> reads, List<Integer> offsets ) {
+        ArrayList<Byte> bases2 = new ArrayList<Byte>(reads.size());
+        boolean hasAtLeastOneSQField = false;
+
+        for ( int i = 0; i < reads.size(); i++ ) {
+            SAMRecord read = reads.get(i);
+            int offset = offsets.get(i);
+
+            byte[] compressedQuals = (byte[]) read.getAttribute("SQ");
+            byte base2;
+            //byte qual2;
+            if (compressedQuals != null) {
+                base2 = (byte) BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(compressedQuals[offset]));
+                //qual2 = QualityUtils.probToQual(QualityUtils.compressedQualityToProb(compressedQuals[offset]));
+                hasAtLeastOneSQField = true;
+            } else {
+                base2 = (byte) '.';
+            }
+            bases2.add(base2);
+        }
+        return (hasAtLeastOneSQField ? bases2 : null);
+    }
+
+    public static String secondaryBasePileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
+        StringBuilder bases2 = new StringBuilder();
+        ArrayList<Byte> sqbases = secondaryBasePileup(reads, offsets);
+
+        if (sqbases == null) { return null; }
+        
+        for (byte base2 : secondaryBasePileup(reads, offsets)) {
+            bases2.append((char) base2);
+        }
+
+        return bases2.toString();
+    }
+
+    public static ArrayList<Byte> secondaryQualPileup( List<SAMRecord> reads, List<Integer> offsets ) {
+        ArrayList<Byte> quals2 = new ArrayList<Byte>(reads.size());
+        boolean hasAtLeastOneSQField = false;
+
+        for ( int i = 0; i < reads.size(); i++ ) {
+            SAMRecord read = reads.get(i);
+            int offset = offsets.get(i);
+
+            byte[] compressedQuals = (byte[]) read.getAttribute("SQ");
+            byte qual2;
+            if (compressedQuals != null) {
+                qual2 = QualityUtils.probToQual(QualityUtils.compressedQualityToProb(compressedQuals[offset]));
+                hasAtLeastOneSQField = true;
+            } else {
+                qual2 = 0;
+            }
+            quals2.add(qual2);
+        }
+        return (hasAtLeastOneSQField ? quals2 : null);
+    }
+
+    public static String secondaryQualPileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
+        StringBuilder quals2 = new StringBuilder();
+        ArrayList<Byte> sqquals = secondaryQualPileup(reads, offsets);
+
+        if (sqquals == null) { return null; }
+
+        for (byte qual2 : secondaryQualPileup(reads, offsets)) {
+            quals2.append(qual2);
+        }
+
+        return quals2.toString();
+    }
+
     public static ArrayList<Byte> subseq(byte[] fullArray) {
         return subseq(fullArray, 0, fullArray.length);
     }
