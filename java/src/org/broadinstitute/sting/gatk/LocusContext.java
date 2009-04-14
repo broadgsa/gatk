@@ -34,6 +34,11 @@ public class LocusContext {
      * @param offsets
      */
     public LocusContext(GenomeLoc loc, List<SAMRecord> reads, List<Integer> offsets) {
+        assert loc != null;
+        assert loc.getContig() != null;
+        assert reads != null;
+        assert offsets != null;
+
         this.loc = loc;
         this.reads = reads;
         this.offsets = offsets;
