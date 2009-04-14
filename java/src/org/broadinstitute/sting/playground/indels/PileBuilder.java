@@ -158,6 +158,10 @@ public class PileBuilder implements RecordPileReceiver {
 
            List<MultipleAlignment> piles = doMultipleAlignment2(seqs);
 
+           if ( piles.size() > 2 ) {
+        	   System.out.println("WARNING: " + piles.size() + " piles appear to be disjoint");
+           }
+
 //           System.out.print("Distance between final piles: "+distance(alignments1, alignments2));
 //           System.out.print("; diameter of PILE1: "+ diameter(alignments1));
 //           System.out.println("; diameter of PILE2: "+ diameter(alignments2));
@@ -887,16 +891,18 @@ public List<MultipleAlignment> doMultipleAlignment2(IndexedSequence[] seqs) {
                 }
             }
         }
-//        System.out.println("joining pile "+pile_i +" and pile " + pile_j +" on seqs " + best_i +" and " + best_j );
+        
+        if ( d >= 1e99 ) break; // oops, we could not stitch any of the remaining piles together!
+       
         // got the closest pair
         piles.get(pile_i).add(piles.get(pile_j),alignments.get(best_i,best_j));
-//        System.out.println("JOINED PILE: \n"+piles.get(pile_i).toString());
+        //        System.out.println("JOINED PILE: \n"+piles.get(pile_i).toString());
         piles.remove(pile_j);
         npiles--;
     }
 
-    alignments1 = piles.get(0);
-    alignments2 = piles.get(1);
+//    alignments1 = piles.get(0);
+//    alignments2 = piles.get(1);
 
 
 //    System.out.println("PILE 1: \n"+piles.get(0).toString());
