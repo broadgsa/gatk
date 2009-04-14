@@ -75,7 +75,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
 
 
     /** Test out that we can shard the file and iterate over every read */
-    //@Test
+    @Test
     public void testLinearBreakIterateAll() {
         logger.warn("Executing testLinearBreakIterateAll");
         // the sharding strat.
@@ -103,6 +103,11 @@ public class SAMBAMDataSourceTest extends BaseTest {
                     readCount++;
                 }
                 datum.close();
+
+                // if we're over 100 shards, break out
+                if (count > 100) {
+                    break;
+                }
             }
         }
         catch (SimpleDataSourceLoadException e) {
