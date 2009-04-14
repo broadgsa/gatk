@@ -19,8 +19,8 @@ public class ReadBackedPileup extends BasicPileup {
     List<SAMRecord> reads;
     List<Integer> offsets;
 
-    public ReadBackedPileup(GenomeLoc loc, char ref, LocusContext context ) {
-        this(loc, ref, context.getReads(), context.getOffsets());
+    public ReadBackedPileup(char ref, LocusContext context ) {
+        this(context.getLocation(), ref, context.getReads(), context.getOffsets());
     }
 
     public ReadBackedPileup(GenomeLoc loc, char ref, List<SAMRecord> reads, List<Integer> offsets ) {

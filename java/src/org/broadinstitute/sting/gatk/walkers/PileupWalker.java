@@ -36,7 +36,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
     }
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        ReadBackedPileup pileup = new ReadBackedPileup(context.getLocation(), ref, context);
+        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         String bases = pileup.getBases();
         
         if ( bases.equals("") && FLAG_UNCOVERED_BASES ) {

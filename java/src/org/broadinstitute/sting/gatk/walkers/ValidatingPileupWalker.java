@@ -20,7 +20,7 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
     public boolean VERBOSE;
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        ReadBackedPileup pileup = new ReadBackedPileup(context.getLocation(), ref, context);
+        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
 
         rodSAMPileup truePileup = (rodSAMPileup)tracker.lookup("pileup", null);
         if ( truePileup == null )

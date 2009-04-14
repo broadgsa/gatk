@@ -62,7 +62,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         this.initalize();
 
         // Convert context data into bases and 4-base quals
-        String bases     = getBases(context);
+        Pileup pileup    = new ReadBackedPileup(ref, context);
+        String bases     = pileup.getBases();
         double quals[][] = getQuals(context);
         //String[] indels  = getIndels(context);
 
@@ -143,6 +144,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         return alleleFreq;
     }
 
+    /*
     static public String getBases (LocusContext context)
     {
         // Convert bases to CharArray
@@ -159,6 +161,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         }
         return new String(bases);
     }
+    */
 
     /*
     static public String[] getIndels(LocusContext context)
