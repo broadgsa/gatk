@@ -25,10 +25,14 @@ public class AlignmentUtils {
      * @return
      */
     public static int numMismatches(SAMRecord r, ReferenceSequence ref) {
-        return numMismatches(r, new String(ref.getBases()));
+        return numMismatches(r, ref.getBases());
     }
 
-    public static int numMismatches(SAMRecord r, String ref) {
+    public static int numMismatches(SAMRecord r, String ref ) {
+    	return numMismatches(r,ref.getBytes());
+    }
+    
+    public static int numMismatches(SAMRecord r, byte[] ref) {
         if ( r.getReadUnmappedFlag() ) return 1000000;
         int i_ref = r.getAlignmentStart()-1; // position on the ref
         int i_read = 0;                    // position on the read
@@ -41,7 +45,7 @@ public class AlignmentUtils {
                     for ( int l = 0 ; l < ce.getLength() ; l++, i_ref++, i_read++ ) {
                         if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) == 'N' ) continue; // do not count N's ?
                         if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) !=
-                             Character.toUpperCase(ref.charAt(i_ref)) ) mm_count++;
+                             Character.toUpperCase((char)ref[i_ref]) ) mm_count++;
                     }
                     break;
                 case I: i_read += ce.getLength(); break;
