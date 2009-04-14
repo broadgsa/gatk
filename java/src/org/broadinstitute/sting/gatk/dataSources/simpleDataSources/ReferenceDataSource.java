@@ -2,8 +2,8 @@ package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
 import org.broadinstitute.sting.gatk.iterators.BoundedReferenceIterator;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
-import org.broadinstitute.sting.utils.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.io.File;
 

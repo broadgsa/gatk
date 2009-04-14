@@ -5,8 +5,8 @@ import static junit.framework.Assert.fail;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import org.junit.*;
 
 import java.io.File;

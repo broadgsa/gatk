@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.utils.fasta;
 
 import edu.mit.broad.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;

@@ -8,6 +8,7 @@ import org.junit.*;
 import static org.junit.Assert.*;
 import org.apache.commons.cli.ParseException;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentParser;
+import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.util.ArrayList;
 import java.io.File;

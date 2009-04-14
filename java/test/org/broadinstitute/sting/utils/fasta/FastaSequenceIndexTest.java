@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.utils.fasta;
 
 import org.junit.BeforeClass;
 import org.junit.Before;

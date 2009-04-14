@@ -17,6 +17,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.io.*;
 import java.util.*;

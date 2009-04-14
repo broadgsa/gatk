@@ -4,8 +4,8 @@ import edu.mit.broad.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.RuntimeIOException;
 import net.sf.samtools.util.StringUtil;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

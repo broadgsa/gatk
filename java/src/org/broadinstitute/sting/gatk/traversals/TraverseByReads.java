@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.FastaSequenceFile2;
+import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.util.List;
 import java.util.Arrays;

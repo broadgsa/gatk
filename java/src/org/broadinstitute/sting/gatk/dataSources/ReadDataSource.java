@@ -8,7 +8,7 @@ import java.io.File;
 
 import org.broadinstitute.sting.gatk.iterators.VerifyingSamIterator;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
-import org.broadinstitute.sting.utils.FastaSequenceFile2;
+import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 /**
  * User: aaron
