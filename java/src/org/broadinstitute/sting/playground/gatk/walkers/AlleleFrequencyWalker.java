@@ -241,25 +241,27 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                 //System.out.printf("SAM record: %s\n", read.format());
 
                 byte hex_qual = hex_quals[offset];
-                int baseIndex = QualityUtils.compressedQualityToBaseIndex(hex_qual);
-                // Todo: Andrew indexes his nucleotides as 0:A, 1:C, 2:T, 3:G.  Kiran indexes his nucleotides as 0:A, 1:C, 2:G, 3:T.  This must be reconciled.  Here, I just translate appropriately.
-                int called2num = 0;
-                switch (baseIndex) {
-                    case 0: called2num = 0; break;
-                    case 1: called2num = 1; break;
-                    case 2: called2num = 3; break;
-                    case 3: called2num = 2; break;
-                    default: assert(baseIndex >= 0 && baseIndex < 4); break;
-                }
+                int called2num = QualityUtils.compressedQualityToBaseIndex(hex_qual);
 
-                double qual2 = QualityUtils.compressedQualityToProb(hex_qual);
-                //System.out.printf("2ND %x %d %f\n", hex_qual, called2num, qual2);
-                quals[i][called2num] = qual2;
+                /*
+                int crossTalkPartnerIndex = BaseUtils.crossTalkPartnerIndex(callednum);
+                
+                if (called2num == crossTalkPartnerIndex) {
+                    double nonref_quals = (1.0 - quals[i][callednum]) / 3.0;
+                    for (int b=0; b<4; b++)
+                        if (b != callednum)
+                            quals[i][b] = nonref_quals;
+                } else {
+                */
+                    double qual2 = QualityUtils.compressedQualityToProb(hex_qual);
+                    //System.out.printf("2ND %x %d %f\n", hex_qual, called2num, qual2);
+                    quals[i][called2num] = qual2;
 
-                double nonref_quals = (1.0 - quals[i][callednum] - quals[i][called2num]) / 2;
-                for (int b=0; b<4; b++)
-                    if (b != callednum && b != called2num)
-                        quals[i][b] = nonref_quals;
+                    double nonref_quals = (1.0 - quals[i][callednum] - quals[i][called2num]) / 2.0;
+                    for (int b=0; b<4; b++)
+                        if (b != callednum && b != called2num)
+                            quals[i][b] = nonref_quals;
+                //}
             }
         }
 
@@ -569,18 +571,24 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         nuc2num = new int[128];
         nuc2num['A'] = 0;
         nuc2num['C'] = 1;
-        nuc2num['T'] = 2;
-        nuc2num['G'] = 3;
+        //nuc2num['T'] = 2;
+        nuc2num['G'] = 2;
+        //nuc2num['G'] = 3;
+        nuc2num['T'] = 3;
         nuc2num['a'] = 0;
         nuc2num['c'] = 1;
-        nuc2num['t'] = 2;
-        nuc2num['g'] = 3;
+        //nuc2num['t'] = 2;
+        nuc2num['g'] = 2;
+        //nuc2num['g'] = 3;
+        nuc2num['t'] = 3;
 
         num2nuc = new char[4];
         num2nuc[0] = 'A';
         num2nuc[1] = 'C';
-        num2nuc[2] = 'T';
-        num2nuc[3] = 'G';
+        //num2nuc[2] = 'T';
+        num2nuc[2] = 'G';
+        //num2nuc[3] = 'G';
+        num2nuc[3] = 'T';
 
         //if (System.getenv("N") != null) { this.N = (new Integer(System.getenv("N"))).intValue(); }
         //else { this.N = 2; }
