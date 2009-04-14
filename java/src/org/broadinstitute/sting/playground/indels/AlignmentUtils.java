@@ -25,28 +25,7 @@ public class AlignmentUtils {
      * @return
      */
     public static int numMismatches(SAMRecord r, ReferenceSequence ref) {
-        if ( r.getReadUnmappedFlag() ) return 1000000;
-        int i_ref = r.getAlignmentStart()-1; // position on the ref
-        int i_read = 0;                    // position on the read
-        int mm_count = 0; // number of mismatches
-        Cigar c = r.getCigar();
-        for ( int k = 0 ; k < c.numCigarElements() ; k++ ) {
-            CigarElement ce = c.getCigarElement(k);
-            switch( ce.getOperator() ) {
-                case M:
-                    for ( int l = 0 ; l < ce.getLength() ; l++, i_ref++, i_read++ ) {
-                        if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) != 'N' ) continue; // do not count N's ?
-                        if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) !=
-                             Character.toUpperCase((char)ref.getBases()[i_ref]) ) mm_count++;
-                    }
-                    break;
-                case I: i_read += ce.getLength(); break;
-                case D: i_ref += ce.getLength(); break;
-                default: throw new RuntimeException("Unrecognized cigar element");
-            }
-
-        }
-        return mm_count;
+        return numMismatches(r, ref.getBases().toString());
     }
 
     public static int numMismatches(SAMRecord r, String ref) {

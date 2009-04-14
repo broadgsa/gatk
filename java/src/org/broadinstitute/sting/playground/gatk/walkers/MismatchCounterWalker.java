@@ -20,6 +20,10 @@ public class MismatchCounterWalker extends ReadWalker<Integer, Integer> {
 
         int start = read.getAlignmentStart()-1;
         int stop  = read.getAlignmentEnd();
+        // sometimes BWA outputs screwy reads
+        if ( stop >= context.getReferenceContig().getBases().length )
+            return 0;
+
         if ( read.getAlignmentBlocks().size() == 1 ) {
             // No indels
             List<Byte> refSeq = Utils.subseq(context.getReferenceContig().getBases(), start, stop);
@@ -31,6 +35,11 @@ public class MismatchCounterWalker extends ReadWalker<Integer, Integer> {
             out.println(read.format());
             out.println(Utils.baseList2string(refSeq));
             out.println(Utils.baseList2string(readBases));
+            for ( int i = 0; i < refSeq.size(); i++) {
+                if ( refSeq.get(i) != readBases.get(i) )
+                    nMismatches++;
+            }
+            out.println(nMismatches);
         }
 
         return nMismatches;
