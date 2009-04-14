@@ -281,12 +281,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
      * @return true if we are past the last location to process
      */
     public static boolean pastFinalLocation(GenomeLoc curr, ArrayList<GenomeLoc> locs) {
-        if ( locs.size() == 0 )
-            return false;
-        else {
-            GenomeLoc last = locs.get(locs.size() - 1);
-            return last.compareTo(curr) == -1 && ! last.overlapsP(curr);
-        }
+        return (locs.size() > 0 && curr.isPast(locs.get(locs.size() - 1)));
     }
 
     /**
