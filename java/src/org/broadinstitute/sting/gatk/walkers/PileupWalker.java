@@ -19,6 +19,9 @@ import java.util.ArrayList;
  * To change this template use File | Settings | File Templates.
  */
 public class PileupWalker extends LocusWalker<Integer, Integer> {
+    @Argument(fullName="verbose",required=false,defaultValue="false")
+    public boolean VERBOSE;
+    
     public boolean FLAG_UNCOVERED_BASES = true;     // todo: how do I make this a command line argument?
     
     public void initialize() {
@@ -39,6 +42,12 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
             bases = "*** UNCOVERED SITE ***";
         }
 
+        String extras = "";
+        if ( VERBOSE ) {
+            extras += " BQ=" + Utils.join(",", Utils.qualPileup(reads, offsets));
+            extras += " MQ=" + Utils.join(",", Utils.mappingQualPileup(reads));
+        }
+
         String rodString = "";
         for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
             if ( datum != null && ! (datum instanceof rodDbSNP)) {
@@ -53,7 +62,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
             rodString = "[ROD: " + rodString + "]";
 
         //if ( context.getLocation().getStart() % 1 == 0 ) {
-        out.printf("%s: %s %s %s %s%n", context.getLocation(), ref, bases, quals, rodString);
+        out.printf("%s: %s %s %s%s %s%n", context.getLocation(), ref, bases, quals, extras, rodString);
         //}
 
         return 1;
