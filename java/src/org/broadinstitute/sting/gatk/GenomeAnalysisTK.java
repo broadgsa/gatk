@@ -176,8 +176,12 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      * Required main method implementation.
      */
     public static void main(String[] argv) {
-        Instance = new GenomeAnalysisTK();
-        start(Instance, argv);
+        try {
+            Instance = new GenomeAnalysisTK();
+            start(Instance, argv);
+        } catch ( Exception e ) {
+            exitSystemWithError(e);
+        }
     }
 
     /**
@@ -193,6 +197,30 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         ROD_BINDINGS.add(name);
         ROD_BINDINGS.add(type);
         ROD_BINDINGS.add(file);
+    }
+
+    private static void printExitSystemMsg(final String msg) {
+        System.out.printf("------------------------------------------------------------------------------------------%n");
+        System.out.printf("An error has occurred%n");
+        System.out.printf("It's possible (maybe even likely) that this is an input error on your part%n");
+        System.out.printf("But if it's a bug or something that should work, please report this to gsadevelopers@broad.mit.edu%n");
+        System.out.printf("%n");
+        System.out.printf("%s%n", msg);
+    }
+
+    public static void exitSystemWithError(final String msg) {
+        printExitSystemMsg(msg);
+        System.exit(1);
+    }
+
+    public static void exitSystemWithError(final String msg, Exception e ) {
+        e.printStackTrace();
+        printExitSystemMsg(msg);
+        System.exit(1);
+    }
+
+    public static void exitSystemWithError(Exception e ) {
+        exitSystemWithError(e.getMessage(), e);
     }
 
     protected int execute() {

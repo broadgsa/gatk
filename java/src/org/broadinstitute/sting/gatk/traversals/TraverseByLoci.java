@@ -159,7 +159,7 @@ public class TraverseByLoci extends TraversalEngine {
             sum = walker.reduce(x, sum);
         }
 
-        printProgress("loci", locus.getLocation());
+        //printProgress("loci", locus.getLocation());
         return sum;
     }
 }

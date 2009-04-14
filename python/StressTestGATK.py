@@ -50,6 +50,10 @@ if __name__ == "__main__":
 
         head, lane_filename = os.path.split(lane)
         filebase = os.path.splitext(lane_filename)[0]
+
+        # make the pileup
+        # 503  8:03    samtools view -b MV1994.bam Escherichia_coli_K12:10-1000 > sub.bam
+        # 504  8:03    samtools pileup -f Escherichia_coli_K12_MG1655.fasta sub.bam
     
         # convert the fasta
         for analysis in commandsList:

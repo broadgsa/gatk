@@ -167,9 +167,10 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         // 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
         //System.out.printf("Parsing location '%s'%n", str);
 
-        final Pattern regex1 = Pattern.compile("([\\w&&[^:]]+)$");             // matches case 1
-        final Pattern regex2 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)$");      // matches case 2
-        final Pattern regex3 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)-([\\d,]+)$");// matches case 3
+        final Pattern regex1 = Pattern.compile("([\\w&&[^:]]+)$");                      // matches case 1
+        final Pattern regex2 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)$");            // matches case 2
+        final Pattern regex3 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)-([\\d,]+)$");  // matches case 3
+        final Pattern regex4 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)\\+");          // matches case 4
 
         String contig = null;
         long start = 1;
@@ -179,6 +180,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         Matcher match1 = regex1.matcher(str);
         Matcher match2 = regex2.matcher(str);
         Matcher match3 = regex3.matcher(str);
+        Matcher match4 = regex4.matcher(str);
 
         try {
             if ( match1.matches() ) {
@@ -188,6 +190,10 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
                 contig = match2.group(1);
                 start = parsePosition(match2.group(2));
                 stop = start;                
+            }
+            else if ( match4.matches() ) {
+                contig = match4.group(1);
+                start = parsePosition(match4.group(2));
             }
             else if ( match3.matches() ) {
                 contig = match3.group(1);

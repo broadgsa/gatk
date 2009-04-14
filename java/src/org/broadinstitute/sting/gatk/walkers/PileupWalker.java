@@ -6,6 +6,9 @@ import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.Pileup;
+import org.broadinstitute.sting.utils.BasicPileup;
+import org.broadinstitute.sting.utils.ReadBackedPileup;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
@@ -33,20 +36,20 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
     }
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        List<SAMRecord> reads = context.getReads();
-        List<Integer> offsets = context.getOffsets();
-        String bases = Utils.basePileupAsString(reads, offsets);
-        String quals = Utils.qualPileupAsString(reads, offsets);
-
+        ReadBackedPileup pileup = new ReadBackedPileup(context.getLocation(), ref, context);
+        String bases = pileup.getBases();
+        
         if ( bases.equals("") && FLAG_UNCOVERED_BASES ) {
             bases = "*** UNCOVERED SITE ***";
         }
 
         String extras = "";
         if ( VERBOSE ) {
-            String sqbases = Utils.secondaryBasePileupAsString(reads, offsets);
-            String sqquals = Utils.secondaryQualPileupAsString(reads, offsets);
+            extras += " BQ=" + pileup.getQualsAsInts();
+            extras += " MQ=" + pileup.getMappingQualsAsInts();
 
+            String sqbases = pileup.getSecondaryBasePileup();
+            String sqquals = pileup.getSecondaryQualPileup();
             if (sqbases != null && sqquals != null) {
                 assert(sqbases.length() == sqquals.length());
 
@@ -60,17 +63,17 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
                     }
                 }
             }
-
-            extras += " BQ=" + Utils.join(",", Utils.qualPileup(reads, offsets));
-            extras += " MQ=" + Utils.join(",", Utils.mappingQualPileup(reads));
         }
 
         String rodString = "";
         for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
             if ( datum != null && ! (datum instanceof rodDbSNP)) {
+                //System.out.printf("rod = %s%n", datum.toSimpleString());
                 rodString += datum.toSimpleString();
+                //System.out.printf("Rod string %s%n", rodString);
             }
         }
+        
         rodDbSNP dbsnp = (rodDbSNP)tracker.lookup("dbSNP", null);
         if ( dbsnp != null )
             rodString += dbsnp.toMediumString();
@@ -79,7 +82,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
             rodString = "[ROD: " + rodString + "]";
 
         //if ( context.getLocation().getStart() % 1 == 0 ) {
-        out.printf("%s: %s %s %s%s %s%n", context.getLocation(), ref, bases, quals, extras, rodString);
+        out.printf("%s%s %s%n", pileup.getPileupString(), extras, rodString);
         //}
 
         return 1;
