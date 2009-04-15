@@ -20,6 +20,9 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
     @Argument(fullName="useNextBestBase",required=false,defaultValue="false")
     public boolean useNextBestBase;
 
+    @Argument(fullName="printVisualHits",required=false,defaultValue="false")
+    public boolean printVisualHits;
+
     /**
      * Ignore reads with indels or clipping
      *
@@ -28,7 +31,7 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
      * @return true if the read can be processed, false if it should be ignored
      */
     public boolean filter(LocusContext context, SAMRecord read) {
-        return (read.getCigar().numCigarElements() == 1);
+        return (read.getCigar().numCigarElements() == 1 && read.getAlignmentStart() + read.getReadLength() < context.getReferenceContig().length());
     }
 
     /**
@@ -50,9 +53,34 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
         byte[] contig = context.getReferenceContig().getBases();
         byte[] sq     = (byte[]) read.getAttribute("SQ");
 
-        int totalMismatches = 0;
+        if (printVisualHits) {
+            System.out.println(read.getReadName());
+            for (int cycle = 0; cycle < bases.length; cycle++) {
+                System.out.print((char) bases[cycle]);
+            }
+            System.out.println();
 
-        for (int cycle = 0, offset = (int) context.getPosition(); cycle < bases.length; cycle++, offset++) {
+            for (int cycle = 0, offset = (int) context.getPosition() - 1; cycle < bases.length; cycle++, offset++) {
+                byte compBase;
+
+                switch (contig[offset]) {
+                    case 'A':
+                    case 'a': compBase = 'A'; break;
+                    case 'C':
+                    case 'c': compBase = 'C'; break;
+                    case 'G':
+                    case 'g': compBase = 'G'; break;
+                    case 'T':
+                    case 't': compBase = 'T'; break;
+                    default:  compBase = '.'; break;
+                }
+
+                System.out.print((char) compBase);
+            }
+            System.out.println("\n");
+        }
+
+        for (int cycle = 0, offset = (int) context.getPosition() - 1; cycle < bases.length; cycle++, offset++) {
             byte compBase;
 
             switch (contig[offset]) {
