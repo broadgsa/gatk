@@ -111,6 +111,7 @@ public class TraverseByLoci extends TraversalEngine {
 
             // actually get the read and hand it to the walker
             LocusContext locus = iter.next();
+            logger.debug(String.format("Crossing locus %s with %d reads", locus.getLocation(), locus.numReads()));
             if ( DOWNSAMPLE_BY_COVERAGE )
                 locus.downsampleToCoverage(downsamplingCoverage);
 
