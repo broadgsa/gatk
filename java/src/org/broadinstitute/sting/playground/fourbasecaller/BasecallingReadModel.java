@@ -1,5 +1,8 @@
 package org.broadinstitute.sting.playground.fourbasecaller;
 
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
+
 import java.io.File;
 
 /**
@@ -14,34 +17,47 @@ import java.io.File;
  */
 public class BasecallingReadModel {
     private BasecallingBaseModel[] basemodels = null;
+    private boolean correctForContext = false;
 
     /**
      * Constructor for BasecallingReadModel.
      *
      * @param readLength    the length of the read that this model will support
      */
-    public BasecallingReadModel(int readLength) {
+    public BasecallingReadModel(int readLength, boolean correctForContext) {
+        this.correctForContext = correctForContext;
+        
         basemodels = new BasecallingBaseModel[readLength];
 
-        for (int i = 0; i < readLength; i++) {
-            basemodels[i] = new BasecallingBaseModel();
+        for (int cycle = 0; cycle < readLength; cycle++) {
+            basemodels[cycle] = new BasecallingBaseModel(cycle == 0 ? false : correctForContext);
         }
     }
 
     /**
-     * Add a single training point to the model.
+     * Add a single training point to the model means.
      *
      * @param cycle         the cycle for which this point should be added
+     * @param basePrev      the previous base
      * @param baseCur       the current base
      * @param qualCur       the current base's quality
      * @param fourintensity the four intensities of the current base
      */
-    public void addMeanPoint(int cycle, char baseCur, byte qualCur, double[] fourintensity) {
-        basemodels[cycle].addMeanPoint(baseCur, qualCur, fourintensity);
+    public void addMeanPoint(int cycle, char basePrev, char baseCur, byte qualCur, double[] fourintensity) {
+        basemodels[cycle].addMeanPoint(basePrev, baseCur, qualCur, fourintensity);
     }
 
-    public void addCovariancePoint(int cycle, char baseCur, byte qualCur, double[] fourintensity) {
-        basemodels[cycle].addCovariancePoint(baseCur, qualCur, fourintensity);
+    /**
+     * Add a single training point to the model covariances.
+     *
+     * @param cycle         the cycle for which this point should be added
+     * @param basePrev      the previous base
+     * @param baseCur       the current base
+     * @param qualCur       the current base's quality
+     * @param fourintensity the four intensities of the current base
+     */
+    public void addCovariancePoint(int cycle, char basePrev, char baseCur, byte qualCur, double[] fourintensity) {
+        basemodels[cycle].addCovariancePoint(basePrev, baseCur, qualCur, fourintensity);
     }
 
     /**
@@ -51,7 +67,7 @@ public class BasecallingReadModel {
      * @param fourintensity the four intensities for the current cycle's base
      * @return 4x4 matrix of likelihoods
      */
-    public double[] computeLikelihoods(int cycle, double[] fourintensity) {
+    public double[][] computeLikelihoods(int cycle, double[] fourintensity) {
         return basemodels[cycle].computeLikelihoods(cycle, fourintensity);
     }
 
@@ -63,15 +79,48 @@ public class BasecallingReadModel {
      * @return an instance of FourProb, which encodes a base hypothesis, its probability,
      *         and the ranking among the other hypotheses
      */
-    public FourProb computeProbabilities(int cycle, double[] fourintensity) {
-        double[] likes = computeLikelihoods(cycle, fourintensity);
+    public FourProb computeProbabilities(int cycle, char basePrev, byte qualPrev, double[] fourintensity) {
+        double[][] likes = computeLikelihoods(cycle, fourintensity);
 
         double total = 0;
 
-        for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) { total += likes[baseCurIndex]; }
-        for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) { likes[baseCurIndex] /= total; }
+        for (int basePrevIndex = 0; basePrevIndex < likes.length; basePrevIndex++) {
+            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+                double prior = 1.0;
+                if (correctForContext) {
+                    double prob = QualityUtils.qualToProb(qualPrev);
+                    if (basePrevIndex == BaseUtils.simpleBaseToBaseIndex(basePrev)) {
+                        prior = prob;
+                    } else {
+                        prior = (1.0 - prob)/((double) (4*likes.length - 1));
+                    }
+                }
+                likes[basePrevIndex][baseCurIndex] = prior*likes[basePrevIndex][baseCurIndex];
+                total += likes[basePrevIndex][baseCurIndex];
+            }
+        }
 
-        return new FourProb(likes);
+        for (int basePrevIndex = 0; basePrevIndex < likes.length; basePrevIndex++) {
+            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+                likes[basePrevIndex][baseCurIndex] /= total;
+            }
+        }
+
+        FourProb fp = new FourProb(likes);
+
+        /*
+        System.out.println(fp.baseAtRank(0) + ":");
+        for (int basePrevIndex = 0; basePrevIndex < likes.length; basePrevIndex++) {
+            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+                System.out.print(likes[basePrevIndex][baseCurIndex] + " ");
+            }
+            System.out.println();
+        }
+        System.out.println();
+        */
+
+        //return new FourProb(likes);
+        return fp;
     }
 
     /**

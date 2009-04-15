@@ -30,6 +30,7 @@ public class FourBaseRecaller extends CommandLineProgram {
     public int CALLING_LIMIT = 1000000000;
     public Boolean RAW = false;
     public Boolean OLD = false;
+    public Boolean CONTEXT = false;
 
     public static void main(String[] argv) {
         Instance = new FourBaseRecaller();
@@ -46,6 +47,7 @@ public class FourBaseRecaller extends CommandLineProgram {
         m_parser.addOptionalArg("clim",        "C", "Number of reads to basecall", "CALLING_LIMIT");
         m_parser.addOptionalFlag("raw",        "R", "Use raw intensities?", "RAW");
         m_parser.addOptionalFlag("old",        "1", "Old Bustard 1.1 mode?", "OLD");
+        m_parser.addOptionalFlag("context",    "X", "Correct for context?", "CONTEXT");
     }
 
     protected int execute() {
@@ -72,7 +74,7 @@ public class FourBaseRecaller extends CommandLineProgram {
         fread = ffp.next();
 
         int cycle_offset = (END <= 1) ? 0 : bread.getIntensities().length/2;
-        BasecallingReadModel model = new BasecallingReadModel(bread.getFirstReadSequence().length());
+        BasecallingReadModel model = new BasecallingReadModel(bread.getFirstReadSequence().length(), CONTEXT);
         int queryid;
 
         // learn mean parameters
@@ -90,9 +92,10 @@ public class FourBaseRecaller extends CommandLineProgram {
             for (int cycle = 0; cycle < bases.length(); cycle++) {
                 char baseCur  = bases.charAt(cycle);
                 byte qualCur  = quals[cycle];
+                //double[] fourprob = getBaseProbabilityDistribution(bases.charAt(cycle), quals[cycle]);
                 double[] fourintensity = (RAW || OLD) ? rawintensities[cycle + cycle_offset] : intensities[cycle + cycle_offset];
 
-                model.addMeanPoint(cycle, baseCur, qualCur, fourintensity);
+                model.addMeanPoint(cycle, cycle == 0 ? '.' : bases.charAt(cycle - 1), baseCur, qualCur, fourintensity);
             }
 
             queryid++;
@@ -118,9 +121,10 @@ public class FourBaseRecaller extends CommandLineProgram {
             for (int cycle = 0; cycle < bases.length(); cycle++) {
                 char baseCur  = bases.charAt(cycle);
                 byte qualCur  = quals[cycle];
+                //double[] fourprob = getBaseProbabilityDistribution(bases.charAt(cycle), quals[cycle]);
                 double[] fourintensity = (RAW || OLD) ? rawintensities[cycle + cycle_offset] : intensities[cycle + cycle_offset];
 
-                model.addCovariancePoint(cycle, baseCur, qualCur, fourintensity);
+                model.addCovariancePoint(cycle, cycle == 0 ? '.' : bases.charAt(cycle - 1), baseCur, qualCur, fourintensity);
             }
 
             queryid++;
@@ -143,7 +147,7 @@ public class FourBaseRecaller extends CommandLineProgram {
         int[][] base_counts = new int[4][bread.getFirstReadSequence().length()];
         int bases_incorrect = 0, bases_total = 0;
 
-        if (debugout != null) { debugout.println("cycle int_a int_c int_g int_t bustard_base kiran_base bustard_prob kiran_prob"); }
+        if (debugout != null) { debugout.println("cycle int_a int_c int_g int_t bustard_base kiran_base bustard_prob kiran_prob kiran_base_prev"); }
 
         queryid = 0;
         do {
@@ -161,14 +165,17 @@ public class FourBaseRecaller extends CommandLineProgram {
             for (int cycle = 0; cycle < bases.length(); cycle++) {
                 double[] fourintensity = (RAW || OLD) ? rawintensities[cycle + cycle_offset] : intensities[cycle + cycle_offset];
 
-                FourProb fp = model.computeProbabilities(cycle, fourintensity);
+                char basePrev = (cycle == 0 ? '.' : (char) asciiseq[cycle - 1]);
+                byte qualPrev = (cycle == 0 ? 40 : bestqual[cycle - 1]);
+
+                FourProb fp = model.computeProbabilities(cycle, basePrev, qualPrev, fourintensity);
 
                 asciiseq[cycle] = (byte) fp.baseAtRank(0);
                 bestqual[cycle] = fp.qualAtRank(0);
                 nextbestqual[cycle] = QualityUtils.baseAndProbToCompressedQuality(fp.indexAtRank(1), fp.probAtRank(1));
 
                 if (debugout != null && bases.charAt(cycle) != '.' && base_counts[BaseUtils.simpleBaseToBaseIndex(bases.charAt(cycle))][cycle] < 1000) {
-                    debugout.println(cycle + " " + fourintensity[0] + " " + fourintensity[1] + " " + fourintensity[2] + " " + fourintensity[3] + " " + (bases.charAt(cycle)) + " " + ((char) asciiseq[cycle]) + " " + bestqual[cycle] + " " + quals[cycle]);
+                    debugout.println(cycle + " " + fourintensity[0] + " " + fourintensity[1] + " " + fourintensity[2] + " " + fourintensity[3] + " " + (bases.charAt(cycle)) + " " + ((char) asciiseq[cycle]) + " " + bestqual[cycle] + " " + quals[cycle] + " " + basePrev);
 
                     base_counts[BaseUtils.simpleBaseToBaseIndex(bases.charAt(cycle))][cycle]++;
                 }
@@ -188,9 +195,25 @@ public class FourBaseRecaller extends CommandLineProgram {
         }
         sfw.close();
 
-        System.out.println("Nonmatch rate: " + ((double) bases_incorrect)/((double) bases_total));
+        System.out.println("Disagreement rate: " + ((double) bases_incorrect)/((double) bases_total));
 
         return 0;
+    }
+
+    private double[] getBaseProbabilityDistribution(char base, byte qual) {
+        double[] dist = new double[4];
+
+        int baseIndex = BaseUtils.simpleBaseToBaseIndex(base);
+        dist[baseIndex] = QualityUtils.qualToProb(qual);
+        double residualprob = (1.0 - dist[baseIndex])/3.0;
+
+        for (int i = 0; i < 4; i++) {
+            if (i != baseIndex) {
+                dist[i] = residualprob;
+            }
+        }
+
+        return dist;
     }
 
     private SAMRecord constructSAMRecord(String readNamePrefix, String bases, byte[] bestqual, byte[] nextbestqual, BustardReadData bread, SAMFileHeader sfh) {

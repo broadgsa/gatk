@@ -15,9 +15,16 @@ public class FourProb {
     /**
      * Constructor for FourProb.
      *
-     * @param baseProbs   the unsorted base hypothesis probabilities (in ACGT order).
+     * @param baseLikes  the unsorted base hypothesis probabilities (in ACGT order).
      */
-    public FourProb(double[] baseProbs) {
+    public FourProb(double[][] baseLikes) {
+        double[] baseProbs = new double[4];
+        for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+            for (int basePrevIndex = 0; basePrevIndex < baseLikes.length; basePrevIndex++) {
+                baseProbs[baseCurIndex] += baseLikes[basePrevIndex][baseCurIndex];
+            }
+        }
+
         int[] baseIndices = {0, 1, 2, 3};
         
         Integer[] perm = Utils.SortPermutation(baseProbs);

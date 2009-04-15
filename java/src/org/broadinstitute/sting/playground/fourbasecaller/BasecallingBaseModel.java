@@ -7,6 +7,7 @@ import cern.colt.matrix.DoubleFactory2D;
 import cern.colt.matrix.linalg.Algebra;
 
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.io.*;
 
@@ -21,38 +22,46 @@ import java.io.*;
  * @author Kiran Garimella
  */
 public class BasecallingBaseModel {
-    private double[] counts;
-    private DoubleMatrix1D[] sums;
-    private DoubleMatrix2D[] unscaledCovarianceSums;
+    private double[][] counts;
+    private DoubleMatrix1D[][] sums;
+    private DoubleMatrix2D[][] unscaledCovarianceSums;
 
-    private DoubleMatrix1D[] means;
-    private DoubleMatrix2D[] inverseCovariances;
-    private double[] norms;
+    private DoubleMatrix1D[][] means;
+    private DoubleMatrix2D[][] inverseCovariances;
+    private double[][] norms;
 
     private cern.jet.math.Functions F = cern.jet.math.Functions.functions;
     private Algebra alg;
+
+    private boolean correctForContext = false;
+    private int numTheories = 1;
 
     private boolean readyToCall = false;
 
     /**
      * Constructor for BasecallingBaseModel
      */
-    public BasecallingBaseModel() {
-        counts = new double[4];
+    public BasecallingBaseModel(boolean correctForContext) {
+        this.correctForContext = correctForContext;
+        this.numTheories = (correctForContext) ? 4 : 1;
+        
+        counts = new double[this.numTheories][4];
 
-        sums = new DoubleMatrix1D[4];
-        unscaledCovarianceSums = new DoubleMatrix2D[4];
+        sums = new DoubleMatrix1D[this.numTheories][4];
+        unscaledCovarianceSums = new DoubleMatrix2D[this.numTheories][4];
 
-        means = new DoubleMatrix1D[4];
-        inverseCovariances = new DoubleMatrix2D[4];
-        norms = new double[4];
+        means = new DoubleMatrix1D[this.numTheories][4];
+        inverseCovariances = new DoubleMatrix2D[this.numTheories][4];
+        norms = new double[this.numTheories][4];
 
-        for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
-            sums[baseCurIndex] = (DoubleFactory1D.dense).make(4);
-            unscaledCovarianceSums[baseCurIndex] = (DoubleFactory2D.dense).make(4, 4);
+        for (int basePrevIndex = 0; basePrevIndex < this.numTheories; basePrevIndex++) {
+            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+                sums[basePrevIndex][baseCurIndex] = (DoubleFactory1D.dense).make(4);
+                unscaledCovarianceSums[basePrevIndex][baseCurIndex] = (DoubleFactory2D.dense).make(4, 4);
 
-            means[baseCurIndex] = (DoubleFactory1D.dense).make(4);
-            inverseCovariances[baseCurIndex] = (DoubleFactory2D.dense).make(4, 4);
+                means[basePrevIndex][baseCurIndex] = (DoubleFactory1D.dense).make(4);
+                inverseCovariances[basePrevIndex][baseCurIndex] = (DoubleFactory2D.dense).make(4, 4);
+            }
         }
 
         alg = new Algebra();
@@ -61,23 +70,25 @@ public class BasecallingBaseModel {
     /**
      * Add a single training point to the model to estimate the means.
      *
+     * @param basePrev       the previous cycle's base call (A, C, G, T)
      * @param baseCur        the current cycle's base call (A, C, G, T)
-     * @param qualCur        the quality score for the current cycle's base call
-     * @param fourintensity  the four intensities for the current cycle's base call
      */
-    public void addMeanPoint(char baseCur, byte qualCur, double[] fourintensity) {
-        int actualBaseCurIndex = baseToBaseIndex(baseCur);
+    public void addMeanPoint(char basePrev, char baseCur, byte qualCur, double[] fourintensity) {
+        int actualBasePrevIndex = BaseUtils.simpleBaseToBaseIndex(basePrev);
+        int actualBaseCurIndex = BaseUtils.simpleBaseToBaseIndex(baseCur);
         double actualWeight = QualityUtils.qualToProb(qualCur);
 
-        for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
-            // We want to upweight the correct theory as much as we can and spread the remainder out evenly between all other hypotheses.
-            double weight = (baseCurIndex == actualBaseCurIndex) ? actualWeight : ((1.0 - actualWeight)/3.0);
+        for (int basePrevIndex = 0; basePrevIndex < numTheories; basePrevIndex++) {
+            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+                // We want to upweight the correct theory as much as we can and spread the remainder out evenly between all other hypotheses.
+                double weight = (baseCurIndex == actualBaseCurIndex && (!correctForContext || basePrevIndex == actualBasePrevIndex)) ? actualWeight : ((1.0 - actualWeight)/((double) (4*numTheories - 1)));
 
-            DoubleMatrix1D weightedChannelIntensities = (DoubleFactory1D.dense).make(fourintensity);
-            weightedChannelIntensities.assign(F.mult(weight));
+                DoubleMatrix1D weightedChannelIntensities = (DoubleFactory1D.dense).make(fourintensity);
+                weightedChannelIntensities.assign(F.mult(weight));
 
-            sums[baseCurIndex].assign(weightedChannelIntensities, F.plus);
-            counts[baseCurIndex] += weight;
+                sums[basePrevIndex][baseCurIndex].assign(weightedChannelIntensities, F.plus);
+                counts[basePrevIndex][baseCurIndex] += weight;
+            }
         }
 
         readyToCall = false;
@@ -85,30 +96,34 @@ public class BasecallingBaseModel {
 
     /**
      * Add a single training point to the model to estimate the covariances.
-     * 
+     *
+     * @param basePrev       the previous cycle's base call (A, C, G, T)
      * @param baseCur        the current cycle's base call (A, C, G, T)
      * @param qualCur        the quality score for the current cycle's base call
      * @param fourintensity  the four intensities for the current cycle's base call
      */
-    public void addCovariancePoint(char baseCur, byte qualCur, double[] fourintensity) {
-        int actualBaseCurIndex = baseToBaseIndex(baseCur);
+    public void addCovariancePoint(char basePrev, char baseCur, byte qualCur, double[] fourintensity) {
+        int actualBasePrevIndex = BaseUtils.simpleBaseToBaseIndex(basePrev);
+        int actualBaseCurIndex = BaseUtils.simpleBaseToBaseIndex(baseCur);
         double actualWeight = QualityUtils.qualToProb(qualCur);
 
-        for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
-            // We want to upweight the correct theory as much as we can and spread the remainder out evenly between all other hypotheses.
-            double weight = (baseCurIndex == actualBaseCurIndex) ? actualWeight : ((1.0 - actualWeight)/3.0);
+        for (int basePrevIndex = 0; basePrevIndex < numTheories; basePrevIndex++) {
+            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+                // We want to upweight the correct theory as much as we can and spread the remainder out evenly between all other hypotheses.
+                double weight = (baseCurIndex == actualBaseCurIndex && (!correctForContext || basePrevIndex == actualBasePrevIndex)) ? actualWeight : ((1.0 - actualWeight)/((double) (4*numTheories - 1)));
 
-            DoubleMatrix1D mean = sums[baseCurIndex].copy();
-            mean.assign(F.div(counts[baseCurIndex]));
+                DoubleMatrix1D mean = sums[basePrevIndex][baseCurIndex].copy();
+                mean.assign(F.div(counts[basePrevIndex][baseCurIndex]));
 
-            DoubleMatrix1D sub = (DoubleFactory1D.dense).make(fourintensity);
-            sub.assign(mean, F.minus);
+                DoubleMatrix1D sub = (DoubleFactory1D.dense).make(fourintensity);
+                sub.assign(mean, F.minus);
 
-            DoubleMatrix2D cov = (DoubleFactory2D.dense).make(4, 4);
-            alg.multOuter(sub, sub, cov);
+                DoubleMatrix2D cov = (DoubleFactory2D.dense).make(4, 4);
+                alg.multOuter(sub, sub, cov);
 
-            cov.assign(F.mult(weight));
-            unscaledCovarianceSums[baseCurIndex].assign(cov, F.plus);
+                cov.assign(F.mult(weight));
+                unscaledCovarianceSums[basePrevIndex][baseCurIndex].assign(cov, F.plus);
+            }
         }
         
         readyToCall = false;
@@ -118,16 +133,18 @@ public class BasecallingBaseModel {
      * Precompute all the matrix inversions and determinants we'll need for computing the likelihood distributions.
      */
     public void prepareToCallBases() {
-        for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
-            means[baseCurIndex] = sums[baseCurIndex].copy();
-            means[baseCurIndex].assign(F.div(counts[baseCurIndex]));
+        for (int basePrevIndex = 0; basePrevIndex < numTheories; basePrevIndex++) {
+            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+                means[basePrevIndex][baseCurIndex] = sums[basePrevIndex][baseCurIndex].copy();
+                means[basePrevIndex][baseCurIndex].assign(F.div(counts[basePrevIndex][baseCurIndex]));
 
-            inverseCovariances[baseCurIndex] = unscaledCovarianceSums[baseCurIndex].copy();
-            inverseCovariances[baseCurIndex].assign(F.div(counts[baseCurIndex]));
-            DoubleMatrix2D invcov = alg.inverse(inverseCovariances[baseCurIndex]);
-            inverseCovariances[baseCurIndex] = invcov;
+                inverseCovariances[basePrevIndex][baseCurIndex] = unscaledCovarianceSums[basePrevIndex][baseCurIndex].copy();
+                inverseCovariances[basePrevIndex][baseCurIndex].assign(F.div(counts[basePrevIndex][baseCurIndex]));
+                DoubleMatrix2D invcov = alg.inverse(inverseCovariances[basePrevIndex][baseCurIndex]);
+                inverseCovariances[basePrevIndex][baseCurIndex] = invcov;
 
-            norms[baseCurIndex] = Math.pow(alg.det(invcov), 0.5)/Math.pow(2.0*Math.PI, 2.0);
+                norms[basePrevIndex][baseCurIndex] = Math.pow(alg.det(invcov), 0.5)/Math.pow(2.0*Math.PI, 2.0);
+            }
         }
 
         readyToCall = true;
@@ -141,22 +158,24 @@ public class BasecallingBaseModel {
      * @return              a 4x4 matrix of likelihoods, where the row is the previous cycle base hypothesis and
      *                      the column is the current cycle base hypothesis
      */
-    public double[] computeLikelihoods(int cycle, double[] fourintensity) {
+    public double[][] computeLikelihoods(int cycle, double[] fourintensity) {
         if (!readyToCall) {
             prepareToCallBases();
         }
 
-        double[] likedist = new double[4];
-        for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
-            double norm = norms[baseCurIndex];
+        double[][] likedist = new double[numTheories][4];
+        for (int basePrevIndex = 0; basePrevIndex < numTheories; basePrevIndex++) {
+            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+                double norm = norms[basePrevIndex][baseCurIndex];
 
-            DoubleMatrix1D sub = (DoubleFactory1D.dense).make(fourintensity);
-            sub.assign(means[baseCurIndex], F.minus);
+                DoubleMatrix1D sub = (DoubleFactory1D.dense).make(fourintensity);
+                sub.assign(means[basePrevIndex][baseCurIndex], F.minus);
 
-            DoubleMatrix1D Ax = alg.mult(inverseCovariances[baseCurIndex], sub);
-            double exparg = -0.5*alg.mult(sub, Ax);
+                DoubleMatrix1D Ax = alg.mult(inverseCovariances[basePrevIndex][baseCurIndex], sub);
+                double exparg = -0.5*alg.mult(sub, Ax);
 
-            likedist[baseCurIndex] = norm*Math.exp(exparg);
+                likedist[basePrevIndex][baseCurIndex] = norm*Math.exp(exparg);
+            }
         }
 
         return likedist;
@@ -166,66 +185,33 @@ public class BasecallingBaseModel {
         try {
             PrintWriter writer = new PrintWriter(outparam);
 
-            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
-                writer.print("mean_" + baseIndexToBase(baseCurIndex) + " = c(");
-                for (int channel = 0; channel < 4; channel++) {
-                    writer.print(sums[baseCurIndex].getQuick(channel)/counts[baseCurIndex]);
+            for (int basePrevIndex = 0; basePrevIndex < numTheories; basePrevIndex++) {
+                for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+                    writer.print("mean_" + BaseUtils.baseIndexToSimpleBase(baseCurIndex) + " = c(");
+                    for (int channel = 0; channel < 4; channel++) {
+                        writer.print(sums[basePrevIndex][baseCurIndex].getQuick(channel)/counts[basePrevIndex][baseCurIndex]);
 
-                    if (channel < 3) {
-                        writer.print(", ");
+                        if (channel < 3) {
+                            writer.print(", ");
+                        }
                     }
-                }
-                writer.println(");");
+                    writer.println(");");
 
-                DoubleMatrix2D cov = unscaledCovarianceSums[baseCurIndex].copy();
-                cov.assign(F.div(counts[baseCurIndex]));
+                    DoubleMatrix2D cov = unscaledCovarianceSums[basePrevIndex][baseCurIndex].copy();
+                    cov.assign(F.div(counts[basePrevIndex][baseCurIndex]));
 
-                writer.print("cov_" + baseIndexToBase(baseCurIndex) + " = matrix(c(");
-                for (int channel1 = 0; channel1 < 4; channel1++) {
-                    for (int channel2 = 0; channel2 < 4; channel2++) {
-                        writer.print(cov.get(channel2, channel1) + (channel1 == 3 && channel2 == 3 ? "" : ","));
+                    writer.print("cov_" + BaseUtils.baseIndexToSimpleBase(baseCurIndex) + " = matrix(c(");
+                    for (int channel1 = 0; channel1 < 4; channel1++) {
+                        for (int channel2 = 0; channel2 < 4; channel2++) {
+                            writer.print(cov.get(channel2, channel1) + (channel1 == 3 && channel2 == 3 ? "" : ","));
+                        }
                     }
+                    writer.println("), nr=4, nc=4);\n");
                 }
-                writer.println("), nr=4, nc=4);\n");
             }
 
             writer.close();
         } catch (IOException e) {
-        }
-    }
-
-    /**
-     * Utility method for converting a base ([Aa*], [Cc], [Gg], [Tt]) to an index (0, 1, 2, 3);
-     * 
-     * @param base
-     * @return 0, 1, 2, 3, or -1 if the base can't be understood.
-     */
-    private int baseToBaseIndex(char base) {
-        switch (base) {
-            case 'A':
-            case 'a':
-            case '*': return 0;
-
-            case 'C':
-            case 'c': return 1;
-
-            case 'G':
-            case 'g': return 2;
-
-            case 'T':
-            case 't': return 3;
-        }
-
-        return -1;
-    }
-
-    private char baseIndexToBase(int baseIndex) {
-        switch (baseIndex) {
-            case 0: return 'A';
-            case 1: return 'C';
-            case 2: return 'G';
-            case 3: return 'T';
-            default: return '.';
         }
     }
 }
