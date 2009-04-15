@@ -32,7 +32,7 @@ public class SAMDataSource implements SimpleDataSource {
     protected static Logger logger = Logger.getLogger(SAMDataSource.class);
 
     // are we set to locus mode or read mode for dividing
-    private boolean locusMode = false;
+    private boolean locusMode = true;
 
     // How strict should we be with SAM/BAM parsing?
     protected SAMFileReader.ValidationStringency strictness = SAMFileReader.ValidationStringency.STRICT;
