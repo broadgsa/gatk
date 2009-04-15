@@ -96,8 +96,11 @@ public abstract class LocusShardStrategy implements ShardStrategy {
         this.dic = dic;
         this.intervals = intervals;
         this.currentInterval = 0;
-
-        mLoc = new GenomeLoc(0, 0, 0);
+        // set the starting point to the beginning interval
+        if (intervals.size() < 1) {
+            throw new IllegalArgumentException("Interval files must contain at least one interval");
+        }
+        mLoc = new GenomeLoc(intervals.get(0).getContig(),intervals.get(0).getStart()-1,intervals.get(0).getStart()-1);
         if (dic.getSequences().size() > 0) {
             nextContig = true;
         }
@@ -162,7 +165,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
             lastGenomeLocSize = proposedSize;
 
             // the next sequence should start at the begining of the next contig
-            Shard ret = LocusShard.toShard(new GenomeLoc(intervals.get(currentInterval).getContigIndex(), nextStart, nextStart + proposedSize - 1));
+            Shard ret = LocusShard.toShard(new GenomeLoc(intervals.get(currentInterval).getContigIndex(), nextStart, nextStart + proposedSize));
 
             ++currentInterval;
             if (intervals.size() > currentInterval) {
