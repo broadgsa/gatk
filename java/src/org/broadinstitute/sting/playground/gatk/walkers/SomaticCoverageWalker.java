@@ -25,9 +25,13 @@ public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName = "normal_sample_name", shortName = "s2", required = true)
     public String normalSampleName;
 
+    @Argument(fullName = "extended", shortName="ext", required=false, defaultValue = "false")
+    public boolean extendedOutput;
+
+
     // --normal_sample_name TCGA-06-0188-10B-01W --tumor_sample_name TCGA-06-0188-01A-01W
     public void initialize() {
-        out.println("track type=wiggle_0 name=SomaticCoverage viewLimits=0:1 graphType=heatmap");
+        out.println("track type=wiggle_0 name=SomaticCoverage viewLimits=0:1");
     }
 
     public String walkerType() { return "ByLocus"; }
@@ -108,15 +112,18 @@ public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
         if (lastContigIndex != context.getLocation().getContigIndex() ||
             lastPosition + 1 != context.getPosition()) {
                 lastContigIndex = context.getLocation().getContigIndex();
-                sb.append("fixedStep\t")
-                  .append("chrom=").append(context.getContig()).append("\t")
-                  .append("start=").append(context.getPosition()).append("\t")
+                sb.append("fixedStep").append(" ")
+                  .append("chrom=").append(context.getContig()).append(" ")
+                  .append("start=").append(context.getPosition()).append(" ")
                   .append("step=1")
                   .append("\n");
         }
         lastPosition = context.getPosition();
 
         sb.append((isTumorCovered && isNormalCovered)?"1":"0");
+        if (extendedOutput) {
+            sb.append(" ").append(tumorDepth).append(" ").append(normalDepth);
+        }
 
 //        sb.append(context.getContig()).append(" ");
 //        sb.append(context.getPosition()).append(" ");
