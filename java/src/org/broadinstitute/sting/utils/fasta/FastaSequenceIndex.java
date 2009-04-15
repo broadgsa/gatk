@@ -95,6 +95,14 @@ public class FastaSequenceIndex implements Iterable {
     public Iterator<FastaSequenceIndexEntry> iterator() {
         return sequenceEntries.values().iterator();
     }
+
+    /**
+     * Returns the number of elements in the index.
+     * @return Number of elements in the index.
+     */
+    public int size() {
+        return sequenceEntries.size();
+    }
 }
 
 class FastaSequenceIndexEntry {

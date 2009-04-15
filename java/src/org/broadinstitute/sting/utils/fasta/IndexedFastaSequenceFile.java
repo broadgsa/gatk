@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.fasta;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import edu.mit.broad.picard.reference.ReferenceSequence;
 import edu.mit.broad.picard.PicardException;
+import edu.mit.broad.picard.io.IoUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -17,6 +18,10 @@ import java.util.Scanner;
 import java.util.Iterator;
 
 import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMTextHeaderCodec;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.util.AsciiLineReader;
 
 /**
  * Created by IntelliJ IDEA.
@@ -35,8 +40,10 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
     private FileInputStream in;
     private FileChannel channel;
 
-    private final FastaSequenceIndex index;
-    private final Iterator<FastaSequenceIndexEntry> indexIterator;
+    private SAMSequenceDictionary sequenceDictionary = null;    
+
+    private FastaSequenceIndex index;
+    private Iterator<FastaSequenceIndexEntry> indexIterator;
 
     public IndexedFastaSequenceFile(File file) throws FileNotFoundException {
         this.file = file;
@@ -44,13 +51,70 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
         in = new FileInputStream(file);
         channel = in.getChannel();
 
-        File indexFile = new File(file.getAbsolutePath() + ".fai");
+        loadDictionary(file);
+        loadIndex(file);
+        sanityCheckDictionaryAgainstIndex();
+    }
+
+    /**
+     * Loads a dictionary, if available.
+     * @param fastaFile File to check for a match.
+     * TODO: This code is copied directly from FastaSequenceFile / FastaSequenceFile2.  Bring it into a shared utility.
+     */
+    private void loadDictionary( File fastaFile ) {
+        // Try and locate the dictionary
+        String dictionaryName = fastaFile.getAbsolutePath();
+        dictionaryName = dictionaryName.substring(0, dictionaryName.lastIndexOf(".fasta"));
+        dictionaryName += ".dict";
+        final File dictionary = new File(dictionaryName);
+        if (dictionary.exists()) {
+            IoUtil.assertFileIsReadable(dictionary);
+
+            try {
+                final SAMTextHeaderCodec codec = new SAMTextHeaderCodec();
+                final SAMFileHeader header = codec.decode(new AsciiLineReader(new FileInputStream(dictionary)), dictionary);
+                if (header.getSequenceDictionary() != null && header.getSequenceDictionary().size() > 0) {
+                    this.sequenceDictionary = header.getSequenceDictionary();
+                }
+            }
+            catch (Exception e) {
+                throw new PicardException("Could not open sequence dictionary file: " + dictionaryName, e);
+            }
+        }
+
+    }
+
+    /**
+     * Loads the index for the fasta, if present.  Throws an exception if now present.
+     */
+    private void loadIndex( File fastaFile ) throws FileNotFoundException {
+        File indexFile = new File(fastaFile.getAbsolutePath() + ".fai");
         index = new FastaSequenceIndex(indexFile);
         indexIterator = index.iterator();
     }
 
+    /**
+     * Do some basic checking to make sure the dictionary and the index match.
+     */
+    private void sanityCheckDictionaryAgainstIndex() {
+        // Make sure dictionary and index are the same size.
+        if( sequenceDictionary.getSequences().size() != index.size() )
+            throw new PicardException("Sequence dictionary and index contain different numbers of contigs");
+
+        for( SAMSequenceRecord sequenceRecord: sequenceDictionary.getSequences() ) {
+            // Make sure sequence name is present in the index.
+            String sequenceName = sequenceRecord.getSequenceName();
+            if( !index.hasIndexEntry(sequenceName) )
+                throw new PicardException("Index does not contain dictionary entry: " + sequenceName );
+
+            // Make sure sequence length matches index length.
+            if( sequenceRecord.getSequenceLength() != index.getIndexEntry(sequenceName).getSize())
+                throw new PicardException("Index length does not match dictionary length for contig: " + sequenceName );
+        }
+    }
+
     public SAMSequenceDictionary getSequenceDictionary() {
-        throw new UnsupportedOperationException("Indexed fasta files do not require dictionaries");
+        return sequenceDictionary;
     }
 
     public ReferenceSequence getSequence( String contig ) {
