@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.fasta;
 
 import edu.mit.broad.picard.PicardException;
+import edu.mit.broad.picard.io.IoUtil;
 
 import java.util.Scanner;
 import java.util.HashMap;
@@ -29,6 +30,20 @@ public class FastaSequenceIndex {
      * @throws PicardException if file is of invalid format.
      */
     public FastaSequenceIndex( File indexFile ) throws FileNotFoundException {
+        if(!indexFile.exists())
+            throw new FileNotFoundException("Index file is missing");
+
+        IoUtil.assertFileIsReadable(indexFile);
+        parseIndexFile(indexFile);
+    }
+
+
+    /**
+     * Parse the contents of an index file, caching the results internally.
+     * @param indexFile File to parse.
+     * @throws FileNotFoundException Thrown if file could not be opened.
+     */
+    private void parseIndexFile(File indexFile) throws FileNotFoundException {
         Scanner scanner = new Scanner(indexFile);
 
         while( scanner.hasNext() ) {
