@@ -60,7 +60,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     }
     
     public static int getContigIndex( final String contig ) {
-        assert contigInfo.getSequenceIndex(contig) != -1;
+        assert contigInfo.getSequenceIndex(contig) != -1 : "Unknown contig " + contig;
         
         return contigInfo.getSequenceIndex(contig);
     }
@@ -125,14 +125,14 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     //
     // --------------------------------------------------------------------------------------------------------------
     public GenomeLoc( int contigIndex, final long start, final long stop ) {
-        assert contigInfo != null;
+        assert contigInfo != null : "No sequence dictionary defined but index was given";
         assert contigIndex >= 0 && contigIndex < contigInfo.size() : "ContigIndex " + contigIndex + " is bad " + contigInfo.size();
-        assert start >= 0;
-        assert stop >= 0;
+        assert start >= 0 : "Bad start position " + start;
+        assert stop >= -1 : "Bad stop position " + stop;    // a negative -1 indicates it's not a meaningful end position
 
         this.contigIndex = contigIndex;
         this.start = start;
-        this.stop = stop;
+        this.stop = stop == -1 ? start : stop;
     }
 
     public GenomeLoc(final SAMRecord read) {
