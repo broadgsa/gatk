@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Iterator;
 
 /**
  * Created by IntelliJ IDEA.
@@ -135,4 +136,57 @@ public class FastaSequenceIndexTest extends BaseTest {
         sequenceIndex.getIndexEntry("invalid");
     }
 
+    @Test
+    public void testIteration() {
+        logger.warn("Executing testIteration");        
+
+        Iterator<FastaSequenceIndexEntry> sequenceIndexEntries = sequenceIndex.iterator();
+
+        Assert.assertEquals("Contig chrM is not present", "chrM", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr1 is not present", "chr1", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr2 is not present", "chr2", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr3 is not present", "chr3", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr4 is not present", "chr4", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr5 is not present", "chr5", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr6 is not present", "chr6", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr7 is not present", "chr7", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr8 is not present", "chr8", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr9 is not present", "chr9", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr10 is not present", "chr10", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr11 is not present", "chr11", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr12 is not present", "chr12", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr13 is not present", "chr13", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr14 is not present", "chr14", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr15 is not present", "chr15", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr16 is not present", "chr16", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr17 is not present", "chr17", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr18 is not present", "chr18", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr19 is not present", "chr19", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr20 is not present", "chr20", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr21 is not present", "chr21", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr22 is not present", "chr22", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chrX is not present", "chrX", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chrY is not present", "chrY", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr1_random is not present", "chr1_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr2_random is not present", "chr2_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr3_random is not present", "chr3_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr4_random is not present", "chr4_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr5_random is not present", "chr5_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr6_random is not present", "chr6_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr7_random is not present", "chr7_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr8_random is not present", "chr8_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr9_random is not present", "chr9_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr10_random is not present", "chr10_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr11_random is not present", "chr11_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr13_random is not present", "chr13_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr15_random is not present", "chr15_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr16_random is not present", "chr16_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr17_random is not present", "chr17_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr18_random is not present", "chr18_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr19_random is not present", "chr19_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr21_random is not present", "chr21_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chr22_random is not present", "chr22_random", sequenceIndexEntries.next().getContig());
+        Assert.assertEquals("Contig chrX_random is not present", "chrX_random", sequenceIndexEntries.next().getContig());
+        Assert.assertFalse("Iterator still has more entries", sequenceIndexEntries.hasNext());
+    }
 }

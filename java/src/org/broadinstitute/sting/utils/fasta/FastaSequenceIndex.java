@@ -4,11 +4,10 @@ import edu.mit.broad.picard.PicardException;
 import edu.mit.broad.picard.io.IoUtil;
 
 import java.util.Scanner;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.Iterator;
 import java.util.regex.MatchResult;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.io.File;
 import java.io.FileNotFoundException;
 
@@ -20,9 +19,10 @@ import java.io.FileNotFoundException;
  *
  * Reads a fasta index file (.fai).
  */
-public class FastaSequenceIndex {
-    private Map<String,FastaSequenceIndexEntry> sequenceEntries = 
-            new HashMap<String,FastaSequenceIndexEntry>();
+public class FastaSequenceIndex implements Iterable {
+    // Use a linked hash map to preserve the ordering of the contigs.    
+    private Map<String,FastaSequenceIndexEntry> sequenceEntries =
+            new LinkedHashMap<String,FastaSequenceIndexEntry>();
 
     /**
      * Build a sequence index from the specified file.
@@ -90,6 +90,10 @@ public class FastaSequenceIndex {
             throw new PicardException("Unable to find entry for contig: " + contigName);
 
         return sequenceEntries.get(contigName);
+    }
+
+    public Iterator<FastaSequenceIndexEntry> iterator() {
+        return sequenceEntries.values().iterator();
     }
 }
 

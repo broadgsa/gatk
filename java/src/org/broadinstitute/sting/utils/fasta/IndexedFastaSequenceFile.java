@@ -14,6 +14,7 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.CharacterCodingException;
 import java.util.Scanner;
+import java.util.Iterator;
 
 import net.sf.samtools.SAMSequenceDictionary;
 
@@ -35,8 +36,7 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
     private FileChannel channel;
 
     private final FastaSequenceIndex index;
-
-    private String currentContigName = null;
+    private final Iterator<FastaSequenceIndexEntry> indexIterator;
 
     public IndexedFastaSequenceFile(File file) throws FileNotFoundException {
         this.file = file;
@@ -46,6 +46,7 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
 
         File indexFile = new File(file.getAbsolutePath() + ".fai");
         index = new FastaSequenceIndex(indexFile);
+        indexIterator = index.iterator();
     }
 
     public SAMSequenceDictionary getSequenceDictionary() {
@@ -59,10 +60,14 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
     public ReferenceSequence getSubsequenceAt( String contig, int pos, int length ) {
         FastaSequenceIndexEntry indexEntry = index.getIndexEntry(contig);
 
+        if(pos + length - 1 > indexEntry.getSize())
+            throw new PicardException("Query asks for data past end of contig");
+
         final int basesPerLine = indexEntry.getBasesPerLine();
+        final int bytesPerLine = indexEntry.getBytesPerLine();
 
         // Start reading at the closest start-of-line to our data.
-        long readStart = indexEntry.getLocation() + (pos / basesPerLine);
+        long readStart = indexEntry.getLocation() + (pos / basesPerLine) * bytesPerLine;
         int dataOfInterestStart = pos % basesPerLine;
 
         byte[] accumulator = new byte[length];
@@ -131,9 +136,14 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
         return basesRead;
     }
 
-
+    /**
+     * Gets the next sequence if available, or null if not present.
+     * @return next sequence if available, or null if not present.
+     */
     public ReferenceSequence nextSequence() {
-        return getSubsequenceAt("chrM", 0, 20);
+        if( !indexIterator.hasNext() )
+            return null;
+        return getSequence( indexIterator.next().getContig() );
     }
 
     public String toString() {

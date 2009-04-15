@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 
 import edu.mit.broad.picard.reference.ReferenceSequence;
+import edu.mit.broad.picard.PicardException;
 import net.sf.samtools.util.StringUtil;
 
 /**
@@ -52,12 +53,13 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
     @Test
     public void testFirstSequence() {
         long startTime = System.currentTimeMillis();
-        ReferenceSequence sequence = sequenceFile.nextSequence();
+        ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chrM",0,firstBasesOfChrM.length());
+        long endTime = System.currentTimeMillis();
+
         Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chrM");
         Assert.assertEquals( "First n bases of chrM are incorrect",
                              firstBasesOfChrM,
                              StringUtil.bytesToString( sequence.getBases() ) );
-        long endTime = System.currentTimeMillis();
 
         System.err.printf("testFirstSequence runtime: %dms%n", (endTime - startTime)) ;
     }
@@ -66,46 +68,190 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
     public void testFirstSequenceExtended() {
         long startTime = System.currentTimeMillis();
         ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chrM",0,extendedBasesOfChrM.length());
+        long endTime = System.currentTimeMillis();
+
         Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chrM");
         Assert.assertEquals( "First n bases of chrM are incorrect",
-                             extendedBasesOfChrM.substring(0,110),
-                             StringUtil.bytesToString( sequence.getBases(),0,110 ) );
-        long endTime = System.currentTimeMillis();
+                             extendedBasesOfChrM,
+                             StringUtil.bytesToString(sequence.getBases()) );
 
         System.err.printf("testFirstSequenceExtended runtime: %dms%n", (endTime - startTime)) ;
     }
 
     @Test
-    public void testReadStartingInCenterOfLine() {
+    public void testReadStartingInCenterOfFirstLine() {
         final int bytesToChopOff = 5;
         String truncated = extendedBasesOfChrM.substring(bytesToChopOff);
 
         long startTime = System.currentTimeMillis();
         ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chrM", bytesToChopOff ,truncated.length() );
+        long endTime = System.currentTimeMillis();
+
         Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chrM");
         Assert.assertEquals( "First n bases of chrM are incorrect",
                              truncated,
                              StringUtil.bytesToString( sequence.getBases() ) );
-        long endTime = System.currentTimeMillis();
 
-        System.err.printf("testReadStartingInCenterOfLine runtime: %dms%n", (endTime - startTime)) ;
+        System.err.printf("testReadStartingInCenterOfFirstLine runtime: %dms%n", (endTime - startTime)) ;
     }
 
     @Test
-    public void testCompleteContigRead() {
+    public void testReadStartingInCenterOfMiddleLine() {
+        final int bytesToChopOff = 120;
+        String truncated = extendedBasesOfChrM.substring(bytesToChopOff);
+
+        long startTime = System.currentTimeMillis();
+        ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chrM", bytesToChopOff, truncated.length() );
+        long endTime = System.currentTimeMillis();
+
+        Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chrM");
+        Assert.assertEquals( "First n bases of chrM are incorrect",
+                             truncated,
+                             StringUtil.bytesToString( sequence.getBases() ) );
+
+        System.err.printf("testReadStartingInCenterOfMiddleLine runtime: %dms%n", (endTime - startTime)) ;
+    }
+
+    @Test
+    public void testFirstCompleteContigRead() {
         FastaSequenceFile2 originalSequenceFile = new FastaSequenceFile2(new File(sequenceFileName));
         ReferenceSequence expectedSequence = originalSequenceFile.nextSequence();
 
         long startTime = System.currentTimeMillis();
-        ReferenceSequence sequence = sequenceFile.getSequence("chrM");        
-        Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chrM");
-        Assert.assertEquals("chrM is incorrect",
-                            StringUtil.bytesToString(expectedSequence.getBases(),0,4096),
-                            StringUtil.bytesToString(sequence.getBases(),0,4096) );
+        ReferenceSequence sequence = sequenceFile.getSequence("chrM");
         long endTime = System.currentTimeMillis();
 
-        System.err.printf("testCompleteContigRead runtime: %dms%n", (endTime - startTime)) ;        
+        Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chrM");
+        Assert.assertEquals("chrM is incorrect",
+                            StringUtil.bytesToString(expectedSequence.getBases()),
+                            StringUtil.bytesToString(sequence.getBases()) );
+
+        System.err.printf("testFirstCompleteContigRead runtime: %dms%n", (endTime - startTime)) ;
+    }
+
+    @Test(expected= PicardException.class)
+    public void testReadThroughEndOfContig() {
+        long startTime = System.currentTimeMillis();
+        try {
+            ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chrM",16500,100);
+        }
+        finally {
+            long endTime = System.currentTimeMillis();
+            System.err.printf("testReadThroughEndOfContig runtime: %dms%n", (endTime - startTime)) ;
+        }
+    }
+
+    @Test(expected= PicardException.class)
+     public void testReadPastEndOfContig() {
+         long startTime = System.currentTimeMillis();
+         try {
+             ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chrM",16800,100);
+         }
+         finally {
+             long endTime = System.currentTimeMillis();
+             System.err.printf("testReadPastEndOfContig runtime: %dms%n", (endTime - startTime)) ;
+         }
+     }
+
+    @Test
+    public void testMiddleCompleteContigRead() {
+        FastaSequenceFile2 originalSequenceFile = new FastaSequenceFile2(new File(sequenceFileName));
+        originalSequenceFile.seekToContig("chrY");
+        ReferenceSequence expectedSequence = originalSequenceFile.nextSequence();
+
+        long startTime = System.currentTimeMillis();
+        ReferenceSequence sequence = sequenceFile.getSequence("chrY");
+        long endTime = System.currentTimeMillis();
+
+        Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chrY");
+        Assert.assertEquals("chrY is incorrect",
+                            StringUtil.bytesToString(expectedSequence.getBases()),
+                            StringUtil.bytesToString(sequence.getBases()) );
+
+        System.err.printf("testMiddleCompleteContigRead runtime: %dms%n", (endTime - startTime)) ;
+    }
+
+    @Test
+    public void testLastCompleteContigRead() {
+        FastaSequenceFile2 originalSequenceFile = new FastaSequenceFile2(new File(sequenceFileName));
+        originalSequenceFile.seekToContig("chrX_random");
+        ReferenceSequence expectedSequence = originalSequenceFile.nextSequence();
+
+        long startTime = System.currentTimeMillis();
+        ReferenceSequence sequence = sequenceFile.getSequence("chrX_random");
+        long endTime = System.currentTimeMillis();
+
+        Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chrX_random");
+        Assert.assertEquals("chrX_random is incorrect",
+                            StringUtil.bytesToString(expectedSequence.getBases()),
+                            StringUtil.bytesToString(sequence.getBases()) );
+
+        System.err.printf("testLastCompleteContigRead runtime: %dms%n", (endTime - startTime)) ;
     }
 
 
+    @Test
+    public void testFirstOfChr1() {
+        long startTime = System.currentTimeMillis();
+        ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chr1",0,firstBasesOfChr1.length());
+        long endTime = System.currentTimeMillis();
+
+        Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chr1");
+        Assert.assertEquals( "First n bases of chr1 are incorrect",
+                             firstBasesOfChr1,
+                             StringUtil.bytesToString( sequence.getBases() ) );
+
+        System.err.printf("testFirstOfChr1 runtime: %dms%n", (endTime - startTime)) ;
+    }
+
+    @Test
+    public void testFirstOfChr8() {
+        long startTime = System.currentTimeMillis();
+        ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chr8",0,firstBasesOfChr8.length());
+        long endTime = System.currentTimeMillis();
+
+        Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chr8");
+        Assert.assertEquals( "First n bases of chr8 are incorrect",
+                             firstBasesOfChr8,
+                             StringUtil.bytesToString( sequence.getBases() ) );
+
+        System.err.printf("testFirstOfChr8 runtime: %dms%n", (endTime - startTime)) ;
+    }
+
+    @Test
+    public void testFirstElementOfIterator() {
+        FastaSequenceFile2 originalSequenceFile = new FastaSequenceFile2(new File(sequenceFileName));
+        ReferenceSequence expectedSequence = originalSequenceFile.nextSequence();
+
+        long startTime = System.currentTimeMillis();
+        ReferenceSequence sequence = sequenceFile.nextSequence();
+        long endTime = System.currentTimeMillis();
+
+        Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chrM");
+        Assert.assertEquals("chrM is incorrect",
+                            StringUtil.bytesToString(expectedSequence.getBases()),
+                            StringUtil.bytesToString(sequence.getBases()) );
+
+        System.err.printf("testFirstElementOfIterator runtime: %dms%n", (endTime - startTime)) ;
+    }
+
+    @Test
+    public void testNextElementOfIterator() {
+        FastaSequenceFile2 originalSequenceFile = new FastaSequenceFile2(new File(sequenceFileName));
+        // Skip past the first one and load the second one.
+        originalSequenceFile.nextSequence();
+        ReferenceSequence expectedSequence = originalSequenceFile.nextSequence();
+
+        long startTime = System.currentTimeMillis();
+        sequenceFile.nextSequence();
+        ReferenceSequence sequence = sequenceFile.nextSequence();
+        long endTime = System.currentTimeMillis();
+
+        Assert.assertEquals("First sequence contig is not correct", sequence.getName(), "chr1");
+        Assert.assertEquals("chr1 is incorrect",
+                            StringUtil.bytesToString(expectedSequence.getBases()),
+                            StringUtil.bytesToString(sequence.getBases()) );
+
+        System.err.printf("testNextElementOfIterator runtime: %dms%n", (endTime - startTime)) ;
+    }
 }
