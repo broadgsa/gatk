@@ -7,28 +7,24 @@ import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.RuntimeIOException;
-import org.apache.log4j.Logger;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
+import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.executive.MicroManager;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.refdata.rodGFF;
-import org.broadinstitute.sting.gatk.refdata.HapMapAlleleFrequenciesROD;
-import org.broadinstitute.sting.gatk.refdata.rodSAMPileup;
+import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.traversals.*;
-import org.broadinstitute.sting.gatk.executive.MicroManager;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -332,8 +328,14 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         engine.initialize();
 
         if( microManager != null ) {
-            List<GenomeLoc> locations = GenomeLoc.parseGenomeLocs( REGION_STR );
-            microManager.execute( my_walker, locations );
+            List<GenomeLoc> locs;
+            if (INTERVALS_FILE != null) {
+                locs = GenomeLoc.IntervalFileToList(INTERVALS_FILE);
+                microManager.setIntervalList(locs);
+            } else {
+                locs = GenomeLoc.parseGenomeLocs( REGION_STR );
+            }
+            microManager.execute( my_walker, locs );
         }
         else
             engine.traverse(my_walker);

@@ -3,8 +3,6 @@ package org.broadinstitute.sting.gatk.traversals;
 import edu.mit.broad.picard.filter.SamRecordFilter;
 import edu.mit.broad.picard.reference.ReferenceSequence;
 import edu.mit.broad.picard.sam.SamFileHeaderMerger;
-import edu.mit.broad.picard.directed.IntervalList;
-import edu.mit.broad.picard.util.Interval;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
@@ -12,15 +10,18 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.iterators.*;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public abstract class TraversalEngine {
     // list of reference ordered data objects
@@ -191,32 +192,7 @@ public abstract class TraversalEngine {
      */
     public void setLocationFromFile(final String file_name) {
 
-        // first try to read it as an interval file since that's well structured
-        // we'll fail quickly if it's not a valid file.  Then try to parse it as
-        // a location string file
-        try {
-            IntervalList il = IntervalList.fromFile(new File(file_name));
-
-            // iterate through the list of merged intervals and add then as GenomeLocs
-            ArrayList<GenomeLoc> locList = new ArrayList<GenomeLoc>();
-            for(Interval interval : il.getUniqueIntervals()) { 
-                locList.add(new GenomeLoc(interval.getSequence(), interval.getStart(), interval.getEnd()));
-            }
-            this.locs = locList;
-
-        } catch (Exception e) {
-            try {
-                xReadLines reader = new xReadLines(new File(file_name));
-                List<String> lines = reader.readLines();
-                reader.close();
-                String locStr = Utils.join(";", lines);
-                logger.debug("locStr: " + locStr);
-                setLocation(locStr);
-            } catch (Exception e2) {
-                e2.printStackTrace();
-                System.exit(-1);
-            }
-        }
+      this.locs = GenomeLoc.IntervalFileToList(file_name);
     }
 
 
@@ -456,7 +432,6 @@ public abstract class TraversalEngine {
      * assumes you are accessing the data in order.  You can't use this function for random access.  Each
      * successive call moves you along the file, consuming all data before loc.
      *
-     * @param rodIters Iterators to access the RODs
      * @param loc      The location to get the rods at
      * @return A list of ReferenceOrderDatum at loc.  ROD without a datum at loc will be null in the list
      */

@@ -41,13 +41,27 @@ public class SAMDataSource implements SimpleDataSource {
     private final List<File> samFileList = new ArrayList<File>();
 
     /**
-     * constructor, given a single sam file
+     * constructor, given sam files
      *
      * @param samFiles the list of sam files
      */
-    public SAMDataSource(List<String> samFiles) throws SimpleDataSourceLoadException {
-        for (String fileName : samFiles) {
-            File smFile = new File(fileName);
+    public SAMDataSource(List<?> samFiles) throws SimpleDataSourceLoadException {
+        // check the length
+        if (samFiles.size() < 1) {
+            throw new SimpleDataSourceLoadException("SAMDataSource: you must provide a list of length greater then 0");    
+        }
+        for (Object fileName : samFiles) {
+            File smFile;
+            if ( samFiles.get(0) instanceof String) {
+                smFile = new File((String)samFiles.get(0));
+            }
+            else if (samFiles.get(0) instanceof File) {
+                smFile = (File)fileName;
+            }
+            else {
+                throw new SimpleDataSourceLoadException("SAMDataSource: unknown samFile list type, must be String or File");        
+            }
+
             if (!smFile.canRead()) {
                 throw new SimpleDataSourceLoadException("SAMDataSource: Unable to load file: " + fileName);
             }
@@ -55,8 +69,10 @@ public class SAMDataSource implements SimpleDataSource {
 
         }
 
-        //SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(samFileList, SORT_ORDER);
     }
+
+
+
 
 
     protected SAMFileReader initializeSAMFile(final File samFile) {
@@ -67,7 +83,7 @@ public class SAMDataSource implements SimpleDataSource {
             samReader.setValidationStringency(strictness);
 
             final SAMFileHeader header = samReader.getFileHeader();
-            logger.info(String.format("Sort order is: " + header.getSortOrder()));
+            logger.debug(String.format("Sort order is: " + header.getSortOrder()));
 
             return samReader;
         }

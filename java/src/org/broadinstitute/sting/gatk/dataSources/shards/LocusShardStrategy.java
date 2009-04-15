@@ -209,7 +209,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
 
             // move to the next contig
             // the next sequence should start at the begining of the next contig
-            Shard ret = LocusShard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceIndex(), nextStart, nextStart + lastGenomeLocSize));
+            Shard ret = LocusShard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceIndex(), nextStart, nextStart + lastGenomeLocSize - 1));
 
             // now  jump ahead to the next contig
             jumpContig();

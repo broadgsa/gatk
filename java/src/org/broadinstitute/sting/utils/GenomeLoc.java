@@ -1,21 +1,23 @@
 package org.broadinstitute.sting.utils;
 
-import net.sf.functionalj.reflect.StdReflect;
-import net.sf.functionalj.reflect.JdkStdReflect;
-import net.sf.functionalj.FunctionN;
+import edu.mit.broad.picard.directed.IntervalList;
+import edu.mit.broad.picard.reference.ReferenceSequenceFile;
+import edu.mit.broad.picard.util.Interval;
 import net.sf.functionalj.Function1;
+import net.sf.functionalj.FunctionN;
 import net.sf.functionalj.Functions;
+import net.sf.functionalj.reflect.JdkStdReflect;
+import net.sf.functionalj.reflect.StdReflect;
 import net.sf.functionalj.util.Operators;
+import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.SAMRecord;
-
-import java.util.*;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-
-import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import org.apache.log4j.Logger;
+
+import java.io.File;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by IntelliJ IDEA.
@@ -520,5 +522,46 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         //if ( this.getStop() < that.getStop() ) return -1;
         //if ( this.getStop() > that.getStop() ) return 1;
         return 0;
+    }
+
+
+    /**
+     * Read a file of genome locations to process.
+     * regions specified by the location string.  The string is of the form:
+     * Of the form: loc1;loc2;...
+     * Where each locN can be:
+     * 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
+     *
+     * @param file_name
+     */
+    public static ArrayList<GenomeLoc> IntervalFileToList(final String file_name) {
+// first try to read it as an interval file since that's well structured
+        // we'll fail quickly if it's not a valid file.  Then try to parse it as
+        // a location string file
+        ArrayList<GenomeLoc> ret = null;
+        try {
+            IntervalList il = IntervalList.fromFile(new File(file_name));
+
+            // iterate through the list of merged intervals and add then as GenomeLocs
+            ret = new ArrayList<GenomeLoc>();
+            for(Interval interval : il.getUniqueIntervals()) {
+                ret.add(new GenomeLoc(interval.getSequence(), interval.getStart(), interval.getEnd()));
+            }
+            return ret;
+
+        } catch (Exception e) {
+            try {
+                xReadLines reader = new xReadLines(new File(file_name));
+                List<String> lines = reader.readLines();
+                reader.close();
+                String locStr = Utils.join(";", lines);
+                logger.debug("locStr: " + locStr);
+                ret = parseGenomeLocs(locStr);
+                return ret;
+            } catch (Exception e2) {
+                e2.printStackTrace();
+                throw new IllegalArgumentException(e);
+            }
+        }
     }
 }
