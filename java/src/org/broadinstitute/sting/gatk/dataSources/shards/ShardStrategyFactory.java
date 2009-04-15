@@ -108,7 +108,7 @@ public class ShardStrategyFactory {
      * @param readCount the number of reads to include in each shard
      * @return
      */
-    static public ShardStrategy shatterByReadCount(long readCount) {
+    static public ShardStrategy shatterByReadCount(SAMSequenceDictionary dic, long readCount) {
         return null;
     }
 

@@ -87,7 +87,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
 
 
         try {
-            SAMBAMDataSource data = new SAMBAMDataSource(fl);
+            SAMDataSource data = new SAMDataSource(fl);
             for (Shard sh : strat) {
                 int readCount = 0;
                 count++;
@@ -136,7 +136,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
         int count = 0;
 
         try {
-            SAMBAMDataSource data = new SAMBAMDataSource(fl);
+            SAMDataSource data = new SAMDataSource(fl);
             for (Shard sh : strat) {
                 int readCount = 0;
                 count++;
@@ -171,7 +171,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
 
         logger.debug("Pile two:");
         try {
-            SAMBAMDataSource data = new SAMBAMDataSource(fl);
+            SAMDataSource data = new SAMDataSource(fl);
             for (Shard sh : strat) {
                 int readCount = 0;
                 count++;

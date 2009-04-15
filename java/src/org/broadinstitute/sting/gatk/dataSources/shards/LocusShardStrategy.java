@@ -29,7 +29,7 @@ import java.util.List;
  * <p/>
  * Interface Shard
  * <p/>
- * The shard interface, which controls how data is divided
+ * The shard interface, which controls how data is divided for loci
  */
 public abstract class LocusShardStrategy implements ShardStrategy {
 
@@ -66,7 +66,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
      */
     LocusShardStrategy(SAMSequenceDictionary dic) {
         this.dic = dic;
-        mLoc = new GenomeLoc(0,0,0);
+        mLoc = new GenomeLoc(0, 0, 0);
         if (dic.getSequences().size() > 0) {
             nextContig = true;
         }
@@ -110,19 +110,11 @@ public abstract class LocusShardStrategy implements ShardStrategy {
      */
 
     /**
-     * set the next shards size
-     *
-     * @param size adjust the next size to this
-     */
-    public abstract void adjustNextShardSize(long size);
-
-
-    /**
-     * This is how the various shards strategies implements their approach
+     * This is how the various shards strategies implements their approach, adjusting this value
      *
      * @return the next shard size
      */
-    abstract long nextShardSize();
+    protected abstract long nextShardSize();
 
 
     /**
@@ -130,8 +122,6 @@ public abstract class LocusShardStrategy implements ShardStrategy {
      * Concrete methods that each strategy does not have to implement
      *
      */
-
-
 
 
     /**

@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMBAMDataSource;
+import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
 import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextProvider;
 import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceProvider;
@@ -68,10 +68,10 @@ public class MicroManager {
                                                           SHARD_SIZE );
 
         ReferenceIterator refIter = new ReferenceIterator(ref);
-        SAMBAMDataSource dataSource = null;
+        SAMDataSource dataSource = null;
 
         try {
-            dataSource = new SAMBAMDataSource( Arrays.asList( new String[] { reads.getCanonicalPath() } ) );
+            dataSource = new SAMDataSource( Arrays.asList( new String[] { reads.getCanonicalPath() } ) );
         }
         catch( SimpleDataSourceLoadException ex ) {
             throw new RuntimeException( ex );

@@ -28,4 +28,13 @@ import java.util.Iterator;
  * class, but not this will be an interface to accomidate read based sharding
  */
 public interface ShardStrategy extends Iterator<Shard>, Iterable<Shard> {
+    
+    /**
+     * set the next shards size
+     *
+     * @param size adjust the next size to this
+     */
+    public abstract void adjustNextShardSize(long size);
+
+
 }

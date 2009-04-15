@@ -6,7 +6,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
-import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMBAMDataSource;
+import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
@@ -83,7 +83,7 @@ public class BoundedReadIteratorTest extends BaseTest {
         long shardReadCount = 0;
 
         try {
-            SAMBAMDataSource data = new SAMBAMDataSource(fl);
+            SAMDataSource data = new SAMDataSource(fl);
 
             // make sure we have a shard
             if (!strat.hasNext()) {
