@@ -3,11 +3,14 @@
 import os
 #justPrintCommands = False
 
-def cmd(cmd_str, farm_queue=False, output_head="", just_print_commands=False):
+def cmd(cmd_str, farm_queue=False, output_head="", just_print_commands=False, outputFile = None):
     # if farm_queue is non-False, submits to queue, other
 
     if farm_queue:
-        farm_stdout = output_head+".stdout"
+        if outputFile <> None:
+            farm_stdout = outputFile
+        else:
+            farm_stdout = output_head+".stdout"
         cmd_str = "bsub -q "+farm_queue+" -o "+farm_stdout+" "+cmd_str #+" TMP_DIR=/wga/scr1/andrewk/tmp"
         print ">>> Farming via "+cmd_str
     else:
