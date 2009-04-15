@@ -34,7 +34,7 @@ public class LocusIteratorByHanger extends LocusIterator {
 
     private RefHanger<SAMRecord> readHanger = new RefHanger<SAMRecord>();
     private RefHanger<Integer> offsetHanger = new RefHanger<Integer>();
-    final int INCREMENT_SIZE = 100;
+    final int INCREMENT_SIZE = 1;
     final boolean DEBUG = false;
     boolean justCleared = false;
 
@@ -64,19 +64,17 @@ public class LocusIteratorByHanger extends LocusIterator {
             RefHanger.Hanger rhanger = readHanger.getHanger(i);
             RefHanger.Hanger ohanger = offsetHanger.getHanger(i);
 
-            logger.debug(String.format("  -> %s:", rhanger.loc));
+            logger.debug(String.format("printState(): location %s", rhanger.loc));
             for ( int j = 0; j < rhanger.size(); j++ ) {
                 SAMRecord read = (SAMRecord)rhanger.get(j);
                 int offset = (Integer)ohanger.get(j);
-                logger.debug(String.format(" %s(%d)=%s", read.getReadName(), offset, read.getReadString().charAt(offset) ));
+                logger.debug(String.format("  read: %s(%d)=%s", read.getReadName(), offset, read.getReadString().charAt(offset) ));
             }
-            logger.debug(String.format("%n"));
-
         }        
     }
 
     public void clear() {
-        logger.debug(String.format(("clear() called%n")));
+        logger.debug(String.format(("clear() called")));
         readHanger.clear();
         offsetHanger.clear();
     }
@@ -102,7 +100,7 @@ public class LocusIteratorByHanger extends LocusIterator {
             expandWindow(INCREMENT_SIZE);
 
         if ( DEBUG ) {
-            logger.debug(String.format(("in Next:%n")));
+            logger.debug(String.format(("in Next:")));
             printState();
         }
 
@@ -126,14 +124,12 @@ public class LocusIteratorByHanger extends LocusIterator {
         */
 
         for ( AlignmentBlock block : read.getAlignmentBlocks() ) {
-            if ( DEBUG )
-                logger.debug(String.format("Processing block %s len=%d%n", block, block.getLength()));
+            if ( DEBUG ) logger.debug(String.format("Processing block %s len=%d", block, block.getLength()));
             for ( int i = 0; i < block.getLength(); i++ ) {
                 GenomeLoc offset = new GenomeLoc(readLoc.getContigIndex(), block.getReferenceStart() + i);
                 readHanger.expandingPut(offset, read);
                 offsetHanger.expandingPut(offset, block.getReadStart() + i - 1);
-                if ( DEBUG )
-                    logger.debug(String.format("  # Added %s%n", offset));
+                if ( DEBUG ) logger.debug(String.format("  # Added %s", offset));
             }
         }
     }
@@ -164,14 +160,18 @@ public class LocusIteratorByHanger extends LocusIterator {
     }
 
     private final void expandWindow(final int incrementSize) {
+        if ( incrementSize != 1 ) {
+            Utils.scareUser(String.format("BUG: IncrementSize=%d != 1, the codebase doesn't support this extension strategy yet", incrementSize));
+        }
+
         if ( DEBUG ) {
-            logger.debug(String.format("entering expandWindow..., hasNext=%b%n", it.hasNext()));
+            logger.debug(String.format("entering expandWindow..., hasNext=%b", it.hasNext()));
             printState();
         }
 
         while ( it.hasNext() ) {
             if ( DEBUG ) {
-                logger.debug(String.format("Expanding window%n"));
+                logger.debug(String.format("Expanding window"));
                 printState();
             }
             
@@ -180,7 +180,7 @@ public class LocusIteratorByHanger extends LocusIterator {
 
             GenomeLoc readLoc = new GenomeLoc(read);
             if ( DEBUG ) {
-                logger.debug(String.format("  Expanding window sizes %d with %d : left=%s, right=%s, readLoc = %s, cmp=%d%n",
+                logger.debug(String.format("  Expanding window sizes %d with %d : left=%s, right=%s, readLoc = %s, cmp=%d",
                         readHanger.size(), incrementSize,
                         readHanger.hasHangers() ? readHanger.getLeftLoc() : "NA",
                         readHanger.hasHangers() ? readHanger.getRightLoc() : "NA",
