@@ -34,7 +34,7 @@ public class LocusIteratorByHanger extends LocusIterator {
 
     private RefHanger<SAMRecord> readHanger = new RefHanger<SAMRecord>();
     private RefHanger<Integer> offsetHanger = new RefHanger<Integer>();
-    final int INCREMENT_SIZE = 1;
+    final int INCREMENT_SIZE = 100;
     final boolean DEBUG = false;
     boolean justCleared = false;
 
@@ -85,43 +85,30 @@ public class LocusIteratorByHanger extends LocusIterator {
     //
     // -----------------------------------------------------------------------------------------------------------------
     public LocusContext next() {
-//        if ( it.hasNext() && ! readHanger.isEmpty() ) {
-//            // todo: this needs to be deleted
-//            final SAMRecord read = it.peek();
-//            GenomeLoc readLoc = Utils.genomicLocationOf(read);
-//            System.out.printf("Comparing %s to %s%n", readLoc, readHanger.getLeftLoc());
-//            if ( readLoc.compareTo(readHanger.getLeftLoc()) == -1 ) {
-//                clear();
-//                return next();
-//            }
-//        }
-
         if ( ! currentPositionIsFullyCovered() )
             expandWindow(INCREMENT_SIZE);
 
         if ( DEBUG ) {
-            logger.debug(String.format(("in Next:")));
+            logger.debug("in Next:");
             printState();
         }
 
         RefHanger.Hanger rhanger = readHanger.popLeft();
         RefHanger.Hanger ohanger = offsetHanger.popLeft();
 
-        return new LocusContext(rhanger.loc, rhanger.data, ohanger.data);
+        if ( rhanger.size() == 0 ) {
+            // we are in the case where there are no reads (we're inside a large indel without any reads
+            // so recursively call next.  This is safe because having a position without any reads
+            // implies that there are positions to the right with reads
+            //System.out.printf("***** skipping reads%n");
+            return next();
+        } else {
+            return new LocusContext(rhanger.loc, rhanger.data, ohanger.data);
+        }            
     }
 
     protected void hangRead(final SAMRecord read) {
-        //GenomeLoc readLoc = new GenomeLoc(read.getReferenceIndex(), read.getAlignmentStart());
         GenomeLoc readLoc = new GenomeLoc(read);
-        //System.out.printf("Adding read %s at %d%n", read.getReadName(), read.getAlignmentStart());
-        
-        /*
-        for ( int i = 0; i < read.getReadLength(); i++ ) {
-            GenomeLoc offset = new GenomeLoc(readLoc.getContig(), readLoc.getStart() + i);
-            readHanger.expandingPut(offset, read);
-            offsetHanger.expandingPut(offset, i);
-        }
-        */
 
         for ( AlignmentBlock block : read.getAlignmentBlocks() ) {
             if ( DEBUG ) logger.debug(String.format("Processing block %s len=%d", block, block.getLength()));
@@ -160,7 +147,8 @@ public class LocusIteratorByHanger extends LocusIterator {
     }
 
     private final void expandWindow(final int incrementSize) {
-        if ( incrementSize != 1 ) {
+        // todo: reenable
+        if ( false && incrementSize != 1 ) {
             Utils.scareUser(String.format("BUG: IncrementSize=%d != 1, the codebase doesn't support this extension strategy yet", incrementSize));
         }
 
@@ -198,57 +186,6 @@ public class LocusIteratorByHanger extends LocusIterator {
                 hangRead(read);
         }
     }
-
-//    private final void expandWindow(final int incrementSize) {
-//        if ( DEBUG ) {
-//            System.out.printf("entering expandWindow..., hasNext=%b%n", it.hasNext());
-//            printState();
-//        }
-//
-//        while ( it.hasNext() ) {
-//            if ( DEBUG ) {
-//                System.out.printf("Expanding window%n");
-//                printState();
-//            }
-//
-//            try {
-//                SAMRecord read = it.next();
-//                justCleared = false;
-//
-//                GenomeLoc readLoc = Utils.genomicLocationOf(read);
-//                if ( DEBUG ) {
-//                    System.out.printf("  Expanding window sizes %d with %d : left=%s, right=%s, readLoc = %s, cmp=%d%n",
-//                            readHanger.size(), incrementSize,
-//                            readHanger.hasHangers() ? readHanger.getLeftLoc() : "NA",
-//                            readHanger.hasHangers() ? readHanger.getRightLoc() : "NA",
-//                            readLoc,
-//                            readHanger.hasHangers() ? readLoc.compareTo(readHanger.getLeftLoc()) : -100);
-//                }
-//                //if ( readHanger.size() >= incrementSize ) {
-//                //if ( readHanger.hasHangers() && readLoc.compareTo(readHanger.getLeftLoc()) == 1) {
-//                if ( readHanger.hasHangers() && readLoc.distance(readHanger.getLeftLoc()) >= incrementSize ) {
-//                    // We've collected up enough reads
-//                    it.pushback(read);
-//                    break;
-//                }
-//                else
-//                    hangRead(read);
-//            }
-//            catch ( RuntimeIOException rio ) {
-//                System.out.printf("Clearing state...");
-//                // todo: good god, this is dangerous, we are reseting state because the reads are out of order
-//                if ( ! justCleared ) {
-//                    rio.printStackTrace();
-//                    justCleared = true;
-//                    clear();
-//                }
-//                it.next(); // throw away the offending read
-//                expandWindow(INCREMENT_SIZE);
-//                return;
-//            }
-//        }
-//    }
-
 
     public void remove() {
         throw new UnsupportedOperationException("Can not remove records from a SAM file via an iterator!");
