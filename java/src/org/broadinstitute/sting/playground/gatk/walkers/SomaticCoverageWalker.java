@@ -19,13 +19,15 @@ import edu.mit.broad.picard.PicardException;
 
 public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
 
-    @Argument(fullName = "tumor_sample_name", shortName = "1", required = true)
-    String tumorSampleName = "TCGA-06-0188-01A-01W";  // FIXME: cmdline parsing not working!
+    @Argument(fullName = "tumor_sample_name", shortName = "s1", required = true)
+    public String tumorSampleName;
 
-    @Argument(fullName = "normal_sample_name", shortName = "2", required = true)
-    String normalSampleName = "TCGA-06-0188-10B-01W"; // FIXME: cmdline parsing not working!
+    @Argument(fullName = "normal_sample_name", shortName = "s2", required = true)
+    public String normalSampleName;
 
+    // --normal_sample_name TCGA-06-0188-10B-01W --tumor_sample_name TCGA-06-0188-01A-01W
     public void initialize() {
+        out.println("track type=wiggle_0 name=SomaticCoverage viewLimits=0:1 graphType=heatmap");
     }
 
     public String walkerType() { return "ByLocus"; }
@@ -44,6 +46,9 @@ public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
     int normalCovered;
     int somaticCovered;
     long start = 0;
+
+    int lastContigIndex = -1;
+    long lastPosition = -1;
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         if (start ==0) { start = System.currentTimeMillis(); }
@@ -97,9 +102,28 @@ public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
 //            out.println(String.format("%s:%d %d %d %d %d %dms", context.getContig(), context.getPosition(), totalSites, tumorCovered, normalCovered, somaticCovered, (now-start)));
 //        }
 
+        // if the contig index has changed OR if it's the same contig index but we jumped positions
+        // output a wiggle header
         StringBuilder sb = new StringBuilder();
-        sb.append(context.getContig()).append(" ");
-        sb.append(context.getPosition());
+        if (lastContigIndex != context.getLocation().getContigIndex() ||
+            lastPosition + 1 != context.getPosition()) {
+                lastContigIndex = context.getLocation().getContigIndex();
+                sb.append("fixedStep\t")
+                  .append("chrom=").append(context.getContig()).append("\t")
+                  .append("start=").append(context.getPosition()).append("\t")
+                  .append("step=1")
+                  .append("\n");
+        }
+        lastPosition = context.getPosition();
+
+        sb.append((isTumorCovered && isNormalCovered)?"1":"0");
+
+//        sb.append(context.getContig()).append(" ");
+//        sb.append(context.getPosition()).append(" ");
+//        sb.append(tumorDepth).append(" ");
+//        sb.append(normalDepth).append(" ");
+//        sb.append((isTumorCovered && isNormalCovered)?"Y":"N");
+        
         out.println(sb.toString());
         return 1;
     }
