@@ -17,7 +17,7 @@ import edu.mit.broad.picard.reference.ReferenceSequence;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
-public class IndelInspector extends CommandLineProgram {
+public class IndelInspectorMain extends CommandLineProgram {
 
     // Usage and parameters
     @Usage(programVersion="1.0") public String USAGE = "Investigates indels called in the alignment data\n";
@@ -34,7 +34,7 @@ public class IndelInspector extends CommandLineProgram {
 
     /** Required main method implementation. */
     public static void main(final String[] argv) {
-        System.exit(new IndelInspector().instanceMain(argv));
+        System.exit(new IndelInspectorMain().instanceMain(argv));
     }
     
     protected int doWork() {
@@ -110,7 +110,6 @@ public class IndelInspector extends CommandLineProgram {
                 if ( location == null || GenomeLoc.compareContigs(cur_contig, location.getContig()) == 0 ) {
                     contig_seq = reference.get(r.getReferenceIndex());
                     String refstr = new String(contig_seq.getBases());
-                    col.setReferenceSequence(refstr);
                     if (!CONTROL_RUN) pileBuilder.setReferenceSequence(refstr);
                     System.out.println("loaded contig "+cur_contig+" (index="+r.getReferenceIndex()+"); length="+contig_seq.getBases().length+" tst="+contig_seq.toString());
                 }
