@@ -32,6 +32,11 @@ def main():
     parser.add_option("-a", "--rebuildAllFiles", dest="rebuildAllFiles",
                         action='store_true', default=False,
                         help="If provided, all intermediate files (BAM and pileups) will be regenerated")
+    parser.add_option("-p", "--justPrint", dest="justPrint",
+                        action='store_true', default=False,
+                        help="Don't actually run GATK, just setup data files")
+
+
 
     (OPTIONS, args) = parser.parse_args()
     if len(args) != 0:
@@ -69,7 +74,7 @@ def main():
         filebase = os.path.splitext(read_filename)[0]
 
         reads = os.path.join(OPTIONS.dataDir, read_filename)
-        readsIndex = os.path.join(OPTIONS.dataDir, filebase + '.selected.bam.bai')
+        readsIndex = reads + '.bai'
         subBAM = os.path.join(OPTIONS.dataDir, filebase + '.selected.bam')
         pileup = os.path.join(OPTIONS.dataDir, filebase + '.selected.pileup')
         validationOutput = os.path.join(OPTIONS.outputDir, filebase + '.validate.output')        
@@ -88,6 +93,7 @@ def main():
             else:
                 cmd = "samtools view -b " + reads + " " + region + " > " + subBAM
                 farm_commands.cmd(cmd, None, None)
+                indexBAM(subBAM)
  
         if not os.path.exists(pileup) or OPTIONS.rebuildAllFiles:
             cmd = "samtools pileup -cf " + ref + " " + subBAM + " > " + pileup
@@ -97,7 +103,7 @@ def main():
             analysis = "ValidatingPileup"
             cmd = "java -ea -Xmx1024m -jar ~/dev/GenomeAnalysisTK/trunk/dist/GenomeAnalysisTK.jar -T " + analysis + " -I " + subBAM + " -R " + ref + " -l INFO -S SILENT -U -B pileup SAMPileup " + pileup
             print cmd
-            farm_commands.cmd(cmd, OPTIONS.farmQueue, outputFile=validationOutput)
+            farm_commands.cmd(cmd, OPTIONS.farmQueue, outputFile=validationOutput, just_print_commands=OPTIONS.justPrint)
 
 if __name__ == "__main__":
     main()
