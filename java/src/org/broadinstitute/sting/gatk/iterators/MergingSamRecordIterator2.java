@@ -134,6 +134,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
             record.setAttribute(SAMTag.PG.toString(), newProgramGroupId);
         }
 
+        record.setHeader(samHeaderMerger.getMergedHeader());
         //System.out.printf("NEXT = %s %s %d%n", record.getReadName(), record.getReferenceName(), record.getAlignmentStart());
         //System.out.printf("PEEK = %s %s %d%n", this.pq.peek().peek().getReadName(), this.pq.peek().peek().getReferenceName(), this.pq.peek().peek().getAlignmentStart());
         return record;
