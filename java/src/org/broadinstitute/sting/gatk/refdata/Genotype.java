@@ -106,6 +106,18 @@ public interface Genotype extends Comparable<ReferenceOrderedDatum> {
    * @return
    */
   boolean isBiallelic() ;
+  
+  /** Returns true if both observed alleles are the same (regardless of whether they are ref or alt)
+   *  
+   * @return
+   */
+  boolean isHom() ;
+
+  /** Returns true if observed alleles differ (regardless of whether they are ref or alt)
+   *  
+   * @return
+   */
+  boolean isHet() ;
 
   /** Returns reference (major) allele base for a SNP variant as a character; should throw IllegalStateException
      * if variant is not a SNP.
