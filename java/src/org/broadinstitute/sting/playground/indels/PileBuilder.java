@@ -34,6 +34,9 @@ public class PileBuilder implements RecordPileReceiver {
     private int total_reads_in_improved = 0;
     private int total_reads_in_failed = 0;
     private int total_alignments_modified = 0;
+    
+    private int total_reads_received = 0;
+    private int total_reads_written = 0;
 
     public final static int SILENT = 0;
     public final static int PILESUMMARY = 1;
@@ -115,10 +118,22 @@ public class PileBuilder implements RecordPileReceiver {
         reference_start = -1;
     }
 
+    /** Returns the number of reads that were so far received by this writer.
+     * 
+     */
+    public int getNumReadsReceived() { return total_reads_received; }
+
+    /** Returns the number of reads that were so far written by this writer (NOT sent
+     * into its secondary "failed mode" receiver!)
+     * 
+     */
+    public int getNumReadsWritten() { return total_reads_written; }
+   
     public void receive(Collection<SAMRecord> c) {
 
            //TODO: if read starts/ends with an indel (insertion, actually), we detect this as a "different" indel introduced during cleanup.
             processed_piles++;
+            total_reads_received += c.size();
 
            IndexedSequence[] seqs = new IndexedSequence[c.size()];
            int i = 0;
@@ -357,7 +372,7 @@ public class PileBuilder implements RecordPileReceiver {
 
  //               System.out.println("writing " + id);
                 samWriter.addAlignment(r);
-
+                total_reads_written++;
 
             }
         }
@@ -619,12 +634,9 @@ public class PileBuilder implements RecordPileReceiver {
     }
 
     public double averageDistanceForOffset(MultipleAlignment a1, MultipleAlignment a2, int offset) {
-        SelectedPair p = new SelectedPair();
-
+ 
         double d_av = 0;
         int nseq = 0;
-        int i1 = -1;
-        int i2 = -1;
 
         for ( Integer id2 : a2 ) {
             SelectedPair spo = averageDistanceForOffset(a1,id2,offset+a2.getOffsetById(id2));

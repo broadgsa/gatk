@@ -91,8 +91,6 @@ public class IndelRecordPileCollector implements RecordReceiver {
 
     private boolean controlRun = false;
 
-    private String referenceSequence;
-
     public String memStatsString() {
 		String s = "mRecordPile: ";
 		return s+mRecordPile.size() + " mAllIndels: "+mAllIndels.size() + " mLastContig=" +mLastContig + " mLastStartOnref="+mLastStartOnRef;
@@ -115,7 +113,6 @@ public class IndelRecordPileCollector implements RecordReceiver {
         }
         defaultReceiver = rr;
         indelPileReceiver = rp;
-        referenceSequence = null;
         setWaitState();
     }
 
@@ -123,6 +120,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
      * Does not emit records, just clears/resets the variables.
      */
     private void setWaitState() {
+    	
         mRecordPile.clear();
         mAllIndels.clear();
 //        mIndelRegionStart = 1000000000;
@@ -133,9 +131,6 @@ public class IndelRecordPileCollector implements RecordReceiver {
 
     public void setControlRun(boolean c) { controlRun = c; }
 
-    public void setReferenceSequence(String contig) {
-        referenceSequence = contig;
-    }
     
     /** A utility method: emits into nonindelReceiver and purges from the currently held SAM record pile
      * all the consequtive records with alignment end positions less than or equal to the specified
@@ -170,6 +165,13 @@ public class IndelRecordPileCollector implements RecordReceiver {
             } else break;
         }
     }
+    
+    /** This method MUST be called when no more reads are left in order to enforce the collector to emit the current pile of reads
+     * it is still holding.
+     */
+    public void close() {
+    	emit();
+    }
 
     /** This is the main interface method of the collector: it receives alignments, inspects them, detects indels,
      *  updates and purges the read pile it keeps and emits alignments as needed.
@@ -198,7 +200,10 @@ public class IndelRecordPileCollector implements RecordReceiver {
      */
     public void receive(final SAMRecord r) throws RuntimeException {
 		
-        if ( r.getReadUnmappedFlag() ) return; // read did not align, nothing to do
+        if ( r.getReadUnmappedFlag() ) {
+        	defaultReceiver.receive(r); // do not throw reads away even if they are of no use for us, keep them in the output bam....
+        	return; // read did not align, nothing to do
+        }
 
         if ( controlRun ) {
             defaultReceiver.receive(r);
@@ -230,9 +235,13 @@ public class IndelRecordPileCollector implements RecordReceiver {
         // does nothing if alignment has no indels, otherwise adds the indels to the list and (re)sets state to 'active'
         extractIndelsAndUpdateState(r.getCigar(),currPos);
 
-        if ( mState == ACTIVE_STATE && ( ! avoiding_region ) && ( mAllIndels.size() > 20 || mRecordPile.size() > 1000 ) ) avoiding_region = true;
+        if ( mState == ACTIVE_STATE && ( ! avoiding_region ) && ( mAllIndels.size() > 20 || mRecordPile.size() > 1000 ) ) {
+        	avoiding_region = true;
+        }
 
         if ( ! avoiding_region ) mRecordPile.add(r); // add new record if this is not some crazy region
+        else defaultReceiver.receive(r); // if we do not want to or can not deal with a region, pass reads through; 
+                                                                   // the pile we have already collected before discovering it's a bad region will be sent through on the next call to emit() 
 
         mLastContig = currContig;
         mLastStartOnRef = currPos;
@@ -275,6 +284,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
         // can be more than one pile in what we have stored. Also, we can still have gapless reads
         // at the ends of the piles that do not really overlap with indel sites.
 	
+       
         if ( mAllIndels.size() == 0 ) throw new RuntimeException("Attempt to emit pile with no indels");
         
         HistogramAsNeeded(mAllIndels);
@@ -333,7 +343,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
                 // and can be emitted
 
                 if ( shouldAcceptForOutput(finalTrain ) ) {
-                     System.out.print(mLastContig+":"+ finalTrain.get(0).getObject().getStart() + "-" +
+                     System.out.print("SITE: " + mLastContig+":"+ finalTrain.get(0).getObject().getStart() + "-" +
                              finalTrain.get(finalTrain.size()-1).getObject().getStop() + " " +
                              finalTrain.size() + " indels; ");
                      System.out.print(finalPile.size() + " reads in the pile;")  ;
@@ -349,6 +359,11 @@ public class IndelRecordPileCollector implements RecordReceiver {
                 curr_stop = -1;
             } // ELSE: otherwise we have reads that overlap with both previous and current indel, so we just continue
               // with building the indel train
+        }
+
+        // we may still have reads in the original pile that start after the last indel:
+        for ( SAMRecord r : mRecordPile ) {
+            defaultReceiver.receive(r);
         }
 
         setWaitState();

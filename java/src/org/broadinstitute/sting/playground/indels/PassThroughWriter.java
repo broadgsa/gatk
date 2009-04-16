@@ -16,6 +16,7 @@ import java.io.File;
  */
 public class PassThroughWriter implements RecordReceiver {
     private SAMFileWriter writer;
+    private int reads_written = 0;
 
     public PassThroughWriter( File f, SAMFileHeader h) {
              writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(h, false, f);
@@ -28,7 +29,13 @@ public class PassThroughWriter implements RecordReceiver {
     public void receive(SAMRecord r) {
         //To change body of implemented methods use File | Settings | File Templates.
         writer.addAlignment(r);
+        reads_written++;
     }
 
     public void close() { writer.close() ; }
+    
+    /** Returns the number of reads that were so far received by this writer.
+     * 
+     */
+    public int getNumReadsReceived() { return reads_written; }
 }
