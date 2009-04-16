@@ -95,7 +95,7 @@ def main():
  
         if not os.path.exists(validationOutput) or OPTIONS.ignoreExistingFiles:
             analysis = "ValidatingPileup"
-            cmd = "java -jar ~/dev/GenomeAnalysisTK/trunk/dist/GenomeAnalysisTK.jar -T " + analysis + " -I " + subBAM + " -R " + ref + " -l INFO -S SILENT -U -B pileup SAMPileup " + pileup
+            cmd = "java -ea -Xmx1024m -jar ~/dev/GenomeAnalysisTK/trunk/dist/GenomeAnalysisTK.jar -T " + analysis + " -I " + subBAM + " -R " + ref + " -l INFO -S SILENT -U -B pileup SAMPileup " + pileup
             print cmd
             farm_commands.cmd(cmd, OPTIONS.farmQueue, outputFile=validationOutput)
 

@@ -5,10 +5,10 @@
 /broad/1KG/DCC/data/NA12878/alignment/NA12878.chrom6.SRP000032.2009_02.bam  /broad/1KG/reference/human_b36_both.fasta   6:1-10,000,00
 
 # daughter chrom 1 deep coverage
-/broad/1KG/DCC/data/NA12878/alignment/NA12878.chrom1.SRP000032.2009_02.bam  /broad/1KG/reference/human_b36_female.fasta *
+/broad/1KG/DCC/data/NA12878/alignment/NA12878.chrom1.SRP000032.2009_02.bam  /broad/1KG/reference/human_b36_both.fasta *
 
 # mother of trio individual low coverage
-/broad/1KG/DCC/data/NA12892/alignment/NA12892.SRP000031.2009_02.bam         /broad/1KG/reference/human_b36_female.fasta *
+/broad/1KG/DCC/data/NA12892/alignment/NA12892.SRP000031.2009_02.bam         /broad/1KG/reference/human_b36_both.fasta *
 
 # Pilot 3
 /broad/1KG/pilot3/sams/NA12892.bam /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta *

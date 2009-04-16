@@ -61,7 +61,10 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     
     public static int getContigIndex( final String contig ) {
         assert contigInfo.getSequenceIndex(contig) != -1 : "Unknown contig " + contig;
-        
+
+        if (contigInfo.getSequenceIndex(contig) == -1)
+            Utils.scareUser(String.format("Contig %s given as location, but this contig isn't present in the Fasta sequence dictionary", contig));
+
         return contigInfo.getSequenceIndex(contig);
     }
 
@@ -342,8 +345,9 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     //
     public final String getContig() {
         assert this.contigIndex != -1;
-        
+        assert contigInfo.getSequence(this.contigIndex) != null;
         assert contigInfo.getSequence(this.contigIndex).getSequenceName() != null;
+        
         return contigInfo.getSequence(this.contigIndex).getSequenceName();
         //if (contigInfo != null && contigInfo.getSequence(this.contigIndex) != null) {
         //    return contigInfo.getSequence(this.contigIndex).getSequenceName();
