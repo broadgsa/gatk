@@ -262,7 +262,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                 if ( WALK_ALL_LOCI ) {
                     // TODO: Temporary debugging code.  Activate the new debugging code only when the MicroManager
                     //                                  is not filtered.
-                    if( ENABLE_THREADING && REGION_STR == null ) {
+                    if( ENABLE_THREADING ) {
                         logger.warn("Preliminary threading support enabled");
                         microManager = new MicroManager( INPUT_FILE, REF_FILE_ARG, numThreads );
                         this.engine = microManager.getTraversalEngine();
