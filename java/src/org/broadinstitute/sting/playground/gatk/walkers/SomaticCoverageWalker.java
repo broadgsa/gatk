@@ -62,6 +62,7 @@ public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
         List<SAMRecord> reads = context.getReads();
         int tumorDepth = 0;
         int normalDepth = 0;
+        StringBuilder readNames = new StringBuilder();
         for ( int i = 0; i < reads.size(); i++ )
         {
             SAMRecord read = reads.get(i);
@@ -98,6 +99,7 @@ public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
             } else {
                 throw new RuntimeException("Unknown Sample Name: " + sample);
             }
+            readNames.append(read.getReadName()).append("+").append(read.getAlignmentStart()).append("+").append(read.getCigarString());
 
         }
 
@@ -129,9 +131,12 @@ public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
         }
         lastPosition = context.getPosition();
 
+        if (extendedOutput) {
+            sb.append(context.getPosition()).append(" ");
+        }
         sb.append((isTumorCovered && isNormalCovered)?"1":"0");
         if (extendedOutput) {
-            sb.append(" ").append(tumorDepth).append(" ").append(normalDepth);
+            sb.append(" ").append(tumorDepth).append(" ").append(normalDepth).append(" ").append(readNames);
         }
 
 //        sb.append(context.getContig()).append(" ");
