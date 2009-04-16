@@ -9,6 +9,8 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMReadGroupRecord;
 
 import java.util.List;
 import java.util.Formatter;
@@ -78,7 +80,14 @@ public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
             }
 
             String rg = (String) read.getAttribute("RG");
-            String sample = read.getHeader().getReadGroup(rg).getSample();
+            SAMFileHeader header = read.getHeader();
+            SAMReadGroupRecord readGroup = header.getReadGroup(rg);
+
+            if (readGroup == null) {
+                err.println("WARNING: read " + read.getReadName() + " belongs to read group " + rg + " which isn't in the header!");
+                continue;
+            }
+            String sample = readGroup.getSample();
 
 
 
