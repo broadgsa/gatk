@@ -118,21 +118,30 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
     }
 
     public ReferenceSequence getSequence( String contig ) {
-        return getSubsequenceAt( contig, 0, (int)index.getIndexEntry(contig).getSize() );
+        return getSubsequenceAt( contig, 0, (int)index.getIndexEntry(contig).getSize()-1 );
     }
 
-    public ReferenceSequence getSubsequenceAt( String contig, int pos, int length ) {
+    public ReferenceSequence getSubsequenceAt( String contig, long start, long stop ) {
+        if(start > stop)
+            throw new PicardException(String.format("Malformed query; start point %d lies after end point %d",start,stop));
+        if(start > Integer.MAX_VALUE)
+            throw new PicardException("Due to current ReferenceSequence limitations, a start point larger than Integer.MAX_VALUE cannot be loaded.");
+        if(stop - start + 1 > Integer.MAX_VALUE)
+            throw new PicardException("Due to current ReferenceSequence limitations, a region larger than Integer.MAX_VALUE cannot be loaded.");
+
         FastaSequenceIndexEntry indexEntry = index.getIndexEntry(contig);
 
-        if(pos + length - 1 > indexEntry.getSize())
+        if(stop > indexEntry.getSize())
             throw new PicardException("Query asks for data past end of contig");
+
+        int length = (int)(stop - start + 1);
 
         final int basesPerLine = indexEntry.getBasesPerLine();
         final int bytesPerLine = indexEntry.getBytesPerLine();
 
         // Start reading at the closest start-of-line to our data.
-        long readStart = indexEntry.getLocation() + (pos / basesPerLine) * bytesPerLine;
-        int dataOfInterestStart = pos % basesPerLine;
+        long readStart = indexEntry.getLocation() + (start / basesPerLine) * bytesPerLine;
+        int dataOfInterestStart = (int)(start % basesPerLine);
 
         byte[] accumulator = new byte[length];
         int nextAccumulatorSlot = 0;        
@@ -158,7 +167,7 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
             dataOfInterestStart = 0;
         }
 
-        return new ReferenceSequence( contig, pos, accumulator );
+        return new ReferenceSequence( contig, (int)start, accumulator );
     }
 
     /**
