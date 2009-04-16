@@ -1,18 +1,17 @@
 package org.broadinstitute.sting.gatk.dataSources.providers;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.gatk.iterators.LocusIterator;
-import org.broadinstitute.sting.gatk.iterators.LocusIteratorByHanger;
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
-import org.apache.log4j.Logger;
-import net.sf.samtools.SAMRecord;
-
-import java.util.Iterator;
-import java.util.ArrayList;
-
 import edu.mit.broad.picard.filter.FilteringIterator;
 import edu.mit.broad.picard.filter.SamRecordFilter;
+import net.sf.samtools.SAMRecord;
+import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.iterators.LocusIterator;
+import org.broadinstitute.sting.gatk.iterators.LocusIteratorByHanger;
+import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
+import org.broadinstitute.sting.utils.GenomeLoc;
+
+import java.util.ArrayList;
+import java.util.Iterator;
 
 /**
  * Created by IntelliJ IDEA.
@@ -27,7 +26,7 @@ public class LocusContextProvider {
     // What's the last locus accessed?  Used for sanity checking.
     private GenomeLoc lastLoc = null;
     private LocusIterator loci;
-
+    private LocusContext locus;
     protected static Logger logger = Logger.getLogger(LocusContextProvider.class);
 
     public LocusContextProvider( Iterator<SAMRecord> reads ) {
@@ -60,9 +59,11 @@ public class LocusContextProvider {
         if ( ! locusIter.hasNext() )
             return null;
 
-        LocusContext locus = locusIter.next();
+        if (locus == null) {
+            locus = locusIter.next();
+        }
 
-        while ( ! target.containsP(locus.getLocation()) && locusIter.hasNext() ) {
+        while (target.isPast(locus.getLocation()) && locusIter.hasNext() ) {
             logger.debug(String.format("  current locus is %s vs %s => %d", locus.getLocation(), target, locus.getLocation().compareTo(target)));
             locus = locusIter.next();
         }
