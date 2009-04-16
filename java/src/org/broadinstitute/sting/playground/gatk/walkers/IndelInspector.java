@@ -1,5 +1,9 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
@@ -23,18 +27,22 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
 
     private int discarded_cigar_count = 0;
     private int discarded_long_read_count = 0;
+    private int discarded_maxerr_count = 0;
+    private int unmapped_read_count = 0;
+    private int total_reads = 0;
     private IndelRecordPileCollector collector;
     private PileBuilder pileBuilder = null;
     private PassThroughWriter ptWriter;
     private String cur_contig = null;
-
-    public boolean filter(LocusContext context, SAMRecord read) {
-        // we only want aligned reads
-        return !read.getReadUnmappedFlag();
-    }
+    
+    
+ //   public boolean filter(LocusContext context, SAMRecord read) {
+  //      // we only want aligned reads
+  //      return !read.getReadUnmappedFlag();
+ //   }
 
     public void initialize() {
-
+     	
         if ( ERR_MODE != null && ! ERR_MODE.equals("MM") && ! ERR_MODE.equals("MG") && ! ERR_MODE.equals("ERR") && ! ERR_MODE.equals("MC") ) {
             err.println("Unknown value specified for ERR_MODE: "+ERR_MODE+ "... skipping it.");
             ERR_MODE = null;
@@ -68,13 +76,20 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
 
     public Integer map(LocusContext context, SAMRecord read) {
 
+    	total_reads++;
+ 
+    	if ( read.getReadUnmappedFlag() ) {
+    		unmapped_read_count++;
+    		ptWriter.receive(read); // make sure we still write the read to the output, we do not want to lose data!
+    		return 0;
+    	}
+    	
         ReferenceSequence contig_seq = context.getReferenceContig();
         if ( read.getReferenceName() != cur_contig) {
             cur_contig = read.getReferenceName();
             out.println("Contig "+cur_contig);
             String refstr = new String(contig_seq.getBases());
-            collector.setReferenceSequence(refstr);
-            if ( !CONTROL_RUN )
+             if ( !CONTROL_RUN )
                 pileBuilder.setReferenceSequence(refstr);
             out.println("loaded contig "+cur_contig+" (index="+read.getReferenceIndex()+"); length="+contig_seq.getBases().length+" tst="+contig_seq.toString());
         }
@@ -82,6 +97,7 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
         //    if ( cur_contig.equals("chrM") || GenomeLoc.compareContigs(cur_contig,"chrY") > 0 ) continue; // skip chrM and unplaced contigs for now
 
         if ( MAX_READ_LENGTH > 0 && read.getReadLength() > MAX_READ_LENGTH ) {
+        		ptWriter.receive(read);
                 discarded_long_read_count++;
                 return 0;
         }
@@ -101,6 +117,7 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
             }
         }
         if ( ! cigar_acceptable ) {
+        		ptWriter.receive(read);
                 discarded_cigar_count++;
                 return 0;
         }
@@ -124,8 +141,11 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
             else if ( ERR_MODE.equals("MC") ) err = AlignmentUtils.numMismatches(read,contig_seq);
             else if ( ERR_MODE.equals("ERR")) err = numErrors(read,contig_seq);
             else if ( ERR_MODE.equals("MG"))  err = numMismatchesGaps(read,contig_seq);
-            if ( err > MAX_ERRS )
+            if ( err > MAX_ERRS ) {
+            	ptWriter.receive(read);
+            	discarded_maxerr_count++;
                 return 0;
+            }
         }
 
         collector.receive(read);
@@ -204,15 +224,23 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
     }
 
     public void onTraversalDone(Integer result) {
+    	collector.close(); // write the reads collector might be still holding
+    	
         if ( ! CONTROL_RUN ) {
             pileBuilder.printStats();
             pileBuilder.close();
         }
         out.println("done.");
+        out.println("Total reads processed: "+ total_reads);
+        out.println("Unmodified: "+ ptWriter.getNumReadsReceived());
+        if ( pileBuilder != null) out.println("Written into realigned piles: "+ pileBuilder.getNumReadsWritten());
+        if ( pileBuilder != null) out.println("Received for realignment: "+ pileBuilder.getNumReadsReceived());
         out.println("Discarded reads with non-M,I,D cigar elements: "+ discarded_cigar_count);
         out.println("Discarded long reads (above "+MAX_READ_LENGTH+" bp): "+ discarded_long_read_count);
+        out.println("Discarded reads with error counts exceeding the threshold: "+ discarded_maxerr_count);
+        out.println("Unmapped reads (passed through to the output): "+ unmapped_read_count);
         out.println();
         collector.printLengthHistograms();
-        ptWriter.close();        
+        ptWriter.close();    
     }
 }
