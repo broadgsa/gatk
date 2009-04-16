@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
+import org.broadinstitute.sting.utils.StingException;
+
 /**
  *
  * User: aaron
@@ -26,7 +28,7 @@ package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
  * <p/>
  * Generate this on a simple data source load exception
  */
-public class SimpleDataSourceLoadException extends Exception {
+public class SimpleDataSourceLoadException extends StingException {
     public SimpleDataSourceLoadException(String msg) {
         super(msg);
     }

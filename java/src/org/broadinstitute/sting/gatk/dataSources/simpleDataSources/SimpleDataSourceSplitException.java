@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
+import org.broadinstitute.sting.utils.StingException;
+
 /**
  *
  * User: aaron
@@ -26,7 +28,7 @@ package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
  * <p/>
  * A descriptions should go here. Blame aaron if it's missing.
  */
-public class SimpleDataSourceSplitException extends Exception {
+public class SimpleDataSourceSplitException extends StingException {
     public SimpleDataSourceSplitException(String msg) {
         super(msg);
     }

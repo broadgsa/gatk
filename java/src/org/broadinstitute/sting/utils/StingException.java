@@ -1,4 +1,4 @@
-package org.broadinstitute.sting;
+package org.broadinstitute.sting.utils;
 
 /**
  *
@@ -30,6 +30,10 @@ package org.broadinstitute.sting;
 public class StingException extends Exception {
     public StingException(String msg) {
         super(msg);
+    }
+
+    public StingException(String message, Throwable throwable) {
+        super(message, throwable);
     }
 }
 
