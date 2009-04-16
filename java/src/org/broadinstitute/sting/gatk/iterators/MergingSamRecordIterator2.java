@@ -111,6 +111,9 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
 
     /** Returns true if any of the underlying iterators has more records, otherwise false. */
     public synchronized boolean hasNext() {
+        if (!initialized) {
+            lazyInitialization();
+        }
         return !this.pq.isEmpty();
     }
 
