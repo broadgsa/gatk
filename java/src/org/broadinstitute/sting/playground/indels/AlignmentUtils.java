@@ -21,18 +21,11 @@ public class AlignmentUtils {
      * specified in the record <code>r</code>. Indels are completely <i>ignored</i> by this method:
      * only base mismatches in the alignment segments where both sequences are present are counted.
      * @param r
-     * @param ref
+     * @param refseq
      * @return
      */
-    public static int numMismatches(SAMRecord r, ReferenceSequence ref) {
-        return numMismatches(r, ref.getBases());
-    }
-
-    public static int numMismatches(SAMRecord r, String ref ) {
-    	return numMismatches(r,ref.getBytes());
-    }
-    
-    public static int numMismatches(SAMRecord r, byte[] ref) {
+    public static int numMismatches(SAMRecord r, ReferenceSequence refseq) {
+        byte[] ref = refseq.getBases();
         if ( r.getReadUnmappedFlag() ) return 1000000;
         int i_ref = r.getAlignmentStart()-1; // position on the ref
         int i_read = 0;                    // position on the read
@@ -46,6 +39,34 @@ public class AlignmentUtils {
                         if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) == 'N' ) continue; // do not count N's ?
                         if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) !=
                              Character.toUpperCase((char)ref[i_ref]) ) mm_count++;
+                    }
+                    break;
+                case I: i_read += ce.getLength(); break;
+                case D: i_ref += ce.getLength(); break;
+                default: throw new RuntimeException("Unrecognized cigar element");
+            }
+
+        }
+        return mm_count;
+    }
+
+    // IMPORTANT NOTE: ALTHOUGH THIS METHOD IS EXTREMELY SIMILAR TO THE ONE ABOVE, WE NEED
+    // TWO SEPARATE IMPLEMENTATIONS IN ORDER TO PREVENT JAVA STRINGS FROM FORCING US TO
+    // PERFORM EXPENSIVE ARRAY COPYING WHEN TRYING TO GET A BYTE ARRAY...
+    public static int numMismatches(SAMRecord r, String ref ) {
+        if ( r.getReadUnmappedFlag() ) return 1000000;
+        int i_ref = r.getAlignmentStart()-1; // position on the ref
+        int i_read = 0;                    // position on the read
+        int mm_count = 0; // number of mismatches
+        Cigar c = r.getCigar();
+        for ( int k = 0 ; k < c.numCigarElements() ; k++ ) {
+            CigarElement ce = c.getCigarElement(k);
+            switch( ce.getOperator() ) {
+                case M:
+                    for ( int l = 0 ; l < ce.getLength() ; l++, i_ref++, i_read++ ) {
+                        if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) == 'N' ) continue; // do not count N's ?
+                        if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) !=
+                             Character.toUpperCase(ref.charAt(i_ref)) ) mm_count++;
                     }
                     break;
                 case I: i_read += ce.getLength(); break;
