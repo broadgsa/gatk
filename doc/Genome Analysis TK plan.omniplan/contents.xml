@@ -28,9 +28,9 @@
 			<key>GanttGroupShading</key>
 			<false/>
 			<key>GanttVisibleRect</key>
-			<string>{{1171, 292}, {1025, 950}}</string>
+			<string>{{1132, 0}, {1025, 950}}</string>
 			<key>OutlineVisibleRect</key>
-			<string>{{0, 292}, {789, 950}}</string>
+			<string>{{0, 0}, {789, 950}}</string>
 			<key>ScaleWidths</key>
 			<dict>
 				<key>Automatic</key>
@@ -179,7 +179,7 @@
 			<key>side</key>
 			<real>0.56861674785614014</real>
 			<key>window</key>
-			<string>{{47, 61}, {1838, 1087}}</string>
+			<string>{{48, 62}, {1838, 1087}}</string>
 		</dict>
 	</array>
 	<key>displaySeconds</key>
@@ -587,7 +587,7 @@
 	<key>taskDifferenceEngine</key>
 	<dict>
 		<key>nextId</key>
-		<integer>124</integer>
+		<integer>131</integer>
 	</dict>
 	<key>taskUserKeys</key>
 	<array/>
@@ -1191,6 +1191,8 @@
 				<integer>91</integer>
 				<integer>103</integer>
 				<integer>113</integer>
+				<integer>125</integer>
+				<integer>126</integer>
 				<integer>120</integer>
 			</array>
 			<key>objectId</key>
@@ -2431,14 +2433,20 @@
 					<real>1</real>
 				</dict>
 			</array>
+			<key>doneSeconds</key>
+			<real>115200</real>
 			<key>effort</key>
+			<real>115200</real>
+			<key>effortDone</key>
 			<real>115200</real>
 			<key>forcedStart</key>
 			<string>20090406130000</string>
 			<key>objectId</key>
 			<integer>113</integer>
 			<key>task</key>
-			<string>Implement sharded threading with MicroManager</string>
+			<string>Implement sharded single-threaded by reference traversal in with MicroManager</string>
+			<key>workDone</key>
+			<real>32</real>
 			<key>workSeconds</key>
 			<real>115200</real>
 			<key>workTime</key>
@@ -2526,6 +2534,49 @@
 			<key>workTime</key>
 			<real>55</real>
 		</dict>
+		<dict>
+			<key>assignments</key>
+			<array>
+				<dict>
+					<key>id</key>
+					<integer>2</integer>
+					<key>units</key>
+					<real>1</real>
+				</dict>
+			</array>
+			<key>doneSeconds</key>
+			<real>57600</real>
+			<key>effort</key>
+			<real>57600</real>
+			<key>effortDone</key>
+			<real>57600</real>
+			<key>forcedStart</key>
+			<string>20090413080000</string>
+			<key>objectId</key>
+			<integer>125</integer>
+			<key>task</key>
+			<string>Create and test stateless fasta file reader</string>
+			<key>workDone</key>
+			<real>16</real>
+			<key>workSeconds</key>
+			<real>57600</real>
+			<key>workTime</key>
+			<real>16</real>
+		</dict>
+		<dict>
+			<key>effort</key>
+			<real>86400</real>
+			<key>forcedStart</key>
+			<string>20090420081500</string>
+			<key>objectId</key>
+			<integer>126</integer>
+			<key>task</key>
+			<string>Integrate parallelism code into sharded MicroManager</string>
+			<key>workSeconds</key>
+			<real>86400</real>
+			<key>workTime</key>
+			<real>24</real>
+		</dict>
 	</array>
 	<key>topResources</key>
 	<array>
@@ -2536,7 +2587,7 @@
 		<integer>-1</integer>
 	</array>
 	<key>uuid</key>
-	<string>725F0664-54C1-4235-9EB2-0FD9D2F42106</string>
+	<string>576AFD44-5E1C-4722-A13C-81450FCA5F4F</string>
 	<key>version</key>
 	<integer>2</integer>
 </dict>
