@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodSAMPileup;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.Pileup;
 import org.broadinstitute.sting.utils.BasicPileup;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 
@@ -16,21 +17,27 @@ import org.broadinstitute.sting.utils.ReadBackedPileup;
  * To change this template use File | Settings | File Templates.
  */
 public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats> {
-    @Argument(fullName="verbose",required=false,defaultValue="false")
-    public boolean VERBOSE;
+    @Argument(fullName="continue_after_error",required=false,defaultValue="false")
+    public boolean CONTINUE_AFTER_AN_ERROR;
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-
-        rodSAMPileup truePileup = (rodSAMPileup)tracker.lookup("pileup", null);
-        if ( truePileup == null )
-            Utils.scareUser(String.format("No pileup data available at %s given GATK's output of %s -- this walker requires samtools pileup data over all bases",
-                    context.getLocation(), pileup.getBases()));
-
-        String pileupDiff = BasicPileup.pileupDiff(pileup, truePileup);
-        if ( pileupDiff != null ) {
-            out.printf("%s vs. %s%n", pileup.getPileupString(), truePileup.getPileupString());
-            throw new RuntimeException(String.format("Pileups aren't equal: %s", pileupDiff));
+        Pileup pileup = new ReadBackedPileup(ref, context);
+        Pileup truePileup = (Pileup)tracker.lookup("pileup", null);
+        
+        if ( truePileup == null ) {
+            System.out.printf("No truth pileup data available at %s%n", pileup.getPileupString());
+            if ( ! CONTINUE_AFTER_AN_ERROR ) {
+                Utils.scareUser(String.format("No pileup data available at %s given GATK's output of %s -- this walker requires samtools pileup data over all bases",
+                                context.getLocation(), pileup.getBases()));
+            }
+        } else {
+            String pileupDiff = BasicPileup.pileupDiff(pileup, truePileup);
+            if ( pileupDiff != null ) {
+                out.printf("%s vs. %s%n", pileup.getPileupString(), truePileup.getPileupString());
+                if ( ! CONTINUE_AFTER_AN_ERROR ) {
+                    throw new RuntimeException(String.format("Pileups aren't equal: %s", pileupDiff));
+                }
+            }
         }
 
         return pileup.size();
