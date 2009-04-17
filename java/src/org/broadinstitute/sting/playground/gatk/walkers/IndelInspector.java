@@ -49,6 +49,7 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
         }
 
         SAMFileHeader header = getToolkit().getSamReader().getFileHeader();
+        header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
         ptWriter = new PassThroughWriter(OUT1, header);
         if ( ! CONTROL_RUN ) pileBuilder = new PileBuilder(OUT2, header, ptWriter);
 
