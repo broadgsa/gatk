@@ -251,6 +251,10 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         try {
             LocusWalker<?, ?> walker = (LocusWalker<?, ?>) my_walker;
 
+            if ( REF_FILE_ARG == null )
+                Utils.scareUser(String.format("Locus-based traversals require a reference file but none was given"));
+
+
             if ( INPUT_FILE == null ) {
                 if ( walker.requiresReads() )
                     Utils.scareUser(String.format("Analysis %s requires reads, but none were given", Analysis_Name));

@@ -19,6 +19,7 @@ public class TraversalStatistics {
     public static int nNotPrimary;
     public static int nBadAlignments;
     public static int nSkippedIndels;
+    public static int nDuplicates;
 
     static {
         reset();
@@ -32,5 +33,6 @@ public class TraversalStatistics {
         nNotPrimary = 0;
         nBadAlignments = 0;
         nSkippedIndels = 0;
+        nDuplicates = 0;
     }
 }
