@@ -53,7 +53,7 @@ public class Utils {
      * @return new list built from elements of <c> passing the filter
      * @see #filterInPlace(Predicate pred, Collection c)
      */
-    public static <T> List<T> filter(Predicate pred, Collection<T> c) {
+    public static <T> List<T> filter(Predicate<? super T> pred, Collection<T> c) {
         List<T> filtered = new ArrayList<T>();
         // loop through all the elements in c
         for (T obj : c) {
@@ -84,7 +84,7 @@ public class Utils {
      * @return reference to the same (modified) collection <c>
      * @see #filter(Predicate pred, Collection c)
      */
-    public static <T> Collection<T> filterInPlace(Predicate pred, Collection<T> c) {
+    public static <T> Collection<T> filterInPlace(Predicate<? super T> pred, Collection<T> c) {
         if (c instanceof ArrayList) {
             // arraylists are a special case that we know how to process efficiently
             // (generic implementation below removes one element at a time and is not well suited
@@ -237,15 +237,15 @@ public class Utils {
     // Java Generics can't do primitive types, so I had to do this the simplistic way
 
     public static Integer[] SortPermutation(final int[] A) {
-        class comparator implements Comparator {
-            public int compare(Object a, Object b) {
-                if (A[(Integer) a] < A[(Integer) b]) {
+        class comparator implements Comparator<Integer> {
+            public int compare(Integer a, Integer b) {
+                if (A[a.intValue()] < A[b.intValue()]) {
                     return -1;
                 }
-                if (A[(Integer) a] == A[(Integer) b]) {
+                if (A[a.intValue()] == A[b.intValue()]) {
                     return 0;
                 }
-                if (A[(Integer) a] > A[(Integer) b]) {
+                if (A[a.intValue()] > A[b.intValue()]) {
                     return 1;
                 }
                 return 0;
@@ -260,15 +260,15 @@ public class Utils {
     }
 
     public static Integer[] SortPermutation(final double[] A) {
-        class comparator implements Comparator {
-            public int compare(Object a, Object b) {
-                if (A[(Integer) a] < A[(Integer) b]) {
+        class comparator implements Comparator<Integer> {
+            public int compare(Integer a, Integer b) {
+                if (A[a.intValue()] < A[ b.intValue() ]) {
                     return -1;
                 }
-                if (A[(Integer) a] == A[(Integer) b]) {
+                if (A[ a.intValue() ] == A[ b.intValue() ]) {
                     return 0;
                 }
-                if (A[(Integer) a] > A[(Integer) b]) {
+                if (A[ a.intValue() ] > A[ b.intValue() ]) {
                     return 1;
                 }
                 return 0;
@@ -350,7 +350,12 @@ public class Utils {
         return ans;
     }
 
-/* TEST ME
+    
+    public static double percentage(double x, double base) { return (base> 0 ? (x/base)*100.0 : 0); }
+    public static double percentage(int x, int base) { return (base> 0 ? ((double)x/(double)base)*100.0 : 0); }
+    public static double percentage(long x, long base) { return (base> 0 ? ((double)x/(double)base)*100.0 : 0); }
+
+    /* TEST ME
     public static void main(String[] argv) {
         List<Integer> l1 = new LinkedList<Integer>();
         List<Integer> l2 = new ArrayList<Integer>();
