@@ -28,9 +28,9 @@
 			<key>GanttGroupShading</key>
 			<false/>
 			<key>GanttVisibleRect</key>
-			<string>{{282, 202}, {1025, 950}}</string>
+			<string>{{1171, 292}, {1025, 950}}</string>
 			<key>OutlineVisibleRect</key>
-			<string>{{0, 202}, {789, 950}}</string>
+			<string>{{0, 292}, {789, 950}}</string>
 			<key>ScaleWidths</key>
 			<dict>
 				<key>Automatic</key>
@@ -86,7 +86,7 @@
 			<key>calendarController</key>
 			<dict>
 				<key>OutlineVisibleRect</key>
-				<string>{{0, 0}, {571, 830}}</string>
+				<string>{{0, 0}, {571, 747}}</string>
 				<key>activeColumnIdentifiers</key>
 				<array>
 					<string>IM</string>
@@ -130,7 +130,7 @@
 				<key>DayWidth</key>
 				<real>25</real>
 				<key>OutlineVisibleRect</key>
-				<string>{{0, 0}, {776, 1033}}</string>
+				<string>{{0, 0}, {776, 950}}</string>
 				<key>ScaleWidths</key>
 				<dict>
 					<key>Automatic</key>
@@ -153,7 +153,7 @@
 				<key>SelectedScale</key>
 				<string>Automatic</string>
 				<key>TimelineVisibleRect</key>
-				<string>{{-1467, 0}, {995, 1033}}</string>
+				<string>{{-1467, 0}, {995, 950}}</string>
 				<key>activeColumnIdentifiers</key>
 				<array>
 					<string>IM</string>
@@ -197,7 +197,7 @@
 	<key>displayTimes</key>
 	<true/>
 	<key>endDate</key>
-	<string>20090410 12:00</string>
+	<string>20090424 15:45</string>
 	<key>flatNumbering</key>
 	<false/>
 	<key>groupTaskStyle</key>
@@ -587,7 +587,7 @@
 	<key>taskDifferenceEngine</key>
 	<dict>
 		<key>nextId</key>
-		<integer>117</integer>
+		<integer>124</integer>
 	</dict>
 	<key>taskUserKeys</key>
 	<array/>
@@ -1187,9 +1187,11 @@
 		<dict>
 			<key>children</key>
 			<array>
+				<integer>121</integer>
 				<integer>91</integer>
 				<integer>103</integer>
 				<integer>113</integer>
+				<integer>120</integer>
 			</array>
 			<key>objectId</key>
 			<integer>32</integer>
@@ -1285,8 +1287,14 @@
 			<real>8</real>
 		</dict>
 		<dict>
+			<key>doneSeconds</key>
+			<real>57600</real>
 			<key>effort</key>
-			<real>28800</real>
+			<real>57600</real>
+			<key>effortDone</key>
+			<real>57600</real>
+			<key>forcedStart</key>
+			<string>20090413080000</string>
 			<key>objectId</key>
 			<integer>38</integer>
 			<key>style</key>
@@ -1305,10 +1313,12 @@
 			</dict>
 			<key>task</key>
 			<string>Internal bug tracking -- catching errors and posting them to data for tracking?</string>
+			<key>workDone</key>
+			<real>16</real>
 			<key>workSeconds</key>
-			<real>28800</real>
+			<real>57600</real>
 			<key>workTime</key>
-			<real>8</real>
+			<real>16</real>
 		</dict>
 		<dict>
 			<key>effort</key>
@@ -1947,17 +1957,17 @@
 				</dict>
 			</array>
 			<key>doneSeconds</key>
-			<real>16128</real>
+			<real>28800</real>
 			<key>effort</key>
 			<real>28800</real>
 			<key>effortDone</key>
-			<real>16128</real>
+			<real>28800</real>
 			<key>objectId</key>
 			<integer>71</integer>
 			<key>task</key>
 			<string>Logging system support</string>
 			<key>workDone</key>
-			<real>4.4800000190734863</real>
+			<real>8</real>
 			<key>workSeconds</key>
 			<real>28800</real>
 			<key>workTime</key>
@@ -2185,7 +2195,11 @@
 					<real>1</real>
 				</dict>
 			</array>
+			<key>doneSeconds</key>
+			<real>172800</real>
 			<key>effort</key>
+			<real>172800</real>
+			<key>effortDone</key>
 			<real>172800</real>
 			<key>forcedStart</key>
 			<string>20090323080000</string>
@@ -2193,6 +2207,8 @@
 			<integer>91</integer>
 			<key>task</key>
 			<string>Separate traversal type, data sources, and execution managers into separate object hierarchy</string>
+			<key>workDone</key>
+			<real>48</real>
 			<key>workSeconds</key>
 			<real>172800</real>
 			<key>workTime</key>
@@ -2247,16 +2263,11 @@
 			<real>8</real>
 		</dict>
 		<dict>
-			<key>assignments</key>
-			<array>
-				<dict>
-					<key>id</key>
-					<integer>3</integer>
-					<key>units</key>
-					<real>1</real>
-				</dict>
-			</array>
+			<key>doneSeconds</key>
+			<real>28800</real>
 			<key>effort</key>
+			<real>28800</real>
+			<key>effortDone</key>
 			<real>28800</real>
 			<key>objectId</key>
 			<integer>97</integer>
@@ -2271,33 +2282,26 @@
 			</array>
 			<key>task</key>
 			<string>General discovery + genotyping concordance tool</string>
+			<key>workDone</key>
+			<real>8</real>
 			<key>workSeconds</key>
 			<real>28800</real>
 			<key>workTime</key>
 			<real>8</real>
 		</dict>
 		<dict>
-			<key>assignments</key>
-			<array>
-				<dict>
-					<key>id</key>
-					<integer>3</integer>
-					<key>units</key>
-					<real>1</real>
-				</dict>
-			</array>
 			<key>doneSeconds</key>
-			<real>17280</real>
+			<real>57600</real>
 			<key>effort</key>
 			<real>57600</real>
 			<key>effortDone</key>
-			<real>17280</real>
+			<real>57600</real>
 			<key>objectId</key>
 			<integer>98</integer>
 			<key>task</key>
 			<string>Development and testing of ByReference traversal</string>
 			<key>workDone</key>
-			<real>4.8000001907348633</real>
+			<real>16</real>
 			<key>workSeconds</key>
 			<real>57600</real>
 			<key>workTime</key>
@@ -2418,6 +2422,15 @@
 			<real>8</real>
 		</dict>
 		<dict>
+			<key>assignments</key>
+			<array>
+				<dict>
+					<key>id</key>
+					<integer>2</integer>
+					<key>units</key>
+					<real>1</real>
+				</dict>
+			</array>
 			<key>effort</key>
 			<real>115200</real>
 			<key>forcedStart</key>
@@ -2431,6 +2444,88 @@
 			<key>workTime</key>
 			<real>32</real>
 		</dict>
+		<dict>
+			<key>assignments</key>
+			<array>
+				<dict>
+					<key>id</key>
+					<integer>3</integer>
+					<key>units</key>
+					<real>1</real>
+				</dict>
+			</array>
+			<key>doneSeconds</key>
+			<real>139950</real>
+			<key>effort</key>
+			<real>279900</real>
+			<key>effortDone</key>
+			<real>139950</real>
+			<key>forcedStart</key>
+			<string>20090413090000</string>
+			<key>objectId</key>
+			<integer>120</integer>
+			<key>prerequisites</key>
+			<array>
+				<dict>
+					<key>id</key>
+					<integer>113</integer>
+					<key>kind</key>
+					<integer>2</integer>
+				</dict>
+				<dict>
+					<key>id</key>
+					<integer>121</integer>
+					<key>kind</key>
+					<integer>2</integer>
+				</dict>
+			</array>
+			<key>task</key>
+			<string>Unit test of the shattering and parallel prototype 0 code </string>
+			<key>workDone</key>
+			<real>38.875</real>
+			<key>workSeconds</key>
+			<real>279900</real>
+			<key>workTime</key>
+			<real>77.75</real>
+		</dict>
+		<dict>
+			<key>assignments</key>
+			<array>
+				<dict>
+					<key>id</key>
+					<integer>3</integer>
+					<key>units</key>
+					<real>1</real>
+				</dict>
+			</array>
+			<key>doneSeconds</key>
+			<real>172260</real>
+			<key>effort</key>
+			<real>198000</real>
+			<key>effortDone</key>
+			<real>172260</real>
+			<key>forcedStart</key>
+			<string>20090402080000</string>
+			<key>objectId</key>
+			<integer>121</integer>
+			<key>prerequisites</key>
+			<array>
+				<dict>
+					<key>id</key>
+					<integer>91</integer>
+					<key>kind</key>
+					<integer>2</integer>
+				</dict>
+			</array>
+			<key>task</key>
+			<string>Create read and loci order shattering strategies</string>
+			<key>workDone</key>
+			<real>47.849998474121094</real>
+			<key>workSeconds</key>
+			<real>198000</real>
+			<key>workTime</key>
+			<real>55</real>
+		</dict>
 	</array>
 	<key>topResources</key>
 	<array>
@@ -2441,7 +2536,7 @@
 		<integer>-1</integer>
 	</array>
 	<key>uuid</key>
-	<string>8BA50AEB-226E-4074-8320-945275D41D57</string>
+	<string>725F0664-54C1-4235-9EB2-0FD9D2F42106</string>
 	<key>version</key>
 	<integer>2</integer>
 </dict>
