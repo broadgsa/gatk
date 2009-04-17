@@ -63,7 +63,8 @@ public class TraverseByReads extends TraversalEngine {
                 verifyingSamReadIter.setCheckOrderP(false);
         }
 
-        verifySortOrder(refFileName != null || walker.requiresOrderedReads());
+        if ( samReader != null )
+            verifySortOrder(refFileName != null || walker.requiresOrderedReads());
 
         // Initialize the walker
         walker.initialize();
