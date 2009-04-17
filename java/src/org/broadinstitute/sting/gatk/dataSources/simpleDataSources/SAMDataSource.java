@@ -118,9 +118,9 @@ public class SAMDataSource implements SimpleDataSource {
 
         // we do different things for locus and read modes
         if (locusMode) {
-            iter.queryOverlapping(location.getContig(), (int) location.getStart(), (int) location.getStop());
+            iter.queryOverlapping(location.getContig(), (int) location.getStart(), (int) location.getStop()+1);
         } else {
-            iter.queryContained(location.getContig(), (int) location.getStart(), (int) location.getStop());
+            iter.queryContained(location.getContig(), (int) location.getStart(), (int) location.getStop()+1);
         }
 
         // return the iterator
