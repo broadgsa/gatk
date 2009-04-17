@@ -474,7 +474,7 @@ public abstract class TraversalEngine {
      * unmapped reads, non-primary reads, unaligned reads, and those with indels.  We should
      * really change this to handle indel containing reads.
      */
-    class locusStreamFilterFunc implements SamRecordFilter {
+    public static class locusStreamFilterFunc implements SamRecordFilter {
         SAMRecord lastRead = null;
         public boolean filterOut(SAMRecord rec) {
             boolean result = false;

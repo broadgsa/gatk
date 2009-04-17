@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByHanger;
 import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
+import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ public class LocusContextProvider {
     protected static Logger logger = Logger.getLogger(LocusContextProvider.class);
 
     public LocusContextProvider( Iterator<SAMRecord> reads ) {
-        this.reads = new FilteringIterator(reads, new locusStreamFilterFunc());
+        this.reads = new FilteringIterator(reads, new TraversalEngine.locusStreamFilterFunc());
         // prepare the iterator by loci from reads
         loci = new LocusIteratorByHanger(this.reads);
     }
@@ -70,44 +71,6 @@ public class LocusContextProvider {
 
         logger.debug(String.format("  returning %s", locus.getLocation()));
         return locus;
-    }
-
-    /**
-     * Class to filter out un-handle-able reads from the stream.  We currently are skipping
-     * unmapped reads, non-primary reads, unaligned reads, and those with indels.  We should
-     * really change this to handle indel containing reads.
-     * TODO: Update TraversalEngine with our runtime stats.
-     */
-    private class locusStreamFilterFunc implements SamRecordFilter {
-        SAMRecord lastRead = null;
-        public boolean filterOut(SAMRecord rec) {
-            boolean result = false;
-            String why = "";
-            if (rec.getReadUnmappedFlag()) {
-                TraversalStatistics.nUnmappedReads++;
-                result = true;
-                why = "Unmapped";
-            } else if (rec.getNotPrimaryAlignmentFlag()) {
-                TraversalStatistics.nNotPrimary++;
-                result = true;
-                why = "Not Primary";
-            } else if (rec.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START) {
-                TraversalStatistics.nBadAlignments++;
-                result = true;
-                why = "No alignment start";
-            }
-            else {
-                result = false;
-            }
-
-            if (result) {
-                //nSkippedReads++;
-                //System.out.printf("  [filter] %s => %b %s", rec.getReadName(), result, why);
-            } else {
-                //nReads++;
-            }
-            return result;
-        }
     }
 
 }
