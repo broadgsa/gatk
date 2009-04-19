@@ -46,7 +46,14 @@ public class AlleleFrequencyEstimate {
         if( Double.isNaN(pBest)) { System.out.printf("pBest is NaN\n"); }
         if( Double.isNaN(pRef)) { System.out.printf("pRef is NaN\n"); }
 
-        if( Double.isInfinite(lodVsRef)) { System.out.printf("lodVsRef is Infinite\n"); }
+        if( Double.isInfinite(lodVsRef)) 
+        { 
+            System.out.printf("lodVsRef is Infinite: %c %s\n", ref, bases); 
+            for (int i = 0; i < posteriors.length; i++)
+            {
+                System.out.printf("POSTERIOR %d %f\n", i, posteriors[i]);
+            }
+        }
         if( Double.isInfinite(lodVsNextBest)) { System.out.printf("lodVsNextBest is Infinite\n"); }
         if( Double.isInfinite(qhat)) { System.out.printf("qhat is Infinite\n"); }
         if( Double.isInfinite(qstar)) { System.out.printf("qstar is Infinite\n"); }

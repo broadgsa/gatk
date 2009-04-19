@@ -183,11 +183,12 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
                     {
 	                    for (int j = 0; j <= shallow_calls[i].N; j++)
 	                    {
-	                        //System.out.printf("DBG3: %d %f %d\n", j, shallow_calls[i].posteriors[j], shallow_calls[i].N);
-	                        EM_sum += shallow_calls[i].posteriors[j] * (double)j;
-	                        EM_sum += shallow_calls[i].N;
+                            if (Double.isInfinite(shallow_calls[i].posteriors[j])) { shallow_calls[i].posteriors[j] = -10000; }
+	                        System.out.printf("DBG3: %d %f %d\n", j, shallow_calls[i].posteriors[j], shallow_calls[i].N);
+	                        EM_sum += Math.pow(10,shallow_calls[i].posteriors[j]) * (double)j;
+	                        EM_N   += shallow_calls[i].N;
 	                    }
-                    }
+                    }   
 
 	            }
 	        }
@@ -195,6 +196,8 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
 	        shallow_calls_fraction_correct = correct_shallow_calls / total_shallow_calls;
             trajectory[iterations+1] = EM_alt_freq;
             likelihood_trajectory[iterations+1] = likelihood/(double)total_shallow_calls;
+
+            System.out.printf("DBGTRAJ %f %f %f %f\n", EM_sum, EM_N, trajectory[iterations], trajectory[iterations+1]);
         }
 
         // 7. Compare to estimation from the pool.
