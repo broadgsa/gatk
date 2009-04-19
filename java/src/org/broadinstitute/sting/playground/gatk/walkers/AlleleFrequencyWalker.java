@@ -330,7 +330,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                 posteriors[qstar_N] = posterior;
 
                 //System.out.format("DBG %s %.2f %.2f %5.2f %5.2f %5.2f %5.2f %5.2f %d %d %s\n", 
-                        location, q, qstar, pDq, pqG, pG, prior_alt_frequency, posterior, (int)(q*bases.length), (int)((1.0-q)*bases.length), new String(bases));
+                //        location, q, qstar, pDq, pqG, pG, prior_alt_frequency, posterior, (int)(q*bases.length), (int)((1.0-q)*bases.length), new String(bases));
             }
         }
 
