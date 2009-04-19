@@ -27,6 +27,7 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
     @Argument(required=false, shortName="downsample", defaultValue="4") public int DOWNSAMPLE;
     @Argument(required=false, shortName="downsample_noise", defaultValue="3") public int DOWNSAMPLE_NOISE;
     @Argument(required=false, shortName="log_metrics", defaultValue="true") public boolean LOG_METRICS;
+    @Argument(required=false, shortName="fractional_counts", defaultValue="false") public boolean FRACTIONAL_COUNTS;
     
     private Random random;
 
@@ -167,11 +168,27 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
 	                                        shallow_calls[i].lodVsRef);
                     */
 	
-	                if (deep_genotype.equals(shallow_genotype)) { correct_shallow_calls += 1; }
+	                if (deep_genotype.equals(shallow_genotype)) 
+                    { 
+                        correct_shallow_calls += 1; 
+                    }
 	                total_shallow_calls += 1;
 	                   
-		            EM_sum += shallow_calls[i].emperical_allele_frequency() * shallow_calls[i].N;
-		            EM_N        += 2;
+                    if (! FRACTIONAL_COUNTS)
+                    {
+			            EM_sum += shallow_calls[i].emperical_allele_frequency() * shallow_calls[i].N;
+			            EM_N   += shallow_calls[i].N;
+                    }
+                    else
+                    {
+	                    for (int j = 0; j <= shallow_calls[i].N; j++)
+	                    {
+	                        //System.out.printf("DBG3: %d %f %d\n", j, shallow_calls[i].posteriors[j], shallow_calls[i].N);
+	                        EM_sum += shallow_calls[i].posteriors[j] * (double)j;
+	                        EM_sum += shallow_calls[i].N;
+	                    }
+                    }
+
 	            }
 	        }
 	        EM_alt_freq = EM_sum / EM_N;

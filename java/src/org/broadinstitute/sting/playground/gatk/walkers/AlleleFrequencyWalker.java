@@ -24,7 +24,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
     @Argument(doc="File to output GFF formatted allele frequency calls") public String GFF_OUTPUT_FILE;
     @Argument(shortName="met", doc="Turns on logging of metrics on the fly with AlleleFrequency calculation") public boolean LOG_METRICS;
     @Argument(required=false, defaultValue="metrics.out", doc="Name of file where metrics will output") public String METRICS_OUTPUT_FILE;
-    @Argument(required=false, doc="Ignores 4-base probabilities and only uses the quality of the best/called base") public static boolean FORCE_1BASE_PROBS;
+    @Argument(required=false, doc="Ignores 4-base probabilities and only uses the quality of the best/called base") public boolean FORCE_1BASE_PROBS;
 
     protected static Logger logger = Logger.getLogger(AlleleFrequencyWalker.class);
 
@@ -32,7 +32,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
     PrintStream output;
 
     private boolean initalized = false;
-    static private double quality_precision = 1e-5;
+    static private double quality_precision = 1e-4;
     public void initalize()
     {
         if (initalized) { return; }
@@ -213,7 +213,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
     }
     */
 
-    static public double[][] getQuals (LocusContext context)
+    public double[][] getQuals (LocusContext context)
     {
         int numReads = context.getReads().size(); //numReads();
         double[][] quals = new double[numReads][4];
@@ -236,8 +236,13 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                 // Set all nonref qual scores to their share of the remaining probality not "used" by the reference base's qual
                 double nonref_quals = (1.0 - quals[i][callednum]) / 3;
                 for (int b=0; b<4; b++)
+                {
                     if (b != callednum)
-                        quals[i][b] = nonref_quals + quality_precision;
+                    {
+                        quals[i][b] = nonref_quals;
+                        if (quals[i][b] <= quality_precision) { quals[i][b] = quality_precision; } // avoid zero probs.
+                    }
+                }
             }else{
                 assert (SQ_field instanceof byte[]);
                 byte[] hex_quals = (byte[]) SQ_field;
@@ -259,7 +264,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                 */
                     double qual2 = QualityUtils.compressedQualityToProb(hex_qual);
                     //System.out.printf("2ND %x %d %f\n", hex_qual, called2num, qual2);
-                    quals[i][called2num] = qual2 + quality_precision;
+                    quals[i][called2num] = qual2;
+                    if (quals[i][called2num] <= quality_precision) { quals[i][called2num] = quality_precision; } // avoid zero probs.
 
                     double nonref_quals = (1.0 - quals[i][callednum] - quals[i][called2num]) / 2.0;
                     for (int b=0; b<4; b++)
@@ -308,6 +314,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 
         // Initialize empyt MixtureLikelihood holders for each possible qstar (N+1)
         MixtureLikelihood[] bestMixtures = new MixtureLikelihood[N+1];
+        double posteriors[] = new double[N+1];
             
         {
             double q = ML_q_byEM(bases, quals, refnum, altnum);
@@ -316,6 +323,14 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 
             posterior_null_hyp = P_D_q(bases, quals, 0.0, refnum, altnum) + P_q_G(bases, N, 0.0, 0, 0) + P_G(N, 0);
             bestMixtures[0] = new MixtureLikelihood(posterior_null_hyp, 0.0, 0.0);
+            posteriors[0] = posterior_null_hyp;
+
+            assert(! Double.isNaN(P_D_q(bases, quals, 0.0, refnum, altnum)));
+            assert(! Double.isNaN(P_q_G(bases, N, 0.0, 0, 0)));
+            assert(! Double.isNaN(P_G(N, 0)));
+
+            assert(! Double.isNaN(posteriors[0]));
+            assert(! Double.isInfinite(posteriors[0]));
 
             //System.out.format("DBG %s %.2f %.2f %5.2f %5.2f %5.2f %5.2f %d %d %s\n", location, 0.0, 0.0, P_D_q(bases, quals, 0.0, refnum, altnum), P_q_G(bases, N, 0.0, 0, 0), P_G(N, 0), posterior_null_hyp, (int)(q*bases.length), (int)((1.0-q)*bases.length), new String(bases));
 
@@ -330,12 +345,14 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                 double posterior = pDq + pqG + pG;
 
                 bestMixtures[qstar_N] = new MixtureLikelihood(posterior, qstar, q);
+                posteriors[qstar_N] = posterior;
 
-                //System.out.format("DBG %s %.2f %.2f %5.2f %5.2f %5.2f %5.2f %d %d %s\n", location, q, qstar, pDq, pqG, pG, posterior, (int)(q*bases.length), (int)((1.0-q)*bases.length), new String(bases));
+                //System.out.format("DBG %s %.2f %.2f %5.2f %5.2f %5.2f %5.2f %d %d %s\n", 
+                //        location, q, qstar, pDq, pqG, pG, posterior, (int)(q*bases.length), (int)((1.0-q)*bases.length), new String(bases));
             }
         }
 
-        // First reverse sort NONREF mixtures according to highest posterior probabililty
+        // First reverse sort mixtures according to highest posterior probabililty
         Arrays.sort(bestMixtures);
 
         // Calculate Lod of any variant call versus the reference call
@@ -364,7 +381,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                                                                          posterior_null_hyp,
                                                                          depth,
                                                                          new String(bases),
-                                                                         quals);
+                                                                         quals,
+                                                                         posteriors);
         return alleleFreq;
     }
 
@@ -424,10 +442,14 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
     double P_D_q(byte[] bases, double[][]quals, double q, int refnum, int altnum) 
     {
         double p = 0.0;
+        double epsilon = 1e-4;
 
         for (int i=0; i<bases.length; i++) 
         {
-            p += Math.log10((1-q) * quals[i][refnum] + q * quals[i][altnum]);
+            double atomic = (1-q) * quals[i][refnum] + q * quals[i][altnum];
+            if (atomic <= 0) { atomic = epsilon; }
+            if (Double.isNaN(Math.log10(atomic))) { System.out.printf("DBG: %f %f %f\n", q, quals[i][refnum], quals[i][altnum]); }
+            p += Math.log10(atomic);
         }
 
         return p;
@@ -440,7 +462,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         if (qstar == 1) { qstar = 1.0 - epsilon; }
 
         if (N != 2) { return 0.0; }
-        else { return Math.log10(binomialProb(q_R, bases.length, qstar)); }
+        else { return binomialProb(q_R, bases.length, qstar); }
     }
 
     double P_G(int N, int qstar_N) 
@@ -449,7 +471,16 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         
         if ((N == 2) && (prior_alt_frequency != -1))
         {
-            return ((double)qstar_N * prior_alt_frequency) + (((double)N-(double)qstar_N)*(1.0-prior_alt_frequency));
+            double p = -1.0;
+
+            if      (qstar_N == 0) { p = Math.pow(1.0 - prior_alt_frequency, 2.0); }
+            else if (qstar_N == 1) { p = 2.0 * (prior_alt_frequency * (1.0 - prior_alt_frequency)); }
+            else if (qstar_N == 2) { p = Math.pow(prior_alt_frequency, 2.0); }
+            else                   { assert(false); }
+
+            //System.out.printf("DBG2: %d %d %f %f\n", N, qstar_N, prior_alt_frequency, p);
+
+            return Math.log10(p);            
         }
         
         if      (qstar_N == 0) { return Math.log10(0.999); }
@@ -474,28 +505,59 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         // n - number of Bernoulli trials
         // p - probability of success
 
-        if ((n*p < 5) && (n*(1-p) < 5))
+        double ans;
+
+        //if (((double)n*p < 5.0) && ((double)n*(1.0-p) < 5.0))
+        if (n < 1000)
         {
             // For small n and the edges, compute it directly.
-            return (double)nchoosek(n, k) * Math.pow(p, k) * Math.pow(1-p, n-k);
+            ans = Math.log10((double)nchoosek(n, k)) + Math.log10(Math.pow(p, k)) + Math.log10(Math.pow(1-p, n-k));
+            //System.out.printf("DBG1: %d %d %f %f\n", k, n, p, ans);
         }
         else
         {
             // For large n, approximate with a gaussian.
             double mean  = (double)(n*p);
             double var   = Math.sqrt((double)(n*p)*(1.0-p));
-            double ans   = (double)(1.0 / (var*Math.sqrt(2*Math.PI)))*Math.exp(-1.0 * Math.pow((double)k-mean,2)/(2.0*var*var));
-            double check = (double)nchoosek(n, k) * Math.pow(p, k) * Math.pow(1-p, n-k);
-            double residual = ans - check;
+            double ans_1   = Math.log10((double)(1.0 / (var*Math.sqrt(2*Math.PI)))*Math.exp(-1.0 * Math.pow((double)k-mean,2)/(2.0*var*var)));
+            double ans_2   = ((Utils.logGamma(n+1) - Utils.logGamma(k+1) - Utils.logGamma(n-k+1))/Math.log(10)) + Math.log10(Math.pow(p, k)) + Math.log10(Math.pow(1-p, n-k));
+            double check = Math.log10((double)nchoosek(n, k)) + Math.log10(Math.pow(p, k)) + Math.log10(Math.pow(1-p, n-k));
+            double residual = ans_2 - check;
 
             //System.out.format("DBG: %d %.10f %.10f\n", nchoosek(n, k), Math.pow(p, k), Math.pow(1-p, n-k));
             //System.out.format("RESIDUAL: (%d,%d,%f) %.10f %.10f %.10f\n", k, n, p, ans, check, residual);
 
-            return check;
+            //System.out.printf("DBG2: %d %d %f %f %f %f %f\n", k, n, p, check, ans_1, ans_2, residual);
+
+            //if ((Double.isInfinite(check) || (Double.isNaN(check))))
+            //{
+            //    System.out.printf("DBG2: %d %d %f %f\n", k, n, p, check);
+            //}
+
+            ans = ans_1;
         }
+
+        //System.out.printf("DBG3: %f\n", ans);
+
+        return ans;
     }
 
-    static long nchoosek(long n, long k) {
+    static double nchoosek(long n, long k) 
+    {
+
+        if (k > n)
+            return 0;
+
+        if (k > n/2)
+            k = n-k; // Take advantage of symmetry
+        
+        double accum = 1;
+        for (long i = 1; i <= k; i++)
+            accum = accum * (n-k+i) / i;
+
+        return accum + 0.5; // avoid rounding error
+
+                            /*
         long m = n - k;
         if (k < m)
             k = m;
@@ -504,6 +566,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         for (long i = n, j = 1; i > k; i--, j++)
             t = t * i / j;
         return t;
+            */
     }
 
     public static String repeat(char letter, long count) {
@@ -690,6 +753,9 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
         AlleleFrequencyWalker.binomialProb(5,10,0.5);
         AlleleFrequencyWalker.binomialProb(50,100,0.5);
         AlleleFrequencyWalker.binomialProb(1500,2965,0.508065);
+        AlleleFrequencyWalker.binomialProb(0,197,0.5);
+        AlleleFrequencyWalker.binomialProb(13,197,0.5);
+        System.exit(0);
 
         {
             int N = 2;

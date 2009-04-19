@@ -6,6 +6,18 @@ import java.lang.Math;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 public class AlleleFrequencyEstimate {
+
+        static 
+        {
+	        boolean assertsEnabled = false;
+	        assert assertsEnabled = true; // Intentional side effect!!!
+	        if (!assertsEnabled)
+            {
+                System.err.printf("\n\n\nERROR: You must run with asserts enabled. \"java -ea\".\n\n\n");
+	            throw new RuntimeException("Asserts must be enabled!");
+            }
+        }
+
     //AlleleFrequencyEstimate();
     public GenomeLoc location;
     public char ref;
@@ -21,11 +33,40 @@ public class AlleleFrequencyEstimate {
     public String notes;
     public String bases;
     public double[][] quals;
+    public double[] posteriors;
 
     GenomeLoc l;
 
-    public AlleleFrequencyEstimate(GenomeLoc location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, double pBest, double pRef, int depth, String bases, double[][] quals)
+    public AlleleFrequencyEstimate(GenomeLoc location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, double pBest, double pRef, int depth, String bases, double[][] quals, double[] posteriors)
     {
+        if( Double.isNaN(lodVsRef)) { System.out.printf("lodVsRef is NaN\n"); }
+        if( Double.isNaN(lodVsNextBest)) { System.out.printf("lodVsNextBest is NaN\n"); }
+        if( Double.isNaN(qhat)) { System.out.printf("qhat is NaN\n"); }
+        if( Double.isNaN(qstar)) { System.out.printf("qstar is NaN\n"); }
+        if( Double.isNaN(pBest)) { System.out.printf("pBest is NaN\n"); }
+        if( Double.isNaN(pRef)) { System.out.printf("pRef is NaN\n"); }
+
+        if( Double.isInfinite(lodVsRef)) { System.out.printf("lodVsRef is Infinite\n"); }
+        if( Double.isInfinite(lodVsNextBest)) { System.out.printf("lodVsNextBest is Infinite\n"); }
+        if( Double.isInfinite(qhat)) { System.out.printf("qhat is Infinite\n"); }
+        if( Double.isInfinite(qstar)) { System.out.printf("qstar is Infinite\n"); }
+        if( Double.isInfinite(pBest)) { System.out.printf("pBest is Infinite\n"); }
+        if( Double.isInfinite(pRef)) { System.out.printf("pRef is Infinite\n"); }
+
+        assert(! Double.isNaN(lodVsRef));
+        assert(! Double.isNaN(lodVsNextBest));
+        assert(! Double.isNaN(qhat));
+        assert(! Double.isNaN(qstar));
+        assert(! Double.isNaN(pBest));
+        assert(! Double.isNaN(pRef));
+
+        assert(! Double.isInfinite(lodVsRef));
+        assert(! Double.isInfinite(lodVsNextBest));
+        assert(! Double.isInfinite(qhat));
+        assert(! Double.isInfinite(qstar));
+        assert(! Double.isInfinite(pBest));
+        assert(! Double.isInfinite(pRef));
+
         this.location = location;
         this.ref = ref;
         this.alt = alt;
@@ -38,6 +79,7 @@ public class AlleleFrequencyEstimate {
         this.notes = "";
         this.bases = bases;
         this.quals = quals;
+        this.posteriors = posteriors;
     }
 
     /** Return the most likely genotype. */
@@ -55,12 +97,12 @@ public class AlleleFrequencyEstimate {
 
     public double emperical_allele_frequency()
     {
-        return (double)Math.round((double)qhat * (double)N) / (double)N;
+        return (double)Math.round((double)qstar * (double)N) / (double)N;
     }
 
     public double emperical_allele_frequency(int N)
     {
-        return (double)Math.round((double)qhat * (double)N) / (double)N;
+        return (double)Math.round((double)qstar * (double)N) / (double)N;
     }
 
     public String asGFFString()
