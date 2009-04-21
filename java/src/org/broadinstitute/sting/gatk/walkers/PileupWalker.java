@@ -24,6 +24,9 @@ import java.util.ArrayList;
 public class PileupWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="verbose",required=false,defaultValue="false")
     public boolean VERBOSE;
+
+    @Argument(fullName="extended",shortName="ext",required=false,defaultValue="false")
+    public boolean EXTENDED;
     
     public boolean FLAG_UNCOVERED_BASES = true;     // todo: how do I make this a command line argument?
     
@@ -47,22 +50,6 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
         if ( VERBOSE ) {
             extras += " BQ=" + pileup.getQualsAsInts();
             extras += " MQ=" + pileup.getMappingQualsAsInts();
-
-            String sqbases = pileup.getSecondaryBasePileup();
-            String sqquals = pileup.getSecondaryQualPileup();
-            if (sqbases != null && sqquals != null) {
-                assert(sqbases.length() == sqquals.length());
-
-                extras += " SQ=";
-                for (int i = 0; i < sqbases.length(); i++) {
-                    extras += sqbases.charAt(i);
-                    extras += sqquals.charAt(i);
-
-                    if (i < sqbases.length() - 1) {
-                        extras += ',';
-                    }
-                }
-            }
         }
 
         String rodString = "";
@@ -84,6 +71,11 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
         //if ( context.getLocation().getStart() % 1 == 0 ) {
         out.printf("%s%s %s%n", pileup.getPileupString(), extras, rodString);
         //}
+
+        if ( EXTENDED ) {
+            String probDists = pileup.getProbDistPileup();
+            System.out.println(probDists);
+        }
 
         return 1;
     }
