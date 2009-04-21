@@ -25,7 +25,7 @@ import org.broadinstitute.sting.utils.Pileup;
  * Time: 2:58:33 PM
  * To change this template use File | Settings | File Templates.
  */
-public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVariant, Pileup {
+public class rodSAMPileup extends ReferenceOrderedDatum implements Genotype, Pileup {
     private static final int NO_VARIANT = -1;
     private static final int SNP_VARIANT = 0;
     private static final int INSERTION_VARIANT = 1;
@@ -39,13 +39,13 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
     private static final String baseT = new String("T");
     private static final String emptyStr = new String(); // we will use this for "reference" allele in insertions
 
-    protected GenomeLoc loc;       // genome location of SNP
+    protected GenomeLoc loc;       // genomic location of this genotyped site
     // Reference sequence chromosome or scaffold
     // Start and stop positions in chrom
 
 
     protected char refBaseChar; // what we have set for the reference base (is set to a '*' for indel!)
-    protected String refBases;        // the reference base according to NCBI, in the dbSNP file
+    protected String refBases;        // the reference base sequence according to NCBI
     protected String observedString; // store the actual string representation of observed alleles
 
     protected String pileupQuals;     // the read base qualities
@@ -53,7 +53,7 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
 
     protected List<String> observedAlleles = null;    // The sequences of the observed alleles from rs-fasta files
     protected int varType = NO_VARIANT;
-    protected int ploidy = 2; // how many allelic variants we get?
+    protected int ploidy = 2; // how many allelic variants we observe?
     protected int nNonref = 0; // number of non-reference alleles
     protected int eventLength = 0;
 
@@ -92,8 +92,8 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
 
             if ( refBaseChar == '*' ) {
                 parseIndels(parts[3]) ;
-                if ( varType == DELETION_VARIANT ) loc = new GenomeLoc(contig, start, start+eventLength);
-                else loc = new GenomeLoc(contig, start, start); // if it's not a deletion and we are biallelic, this got to be an insertion; otherwise the state is inconsistent!!!!
+                if ( varType == DELETION_VARIANT ) loc = new GenomeLoc(contig, start, start+eventLength-1);
+                else loc = new GenomeLoc(contig, start, start-1); // if it's not a deletion and we are biallelic, this got to be an insertion; otherwise the state is inconsistent!!!!
             }
             else {
                 // if the variant is a SNP or a reference base (i.e. no variant at all)
@@ -134,7 +134,7 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
             System.out.printf("  Exception caught during parsing BasicPileup line:  %s%n", Utils.join(" <=> ", parts));
             throw e;
         }
-        if ( nNonref > 1 ) System.out.println("SAM pileup: WARNING: multi-allelic variant :  ("+refBaseChar+") -->"+toMediumString());
+  //      if ( nNonref > 1 ) System.out.println("SAM pileup: WARNING: multi-allelic variant :  ("+refBaseChar+") -->"+toMediumString());
     }
 
 
@@ -152,7 +152,7 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
                 continue; // we will fill reference allele later
             }
 
-            String varBases = obs[i].substring(1).toUpperCase();
+            String varBases = obs[i].toUpperCase();
 
             switch ( obs[i].charAt(0) )  {
                 case '+':
@@ -161,7 +161,7 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
                     refBases = emptyStr;
                     break;
                 case '-' :
-                    if ( varType != -1 && varType != DELETION_VARIANT )  varType = INDEL_VARIANT;
+                    if ( varType != NO_VARIANT && varType != DELETION_VARIANT )  varType = INDEL_VARIANT;
                     else varType = DELETION_VARIANT;
                     refBases = varBases; // remember what was deleted, this will be saved as "reference allele"
                     break;
@@ -186,9 +186,8 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
         } else {
             // we observe two non-ref alleles; they better be the same variant, otherwise the site is not bi-allelic and at the moment we
             // fail to set data in a consistent way.. (the check for INDEL_VARIANT ensures that recorded variants are indeed both insertions
-            // or both deletions as compared to +ACC/-ACC which would still have the same bases (no matter how crazy and improbable
-            // such event would be)
-            if ( observedAlleles.get(0).equals(observedAlleles.get(1)) && varType != INDEL_VARIANT ) nNonref = 1;
+            // or both deletions as compared to +ACC/-ACC which would still have the same bases 
+            if ( observedAlleles.get(0).equals(observedAlleles.get(1))  ) nNonref = 1;
             else nNonref = 2;
         }
         // DONE with indels
@@ -272,19 +271,21 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
         return refBases;
     }
 
+    
     /**
      * Returns reference (major) allele base for a SNP variant as a character; should throw IllegalStateException
      * if variant is not a SNP.
      *
      * @return reference base on the forward strand
      */
-    public char getRefSnpFWD() throws IllegalStateException {
+  /*  public char getRefSnpFWD() throws IllegalStateException {
         if ( isIndel() ) throw new IllegalStateException("Variant is not a SNP");
         return refBaseChar;
     }
-
+*/
+    
     @Override
-    public List<String> getGenotype()  {
+    public List<String> getFWDAlleles()  {
         return observedAlleles;
     }
 
@@ -298,6 +299,18 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
     public boolean isDeletion() { return varType == DELETION_VARIANT ; }
     public boolean isIndel() { return isInsertion() || isDeletion() || varType == INDEL_VARIANT; }
     public boolean isReference()  { return varType == NO_VARIANT; }
+
+    public boolean isHom() {
+    	// implementation-dependent: here we use the fact that for ref and snps we actually use fixed static strings to remember the genotype
+    	if ( ! isIndel() ) return ( observedAlleles.get(0) == observedAlleles.get(1) ); 
+    	return ( isInsertion() || isDeletion() ) && observedAlleles.get(0).equals(observedAlleles.get(1) );
+    }
+    
+    public boolean isHet() {
+    	// implementation-dependent: here we use the fact that for ref and snps we actually use fixed static strings to remember the genotype
+    	if ( ! isIndel() ) return ( observedAlleles.get(0) != observedAlleles.get(1) ); 
+    	return isIndel() || ( ! observedAlleles.get(0).equals(observedAlleles.get(1) ) );
+    }
 
     // ----------------------------------------------------------------------
     //
@@ -336,7 +349,7 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
         return String.format("REPL not implemented yet");
     }
 
-
+/*
     @Override
     public String getAltBasesFWD() {
         if ( ! isSNP() && ! isIndel() ) return emptyStr;
@@ -360,7 +373,9 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
         System.out.printf("WARNING: unexpected variant type in pileup %s at %s%n",name,getLocation().toString());
         return null;
     }
-
+*/
+    
+   /*
     @Override
     public char getAltSnpFWD() throws IllegalStateException {
         if ( ! isSNP() ) throw new IllegalStateException("Variant is not a SNP");
@@ -373,35 +388,33 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements AllelicVarian
     public double getConsensusConfidence() {
         return consensusScore;
     }
+*/
 
-
-    @Override
-    public double getMAF() {
-        if ( nNonref > 1 ) System.out.println("SAM pileup: WARNING: can not determine minor allele freq for multiallelic site");
-        if ( isSNP() || isIndel() ) {
-            if ( observedAlleles.get(0).equals(observedAlleles.get(1)) ) return 1.0;
-            else return 0.5;
-        }
-        return 0;
-    }
-
+ /*   
     @Override
     public int getPloidy() throws IllegalStateException {
         return 2; // ???
     }
-
+*/
+    
     @Override
-    public double getVariationConfidence() {
+    public double getVariantConfidence() {
         return variantScore;
     }
 
-    @Override
-    public boolean isGenotype() {
-        return true;
-    }
 
     @Override
     public boolean isBiallelic() {
         return nNonref  < 2;
     }
+
+	@Override
+	public double getConsensusConfidence() {
+		return consensusScore;
+	}
+
+	@Override
+	public String getFWDRefBases() {
+		return refBases;
+	}
 }
