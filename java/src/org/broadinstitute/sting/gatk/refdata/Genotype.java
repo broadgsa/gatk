@@ -26,6 +26,10 @@ public interface Genotype extends Comparable<ReferenceOrderedDatum> {
     GenomeLoc getLocation();
 
     /** Returns actual observed alleles on the fwd strand. Allowed to return more than two alleles (@see #getPloidy()). 
+     * For SNPs, the alleles are observed bases. For indels, the contract is that a no-event allele is represented by an empty string, 
+     * while the event allele is represented by '+' (insertion) or '-' (deletion) followed by actual inserted or deleted bases. It
+     * is currently not specified how genotypes that report themselves as 'isReference()' should present their alleles: implementations
+     * can present reference bases (SNP-like) or empty strings (indel-like). 
      * @return list of alleles
      */
     List<String> getFWDAlleles() ;
