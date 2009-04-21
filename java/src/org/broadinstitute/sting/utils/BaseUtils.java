@@ -64,10 +64,35 @@ public class BaseUtils {
 
     /**
      * Converts a base to the base representing its cross-talk partner
+     *
      * @param base  [AaCcGgTt]
      * @return C, A, T, G, or '.' if the base can't be understood
      */
     static public char crossTalkPartnerBase(char base) {
         return baseIndexToSimpleBase(crossTalkPartnerIndex(simpleBaseToBaseIndex(base)));
+    }
+
+    static public byte simpleComplement(char base) {
+        switch (base) {
+            case 'A':
+            case 'a': return 'T';
+            case 'C':
+            case 'c': return 'G';
+            case 'G':
+            case 'g': return 'C';
+            case 'T':
+            case 't': return 'A';
+            default: return '.';
+        }
+    }
+
+    static public byte[] simpleReverseComplement(byte[] bases) {
+        byte[] rcbases = new byte[bases.length];
+
+        for (int i = 0; i < bases.length; i++) {
+            rcbases[i] = simpleComplement((char) bases[bases.length - 1]);
+        }
+
+        return rcbases;
     }
 }
