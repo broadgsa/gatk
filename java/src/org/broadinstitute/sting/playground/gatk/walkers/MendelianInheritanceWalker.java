@@ -17,6 +17,8 @@ public class MendelianInheritanceWalker  extends RefWalker<TrioConcordanceRecord
 	@Argument(fullName="consensus_cutoff", shortName="XC",required=true ) public Double CONS_CUTOFF;
 	@Argument(fullName="snp_cutoff", shortName="XS",required=true ) public Double SNP_CUTOFF;
 	@Argument(fullName="indel_cutoff", shortName="XI",required=true ) public Double INDEL_CUTOFF;
+	@Argument(fullName="log_concordant", shortName="LC",doc="If set, all trio-concordant sites will be logged at level INFO") public boolean LOG_CONCORDANT; 
+	@Argument(fullName="log_discordant", shortName="LD",doc="If set, all trio-discordant sites will be logged at level INFO") public boolean LOG_DISCORDANT; 
 	
 	private static Logger logger = Logger.getLogger(MendelianInheritanceWalker.class);	
 	private final static String star = new String("*");
@@ -91,23 +93,27 @@ public class MendelianInheritanceWalker  extends RefWalker<TrioConcordanceRecord
 			if ( mom_alleles.contains(kid_allele_1) && dad_alleles.contains(kid_allele_2) ||
 					mom_alleles.contains(kid_allele_2) && dad_alleles.contains(kid_allele_1) ) {
 				t.consistent_snp = 1;
-				
-//			logger.info("consistent SNP at "+context.getLocation() + 
-//					"("+ref+") " + mom_alleles.get(0)+"/" +mom_alleles.get(1) + "  " +
-//					dad_alleles.get(0)+"/" +dad_alleles.get(1) + "  " +
-//					kid_allele_1+"/" +kid_allele_2  
-//					);
+
+				if ( LOG_CONCORDANT ) {
+					logger.info("consistent SNP at "+context.getLocation() + 
+							"("+ref+") " + mom_alleles.get(0)+"/" +mom_alleles.get(1) + "  " +
+							dad_alleles.get(0)+"/" +dad_alleles.get(1) + "  " +
+							kid_allele_1+"/" +kid_allele_2  
+							);
+				}
 			} else {
 				// we are inconsistent. let's see what happened:
 				if ( kid.isSNP() && ! mom.isSNP() && ! dad.isSNP() ) t.missing_snp_in_parents = 1;
 				if ( ! kid.isSNP() && ( mom.isSNP() && mom.isHom() || dad.isSNP() && dad.isHom() ) ) t.missing_snp_in_kid = 1;
 				
 				t.inconsistent_snp = 1;
-				logger.info("INconsistent SNP at "+context.getLocation() + 
-						"("+ref+")  mom:" + mom_alleles.get(0)+"/" +mom_alleles.get(1) + " dad: " +
-						dad_alleles.get(0)+"/" +dad_alleles.get(1) + " kid: " +
-						kid_allele_1+"/" +kid_allele_2  
-						);
+				if ( LOG_DISCORDANT ) {
+					logger.info("INconsistent SNP at "+context.getLocation() + 
+							"("+ref+")  mom:" + mom_alleles.get(0)+"/" +mom_alleles.get(1) + " dad: " +
+							dad_alleles.get(0)+"/" +dad_alleles.get(1) + " kid: " +
+							kid_allele_1+"/" +kid_allele_2  
+							);
+				}
 			}
 			return t;
 		}
@@ -126,22 +132,26 @@ public class MendelianInheritanceWalker  extends RefWalker<TrioConcordanceRecord
 						mom_alleles.contains(kid_allele_2) && dad_alleles.contains(kid_allele_1) ) {
 					t.consistent_indels = 1;
 				
-					logger.info("consistent INDEL at "+context.getLocation() + 
-							"("+ref+")  mom:" + genotypeString(mom)+ " dad: " +
-							genotypeString(dad) + " kid: " +
-							genotypeString(kid)  
-							);
-							
+					if ( LOG_CONCORDANT ) {
+						logger.info("consistent INDEL at "+context.getLocation() + 
+								"("+ref+")  mom:" + genotypeString(mom)+ " dad: " +
+								genotypeString(dad) + " kid: " +
+								genotypeString(kid)  
+								);
+					}
 			} else {
 				  if ( kid.isIndel() && ! mom.isIndel() && ! dad.isIndel() ) t.missing_indels_in_parents = 1;
 				  if ( ! kid.isIndel() && ( mom.isIndel() && mom.isHom() || dad.isIndel() && dad.isHom() ) ) t.missing_indels_in_kid = 1;
 
 				  t.inconsistent_indels = 1;
-					logger.info("INconsistent INDEL at "+context.getLocation() + 
-							"("+ref+")  mom:" + genotypeString(mom)+ " dad: " +
-							genotypeString(dad) + " kid: " +
-							genotypeString(kid)  
-							);
+				  
+				  if ( LOG_DISCORDANT ) {
+					  logger.info("INconsistent INDEL at "+context.getLocation() + 
+							  "("+ref+")  mom:" + genotypeString(mom)+ " dad: " +
+							  genotypeString(dad) + " kid: " +
+							  genotypeString(kid)  
+								);
+				  }
 			}
 			return t;
 		}
