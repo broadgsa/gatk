@@ -166,4 +166,10 @@ public class AlleleFrequencyEstimate {
             return AlleleFrequencyWalker.repeat(alt, numNonrefBases) + AlleleFrequencyWalker.repeat(ref, numRefBases);
         }
     }
+
+
+    public double posterior()
+    {
+        return this.posteriors[(int)this.qstar * this.N];
+    }
 }

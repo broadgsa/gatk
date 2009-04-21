@@ -41,7 +41,7 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
         deep_callers    = new ArrayList<AlleleFrequencyWalker>();
         shallow_callers = new ArrayList<AlleleFrequencyWalker>();
 
-        random = new Random(666);
+        random = new Random(42);
 
         for (int i = 0; i < read_groups.size(); i++)
         {
