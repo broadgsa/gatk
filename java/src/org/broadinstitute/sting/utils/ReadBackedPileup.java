@@ -69,7 +69,11 @@ public class ReadBackedPileup extends BasicPileup {
     public String getSecondaryQualPileup() {
         return secondaryQualPileupAsString(reads, offsets);
     }
-    
+
+    public String getProbDistPileup() {
+        return probDistPileupAsString(reads, offsets);
+    }
+
     public String getPileupString()
     {
         return String.format("%s: %s %s %s", getLocation(), getRef(), getBases(), getQuals());

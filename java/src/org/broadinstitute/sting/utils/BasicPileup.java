@@ -140,6 +140,56 @@ abstract public class BasicPileup implements Pileup {
         return quals2.toString();
     }
 
+    public static double[][] probDistPileup( List<SAMRecord> reads, List<Integer> offsets ) {
+        double[][] dist = new double[reads.size()][4];
+
+        for (int readIndex = 0; readIndex < dist.length; readIndex++) {
+            SAMRecord read = reads.get(readIndex);
+
+            String bases = read.getReadString();
+            int offset = offsets.get(readIndex);
+
+            int bestBaseIndex = BaseUtils.simpleBaseToBaseIndex(bases.charAt(offset));
+
+            if (bestBaseIndex >= 0 && bestBaseIndex < 4) {
+                dist[readIndex][bestBaseIndex] = QualityUtils.qualToProb(read.getBaseQualities()[offset]);
+
+                byte[] sqs = (byte[]) read.getAttribute("SQ");
+                if (sqs != null) {
+                    int secondBestBaseIndex = QualityUtils.compressedQualityToBaseIndex(sqs[offset]);
+                    dist[readIndex][secondBestBaseIndex] = (1.0 - dist[readIndex][bestBaseIndex]);
+                } else {
+                    for (int baseIndex = 0; baseIndex < 4; baseIndex++) {
+                        if (baseIndex != bestBaseIndex) {
+                            dist[readIndex][baseIndex] = (dist[readIndex][bestBaseIndex]/3.0);
+                        }
+                    }
+                }
+            } else {
+                for (int baseIndex = 0; baseIndex < 4; baseIndex++) {
+                    dist[readIndex][baseIndex] = 0.25;
+                }
+            }
+        }
+
+        return dist;
+    }
+    
+    public static String probDistPileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
+        double[][] dist = probDistPileup(reads, offsets);
+
+        String distString = "";
+        for (int readIndex = 0; readIndex < dist.length; readIndex++) {
+            distString += "[ ";
+            for (int baseIndex = 0; baseIndex < 4; baseIndex++) {
+                distString += String.format("%3.3f ", dist[readIndex][baseIndex]);
+            }
+            distString += "]\n";
+        }
+
+        return distString;
+    }
+
     public static String pileupDiff(final Pileup a, final Pileup b)
     {
         return pileupDiff(a,b,true);
