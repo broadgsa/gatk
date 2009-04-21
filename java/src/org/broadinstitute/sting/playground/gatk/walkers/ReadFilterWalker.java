@@ -2,6 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 
 import java.io.File;
 
+import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
@@ -25,7 +26,7 @@ public class ReadFilterWalker extends ReadWalker<Integer,Integer> {
 
 	@Override
 	public Integer map(LocusContext context, SAMRecord read) {
-		if ( writer == null )	writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(read.getHeader(), true, new File(output));
+		if ( writer == null )	writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(read.getHeader(), read.getHeader().getSortOrder() != SAMFileHeader.SortOrder.unsorted, new File(output));
 		writer.addAlignment(read);
 		return 1;
 	}
