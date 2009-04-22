@@ -29,7 +29,7 @@ import java.util.List;
  *
  */
 public class MicroManager {
-    private static long SHARD_SIZE = 5L;
+    private static long SHARD_SIZE = 100000L;
 
     private File reads;
     private FastaSequenceFile2 ref;
@@ -85,6 +85,10 @@ public class MicroManager {
                     if (!line.equals("")){
                         fl.add(new File(line));
                     }
+                }
+            } else if (reads.getCanonicalPath().indexOf(",") > 0) {
+                for (String bamFile : reads.getCanonicalPath().split(",")) {
+                    fl.add(new File(bamFile));
                 }
 
             } else {
