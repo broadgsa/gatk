@@ -5,6 +5,7 @@ from optparse import OptionParser
 from datetime import date
 import glob
 import operator
+import ValidateGATK
 
 MERGE_BIN = '/seq/software/picard/current/bin/MergeSamFiles.jar'
 bam_ext = '.bam'
@@ -40,7 +41,7 @@ if __name__ == "__main__":
             sources = reduce( operator.__add__, map( glob.glob, s[1:] ), [] )
             
             if OPTIONS.ignoreExistingFiles or not os.path.exists(stamped_filename):
-                cmd = 'java -Xmx4096m -jar ' + MERGE_BIN + ' O=' + stamped_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(sources))
+                cmd = 'java -Xmx4096m -jar ' + MERGE_BIN + ' AS=true O=' + stamped_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(sources))
                 print cmd
                 farm_commands.cmd(cmd, OPTIONS.farm_sub, output)
                 
@@ -48,4 +49,5 @@ if __name__ == "__main__":
                 print 'os.path.exists(current_link)', os.path.exists(current_link)
                 cmd = 'ln -s ' + stamped_filename + " " + current_link
                 farm_commands.cmd(cmd, False, '')
+                ValidateGATK.indexBAM(current_link)
 
