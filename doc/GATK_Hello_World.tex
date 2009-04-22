@@ -8,7 +8,7 @@
 
 \title{Getting Started with the Genome Analysis Toolkit (GATK)}
 \author{Matt Hanna}
-\date{16 Mar 2009}
+\date{Created March 16, 2009\\ Updated \today}
 \maketitle
 
 \section{Build Prerequisites}
@@ -99,10 +99,12 @@ To run the walker:
 \begin{verbatim}
 mkdir $STING_HOME/dist/walkers
 java -Xmx4096m -jar dist/GenomeAnalysisTK.jar \
+     -R/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta \
      -I /broad/1KG/legacy_data/trio/na12878.bam -T Hello \
-     -L chr1:10000000-10000100 -l INFO
+     -L chr1:10000000-10000100 -l WARN
 \end{verbatim}
 This command will run the walker across a subsection of chromosome 1, operating on 
-reads which align to that subsection.  
+reads which align to that subsection.  If you'd like to see more information from the GATK 
+on what it's doing, you can change the logging level (-l) to INFO.
 
 \end{document}
