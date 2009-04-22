@@ -331,6 +331,15 @@ public class Utils {
         return output;
     }
 
+    public static <T> List<T> PermuteList(List<T> list, Integer[] permutation) 
+    {
+        List<T> output = new ArrayList<T>();
+        for (int i = 0; i < permutation.length; i++) {
+            output.add(list.get(permutation[i]));
+        }
+        return output;
+    }
+
 
     /** Draw N random elements from list. */
     public static <T> List<T> RandomSubset(List<T> list, int N)

@@ -12,7 +12,7 @@ import org.broadinstitute.sting.utils.Utils;
 
 import net.sf.samtools.SAMRecord;
 
-import java.util.List;
+import java.util.*;
 
 // Draft single sample genotyper
 // j.maguire 3-7-2009
@@ -34,11 +34,16 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         String rodString = getRodString(tracker);
 
         AlleleFrequencyEstimate freq = null;
-        if (fourBaseMode) {
+        if (fourBaseMode) 
+        {
             // Compute four-base prob genotype likelihoods
             freq = getFourProbAlleleFrequency(ref, context, rodString);
-        } else if (decideOnBase) {
-        } else {
+        } 
+        else if (decideOnBase) 
+        {
+        } 
+        else 
+        {
             // Compute single quality score genotype likelihoods
             freq = getOneProbAlleleFrequency(ref, context, rodString);
         }
@@ -162,11 +167,134 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     }
 
     private double[] getObservationWeights(double[][] probs, int refBaseIndex, int altBaseIndex) {
-        if (probs.length <= 10) {
-            return getWeightTableTraces(getWeightTable(probs, refBaseIndex, altBaseIndex, probs.length));
+        //if (probs.length <= 10) 
+        //{
+        //    return getWeightTableTraces(getWeightTable(probs, refBaseIndex, altBaseIndex, probs.length));
+        //}
+        //else
+        //{
+            return FastObservationWeights(probs, refBaseIndex, altBaseIndex);
+        //}
+    }
+
+    private double[] FastObservationWeights(double[][] probs, int ref, int alt)
+    {
+        List<int[]> paths        = new ArrayList<int[]>();
+        List<Double> likelihoods = new ArrayList<Double>();
+
+        List<int[]>  output_paths       = new ArrayList<int[]>();
+        List<Double> output_likelihoods = new ArrayList<Double>();
+
+        HashMap<String,Boolean> done_paths = new HashMap<String,Boolean>();
+
+        // 1. Find the best path.
+        int[] best_path = new int[probs.length];
+        double best_likelihood = 0;
+        for (int i = 0; i < probs.length; i++)
+        {
+            int max;
+            double max_p;
+            if (probs[i][ref] >= probs[i][alt]) { max = ref; max_p = probs[i][ref]; }
+            else                                { max = alt; max_p = probs[i][alt]; }
+            best_path[i] = max;
+            best_likelihood += Math.log10(max_p);
+        }
+        output_paths.add(best_path);
+        output_likelihoods.add(best_likelihood);
+        String s = ""; for (int j = 0; j < best_path.length; j++) { s += best_path[j]; }
+        done_paths.put(s,true);
+
+        // 2. Enumerate all paths one-away from the best path
+        for (int i = 0; i < best_path.length; i++)
+        {
+            int[] path = Arrays.copyOf(best_path, best_path.length);
+            double likelihood;
+            if (path[i] == ref)
+            {
+                path[i] = alt;
+                likelihood = best_likelihood - Math.log10(probs[i][ref]) + Math.log10(probs[i][alt]);
+            }
+            else
+            {
+                path[i] = ref;
+                likelihood = best_likelihood - Math.log10(probs[i][alt]) + Math.log10(probs[i][ref]);
+            }
+            paths.add(path);
+            likelihoods.add(likelihood);
         }
 
-        return new double[probs.length + 1];
+        // 3. Sort paths by likelihood
+        Integer[] permutation = Utils.SortPermutation(likelihoods);
+        paths = Utils.PermuteList(paths, permutation);
+        likelihoods = Utils.PermuteList(likelihoods, permutation);
+
+        while ((output_paths.size() < 10) && (paths.size() > 0))
+        {
+	        // 4. Choose the next best path
+            int[] next_best_path = paths.get(paths.size()-1);
+            double next_best_likelihood = likelihoods.get(likelihoods.size()-1);
+	        output_paths.add(next_best_path);
+	        output_likelihoods.add(next_best_likelihood);
+            paths.remove(paths.size()-1);
+            likelihoods.remove(likelihoods.size()-1);
+            s = ""; for (int j = 0; j < next_best_path.length; j++) { s += next_best_path[j]; }
+            done_paths.put(s,true);
+
+                /*
+            if (likelihoods.get(likelihoods.size()-1) < probs.length*Math.log10(0.5)) 
+            {
+                break;
+            }
+                */
+
+	        // 5. Enumerate all paths one-away from next best
+	        for (int i = 0; i < best_path.length; i++)
+	        {
+	            int[] path = Arrays.copyOf(next_best_path, next_best_path.length);
+	            double likelihood;
+	            if (path[i] == ref)
+	            {
+	                path[i] = alt;
+	                likelihood = next_best_likelihood - Math.log10(probs[i][ref]) + Math.log10(probs[i][alt]);
+	            }
+	            else
+	            {
+	                path[i] = ref;
+	                likelihood = next_best_likelihood - Math.log10(probs[i][alt]) + Math.log10(probs[i][ref]);
+	            }
+
+                s = "";
+                for (int j = 0; j < path.length; j++) { s += path[j]; }
+                if (done_paths.get(s) == null) 
+                {
+	                paths.add(path);
+	                likelihoods.add(likelihood);
+                }
+	        }
+	
+	        // 6. Re-sort
+	        permutation = Utils.SortPermutation(likelihoods);
+            paths = Utils.PermuteList(paths, permutation);
+            likelihoods = Utils.PermuteList(likelihoods, permutation);
+        }
+
+        for (int i = 0; i < output_paths.size(); i++)
+        {
+            int[] path = output_paths.get(i);
+            double likelihood = output_likelihoods.get(i);
+
+            System.out.printf("DBG %d ", i);
+            for (int j = 0; j < path.length; j++)
+            {
+                System.out.printf("%c", BaseUtils.baseIndexToSimpleBase(path[j]));
+            }
+            System.out.printf(" %f\n", likelihood);
+        }
+        System.out.printf("\n");
+
+        double[] ans = new double[probs.length+1];
+        for (int i = 0; i < ans.length; i++) { ans[i] = 1.0; }
+        return ans;
     }
 
     private double[][] getWeightTable(double[][] probs, int refBaseIndex, int altBaseIndex, int numReadsToConsider) {
@@ -269,6 +397,11 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         
         if ( rodString != "" ) { rodString = "[ROD: " + rodString + "]"; }
         return rodString;
+    }
+
+    public void setAlleleFrequencyPrior(double freq)
+    {
+        assert(false);
     }
 
     // Given result of map function
