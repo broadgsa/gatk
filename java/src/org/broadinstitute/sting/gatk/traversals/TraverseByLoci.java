@@ -79,7 +79,7 @@ public class TraverseByLoci extends TraversalEngine {
 
                 CloseableIterator<SAMRecord> readIter = samReader.queryOverlapping( interval.getContig(),
                         (int)interval.getStart(),
-                        (int)interval.getStop() );
+                        (int)interval.getStop()+1 );
 
                 Iterator<SAMRecord> wrappedIter = WrapReadsIterator( readIter, false );
                 sum = carryWalkerOverInterval(walker, wrappedIter, sum, interval);
