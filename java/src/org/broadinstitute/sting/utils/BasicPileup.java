@@ -156,8 +156,16 @@ abstract public class BasicPileup implements Pileup {
 
                 byte[] sqs = (byte[]) read.getAttribute("SQ");
                 if (sqs != null && QualityUtils.compressedQualityToBaseIndex(sqs[offset]) != bestBaseIndex) {
+                    double epsilon = 1e-4;
+
                     int secondBestBaseIndex = QualityUtils.compressedQualityToBaseIndex(sqs[offset]);
-                    dist[readIndex][secondBestBaseIndex] = (1.0 - dist[readIndex][bestBaseIndex]);
+                    dist[readIndex][secondBestBaseIndex] = (1.0 - dist[readIndex][bestBaseIndex] - 2.0*epsilon);
+
+                    for (int baseIndex = 0; baseIndex < 4; baseIndex++) {
+                        if (baseIndex != bestBaseIndex && baseIndex != secondBestBaseIndex) {
+                            dist[readIndex][baseIndex] = epsilon;
+                        }
+                    }
                 } else {
                     for (int baseIndex = 0; baseIndex < 4; baseIndex++) {
                         if (baseIndex != bestBaseIndex) {
