@@ -201,7 +201,8 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         }
         output_paths.add(best_path);
         output_likelihoods.add(best_likelihood);
-        String s = ""; for (int j = 0; j < best_path.length; j++) { s += best_path[j]; }
+        //String s = ""; for (int j = 0; j < best_path.length; j++) { s += best_path[j]; }
+        String s = ""; for (int j = 0; j < best_path.length; j++) { s += BaseUtils.baseIndexToSimpleBase(best_path[j]); }
         done_paths.put(s,true);
 
         // 2. Enumerate all paths one-away from the best path
@@ -219,8 +220,14 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
                 path[i] = ref;
                 likelihood = best_likelihood - Math.log10(probs[i][alt]) + Math.log10(probs[i][ref]);
             }
-            paths.add(path);
-            likelihoods.add(likelihood);
+
+            //s = ""; for (int j = 0; j < path.length; j++) { s += path[j]; }
+            s = ""; for (int j = 0; j < path.length; j++) { s += BaseUtils.baseIndexToSimpleBase(path[j]); }
+
+            //if (!done_paths.containsKey(s)) {
+                paths.add(path);
+                likelihoods.add(likelihood);
+            //}
         }
 
         // 3. Sort paths by likelihood
@@ -233,11 +240,17 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 	        // 4. Choose the next best path
             int[] next_best_path = paths.get(paths.size()-1);
             double next_best_likelihood = likelihoods.get(likelihoods.size()-1);
+
+            s = ""; for (int j = 0; j < next_best_path.length; j++) { s += BaseUtils.baseIndexToSimpleBase(next_best_path[j]); }
+            if (done_paths.containsKey(s)) { break; }
+
 	        output_paths.add(next_best_path);
 	        output_likelihoods.add(next_best_likelihood);
             paths.remove(paths.size()-1);
             likelihoods.remove(likelihoods.size()-1);
-            s = ""; for (int j = 0; j < next_best_path.length; j++) { s += next_best_path[j]; }
+            
+            //s = ""; for (int j = 0; j < next_best_path.length; j++) { s += next_best_path[j]; }
+
             done_paths.put(s,true);
 
                 /*
@@ -263,9 +276,9 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 	                likelihood = next_best_likelihood - Math.log10(probs[i][alt]) + Math.log10(probs[i][ref]);
 	            }
 
-                s = "";
-                for (int j = 0; j < path.length; j++) { s += path[j]; }
-                if (done_paths.get(s) == null) 
+                //s = ""; for (int j = 0; j < path.length; j++) { s += path[j]; }
+                s = ""; for (int j = 0; j < path.length; j++) { s += BaseUtils.baseIndexToSimpleBase(path[j]); }
+                if (!done_paths.containsKey(s))
                 {
 	                paths.add(path);
 	                likelihoods.add(likelihood);
