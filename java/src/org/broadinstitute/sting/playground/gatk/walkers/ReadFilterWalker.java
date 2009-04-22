@@ -15,18 +15,20 @@ public class ReadFilterWalker extends ReadWalker<Integer,Integer> {
 	@Argument(fullName="output_file", shortName="O",doc="SAM or BAM file to write filtered reads into (will be overwritten if exists)",required=true ) public String output;
 	@Argument(fullName="max_read_length",doc="Discard reads with length greater than the specified value",required=false) public Integer max_len;
 
-
 	private SAMFileWriter writer = null;
 	
+    public void initialize() {
+        SAMFileHeader header = getToolkit().getSamReader().getFileHeader();
+        writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(header, header.getSortOrder() != SAMFileHeader.SortOrder.unsorted, new File(output));
+    }
+
 	@Override
     public boolean filter(LocusContext context, SAMRecord read) {
-		if ( read.getReadLength() > max_len ) return false;
-		return true;
+		return read.getReadLength() <= max_len;
 	}
 
 	@Override
 	public Integer map(LocusContext context, SAMRecord read) {
-		if ( writer == null )	writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(read.getHeader(), read.getHeader().getSortOrder() != SAMFileHeader.SortOrder.unsorted, new File(output));
 		writer.addAlignment(read);
 		return 1;
 	}
@@ -42,8 +44,8 @@ public class ReadFilterWalker extends ReadWalker<Integer,Integer> {
 	}
 	
 	public void onTraversalDone(Integer nReads) {
-		super.onTraversalDone(nReads);
-		 out.println(nReads +" reads passed the filter and were written into output file "+output);
+		writer.close();
+        out.println(nReads +" reads passed the filter and were written into output file "+output);
 	}
 
 }
