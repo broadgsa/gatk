@@ -29,7 +29,7 @@ import java.util.List;
  *
  */
 public class MicroManager {
-    private static long SHARD_SIZE = 5L;
+    private static long SHARD_SIZE = 100000L;
 
     private File reads;
     private FastaSequenceFile2 ref;
