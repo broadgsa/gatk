@@ -28,18 +28,15 @@ public class PrintLocusContextWalker extends LocusWalker<LocusContext, Integer> 
     public Integer reduceInit() { return 0; }
 
     public Integer reduce(LocusContext context, Integer sum) {
-        out.printf( "In reduce: loc = %s, reads = %s, sum =%d%n", context.getLocation(),
-                                                                  Arrays.deepToString( getReadNames(context.getReads()) ),
-                                                                  sum );
-
-
         return sum + 1;
     }
 
     private String[] getReadNames( List<SAMRecord> reads ) {
         String[] readNames = new String[ reads.size() ];
-        for( int i = 0; i < reads.size(); i++ )
-            readNames[i] = reads.get(i).getReadName();
+        for( int i = 0; i < reads.size(); i++ ) {
+            readNames[i] = String.format("%nname = %s, start = %d, end = %d", reads.get(i).getReadName(), reads.get(i).getAlignmentStart(), reads.get(i).getAlignmentEnd());
+        }
+        //Arrays.sort(readNames);
         return readNames;
     }
 }
