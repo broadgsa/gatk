@@ -37,11 +37,19 @@ public class BoundedReadIterator implements CloseableIterator<SAMRecord>, Iterab
     // the genome loc we're bounding
     final private long readCount;
     private long currentCount = 0;
+
     // the iterator we want to decorate
-    private CloseableIterator<SAMRecord> iterator;
+    private final CloseableIterator<SAMRecord> iterator;
+
+    // our unmapped read flag
+    private boolean doNotUseThatUnmappedReadPile = false;
 
     // are we open
     private boolean isOpen = false;
+
+    // the next read we've buffered
+    private SAMRecord record = null;
+
     /**
      * constructor
      * @param iter
@@ -50,9 +58,14 @@ public class BoundedReadIterator implements CloseableIterator<SAMRecord>, Iterab
     public BoundedReadIterator(CloseableIterator<SAMRecord> iter, long readCount) {
         if (iter != null) {
             isOpen = true;
-            this.iterator = iter;
+
         }
+        this.iterator = iter;
         this.readCount = readCount;
+    }
+
+    public void useUnmappedReads(boolean useThem) {
+        this.doNotUseThatUnmappedReadPile = useThem;
     }
 
 
@@ -63,6 +76,11 @@ public class BoundedReadIterator implements CloseableIterator<SAMRecord>, Iterab
      */
     public boolean hasNext() {
         if (isOpen && iterator.hasNext() && currentCount < readCount) {
+            record = iterator.next();
+            ++currentCount;
+            if (record.getAlignmentStart() == 0 && doNotUseThatUnmappedReadPile) {
+                return false;
+            }
             return true;
         } else {
             if (isOpen) {
@@ -77,11 +95,7 @@ public class BoundedReadIterator implements CloseableIterator<SAMRecord>, Iterab
      * @return SAMRecord representing the next read
      */
     public SAMRecord next() {
-        if (!isOpen) {
-            throw new UnsupportedOperationException("You cannot call next on a closed iterator");
-        }
-        ++currentCount;
-        return iterator.next();
+        return record;
     }
 
     /**

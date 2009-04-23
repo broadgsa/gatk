@@ -33,12 +33,25 @@ public class ReadShard implements Shard {
     // the count of the reads we want to copy off
     int size = 0;
 
+    // this is going to get gross
+    private final ReadShardStrategy str;
+
     /**
      * create a read shard, given a read size
      * @param size
      */
     public ReadShard(int size) {
+        this.str = null;
         this.size = size;     
+    }
+
+    /**
+     * create a read shard, given a read size
+     * @param size
+     */
+    ReadShard(ReadShardStrategy caller, int size) {
+        this.str = caller;
+        this.size = size;
     }
 
     /** @return the genome location represented by this shard */

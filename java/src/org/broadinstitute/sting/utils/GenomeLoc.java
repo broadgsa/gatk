@@ -284,6 +284,24 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         }
     }
 
+
+    /**
+     * Move this Genome loc to the next contig, with a start
+     * and stop of 1.
+     * @return true if we are not out of contigs, otherwise false if we're
+     *          at the end of the genome (no more contigs to jump to).
+     */
+    public boolean toNextContig() {
+        if (contigIndex < GenomeLoc.contigInfo.size()) {
+            this.contigIndex++;
+            this.start = 1;
+            this.stop = 1;
+            return true;
+        }
+        return false;
+    }
+
+
     /**
      * Returns true iff we have a specified series of locations to process AND we are past the last
      * location in the list.  It means that, in a serial processing of the genome, that we are done.

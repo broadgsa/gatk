@@ -110,7 +110,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
     }
 
     /** Returns true if any of the underlying iterators has more records, otherwise false. */
-    public synchronized boolean hasNext() {
+    public boolean hasNext() {
         if (!initialized) {
             lazyInitialization();
         }
@@ -118,7 +118,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
     }
 
     /** Returns the next record from the top most iterator during merging. */
-    public synchronized SAMRecord next() {
+    public SAMRecord next() {
         if (!initialized) {
             lazyInitialization();
         }
