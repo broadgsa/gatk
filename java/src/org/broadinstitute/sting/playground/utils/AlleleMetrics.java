@@ -47,6 +47,23 @@ public class AlleleMetrics {
         }
     }
 
+    public AlleleMetrics(String MetricsOutputFile, double lodThreshold) {
+        LOD_cutoff = lodThreshold;
+
+        try
+        {
+            /*if ( MetricsOutputFile.equals("-") )
+                this.out = out;
+            else*/
+            this.out = new PrintStream(MetricsOutputFile);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+    }
+
     public void nextPosition(AlleleFrequencyEstimate alleleFreq, RefMetaDataTracker tracker) {
         num_loci_total += 1;
 
