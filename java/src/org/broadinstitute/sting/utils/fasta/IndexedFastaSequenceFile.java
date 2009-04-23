@@ -167,7 +167,7 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
             dataOfInterestStart = 0;
         }
 
-        return new ReferenceSequence( contig, (int)start, accumulator );
+        return new ReferenceSequence( contig, sequenceDictionary.getSequenceIndex(contig), accumulator );
     }
 
     /**
