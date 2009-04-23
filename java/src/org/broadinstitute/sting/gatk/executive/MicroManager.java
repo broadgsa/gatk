@@ -103,6 +103,7 @@ public class MicroManager {
             throw new RuntimeException( ex );
         }
 
+        walker.initialize();
         Object accumulator = ((LocusWalker<?,?>)walker).reduceInit();
 
         for(Shard shard: shardStrategy) {
