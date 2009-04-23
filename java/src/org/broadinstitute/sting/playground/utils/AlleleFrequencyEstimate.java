@@ -39,7 +39,7 @@ public class AlleleFrequencyEstimate {
 
     public AlleleFrequencyEstimate(GenomeLoc location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, double pBest, double pRef, int depth, String bases, double[][] quals, double[] posteriors)
     {
-        if( Double.isNaN(lodVsRef)) { System.out.printf("lodVsRef is NaN\n"); }
+        if( Double.isNaN(lodVsRef)) { System.out.printf("%s: lodVsRef is NaN\n", location.toString()); }
         if( Double.isNaN(lodVsNextBest)) { System.out.printf("lodVsNextBest is NaN\n"); }
         if( Double.isNaN(qhat)) { System.out.printf("qhat is NaN\n"); }
         if( Double.isNaN(qstar)) { System.out.printf("qstar is NaN\n"); }
@@ -48,7 +48,7 @@ public class AlleleFrequencyEstimate {
 
         if( Double.isInfinite(lodVsRef)) 
         { 
-            System.out.printf("lodVsRef is Infinite: %c %s\n", ref, bases); 
+            System.out.printf("lodVsRef is Infinite: %s %c %s\n", location.toString(), ref, bases); 
             for (int i = 0; i < posteriors.length; i++)
             {
                 System.out.printf("POSTERIOR %d %f\n", i, posteriors[i]);
