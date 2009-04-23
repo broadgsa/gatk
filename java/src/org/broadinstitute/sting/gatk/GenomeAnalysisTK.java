@@ -486,4 +486,5 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     }
 
     public SAMFileReader getSamReader() { return this.engine.getSamReader(); }
+    public TraversalEngine getEngine() { return this.engine; }
 }

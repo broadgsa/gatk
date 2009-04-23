@@ -119,6 +119,9 @@ public class MicroManager {
             ReferenceProvider referenceProvider = new ReferenceProvider( refIter );
             LocusContextProvider locusProvider = new LocusContextProvider( readShard );
 
+            // set the sam header of the traversal engine
+            traversalEngine.setSAMHeader(readShard.getMergedHeader());
+            System.err.println(traversalEngine.getSAMHeader().getSequenceDictionary().toString());
             accumulator = traversalEngine.traverse( walker, shard, referenceProvider, locusProvider, accumulator );
             readShard.close();
         }

@@ -75,6 +75,11 @@ public abstract class TraversalEngine {
     protected boolean THREADED_IO = false;
     protected int THREADED_IO_BUFFER_SIZE = 10000;
 
+
+
+    // the stored header
+    protected SAMFileHeader myHeader = null;
+
     /**
      * our log, which we want to capture anything from this class
      */
@@ -167,6 +172,26 @@ public abstract class TraversalEngine {
     // functions for dealing locations (areas of the genome we're traversing over)
     //
     // --------------------------------------------------------------------------------------------------------------
+
+
+    /**
+     * get the associated SAM header for our run
+     * @return the header if it's stored, null if not
+     */
+    public SAMFileHeader getSAMHeader() {
+        return myHeader;
+    }
+
+    /**
+     * set's the SAM header for this traversal, which should
+     * be the merged header in the multiple BAM file case.
+     *  
+     * @param myHeader the passed in header
+     */
+
+    public void setSAMHeader(SAMFileHeader myHeader) {
+        this.myHeader = myHeader;
+    }
 
     /**
      * Parses the location string locStr and sets the traversal engine to only process
@@ -417,7 +442,7 @@ public abstract class TraversalEngine {
 
     public boolean shutdown() {
         // todo: actually shutdown the resources
-        
+
         return true;
     }
 
@@ -462,7 +487,7 @@ public abstract class TraversalEngine {
     public <M, T> T traverse(Walker<M, T> walker, ArrayList<GenomeLoc> locations) {
         return null;
     }
-    
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // traversal by loci functions

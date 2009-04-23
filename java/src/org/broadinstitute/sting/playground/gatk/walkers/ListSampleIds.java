@@ -1,28 +1,21 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.*;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.refdata.rodGFF;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMReadGroupRecord;
+import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
+import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
-import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.util.*;
+import java.util.List;
 
 public class ListSampleIds extends LocusWalker<Boolean, Boolean> 
 {
     public void initialize() 
     { 
         GenomeAnalysisTK toolkit = this.getToolkit();
-        SAMFileHeader header = toolkit.getSamReader().getFileHeader();
+        SAMFileHeader header = toolkit.getEngine().getSAMHeader();
         List<SAMReadGroupRecord> read_groups = header.getReadGroups();
 
         for (int i = 0; i < read_groups.size(); i++)
