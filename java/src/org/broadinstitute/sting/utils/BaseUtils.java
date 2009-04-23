@@ -6,6 +6,9 @@ package org.broadinstitute.sting.utils;
  * @author Kiran Garimella
  */
 public class BaseUtils {
+    /** Private constructor.  No instantiating this class! */
+    private BaseUtils() {}
+    
     /**
      * Converts a simple base to a base index
      *
