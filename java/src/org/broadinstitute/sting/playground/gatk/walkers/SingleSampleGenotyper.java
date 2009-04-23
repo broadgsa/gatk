@@ -21,7 +21,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     @Argument(fullName="metrics",required=true)
     public String metricsFileName;
 
-    @Argument(fullName="lodThreshold",shortName="lod",required=false,defaultValue="0.0")
+    @Argument(fullName="lodThreshold",shortName="lod",required=false,defaultValue="5.0")
     public Double lodThreshold;
 
     @Argument(fullName="fourBaseMode",required=false,defaultValue="false")
