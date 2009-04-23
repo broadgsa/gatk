@@ -18,17 +18,22 @@ import java.util.*;
 // j.maguire 3-7-2009
 
 public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, Integer>  {
+    @Argument(fullName="metrics",required=true)
+    public String metricsFileName;
+
+    @Argument(fullName="lodThreshold",shortName="lod",required=false,defaultValue="0.0")
+    public Double lodThreshold;
+
     @Argument(fullName="fourBaseMode",required=false,defaultValue="false")
     public Boolean fourBaseMode;
 
-    @Argument(fullName="decideOnBase",required=false,defaultValue="false")
-    public Boolean decideOnBase;
-    
-    private AlleleMetrics metrics;
+    public AlleleMetrics metrics;
     
     public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) { return true; } // We are keeping all the reads
     public boolean requiresReads() { return true; }
-    public void initialize() { metrics = new AlleleMetrics("metrics.out"); }
+    public void initialize() {
+        metrics = new AlleleMetrics(metricsFileName, lodThreshold);
+    }
 
     public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         String rodString = getRodString(tracker);
@@ -36,11 +41,13 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         AlleleFrequencyEstimate freq = null;
         if (fourBaseMode) 
         {
-            // Compute four-base prob genotype likelihoods
-            freq = getFourProbAlleleFrequency(ref, context, rodString);
-        } 
-        else if (decideOnBase) 
-        {
+            // Compute single quality score genotype likelihoods
+            freq = getOneProbAlleleFrequency(ref, context, rodString);
+
+            if (Math.abs(freq.qhat - 0.5) < 0.01) {
+                // If we found a putative het, recompute four-base prob genotype likelihoods
+                freq = getFourProbAlleleFrequency(ref, context, rodString, tracker);
+            }
         } 
         else 
         {
@@ -54,7 +61,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         return freq;
     }
 
-    private AlleleFrequencyEstimate getFourProbAlleleFrequency(char ref, LocusContext context, String rodString) {
+    private AlleleFrequencyEstimate getFourProbAlleleFrequency(char ref, LocusContext context, String rodString, RefMetaDataTracker tracker) {
         /*
          P(D)*P(G,q|D) = P(D|G,q)*P(G,q)
                        = P(D|q)*P(q|G)*P(G)
@@ -71,62 +78,97 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         int altBaseIndex = getMostFrequentNonRefBase(getFractionalCounts(probs), refBaseIndex);
 
         if (refBaseIndex >= 0 && altBaseIndex >= 0) {
-            System.out.println(context.getLocation().toString() + " " + refBaseIndex + " " + altBaseIndex + " " + probs.length + " " + rodString);
+            /*
             for (int i = 0; i < probs.length; i++) {
                 System.out.printf("  [ %4.4f %4.4f %4.4f %4.4f ]\n", probs[i][0], probs[i][1], probs[i][2], probs[i][3]);
             }
-            
+            */
+
             double[] obsWeights = getObservationWeights(probs, refBaseIndex, altBaseIndex);
 
+            /*
             System.out.print("  Weights: ");
             for (int i = 0; i < obsWeights.length; i++) {
-                System.out.printf("%4.4f ", obsWeights[i]);
+                System.out.print(obsWeights[i] + " ");
             }
             System.out.println();
+            */
 
             double[] genotypePriors   = { 0.999, 1e-3, 1e-5 };
-            double[] genotypeBalances = { 0.02,  0.5,  0.98 };
+            //double[] genotypeBalances = { 0.02,  0.5,  0.98 };
+            double[] genotypeBalances = { 0.002,  0.5,  1.0 };
 
             double[] posteriors = new double[3];
-            double qhat = 0.0, qstar = 0.0, lodVsRef = 0.0, lodVsNextBest = 0.0, pBest = Double.MIN_VALUE;
+            double qhat = 0.0, qstar = 0.0, lodVsRef = 0.0, pBest = Double.MIN_VALUE;
 
             for (int hypothesis = 0; hypothesis < 3; hypothesis++) {
                 posteriors[hypothesis] = 0.0;
 
                 for (int weightIndex = 0; weightIndex < obsWeights.length; weightIndex++) {
-                    posteriors[hypothesis] += obsWeights[weightIndex]*binomialProb(weightIndex, probs.length, genotypeBalances[hypothesis]);
+                    //if (hypothesis == 0) {
+                    //    System.out.println("DEBUG1: " + hypothesis + " " + weightIndex + " " + obsWeights[weightIndex] + " " + binomialProb(weightIndex, probs.length, genotypeBalances[hypothesis]));
+                    //}
+                    if (hypothesis == 0) {
+                        //System.out.println(weightIndex + " " + probs.length + " " + genotypeBalances[hypothesis] + " " + binomialProb(weightIndex, probs.length, genotypeBalances[hypothesis]));
+                    }
+                    double binomialWeight = binomialProb(weightIndex, probs.length, genotypeBalances[hypothesis]);;
+                    if (hypothesis == 0 && weightIndex < obsWeights.length/4) {
+                        binomialWeight = 1.0;
+                    }
+                    
+                    posteriors[hypothesis] += obsWeights[weightIndex]*binomialWeight;
                 }
                 posteriors[hypothesis] *= genotypePriors[hypothesis];
 
-                System.out.printf("  Hypothesis %d %f %f %f\n", hypothesis, genotypeBalances[hypothesis], posteriors[hypothesis], Math.log10(posteriors[hypothesis]/posteriors[0]));
+                double refLikelihood = Double.isInfinite(Math.log10(posteriors[0])) ? -10000.0 : Math.log10(posteriors[0]);
+
+                //System.out.println("  Hypothesis " + hypothesis + " " + genotypeBalances[hypothesis] + " " + posteriors[hypothesis] + " " + (Math.log10(posteriors[hypothesis]) - refLikelihood));
 
                 if (posteriors[hypothesis] > pBest) {
                     qhat = genotypeBalances[hypothesis];
                     qstar = genotypeBalances[hypothesis];
-                    lodVsRef = Math.log10(posteriors[hypothesis]/posteriors[0]);
+                    lodVsRef = Math.log10(posteriors[hypothesis]) - refLikelihood;
                     pBest = posteriors[hypothesis];
                 }
             }
 
             double pRef = posteriors[0];
-            
-            System.out.println("\n");
 
-            return new AlleleFrequencyEstimate(context.getLocation(),
-                                               ref,
-                                               BaseUtils.baseIndexToSimpleBase(altBaseIndex),
-                                               2,
-                                               qhat,
-                                               qstar,
-                                               lodVsRef,
-                                               lodVsNextBest,
-                                               pBest,
-                                               pRef,
-                                               probs.length,
-                                               ReadBackedPileup.basePileupAsString(context.getReads(), context.getOffsets()),
-                                               probs,
-                                               posteriors);
+            double[] sposteriors = Arrays.copyOf(posteriors, posteriors.length);
+            Arrays.sort(sposteriors);
+            double bestLogPosterior = (Double.isInfinite(Math.log10(sposteriors[2]))) ? -10000.0 : Math.log10(sposteriors[2]);
+            double nextBestLogPosterior = (Double.isInfinite(Math.log10(sposteriors[1]))) ? -10000.0 : Math.log10(sposteriors[1]);
+            double lodVsNextBest = bestLogPosterior - nextBestLogPosterior;
 
+            //System.out.println("\n");
+
+            AlleleFrequencyEstimate freq = new AlleleFrequencyEstimate(context.getLocation(),
+                                                                       ref,
+                                                                       BaseUtils.baseIndexToSimpleBase(altBaseIndex),
+                                                                       2,
+                                                                       qhat,
+                                                                       qstar,
+                                                                       (Math.abs(qhat - genotypeBalances[0]) < 0.001 ? -lodVsNextBest : lodVsRef),
+                                                                       lodVsNextBest,
+                                                                       pBest,
+                                                                       pRef,
+                                                                       probs.length,
+                                                                       ReadBackedPileup.basePileupAsString(context.getReads(), context.getOffsets()),
+                                                                       probs,
+                                                                       posteriors);
+
+            for ( ReferenceOrderedDatum datum : tracker.getAllRods() )  {
+                if ( datum != null )  {
+                    if ( datum instanceof rodGFF ) {
+                        rodGFF hapmap_chip_genotype = (rodGFF) datum;
+                        
+                        //System.out.println(hapmap_chip_genotype.toString());
+                        //System.out.println(freq.asTabularString());
+                    }
+                }
+            }
+
+            return freq;
         }
 
         return null;
@@ -136,11 +178,13 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         // k - number of successes
         // n - number of Bernoulli trials
         // p - probability of success
+        double dbinom = 0.0;
 
         if ((n*p < 5) && (n*(1-p) < 5))
         {
             // For small n and the edges, compute it directly.
-            return (double)nchoosek(n, k) * Math.pow(p, k) * Math.pow(1-p, n-k);
+            //return (double)nchoosek(n, k) * Math.pow(p, k) * Math.pow(1-p, n-k);
+            dbinom = (double)nchoosek(n, k) * Math.pow(p, k) * Math.pow(1-p, n-k);
         }
         else
         {
@@ -151,8 +195,10 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
             double check = (double)nchoosek(n, k) * Math.pow(p, k) * Math.pow(1-p, n-k);
             double residual = ans - check;
 
-            return check;
+            dbinom = check;
         }
+
+        return (dbinom < 0.0) ? 0.0 : dbinom;
     }
 
     long nchoosek(long n, long k) {
@@ -169,11 +215,11 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     private double[] getObservationWeights(double[][] probs, int refBaseIndex, int altBaseIndex) {
         //if (probs.length <= 10) 
         //{
-        //    return getWeightTableTraces(getWeightTable(probs, refBaseIndex, altBaseIndex, probs.length));
+            return getWeightTableTraces(getWeightTable(probs, refBaseIndex, altBaseIndex, probs.length));
         //}
         //else
         //{
-            return FastObservationWeights(probs, refBaseIndex, altBaseIndex);
+        //    return FastObservationWeights(probs, refBaseIndex, altBaseIndex);
         //}
     }
 
@@ -235,7 +281,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         paths = Utils.PermuteList(paths, permutation);
         likelihoods = Utils.PermuteList(likelihoods, permutation);
 
-        while ((output_paths.size() < 10) && (paths.size() > 0))
+        while (/*(output_paths.size() < 10) &&*/ (paths.size() > 0))
         {
 	        // 4. Choose the next best path
             int[] next_best_path = paths.get(paths.size()-1);
@@ -291,22 +337,28 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
             likelihoods = Utils.PermuteList(likelihoods, permutation);
         }
 
+        double[] ans = new double[probs.length+1];
+
         for (int i = 0; i < output_paths.size(); i++)
         {
             int[] path = output_paths.get(i);
             double likelihood = output_likelihoods.get(i);
+            int altCount = 0;
 
-            System.out.printf("DBG %d ", i);
+            //System.out.printf("DBG %d ", i);
             for (int j = 0; j < path.length; j++)
             {
-                System.out.printf("%c", BaseUtils.baseIndexToSimpleBase(path[j]));
-            }
-            System.out.printf(" %f\n", likelihood);
-        }
-        System.out.printf("\n");
+                //System.out.printf("%c", BaseUtils.baseIndexToSimpleBase(path[j]));
 
-        double[] ans = new double[probs.length+1];
-        for (int i = 0; i < ans.length; i++) { ans[i] = 1.0; }
+                if (path[j] != ref) { altCount++; }
+            }
+            //System.out.printf(" %f\n", likelihood);
+
+            ans[altCount] += Math.pow(10.0, likelihood);
+            //System.out.println(altCount + " " + likelihood + " " + Math.pow(10.0, likelihood));
+        }
+        //System.out.printf("\n");
+
         return ans;
     }
 
@@ -389,7 +441,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         }
         G.ApplyPrior(ref, Double.NaN);
 
-        System.out.printf("%s %s %s %s\n", context.getLocation(), ref, bases, G.toString(ref), rodString);
+        //System.out.printf("%s %s %s %s\n", context.getLocation(), ref, bases, G.toString(ref), rodString);
 
         return G.toAlleleFrequencyEstimate(context.getLocation(), ref, bases.length(), bases, G.likelihoods);
     }
