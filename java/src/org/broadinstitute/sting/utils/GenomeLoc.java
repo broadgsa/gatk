@@ -292,7 +292,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
      *          at the end of the genome (no more contigs to jump to).
      */
     public boolean toNextContig() {
-        if (contigIndex < GenomeLoc.contigInfo.size()) {
+        if ((contigIndex + 1) < GenomeLoc.contigInfo.size()) {
             this.contigIndex++;
             this.start = 1;
             this.stop = 1;
