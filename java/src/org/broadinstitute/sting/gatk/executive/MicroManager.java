@@ -103,8 +103,8 @@ public class MicroManager {
             throw new RuntimeException( ex );
         }
 
-        walker.initialize();
-        Object accumulator = ((LocusWalker<?,?>)walker).reduceInit();
+        boolean walkerInitialized = false;
+        Object accumulator = null;
 
         for(Shard shard: shardStrategy) {
             // CloseableIterator<SAMRecord> readShard = null;
@@ -121,6 +121,13 @@ public class MicroManager {
 
             // set the sam header of the traversal engine
             traversalEngine.setSAMHeader(readShard.getMergedHeader());
+
+            if (!walkerInitialized) {
+                walker.initialize();
+                accumulator = ((LocusWalker<?,?>)walker).reduceInit();
+                walkerInitialized = true;
+            }
+
             System.err.println(traversalEngine.getSAMHeader().getSequenceDictionary().toString());
             accumulator = traversalEngine.traverse( walker, shard, referenceProvider, locusProvider, accumulator );
             readShard.close();
