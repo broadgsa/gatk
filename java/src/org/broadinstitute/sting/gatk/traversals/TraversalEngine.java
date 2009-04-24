@@ -496,8 +496,7 @@ public abstract class TraversalEngine {
 
     /**
      * Class to filter out un-handle-able reads from the stream.  We currently are skipping
-     * unmapped reads, non-primary reads, unaligned reads, and those with indels.  We should
-     * really change this to handle indel containing reads.
+     * unmapped reads, non-primary reads, unaligned reads, and duplicate reads.
      */
     public static class locusStreamFilterFunc implements SamRecordFilter {
         SAMRecord lastRead = null;

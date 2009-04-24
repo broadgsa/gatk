@@ -16,6 +16,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.IntervalWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
@@ -247,8 +248,8 @@ public class GenomeAnalysisTK extends CommandLineProgram {
 
         MicroManager microManager = null;
 
-        // Try to get the walker specified
-        try {
+        // Get the walker specified
+        if ( my_walker instanceof LocusWalker ) {
             LocusWalker<?, ?> walker = (LocusWalker<?, ?>) my_walker;
 
             if ( REF_FILE_ARG == null )
@@ -277,10 +278,10 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                 else
                 	this.engine = new TraverseByLoci(INPUT_FILE, REF_FILE_ARG, rods);
             }
-        }
-        catch (java.lang.ClassCastException e) {
-            // I guess we're a read walker LOL
-            ReadWalker<?, ?> walker = (ReadWalker<?, ?>) my_walker;
+        } else if ( my_walker instanceof IntervalWalker ) {
+            this.engine = new TraverseByIntervals(INPUT_FILE, REF_FILE_ARG, rods);
+        } else {
+            // we're a read walker
             this.engine = new TraverseByReads(INPUT_FILE, REF_FILE_ARG, rods);
         }
 

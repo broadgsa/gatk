@@ -120,9 +120,11 @@ public class LocusContext {
                 i++;
         }
 
-        ArrayList downsampledReads = new ArrayList();
+        ArrayList<SAMRecord> downsampledReads = new ArrayList<SAMRecord>();
+        ArrayList<Integer> downsampledOffsets = new ArrayList<Integer>();
         Iterator positionIter = positions.iterator();
-        Iterator readsIter = reads.iterator();
+        Iterator<SAMRecord> readsIter = reads.iterator();
+        Iterator<Integer> offsetsIter = offsets.iterator();
         int currentRead = 0;
         while ( positionIter.hasNext() ) {
             int nextReadToKeep = (Integer)positionIter.next();
@@ -130,13 +132,16 @@ public class LocusContext {
             // fast-forward to the right read
             while ( currentRead < nextReadToKeep ) {
                 readsIter.next();
+                offsetsIter.next();
                 currentRead++;
             }
 
             downsampledReads.add(readsIter.next());
+            downsampledOffsets.add(offsetsIter.next());
             currentRead++;
         }
 
         reads = downsampledReads;
+        offsets = downsampledOffsets;
     }
 }
