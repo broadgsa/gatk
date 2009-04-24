@@ -27,7 +27,7 @@ def main():
                         type="string", default=None,
                         help="Farm queue to submit jobs to.  Leave blank for local processing")
     parser.add_option("-e", "--ignoreExistingFiles", dest="ignoreExistingFiles",
-                        action='store_true', default=True,
+                        action='store_true', default=False,
                         help="Ignores the existing files")
     parser.add_option("-a", "--rebuildAllFiles", dest="rebuildAllFiles",
                         action='store_true', default=False,
@@ -100,6 +100,7 @@ def main():
             farm_commands.cmd(cmd, None, None)
  
         if not os.path.exists(validationOutput) or OPTIONS.ignoreExistingFiles:
+            print validationOutput, 'does not exist'
             analysis = "ValidatingPileup"
             cmd = "java -ea -Xmx1024m -jar ~/dev/GenomeAnalysisTK/trunk/dist/GenomeAnalysisTK.jar -T " + analysis + " -I " + subBAM + " -R " + ref + " -l INFO -S SILENT -U -B pileup SAMPileup " + pileup
             print cmd
