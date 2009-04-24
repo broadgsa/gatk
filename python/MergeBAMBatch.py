@@ -36,18 +36,15 @@ if __name__ == "__main__":
         if ( s <> [] and s[0] <> '#' ):
             merged_filename = s[0]
             output = os.path.join(directory, merged_filename + '.stdout')
-            current_link = os.path.join(directory, merged_filename + bam_ext)
-            stamped_filename = os.path.join(directory, merged_filename + '_' + time_stamp + bam_ext)
+            output_filename = os.path.join(directory, merged_filename + bam_ext)
+            output_index = output_filename + ".bai"
             sources = reduce( operator.__add__, map( glob.glob, s[1:] ), [] )
             
-            if OPTIONS.ignoreExistingFiles or not os.path.exists(stamped_filename):
-                cmd = 'java -Xmx4096m -jar ' + MERGE_BIN + ' AS=true O=' + stamped_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(sources))
+            if OPTIONS.ignoreExistingFiles or not os.path.exists(output_filename):
+                cmd = 'java -Xmx4096m -jar ' + MERGE_BIN + ' AS=true O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(sources))
                 print cmd
                 farm_commands.cmd(cmd, OPTIONS.farm_sub, output)
-                
-            if OPTIONS.ignoreExistingFiles or not os.path.lexists(current_link):
-                print 'os.path.exists(current_link)', os.path.exists(current_link)
-                cmd = 'ln -s ' + stamped_filename + " " + current_link
-                farm_commands.cmd(cmd, False, '')
-                ValidateGATK.indexBAM(current_link)
+
+            if OPTIONS.ignoreExistingFiles or not os.path.exists(output_index):
+                ValidateGATK.indexBAM(output_filename)
 
