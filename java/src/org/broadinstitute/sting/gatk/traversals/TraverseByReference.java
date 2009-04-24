@@ -64,7 +64,7 @@ public class TraverseByReference extends TraverseByLoci {
             sum = carryWalkerOverReference(walker, sum, null);
         }
 
-        printOnTraversalDone("reference", sum);
+        //printOnTraversalDone("reference", sum);
         walker.onTraversalDone(sum);
         return sum;
     }

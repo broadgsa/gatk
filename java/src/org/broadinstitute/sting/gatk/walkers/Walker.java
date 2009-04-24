@@ -1,8 +1,13 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import java.io.PrintStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Pair;
 
 /**
  * Created by IntelliJ IDEA.
@@ -47,7 +52,34 @@ public abstract class Walker<MapType, ReduceType> {
     }
 
     public void initialize() { }
+
     public void onTraversalDone(ReduceType result) {
         out.println("[REDUCE RESULT] Traversal result is: " + result);
+    }
+
+    /**
+     * General interval reduce routine called after all of the traversals are done
+     * @param results
+     */
+    public void onTraversalDone(List<Pair<GenomeLoc, ReduceType>> results) {
+        for ( Pair<GenomeLoc, ReduceType> result : results ) {
+            out.printf("[INTERVAL REDUCE RESULT] at %s ", result.getFirst());
+            this.onTraversalDone(result.getSecond());
+        }
+    }
+
+    /**
+     * Return true if your walker wants to reduce each interval separately.  Default is false.
+     *
+     * If you set this flag, several things will happen.
+     *
+     * The system will invoke reduceInit() once for each interval being processed, starting a fresh reduce
+     * Reduce will accumulate normally at each map unit in the interval
+     * However, onTraversalDone(reduce) will be called after each interval is processed.
+     * The system will call onTraversalDone( GenomeLoc -> reduce ), after all reductions are done,
+     *   which is overloaded here to call onTraversalDone(reduce) for each location
+     */
+    public boolean ReduceByInterval() {
+        return false;
     }
 }

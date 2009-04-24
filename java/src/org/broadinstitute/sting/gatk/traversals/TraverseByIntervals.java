@@ -85,7 +85,7 @@ public class TraverseByIntervals extends TraversalEngine {
             }
         }
 
-        printOnTraversalDone("intervals", sum);
+        //printOnTraversalDone("intervals", sum);
         walker.onTraversalDone(sum);
         return sum;
     }

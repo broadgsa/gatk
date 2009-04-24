@@ -93,7 +93,7 @@ public class TraverseByLoci extends TraversalEngine {
             sum = carryWalkerOverInterval(walker, samReadIter, sum, null);
         }
 
-        printOnTraversalDone("loci", sum);
+        //printOnTraversalDone("loci", sum);
         walker.onTraversalDone(sum);
         return sum;
     }

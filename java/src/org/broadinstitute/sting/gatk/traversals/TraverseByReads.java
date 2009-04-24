@@ -115,7 +115,7 @@ public class TraverseByReads extends TraversalEngine {
             //System.out.printf("Done? %b%n", done);
         }
 
-        printOnTraversalDone("reads", sum);
+        //printOnTraversalDone("reads", sum);
         walker.onTraversalDone(sum);
         return sum;
     }

@@ -24,6 +24,10 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
         return context.getReads().size();
     }
 
+    public boolean ReduceByInterval() {
+        return true;
+    }
+
     public Pair<Long, Long> reduceInit() { return new Pair(0l,0l); }
 
     public Pair<Long, Long> reduce(Integer value, Pair<Long, Long> sum) {
@@ -33,6 +37,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
     }
 
     public void onTraversalDone(Pair<Long, Long> result) {
-        out.printf("Average depth of coverage is: %.2f\n", ((double)result.getFirst() / (double)result.getSecond()));
+        out.printf("Average depth of coverage is: %.2f in %d total coverage over %d sites\n", 
+                ((double)result.getFirst() / (double)result.getSecond()), result.getFirst(), result.getSecond());
     }
 }

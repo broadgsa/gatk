@@ -418,7 +418,7 @@ public abstract class TraversalEngine {
             samReader.setValidationStringency(strictness);
 
             final SAMFileHeader header = samReader.getFileHeader();
-            logger.info(String.format("Sort order is: " + header.getSortOrder()));
+            logger.debug(String.format("Sort order is: " + header.getSortOrder()));
 
             return samReader;
         }
@@ -506,11 +506,29 @@ public abstract class TraversalEngine {
     // --------------------------------------------------------------------------------------------------------------
 
     public <M, T> T traverse(Walker<M, T> walker) {
-        ArrayList<GenomeLoc> l = new ArrayList<GenomeLoc>();
-        if ( hasLocations() )
-            l = locs;
+        T sum = null;
+        if ( hasLocations() && walker.ReduceByInterval() ) {
+            logger.info("Doing reduce by interval processing");
+            if ( ! hasLocations() )
+                Utils.scareUser("ReduceByInterval requested by no interval was provided");
+            List<Pair<GenomeLoc, T>> map = new ArrayList<Pair<GenomeLoc, T>>(locs.size());
+            for ( GenomeLoc loc : locs ) {
+                ArrayList<GenomeLoc> l = new ArrayList<GenomeLoc>();
+                l.add(loc);
+                T intervalSum = traverse(walker, l);
+                sum = intervalSum;
+                map.add(new Pair<GenomeLoc, T>(loc, intervalSum));
+            }
+            walker.onTraversalDone(map);
+        } else {
+            ArrayList<GenomeLoc> l = new ArrayList<GenomeLoc>();
+            if ( hasLocations() )
+                l = locs;
+            sum = traverse(walker, l);
+        }
 
-        return traverse(walker, l);
+        printOnTraversalDone("elements", sum);
+        return sum;
     }
 
     public <M, T> T traverse(Walker<M, T> walker, ArrayList<GenomeLoc> locations) {

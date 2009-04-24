@@ -351,6 +351,9 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      * Initialize the output streams as specified by the user.
      */
     private void initializeOutputStreams() {
+        out = System.out;
+        err = System.err;
+
         if( outErrFileName != null && (outFileName != null || errFileName != null) )
             throw new IllegalArgumentException("Can't set output/error output file with either out file name or err file name");
 
