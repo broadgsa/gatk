@@ -159,11 +159,13 @@ abstract public class BasicPileup implements Pileup {
                     double epsilon = 1e-4;
 
                     int secondBestBaseIndex = QualityUtils.compressedQualityToBaseIndex(sqs[offset]);
-                    dist[readIndex][secondBestBaseIndex] = (1.0 - dist[readIndex][bestBaseIndex] - 2.0*epsilon);
+                    //dist[readIndex][secondBestBaseIndex] = (1.0 - dist[readIndex][bestBaseIndex] - 2.0*epsilon);
+                    dist[readIndex][secondBestBaseIndex] = 0.8*(1.0 - dist[readIndex][bestBaseIndex]);
 
                     for (int baseIndex = 0; baseIndex < 4; baseIndex++) {
                         if (baseIndex != bestBaseIndex && baseIndex != secondBestBaseIndex) {
-                            dist[readIndex][baseIndex] = epsilon;
+                            //dist[readIndex][baseIndex] = epsilon;
+                            dist[readIndex][baseIndex] = 0.1*(1.0 - dist[readIndex][bestBaseIndex]);
                         }
                     }
                 } else {
@@ -186,11 +188,11 @@ abstract public class BasicPileup implements Pileup {
     public static String probDistPileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
         double[][] dist = probDistPileup(reads, offsets);
 
-        String distString = "";
+        String distString = String.format("     %c      %c      %c      %c\n", 'A', 'C', 'G', 'T');
         for (int readIndex = 0; readIndex < dist.length; readIndex++) {
             distString += "[ ";
             for (int baseIndex = 0; baseIndex < 4; baseIndex++) {
-                distString += String.format("%3.3f ", dist[readIndex][baseIndex]);
+                distString += String.format("%4.4f ", dist[readIndex][baseIndex]);
             }
             distString += "]\n";
         }
