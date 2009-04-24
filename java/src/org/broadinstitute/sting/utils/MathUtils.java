@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils;
 
+import cern.jet.math.Arithmetic;
+
 /**
  * MathUtils is a static class (no instantiation allowed!) with some useful math methods.
  *
@@ -55,5 +57,18 @@ public class MathUtils {
         if (Math.abs(a - b) < epsilon) { return 0; }
         if (a > b) { return -1; }
         return 1;
+    }
+
+    /**
+     * Computes a binomial probability
+     *
+     * @param k  number of successes
+     * @param n  number of Bernoulli trials
+     * @param p  probability of success
+     *
+     * @return   the binomial probability of the specified configuration.  Computes values down to about 1e-237.
+     */
+    public static double binomialProbability(long k, long n, double p) {
+        return Arithmetic.binomial(n, k)*Math.pow(p, k)*Math.pow(1.0 - p, n - k);
     }
 }
