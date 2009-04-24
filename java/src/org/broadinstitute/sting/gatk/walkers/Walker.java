@@ -79,7 +79,7 @@ public abstract class Walker<MapType, ReduceType> {
      * The system will call onTraversalDone( GenomeLoc -> reduce ), after all reductions are done,
      *   which is overloaded here to call onTraversalDone(reduce) for each location
      */
-    public boolean ReduceByInterval() {
+    public boolean isReduceByInterval() {
         return false;
     }
 }

@@ -24,7 +24,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
         return context.getReads().size();
     }
 
-    public boolean ReduceByInterval() {
+    public boolean isReduceByInterval() {
         return true;
     }
 
