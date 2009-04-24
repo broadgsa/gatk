@@ -10,6 +10,8 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.io.PrintStream;
+import java.io.FileNotFoundException;
 
 @WalkerName("CountCovariates")
 public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
@@ -18,7 +20,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
     @Argument(fullName="MAX_QUAL_SCORE", shortName="mqs", required=false,defaultValue="34")
     public int MAX_QUAL_SCORE;
-    //public double MAX_REPORTED_QUAL_SCORE = 100.0;
+
+    @Argument(fullName="LOG_REG_TRAINING_FILEROOT", shortName="lrtf", required=false, defaultValue="dinuc", doc="Filename root for the outputted logistic regression training files")
+    public String LOG_REG_TRAINING_FILEROOT;
 
     int NDINUCS = 16;
     RecalData[][][] data = new RecalData[MAX_READ_LENGTH+1][MAX_QUAL_SCORE+1][NDINUCS];
@@ -27,6 +31,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
     int nuc2num[];
     char num2nuc[];
+
+    String dinuc_root = "dinuc";
+    ArrayList<PrintStream> dinuc_outs = new ArrayList<PrintStream>();
+    PrintStream covars_out = new PrintStream("covars.out");
 
     private class RecalData {
         long N;
@@ -86,8 +94,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
                     char prevBase = (char)read.getReadBases()[offset-1];
                     int qual = (int)read.getBaseQualities()[offset];
                     //out.printf("%d %d %d\n", offset, qual, bases2dinucIndex(prevBase,base));
-                    RecalData datum = data[offset][qual][bases2dinucIndex(prevBase,base)];
+                    int dinuc_index = bases2dinucIndex(prevBase,base);
+                    RecalData datum = data[offset][qual][dinuc_index];
                     datum.inc(base,ref);
+                    dinuc_outs.get(dinuc_index).format("%d,%d,%d\n", qual, offset, base==ref ? 0 : 1);
                 }
             }
         }
@@ -96,10 +106,15 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
     public void onTraversalDone(Integer result) {
         if (flattenData.size() > 0)
-            out.println(flattenData.get(0).headerString());
+            covars_out.println(flattenData.get(0).headerString());
         for ( RecalData datum : flattenData ) {
-            out.println(datum);
+            covars_out.println(datum);
         }
+
+        // Close dinuc filehandles
+        for ( PrintStream dinuc_stream : this.dinuc_outs)
+            dinuc_stream.close();
+
     }
 
     public Integer reduceInit() {
@@ -112,14 +127,14 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
     int bases2dinucIndex(char prevBase, char base) {
         return nuc2num[prevBase] * 4 + nuc2num[base];
-    };
+    }
 
     String dinucIndex2bases(int index) {
         char data[] = {num2nuc[index / 4], num2nuc[index % 4]};
         return new String( data );
     }
 
-    public CovariateCounterWalker() {
+    public CovariateCounterWalker()  throws FileNotFoundException {
         nuc2num = new int[128];
         nuc2num['A'] = 0;
         nuc2num['C'] = 1;
@@ -135,5 +150,17 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         num2nuc[1] = 'C';
         num2nuc[2] = 'G';
         num2nuc[3] = 'T';
+
+        // Print out data for regression
+        for ( int i=0; i<NDINUCS; i++) {
+            PrintStream next_dinuc = new PrintStream( dinuc_root+"."+dinucIndex2bases(i)+".csv");
+            next_dinuc.println("logitQ,pos,indicator");
+            dinuc_outs.add(next_dinuc);
+        }
     }
 }
+
+
+
+
+
