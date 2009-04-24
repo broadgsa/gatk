@@ -20,7 +20,7 @@ public class AlleleMetrics {
 
     long dbsnp_hits=0;
     long num_variants=0;
-    long num_loci_total=0;
+    public long num_loci_total=0;
     long num_loci_confident=0;
     double LOD_cutoff = 5;
     long hapmap_genotype_correct = 0;
