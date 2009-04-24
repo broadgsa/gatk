@@ -9,19 +9,15 @@ import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
 import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
-import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
+import java.io.FileNotFoundException;
 import java.util.List;
 
 /**
@@ -31,8 +27,8 @@ import java.util.List;
 public class MicroManager {
     private static long SHARD_SIZE = 100000L;
 
-    private File reads;
-    private FastaSequenceFile2 ref;
+    private List<File> reads;
+    private IndexedFastaSequenceFile ref;
 
     private TraverseLociByReference traversalEngine = null;
 
@@ -44,12 +40,17 @@ public class MicroManager {
         return traversalEngine;
     }
 
-    public MicroManager( File reads,                          // the reads file
+    public MicroManager( List<File> reads,                    // the reads file(s)
                          File refFile,                        // the reference file driving the traversal
                          int nThreadsToUse ) {                // maximum number of threads to use to do the work
 
         this.reads = reads;
-        ref = new FastaSequenceFile2(refFile);
+        try {
+            ref = new IndexedFastaSequenceFile(refFile);
+        }
+        catch( FileNotFoundException ex ) {
+            throw new RuntimeException("File not found opening fasta file; please do this check before MicroManaging", ex);
+        }
         GenomeLoc.setupRefContigOrdering(ref);
 
         traversalEngine = new TraverseLociByReference( reads, refFile, new java.util.ArrayList() );
@@ -72,34 +73,14 @@ public class MicroManager {
                                                           ref.getSequenceDictionary(),
                                                           SHARD_SIZE );
 
-        ReferenceIterator refIter = new ReferenceIterator(ref);
         SAMDataSource dataSource = null;
-
         try {
-            // todo: remove this code when we acutally handle command line args of multiple bam files
-            ArrayList<File> fl = new ArrayList<File>();
-            if (reads.getName().endsWith(".list")) {
-                BufferedReader bis = new BufferedReader(new FileReader(reads));
-                String line = null;
-                while ((line = bis.readLine()) != null) {
-                    if (!line.equals("")){
-                        fl.add(new File(line));
-                    }
-                }
-            } else if (reads.getCanonicalPath().indexOf(",") > 0) {
-                for (String bamFile : reads.getCanonicalPath().split(",")) {
-                    fl.add(new File(bamFile));
-                }
-
-            } else {
-                fl.add(reads);
-            }
-            dataSource = new SAMDataSource( fl );
+            dataSource = new SAMDataSource( TraversalEngine.unpackReads(reads) );    
         }
         catch( SimpleDataSourceLoadException ex ) {
             throw new RuntimeException( ex );
         }
-        catch( IOException ex ) {
+        catch( FileNotFoundException ex ) {
             throw new RuntimeException( ex );
         }
 
@@ -107,16 +88,17 @@ public class MicroManager {
         Object accumulator = null;
 
         for(Shard shard: shardStrategy) {
-            // CloseableIterator<SAMRecord> readShard = null;
+            GenomeLoc span = shard.getGenomeLoc();
+
             MergingSamRecordIterator2 readShard = null;
             try {
-                readShard = dataSource.seek( shard.getGenomeLoc() );
+                readShard = dataSource.seek( span );
             }
             catch( SimpleDataSourceLoadException ex ) {
                 throw new RuntimeException( ex );
             }
 
-            ReferenceProvider referenceProvider = new ReferenceProvider( refIter );
+            ReferenceProvider referenceProvider = new ReferenceProvider( ref, span );
             LocusContextProvider locusProvider = new LocusContextProvider( readShard );
 
             // set the sam header of the traversal engine

@@ -28,12 +28,14 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
+import java.util.Collections;
 
 public class GenomeAnalysisTK extends CommandLineProgram {
     public static GenomeAnalysisTK Instance = null;
 
     // parameters and their defaults
-    public File INPUT_FILE = null;
+    public List<File> INPUT_FILES = null;
     public String MAX_READS_ARG = "-1";
     public String STRICTNESS_ARG = "strict";
     public File REF_FILE_ARG = null;
@@ -106,7 +108,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      * Flags don't take an argument, the associated Boolean gets set to true if the flag appears on the command line.
      */
     protected void setupArgs() {
-        m_parser.addOptionalArg("input_file", "I", "SAM or BAM file", "INPUT_FILE");
+        m_parser.addOptionalArgList("input_file", "I", "SAM or BAM file", "INPUT_FILES");
         //m_parser.addRequiredArg("input_file", "I", "SAM or BAM file", "INPUT_FILE");
         m_parser.addOptionalArg("maximum_reads", "M", "Maximum number of reads to process before exiting", "MAX_READS_ARG");
         m_parser.addOptionalArg("validation_strictness", "S", "How strict should we be with validation (LENIENT|SILENT|STRICT)", "STRICTNESS_ARG");
@@ -255,34 +257,34 @@ public class GenomeAnalysisTK extends CommandLineProgram {
             if ( REF_FILE_ARG == null )
                 Utils.scareUser(String.format("Locus-based traversals require a reference file but none was given"));
 
-            if ( INPUT_FILE == null ) {
+            if ( INPUT_FILES == null || INPUT_FILES.size() == 0 ) {
                 if ( walker.requiresReads() )
                     Utils.scareUser(String.format("Analysis %s requires reads, but none were given", Analysis_Name));
                 this.engine = new TraverseByReference(null, REF_FILE_ARG, rods);
             } else {
                 if ( walker.cannotHandleReads() )
-                    Utils.scareUser(String.format("Analysis %s doesn't support SAM/BAM reads, but a read file %s was provided", Analysis_Name, INPUT_FILE));
+                    Utils.scareUser(String.format("Analysis %s doesn't support SAM/BAM reads, but a read file %s was provided", Analysis_Name, INPUT_FILES));
 
                 if ( WALK_ALL_LOCI ) {
                     // TODO: Temporary debugging code.  Activate the new debugging code only when the MicroManager
                     //                                  is not filtered.
                     if( ENABLE_THREADING ) {
                         logger.warn("Preliminary threading support enabled");
-                        microManager = new MicroManager( INPUT_FILE, REF_FILE_ARG, numThreads );
+                        microManager = new MicroManager( INPUT_FILES, REF_FILE_ARG, numThreads );
                         this.engine = microManager.getTraversalEngine();
                     }
                     else {
-                        this.engine = new TraverseByLociByReference(INPUT_FILE, REF_FILE_ARG, rods);
+                        this.engine = new TraverseByLociByReference(INPUT_FILES, REF_FILE_ARG, rods);
                     }
                 }
                 else
-                	this.engine = new TraverseByLoci(INPUT_FILE, REF_FILE_ARG, rods);
+                	this.engine = new TraverseByLoci(INPUT_FILES, REF_FILE_ARG, rods);
             }
         } else if ( my_walker instanceof IntervalWalker ) {
-            this.engine = new TraverseByIntervals(INPUT_FILE, REF_FILE_ARG, rods);
+            this.engine = new TraverseByIntervals(INPUT_FILES, REF_FILE_ARG, rods);
         } else {
             // we're a read walker
-            this.engine = new TraverseByReads(INPUT_FILE, REF_FILE_ARG, rods);
+            this.engine = new TraverseByReads(INPUT_FILES, REF_FILE_ARG, rods);
         }
 
         // Prepare the sort ordering w.r.t. the sequence dictionary

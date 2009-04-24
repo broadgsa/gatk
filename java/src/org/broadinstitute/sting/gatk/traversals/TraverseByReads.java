@@ -27,7 +27,7 @@ import net.sf.samtools.SAMRecord;
  */
 public class TraverseByReads extends TraversalEngine {
 
-    public TraverseByReads(File reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+    public TraverseByReads(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         super(reads, ref, rods);        
     }
 

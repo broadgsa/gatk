@@ -32,4 +32,8 @@ public class SimpleDataSourceLoadException extends StingException {
     public SimpleDataSourceLoadException(String msg) {
         super(msg);
     }
+
+    public SimpleDataSourceLoadException(String msg,Throwable throwable) {
+        super(msg,throwable);
+    }
 }

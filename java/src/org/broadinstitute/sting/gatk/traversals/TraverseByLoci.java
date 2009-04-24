@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.traversals;
 
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.LocusContext;
@@ -14,7 +13,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.util.List;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.ArrayList;
 import java.io.File;
@@ -32,7 +30,7 @@ import edu.mit.broad.picard.filter.FilteringIterator;
  */
 public class TraverseByLoci extends TraversalEngine {
 
-    public TraverseByLoci(File reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+    public TraverseByLoci(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         super(reads, ref, rods);
     }
 
@@ -59,8 +57,10 @@ public class TraverseByLoci extends TraversalEngine {
     protected <M, T> T traverseByLoci(LocusWalker<M, T> walker, ArrayList<GenomeLoc> locations) {
         logger.debug("Entering traverseByLoci");
 
-        samReader = initializeSAMFile(readsFile);
+        if(readsFiles.size() > 1)
+            throw new UnsupportedOperationException("Cannot do ByLoci traversal on file with multiple inputs.");
 
+        samReader = initializeSAMFile(readsFiles.get(0));
         verifySortOrder(true);
 
         // initialize the walker object

@@ -21,7 +21,7 @@ import net.sf.samtools.SAMRecord;
  */
 public class TraverseByReference extends TraverseByLoci {
     
-    public TraverseByReference(File reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+    public TraverseByReference(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         super(reads, ref, rods);
 
         logger.debug("Creating TraverseByReference");

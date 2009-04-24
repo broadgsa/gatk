@@ -113,14 +113,30 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
         }
     }
 
+    /**
+     * Retrieves the sequence dictionary for the fasta file.
+     * @return sequence dictionary of the fasta.
+     */
     public SAMSequenceDictionary getSequenceDictionary() {
         return sequenceDictionary;
     }
 
+    /**
+     * Retrieves the complete sequence described by this contig.
+     * @param contig contig whose data should be returned.
+     * @return The full sequence associated with this contig.
+     */
     public ReferenceSequence getSequence( String contig ) {
-        return getSubsequenceAt( contig, 0, (int)index.getIndexEntry(contig).getSize()-1 );
+        return getSubsequenceAt( contig, 1, (int)index.getIndexEntry(contig).getSize() );
     }
 
+    /**
+     * Gets the subsequence of the contig in the range [start,stop]
+     * @param contig Contig whose subsequence to retrieve.
+     * @param start inclusive, 1-based start of region.
+     * @param stop inclusive, 1-based stop of region.
+     * @return The partial reference sequence associated with this range.
+     */
     public ReferenceSequence getSubsequenceAt( String contig, long start, long stop ) {
         if(start > stop)
             throw new PicardException(String.format("Malformed query; start point %d lies after end point %d",start,stop));
@@ -140,8 +156,8 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
         final int bytesPerLine = indexEntry.getBytesPerLine();
 
         // Start reading at the closest start-of-line to our data.
-        long readStart = indexEntry.getLocation() + (start / basesPerLine) * bytesPerLine;
-        int dataOfInterestStart = (int)(start % basesPerLine);
+        long readStart = indexEntry.getLocation() + ((start-1) / basesPerLine) * bytesPerLine;
+        int dataOfInterestStart = (int)((start-1) % basesPerLine);
 
         byte[] accumulator = new byte[length];
         int nextAccumulatorSlot = 0;        

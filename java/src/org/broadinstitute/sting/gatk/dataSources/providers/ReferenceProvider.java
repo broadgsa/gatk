@@ -1,7 +1,9 @@
 package org.broadinstitute.sting.gatk.dataSources.providers;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
+import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.samtools.util.StringUtil;
 
 /**
  * Created by IntelliJ IDEA.
@@ -11,17 +13,33 @@ import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
  * To change this template use File | Settings | File Templates.
  */
 public class ReferenceProvider {
-    private ReferenceIterator reference;
+    private ReferenceSequence referenceSequence;
+    private GenomeLoc referenceInterval;
 
-    public ReferenceProvider( ReferenceIterator reference ) {
-        this.reference = reference;
+    public ReferenceProvider( IndexedFastaSequenceFile sequenceFile, GenomeLoc position ) {
+        this.referenceSequence = sequenceFile.getSubsequenceAt( position.getContig(),
+                                                                position.getStart(),
+                                                                position.getStop() );
+        this.referenceInterval = position;
     }
 
-    public ReferenceIterator getReferenceSequence( GenomeLoc genomeLoc ) {
-        if( (genomeLoc.getStop() - genomeLoc.getStart()) > 0 )
-            throw new RuntimeException( "Internal error :LocusContextProviders currently require 1-base genomeLocs.");
+    public char getReferenceBase( GenomeLoc genomeLoc ) throws InvalidPositionException {
+        validateLocation( genomeLoc );
+        int offset = (int)(genomeLoc.getStart() - referenceInterval.getStart());
+        return StringUtil.bytesToString( referenceSequence.getBases(), offset, 1 ).charAt(0);
+    }
 
-        // jump to the first reference site
-        return reference.seekForward(genomeLoc);                    
+    /**
+     * Validates that the genomeLoc is one base wide and is in the reference sequence.
+     * @param genomeLoc location to verify.
+     */
+    private void validateLocation( GenomeLoc genomeLoc ) throws InvalidPositionException {
+        //
+        if( !referenceInterval.containsP(genomeLoc) )
+            throw new InvalidPositionException(
+                    String.format("Requested position %s not within interval %s", genomeLoc, referenceInterval));
+        if( genomeLoc.getStart() != genomeLoc.getStop() )
+            throw new InvalidPositionException(
+                    String.format("Requested position larger than one base; start = %d, stop = %d", genomeLoc.getStart(), genomeLoc.getStop()));
     }
 }

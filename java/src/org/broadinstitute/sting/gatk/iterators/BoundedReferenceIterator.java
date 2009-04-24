@@ -2,8 +2,12 @@ package org.broadinstitute.sting.gatk.iterators;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.Iterator;
+
+import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.samtools.util.StringUtil;
 
 /**
  *
@@ -35,90 +39,43 @@ import java.util.Iterator;
  * <p/>
  * TODO: Fix the underlying iterator and this class to model a real decorator pattern
  */
-public class BoundedReferenceIterator implements Iterator<ReferenceIterator> {
+public class BoundedReferenceIterator implements Iterator<Character> {
+    private ReferenceSequence referenceSequence = null;
+
+    // The start and end point of the read relative to the chromosome.
+    private long start;
+    private long end;
+
+    // 0-based index into the base array.
+    private int position;
     // the location to screen over
-    private final GenomeLoc mLoc;
-    private final ReferenceIterator referenceIterator;
 
     /**
      * Default constructor
      *
-     * @param referenceIterator
-     * @param loc
+     * @param referenceSequenceFile sequence file over which to iterate
+     * @param loc subsequence of the reference over which to iterate.
      */
-    public BoundedReferenceIterator(ReferenceIterator referenceIterator, GenomeLoc loc) {
-        this.referenceIterator = referenceIterator;
-        this.mLoc = loc;
-    }
+    public BoundedReferenceIterator(IndexedFastaSequenceFile referenceSequenceFile, GenomeLoc loc) {
+        start = loc.getStart();
+        end = loc.getStop();
+        position = 0;
 
-
-    /**
-     * Create a BoundedReferenceIterator from a fasta seq and a genome loc
-     * @param refFile the fasta file, see the ReferenceIterator constructor
-     * @param loc our genome location
-     */
-    public BoundedReferenceIterator(FastaSequenceFile2 refFile, GenomeLoc loc) {
-        this.referenceIterator = new ReferenceIterator(refFile);
-        this.mLoc = loc;
-    }
-
-    /**
-     * isSubRegion
-     * <p/>
-     * returns true if we include the whole passed in region
-     *
-     * @param loc the genome region to check
-     * @return true if we include THE WHOLE specified region
-     */
-    protected boolean isSubRegion(GenomeLoc loc) {
-        // if the location is null, we assume we're all inclusive (we represent the whole genome).
-        if (mLoc == null || loc.isBetween(mLoc, mLoc)) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * returns true if we include the whole passed in region
-     *
-     * @param contig
-     * @param start
-     * @param stop
-     * @return true if we enclose the passed region, false otherwise
-     */
-    protected boolean isSubRegion(final String contig, final int start, final int stop) {
-        final GenomeLoc lc = new GenomeLoc(contig, start, stop);
-        return isSubRegion(lc);
-    }
-
-    /**
-     * If we're less then the limiting genomeLoc
-     *
-     * @param loc
-     * @return
-     */
-    protected boolean isLessThan(GenomeLoc loc) {
-        return loc.isPast(mLoc);
+        referenceSequence = referenceSequenceFile.getSubsequenceAt( loc.getContig(), position, end );
     }
 
 
     // our adapted next function
     public boolean hasNext() {
-        // first check that we are within the search place
-        GenomeLoc loc = referenceIterator.getLocation();
-        if (!isSubRegion(loc)) {
-            return false;
-        }
-
-        return referenceIterator.hasNext();
+        return (start + position) > end;
     }
 
-    public ReferenceIterator next() {
-        return referenceIterator.next();
+    public Character next() {
+        return StringUtil.bytesToString( referenceSequence.getBases(), position++, 1 ).charAt(0);
     }
 
     public void remove() {
-        referenceIterator.remove();
+        throw new UnsupportedOperationException("Cannot remove from a reference iterator");
     }
 
 

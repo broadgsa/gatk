@@ -4,8 +4,10 @@ import org.broadinstitute.sting.gatk.iterators.BoundedReferenceIterator;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 
 /**
  *
@@ -35,8 +37,7 @@ import java.io.File;
  */
 public class ReferenceDataSource implements SimpleDataSource {
 
-    final protected FastaSequenceFile2 refFile;
-    final protected ReferenceIterator refIter;
+    final protected IndexedFastaSequenceFile refFile;
 
     /**
      * Query the data source for a region of interest, specified by the genome location.
@@ -46,7 +47,7 @@ public class ReferenceDataSource implements SimpleDataSource {
      * @return an iterator of the appropriate type, that is limited by the region
      */
     public BoundedReferenceIterator seek(GenomeLoc location) {
-        BoundedReferenceIterator ret = new BoundedReferenceIterator(refIter.seekForward(location), location);
+        BoundedReferenceIterator ret = new BoundedReferenceIterator(refFile, location);
         return ret;
     }
 
@@ -58,9 +59,11 @@ public class ReferenceDataSource implements SimpleDataSource {
         if (!infile.canRead()) {
             throw new SimpleDataSourceLoadException("ReferenceDataSource: Unable to load file: " + refFileName);
         }
-        //this.refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFileName);
-        refFile = new FastaSequenceFile2(new File(refFileName));
-        refIter = new ReferenceIterator(this.refFile);
-
+        try {
+            refFile = new IndexedFastaSequenceFile(new File(refFileName));
+        }
+        catch( FileNotFoundException ex ) {
+            throw new SimpleDataSourceLoadException( "Unable to find reference file", ex );
+        }
     }
 }

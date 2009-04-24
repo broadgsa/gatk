@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextProvider;
 import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceProvider;
+import org.broadinstitute.sting.gatk.dataSources.providers.InvalidPositionException;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -33,7 +34,7 @@ public class TraverseLociByReference extends TraversalEngine {
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
 
 
-    public TraverseLociByReference(File reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+    public TraverseLociByReference(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         super( reads, ref, rods );
     }
 
@@ -66,14 +67,13 @@ public class TraverseLociByReference extends TraversalEngine {
             // Iterate forward to get all reference ordered data covering this locus
             final RefMetaDataTracker tracker = getReferenceOrderedDataAtLocus( site );
 
-            ReferenceIterator refSite = referenceProvider.getReferenceSequence( site );
             LocusContext locus = locusProvider.getLocusContext( site );
-            locus.setReferenceContig( refSite.getCurrentContig() );
+
+            char refBase = referenceProvider.getReferenceBase( site );
 
             if ( DOWNSAMPLE_BY_COVERAGE )
                 locus.downsampleToCoverage(downsamplingCoverage);
 
-            final char refBase = refSite.getBaseAsChar();
             final boolean keepMeP = locusWalker.filter(tracker, refBase, locus);
             if (keepMeP) {
                 M x = locusWalker.map(tracker, refBase, locus);

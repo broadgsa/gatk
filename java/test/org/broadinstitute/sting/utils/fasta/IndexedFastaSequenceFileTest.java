@@ -53,7 +53,7 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
     @Test
     public void testFirstSequence() {
         long startTime = System.currentTimeMillis();
-        ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chrM",0,firstBasesOfChrM.length()-1);
+        ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chrM",1,firstBasesOfChrM.length());
         long endTime = System.currentTimeMillis();
 
         Assert.assertEquals("Sequence contig is not correct", sequence.getName(), "chrM");
@@ -68,7 +68,7 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
     @Test
     public void testFirstSequenceExtended() {
         long startTime = System.currentTimeMillis();
-        ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chrM",0,extendedBasesOfChrM.length()-1);
+        ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chrM",1,extendedBasesOfChrM.length());
         long endTime = System.currentTimeMillis();
 
         Assert.assertEquals("Sequence contig is not correct", sequence.getName(), "chrM");
@@ -87,8 +87,8 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
 
         long startTime = System.currentTimeMillis();
         ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chrM",
-                                                                   bytesToChopOff,
-                                                                   bytesToChopOff + truncated.length() - 1);
+                                                                   bytesToChopOff + 1,
+                                                                   bytesToChopOff + truncated.length());
         long endTime = System.currentTimeMillis();
 
         Assert.assertEquals("Sequence contig is not correct", sequence.getName(), "chrM");
@@ -107,8 +107,8 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
 
         long startTime = System.currentTimeMillis();
         ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chrM",
-                                                                   bytesToChopOff,
-                                                                   bytesToChopOff + truncated.length() - 1);
+                                                                   bytesToChopOff + 1,
+                                                                   bytesToChopOff + truncated.length());
         long endTime = System.currentTimeMillis();
 
         Assert.assertEquals("Sequence contig is not correct", sequence.getName(), "chrM");
@@ -204,7 +204,7 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
     @Test
     public void testFirstOfChr1() {
         long startTime = System.currentTimeMillis();
-        ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chr1",0,firstBasesOfChr1.length()-1);
+        ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chr1",1,firstBasesOfChr1.length());
         long endTime = System.currentTimeMillis();
 
         Assert.assertEquals("Sequence contig is not correct", sequence.getName(), "chr1");
@@ -219,7 +219,7 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
     @Test
     public void testFirstOfChr8() {
         long startTime = System.currentTimeMillis();
-        ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chr8",0,firstBasesOfChr8.length()-1);
+        ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chr8",1,firstBasesOfChr8.length());
         long endTime = System.currentTimeMillis();
 
         Assert.assertEquals("Sequence contig is not correct", sequence.getName(), "chr8");

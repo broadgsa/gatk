@@ -19,9 +19,7 @@ import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public abstract class TraversalEngine {
     // list of reference ordered data objects
@@ -44,7 +42,7 @@ public abstract class TraversalEngine {
     protected long maxReads = -1;
 
     // Name of the reads file, in BAM/SAM format
-    protected File readsFile = null;                          // the name of the reads file
+    protected List<File> readsFiles = null;                          // the name of the reads file
     protected SAMFileReader samReader = null;
     // iterator over the sam records in the readsFile
     protected Iterator<SAMRecord> samReadIter = null;
@@ -102,8 +100,8 @@ public abstract class TraversalEngine {
      * @param ref   Reference file in FASTA format, assumes a .dict file is also available
      * @param rods  Array of reference ordered data sets
      */
-    public TraversalEngine(File reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
-        readsFile = reads;
+    public TraversalEngine(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+        readsFiles = reads;
         refFileName = ref;
         this.rods = rods;
     }
@@ -326,35 +324,66 @@ public abstract class TraversalEngine {
         return true;
     }
 
+    /**
+     * Unpack the files to be processed, given a list of files.  That list of files can
+     * itself contain lists of other files to be read.
+     * @param inputFiles
+     * @return
+     */
+    public static List<File> unpackReads( List<File> inputFiles ) throws FileNotFoundException {
+        List<File> unpackedReads = new ArrayList<File>();
+        for( File inputFile: inputFiles ) {
+            if( inputFile.getName().endsWith(".list") ) {
+                for( String fileName : new xReadLines(inputFile) )
+                    unpackedReads.add( new File(fileName) );
+            }
+            else
+                unpackedReads.add( inputFile );
+        }
+        return unpackedReads;
+    }
+
     protected Iterator<SAMRecord> initializeReads() {
-        samReader = initializeSAMFile(readsFile);
+        List<File> allReadsFiles = null;
+        try {
+            allReadsFiles = unpackReads( readsFiles );
+        }
+        catch( FileNotFoundException ex ) {
+            throw new RuntimeException("Unable to unpack reads", ex );
+        }
+
+        if( allReadsFiles.size() == 1 )
+            samReader = initializeSAMFile(allReadsFiles.get(0));
+        else
+            samReader = null;
         return WrapReadsIterator(getReadsIterator(samReader), true);
     }
 
     protected Iterator<SAMRecord> getReadsIterator(final SAMFileReader samReader) {
         // If the file has an index, querying functions are available.  Use them if possible...
-        if ( samReader == null && readsFile.toString().endsWith(".list") ) {
+        if ( samReader == null && readsFiles.size() > 0 ) {
             SAMFileHeader.SortOrder SORT_ORDER = SAMFileHeader.SortOrder.coordinate;
 
+            List<File> allReadsFiles = null;
             List<SAMFileReader> readers = new ArrayList<SAMFileReader>();
             try {
-                for ( String fileName : new xReadLines(readsFile) ) {
-                    SAMFileReader reader = initializeSAMFile(new File(fileName));
-                    readers.add(reader);
-                }
+                allReadsFiles = unpackReads( readsFiles );
+            }
+            catch(FileNotFoundException ex) {
+                throw new RuntimeException("Unable to unpack reads", ex);
+            }
 
-                SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers, SORT_ORDER);
-                return new MergingSamRecordIterator2(headerMerger);
+            for ( File readsFile: allReadsFiles ) {
+                SAMFileReader reader = initializeSAMFile(readsFile);
+                readers.add(reader);
             }
-            catch ( FileNotFoundException e ) {
-                logger.fatal("Couldn't open file in sam file list: " + readsFile);
-            }
+
+            SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers, SORT_ORDER);
+            return new MergingSamRecordIterator2(headerMerger);
         }
-        //if (samReader.hasIndex()) {
-        //    return new SamQueryIterator(samReader, locs);
-        //} else {
-        return samReader.iterator();
-        //}
+        else {
+            return samReader.iterator();
+        }
     }
 
     protected Iterator<SAMRecord> WrapReadsIterator( final Iterator<SAMRecord> rawIterator, final boolean enableVerification ) {
@@ -379,7 +408,7 @@ public abstract class TraversalEngine {
         return wrappedIterator;
     }
 
-    protected SAMFileReader initializeSAMFile(final File samFile) {
+    protected SAMFileReader initializeSAMFile(File samFile) {
         // todo: fixme, this is a hack to try out dynamic merging
         if ( samFile.toString().endsWith(".list") ) {
             return null;

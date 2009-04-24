@@ -28,7 +28,7 @@ import edu.mit.broad.picard.filter.FilteringIterator;
  */
 public class TraverseByIntervals extends TraversalEngine {
 
-    public TraverseByIntervals(File reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+    public TraverseByIntervals(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         super(reads, ref, rods);
     }
 
@@ -55,7 +55,10 @@ public class TraverseByIntervals extends TraversalEngine {
     protected <M, T> T traverseByIntervals(IntervalWalker<M, T> walker, ArrayList<GenomeLoc> locations) {
         logger.debug("Entering traverseByIntervals");
 
-        samReader = initializeSAMFile(readsFile);
+        if(readsFiles.size() > 1)
+            throw new UnsupportedOperationException("Cannot do ByInterval traversal on file with multiple inputs.");        
+
+        samReader = initializeSAMFile(readsFiles.get(0));
 
         verifySortOrder(true);
 
