@@ -16,10 +16,12 @@ import edu.mit.broad.picard.sam.SamFileHeaderMerger;
 import edu.mit.broad.picard.util.PeekableIterator;
 import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
+import org.apache.log4j.Logger;
 
 import java.lang.reflect.Constructor;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.PriorityQueue;
 
 /**
@@ -31,6 +33,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
     protected PriorityQueue<ComparableSamRecordIterator> pq = null;
     protected final SamFileHeaderMerger samHeaderMerger;
     protected final SAMFileHeader.SortOrder sortOrder;
+    protected static Logger logger = Logger.getLogger(MergingSamRecordIterator2.class);
 
     protected boolean initialized = false;
 
@@ -135,11 +138,20 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         if (oldProgramGroupId != null) {
             final String newProgramGroupId = this.samHeaderMerger.getProgramGroupId(iterator.getReader(), oldProgramGroupId);
             record.setAttribute(SAMTag.PG.toString(), newProgramGroupId);
+        } else {
+            List<SAMReadGroupRecord> readGroups = iterator.getReader().getFileHeader().getReadGroups();
+            if (readGroups.size() == 1) {
+                record.setAttribute(SAMTag.RG.toString(), readGroups.get(0).getReadGroupId());
+                record.setAttribute(SAMTag.SM.toString(), readGroups.get(0).getReadGroupId());
+            } else {
+               logger.warn("Unable to set read group of ungrouped read: unable to pick default group, there are " + readGroups.size() + " possible.");
+            }
         }
 
         record.setHeader(samHeaderMerger.getMergedHeader());
         //System.out.printf("NEXT = %s %s %d%n", record.getReadName(), record.getReferenceName(), record.getAlignmentStart());
         //System.out.printf("PEEK = %s %s %d%n", this.pq.peek().peek().getReadName(), this.pq.peek().peek().getReferenceName(), this.pq.peek().peek().getAlignmentStart());
+
         return record;
     }
 

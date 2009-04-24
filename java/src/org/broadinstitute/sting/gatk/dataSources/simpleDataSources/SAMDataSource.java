@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 import edu.mit.broad.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
@@ -253,7 +254,6 @@ public class SAMDataSource implements SimpleDataSource {
                         this.readsAtLastPos = 1;
                     }
                     lastPos = rec.getAlignmentStart();
-                    //System.out.print("t" + rec.getAlignmentStart() + " ");
                     ++x;
                 } else {
                     // jump contigs
@@ -310,6 +310,16 @@ public class SAMDataSource implements SimpleDataSource {
         List<SAMFileReader> lst = new ArrayList<SAMFileReader>();
         for (File f : this.samFileList) {
             SAMFileReader reader = initializeSAMFile(f);
+
+            if (reader.getFileHeader().getReadGroups().size() < 1) {
+                logger.warn("Setting header in reader " + f.getName());
+                SAMReadGroupRecord rec = new   SAMReadGroupRecord(f.getName());
+                rec.setLibrary(f.getName());
+                rec.setSample(f.getName());
+
+                reader.getFileHeader().addReadGroup(rec);
+            }
+
             if (reader == null) {
                 throw new SimpleDataSourceLoadException("SAMDataSource: Unable to load file: " + f);
             }

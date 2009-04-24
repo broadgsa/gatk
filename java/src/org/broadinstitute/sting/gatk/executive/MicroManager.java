@@ -128,7 +128,6 @@ public class MicroManager {
                 walkerInitialized = true;
             }
 
-            System.err.println(traversalEngine.getSAMHeader().getSequenceDictionary().toString());
             accumulator = traversalEngine.traverse( walker, shard, referenceProvider, locusProvider, accumulator );
             readShard.close();
         }
