@@ -38,7 +38,7 @@ public class SAMDataSource implements SimpleDataSource {
     private boolean locusMode = true;
 
     // How strict should we be with SAM/BAM parsing?
-    protected SAMFileReader.ValidationStringency strictness = SAMFileReader.ValidationStringency.STRICT;
+    protected SAMFileReader.ValidationStringency strictness = SAMFileReader.ValidationStringency.SILENT; //JRM for CSH
 
     // our list of readers
     private final List<File> samFileList = new ArrayList<File>();

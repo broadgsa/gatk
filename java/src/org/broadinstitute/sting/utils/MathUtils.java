@@ -59,6 +59,13 @@ public class MathUtils {
         return 1;
     }
 
+    public static double NormalDistribution(double mean, double sd, double x)
+    {
+        double a = 1.0 / (sd*Math.sqrt(2.0 * Math.PI));
+        double b = Math.exp(-1.0 * (Math.pow(x - mean,2.0)/(2.0 * sd * sd)));
+        return a * b;
+    }
+
     /**
      * Computes a binomial probability
      *

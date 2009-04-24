@@ -103,17 +103,37 @@ public class GenotypeLikelihoods {
         return s;
     }
 
-    public void ApplyPrior(char ref, double p_alt) {
+    public void ApplyPrior(char ref, double p_alt) 
+    {
         for (int i = 0; i < genotypes.length; i++) {
-            if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) {
-                // hom-ref
-                likelihoods[i] += Math.log10(1.0 - 1e-3);
-            } else if ((genotypes[i].charAt(0) != ref) && (genotypes[i].charAt(1) != ref)) {
-                // hom-nonref
-                likelihoods[i] += Math.log10(1e-5);
-            } else {
-                // het
-                likelihoods[i] += Math.log10(1e-3);
+            if (p_alt == -1)
+            {
+	            if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) {
+	                // hom-ref
+	                likelihoods[i] += Math.log10(1.0 - 1e-3);
+	            } else if ((genotypes[i].charAt(0) != ref) && (genotypes[i].charAt(1) != ref)) {
+	                // hom-nonref
+	                likelihoods[i] += Math.log10(1e-5);
+	            } else {
+	                // het
+	                likelihoods[i] += Math.log10(1e-3);
+	            }
+                if (Double.isInfinite(likelihoods[i])) { likelihoods[i] = -1000; }
+            }
+            else
+            {
+	            if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) {
+	                // hom-ref
+	                likelihoods[i] += 2.0 * Math.log10(1.0 - p_alt);
+	            } else if ((genotypes[i].charAt(0) != ref) && (genotypes[i].charAt(1) != ref)) {
+	                // hom-nonref
+	                likelihoods[i] += 2.0 * Math.log10(p_alt);
+	            } else {
+	                // het
+	                likelihoods[i] += Math.log10((1.0-p_alt) * p_alt * 2.0);
+	            }
+
+                if (Double.isInfinite(likelihoods[i])) { likelihoods[i] = -1000; }
             }
         }
         this.sort();
@@ -151,6 +171,7 @@ public class GenotypeLikelihoods {
     }
 
     public AlleleFrequencyEstimate toAlleleFrequencyEstimate(GenomeLoc location, char ref, int depth, String bases, double[] posteriors) {
+        this.sort();
         double qhat = Double.NaN;
         double qstar = Double.NaN;
         char alt = 'N';

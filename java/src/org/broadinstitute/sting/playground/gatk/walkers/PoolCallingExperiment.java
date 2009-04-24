@@ -34,7 +34,7 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
     public void initialize() 
     { 
         GenomeAnalysisTK toolkit = this.getToolkit();
-        SAMFileHeader header = toolkit.getSamReader().getFileHeader();
+        SAMFileHeader header = toolkit.getEngine().getSAMHeader();
         List<SAMReadGroupRecord> read_groups = header.getReadGroups();
 
         sample_names    = new ArrayList<String>();
@@ -160,14 +160,12 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
 
                     likelihood += shallow_calls[i].lodVsNextBest;
 	
-                    /*
-	                System.out.printf("DBG: %f %f %f %f\n", 
-	                                        deep_calls[i].lodVsNextBest,
-	                                        deep_calls[i].lodVsRef,
-	                                        shallow_calls[i].lodVsNextBest,
-	                                        shallow_calls[i].lodVsRef);
-                    */
-	
+	                //System.out.printf("DBG: %f %f %f %f\n", 
+	                //                        deep_calls[i].lodVsNextBest,
+	                //                        deep_calls[i].lodVsRef,
+	                //                        shallow_calls[i].lodVsNextBest,
+	                //                        shallow_calls[i].lodVsRef);
+
 	                if (deep_genotype.equals(shallow_genotype)) 
                     { 
                         correct_shallow_calls += 1; 

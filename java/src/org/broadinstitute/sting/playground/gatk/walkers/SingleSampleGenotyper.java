@@ -19,7 +19,7 @@ import java.util.*;
 // j.maguire 3-7-2009
 
 public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, Integer>  {
-    @Argument(fullName="metrics",required=true)
+    @Argument(fullName="metrics",required=false,defaultValue="/dev/null")
     public String metricsFileName;
 
     @Argument(fullName="lodThreshold",shortName="lod",required=false,defaultValue="5.0")
@@ -228,13 +228,14 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         ref = Character.toUpperCase(ref);
         
         GenotypeLikelihoods G = new GenotypeLikelihoods();
-        for ( int i = 0; i < reads.size(); i++ )  {
+        for ( int i = 0; i < reads.size(); i++ )  
+        {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
 
             G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset]);
         }
-        G.ApplyPrior(ref, Double.NaN);
+        G.ApplyPrior(ref, this.allele_frequency_prior);
 
         return G.toAlleleFrequencyEstimate(context.getLocation(), ref, bases.length(), bases, G.likelihoods);
     }
@@ -257,9 +258,10 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         return rodString;
     }
 
+    double allele_frequency_prior = -1;
     public void setAlleleFrequencyPrior(double freq)
     {
-        assert(false);
+        this.allele_frequency_prior = freq;
     }
 
     // Given result of map function
