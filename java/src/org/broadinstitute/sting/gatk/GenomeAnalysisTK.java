@@ -15,7 +15,6 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.IntervalWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -28,8 +27,6 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Arrays;
-import java.util.Collections;
 
 public class GenomeAnalysisTK extends CommandLineProgram {
     public static GenomeAnalysisTK Instance = null;
@@ -60,7 +57,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     private TraversalEngine engine = null;
     public boolean DEBUGGING = false;
     public Boolean WALK_ALL_LOCI = false;
-    public Boolean ENABLE_THREADING = false;
+    public Boolean DISABLE_THREADING = false;
 
     /**
      * An output file presented to the walker.
@@ -130,7 +127,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalArg("outerr", "oe", "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", "outErrFileName");
         
         m_parser.addOptionalArg("numthreads", "nt", "How many threads should be allocated to running this analysis.", "numThreads");
-        m_parser.addOptionalFlag("enablethreading", "et", "Enable experimental threading support.", "ENABLE_THREADING");
+        m_parser.addOptionalFlag("disablethreading", "dt", "Disable experimental threading support.", "DISABLE_THREADING");
 
         // --rodBind <name> <type> <file>
         //m_parser.addOptionalArg("rods", "B", "Bind rod with <name> and <type> to <file>", "ROD_BINDINGS");
@@ -268,12 +265,13 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                 if ( WALK_ALL_LOCI ) {
                     // TODO: Temporary debugging code.  Activate the new debugging code only when the MicroManager
                     //                                  is not filtered.
-                    if( ENABLE_THREADING ) {
-                        logger.warn("Preliminary threading support enabled");
+                    if( !DISABLE_THREADING ) {
+                        logger.warn("Preliminary threading support ENABLED");
                         microManager = new MicroManager( INPUT_FILES, REF_FILE_ARG, numThreads );
                         this.engine = microManager.getTraversalEngine();
                     }
                     else {
+                        logger.warn("Preliminary threading support DISABLED");                        
                         this.engine = new TraverseByLociByReference(INPUT_FILES, REF_FILE_ARG, rods);
                     }
                 }
