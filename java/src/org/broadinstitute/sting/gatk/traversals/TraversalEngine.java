@@ -507,7 +507,7 @@ public abstract class TraversalEngine {
 
     public <M, T> T traverse(Walker<M, T> walker) {
         T sum = null;
-        if ( hasLocations() && walker.ReduceByInterval() ) {
+        if ( hasLocations() && walker.isReduceByInterval() ) {
             logger.info("Doing reduce by interval processing");
             if ( ! hasLocations() )
                 Utils.scareUser("ReduceByInterval requested by no interval was provided");
