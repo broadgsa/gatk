@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
@@ -23,6 +24,10 @@ import edu.mit.broad.picard.reference.ReferenceSequenceFile;
  * Time: 12:37:23 PM
  * To change this template use File | Settings | File Templates.
  */
+
+/**
+ * Shards and schedules data in manageable chunks.
+ */
 public abstract class MicroScheduler {
     private List<File> reads;
     private static long SHARD_SIZE = 100000L;    
@@ -30,6 +35,24 @@ public abstract class MicroScheduler {
     protected static Logger logger = Logger.getLogger(MicroScheduler.class);
 
     protected IndexedFastaSequenceFile reference;
+
+    /**
+     * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
+     * selected walker.
+     * @param walker Which walker to use.
+     * @param nThreadsToUse Number of threads to utilize.
+     * @return The best-fit microscheduler.
+     */
+    public static MicroScheduler create( Walker walker, List<File> reads, File ref, int nThreadsToUse ) {
+        if( walker instanceof TreeReducible && nThreadsToUse > 1 ) {
+            logger.info("Creating hierarchical microscheduler");
+            return new HierarchicalMicroScheduler( reads, ref, nThreadsToUse );
+        }
+        else {
+            logger.info("Creating linear microscheduler");
+            return new LinearMicroScheduler( reads, ref );
+        }
+    }
 
     /**
      * Create a microscheduler given the reads and reference.

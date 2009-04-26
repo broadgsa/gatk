@@ -17,8 +17,7 @@ import java.io.File;
 import java.util.List;
 
 /**
- * A micro-scheduling manager for N-way threaded execution of a traversal
- *
+ * A micro-scheduling manager for single-threaded execution of a traversal.
  */
 public class LinearMicroScheduler extends MicroScheduler {
 
@@ -28,16 +27,22 @@ public class LinearMicroScheduler extends MicroScheduler {
         return traversalEngine;
     }
 
-    public LinearMicroScheduler( List<File> reads,              // the reads file(s)
-                         File refFile,                        // the reference file driving the traversal
-                         int nThreadsToUse ) {                // maximum number of threads to use to do the work
+    /**
+     * Create a new linear microscheduler to process the given reads and reference.
+     * @param reads Reads file(s) to process.
+     * @param refFile Reference for driving the traversal.
+     */
+    protected LinearMicroScheduler( List<File> reads, File refFile ) {
         super( reads, refFile );
         traversalEngine = new TraverseLociByReference( reads, refFile, new java.util.ArrayList() );
     }
 
-    public void execute( Walker walker,                        // the analysis technique to use.
-                         List<GenomeLoc> locations ) {         // list of work to do
-
+    /**
+     * Run this traversal over the specified subsection of the dataset.
+     * @param walker Computation to perform over dataset.
+     * @param locations Subset of the dataset over which to walk.
+     */
+    public void execute( Walker walker, List<GenomeLoc> locations ) {
         ShardStrategy shardStrategy = getShardStrategy( reference, locations );
         SAMDataSource dataSource = getReadsDataSource();
 

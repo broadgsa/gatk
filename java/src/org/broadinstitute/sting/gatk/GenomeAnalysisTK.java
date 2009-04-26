@@ -11,7 +11,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
-import org.broadinstitute.sting.gatk.executive.LinearMicroScheduler;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.traversals.*;
@@ -268,7 +267,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                     //                                  is not filtered.
                     if( !DISABLE_THREADING ) {
                         logger.warn("Preliminary threading support ENABLED");
-                        microScheduler = new LinearMicroScheduler( INPUT_FILES, REF_FILE_ARG, numThreads );
+                        microScheduler = MicroScheduler.create( walker, INPUT_FILES, REF_FILE_ARG, numThreads );
                         this.engine = microScheduler.getTraversalEngine();
                     }
                     else {
