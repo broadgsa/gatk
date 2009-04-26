@@ -95,6 +95,9 @@ public class TraverseByLoci extends TraversalEngine {
 
         //printOnTraversalDone("loci", sum);
         walker.onTraversalDone(sum);
+
+        samReader.close();
+
         return sum;
     }
 
