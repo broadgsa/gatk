@@ -27,7 +27,7 @@ public abstract class MicroScheduler {
     private List<File> reads;
     private static long SHARD_SIZE = 100000L;    
 
-    protected static Logger logger = Logger.getLogger(LinearMicroManager.class);
+    protected static Logger logger = Logger.getLogger(MicroScheduler.class);
 
     protected IndexedFastaSequenceFile reference;
 

@@ -12,7 +12,6 @@ import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
 import java.util.List;
@@ -21,7 +20,7 @@ import java.util.List;
  * A micro-scheduling manager for N-way threaded execution of a traversal
  *
  */
-public class LinearMicroManager extends MicroScheduler {
+public class LinearMicroScheduler extends MicroScheduler {
 
     private TraverseLociByReference traversalEngine = null;
 
@@ -29,7 +28,7 @@ public class LinearMicroManager extends MicroScheduler {
         return traversalEngine;
     }
 
-    public LinearMicroManager( List<File> reads,              // the reads file(s)
+    public LinearMicroScheduler( List<File> reads,              // the reads file(s)
                          File refFile,                        // the reference file driving the traversal
                          int nThreadsToUse ) {                // maximum number of threads to use to do the work
         super( reads, refFile );

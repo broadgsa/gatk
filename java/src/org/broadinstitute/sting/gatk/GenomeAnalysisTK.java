@@ -10,8 +10,8 @@ import net.sf.samtools.util.RuntimeIOException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.executive.LinearMicroManager;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
+import org.broadinstitute.sting.gatk.executive.LinearMicroScheduler;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.traversals.*;
@@ -264,11 +264,11 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                     Utils.scareUser(String.format("Analysis %s doesn't support SAM/BAM reads, but a read file %s was provided", Analysis_Name, INPUT_FILES));
 
                 if ( WALK_ALL_LOCI ) {
-                    // TODO: Temporary debugging code.  Activate the new debugging code only when the MicroManager
+                    // TODO: Temporary debugging code.  Activate the new debugging code only when the MicroScheduler
                     //                                  is not filtered.
                     if( !DISABLE_THREADING ) {
                         logger.warn("Preliminary threading support ENABLED");
-                        microScheduler = new LinearMicroManager( INPUT_FILES, REF_FILE_ARG, numThreads );
+                        microScheduler = new LinearMicroScheduler( INPUT_FILES, REF_FILE_ARG, numThreads );
                         this.engine = microScheduler.getTraversalEngine();
                     }
                     else {
