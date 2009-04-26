@@ -333,7 +333,11 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         engine.initialize();
 
         if( microScheduler != null ) {
-            List<GenomeLoc> locs = GenomeLoc.parseGenomeLocs( REGION_STR );
+            List<GenomeLoc> locs = null;
+            if (INTERVALS_FILE != null)
+                locs = GenomeLoc.IntervalFileToList(INTERVALS_FILE);
+            else
+                locs = GenomeLoc.parseGenomeLocs( REGION_STR );
             microScheduler.execute( my_walker, locs );
         }
         else
