@@ -15,7 +15,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.IntervalWalker;
+import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
@@ -278,8 +278,8 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                 else
                 	this.engine = new TraverseByLoci(INPUT_FILES, REF_FILE_ARG, rods);
             }
-        } else if ( my_walker instanceof IntervalWalker ) {
-            this.engine = new TraverseByIntervals(INPUT_FILES, REF_FILE_ARG, rods);
+        } else if ( my_walker instanceof LocusWindowWalker ) {
+            this.engine = new TraverseByLocusWindows(INPUT_FILES, REF_FILE_ARG, rods);
         } else {
             // we're a read walker
             this.engine = new TraverseByReads(INPUT_FILES, REF_FILE_ARG, rods);

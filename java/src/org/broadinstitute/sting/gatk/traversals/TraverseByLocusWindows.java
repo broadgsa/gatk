@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.traversals;
 
-import org.broadinstitute.sting.gatk.walkers.IntervalWalker;
+import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
@@ -26,16 +26,16 @@ import edu.mit.broad.picard.filter.FilteringIterator;
  * Time: 10:26:03 AM
  * To change this template use File | Settings | File Templates.
  */
-public class TraverseByIntervals extends TraversalEngine {
+public class TraverseByLocusWindows extends TraversalEngine {
 
-    public TraverseByIntervals(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+    public TraverseByLocusWindows(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         super(reads, ref, rods);
     }
 
     public <M,T> T traverse(Walker<M,T> walker, ArrayList<GenomeLoc> locations) {
-        if ( walker instanceof IntervalWalker ) {
-            IntervalWalker<M, T> intervalWalker = (IntervalWalker<M, T>)walker;
-            T sum = traverseByIntervals(intervalWalker, locations);
+        if ( walker instanceof LocusWindowWalker ) {
+            LocusWindowWalker<M, T> locusWindowWalker = (LocusWindowWalker<M, T>)walker;
+            T sum = traverseByIntervals(locusWindowWalker, locations);
             return sum;
         } else {
             throw new IllegalArgumentException("Walker isn't an interval walker!");
@@ -52,7 +52,7 @@ public class TraverseByIntervals extends TraversalEngine {
      * @param <T>    ReduceType -- the result of calling reduce() on the walker
      * @return 0 on success
      */
-    protected <M, T> T traverseByIntervals(IntervalWalker<M, T> walker, ArrayList<GenomeLoc> locations) {
+    protected <M, T> T traverseByIntervals(LocusWindowWalker<M, T> walker, ArrayList<GenomeLoc> locations) {
         logger.debug("Entering traverseByIntervals");
 
         if(readsFiles.size() > 1)
@@ -90,7 +90,7 @@ public class TraverseByIntervals extends TraversalEngine {
         return sum;
     }
 
-    protected <M, T> T carryWalkerOverInterval(IntervalWalker<M, T> walker, Iterator<SAMRecord> readIter, T sum, GenomeLoc interval ) {
+    protected <M, T> T carryWalkerOverInterval(LocusWindowWalker<M, T> walker, Iterator<SAMRecord> readIter, T sum, GenomeLoc interval ) {
         logger.debug(String.format("TraverseByIntervals.carryWalkerOverInterval Genomic interval is %s", interval));
 
         // prepare the read filtering read iterator and provide it to a new interval iterator
@@ -129,7 +129,7 @@ public class TraverseByIntervals extends TraversalEngine {
         return sum;
     }
 
-    protected <M, T> T walkAtinterval( final IntervalWalker<M, T> walker,
+    protected <M, T> T walkAtinterval( final LocusWindowWalker<M, T> walker,
                                        T sum,
                                        final LocusContext locus,
                                        final ReferenceIterator refSite,

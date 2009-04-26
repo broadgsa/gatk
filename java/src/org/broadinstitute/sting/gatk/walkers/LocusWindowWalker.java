@@ -10,7 +10,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
  * Time: 2:52:28 PM
  * To change this template use File | Settings | File Templates.
  */
-public abstract class IntervalWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
+public abstract class LocusWindowWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
     public boolean filter(RefMetaDataTracker tracker, String ref, LocusContext context) {
         return true;    // We are keeping all the reads

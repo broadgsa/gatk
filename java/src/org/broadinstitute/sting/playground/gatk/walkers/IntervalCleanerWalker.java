@@ -2,7 +2,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.walkers.IntervalWalker;
+import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -10,7 +10,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import net.sf.samtools.*;
 
 @WalkerName("IntervalCleaner")
-public class IntervalCleanerWalker extends IntervalWalker<Integer, Integer> {
+public class IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> {
     @Argument(fullName="maxReadLength", shortName="maxRead", required=false, defaultValue="-1")
     public int maxReadLength;
 
