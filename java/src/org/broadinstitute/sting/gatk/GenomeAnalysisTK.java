@@ -10,7 +10,8 @@ import net.sf.samtools.util.RuntimeIOException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.executive.MicroManager;
+import org.broadinstitute.sting.gatk.executive.LinearMicroManager;
+import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.traversals.*;
@@ -245,7 +246,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
             throw new RuntimeException( "Unable to access walker", ex );
         }
 
-        MicroManager microManager = null;
+        MicroScheduler microScheduler = null;
 
         // Get the walker specified
         if ( my_walker instanceof LocusWalker ) {
@@ -267,8 +268,8 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                     //                                  is not filtered.
                     if( !DISABLE_THREADING ) {
                         logger.warn("Preliminary threading support ENABLED");
-                        microManager = new MicroManager( INPUT_FILES, REF_FILE_ARG, numThreads );
-                        this.engine = microManager.getTraversalEngine();
+                        microScheduler = new LinearMicroManager( INPUT_FILES, REF_FILE_ARG, numThreads );
+                        this.engine = microScheduler.getTraversalEngine();
                     }
                     else {
                         logger.warn("Preliminary threading support DISABLED");                        
@@ -331,15 +332,9 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         engine.setWalkOverAllSites(WALK_ALL_LOCI);
         engine.initialize();
 
-        if( microManager != null ) {
-            List<GenomeLoc> locs;
-            if (INTERVALS_FILE != null) {
-                locs = GenomeLoc.IntervalFileToList(INTERVALS_FILE);
-                microManager.setIntervalList(locs);
-            } else {
-                locs = GenomeLoc.parseGenomeLocs( REGION_STR );
-            }
-            microManager.execute( my_walker, locs );
+        if( microScheduler != null ) {
+            List<GenomeLoc> locs = GenomeLoc.parseGenomeLocs( REGION_STR );
+            microScheduler.execute( my_walker, locs );
         }
         else
             engine.traverse(my_walker);

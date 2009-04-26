@@ -1,11 +1,9 @@
 package org.broadinstitute.sting.gatk.executive;
 
-import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextProvider;
 import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceProvider;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
-import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
 import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
@@ -17,72 +15,32 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.List;
 
 /**
  * A micro-scheduling manager for N-way threaded execution of a traversal
  *
  */
-public class MicroManager {
-    private static long SHARD_SIZE = 100000L;
-
-    private List<File> reads;
-    private IndexedFastaSequenceFile ref;
+public class LinearMicroManager extends MicroScheduler {
 
     private TraverseLociByReference traversalEngine = null;
-
-    protected static Logger logger = Logger.getLogger(MicroManager.class);
-
-    protected List<GenomeLoc> intervalList = null;
 
     public TraversalEngine getTraversalEngine() {
         return traversalEngine;
     }
 
-    public MicroManager( List<File> reads,                    // the reads file(s)
+    public LinearMicroManager( List<File> reads,              // the reads file(s)
                          File refFile,                        // the reference file driving the traversal
                          int nThreadsToUse ) {                // maximum number of threads to use to do the work
-
-        this.reads = reads;
-        try {
-            ref = new IndexedFastaSequenceFile(refFile);
-        }
-        catch( FileNotFoundException ex ) {
-            throw new RuntimeException("File not found opening fasta file; please do this check before MicroManaging", ex);
-        }
-        GenomeLoc.setupRefContigOrdering(ref);
-
+        super( reads, refFile );
         traversalEngine = new TraverseLociByReference( reads, refFile, new java.util.ArrayList() );
-    }
-
-    public void setIntervalList(List<GenomeLoc> intervalList) {
-        this.intervalList = intervalList;
     }
 
     public void execute( Walker walker,                        // the analysis technique to use.
                          List<GenomeLoc> locations ) {         // list of work to do
-        ShardStrategy shardStrategy = null;
-        if( locations != null )
-            shardStrategy = ShardStrategyFactory.shatter( ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
-                                                          ref.getSequenceDictionary(),
-                                                          SHARD_SIZE,
-                                                          locations );
-        else
-            shardStrategy = ShardStrategyFactory.shatter( ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
-                                                          ref.getSequenceDictionary(),
-                                                          SHARD_SIZE );
 
-        SAMDataSource dataSource = null;
-        try {
-            dataSource = new SAMDataSource( TraversalEngine.unpackReads(reads) );    
-        }
-        catch( SimpleDataSourceLoadException ex ) {
-            throw new RuntimeException( ex );
-        }
-        catch( FileNotFoundException ex ) {
-            throw new RuntimeException( ex );
-        }
+        ShardStrategy shardStrategy = getShardStrategy( reference, locations );
+        SAMDataSource dataSource = getReadsDataSource();
 
         boolean walkerInitialized = false;
         Object accumulator = null;
@@ -98,7 +56,7 @@ public class MicroManager {
                 throw new RuntimeException( ex );
             }
 
-            ReferenceProvider referenceProvider = new ReferenceProvider( ref, span );
+            ReferenceProvider referenceProvider = new ReferenceProvider( reference, span );
             LocusContextProvider locusProvider = new LocusContextProvider( readShard );
 
             // set the sam header of the traversal engine
