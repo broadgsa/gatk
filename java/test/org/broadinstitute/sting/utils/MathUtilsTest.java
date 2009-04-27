@@ -23,12 +23,24 @@ public class MathUtilsTest extends BaseTest {
     public void testBinomialProbability() {
         logger.warn("Executing testBinomialProbability");
 
-        Assert.assertTrue(MathUtils.compareDoubles(MathUtils.binomialProbability(2, 3, 0.5), 0.375, 0.001) == 0);
+        Assert.assertTrue(MathUtils.compareDoubles(MathUtils.binomialProbability(2, 3, 0.5), 0.375, 0.0001) == 0);
         Assert.assertTrue(MathUtils.compareDoubles(MathUtils.binomialProbability(10, 100, 0.5), 1.365543e-17, 1e-18) == 0);
         Assert.assertTrue(MathUtils.compareDoubles(MathUtils.binomialProbability(73, 217, 0.02), 4.521904e-67, 1e-68) == 0);
         Assert.assertTrue(MathUtils.compareDoubles(MathUtils.binomialProbability(100, 300, 0.02), 9.27097e-91, 1e-92) == 0);
         Assert.assertTrue(MathUtils.compareDoubles(MathUtils.binomialProbability(150, 300, 0.98), 6.462892e-168, 1e-169) == 0);
         Assert.assertTrue(MathUtils.compareDoubles(MathUtils.binomialProbability(120, 300, 0.98), 3.090054e-221, 1e-222) == 0);
         Assert.assertTrue(MathUtils.compareDoubles(MathUtils.binomialProbability(112, 300, 0.98), 2.34763e-236, 1e-237) == 0);
+    }
+
+    /**
+     * Tests that we get the right values from the multinomial distribution
+     */
+    @Test
+    public void testMultinomialProbability() {
+        logger.warn("Executing testMultinomialProbability");
+
+        int[] counts = { 10, 20, 30 };
+        double[] probs = { 0.25, 0.25, 0.50 };
+        Assert.assertTrue(MathUtils.compareDoubles(MathUtils.multinomialProbability(counts, probs), 0.002870301, 1e-9) == 0);
     }
 }
