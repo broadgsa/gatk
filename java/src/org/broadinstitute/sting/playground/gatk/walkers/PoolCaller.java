@@ -1,21 +1,22 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.*;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.refdata.rodGFF;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMReadGroupRecord;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
+import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.ReadBackedPileup;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String> 
 {
@@ -56,6 +57,7 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
             caller.metricsFileName = "/dev/null";
             caller.lodThreshold = 5.0;
             caller.fourBaseMode = false;
+            caller.printMetrics = false;
             caller.initialize();
             callers.add(caller);
         } 

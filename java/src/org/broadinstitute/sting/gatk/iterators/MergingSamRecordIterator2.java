@@ -138,7 +138,10 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         if (oldProgramGroupId != null) {
             final String newProgramGroupId = this.samHeaderMerger.getProgramGroupId(iterator.getReader(), oldProgramGroupId);
             record.setAttribute(SAMTag.PG.toString(), newProgramGroupId);
-        } else {
+        }
+
+        // if we don't have a read group, set one correctly
+        if (record.getAttribute(SAMTag.RG.toString()) == null) {
             List<SAMReadGroupRecord> readGroups = iterator.getReader().getFileHeader().getReadGroups();
             if (readGroups.size() == 1) {
                 record.setAttribute(SAMTag.RG.toString(), readGroups.get(0).getReadGroupId());
