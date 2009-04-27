@@ -59,7 +59,10 @@ public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval
         return sum.merge(value);
     }
 
-    public void onTraversalDone(Interval result) {}
+    public void onTraversalDone(Interval result) {
+        if ( result != null && result.indelCount >= minIntervalIndelCount )
+            out.println(result);        
+    }
 
     public class Interval {
         public GenomeLoc readLoc = null;
