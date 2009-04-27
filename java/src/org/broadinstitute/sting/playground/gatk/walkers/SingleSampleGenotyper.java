@@ -8,8 +8,8 @@ import org.broadinstitute.sting.playground.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
 
 import net.sf.samtools.SAMRecord;
 
@@ -19,93 +19,102 @@ import java.util.*;
 // j.maguire 3-7-2009
 
 public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, Integer>  {
-    @Argument(fullName="metrics",required=false,defaultValue="/dev/null")
-    public String metricsFileName;
-
-    @Argument(fullName="lodThreshold",shortName="lod",required=false,defaultValue="5.0")
-    public Double lodThreshold;
-
-    @Argument(fullName="fourBaseMode",required=false,defaultValue="false")
-    public Boolean fourBaseMode;
-
-    @Argument(fullName="retest",required=false,defaultValue="false")
-    public Boolean retest;
-
-    @Argument(fullName="printMetrics",required=false,defaultValue="true")
-    public Boolean printMetrics;
+    @Argument(fullName="metrics",      shortName="met",          required=false, defaultValue="/dev/null") public String metricsFileName;
+    @Argument(fullName="metInterval",  shortName="mi",           required=false, defaultValue="50000")     public Integer metricsInterval;
+    @Argument(fullName="printMetrics", shortName="printMetrics", required=false, defaultValue="true")      public Boolean printMetrics;
+    @Argument(fullName="lodThreshold", shortName="lod",          required=false, defaultValue="5.0")       public Double lodThreshold;
+    @Argument(fullName="fourBaseMode", shortName="fb",           required=false, defaultValue="false")     public Boolean fourBaseMode;
+    @Argument(fullName="retest",       shortName="re",           required=false, defaultValue="false")     public Boolean retest;
+    @Argument(fullName="qHom",         shortName="qHom",         required=false, defaultValue="0.04")      public Double qHom;
+    @Argument(fullName="qHet",         shortName="qHet",         required=false, defaultValue="0.49")      public Double qHet;
+    @Argument(fullName="qHomNonRef",   shortName="qHomNonRef",   required=false, defaultValue="0.97")      public Double qHomNonRef;
 
     public AlleleMetrics metrics;
     
     public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) { return true; }
     public boolean requiresReads() { return true; }
-    public void initialize() {
-        metrics = new AlleleMetrics(metricsFileName, lodThreshold);
-    }
+    public void initialize() { metrics = new AlleleMetrics(metricsFileName, lodThreshold); }
 
     public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         String rodString = getRodString(tracker);
 
-        AlleleFrequencyEstimate freq = null;
-        if (fourBaseMode) 
-        {
+        AlleleFrequencyEstimate freq;
+        if (fourBaseMode) {
             if (retest) {
                 // Compute single quality score genotype likelihoods
                 freq = getOneProbAlleleFrequency(ref, context, rodString);
 
-                if (MathUtils.compareDoubles(freq.qhat, 0.5) == 0) {
-                    // If we found a putative het, recompute four-base prob genotype likelihoods
+                if (freq.qhat > 0.1) {
+                    // If we found a putative variant, recompute four-base prob genotype likelihoods
                     freq = getFourProbAlleleFrequency(ref, context, rodString, tracker);
                 }
             } else {
                 freq = getFourProbAlleleFrequency(ref, context, rodString, tracker);
             }
-        }
-        else 
-        {
+        } else  {
             // Compute single quality score genotype likelihoods
             freq = getOneProbAlleleFrequency(ref, context, rodString);
         }
 
         if (printMetrics) {
             if (freq != null) { metrics.nextPosition(freq, tracker); }
-            metrics.printMetricsAtLocusIntervals(1000);
+            metrics.printMetricsAtLocusIntervals(metricsInterval);
         }
 
         return freq;
     }
 
     private AlleleFrequencyEstimate getFourProbAlleleFrequency(char ref, LocusContext context, String rodString, RefMetaDataTracker tracker) {
-        /*
-         P(D)*P(G,q|D) = P(D|G,q)*P(G,q)
-                       = P(D|q)*P(q|G)*P(G)
-
-                  P(G) = { 0.999 (hom-ref), 1e-3 (het), 1e-5 (hom-nonref) }
-                  
-                            n
-          P(D|q)P(q|G) = product [ P_i(A)*B(i, n, G) ]
-                           i=1
-         */
-
         double[][] probs = ReadBackedPileup.probDistPileup(context.getReads(), context.getOffsets());
         int refBaseIndex = BaseUtils.simpleBaseToBaseIndex(ref);
         int altBaseIndex = getMostFrequentNonRefBase(getFractionalCounts(probs), refBaseIndex);
 
         if (refBaseIndex >= 0 && altBaseIndex >= 0) {
-            double[] obsWeights = getObservationWeights(probs, refBaseIndex, altBaseIndex);
+            // Set the priors for the hom-ref, het, and non-hom ref (we don't evaluate the
+            // possibility of a non-ref het).
+            double[] genotypePriors = { 0.999, 1e-3, 1e-5 };
 
-            double[] genotypePriors   = { 0.999, 1e-3, 1e-5 };
-            double[] genotypeBalances = { 0.02, 0.5,  0.98 };
-            double[] reportingBalances = { 0.0, 0.5, 1.0 }; // the metrics class doesn't like it if you don't tell it these exact values
+            // I'm not sure what the difference between qhat and qstar is in AlleleMetrics, but
+            // to make my life simpler, I evaluate the non-ref balances in genotypeBalances and
+            // report the balances in reportingBalances.
+            double[] genotypeBalances  = { qHom, qHet, qHomNonRef };
+            double[] reportingBalances = { 0.0, 0.5, 1.0 };
 
+            // Compute the distribution of second-best bases (should be random)
+            /*
+            double[] secondaryBaseProbs = { 0.333, 0.333, 0.333 };
+            int[] allBaseCounts = new int[3];
+            for (int baseIndex = 0; baseIndex < 4; baseIndex++) {
+                
+            }
+            */
+
+            // Determine the probability distribution of non-ref alleles
+            //double[] obsWeights = getObservationWeights(probs, refBaseIndex, altBaseIndex);
+
+            // Convolve them with the binomial sampling probability distribution in order to
+            // marginalize the non-ref allele balance.
             double[] posteriors = new double[3];
             double qhat = 0.0, qstar = 0.0, lodVsRef = 0.0, pBest = Double.MIN_VALUE;
-
             for (int hypothesis = 0; hypothesis < 3; hypothesis++) {
+                int base1;
+                int base2;
+                switch (hypothesis) {
+                    case 0: base1 = refBaseIndex; base2 = refBaseIndex; break;
+                    case 1: base1 = refBaseIndex; base2 = altBaseIndex; break;
+                    case 2: base1 = altBaseIndex; base2 = altBaseIndex; break;
+                    default: base1 = refBaseIndex; base2 = refBaseIndex; break;
+                }
+                double[] obsWeights = getObservationWeights(probs, refBaseIndex, altBaseIndex);
+
                 posteriors[hypothesis] = 0.0;
 
                 for (int weightIndex = 0; weightIndex < obsWeights.length; weightIndex++) {
                     double binomialWeight = MathUtils.binomialProbability(weightIndex, probs.length, genotypeBalances[hypothesis]);
-                    
+
+                    // The hom-ref posterior probability distribution may be too weak to
+                    // effectively account for noise.  Just set it to equal weighting for
+                    // the lower quantile of the non-ref balance range.
                     //if (hypothesis == 0 && weightIndex < obsWeights.length/4) {
                     //    binomialWeight = 1.0;
                     //}
@@ -138,7 +147,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
                                                                        2,
                                                                        qhat,
                                                                        qstar,
-                                                                       (MathUtils.compareDoubles(qhat, reportingBalances[0]) == 0 ? -lodVsNextBest : lodVsRef),
+                                                                       (MathUtils.compareDoubles(qhat, reportingBalances[0]) == 0 ? lodVsNextBest : lodVsRef),
                                                                        lodVsNextBest,
                                                                        pBest,
                                                                        pRef,
