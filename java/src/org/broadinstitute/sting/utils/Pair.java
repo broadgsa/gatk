@@ -19,4 +19,8 @@ public class Pair<X,Y> {
         the member field.
     */
     public Y getSecond() { return second; }
+
+    public String toString() {
+        return first+","+second;
+    }
 }

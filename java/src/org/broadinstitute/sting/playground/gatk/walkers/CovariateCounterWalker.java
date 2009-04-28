@@ -18,7 +18,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="MAX_READ_LENGTH", shortName="mrl", required=false,defaultValue="101")
     public int MAX_READ_LENGTH;
 
-    @Argument(fullName="MAX_QUAL_SCORE", shortName="mqs", required=false,defaultValue="34")
+    @Argument(fullName="MAX_QUAL_SCORE", shortName="mqs", required=false,defaultValue="63")
     public int MAX_QUAL_SCORE;
 
     @Argument(fullName="LOG_REG_TRAINING_FILEROOT", shortName="lrtf", required=false, defaultValue="dinuc", doc="Filename root for the outputted logistic regression training files")
@@ -35,6 +35,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     String dinuc_root = "dinuc";
     ArrayList<PrintStream> dinuc_outs = new ArrayList<PrintStream>();
     PrintStream covars_out = new PrintStream("covars.out");
+    PrintStream ByQual = new PrintStream("quality_empirical_vs_observed.csv");
 
     private class RecalData {
         long N;
@@ -49,9 +50,14 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             this.dinuc = dinuc;
         }
 
+        public void inc(long incN, long incB) {
+            N += incN;
+            B += incB;
+        }
+
+
         public void inc(char curBase, char ref) {
-            N++;
-            B += nuc2num[curBase] == nuc2num[ref] ? 0 : 1;
+            inc(1, nuc2num[curBase] == nuc2num[ref] ? 0 : 1);
             //out.printf("%s %s\n", curBase, ref);
         }
 
@@ -83,7 +89,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         rodDbSNP dbsnp = (rodDbSNP)tracker.lookup("dbSNP", null);
-        if ( dbsnp == null ) {
+        if ( dbsnp == null || !dbsnp.isSNP() ) {
             List<SAMRecord> reads = context.getReads();
             List<Integer> offsets = context.getOffsets();
             for (int i =0; i < reads.size(); i++ ) {
@@ -95,9 +101,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
                     int qual = (int)read.getBaseQualities()[offset];
                     //out.printf("%d %d %d\n", offset, qual, bases2dinucIndex(prevBase,base));
                     int dinuc_index = bases2dinucIndex(prevBase,base);
-                    RecalData datum = data[offset][qual][dinuc_index];
-                    datum.inc(base,ref);
-                    dinuc_outs.get(dinuc_index).format("%d,%d,%d\n", qual, offset, base==ref ? 0 : 1);
+                    if (qual > 0 && qual <= MAX_QUAL_SCORE) {
+                        RecalData datum = data[offset][qual][dinuc_index];
+                        datum.inc(base,ref);
+                        dinuc_outs.get(dinuc_index).format("%d,%d,%d\n", qual, offset, nuc2num[base]==nuc2num[ref] ? 0 : 1);
+                    }
                 }
             }
         }
@@ -111,10 +119,30 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             covars_out.println(datum);
         }
 
+        qualityEmpiricalObserved();
+
         // Close dinuc filehandles
         for ( PrintStream dinuc_stream : this.dinuc_outs)
             dinuc_stream.close();
 
+    }
+
+    public void qualityEmpiricalObserved() {
+
+        ArrayList<RecalData> ByQ = new ArrayList<RecalData>();
+        ByQual.printf("Qcal, Qobs, B, N%n");
+        for (int q=0; q<MAX_QUAL_SCORE+1; q++)
+            ByQ.add(new RecalData(-1,q,"-"));
+
+        for ( RecalData datum: flattenData ){
+            ByQ.get(datum.qual).inc(datum.N, datum.B);
+        }
+
+        for (int q=0; q<MAX_QUAL_SCORE; q++) {
+            double empiricalQual = -10 * Math.log10((double)ByQ.get(q).B / ByQ.get(q).N);
+            ByQual.printf("%d, %f, %d, %d%n", q, empiricalQual, ByQ.get(q).B, ByQ.get(q).N);
+            //out.printf("%3d,%s,%3d,%5.1f,%5.1f,%6d,%6d", pos, dinuc, qual, empiricalQual, qual-empiricalQual, N, B);
+        }
     }
 
     public Integer reduceInit() {
@@ -159,5 +187,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             next_dinuc.println("logitQ,pos,indicator");
             dinuc_outs.add(next_dinuc);
         }
+        ByQual = new PrintStream("by_quality.csv");
     }
 }

@@ -108,19 +108,21 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
 
             if ( regressor != null ) { // no N or some other unexpected bp in the stream
                 double logPOver1minusP = regressor.regress((double)cycle+1, (double)qual);
-                double POver1minusP = Math.pow(10, logPOver1minusP);
+                //newQual = -10 * Math.round(logPOver1minusP)
+                /*double POver1minusP = Math.pow(10, logPOver1minusP);
                 P = POver1minusP / (1 + POver1minusP);
-                newQual = QualityUtils.probToQual(P);
-                //newQual = (byte)Math.min(Math.round(newQualDouble),63);
-                System.out.printf("Recal %s %d %d => %f => %f => %f leads to %d%n", dinuc, cycle, qual, logPOver1minusP, POver1minusP, P, newQual);
+                newQual = QualityUtils.probToQual(P);*/
+
+                newQual = (byte)Math.min(Math.round(-10*logPOver1minusP),63);
+                //System.out.printf("Recal %s %d %d => %f => %f leads to %d%n", dinuc, cycle, qual, logPOver1minusP, P, newQual);
             }
 
             recalQuals[i] = newQual;
         }
 
-        System.out.printf("OLD: %s%n", read.format());
+        //System.out.printf("OLD: %s%n", read.format());
         read.setBaseQualities(recalQuals);
-        System.out.printf("NEW: %s%n", read.format());
+        //System.out.printf("NEW: %s%n", read.format());
         return recalRead;
     }
 
