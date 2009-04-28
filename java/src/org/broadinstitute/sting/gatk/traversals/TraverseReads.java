@@ -4,9 +4,9 @@ import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextProvider;
+import org.broadinstitute.sting.gatk.dataSources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -15,6 +15,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.io.File;
 import java.util.List;
+import java.util.Arrays;
 
 /**
  *
@@ -77,13 +78,14 @@ public class TraverseReads extends TraversalEngine {
                              BoundedReadIterator iter,
                              T sum) {
 
-        logger.debug(String.format("TraverseReads.traverse Genomic interval is %s", shard.getGenomeLoc()));
+        logger.debug(String.format("TraverseReads.traverse Genomic interval is %s", ((ReadShard)shard).getSize()));
 
         if (!(walker instanceof ReadWalker))
             throw new IllegalArgumentException("Walker isn't a read walker!");
 
         ReadWalker<M, T> readWalker = (ReadWalker<M, T>) walker;
-        GenomeLoc loc = shard.getGenomeLoc();
+
+        int readCNT = 0;
 
         // while we still have more reads
         for (SAMRecord read: iter) {
@@ -91,19 +93,15 @@ public class TraverseReads extends TraversalEngine {
             // get the genome loc from the read
             GenomeLoc site = new GenomeLoc(read);
 
+            // Jump forward in the reference to this locus location
+            LocusContext locus = new LocusContext(site, Arrays.asList(read), Arrays.asList(0));
+
             // update the number of reads we've seen
             TraversalStatistics.nRecords++;
 
-            // Iterate forward to get all reference ordered data covering this locus
-            final RefMetaDataTracker tracker = getReferenceOrderedDataAtLocus(site);
-            //ReferenceIterator refSite = referenceProvider.getReferenceSequence(site);
-                             
-            LocusContext locus = locusProvider.getLocusContext(site);
-            //locus.setReferenceContig(refSite.getCurrentContig());
-
-            if (DOWNSAMPLE_BY_COVERAGE)
-                locus.downsampleToCoverage(downsamplingCoverage);
-
+            // we still have to fix the locus context provider to take care of this problem with > 1 length contexts
+            // LocusContext locus = locusProvider.getLocusContext(site);
+            
             final boolean keepMeP = readWalker.filter(locus, read);
             if (keepMeP) {
                 M x = readWalker.map(locus, read);

@@ -56,6 +56,8 @@ public class ShardStrategyFactory {
                 return new LinearLocusShardStrategy(dic, startingSize);
             case EXPONENTIAL:
                 return new ExpGrowthLocusShardStrategy(dic, startingSize);
+            case READS:
+                return new ReadShardStrategy(dic, startingSize);
             default:
                 throw new RuntimeException("Strategy: " + strat + " isn't implemented");
         }
@@ -93,9 +95,12 @@ public class ShardStrategyFactory {
     static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, List<GenomeLoc> lst) {
         switch (strat) {
             case LINEAR:
-                return new LinearLocusShardStrategy(dic, startingSize , lst);
+                return new LinearLocusShardStrategy(dic, startingSize, lst);
             case EXPONENTIAL:
-                return new ExpGrowthLocusShardStrategy(dic, startingSize , lst);
+                return new ExpGrowthLocusShardStrategy(dic, startingSize, lst);
+            case READS:
+                // return new ReadShardStrategy(dic, startingSize);
+                throw new RuntimeException("Strategy: " + strat + " isn't implemented for intervals");
             default:
                 throw new RuntimeException("Strategy: " + strat + " isn't implemented");
         }
@@ -109,7 +114,7 @@ public class ShardStrategyFactory {
      * @return
      */
     static public ShardStrategy shatterByReadCount(SAMSequenceDictionary dic, long readCount) {
-        return null;
+        return new ReadShardStrategy(dic, readCount);
     }
 
 }

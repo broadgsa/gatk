@@ -36,7 +36,7 @@ public class ReadShardStrategy implements ShardStrategy {
     private boolean unMappedReads = true;
 
     // our read bucket size, default
-    public long readCount = 100000;
+    protected long readCount = 100000L;
 
     // our sequence dictionary
     final private SAMSequenceDictionary dic;
@@ -60,7 +60,7 @@ public class ReadShardStrategy implements ShardStrategy {
     }
 
     public Shard next() {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return new ReadShard((int)readCount);  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     public void remove() {

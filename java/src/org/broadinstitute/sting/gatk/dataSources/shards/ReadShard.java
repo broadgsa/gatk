@@ -31,22 +31,24 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 public class ReadShard implements Shard {
 
     // the count of the reads we want to copy off
-    int size = 0;
+    private int size = 0;
 
     // this is going to get gross
     private final ReadShardStrategy str;
 
     /**
      * create a read shard, given a read size
+     *
      * @param size
      */
     public ReadShard(int size) {
         this.str = null;
-        this.size = size;     
+        this.size = size;
     }
 
     /**
      * create a read shard, given a read size
+     *
      * @param size
      */
     ReadShard(ReadShardStrategy caller, int size) {
@@ -56,8 +58,14 @@ public class ReadShard implements Shard {
 
     /** @return the genome location represented by this shard */
     public GenomeLoc getGenomeLoc() {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new UnsupportedOperationException("Reads based sharding isn't genome loc aware");
     }
+
+    /** @return the genome location represented by this shard */
+    public int getSize() {
+        return size;
+    }
+
 
     /**
      * what kind of shard do we return
