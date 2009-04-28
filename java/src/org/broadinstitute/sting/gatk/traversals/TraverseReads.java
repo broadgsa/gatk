@@ -1,0 +1,119 @@
+package org.broadinstitute.sting.gatk.traversals;
+
+import net.sf.samtools.SAMRecord;
+import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextProvider;
+import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
+import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.GenomeLoc;
+
+import java.io.File;
+import java.util.List;
+
+/**
+ *
+ * User: aaron
+ * Date: Apr 24, 2009
+ * Time: 10:35:22 AM
+ *
+ * The Broad Institute
+ * SOFTWARE COPYRIGHT NOTICE AGREEMENT 
+ * This software and its documentation are copyright 2009 by the
+ * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
+ *
+ * This software is supplied without any warranty or guaranteed support whatsoever. Neither
+ * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
+ *
+ */
+
+
+/**
+ * @author aaron
+ * @version 1.0
+ * @date Apr 24, 2009
+ * <p/>
+ * Class TraverseReads
+ * <p/>
+ * This class handles traversing by reads in the new shardable style
+ */
+public class TraverseReads extends TraversalEngine {
+
+
+    /** our log, which we want to capture anything from this class */
+    protected static Logger logger = Logger.getLogger(TraverseReads.class);
+
+
+    /**
+     * Creates a new, uninitialized TraversalEngine
+     *
+     * @param reads SAM/BAM file of reads
+     * @param ref   Reference file in FASTA format, assumes a .dict file is also available
+     * @param rods  Array of reference ordered data sets
+     */
+    public TraverseReads(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+        super(reads, ref, rods);
+    }
+
+
+    /**
+     * Traverse by reads, given the data and the walker
+     * @param walker the walker to execute over
+     * @param shard the shard of data to feed the walker
+     * @param locusProvider the factory for loci
+     * @param sum of type T, the return from the walker
+     * @param <M> the generic type 
+     * @param <T> the return type of the reduce function
+     * @return
+     */
+    public <M, T> T traverse(Walker<M, T> walker,
+                             Shard shard,
+                             LocusContextProvider locusProvider,
+                             BoundedReadIterator iter,
+                             T sum) {
+
+        logger.debug(String.format("TraverseReads.traverse Genomic interval is %s", shard.getGenomeLoc()));
+
+        if (!(walker instanceof ReadWalker))
+            throw new IllegalArgumentException("Walker isn't a read walker!");
+
+        ReadWalker<M, T> readWalker = (ReadWalker<M, T>) walker;
+        GenomeLoc loc = shard.getGenomeLoc();
+
+        // while we still have more reads
+        for (SAMRecord read: iter) {
+
+            // get the genome loc from the read
+            GenomeLoc site = new GenomeLoc(read);
+
+            // update the number of reads we've seen
+            TraversalStatistics.nRecords++;
+
+            // Iterate forward to get all reference ordered data covering this locus
+            final RefMetaDataTracker tracker = getReferenceOrderedDataAtLocus(site);
+            //ReferenceIterator refSite = referenceProvider.getReferenceSequence(site);
+                             
+            LocusContext locus = locusProvider.getLocusContext(site);
+            //locus.setReferenceContig(refSite.getCurrentContig());
+
+            if (DOWNSAMPLE_BY_COVERAGE)
+                locus.downsampleToCoverage(downsamplingCoverage);
+
+            final boolean keepMeP = readWalker.filter(locus, read);
+            if (keepMeP) {
+                M x = readWalker.map(locus, read);
+                sum = readWalker.reduce(x, sum);
+            }
+
+            printProgress("loci", locus.getLocation());
+        }
+
+        return sum;
+    }
+
+}
