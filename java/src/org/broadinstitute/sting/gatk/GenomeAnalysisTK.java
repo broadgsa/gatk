@@ -1,12 +1,9 @@
 package org.broadinstitute.sting.gatk;
 
-import edu.mit.broad.picard.reference.ReferenceSequence;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.util.RuntimeIOException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.log4j.Logger;
@@ -20,7 +17,6 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -375,117 +371,6 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         }
     }
 
-    /**
-     * An inappropriately placed validation and performance testing routine for jumping
-     * around in the fasta sequence file.
-     * @param refFileName
-     */
-    private static void testNewReferenceFeatures(final File refFileName) {
-        final FastaSequenceFile2 refFile = new FastaSequenceFile2(refFileName);
-        GenomeLoc.setupRefContigOrdering(refFile);
-
-        List<SAMSequenceRecord> refContigs = refFile.getSequenceDictionary().getSequences();
-
-        /*
-        for ( SAMSequenceRecord refContig: refContigs ) {
-            System.out.printf("  Traversing from chr1 to %s would require jumping %d bytes%n",
-                    refContig.getSequenceName(), refFile.getDistanceBetweenContigs("chr1", refContig.getSequenceName()));
-        }
-        */
-
-        String lastContig = null;
-        List<Double> timings = new ArrayList<Double>();
-        for ( SAMSequenceRecord startContig : refFile.getSequenceDictionary().getSequences() ) {
-            final String startContigName = startContig.getSequenceName();
-            for ( SAMSequenceRecord targetContig : refFile.getSequenceDictionary().getSequences() ) {
-                refFile.seekToContig(startContigName, true);
-                logger.info(String.format("Seeking: current=%s, target=%s%n", startContigName, targetContig.getSequenceName()));
-                long lastTime = System.currentTimeMillis();
-                final boolean success = refFile.seekToContig(targetContig.getSequenceName(), true);
-                long curTime = System.currentTimeMillis();
-                final double elapsed = (curTime - lastTime) / 1000.0;
-                timings.add(elapsed);
-                logger.info(String.format("  -> Elapsed time %.2f, averaging %.2f sec / seek for %d seeks%n",
-                        elapsed, Utils.averageDouble(timings), timings.size()));
-
-                if ( ! success ) {
-                    logger.error(String.format("Failured to seek to %s from %s%n", targetContig.getSequenceName(), lastContig ));
-                }
-                //System.exit(1);
-            }
-        }
-        System.exit(1);
-
-        // code for randomly sampling the seeks
-//        Random rnd = new Random();
-//        String lastContig = null;
-//        List<Double> timings = new ArrayList<Double>();
-//        final int N_SAMPLES = 1000;
-//        //try { refFile.seekToContig("chr3"); } catch ( IOException e ) {}
-//        for ( int i = 0; i < N_SAMPLES; i++ ) {
-//            final int nextIndex = rnd.nextInt(refContigs.size());
-//            String nextContig = refFile.getSequenceDictionary().getSequence(nextIndex).getSequenceName();
-//            //nextContig = "chr2";
-//            try {
-//                System.out.printf("Seeking: current=%s, target=%s%n", refFile.getContigName(), nextContig);
-//                long lastTime = System.currentTimeMillis();
-//                final boolean success = refFile.seekToContig(nextContig, true);
-//                long curTime = System.currentTimeMillis();
-//                final double elapsed = (curTime - lastTime) / 1000.0;
-//                timings.add(elapsed);
-//                System.out.printf("  -> Elapsed time %.2f, averaging %.2f sec / seek for %d seeks%n",
-//                        elapsed, Utils.averageDouble(timings), timings.size());
-//
-//                if ( ! success ) {
-//                    System.out.printf("Failured to seek to %s from %s%n", nextContig, lastContig );
-//                }
-//                //System.exit(1);
-//            } catch ( IOException e ) {
-//                System.out.printf("Failured to seek to %s from %s%n", nextContig, lastContig );
-//                e.printStackTrace();
-//            }
-//
-//            lastContig = nextContig;
-//        }
-//        System.exit(1);
-
-/*
-        final String targetChr = "chr10";
-        try {
-            refFile.seekToContig(targetChr);
-        } catch ( IOException e ){
-            System.out.printf("Failured to seek to %s%n", targetChr);
-            e.printStackTrace();
-        }
-        System.exit(1);
-*/
-
-        //List<Double> timings = new ArrayList<Double>();
-        final long startTime = System.currentTimeMillis();
-        long lastTime = System.currentTimeMillis();
-
-        int i = 0;
-        String prevNextContigName = null;
-        logger.info(String.format("Walking reference sequence:%n"));
-        for ( SAMSequenceRecord refContig: refContigs ) {
-            long curTime = System.currentTimeMillis();
-            ReferenceSequence contig = refFile.nextSequence();
-            final double elapsed = (curTime - lastTime) / 1000.0;
-            timings.add(elapsed);
-            logger.info(String.format("%2d : expected %s contig, found %s with next of %s after %.2f seconds, average is %.2f%n", i,
-                    refContig.getSequenceName(), contig.getName(), refFile.getNextContigName(), elapsed, Utils.averageDouble(timings)));
-            if ( prevNextContigName != null && contig.getName() != null && ! prevNextContigName.equals(contig.getName()) )
-                throw new RuntimeIOException(String.format("Unexpected contig ordering %s was expected next, but I found %s?",
-                        prevNextContigName, contig.getName()));
-
-            prevNextContigName = refFile.getNextContigName();
-            lastTime = curTime;
-            i++;
-
-            logger.info(String.format("  Traversing from chr1 to %s would require jumping %d bytes%n",
-                    contig.getName(), refFile.getDistanceBetweenContigs("chr1", contig.getName())));
-        }
-    }
 
     public SAMFileReader getSamReader() { return this.engine.getSamReader(); }
     public TraversalEngine getEngine() { return this.engine; }
