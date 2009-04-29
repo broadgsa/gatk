@@ -2,7 +2,6 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Pair;
@@ -13,6 +12,9 @@ import java.util.List;
 import net.sf.samtools.SAMRecord;
 
 public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerformanceWalker.TargetInfo> {
+    @Argument(fullName="min_mapq", shortName="mmq", required=false, defaultValue="1", doc="Minimum mapping quality of reads to consider") public Integer MIN_MAPQ;
+    @Argument(fullName="include_duplicates", shortName="idup", required=false, defaultValue="false", doc="consider duplicate reads") public Boolean INCLUDE_DUPLICATE_READS;
+
     public static class TargetInfo {
         public int counts = 0;
 
@@ -35,14 +37,10 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
         {
             SAMRecord read = reads.get(i);
 
-            // TODO: is there a better way to do this?
-            if (read.getNotPrimaryAlignmentFlag() ||
-                read.getDuplicateReadFlag() ||
-                read.getReadUnmappedFlag() ||
-                read.getMappingQuality() <= -1
-                    ) {
-                continue;
-            }
+            if (read.getNotPrimaryAlignmentFlag()) { continue; }
+            if (read.getReadUnmappedFlag()) { continue; }
+            if (!INCLUDE_DUPLICATE_READS && read.getDuplicateReadFlag()) { continue; }
+            if (read.getMappingQuality() < MIN_MAPQ) { continue; }
             depth++;
         }
 
