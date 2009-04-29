@@ -102,4 +102,20 @@ Users can write to these streams just as they write to System.out and
 System.err.  This output can be redirected to a file using the out,
 err, and outerr command-line arguments.
 
+\subsection{Logging}
+The walkers provide a protected logger instance.  Users can adjust the
+debug level of the walkers using the -l command line option.
+
+Turning on verbose logging can produce more output than the user
+really needs.  To selectively turn on logging for a class or package,
+the user can specify a log4j.properties property file from the command
+line as follows:
+
+\begin{verbatim}
+-Dlog4j.configuration=file:///humgen/gsa-scr1/hanna/src/Sting/java/config/log4j.properties
+\end{verbatim}
+
+An example log4j.properties file is available in the java/config
+directory of the subversion repository.
+
 \end{document}
