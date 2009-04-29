@@ -3,26 +3,20 @@ package org.broadinstitute.sting.gatk.executive;
 import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
-import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceProvider;
-import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextProvider;
-import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import java.io.File;
 import java.util.List;
 import java.util.Queue;
 import java.util.LinkedList;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 /**
@@ -60,7 +54,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
 
 
         this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);        
-
         traversalEngine = new TraverseLociByReference( reads, refFile, new java.util.ArrayList() );
     }
 
@@ -143,7 +136,11 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
     protected Future queueNextShardTraverse( Walker walker, SAMDataSource dataSource ) {
         if( traverseTasks.size() == 0 )
             throw new IllegalStateException( "Cannot traverse; no pending traversals exist.");
-        ShardTraverser traverser = new ShardTraverser( walker, traverseTasks.remove(), dataSource );
+        ShardTraverser traverser = new ShardTraverser( traversalEngine,
+                                                       walker,
+                                                       traverseTasks.remove(),
+                                                       reference,
+                                                       dataSource );
         return threadPool.submit(traverser);
     }
 
@@ -180,62 +177,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         return reducer; 
     }
 
-    /**
-     * Carries the walker over a given shard.
-     */
-    private class ShardTraverser implements Callable {
-        private Walker walker;
-        private Shard shard;
-        private SAMDataSource dataSource;
-
-        public ShardTraverser( Walker walker, Shard shard, SAMDataSource dataSource ) {
-            this.walker = walker;
-            this.shard = shard;
-            this.dataSource = dataSource;            
-        }
-
-        public Object call() {
-            GenomeLoc span = shard.getGenomeLoc();
-            Object accumulator = ((LocusWalker<?,?>)walker).reduceInit();
-
-            MergingSamRecordIterator2 readShard = null;
-            try {
-                readShard = dataSource.seek( span );
-            }
-            catch( SimpleDataSourceLoadException ex ) {
-                throw new RuntimeException( ex );
-            }
-
-            ReferenceProvider referenceProvider = new ReferenceProvider( reference, span );
-            LocusContextProvider locusProvider = new LocusContextProvider( readShard );
-
-            accumulator = traversalEngine.traverse( walker, shard, referenceProvider, locusProvider, accumulator );
-
-            readShard.close();
-
-            return accumulator;
-        }
-    }
-
-    /**
-     * Waits for a signal to come through that the thread pool has run
-     * a given task and therefore has a free slot.
-     */
-    private class ThreadPoolMonitor implements Runnable {
-        public synchronized void watch() {
-            try {
-                wait();
-            }
-            catch( InterruptedException ex ) {
-                logger.error("ThreadPoolMonitor interrupted:" + ex.getStackTrace());
-                throw new RuntimeException("ThreadPoolMonitor interrupted", ex);
-            }
-        }
-
-        public synchronized void run() {
-            notify();
-        }
-    }
 
     /**
      * A small wrapper class that provides the TreeReducer interface along with the FutureTask semantics.
@@ -254,56 +195,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
 
         public boolean isReadyForReduce() {
             return treeReducer.isReadyForReduce();
-        }
-    }
-
-
-    /**
-     * Represents a 'potential' reduce...a reduce that will be ready at some point in the future.
-     * Provides services for indicating when all data is prepared for the reduce and services to
-     * actually make that reduce happen.
-     */
-    private class TreeReducer implements Callable {
-        private TreeReducible walker;
-        private final Future lhs;
-        private final Future rhs;
-
-        public TreeReducer( Future lhs ) {
-            this( lhs, null );
-        }
-
-        public TreeReducer( Future lhs, Future rhs ) {
-            this.lhs = lhs;
-            this.rhs = rhs;
-        }
-
-        public void setWalker( TreeReducible walker ) {
-            this.walker = walker;
-        }
-
-        public boolean isReadyForReduce() {
-            if( lhs == null )
-                throw new IllegalStateException(String.format("Insufficient data on which to reduce; lhs = %s, rhs = %s", lhs, rhs) );
-
-            if( rhs == null )
-                return lhs.isDone();
-
-            return lhs.isDone() && rhs.isDone();
-        }
-
-        public Object call() {
-            try {
-                if( lhs == null )
-                    return lhs.get();
-                else
-                    return walker.reduce( lhs.get(), rhs.get() );
-            }
-            catch( InterruptedException ex ) {
-                throw new RuntimeException("Hierarchical reduce interrupted", ex);
-            }
-            catch( ExecutionException ex ) {
-                throw new RuntimeException("Hierarchical reduce failed", ex);
-            }
         }
     }
 
