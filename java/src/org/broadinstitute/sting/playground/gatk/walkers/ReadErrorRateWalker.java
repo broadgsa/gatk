@@ -4,24 +4,25 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.SAMRecord;
 import edu.mit.broad.picard.reference.ReferenceSequence;
+
+import java.util.Random;
 
 /**
  * ReadErrorRateWalker assesses the error rate per read position ('cycle') by comparing the
  * read to its home on the reference and noting the mismatch rate.  It ignores reads with
- * indels in them, treats high and low-quality references bases the same, and does not count
+ * indels in them, treats high and low-quality reference bases the same, and does not count
  * ambiguous bases as mismatches.  It's also thread-safe, so you can process a slew of reads
  * in short order.
  *
  * @author Kiran Garimella
  */
 public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
-    @Argument(fullName="useNextBestBase",required=false,defaultValue="false")
-    public boolean useNextBestBase;
-
-    @Argument(fullName="printVisualHits",required=false,defaultValue="false")
-    public boolean printVisualHits;
+    @Argument(fullName="printVisualHits",   shortName="v",  required=false, defaultValue="false") public boolean printVisualHits;
+    @Argument(fullName="useNextBestBase",   shortName="nb", required=false, defaultValue="false") public boolean useNextBestBase;
+    @Argument(fullName="useNextRandomBase", shortName="nr", required=false, defaultValue="false") public boolean useNextRandomBase;
 
     /**
      * Ignore reads with indels or clipping
@@ -61,19 +62,7 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
             System.out.println();
 
             for (int cycle = 0, offset = (int) context.getPosition() - 1; cycle < bases.length; cycle++, offset++) {
-                byte compBase;
-
-                switch (contig[offset]) {
-                    case 'A':
-                    case 'a': compBase = 'A'; break;
-                    case 'C':
-                    case 'c': compBase = 'C'; break;
-                    case 'G':
-                    case 'g': compBase = 'G'; break;
-                    case 'T':
-                    case 't': compBase = 'T'; break;
-                    default:  compBase = '.'; break;
-                }
+                byte compBase = convertIUPACBaseToSimpleBase(contig[offset]);
 
                 System.out.print((char) compBase);
             }
@@ -81,30 +70,19 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
         }
 
         for (int cycle = 0, offset = (int) context.getPosition() - 1; cycle < bases.length; cycle++, offset++) {
-            byte compBase;
-
-            switch (contig[offset]) {
-                case 'A':
-                case 'a': compBase = 'A'; break;
-                case 'C':
-                case 'c': compBase = 'C'; break;
-                case 'G':
-                case 'g': compBase = 'G'; break;
-                case 'T':
-                case 't': compBase = 'T'; break;
-                default:  compBase = '.'; break;
-            }
+            byte compBase = convertIUPACBaseToSimpleBase(contig[offset]);
 
             if (compBase != '.') {
-                if (useNextBestBase) {
-                    int nextBestBaseIndex = QualityUtils.compressedQualityToBaseIndex(sq[cycle]);
+                if (useNextBestBase || useNextRandomBase) {
                     byte nextBestBase;
-                    switch (nextBestBaseIndex) {
-                        case 0: nextBestBase = 'A'; break;
-                        case 1: nextBestBase = 'C'; break;
-                        case 2: nextBestBase = 'G'; break;
-                        case 3: nextBestBase = 'T'; break;
-                        default: nextBestBase = '.'; break;
+                    if (useNextBestBase) {
+                        nextBestBase = (byte) BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(sq[cycle]));
+                    } else {
+                        nextBestBase = bases[cycle];
+                        Random generator = new Random();
+                        while (nextBestBase == bases[cycle]) {
+                            nextBestBase = (byte) BaseUtils.baseIndexToSimpleBase(generator.nextInt(4));
+                        }
                     }
 
                     if (nextBestBase != '.') {
@@ -129,6 +107,24 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
         errorsPerCycle[errorsPerCycle.length - 1] = true;
 
         return errorsPerCycle;
+    }
+
+    private byte convertIUPACBaseToSimpleBase(byte iupacBase) {
+        char compBase;
+
+        switch (iupacBase) {
+            case 'A':
+            case 'a': compBase = 'A'; break;
+            case 'C':
+            case 'c': compBase = 'C'; break;
+            case 'G':
+            case 'g': compBase = 'G'; break;
+            case 'T':
+            case 't': compBase = 'T'; break;
+            default:  compBase = '.'; break;
+        }
+
+        return (byte) compBase;
     }
 
     /**
