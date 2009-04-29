@@ -280,7 +280,7 @@ public class ArgumentParser {
         OurPosixParser parser = new OurPosixParser();
 
         try {
-            parser.parse(m_options, args, !allowIncomplete);
+            parser.parse(m_options, args, false);
         }
         catch( ParseException e ) {
             boolean isIncomplete = e instanceof MissingArgumentException ||
