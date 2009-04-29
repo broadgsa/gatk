@@ -21,6 +21,9 @@
 # samtools import /seq/references/Homo_sapiens_assembly17/v0/Homo_sapiens_assembly17.bam.ref_list /seq/dirseq/aphilipp/combo/sequences/hs/samfiles/30CLA.5.clean.sam 30CLA.5.clean.bam
 /humgen/gsa-scr1/GATK_Data/Validation_Data/30CLA.5.clean.bam /humgen/gsa-scr1/GATK_Data/Validation_Data/Homo_sapiens_assembly17.fasta *
 
+# whole exom interval-based analysis for cancer
+/humgen/gsa-scr1/GATK_Data/Validation_Data/TCGA-06-0188.aligned.duplicates_marked.bam         /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta      /humgen/gsa-scr1/GATK_Data/Validation_Data/TCGA-06-0188.interval_list
+
 # WGS tumor -- figure it out
 #/broad/1KG/pilot3/sams/NA12892.bam /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta *
 
