@@ -2,6 +2,7 @@
     <description>Compile and distribute the Sting toolkit</description>
 
     <property name="source.dir" value="java/src" />
+    <property name="single" value="*" />
 
     <!-- Set target based on STING_BUILD_TYPE environment variable -->
     <property environment="env"/>
@@ -209,7 +210,6 @@
         </javac>
     </target>
 
-
     <!-- TEST -->
     <target name="test" depends="test.compile" description="Run unit tests">
         <mkdir dir="${report}"/>
@@ -223,9 +223,10 @@
                 <pathelement location="lib/junit-4.4.jar"/>
             </classpath>
 
+
             <batchtest fork="yes" todir="${report}">
                 <fileset dir="${test.classes}">
-                    <include name="**/*.class"/>
+                    <include name="**/${single}.class"/>
                     <exclude name="**/BaseTest.class"/>
                 </fileset>
             </batchtest>
@@ -234,6 +235,8 @@
 
     </target>
 
+
+    
     <target name="javadoc" depends="init,resolve" description="generates javadoc">
         <mkdir dir="javadoc"/>
 	<!-- Javadoc can't take the same dirsets as javac; it only likes getting the base directory -->
