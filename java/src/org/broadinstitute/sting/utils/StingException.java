@@ -27,7 +27,7 @@ package org.broadinstitute.sting.utils;
  * This exception allows us to filter out exceptions that come from core GATK code, and those that
  * are not homegrown..
  */
-public class StingException extends Exception {
+public class StingException extends RuntimeException {
     public StingException(String msg) {
         super(msg);
     }
