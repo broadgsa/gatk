@@ -130,6 +130,19 @@ public class PileBuilder implements RecordPileReceiver {
     public int getNumReadsWritten() { return total_reads_written; }
    
     public void receive(Collection<SAMRecord> c) {
+        int startOnRef = 1000000000;  // absolute start (leftmost) position of the pile of reads on the ref
+        int stopOnRef = 0; // absolute stop (rightmost) position of the pile of reads on the ref (rightmost alignment end)
+        for ( SAMRecord r : c ) {
+             startOnRef = Math.min(startOnRef, r.getAlignmentStart() );
+             stopOnRef = Math.max(stopOnRef,r.getAlignmentEnd());
+        }
+
+        // part of the reference covered by original alignments:
+        String pileRef = referenceSequence.substring(startOnRef-1,stopOnRef);
+        receive(c, pileRef, startOnRef);
+    }
+
+    public void receive(Collection<SAMRecord> c, String pileRef, int startOnRef) {
 
            //TODO: if read starts/ends with an indel (insertion, actually), we detect this as a "different" indel introduced during cleanup.
             processed_piles++;
@@ -137,16 +150,9 @@ public class PileBuilder implements RecordPileReceiver {
 
            IndexedSequence[] seqs = new IndexedSequence[c.size()];
            int i = 0;
-           int startOnRef = 1000000000;  // absolute start (leftmost) position of the pile of reads on the ref
-           int stopOnRef = 0; // absolute stop (rightmost) position of the pile of reads on the ref (rightmost alignment end)
            for ( SAMRecord r : c ) {
                 seqs[i++] = new IndexedSequence(r.getReadString(),KmerSize);
-                startOnRef = Math.min(startOnRef, r.getAlignmentStart() );
-                stopOnRef = Math.max(stopOnRef,r.getAlignmentEnd());
            }
-
-           // part of the reference covered by original alignments:
-           String pileRef = referenceSequence.substring(startOnRef-1,stopOnRef);
 
            int totalMismatches = 0; // total mismatches across all reads
            TreeSet< CountedObject<Indel> > all_indels = new TreeSet< CountedObject<Indel> >(

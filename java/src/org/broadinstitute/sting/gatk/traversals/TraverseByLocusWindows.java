@@ -99,28 +99,41 @@ public class TraverseByLocusWindows extends TraversalEngine {
         ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
         ArrayList<Integer> offsets = new ArrayList<Integer>();
         boolean done = false;
+        long leftmostIndex = interval.getStart(),
+                rightmostIndex = interval.getStop();
         while (filterIter.hasNext() && !done) {
             TraversalStatistics.nRecords++;
             SAMRecord read = filterIter.next();
             reads.add(read);
             offsets.add((int)(read.getAlignmentStart() - interval.getStart()));
-            if (this.maxReads > 0 && TraversalStatistics.nRecords > this.maxReads) {
+            if ( read.getAlignmentStart() < leftmostIndex )
+                leftmostIndex = read.getAlignmentStart();
+            if ( read.getAlignmentEnd() > rightmostIndex )
+                rightmostIndex = read.getAlignmentEnd();
+            if ( this.maxReads > 0 && TraversalStatistics.nRecords > this.maxReads ) {
                 logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + TraversalStatistics.nRecords));
                 done = true;
             }
         }
 
-        LocusContext locus = new LocusContext(interval, reads, offsets);
+        GenomeLoc window = new GenomeLoc(interval.getContig(), leftmostIndex, rightmostIndex);
+        LocusContext locus = new LocusContext(window, reads, offsets);
         if ( DOWNSAMPLE_BY_COVERAGE )
             locus.downsampleToCoverage(downsamplingCoverage);
 
-        ReferenceIterator refSite = refIter.seekForward(locus.getLocation());
+        ReferenceIterator refSite = refIter.seekForward(window);
+        StringBuffer refBases = new StringBuffer(refSite.getBaseAsString());
+        int locusLength = (int)(rightmostIndex - leftmostIndex);
+        for ( int i = 0; i < locusLength; i++ ) {
+            refSite = refSite.next();
+            refBases.append(refSite.getBaseAsChar());
+        }
         locus.setReferenceContig(refSite.getCurrentContig());
 
         // Iterate forward to get all reference ordered data covering this interval
         final RefMetaDataTracker tracker = getReferenceOrderedDataAtLocus(locus.getLocation());
 
-        sum = walkAtinterval( walker, sum, locus, refSite, tracker );
+        sum = walkAtinterval( walker, sum, locus, refBases.toString(), tracker );
 
         //System.out.format("Working at %s\n", locus.getLocation().toString());
 
@@ -132,24 +145,17 @@ public class TraverseByLocusWindows extends TraversalEngine {
     protected <M, T> T walkAtinterval( final LocusWindowWalker<M, T> walker,
                                        T sum,
                                        final LocusContext locus,
-                                       final ReferenceIterator refSite,
+                                       final String refSeq,
                                        final RefMetaDataTracker tracker ) {
-        ReferenceIterator refSiteCopy = refSite;
-        StringBuffer refBases = new StringBuffer(refSiteCopy.getBaseAsString());
-        int locusLength = (int)(locus.getLocation().getStop() - locus.getLocation().getStart());
-        for ( int i = 0; i < locusLength; i++ ) {
-            refSiteCopy = refSiteCopy.next();
-            refBases.append(refSiteCopy.getBaseAsChar());
-        }
 
         //logger.debug(String.format("  Reference: %s:%d %c", refSite.getCurrentContig().getName(), refSite.getPosition(), refBase));
 
         //
         // Execute our contract with the walker.  Call filter, map, and reduce
         //
-        final boolean keepMeP = walker.filter(tracker, refBases.toString(), locus);
+        final boolean keepMeP = walker.filter(tracker, refSeq, locus);
         if (keepMeP) {
-            M x = walker.map(tracker, refBases.toString(), locus);
+            M x = walker.map(tracker, refSeq, locus);
             sum = walker.reduce(x, sum);
         }
 
