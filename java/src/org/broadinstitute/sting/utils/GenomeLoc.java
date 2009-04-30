@@ -48,59 +48,22 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         return contigInfo != null;
     }
 
-    public static GenomeLoc getFirstLocation()
-    {
-        assert contigInfo != null && contigInfo.size() != 0;
-
-        return new GenomeLoc(contigInfo.getSequence(0).getSequenceName(), 0, 0);
-    }
-
+    
     public static SAMSequenceRecord getContigInfo( final String contig ) {
         return contigInfo.getSequence(contig);
     }
-    
-    public static int getContigIndex( final String contig ) {
-        assert contigInfo.getSequenceIndex(contig) != -1 : "Unknown contig " + contig;
 
+    /**
+     * Returns the contig index of a specified string version of the contig
+     * @param contig the contig string
+     * @return the contig index, -1 if not found
+     */
+    public static int getContigIndex( final String contig ) {
         if (contigInfo.getSequenceIndex(contig) == -1)
             Utils.scareUser(String.format("Contig %s given as location, but this contig isn't present in the Fasta sequence dictionary", contig));
 
         return contigInfo.getSequenceIndex(contig);
     }
-
-    /*
-    public static void setContigOrdering(Map<String, Integer> rco) {
-        refContigOrdering = rco;
-        interns = new HashMap<String, String>();
-        for ( String contig : rco.keySet() )
-            interns.put( contig, contig );
-    }
-    */
-
-    /*
-    public static boolean setupRefContigOrdering(final ReferenceSequenceFile refFile) {
-        final SAMSequenceDictionary seqDict = refFile.getSequenceDictionary();
-
-        if (seqDict == null) // we couldn't load the reference dictionary
-            return false;
-        
-        List<SAMSequenceRecord> refContigs = seqDict.getSequences();
-        HashMap<String, Integer> refContigOrdering = new HashMap<String, Integer>();
-
-        if (refContigs != null) {
-            int i = 0;
-            logger.info(String.format("Prepared reference sequence contig dictionary%n  order ->"));
-            for (SAMSequenceRecord contig : refContigs) {
-                logger.info(String.format(" %s (%d bp)", contig.getSequenceName(), contig.getSequenceLength()));
-                refContigOrdering.put(contig.getSequenceName(), i);
-                i++;
-            }
-        }
-
-        setContigOrdering(refContigOrdering);
-        return refContigs != null;
-    }
-    */
 
     public static boolean setupRefContigOrdering(final ReferenceSequenceFile refFile) {
         return setupRefContigOrdering(refFile.getSequenceDictionary());
@@ -128,10 +91,13 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     //
     // --------------------------------------------------------------------------------------------------------------
     public GenomeLoc( int contigIndex, final long start, final long stop ) {
-        assert contigInfo != null : "No sequence dictionary defined but index was given";
-        assert contigIndex >= 0 && contigIndex < contigInfo.size() : "ContigIndex " + contigIndex + " is bad " + contigInfo.size();
-        assert start >= 0 : "Bad start position " + start;
-        assert stop >= -1 : "Bad stop position " + stop;    // a negative -1 indicates it's not a meaningful end position
+        if(contigInfo == null) {  throw new StingException("Contig info has not been setup in the GenomeLoc context yet."); }
+
+        if (contigIndex < 0 || contigIndex >= contigInfo.size()) {
+            throw new StingException("Contig info has not been setup in the GenomeLoc context yet.");
+        }
+        if (start < 0) { throw new StingException("Bad start position " + start);}
+        if (stop  < -1) { throw new StingException("Bad stop position " + stop); }    // a negative -1 indicates it's not a meaningful end position
 
         this.contigIndex = contigIndex;
         this.start = start;
@@ -216,7 +182,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         }
 
         if ( bad ) {
-            throw new RuntimeException("Invalid Genome Location string: " + str);
+            throw new StingException("Invalid Genome Location string: " + str);
         }
 
         if ( stop == Integer.MAX_VALUE && hasKnownContigOrdering() ) {
@@ -362,10 +328,17 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
     // Accessors and setters
     //
     public final String getContig() {
-        assert this.contigIndex != -1;
-        assert contigInfo.getSequence(this.contigIndex) != null;
-        assert contigInfo.getSequence(this.contigIndex).getSequenceName() != null;
-        
+        //this.contigIndex != -1;
+        if (!(contigInfo != null && contigInfo.getSequences() != null)) {
+            throw new StingException("The contig information or it's sequences are null");
+        }
+        if ((this.contigIndex < 0) || (this.contigIndex >= contigInfo.getSequences().size())) {
+            throw new StingException("The contig index is not bounded by the zero and seqeunce count, contig index: " + contigIndex);
+        }
+        if (contigInfo.getSequence(this.contigIndex) == null ||
+            contigInfo.getSequence(this.contigIndex).getSequenceName() == null) {
+            throw new StingException("The associated sequence index for contig " + contigIndex + " is null");
+        }
         return contigInfo.getSequence(this.contigIndex).getSequenceName();
         //if (contigInfo != null && contigInfo.getSequence(this.contigIndex) != null) {
         //    return contigInfo.getSequence(this.contigIndex).getSequenceName();
@@ -425,8 +398,10 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         return ! discontinuousP( that );
     }
 
-    public GenomeLoc merge( GenomeLoc that ) {
-        assert this.contiguousP(that);
+    public GenomeLoc merge( GenomeLoc that ) throws StingException {
+        if (!(this.contiguousP(that))) {
+            throw new StingException("The two genome loc's need to be contigous");
+        }
 
         return new GenomeLoc(getContig(),
                              Math.min(getStart(), that.getStart()),
@@ -487,9 +462,6 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
             // Optimization.  If the pointers are equal, then the contigs are equal.
             return 0;
         }
-
-        //assert getContigIndex(thisContig) != -1;// : this;
-        //assert getContigIndex(thatContig) != -1;// : that;
 
         if ( hasKnownContigOrdering() )
         {
@@ -582,7 +554,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
                 return ret;
             } catch (Exception e2) {
                 e2.printStackTrace();
-                throw new IllegalArgumentException(e);
+                throw new StingException("Unable to parse out interval file in either format", e);
             }
         }
     }

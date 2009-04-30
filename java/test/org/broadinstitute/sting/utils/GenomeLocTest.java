@@ -22,6 +22,7 @@ public class GenomeLocTest extends BaseTest {
     public static void init() {
         // sequence
         seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        GenomeLoc.setupRefContigOrdering(seq);
     }
 
     /**
@@ -30,7 +31,7 @@ public class GenomeLocTest extends BaseTest {
     @Test
     public void testIsBetween() {
         logger.warn("Executing testIsBetween");
-        GenomeLoc.setupRefContigOrdering(seq);
+
         GenomeLoc locMiddle = new GenomeLoc("chr1", 3, 3);
 
         GenomeLoc locLeft = new GenomeLoc("chr1", 1, 1);
