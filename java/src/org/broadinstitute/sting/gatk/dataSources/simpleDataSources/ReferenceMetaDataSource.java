@@ -2,7 +2,9 @@ package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -83,12 +85,16 @@ public class ReferenceMetaDataSource implements SimpleDataSource {
      * Query the data source for a region of interest, specified by the genome location.
      * The iterator will generate successive calls
      *
-     * @param location the genome location to extract data for
+     * @param shard the genome location to extract data for
      * @return an iterator of the appropriate type, that is limited by the region
      */
-    public Iterator<ReferenceOrderedDatum> seek(GenomeLoc location) {
-        myData = getReferenceOrderedDataAtLocus(rodIters, location);
-        return myData.iterator();
+    public Iterator<ReferenceOrderedDatum> seek(Shard shard) {
+        if (shard.getShardType() == Shard.ShardType.LOCUS) {
+            myData = getReferenceOrderedDataAtLocus(rodIters, shard.getGenomeLoc());
+            return myData.iterator();
+        } else {
+            throw new StingException("ReferenceMetaDataSource can only take LocusShards");
+        }
     }
 
     public ReferenceMetaDataSource(HashMap<String, RODTYPE> files) {

@@ -36,14 +36,18 @@ public class ReadShard implements Shard {
     // this is going to get gross
     private final ReadShardStrategy str;
 
+    // the reference back to our read shard strategy
+    private final ReadShardStrategy strat;
+
     /**
      * create a read shard, given a read size
      *
      * @param size
      */
-    public ReadShard(int size) {
+    ReadShard(int size, ReadShardStrategy strat) {
         this.str = null;
         this.size = size;
+        this.strat = strat;
     }
 
     /**
@@ -51,9 +55,10 @@ public class ReadShard implements Shard {
      *
      * @param size
      */
-    ReadShard(ReadShardStrategy caller, int size) {
+    ReadShard(ReadShardStrategy caller, int size, ReadShardStrategy strat) {
         this.str = caller;
         this.size = size;
+        this.strat = strat;
     }
 
     /** @return the genome location represented by this shard */
@@ -66,6 +71,10 @@ public class ReadShard implements Shard {
         return size;
     }
 
+
+    public void signalDone() {
+        strat.signalDone();
+    }
 
     /**
      * what kind of shard do we return

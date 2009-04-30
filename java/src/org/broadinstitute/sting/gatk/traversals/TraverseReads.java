@@ -3,7 +3,6 @@ package org.broadinstitute.sting.gatk.traversals;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextProvider;
 import org.broadinstitute.sting.gatk.dataSources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
@@ -14,8 +13,9 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.io.File;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  *
@@ -44,7 +44,7 @@ import java.util.Arrays;
  * This class handles traversing by reads in the new shardable style
  */
 public class TraverseReads extends TraversalEngine {
-
+    final ArrayList<String> x = new ArrayList<String>();
 
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraverseReads.class);
@@ -64,21 +64,20 @@ public class TraverseReads extends TraversalEngine {
 
     /**
      * Traverse by reads, given the data and the walker
+     *
      * @param walker the walker to execute over
-     * @param shard the shard of data to feed the walker
-     * @param locusProvider the factory for loci
-     * @param sum of type T, the return from the walker
-     * @param <M> the generic type 
-     * @param <T> the return type of the reduce function
+     * @param shard  the shard of data to feed the walker
+     * @param sum    of type T, the return from the walker
+     * @param <M>    the generic type
+     * @param <T>    the return type of the reduce function
      * @return
      */
     public <M, T> T traverse(Walker<M, T> walker,
                              Shard shard,
-                             LocusContextProvider locusProvider,
                              BoundedReadIterator iter,
                              T sum) {
 
-        logger.debug(String.format("TraverseReads.traverse Genomic interval is %s", ((ReadShard)shard).getSize()));
+        logger.debug(String.format("TraverseReads.traverse Genomic interval is %s", ((ReadShard) shard).getSize()));
 
         if (!(walker instanceof ReadWalker))
             throw new IllegalArgumentException("Walker isn't a read walker!");
@@ -88,7 +87,7 @@ public class TraverseReads extends TraversalEngine {
         int readCNT = 0;
 
         // while we still have more reads
-        for (SAMRecord read: iter) {
+        for (SAMRecord read : iter) {
 
             // get the genome loc from the read
             GenomeLoc site = new GenomeLoc(read);
@@ -99,9 +98,10 @@ public class TraverseReads extends TraversalEngine {
             // update the number of reads we've seen
             TraversalStatistics.nRecords++;
 
+
             // we still have to fix the locus context provider to take care of this problem with > 1 length contexts
             // LocusContext locus = locusProvider.getLocusContext(site);
-            
+
             final boolean keepMeP = readWalker.filter(locus, read);
             if (keepMeP) {
                 M x = readWalker.map(locus, read);
@@ -110,7 +110,7 @@ public class TraverseReads extends TraversalEngine {
 
             printProgress("loci", locus.getLocation());
         }
-
+        System.err.println(TraversalStatistics.nRecords);
         return sum;
     }
 

@@ -94,7 +94,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
 
                 logger.debug("Start : " + sh.getGenomeLoc().getStart() + " stop : " + sh.getGenomeLoc().getStop() + " contig " + sh.getGenomeLoc().getContig());
                 logger.debug("count = " + count);
-                MergingSamRecordIterator2 datum = data.seek(sh.getGenomeLoc());
+                MergingSamRecordIterator2 datum = (MergingSamRecordIterator2)data.seek(sh);
 
                 // for the first couple of shards make sure we can see the reads
                 if (count < 5) {
@@ -144,7 +144,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
                     break;
                 }
 
-                MergingSamRecordIterator2 datum = data.seek(sh.getGenomeLoc());
+                MergingSamRecordIterator2 datum = (MergingSamRecordIterator2)data.seek(sh);
 
                 for (SAMRecord r : datum) {
                     readCount++;
@@ -181,7 +181,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
                     break;
                 }
 
-                MergingSamRecordIterator2 datum = data.seek(sh.getGenomeLoc());
+                MergingSamRecordIterator2 datum = (MergingSamRecordIterator2)data.seek(sh);
 
                 for (SAMRecord r : datum) {
                     readCount++;

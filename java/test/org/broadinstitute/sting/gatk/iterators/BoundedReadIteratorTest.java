@@ -92,8 +92,8 @@ public class BoundedReadIteratorTest extends BaseTest {
             Shard sd = strat.next();
 
 
-            MergingSamRecordIterator2 datum = data.seek(sd.getGenomeLoc());
-            MergingSamRecordIterator2 datum2 = data.seek(sd.getGenomeLoc());
+            MergingSamRecordIterator2 datum = (MergingSamRecordIterator2)data.seek(sd);
+            MergingSamRecordIterator2 datum2 = (MergingSamRecordIterator2)data.seek(sd);
 
             // check the reads in the shard
             for (SAMRecord r : datum) {

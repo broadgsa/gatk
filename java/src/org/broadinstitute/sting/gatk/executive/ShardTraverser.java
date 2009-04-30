@@ -1,15 +1,14 @@
 package org.broadinstitute.sting.gatk.executive;
 
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextProvider;
+import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceProvider;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
-import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceProvider;
-import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextProvider;
 import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
 import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.concurrent.Callable;
@@ -48,18 +47,17 @@ public class ShardTraverser implements Callable {
     }
 
     public Object call() {
-        GenomeLoc span = shard.getGenomeLoc();
         Object accumulator = ((LocusWalker<?,?>)walker).reduceInit();
 
         MergingSamRecordIterator2 readShard = null;
         try {
-            readShard = reads.seek( span );
+            readShard = (MergingSamRecordIterator2)reads.seek( shard );
         }
         catch( SimpleDataSourceLoadException ex ) {
             throw new RuntimeException( ex );
         }
 
-        ReferenceProvider referenceProvider = new ReferenceProvider( reference, span );
+        ReferenceProvider referenceProvider = new ReferenceProvider( reference, shard.getGenomeLoc() );
         LocusContextProvider locusProvider = new LocusContextProvider( readShard );
 
         accumulator = traversalEngine.traverse( walker, shard, referenceProvider, locusProvider, accumulator );

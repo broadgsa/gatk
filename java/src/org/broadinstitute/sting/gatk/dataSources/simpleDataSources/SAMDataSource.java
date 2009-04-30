@@ -5,10 +5,14 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.dataSources.shards.ReadShard;
+import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
 import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -114,7 +118,7 @@ public class SAMDataSource implements SimpleDataSource {
      * @param location the genome location to extract data for
      * @return an iterator for that region
      */
-    public MergingSamRecordIterator2 seek(GenomeLoc location) throws SimpleDataSourceLoadException {
+    public MergingSamRecordIterator2 seekLocus(GenomeLoc location) throws SimpleDataSourceLoadException {
 
         // right now this is pretty damn heavy, it copies the file list into a reader list every time
         List<SAMFileReader> lst = GetReaderList();
@@ -137,6 +141,26 @@ public class SAMDataSource implements SimpleDataSource {
         return iter;
     }
 
+    /**
+     * <p>
+     * seek
+     * </p>
+     *
+     * @param shard the shard to get data for
+     * @return an iterator for that region
+     */
+    public CloseableIterator<SAMRecord> seek(Shard shard) throws SimpleDataSourceLoadException {
+        if (shard.getShardType() == Shard.ShardType.READ) {
+            return seekRead((ReadShard)shard);
+        }
+        else if (shard.getShardType() == Shard.ShardType.LOCUS) {
+            return seekLocus(shard.getGenomeLoc());
+        }
+        else {
+            throw new StingException("seek: Unknown shard type");
+        }
+    }
+
 
     /**
      * If we're in by-read mode, this indicates if we want
@@ -156,14 +180,14 @@ public class SAMDataSource implements SimpleDataSource {
      * seek
      * </p>
      *
-     * @param readCount the length or reads to extract
+     * @param shard the read shard to extract from
      * @return an iterator for that region
      */
-    public BoundedReadIterator seek(long readCount) throws SimpleDataSourceLoadException {
+    private BoundedReadIterator seekRead(ReadShard shard) throws SimpleDataSourceLoadException {
         // TODO: make extremely less horrible
         List<SAMFileReader> lst = GetReaderList();
 
-        BoundedReadIterator bound;
+        BoundedReadIterator bound = null;
 
         // now merge the headers
         SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(lst, SORT_ORDER);
@@ -171,12 +195,15 @@ public class SAMDataSource implements SimpleDataSource {
         // make a merging iterator for this record
         MergingSamRecordIterator2 iter = new MergingSamRecordIterator2(headerMerger);
         if (!includeUnmappedReads) {
-            return fastMappedReadSeek(readCount, iter);
+            bound = fastMappedReadSeek(shard.getSize(), iter);
         } else {
-            return unmappedReadSeek(readCount, iter);
+            bound =  unmappedReadSeek(shard.getSize(), iter);
         }
 
-
+        if (bound == null) {
+            shard.signalDone();
+        }
+        return bound;
     }
 
     /**
@@ -211,7 +238,7 @@ public class SAMDataSource implements SimpleDataSource {
 
 
     /**
-     * Seek, if we only want mapped reads.  This method will be faster then the unmapped read method, but you cannot extract the
+     * Seek, if we want only mapped reads.  This method will be faster then the unmapped read method, but you cannot extract the
      * unmapped reads.
      *
      * @param readCount how many reads to retrieve

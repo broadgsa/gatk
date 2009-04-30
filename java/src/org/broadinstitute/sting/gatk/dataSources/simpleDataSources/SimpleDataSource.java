@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -29,9 +29,9 @@ public interface SimpleDataSource extends Serializable {
      * Query the data source for a region of interest, specified by the genome location.
      * The iterator will generate successive calls
      *
-     * @param location the genome location to extract data for
+     * @param shard the region
      * @return an iterator of the appropriate type, that is limited by the region
      */
-    public Iterator seek(GenomeLoc location) throws SimpleDataSourceLoadException;
+    public Iterator seek(Shard shard) throws SimpleDataSourceLoadException;
 
 }

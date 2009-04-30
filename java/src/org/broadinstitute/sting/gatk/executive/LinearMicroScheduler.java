@@ -50,17 +50,16 @@ public class LinearMicroScheduler extends MicroScheduler {
         Object accumulator = null;
 
         for(Shard shard: shardStrategy) {
-            GenomeLoc span = shard.getGenomeLoc();
 
             MergingSamRecordIterator2 readShard = null;
             try {
-                readShard = dataSource.seek( span );
+                readShard = (MergingSamRecordIterator2)dataSource.seek( shard );
             }
             catch( SimpleDataSourceLoadException ex ) {
                 throw new RuntimeException( ex );
             }
 
-            ReferenceProvider referenceProvider = new ReferenceProvider( reference, span );
+            ReferenceProvider referenceProvider = new ReferenceProvider( reference, shard.getGenomeLoc() );
             LocusContextProvider locusProvider = new LocusContextProvider( readShard );
 
             // set the sam header of the traversal engine

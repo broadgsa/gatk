@@ -41,6 +41,9 @@ public class ReadShardStrategy implements ShardStrategy {
     // our sequence dictionary
     final private SAMSequenceDictionary dic;
 
+    // our hasnext flag
+    boolean hasNext = true;
+
     /**
      * the default constructor
      * @param dic the dictionary
@@ -56,11 +59,11 @@ public class ReadShardStrategy implements ShardStrategy {
      * @return
      */
     public boolean hasNext() {
-        return true;
+        return hasNext;
     }
 
     public Shard next() {
-        return new ReadShard((int)readCount);  //To change body of implemented methods use File | Settings | File Templates.
+        return new ReadShard((int)readCount, this);  
     }
 
     public void remove() {
@@ -78,5 +81,15 @@ public class ReadShardStrategy implements ShardStrategy {
      */
     public void adjustNextShardSize(long size) {
         readCount = size;
+    }
+
+
+    /**
+     * this function is a work-around for the fact that
+     * we don't know when we're out of reads until the SAM data source
+     * tells us so.  
+     */
+    public void signalDone() {
+        hasNext = false;    
     }
 }

@@ -1,9 +1,8 @@
 package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
+import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.BoundedReferenceIterator;
-import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
@@ -43,12 +42,17 @@ public class ReferenceDataSource implements SimpleDataSource {
      * Query the data source for a region of interest, specified by the genome location.
      * The iterator will generate successive calls
      *
-     * @param location the genome location to extract data for
+     * @param shard the genome location to extract data for
      * @return an iterator of the appropriate type, that is limited by the region
      */
-    public BoundedReferenceIterator seek(GenomeLoc location) {
-        BoundedReferenceIterator ret = new BoundedReferenceIterator(refFile, location);
-        return ret;
+    public BoundedReferenceIterator seek(Shard shard) {
+        if (shard.getShardType() == Shard.ShardType.LOCUS) {
+            BoundedReferenceIterator ret = new BoundedReferenceIterator(refFile, shard.getGenomeLoc());
+            return ret;
+        } else {
+            throw new StingException("ReferenceDataSource can only take LocusShards");
+        }
+
     }
 
     public ReferenceDataSource(String refFileName) throws SimpleDataSourceLoadException {
