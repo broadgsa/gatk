@@ -45,7 +45,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     public String DOWNSAMPLE_COVERAGE = null;
     public String INTERVALS_FILE = null;
 
-     
+
     // our walker manager
     private WalkerManager walkerManager = null;
 
@@ -73,19 +73,12 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     /**
      * How many threads should be allocated to this analysis.
      */
-    public int numThreads = 1;    
+    public int numThreads = 1;
 
     /**
-     * The output stream, initialized from OUTFILENAME / OUTERRFILENAME.
-     * Used by the walker.
+     * Collection of output streams used by the walker.
      */
-    public PrintStream out = System.out;
-
-    /**
-     * The output stream, initialized from ERRFILENAME / OUTERRFILENAME.
-     * Used by the walker.
-     */
-    public PrintStream err = System.err;
+    private OutputTracker outputTracker = null;
 
     /**
      * our log, which we want to capture anything from this class
@@ -121,7 +114,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         m_parser.addOptionalArg("out", "o", "An output file presented to the walker.  Will overwrite contents if file exists.", "outFileName" );
         m_parser.addOptionalArg("err", "e", "An error output file presented to the walker.  Will overwrite contents if file exists.", "errFileName" );
         m_parser.addOptionalArg("outerr", "oe", "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", "outErrFileName");
-        
+
         m_parser.addOptionalArg("numthreads", "nt", "How many threads should be allocated to running this analysis.", "numThreads");
         m_parser.addOptionalFlag("disablethreading", "dt", "Disable experimental threading support.", "DISABLE_THREADING");
 
@@ -179,7 +172,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     /**
      * Convenience function that binds RODs using the old-style command line parser to the new style list for
      * a uniform processing.
-     * 
+     *
      * @param name
      * @param type
      * @param file
@@ -227,7 +220,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         if ( HAPMAP_CHIP_FILE != null )         bindConvenienceRods("hapmap-chip", "GFF", HAPMAP_CHIP_FILE);
 
         ReferenceOrderedData.parseBindings(logger, ROD_BINDINGS, rods);
-        
+
         initializeOutputStreams();
 
         Walker<?,?> my_walker = null;
@@ -267,7 +260,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                         this.engine = microScheduler.getTraversalEngine();
                     }
                     else {
-                        logger.warn("Preliminary threading support DISABLED");                        
+                        logger.warn("Preliminary threading support DISABLED");
                         this.engine = new TraverseByLociByReference(INPUT_FILES, REF_FILE_ARG, rods);
                     }
                 }
@@ -345,30 +338,24 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      * Initialize the output streams as specified by the user.
      */
     private void initializeOutputStreams() {
-        out = System.out;
-        err = System.err;
+        outputTracker = (outErrFileName != null) ? new OutputTracker( outErrFileName, outErrFileName )
+                                                 : new OutputTracker( outFileName, errFileName );
+    }
 
-        if( outErrFileName != null && (outFileName != null || errFileName != null) )
-            throw new IllegalArgumentException("Can't set output/error output file with either out file name or err file name");
+    /**
+     * Get the output stream to be used with this walker.
+     * @return Output stream used with this walker.
+     */
+    public PrintStream getWalkerOutputStream() {
+        return outputTracker.getOutStream();
+    }
 
-        try {
-            if( outErrFileName != null ) {
-                PrintStream outErrStream = new PrintStream( outErrFileName );
-                out = outErrStream;
-                err = outErrStream;
-            }
-
-            if ( outFileName != null ) {
-                out = new PrintStream( outFileName );
-            }
-
-            if( errFileName != null ) {
-                err = new PrintStream( errFileName );
-            }
-        }
-        catch( FileNotFoundException ex ) {
-            throw new RuntimeException("Unable to open a walker output file.", ex);
-        }
+    /**
+     * Get the output stream to be used with this walker.
+     * @return Output stream used with this walker.
+     */
+    public PrintStream getWalkerErrorStream() {
+        return outputTracker.getErrStream();
     }
 
 
