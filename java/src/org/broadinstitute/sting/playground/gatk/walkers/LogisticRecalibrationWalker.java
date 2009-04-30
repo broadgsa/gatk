@@ -96,25 +96,32 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
         byte[] quals = read.getBaseQualities();
         byte[] recalQuals = new byte[quals.length];
 
+        int numBases = read.getReadLength();
         recalQuals[0] = quals[0];   // can't change the first -- no dinuc
-        for ( int i = 1; i < bases.length; i++ ) {
-            int cycle = i;
+        recalQuals[numBases-1] = quals[numBases-1]; // can't change last -- no dinuc
+        for ( int i = 1; i < numBases-1; i++ ) { // skip first and last base, qual already set because no dinuc
+            // Take into account that previous base is the next base in terms of machine chemistry if this is a negative strand
+            int cycle = read.getReadNegativeStrandFlag() ? numBases - i - 1 : i;
+            String dinuc = String.format("%c%c", bases[i  + (read.getReadNegativeStrandFlag() ? 1 : -1)], bases[i]);
             byte qual = quals[i];
-            String dinuc = String.format("%c%c", bases[i-1], bases[i]);
             //System.out.printf("dinuc %c %c%n", bases[i-1], bases[i]);
             LogisticRegressor regressor = regressors.get(dinuc);
-            double P = -1;
-            byte newQual = qual;
+            byte newQual;
 
             if ( regressor != null ) { // no N or some other unexpected bp in the stream
-                double logPOver1minusP = regressor.regress((double)cycle+1, (double)qual);
+                double gamma = regressor.regress((double)cycle+1, (double)qual);
+                double expGamma = Math.exp(gamma);
+                double finalP = expGamma / (1+expGamma);
+                newQual = QualityUtils.probToQual(1-finalP);
                 //newQual = -10 * Math.round(logPOver1minusP)
                 /*double POver1minusP = Math.pow(10, logPOver1minusP);
-                P = POver1minusP / (1 + POver1minusP);
-                newQual = QualityUtils.probToQual(P);*/
+                P = POver1minusP / (1 + POver1minusP);*/
+                //newQual = QualityUtils.probToQual(P);
 
-                newQual = (byte)Math.min(Math.round(-10*logPOver1minusP),63);
+                //newQual = (byte)Math.min(Math.round(-10*logPOver1minusP),63);
                 //System.out.printf("Recal %s %d %d => %f => %f leads to %d%n", dinuc, cycle, qual, logPOver1minusP, P, newQual);
+            }else{
+                newQual = qual;
             }
 
             recalQuals[i] = newQual;
