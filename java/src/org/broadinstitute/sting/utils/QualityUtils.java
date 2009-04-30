@@ -30,7 +30,22 @@ public class QualityUtils {
      * @return a quality score (0-40)
      */
     static public byte probToQual(double prob) {
-        return (byte) Math.round(-10.0*Math.log10(1.0 - prob + 0.0001));
+        return probToQual(prob, 0.0001);
+        //return (byte) Math.round(-10.0*Math.log10(1.0 - prob + 0.0001));
+    }
+
+    /**
+     * Convert a probability to a quality score.  Note, this is capped at Q40.
+     *
+     * @param prob a probability (0.0-1.0)
+     * @param eps min probabilty allowed (0.0-1.0)
+     * @return a quality score (0-255)
+     */
+    static public byte probToQual(double prob, double eps) {
+        double lp = Math.round(-10.0*Math.log10(1.0 - prob + eps));
+        byte b = (byte) Math.min(lp, 63);
+        //System.out.printf("LP is %f, byte is %d%n", lp, b);
+        return b;
     }
 
     /**
