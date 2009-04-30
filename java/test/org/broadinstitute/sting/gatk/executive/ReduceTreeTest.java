@@ -4,6 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.Before;
 import org.junit.After;
+import org.junit.Ignore;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -212,6 +213,7 @@ public class ReduceTreeTest implements ReduceTree.TreeReduceNotifier {
         return getReduceTestEntry( reduce );
     }
 
+    @Ignore
     private class ReduceTestEntry implements Callable {
         private Object data;
 
