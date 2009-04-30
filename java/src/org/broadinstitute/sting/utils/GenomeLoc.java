@@ -74,7 +74,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         	logger.info("Failed to load reference dictionary, falling back to lexicographic order for contigs");
             Utils.scareUser("Failed to load reference dictionary");
             return false;
-        }  else {
+        } else if ( contigInfo == null ){
             contigInfo = seqDict;
             logger.debug(String.format("Prepared reference sequence contig dictionary"));
             for (SAMSequenceRecord contig : seqDict.getSequences() ) {
@@ -450,6 +450,18 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         n.incPos();
         return n;
     }
+
+    // Dangerous
+//    public boolean equals(Object o) {
+//        // Not strictly necessary, but often a good optimization
+//         if (this == o)
+//           return true;
+//         if (!(o instanceof GenomeLoc))
+//           return false;
+//         else
+//            return compareContigs((GenomeLoc)o) == 0;
+//    }
+
     //
     // Comparison operations
     //
