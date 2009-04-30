@@ -11,9 +11,7 @@ import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.traversals.*;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
-import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
@@ -269,9 +267,14 @@ public class GenomeAnalysisTK extends CommandLineProgram {
             }
         } else if ( my_walker instanceof LocusWindowWalker ) {
             this.engine = new TraverseByLocusWindows(INPUT_FILES, REF_FILE_ARG, rods);
-        } else {
+        } else if ( my_walker instanceof ReadWalker) {
             // we're a read walker
             this.engine = new TraverseByReads(INPUT_FILES, REF_FILE_ARG, rods);
+        } else if ( my_walker instanceof DuplicateWalker) {
+             // we're a duplicate walker
+             this.engine = new TraverseDuplicates(INPUT_FILES, REF_FILE_ARG, rods);
+        } else {
+            throw new RuntimeException("Unexpected walker type: " + my_walker);
         }
 
         // Prepare the sort ordering w.r.t. the sequence dictionary
