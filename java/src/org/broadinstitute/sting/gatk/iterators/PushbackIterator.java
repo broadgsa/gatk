@@ -11,7 +11,7 @@ package org.broadinstitute.sting.gatk.iterators;
 
 import java.util.Iterator;
 
-public class PushbackIterator<T> implements Iterator<T> {
+public class PushbackIterator<T> implements Iterator<T>, Iterable<T> {
     Iterator<T> underlyingIterator;
     T pushedElement = null;
 
@@ -21,6 +21,10 @@ public class PushbackIterator<T> implements Iterator<T> {
 
     public boolean hasNext() {
         return pushedElement != null || underlyingIterator.hasNext();
+    }
+
+    public Iterator<T> iterator() {
+        return this;
     }
 
     public T peek() {
