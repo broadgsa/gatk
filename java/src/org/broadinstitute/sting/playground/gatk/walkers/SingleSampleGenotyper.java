@@ -38,6 +38,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         String rodString = getRodString(tracker);
 
+        /*
         AlleleFrequencyEstimate freq;
         if (fourBaseMode) {
             if (retest) {
@@ -55,6 +56,9 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
             // Compute single quality score genotype likelihoods
             freq = getOneProbAlleleFrequency(ref, context, rodString);
         }
+        */
+
+        AlleleFrequencyEstimate freq = getOneProbAlleleFrequency(ref, context, rodString);
 
         if (printMetrics) {
             if (freq != null) { metrics.nextPosition(freq, tracker); }
@@ -80,33 +84,25 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
             double[] genotypeBalances  = { qHom, qHet, qHomNonRef };
             double[] reportingBalances = { 0.0, 0.5, 1.0 };
 
-            // Compute the distribution of second-best bases (should be random)
-            /*
-            double[] secondaryBaseProbs = { 0.333, 0.333, 0.333 };
-            int[] allBaseCounts = new int[3];
+            // Compute the probability of the distribution of second-best bases (should be random)
+            int[] secondaryBaseCounts = getSecondaryBaseCounts(probs);
+            double[] secondaryBaseProbs = new double[4];
             for (int baseIndex = 0; baseIndex < 4; baseIndex++) {
-                
+                secondaryBaseProbs[baseIndex] = 0.25;
             }
-            */
+            double secondaryBaseDistProb = MathUtils.multinomialProbability(secondaryBaseCounts, secondaryBaseProbs);
+
+            //System.out.printf("%d %d %d %d ", secondaryBaseCounts[0], secondaryBaseCounts[1], secondaryBaseCounts[2], secondaryBaseCounts[3]);
+            //System.out.println(secondaryBaseDistProb);
 
             // Determine the probability distribution of non-ref alleles
-            //double[] obsWeights = getObservationWeights(probs, refBaseIndex, altBaseIndex);
+            double[] obsWeights = getObservationWeights(probs, refBaseIndex, altBaseIndex);
 
             // Convolve them with the binomial sampling probability distribution in order to
             // marginalize the non-ref allele balance.
             double[] posteriors = new double[3];
             double qhat = 0.0, qstar = 0.0, lodVsRef = 0.0, pBest = Double.MIN_VALUE;
             for (int hypothesis = 0; hypothesis < 3; hypothesis++) {
-                int base1;
-                int base2;
-                switch (hypothesis) {
-                    case 0: base1 = refBaseIndex; base2 = refBaseIndex; break;
-                    case 1: base1 = refBaseIndex; base2 = altBaseIndex; break;
-                    case 2: base1 = altBaseIndex; base2 = altBaseIndex; break;
-                    default: base1 = refBaseIndex; base2 = refBaseIndex; break;
-                }
-                double[] obsWeights = getObservationWeights(probs, refBaseIndex, altBaseIndex);
-
                 posteriors[hypothesis] = 0.0;
 
                 for (int weightIndex = 0; weightIndex < obsWeights.length; weightIndex++) {
@@ -121,6 +117,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
                     posteriors[hypothesis] += obsWeights[weightIndex]*binomialWeight;
                 }
+
                 posteriors[hypothesis] *= genotypePriors[hypothesis];
 
                 double refLikelihood = Double.isInfinite(Math.log10(posteriors[0])) ? -10000.0 : Math.log10(posteriors[0]);
@@ -227,6 +224,31 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
         return bestAltBaseIndex;
     }
+    private int[] getSecondaryBaseCounts(double[][] probs) {
+        int[] secondaryBaseCounts = new int[4];
+
+        for (int readIndex = 0; readIndex < probs.length; readIndex++) {
+            double bestProb = 0.0;
+            for (int baseIndex = 0; baseIndex < probs[readIndex].length; baseIndex++) {
+                if (probs[readIndex][baseIndex] > bestProb) {
+                    bestProb = probs[readIndex][baseIndex];
+                }
+            }
+
+            double secondBestProb = 0.0;
+            int secondBestBaseIndex = 0;
+            for (int baseIndex = 0; baseIndex < 4; baseIndex++) {
+                if (probs[readIndex][baseIndex] > secondBestProb && probs[readIndex][baseIndex] < bestProb) {
+                    secondBestProb = probs[readIndex][baseIndex];
+                    secondBestBaseIndex = baseIndex;
+                }
+            }
+
+            secondaryBaseCounts[secondBestBaseIndex]++;
+        }
+
+        return secondaryBaseCounts;
+    }
 
     private AlleleFrequencyEstimate getOneProbAlleleFrequency(char ref, LocusContext context, String rodString) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
@@ -245,6 +267,10 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
             G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset]);
         }
         G.ApplyPrior(ref, this.allele_frequency_prior);
+
+        if (fourBaseMode) {
+            G.applyFourBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
+        }
 
         return G.toAlleleFrequencyEstimate(context.getLocation(), ref, bases.length(), bases, G.likelihoods);
     }
