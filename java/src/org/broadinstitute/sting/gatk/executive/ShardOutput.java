@@ -10,8 +10,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.Channels;
-import java.nio.channels.Channel;
 import java.nio.channels.WritableByteChannel;
+
 /**
  * User: hanna
  * Date: Apr 30, 2009
@@ -68,6 +68,18 @@ public class ShardOutput {
     }
 
     /**
+     * Waits for any the given ShardOutput to be ready for merging.
+     */
+    public synchronized void waitForOutputComplete() {
+        try {
+            wait();
+        }
+        catch( InterruptedException ex ) {
+            throw new StingException("Interrupted while waiting for more output to be finalized.",ex);            
+        }
+    }
+
+    /**
      * Is this output complete?
      * @return True if output complete.  False otherwise.
      */
@@ -79,6 +91,9 @@ public class ShardOutput {
      * Indicate that no more data will be written to these output streams.
      */
     public synchronized void complete() {
+        if( isComplete() )
+            throw new IllegalStateException("Tried to complete an output merge twice.");
+
         try {
             out.flush();
             err.flush();
@@ -91,8 +106,11 @@ public class ShardOutput {
 
         out = null;
         err = null;
-        
+
         this.complete = true;
+
+        // Notify waiting listeners that this shard is complete and ready for merging.
+        notifyAll();
     }
 
     public void mergeInto( OutputStream globalOut, OutputStream globalErr ) {
@@ -105,6 +123,11 @@ public class ShardOutput {
         transferContentsToTarget( errFile, globalErr );
     }
 
+    /**
+     * Copy the contents of the given file into the specified output stream.
+     * @param source Source of data to copy.
+     * @param target Target for copied data.
+     */
     private void transferContentsToTarget( File source, OutputStream target ) {
         FileInputStream sourceStream = null;
         try {

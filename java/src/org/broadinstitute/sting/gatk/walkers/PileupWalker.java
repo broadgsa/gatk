@@ -5,14 +5,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.Pileup;
-import org.broadinstitute.sting.utils.BasicPileup;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
-import net.sf.samtools.SAMRecord;
-
-import java.util.List;
-import java.util.ArrayList;
 
 /**
  * Created by IntelliJ IDEA.
@@ -21,7 +14,7 @@ import java.util.ArrayList;
  * Time: 3:22:14 PM
  * To change this template use File | Settings | File Templates.
  */
-public class PileupWalker extends LocusWalker<Integer, Integer> {
+public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeReducible<Integer> {
     @Argument(fullName="verbose",required=false,defaultValue="false")
     public boolean VERBOSE;
 
@@ -74,7 +67,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
 
         if ( EXTENDED ) {
             String probDists = pileup.getProbDistPileup();
-            System.out.println(probDists);
+            out.println(probDists);
         }
 
         return 1;
@@ -83,6 +76,9 @@ public class PileupWalker extends LocusWalker<Integer, Integer> {
     // Given result of map function
     public Integer reduceInit() { return 0; }
     public Integer reduce(Integer value, Integer sum) {
-        return value + sum;
+        return reduce(sum,value);
+    }
+    public Integer treeReduce(Integer lhs, Integer rhs) {
+        return lhs + rhs;
     }
 }

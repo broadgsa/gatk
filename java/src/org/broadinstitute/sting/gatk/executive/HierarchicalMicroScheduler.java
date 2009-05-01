@@ -8,12 +8,12 @@ import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
+import org.broadinstitute.sting.gatk.OutputTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import java.io.File;
-import java.io.OutputStream;
 import java.util.List;
 import java.util.Queue;
 import java.util.LinkedList;
@@ -35,6 +35,12 @@ import java.util.concurrent.FutureTask;
  * Requires a special walker tagged with a 'TreeReducible' interface.
  */
 public class HierarchicalMicroScheduler extends MicroScheduler implements ReduceTree.TreeReduceNotifier {
+    /**
+     * How many outstanding output merges are allowed before the scheduler stops
+     * allowing new processes and starts merging flat-out.
+     */
+    private static final int MAX_OUTSTANDING_OUTPUT_MERGES = 50;
+
     private TraverseLociByReference traversalEngine = null;
 
     /**
@@ -44,7 +50,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
 
     private Queue<Shard> traverseTasks = new LinkedList<Shard>();
     private Queue<TreeReduceTask> reduceTasks = new LinkedList<TreeReduceTask>();
-    private Queue<OutputMerger> outputMergeTasks = new LinkedList<OutputMerger>();
+    private Queue<ShardOutput> outputMergeTasks = new LinkedList<ShardOutput>();
 
     /**
      * Create a new hierarchical microscheduler to process the given reads and reference.
@@ -79,25 +85,25 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         for(Shard shard: shardStrategy)
             traverseTasks.add(shard);
 
-        while( isShardTraversePending() || isTreeReducePending() || isOutputMergePending() ) {
+        while( isShardTraversePending() || isTreeReducePending() ) {
+            // Too many files sitting around taking up space?  Merge them.
+            if( isMergeLimitExceeded() )
+                mergeExistingOutput();
+
+            // Wait for the next slot in the queue to become free.
             waitForFreeQueueSlot();
 
+            // Pick the next most appropriate task and run it.  In the interest of
+            // memory conservation, hierarchical reduces always run before traversals.
             if( isTreeReduceReady() )
                 queueNextTreeReduce( walker );
-            else if( isShardTraversePending() ) {
-                Future traverseResult = queueNextShardTraverse( walker, dataSource );
-
-                // Add this traverse result to the reduce tree.  The reduce tree will call a callback to throw its entries on the queue.
-                reduceTree.addEntry( traverseResult );
-
-                // No more data?  Let the reduce tree know so it can finish processing what it's got.
-                if( !isShardTraversePending() )
-                    reduceTree.complete();
-            }
-            else if( isOutputMergeReady() ) {
-                queueNextOutputMerge();
-            }
+            else if( isShardTraversePending() )
+                queueNextShardTraverse( walker, dataSource, reduceTree );
         }
+
+        // Merge any lingering output files.  If these files aren't ready,
+        // sit around and wait for them, then merge them.
+        mergeRemainingOutput();
 
         threadPool.shutdown();
 
@@ -143,21 +149,58 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
     }
 
     /**
+     * Returns whether the maximum number of files is sitting in the temp directory
+     * waiting to be merged back in.
+     * @return True if the merging needs to take priority.  False otherwise.
+     */
+    protected boolean isMergeLimitExceeded() {
+        if( outputMergeTasks.size() < MAX_OUTSTANDING_OUTPUT_MERGES )
+            return false;
+
+        // If any of the first MAX_OUTSTANDING merges aren't ready, the merge limit
+        // has not been exceeded.
+        ShardOutput[] outputMergers = outputMergeTasks.toArray( new ShardOutput[0] );
+        for( int i = 0; i < outputMergers.length; i++ ) {
+            if( !outputMergers[i].isComplete() )
+                return false;
+        }
+
+        // Everything's ready?  
+        return true;
+    }
+
+    /**
      * Returns whether there is output waiting to be merged into the global output
      * streams right now.
      * @return True if this output is ready to be merged.  False otherwise.
      */
     protected boolean isOutputMergeReady() {
-        return !OutputMerger.isMergeQueued() && outputMergeTasks.peek().isComplete();
+        return outputMergeTasks.peek().isComplete();
     }
 
     /**
-     * Returns whether there is output that will eventually need to be merged into
-     * the output streams.
-     * @return True if output will eventually need to be merged.  False otherwise.
+     * Merging all output that's sitting ready in the OutputMerger queue into
+     * the final data streams.
      */
-    protected boolean isOutputMergePending() {
-        return outputMergeTasks.size() > 0;
+    protected void mergeExistingOutput() {
+        OutputTracker outputTracker = GenomeAnalysisTK.Instance.getOutputTracker();
+        while( isOutputMergeReady() )
+            outputMergeTasks.remove().mergeInto( outputTracker.getGlobalOutStream(), outputTracker.getGlobalErrStream() );
+    }
+
+    /**
+     * Merge any output that hasn't yet been taken care of by the blocking thread.
+     */
+    protected void mergeRemainingOutput() {
+        OutputTracker outputTracker = GenomeAnalysisTK.Instance.getOutputTracker();
+        while( outputMergeTasks.size() > 0 ) {
+            ShardOutput shardOutput = outputMergeTasks.remove();
+            synchronized(shardOutput) {
+                if( !shardOutput.isComplete() )
+                    shardOutput.waitForOutputComplete();
+            }
+            shardOutput.mergeInto( outputTracker.getGlobalOutStream(), outputTracker.getGlobalErrStream() );            
+        }
     }
 
     /**
@@ -165,7 +208,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
      * @param walker Walker to apply to the dataset.
      * @param dataSource Source of the reads
      */
-    protected Future queueNextShardTraverse( Walker walker, SAMDataSource dataSource ) {
+    protected Future queueNextShardTraverse( Walker walker, SAMDataSource dataSource, ReduceTree reduceTree ) {
         if( traverseTasks.size() == 0 )
             throw new IllegalStateException( "Cannot traverse; no pending traversals exist.");
 
@@ -178,11 +221,18 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
                                                        dataSource,
                                                        shardOutput );
 
-        outputMergeTasks.add(new OutputMerger(shardOutput,
-                                              GenomeAnalysisTK.Instance.getOutputTracker().getGlobalOutStream(),
-                                              GenomeAnalysisTK.Instance.getOutputTracker().getGlobalErrStream()));
+        Future traverseResult = threadPool.submit(traverser);
 
-        return threadPool.submit(traverser);
+        // Add this traverse result to the reduce tree.  The reduce tree will call a callback to throw its entries on the queue.
+        reduceTree.addEntry( traverseResult );
+
+        // No more data?  Let the reduce tree know so it can finish processing what it's got.
+        if( !isShardTraversePending() )
+            reduceTree.complete();
+
+        outputMergeTasks.add(shardOutput);        
+
+        return traverseResult;
     }
 
     /**
@@ -195,19 +245,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         reducer.setWalker( (TreeReducible)walker );
 
         threadPool.submit( reducer );
-    }
-
-    /**
-     * Pulls the next output merge and puts it on the queue.
-     */
-    protected void queueNextOutputMerge() {
-        if( outputMergeTasks.size() == 0 )
-            throw new IllegalStateException( "Cannot merge output; no pending merges exist.");
-        if( OutputMerger.isMergeQueued() )
-            throw new IllegalStateException( "Cannot merge output; another merge has already been queued.");
-
-        OutputMerger.queueMerge();
-        threadPool.submit( outputMergeTasks.remove() );
     }
 
     /**
