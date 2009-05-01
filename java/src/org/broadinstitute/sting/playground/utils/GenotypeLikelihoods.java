@@ -2,13 +2,16 @@ package org.broadinstitute.sting.playground.utils;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.MathUtils;
 
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
+import java.util.HashMap;
 
 public class GenotypeLikelihoods {
     // precalculate these for performance (pow/log10 is expensive!)
     private static final double[] oneMinusData = new double[Byte.MAX_VALUE];
+
     static {
         for(int qual=0; qual < Byte.MAX_VALUE; qual++) {
             oneMinusData[qual] = log10(1.0 - pow(10,(qual/-10.0)));
@@ -34,6 +37,12 @@ public class GenotypeLikelihoods {
     public double[] likelihoods;
     public String[] genotypes;
 
+    // Store the 2nd-best base priors for on-genotype primary bases
+    HashMap<String, Double> onNextBestBasePriors = new HashMap<String, Double>();
+
+    // Store the 2nd-best base priors for off-genotype primary bases
+    HashMap<String, Double> offNextBestBasePriors = new HashMap<String, Double>();
+
     public GenotypeLikelihoods() {
         likelihoods = new double[10];
         genotypes = new String[10];
@@ -48,6 +57,28 @@ public class GenotypeLikelihoods {
         genotypes[7] = "GG";
         genotypes[8] = "GT";
         genotypes[9] = "TT";
+
+        onNextBestBasePriors.put("AA", 0.000);
+        onNextBestBasePriors.put("AC", 0.302);
+        onNextBestBasePriors.put("AG", 0.366);
+        onNextBestBasePriors.put("AT", 0.142);
+        onNextBestBasePriors.put("CC", 0.000);
+        onNextBestBasePriors.put("CG", 0.548);
+        onNextBestBasePriors.put("CT", 0.370);
+        onNextBestBasePriors.put("GG", 0.000);
+        onNextBestBasePriors.put("GT", 0.319);
+        onNextBestBasePriors.put("TT", 0.000);
+
+        offNextBestBasePriors.put("AA", 0.480);
+        offNextBestBasePriors.put("AC", 0.769);
+        offNextBestBasePriors.put("AG", 0.744);
+        offNextBestBasePriors.put("AT", 0.538);
+        offNextBestBasePriors.put("CC", 0.575);
+        offNextBestBasePriors.put("CG", 0.727);
+        offNextBestBasePriors.put("CT", 0.768);
+        offNextBestBasePriors.put("GG", 0.589);
+        offNextBestBasePriors.put("GT", 0.762);
+        offNextBestBasePriors.put("TT", 0.505);
     }
 
     public void add(char ref, char read, byte qual) {
@@ -135,6 +166,44 @@ public class GenotypeLikelihoods {
 
                 if (Double.isInfinite(likelihoods[i])) { likelihoods[i] = -1000; }
             }
+        }
+        this.sort();
+    }
+
+    public void applyFourBaseDistributionPrior(String primaryBases, String secondaryBases) {
+        for (int genotypeIndex = 0; genotypeIndex < genotypes.length; genotypeIndex++) {
+            char firstAllele = genotypes[genotypeIndex].charAt(0);
+            char secondAllele = genotypes[genotypeIndex].charAt(1);
+
+            int offIsGenotypic = 0;
+            int offTotal = 0;
+
+            int onIsGenotypic = 0;
+            int onTotal = 0;
+
+            for (int pileupIndex = 0; pileupIndex < primaryBases.length(); pileupIndex++) {
+                char primaryBase = primaryBases.charAt(pileupIndex);
+                char secondaryBase = secondaryBases.charAt(pileupIndex);
+
+                if (primaryBase != firstAllele && primaryBase != secondAllele) {
+                    if (secondaryBase == firstAllele || secondaryBase == secondAllele) {
+                        offIsGenotypic++;
+                    }
+                    offTotal++;
+                } else {
+                    if (secondaryBase == firstAllele || secondaryBase == secondAllele) {
+                        onIsGenotypic++;
+                    }
+                    onTotal++;
+                }
+            }
+
+            double offPrior = MathUtils.binomialProbability(offIsGenotypic, offTotal, offNextBestBasePriors.get(genotypes[genotypeIndex]));
+            double onPrior = MathUtils.binomialProbability(onIsGenotypic, onTotal, onNextBestBasePriors.get(genotypes[genotypeIndex]));
+
+            likelihoods[genotypeIndex] += Math.log10(offPrior) + Math.log10(onPrior);
+
+            //System.out.println(genotypes[genotypeIndex] + " " + offNextBestBasePriors.get(genotypes[genotypeIndex]) + " " + offIsGenotypic + " " + offTotal + " " + (((double) offIsGenotypic)/((double) offTotal)) + " " + offPrior);
         }
         this.sort();
     }
