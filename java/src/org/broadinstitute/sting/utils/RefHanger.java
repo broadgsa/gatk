@@ -85,7 +85,8 @@ public class RefHanger<T> {
     }
 
     protected int getRightOffset() {
-        return hangers.size() - 1;
+        //return hangers.size() - 1;
+        return isEmpty() ? 0 : hangers.size() - 1;
     }
 
     protected int getOffset(GenomeLoc loc) {
@@ -99,6 +100,10 @@ public class RefHanger<T> {
 
     public GenomeLoc getRightLoc() {
         return hangers.get(getRightOffset()).loc;
+    }
+
+    public GenomeLoc getLoc(int i) {
+        return hangers.get(i).loc;
     }
 
     public boolean hasLocation(GenomeLoc loc) {
@@ -160,6 +165,14 @@ public class RefHanger<T> {
         return hangers.size();
     }
 
+    public String toString() {
+        StringBuilder s = new StringBuilder();
+        for ( int i = 0; i < size(); i++) {
+            s.append(String.format("%s => %s%n", getLoc(i), Utils.join(",", getHanger(i).data)));
+        }
+        return s.toString();
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     //
     // Adding data to the left and right
@@ -176,6 +189,10 @@ public class RefHanger<T> {
 
     public void pushLeft(GenomeLoc pos, ArrayList<T> data) {
         hangers.add(0, new Hanger(pos, data));
+    }
+
+    public void pushLeft(GenomeLoc pos, List<T> data) {
+        hangers.add(0, new Hanger(pos, new ArrayList<T>(data)));
     }
 
     public void pushRight(GenomeLoc pos) {
@@ -210,6 +227,17 @@ public class RefHanger<T> {
             GenomeLoc pos = positions.get(i);
             T datum = dataByPos.get(i);
             expandingPut1(pos, datum);
+        }
+    }
+
+    public void addDataList(List<GenomeLoc> positions, List<List<T>> dataByPos) {
+        assert (positions.size() == dataByPos.size());
+
+        for (int i = 0; i < positions.size(); i++) {
+            GenomeLoc pos = positions.get(i);
+            for ( T datum : dataByPos.get(i) ) {
+                expandingPut1(pos, datum);
+            }
         }
     }
 
