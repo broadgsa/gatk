@@ -9,12 +9,20 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.io.PrintStream;
+
+import net.sf.samtools.SAMRecord;
 
 public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
     private SingleSampleGenotyper caller_1b;
     private SingleSampleGenotyper caller_4b;
+
+    String[] genotypes = { "AA", "AC", "AG", "AT", "CC", "CG", "CT", "GG", "GT", "TT" };
+    int[][] goodAltBreakdown = new int[10][2];
+    int[][] badAltBreakdown = new int[10][2];
 
     public void initialize() {
         caller_1b = new SingleSampleGenotyper();
@@ -35,7 +43,7 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
         caller_4b.metricsInterval = caller_1b.metricsInterval;
         caller_4b.printMetrics = false;
         caller_4b.fourBaseMode = true;
-        caller_4b.retest = false;
+        caller_4b.retest = true;
         caller_4b.qHom = 0.04;
         caller_4b.qHet = 0.49;
         caller_4b.qHomNonRef = 0.97;
@@ -49,14 +57,39 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
 
         rodGFF hmi = getHapmapInfo(tracker);
 
+        /*
+        if (hmi != null) {
+            ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+            String bases = pileup.getBases();
+            String bases2 = pileup.getSecondaryBasePileup();
+
+            int genotypeIndex = getGenotypeIndex(hmi.getFeature());
+
+            for (int pileupIndex = 0; pileupIndex < bases.length(); pileupIndex++) {
+                if (hmi.getFeature().charAt(0) != bases.charAt(pileupIndex) && hmi.getFeature().charAt(1) != bases.charAt(pileupIndex)) {
+                    if (hmi.getFeature().charAt(0) == bases2.charAt(pileupIndex) || hmi.getFeature().charAt(1) == bases2.charAt(pileupIndex)) {
+                        badAltBreakdown[genotypeIndex][0]++;
+                    } else {
+                        badAltBreakdown[genotypeIndex][1]++;
+                    }
+                } else {
+                    if (hmi.getFeature().charAt(0) == bases2.charAt(pileupIndex) || hmi.getFeature().charAt(1) == bases2.charAt(pileupIndex)) {
+                        goodAltBreakdown[genotypeIndex][0]++;
+                    } else {
+                        goodAltBreakdown[genotypeIndex][1]++;
+                    }
+                }
+            }
+        }
+        */
+
         AlleleFrequencyEstimate call_1b = caller_1b.map(tracker, ref, context);
         AlleleFrequencyEstimate call_4b = caller_4b.map(tracker, ref, context);
 
-        //if (isHomRefHapmapSite(ref, hmi) && isHomRef(call_1b) && isHet(call_4b)) {
+        //if (call_1b.qhat != call_4b.qhat && call_4b.lodVsNextBest >= 5.0) {
         //    printDebuggingInfo(ref, context, call_1b, call_4b, hmi, System.out);
         //}
 
-        //
         caller_1b.metrics.nextPosition(call_1b, tracker);
         caller_4b.metrics.nextPosition(call_4b, tracker);
 
@@ -67,9 +100,18 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
             caller_4b.metrics.printMetricsAtLocusIntervals(caller_1b.metricsInterval);
             System.out.println("--------------");
         }
-        //
 
         return null;
+    }
+
+    int getGenotypeIndex(String genotype) {
+        for (int genotypeIndex = 0; genotypeIndex < genotypes.length; genotypeIndex++) {
+            if (genotypes[genotypeIndex].matches(genotype)) {
+                return genotypeIndex;
+            }
+        }
+
+        return -1;
     }
 
     private boolean isHomRef(AlleleFrequencyEstimate freq) { return MathUtils.compareDoubles(freq.qhat, 0.0) == 0; }
@@ -96,6 +138,9 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
 
         int pRefCount = 0, pAltCount = 0, pNonRefCount = 0;
         int sRefCount = 0, sAltCount = 0, sNonRefCount = 0;
+        int sAllelicCondCount = 0, sAllelicCondTotal = 0;
+        int[] secondaryBaseCounts = new int[4];
+
         for (int i = 0; i < pileup.getBases().length(); i++) {
             if   (pileup.getBases().charAt(i) == call_4b.ref) { pRefCount++; }
             else {
@@ -108,6 +153,15 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
                 if (pileup.getSecondaryBasePileup().charAt(i) == call_4b.alt) { sAltCount++; }
                 sNonRefCount++;
             }
+
+            if (pileup.getBases().charAt(i) != call_4b.ref && pileup.getBases().charAt(i) != call_4b.alt) {
+                sAllelicCondTotal++;
+                if   (pileup.getSecondaryBasePileup().charAt(i) == call_4b.ref || pileup.getSecondaryBasePileup().charAt(i) == call_4b.alt) {
+                    sAllelicCondCount++;
+                }
+            }
+
+            secondaryBaseCounts[BaseUtils.simpleBaseToBaseIndex(pileup.getSecondaryBasePileup().charAt(i))]++;
         }
 
         lout.println("Locus: " + context.getLocation());
@@ -115,6 +169,7 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
         if (hmi != null) { lout.println("Hapmap Info: " + hmi.toString()); }
         lout.println("Primary Base pileup:   " + pileup.getBases());
         lout.println("Secondary Base pileup: " + pileup.getSecondaryBasePileup());
+        lout.printf("Secondary Base Counts: A:%d C:%d G:%d T:%d\n", secondaryBaseCounts[0], secondaryBaseCounts[1], secondaryBaseCounts[2], secondaryBaseCounts[3]);
         lout.println();
 
         lout.printf("Pct primary bases that are ref:      %2.2f%%\n", 100.0*((double) pRefCount)/((double) pileup.getBases().length()));
@@ -127,22 +182,43 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
         lout.printf("Pct secondary bases that are nonRef: %2.2f%%\n", 100.0*((double) sNonRefCount)/((double) pileup.getBases().length()));
         lout.println();
 
+        lout.printf("Pct secondary bases that match one of the alleles when the primary bases don't: %2.2f%%\n", 100.0*((double) sAllelicCondCount)/((double) sAllelicCondTotal));
+
         lout.printf("1-base result: ref=%c alt=%c q=%2.2f lodBestVsRef=%4.4f lodBestVsNextBest=%4.4f\n", call_1b.ref, call_1b.alt, call_1b.qhat, call_1b.lodVsRef, call_1b.lodVsNextBest);
         lout.printf("4-base result: ref=%c alt=%c q=%2.2f lodBestVsRef=%4.4f lodBestVsNextBest=%4.4f\n", call_4b.ref, call_4b.alt, call_4b.qhat, call_4b.lodVsRef, call_4b.lodVsNextBest);
         lout.println();
 
+        /*
         String[] names = { "Homozygous reference", "Heterozygous", "Homozygous non-reference" };
         for (int i = 0; i < call_4b.posteriors.length; i++) {
             lout.println(names[i] + " posterior: " + call_4b.posteriors[i]);
         }
+        */
 
         //lout.println("\nProb pileup:\n" + pileup.getProbDistPileup());
         lout.println("\n------------------------------------------------------------------------------\n");
     }
 
+
     public Integer reduceInit() { return null; }
     public Integer reduce(Integer value, Integer sum) { return null; }
 
     public void onTraversalDone(Integer result) {
+        for (int genotypeIndex = 0; genotypeIndex < genotypes.length; genotypeIndex++) {
+            System.out.printf("%s: good %d %d ( %3.3f %3.3f ); bad %d %d ( %3.3f %3.3f )\n",
+                              genotypes[genotypeIndex],
+                              
+                              goodAltBreakdown[genotypeIndex][0],
+                              goodAltBreakdown[genotypeIndex][1],
+                              ((double) goodAltBreakdown[genotypeIndex][0])/((double) (goodAltBreakdown[genotypeIndex][0] + goodAltBreakdown[genotypeIndex][1])),
+                              ((double) goodAltBreakdown[genotypeIndex][1])/((double) (goodAltBreakdown[genotypeIndex][0] + goodAltBreakdown[genotypeIndex][1])),
+
+                              badAltBreakdown[genotypeIndex][0],
+                              badAltBreakdown[genotypeIndex][1],
+                              ((double) badAltBreakdown[genotypeIndex][0])/((double) (badAltBreakdown[genotypeIndex][0] + badAltBreakdown[genotypeIndex][1])),
+                              ((double) badAltBreakdown[genotypeIndex][1])/((double) (badAltBreakdown[genotypeIndex][0] + badAltBreakdown[genotypeIndex][1]))
+
+                              );
+        }
     }
 }
