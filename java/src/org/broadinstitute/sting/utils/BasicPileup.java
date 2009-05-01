@@ -6,6 +6,7 @@ import net.sf.samtools.SAMRecord;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 
 /**
  * Created by IntelliJ IDEA.
@@ -95,13 +96,30 @@ abstract public class BasicPileup implements Pileup {
 
     public static String secondaryBasePileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
         StringBuilder bases2 = new StringBuilder();
-        ArrayList<Byte> sqbases = secondaryBasePileup(reads, offsets);
+        ArrayList<Byte> sbases = secondaryBasePileup(reads, offsets);
 
-        if (sqbases == null) { return null; }
+        if (sbases == null) { return null; }
 
+        ArrayList<Byte> pbases = basePileup(reads, offsets);
+
+        Random generator = new Random();
+        
+        for (int pileupIndex = 0; pileupIndex < sbases.size(); pileupIndex++) {
+            byte pbase = pbases.get(pileupIndex);
+            byte sbase = sbases.get(pileupIndex);
+
+            while (sbase == pbase) {
+                sbase = (byte) BaseUtils.baseIndexToSimpleBase(generator.nextInt(4));
+            }
+
+            bases2.append((char) sbase);
+        }
+
+        /*
         for (byte base2 : secondaryBasePileup(reads, offsets)) {
             bases2.append((char) base2);
         }
+        */
 
         return bases2.toString();
     }
