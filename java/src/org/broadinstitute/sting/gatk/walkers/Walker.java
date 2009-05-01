@@ -33,15 +33,16 @@ public abstract class Walker<MapType, ReduceType> {
     protected PrintStream err = null;
 
     protected Walker() {
-	if( GenomeAnalysisTK.Instance != null ) {
-	    GenomeAnalysisTK.Instance.loadArgumentsIntoObject(this);
-	    out = GenomeAnalysisTK.Instance.getWalkerOutputStream();
-	    err = GenomeAnalysisTK.Instance.getWalkerErrorStream();
-	}
-	else {
-	    out = System.out;
-	    err = System.err;
-	}
+        if( GenomeAnalysisTK.Instance != null ) {
+            GenomeAnalysisTK gatk = GenomeAnalysisTK.Instance;
+            gatk.loadArgumentsIntoObject(this);
+            out = new PrintStream( gatk.getOutputTracker().getOutStream() );
+            err = new PrintStream( gatk.getOutputTracker().getErrStream() );
+        }
+        else {
+            out = System.out;
+            err = System.err;
+        }
     }
 
     /**

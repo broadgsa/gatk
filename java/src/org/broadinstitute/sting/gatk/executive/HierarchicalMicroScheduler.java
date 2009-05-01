@@ -7,10 +7,13 @@ import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import java.io.File;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Queue;
 import java.util.LinkedList;
@@ -41,7 +44,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
 
     private Queue<Shard> traverseTasks = new LinkedList<Shard>();
     private Queue<TreeReduceTask> reduceTasks = new LinkedList<TreeReduceTask>();
-
+    private Queue<OutputMerger> outputMergeTasks = new LinkedList<OutputMerger>();
 
     /**
      * Create a new hierarchical microscheduler to process the given reads and reference.
@@ -76,12 +79,12 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         for(Shard shard: shardStrategy)
             traverseTasks.add(shard);
 
-        while( isShardTraversePending() || isTreeReducePending() ) {
+        while( isShardTraversePending() || isTreeReducePending() || isOutputMergePending() ) {
             waitForFreeQueueSlot();
 
             if( isTreeReduceReady() )
                 queueNextTreeReduce( walker );
-            else {
+            else if( isShardTraversePending() ) {
                 Future traverseResult = queueNextShardTraverse( walker, dataSource );
 
                 // Add this traverse result to the reduce tree.  The reduce tree will call a callback to throw its entries on the queue.
@@ -91,9 +94,20 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
                 if( !isShardTraversePending() )
                     reduceTree.complete();
             }
+            else if( isOutputMergeReady() ) {
+                queueNextOutputMerge();
+            }
         }
 
-        Object result = reduceTree.getResult();
+        threadPool.shutdown();
+
+        Object result = null;
+        try {
+            result = reduceTree.getResult().get();
+        }
+        catch(Exception ex) {
+            throw new StingException("Unable to retrieve result", ex );
+        }
         
         traversalEngine.printOnTraversalDone("loci", result);
         walker.onTraversalDone(result);
@@ -129,6 +143,24 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
     }
 
     /**
+     * Returns whether there is output waiting to be merged into the global output
+     * streams right now.
+     * @return True if this output is ready to be merged.  False otherwise.
+     */
+    protected boolean isOutputMergeReady() {
+        return !OutputMerger.isMergeQueued() && outputMergeTasks.peek().isComplete();
+    }
+
+    /**
+     * Returns whether there is output that will eventually need to be merged into
+     * the output streams.
+     * @return True if output will eventually need to be merged.  False otherwise.
+     */
+    protected boolean isOutputMergePending() {
+        return outputMergeTasks.size() > 0;
+    }
+
+    /**
      * Queues the next traversal of a walker from the traversal tasks queue.
      * @param walker Walker to apply to the dataset.
      * @param dataSource Source of the reads
@@ -136,11 +168,20 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
     protected Future queueNextShardTraverse( Walker walker, SAMDataSource dataSource ) {
         if( traverseTasks.size() == 0 )
             throw new IllegalStateException( "Cannot traverse; no pending traversals exist.");
+
+        ShardOutput shardOutput = new ShardOutput();
+
         ShardTraverser traverser = new ShardTraverser( traversalEngine,
                                                        walker,
                                                        traverseTasks.remove(),
                                                        reference,
-                                                       dataSource );
+                                                       dataSource,
+                                                       shardOutput );
+
+        outputMergeTasks.add(new OutputMerger(shardOutput,
+                                              GenomeAnalysisTK.Instance.getOutputTracker().getGlobalOutStream(),
+                                              GenomeAnalysisTK.Instance.getOutputTracker().getGlobalErrStream()));
+
         return threadPool.submit(traverser);
     }
 
@@ -154,6 +195,19 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         reducer.setWalker( (TreeReducible)walker );
 
         threadPool.submit( reducer );
+    }
+
+    /**
+     * Pulls the next output merge and puts it on the queue.
+     */
+    protected void queueNextOutputMerge() {
+        if( outputMergeTasks.size() == 0 )
+            throw new IllegalStateException( "Cannot merge output; no pending merges exist.");
+        if( OutputMerger.isMergeQueued() )
+            throw new IllegalStateException( "Cannot merge output; another merge has already been queued.");
+
+        OutputMerger.queueMerge();
+        threadPool.submit( outputMergeTasks.remove() );
     }
 
     /**
@@ -197,5 +251,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
             return treeReducer.isReadyForReduce();
         }
     }
+
 
 }

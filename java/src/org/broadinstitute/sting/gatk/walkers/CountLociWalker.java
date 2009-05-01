@@ -20,11 +20,15 @@ public class CountLociWalker extends LocusWalker<Integer, Integer> implements Tr
 
     public Integer reduceInit() { return 0; }
 
+    public Integer reduce(Integer value, Integer sum) {
+        return value + sum;
+    }
+
     /**
      * Reduces two subtrees together.  In this case, the implementation of the tree reduce
      * is exactly the same as the implementation of the single reduce.
      */
-    public Integer reduce(Integer value, Integer sum) {
-        return value + sum;
+    public Integer treeReduce(Integer lhs, Integer rhs) {
+        return lhs + rhs;
     }
 }

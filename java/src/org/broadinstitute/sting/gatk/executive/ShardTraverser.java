@@ -4,14 +4,17 @@ import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextProvider;
 import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceProvider;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
-import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
 import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
+import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
+import org.broadinstitute.sting.gatk.OutputTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.concurrent.Callable;
+
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.CloseableIterator;
 /**
  * User: hanna
  * Date: Apr 29, 2009
@@ -33,36 +36,43 @@ public class ShardTraverser implements Callable {
     private Shard shard;
     private IndexedFastaSequenceFile reference;
     private SAMDataSource reads;
+    private ShardOutput output;
 
     public ShardTraverser( TraverseLociByReference traversalEngine,
                            Walker walker,
                            Shard shard,
                            IndexedFastaSequenceFile reference,
-                           SAMDataSource reads ) {
+                           SAMDataSource reads,
+                           ShardOutput output ) {
         this.walker = walker;
         this.traversalEngine = traversalEngine;
         this.shard = shard;
         this.reference = reference;
         this.reads = reads;
+        this.output = output;
     }
 
     public Object call() {
         Object accumulator = ((LocusWalker<?,?>)walker).reduceInit();
 
-        MergingSamRecordIterator2 readShard = null;
-        try {
-            readShard = (MergingSamRecordIterator2)reads.seek( shard );
-        }
-        catch( SimpleDataSourceLoadException ex ) {
-            throw new RuntimeException( ex );
-        }
+        CloseableIterator<SAMRecord> readShard = null;
+        readShard = reads.seek( shard );
 
         ReferenceProvider referenceProvider = new ReferenceProvider( reference, shard.getGenomeLoc() );
         LocusContextProvider locusProvider = new LocusContextProvider( readShard );
 
-        accumulator = traversalEngine.traverse( walker, shard, referenceProvider, locusProvider, accumulator );
+        OutputTracker outputTracker = GenomeAnalysisTK.Instance.getOutputTracker();
 
-        readShard.close();
+        outputTracker.setLocalStreams( output.getOutStream(), output.getErrStream() );
+        try {
+            accumulator = traversalEngine.traverse( walker, shard, referenceProvider, locusProvider, accumulator );
+        }
+        finally {
+            readShard.close();
+
+            output.complete();
+            outputTracker.removeLocalStreams();            
+        }
 
         return accumulator;
     }

@@ -346,19 +346,11 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     }
 
     /**
-     * Get the output stream to be used with this walker.
-     * @return Output stream used with this walker.
+     * Gets the output tracker.  Tracks data available to a given walker.
+     * @return The output tracker.
      */
-    public PrintStream getWalkerOutputStream() {
-        return outputTracker.getOutStream();
-    }
-
-    /**
-     * Get the output stream to be used with this walker.
-     * @return Output stream used with this walker.
-     */
-    public PrintStream getWalkerErrorStream() {
-        return outputTracker.getErrStream();
+    public OutputTracker getOutputTracker() {
+        return outputTracker;
     }
 
 

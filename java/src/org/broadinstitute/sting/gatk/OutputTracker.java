@@ -1,10 +1,13 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.io.RedirectingOutputStream;
 
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 /**
  * User: hanna
  * Date: Apr 30, 2009
@@ -27,15 +30,14 @@ public class OutputTracker {
     /**
      * The streams to which walker users should be writing directly.
      */
-    private PrintStream out;
-    private PrintStream err;
+    protected OutputStream globalOut;
+    protected OutputStream globalErr;
 
     /**
-     * Cache the file streams so that reassemblers can use nio to do fast file transfers.
+     * Thread-local versions of the output stream.
      */
-    private FileOutputStream outFileStream;
-    private FileOutputStream errFileStream;
-
+    protected ThreadLocal<OutputStream> localOut = new ThreadLocal<OutputStream>();
+    protected ThreadLocal<OutputStream> localErr = new ThreadLocal<OutputStream>();
 
     /**
      * Create an object to manage output given filenames for the output and error files.
@@ -48,23 +50,11 @@ public class OutputTracker {
         // Otherwise, initialize them separately.
         if( outFileName != null && outFileName.equals(errFileName) ) {
             FileOutputStream outputFile = prepareOutputFile( outFileName );
-            outFileStream = errFileStream = outputFile;
-            out = err = new PrintStream( outputFile );
+            globalOut = globalErr = outputFile;
         }
         else {
-            if( outFileName != null ) {
-                outFileStream = prepareOutputFile( outFileName );
-                out = new PrintStream( outFileStream );
-            }
-            else
-                out = System.out;
-
-            if( errFileName != null ) {
-                errFileStream = prepareOutputFile( errFileName );
-                err = new PrintStream( errFileStream );
-            }
-            else
-                err = System.err;
+            globalOut = (outFileName != null) ? prepareOutputFile( outFileName ) : System.out;
+            globalErr = (errFileName != null) ? prepareOutputFile( errFileName ) : System.err;
         }
     }
 
@@ -72,32 +62,65 @@ public class OutputTracker {
      * Gets the output stream for the walker.
      * @return Output stream; should be either file-backed or System.out.
      */
-    public PrintStream getOutStream() {
-        return out;
+    public OutputStream getGlobalOutStream() {
+        return globalOut;
     }
 
     /**
      * Gets the error stream for the walker.
      * @return Error stream; should be either file-backed or System.err.
      */
-    public PrintStream getErrStream() {
-        return err;
+    public OutputStream getGlobalErrStream() {
+        return globalErr;
     }
 
     /**
-     * Gets the filestream associated with normal output.
-     * @return FileStream associated with the output; null if not backed by a file.
+     * Retrieve an output stream that will always return the most appropriate
+     * writer for this thread.
      */
-    public FileOutputStream getOutFile() {
-        return outFileStream;
+    public OutputStream getOutStream() {
+        // Create an anonymous inner class which will just return the most
+        // appropriate OutputStream from those streams stored in this class.
+        return new RedirectingOutputStream(
+                new RedirectingOutputStream.OutputStreamProvider() {
+                    public OutputStream getOutputStream() {
+                        return localOut.get() != null ? localOut.get() : globalOut;
+                    }
+                } );
     }
 
     /**
-     * Gets the filestream associated with error output.
-     * @return stream associated with error output; null if not backed by a file.
+     * Retrieve the most appropriate output stream for this thread.
+     * Will retrieve thread-local if available; otherwise, it'll read the
+     * global stream.
      */
-    public FileOutputStream getErrFile() {
-        return errFileStream;
+    public OutputStream getErrStream() {
+        // Create an anonymous inner class which will just return the most
+        // appropriate OutputStream from those streams stored in this class.
+        return new RedirectingOutputStream(
+                new RedirectingOutputStream.OutputStreamProvider() {
+                    public OutputStream getOutputStream() {
+                        return localErr.get() != null ? localErr.get() : globalErr;
+                    }
+                } );
+    }
+
+    /**
+     * Set the (thread-)local version of the given output and error files.
+     * @param out output stream to which to write.
+     * @param err error stream to which to write.
+     */
+    public void setLocalStreams( OutputStream out, OutputStream err ) {
+        localOut.set( out );
+        localErr.set( err );
+    }
+
+    /**
+     * Remove pointers to alternate, local output streams.
+     */
+    public void removeLocalStreams() {
+        localOut.remove();
+        localErr.remove();
     }
 
     /**

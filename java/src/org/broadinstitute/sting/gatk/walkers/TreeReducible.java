@@ -20,5 +20,5 @@ public interface TreeReducible<ReduceType> {
      * @param rhs 'right-most' portion of data in the composite reduce.
      * @return The composite reduce type.
      */
-    ReduceType reduce(ReduceType lhs, ReduceType rhs);
+    ReduceType treeReduce(ReduceType lhs, ReduceType rhs);
 }

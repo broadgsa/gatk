@@ -3,9 +3,11 @@ package org.broadinstitute.sting.gatk;
 import org.junit.Test;
 import org.junit.After;
 import org.junit.Assert;
+import org.broadinstitute.sting.utils.io.RedirectingOutputStream;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.Scanner; /**
  * User: hanna
  * Date: Apr 30, 2009
@@ -39,8 +41,15 @@ public class OutputTrackerTest {
     @Test
     public void testNullInputs() {
         OutputTracker ot = new OutputTracker(null,null);
-        Assert.assertSame("OutputTracker: Output stream incorrectly initialized.", System.out, ot.getOutStream());
-        Assert.assertSame("OutputTracker: Error stream incorrectly initialized.", System.err, ot.getErrStream());
+
+        Assert.assertTrue("OutputTracker: Output stream is of wrong type.", ot.getOutStream() instanceof RedirectingOutputStream );
+        Assert.assertTrue("OutputTracker: Error stream is of wrong type.", ot.getErrStream() instanceof RedirectingOutputStream );
+
+        RedirectingOutputStream outStream = (RedirectingOutputStream)ot.getOutStream();
+        RedirectingOutputStream errStream = (RedirectingOutputStream)ot.getErrStream();
+
+        Assert.assertSame("OutputTracker: Output stream incorrectly initialized.", System.out, outStream.getBackingOutputStream());
+        Assert.assertSame("OutputTracker: Error stream incorrectly initialized.", System.err, errStream.getBackingOutputStream());
     }
 
     @Test
@@ -48,14 +57,19 @@ public class OutputTrackerTest {
         OutputTracker ot = new OutputTracker(OUTPUT_FILENAME,null);
 
         final String OUTPUT_TEXT = "out stream test";
-        ot.getOutStream().append(OUTPUT_TEXT);
+        PrintWriter outWriter = new PrintWriter(ot.getOutStream());
+        outWriter.append(OUTPUT_TEXT);
+        outWriter.close();
 
         Scanner outScanner = new Scanner(new File(OUTPUT_FILENAME));
         String outText = outScanner.nextLine();
         Assert.assertFalse("Out stream has too much data", outScanner.hasNext());
 
         Assert.assertEquals("OutputTracker: Written output is incorrect", outText, OUTPUT_TEXT);
-        Assert.assertSame("OutputTracker: Error stream incorrectly initialized.", System.err, ot.getErrStream());
+
+        Assert.assertTrue("OutputTracker: Error stream is of wrong type.", ot.getErrStream() instanceof RedirectingOutputStream );
+        RedirectingOutputStream errStream = (RedirectingOutputStream)ot.getErrStream();
+        Assert.assertSame("OutputTracker: Error stream incorrectly initialized.", System.err, errStream.getBackingOutputStream());
     }
 
     @Test
@@ -63,13 +77,17 @@ public class OutputTrackerTest {
         OutputTracker ot = new OutputTracker(null,ERROR_FILENAME);
 
         final String ERROR_TEXT = "err stream test";
-        ot.getErrStream().append(ERROR_TEXT);
+        PrintWriter errWriter = new PrintWriter(ot.getErrStream());
+        errWriter.append(ERROR_TEXT);
+        errWriter.close();
 
         Scanner errScanner = new Scanner(new File(ERROR_FILENAME));
         String errText = errScanner.nextLine();
         Assert.assertFalse("Err stream has too much data", errScanner.hasNext());
 
-        Assert.assertSame("OutputTracker: Output stream incorrectly initialized.", System.out, ot.getOutStream());
+        Assert.assertTrue("OutputTracker: Output stream is of wrong type.", ot.getOutStream() instanceof RedirectingOutputStream );
+        RedirectingOutputStream outStream = (RedirectingOutputStream)ot.getOutStream();
+        Assert.assertSame("OutputTracker: Output stream incorrectly initialized.", System.out, outStream.getBackingOutputStream());
         Assert.assertEquals("OutputTracker: Written error text is incorrect", errText, ERROR_TEXT);
     }
 
@@ -78,10 +96,14 @@ public class OutputTrackerTest {
         OutputTracker ot = new OutputTracker(OUTPUT_FILENAME,ERROR_FILENAME);
 
         final String OUTPUT_TEXT = "out stream test";
-        ot.getOutStream().append(OUTPUT_TEXT);
+        PrintWriter outWriter = new PrintWriter(ot.getOutStream());
+        outWriter.append(OUTPUT_TEXT);
+        outWriter.close();
 
         final String ERROR_TEXT = "err stream test";
-        ot.getErrStream().append(ERROR_TEXT);
+        PrintWriter errWriter = new PrintWriter(ot.getErrStream());
+        errWriter.append(ERROR_TEXT);
+        errWriter.close();
 
         Scanner outScanner = new Scanner(new File(OUTPUT_FILENAME));
         String outText = outScanner.nextLine();
@@ -98,7 +120,13 @@ public class OutputTrackerTest {
     @Test
     public void testIdenticalInputsGetIdenticalResults() {
         OutputTracker ot = new OutputTracker(OUTPUT_FILENAME,OUTPUT_FILENAME);
-        Assert.assertSame("OutputTracker: FileOutputStreams don't match", ot.getOutFile(), ot.getErrFile());
-        Assert.assertSame("OutputTracker: PrintStreams don't match", ot.getOutStream(), ot.getErrStream());
+
+        Assert.assertTrue("OutputTracker: Output stream is of wrong type.", ot.getOutStream() instanceof RedirectingOutputStream );
+        Assert.assertTrue("OutputTracker: Error stream is of wrong type.", ot.getErrStream() instanceof RedirectingOutputStream );
+
+        RedirectingOutputStream outStream = (RedirectingOutputStream)ot.getOutStream();
+        RedirectingOutputStream errStream = (RedirectingOutputStream)ot.getErrStream();
+
+        Assert.assertSame("OutputTracker: PrintStreams don't match", outStream.getBackingOutputStream(), errStream.getBackingOutputStream());
     }
 }

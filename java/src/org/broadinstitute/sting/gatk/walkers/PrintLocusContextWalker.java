@@ -17,7 +17,7 @@ import net.sf.samtools.SAMRecord;
  * Time: 11:23:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class PrintLocusContextWalker extends LocusWalker<LocusContext, Integer> {
+public class PrintLocusContextWalker extends LocusWalker<LocusContext, Integer> implements TreeReducible<Integer> {
     public LocusContext map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         out.printf( "In map: ref = %c, loc = %s, reads = %s%n", ref,
                                                                 context.getLocation(),
@@ -29,6 +29,10 @@ public class PrintLocusContextWalker extends LocusWalker<LocusContext, Integer> 
 
     public Integer reduce(LocusContext context, Integer sum) {
         return sum + 1;
+    }
+
+    public Integer treeReduce(Integer lhs, Integer rhs) {
+        return lhs + rhs;
     }
 
     private String[] getReadNames( List<SAMRecord> reads ) {

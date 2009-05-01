@@ -77,7 +77,7 @@ public class TreeReducer implements Callable {
             if( lhs == null )
                 return lhs.get();
             else
-                return walker.reduce( lhs.get(), rhs.get() );
+                return walker.treeReduce( lhs.get(), rhs.get() );
         }
         catch( InterruptedException ex ) {
             throw new RuntimeException("Hierarchical reduce interrupted", ex);
