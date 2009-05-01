@@ -50,7 +50,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
 
     private Queue<Shard> traverseTasks = new LinkedList<Shard>();
     private Queue<TreeReduceTask> reduceTasks = new LinkedList<TreeReduceTask>();
-    private Queue<ShardOutput> outputMergeTasks = new LinkedList<ShardOutput>();
+    private Queue<OutputMerger> outputMergeTasks = new LinkedList<OutputMerger>();
 
     /**
      * Create a new hierarchical microscheduler to process the given reads and reference.
@@ -159,7 +159,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
 
         // If any of the first MAX_OUTSTANDING merges aren't ready, the merge limit
         // has not been exceeded.
-        ShardOutput[] outputMergers = outputMergeTasks.toArray( new ShardOutput[0] );
+        OutputMerger[] outputMergers = outputMergeTasks.toArray( new OutputMerger[0] );
         for( int i = 0; i < outputMergers.length; i++ ) {
             if( !outputMergers[i].isComplete() )
                 return false;
@@ -194,12 +194,12 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
     protected void mergeRemainingOutput() {
         OutputTracker outputTracker = GenomeAnalysisTK.Instance.getOutputTracker();
         while( outputMergeTasks.size() > 0 ) {
-            ShardOutput shardOutput = outputMergeTasks.remove();
-            synchronized(shardOutput) {
-                if( !shardOutput.isComplete() )
-                    shardOutput.waitForOutputComplete();
+            OutputMerger outputMerger = outputMergeTasks.remove();
+            synchronized(outputMerger) {
+                if( !outputMerger.isComplete() )
+                    outputMerger.waitForOutputComplete();
             }
-            shardOutput.mergeInto( outputTracker.getGlobalOutStream(), outputTracker.getGlobalErrStream() );            
+            outputMerger.mergeInto( outputTracker.getGlobalOutStream(), outputTracker.getGlobalErrStream() );            
         }
     }
 
@@ -212,14 +212,14 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         if( traverseTasks.size() == 0 )
             throw new IllegalStateException( "Cannot traverse; no pending traversals exist.");
 
-        ShardOutput shardOutput = new ShardOutput();
+        OutputMerger outputMerger = new OutputMerger();
 
         ShardTraverser traverser = new ShardTraverser( traversalEngine,
                                                        walker,
                                                        traverseTasks.remove(),
                                                        reference,
                                                        dataSource,
-                                                       shardOutput );
+                                                       outputMerger );
 
         Future traverseResult = threadPool.submit(traverser);
 
@@ -230,7 +230,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         if( !isShardTraversePending() )
             reduceTree.complete();
 
-        outputMergeTasks.add(shardOutput);        
+        outputMergeTasks.add(outputMerger);        
 
         return traverseResult;
     }

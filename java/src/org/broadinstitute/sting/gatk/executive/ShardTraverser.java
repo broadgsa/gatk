@@ -36,14 +36,14 @@ public class ShardTraverser implements Callable {
     private Shard shard;
     private IndexedFastaSequenceFile reference;
     private SAMDataSource reads;
-    private ShardOutput output;
+    private OutputMerger output;
 
     public ShardTraverser( TraverseLociByReference traversalEngine,
                            Walker walker,
                            Shard shard,
                            IndexedFastaSequenceFile reference,
                            SAMDataSource reads,
-                           ShardOutput output ) {
+                           OutputMerger output ) {
         this.walker = walker;
         this.traversalEngine = traversalEngine;
         this.shard = shard;

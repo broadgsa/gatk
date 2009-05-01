@@ -31,7 +31,7 @@ import java.nio.channels.WritableByteChannel;
  * can be made at any time from any thread, but complete() should be called on the
  * thread which is doing the writing. 
  */
-public class ShardOutput {
+public class OutputMerger {
     /**
      * Create a unique identifier
      */
@@ -54,7 +54,7 @@ public class ShardOutput {
     private FileOutputStream out = null;
     private FileOutputStream err = null;
 
-    public ShardOutput() {
+    public OutputMerger() {
         try {
             outFile = File.createTempFile("gatkout_" + id, null);
             errFile = File.createTempFile("gatkerr_" + id, null);
@@ -68,7 +68,7 @@ public class ShardOutput {
     }
 
     /**
-     * Waits for any the given ShardOutput to be ready for merging.
+     * Waits for any the given OutputMerger to be ready for merging.
      */
     public synchronized void waitForOutputComplete() {
         try {
