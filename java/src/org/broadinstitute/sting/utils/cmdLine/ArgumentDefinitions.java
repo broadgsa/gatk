@@ -23,18 +23,10 @@ import java.util.Map;
  */
 class ArgumentDefinitions {
     /**
-     * Backing data set of argument stored by short name.
+     * Backing data set of argument stored by short name and long name.
      */
     private Map<String,ArgumentDefinition> argumentsByShortName = new HashMap<String,ArgumentDefinition>();
-
-    /**
-     * Does this set of argument definitions specify an argument with the given short name?
-     * @param shortName The short name.
-     * @return True if it contains the definition.  False otherwise.
-     */
-    public boolean hasArgumentWithShortName( String shortName ) {
-        return argumentsByShortName.containsKey( shortName );
-    }
+    private Map<String,ArgumentDefinition> argumentsByLongName = new HashMap<String,ArgumentDefinition>();
 
     /**
      * Returns the argument with the given short name.
@@ -46,14 +38,31 @@ class ArgumentDefinitions {
     }
 
     /**
+     * Returns the argument with the given short name.
+     * @param longName Argument long name.
+     * @return The argument definition, or null if nothing matches.
+     */
+    public ArgumentDefinition getArgumentWithLongName( String longName ) {
+        return argumentsByLongName.get( longName );
+    }
+
+    /**
      * Adds an argument to the this argument definition list.
      * @param argument The argument to add.
      * @param sourceClass Class where the argument was defined.
      * @param sourceField Field in which the argument was defined.
      */
     public void add( Argument argument, Class sourceClass, Field sourceField ) {
-        argumentsByShortName.put( argument.shortName(), 
-                                  new ArgumentDefinition( argument, sourceClass, sourceField ) );
+        ArgumentDefinition definition = new ArgumentDefinition( argument, sourceClass, sourceField );
+        String fullName = argument.fullName().trim();
+        String shortName = argument.shortName().trim();
+
+        if( fullName.length() == 0 )
+            throw new IllegalArgumentException( "Argument cannot have 0-length fullname." );
+
+        argumentsByLongName.put( fullName, definition );
+        if( shortName.length() != 0 )
+            argumentsByShortName.put( shortName, definition );
     }
 
 }
@@ -77,5 +86,23 @@ class ArgumentDefinition {
         this.sourceClass = sourceClass;
         this.sourceField = sourceField;
     }
+}
 
+/**
+ * A general purpose accessor interface for ArgumentDefinitions.
+ */
+interface DefinitionMatcher {
+    ArgumentDefinition get( ArgumentDefinitions argumentDefinitions, String key );
+}
+
+class FullNameDefinitionMatcher implements DefinitionMatcher {
+    public ArgumentDefinition get( ArgumentDefinitions argumentDefinitions, String key ) {
+        return argumentDefinitions.getArgumentWithLongName( key );
+    }
+}
+
+class ShortNameDefinitionMatcher implements DefinitionMatcher {
+    public ArgumentDefinition get( ArgumentDefinitions argumentDefinitions, String key ) {
+        return argumentDefinitions.getArgumentWithShortName( key );
+    }
 }
