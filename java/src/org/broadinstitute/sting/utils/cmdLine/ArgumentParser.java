@@ -283,7 +283,7 @@ public class ArgumentParser {
             parser.parse(m_options, args, false);
         }
         catch( ParseException e ) {
-            boolean isIncomplete = e instanceof MissingArgumentException ||
+            boolean isIncomplete = e instanceof org.apache.commons.cli.MissingArgumentException ||
                                    e instanceof MissingOptionException ||
                                    e instanceof UnrecognizedOptionException;
 
