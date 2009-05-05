@@ -177,12 +177,13 @@ class ArgumentMatch {
 
     /**
      * Does this argument already have a value at the given site?
-     * Arguments are only allowed to be single-valued.
+     * Arguments are only allowed to be single-valued per site, and
+     * flags aren't allowed a value at all.
      * @param index Index at which to check for values.
      * @return True if the argument has a value at the given site.  False otherwise.
      */
     public boolean hasValueAtSite( int index ) {
-        return indices.get(index) != null && indices.get(index).size() >= 1;
+        return (indices.get(index) != null && indices.get(index).size() >= 1) || isArgumentFlag();
     }
 
     /**
@@ -196,5 +197,13 @@ class ArgumentMatch {
                 values.addAll(indices.get(index));
         }
         return values;
+    }
+
+    /**
+     * Convenience method returning true if the definition is a flag.
+     * @return True if definition is known to be a flag; false if not known to be a flag.
+     */
+    private boolean isArgumentFlag() {
+        return definition != null && definition.isFlag();    
     }
 }

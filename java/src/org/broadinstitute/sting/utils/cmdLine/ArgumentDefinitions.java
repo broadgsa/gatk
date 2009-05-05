@@ -216,6 +216,14 @@ class ArgumentDefinition {
         Class argumentType = sourceField.getType();
         return Collection.class.isAssignableFrom(argumentType) || sourceField.getType().isArray();         
     }
+
+    /**
+     * Is this argument a flag (meaning a boolean value whose presence indicates 'true').
+     * @return True if this argument is a flag.
+     */
+    public boolean isFlag() {
+        return (sourceField.getType() == Boolean.class) || (sourceField.getType() == Boolean.TYPE);
+    }
 }
 
 /**

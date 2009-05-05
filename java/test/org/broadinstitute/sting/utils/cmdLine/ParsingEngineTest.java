@@ -345,4 +345,18 @@ public class ParsingEngineTest extends BaseTest {
         @Argument(doc="my arg")
         Integer myArg;
     }
+
+    @Test(expected=InvalidArgumentValueException.class)
+    public void booleanWithParameterTest() {
+        final String[] commandLine = new String[] {"--mybool", "true"};
+
+        parsingEngine.addArgumentSources( BooleanArgProvider.class );
+        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
+        parsingEngine.validate(argumentMatches);
+    }
+
+    private class BooleanArgProvider {
+        @Argument(doc="my bool")
+        boolean myBool;
+    }
 }
