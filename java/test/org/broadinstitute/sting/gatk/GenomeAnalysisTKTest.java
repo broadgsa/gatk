@@ -44,7 +44,7 @@ public class GenomeAnalysisTKTest extends BaseTest {
     private final File refFileName = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/Homo_sapiens_assembly17.fasta");
 
     // skip n number of chromesomes when we do a chromesome by chromesome jumping
-    private final int skipChrome = 8;
+    private final int skipChrome = 15;
     /**
      * This has been blindly moved out of the GenomeAnalysisTK.java where it was hanging on,
      * but the author makes very limited promises of any functionality 
