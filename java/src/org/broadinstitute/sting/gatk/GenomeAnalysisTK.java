@@ -15,10 +15,9 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,23 +25,50 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     public static GenomeAnalysisTK Instance = null;
 
     // parameters and their defaults
+    @Argument(fullName="input_file",shortName="I",doc="SAM or BAM file(s)",required=false)    
     public List<File> INPUT_FILES = null;
+    
+    @Argument(fullName="maximum_reads",shortName="M",doc="Maximum number of reads to process before exiting",required=false)    
     public String MAX_READS_ARG = "-1";
-    public String STRICTNESS_ARG = "strict";
-    public File REF_FILE_ARG = null;
-    public String DEBUGGING_STR = null;
-    public String REGION_STR = null;
-    public String Analysis_Name = null;
-    public String DBSNP_FILE = null;
-    public String HAPMAP_FILE = null;
-    public String HAPMAP_CHIP_FILE = null;
-    public Boolean ENABLED_THREADED_IO = false;
-    public Boolean UNSAFE = false;
-    public String MAX_ON_FLY_SORTS = null;
-    public String DOWNSAMPLE_FRACTION = null;
-    public String DOWNSAMPLE_COVERAGE = null;
-    public String INTERVALS_FILE = null;
 
+    @Argument(fullName="validation_strictness",shortName="S",doc="How strict should we be with validation (LENIENT|SILENT|STRICT)",required=false)    
+    public String STRICTNESS_ARG = "strict";
+    
+    @Argument(fullName="reference_sequence", shortName="R",doc="Reference sequence file",required=false)    
+    public File REF_FILE_ARG = null;
+
+    @Argument(fullName="genome_region", shortName="L", doc="Genome region to operation on: from chr:start-end",required=false)    
+    public String REGION_STR = null;
+
+    @Argument(fullName="analysis_type", shortName="T", doc="Type of analysis to run")    
+    public String Analysis_Name = null;
+
+    @Argument(fullName="DBSNP",shortName="D",doc="DBSNP file",required=false)    
+    public String DBSNP_FILE = null;
+
+    @Argument(fullName="hapmap",shortName="H",doc="Hapmap file",required=false)    
+    public String HAPMAP_FILE = null;
+
+    @Argument(fullName="hapmap_chip",shortName="hc",doc="Hapmap chip file",required=false)
+    public String HAPMAP_CHIP_FILE = null;
+
+    @Argument(fullName="threaded_IO",shortName="P",doc="If set, enables threaded I/O operations",required=false)    
+    public Boolean ENABLED_THREADED_IO = false;
+
+    @Argument(fullName="unsafe",shortName="U",doc="If set, enables unsafe operations, nothing will be checked at runtime.",required=false)
+    public Boolean UNSAFE = false;
+
+    @Argument(fullName="sort_on_the_fly",shortName="sort",doc="Maximum number of reads to sort on the fly",required=false)    
+    public String MAX_ON_FLY_SORTS = null;
+
+    @Argument(fullName="downsample_to_fraction",shortName="dfrac",doc="Fraction [0.0-1.0] of reads to downsample to",required=false)
+    public String DOWNSAMPLE_FRACTION = null;
+
+    @Argument(fullName="downsample_to_coverage",shortName="dcov",doc="Coverage [integer] to downsample to",required=false)
+    public String DOWNSAMPLE_COVERAGE = null;
+
+    @Argument(fullName="intervals_file",shortName="V",doc="File containing list of genomic intervals to operate on. line := <contig> <start> <end>",required=false)    
+    public String INTERVALS_FILE = null;
 
     // our walker manager
     private WalkerManager walkerManager = null;
@@ -50,27 +76,35 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     public String pluginPathName = null;
     private TraversalEngine engine = null;
     public boolean DEBUGGING = false;
+
+    @Argument(fullName="all_loci",shortName="A",doc="Should we process all loci, not just those covered by reads",required=false)    
     public Boolean WALK_ALL_LOCI = false;
+
+    @Argument(fullName="disablethreading",shortName="dt",doc="Disable experimental threading support.",required=false)    
     public Boolean DISABLE_THREADING = false;
 
     /**
      * An output file presented to the walker.
      */
+    @Argument(fullName="out",shortName="o",doc="An output file presented to the walker.  Will overwrite contents if file exists.",required=false)
     public String outFileName = null;
 
     /**
      * An error output file presented to the walker.
      */
+    @Argument(fullName="err",shortName="e",doc="An error output file presented to the walker.  Will overwrite contents if file exists.",required=false)
     public String errFileName = null;
 
     /**
      * A joint file for both 'normal' and error output presented to the walker.
      */
+    @Argument(fullName="outerr",shortName="oe",doc="A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.",required=false)
     public String outErrFileName = null;
 
     /**
      * How many threads should be allocated to this analysis.
      */
+    @Argument(fullName="numthreads",shortName="nt",doc="How many threads should be allocated to running this analysis.",required=false)    
     public int numThreads = 1;
 
     /**
@@ -83,6 +117,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      */
     private static Logger logger = Logger.getLogger(GenomeAnalysisTK.class);
 
+    @Argument(fullName="rodBind",shortName="B",doc="",required=false)    
     public static ArrayList<String> ROD_BINDINGS = new ArrayList<String>();
 
 
@@ -93,7 +128,6 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      */
     protected void setupArgs() {
         m_parser.addOptionalArgList("input_file", "I", "SAM or BAM file", "INPUT_FILES");
-        //m_parser.addRequiredArg("input_file", "I", "SAM or BAM file", "INPUT_FILE");
         m_parser.addOptionalArg("maximum_reads", "M", "Maximum number of reads to process before exiting", "MAX_READS_ARG");
         m_parser.addOptionalArg("validation_strictness", "S", "How strict should we be with validation (LENIENT|SILENT|STRICT)", "STRICTNESS_ARG");
         m_parser.addOptionalArg("reference_sequence", "R", "Reference sequence file", "REF_FILE_ARG");
@@ -295,7 +329,6 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         logger.info("Strictness is " + strictness);
         engine.setStrictness(strictness);
 
-        engine.setDebugging(!(DEBUGGING_STR == null || DEBUGGING_STR.toLowerCase().equals("true")));
         engine.setMaxReads(Integer.parseInt(MAX_READS_ARG));
 
         if (REGION_STR != null) {

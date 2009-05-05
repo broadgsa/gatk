@@ -5,7 +5,6 @@ import org.apache.log4j.*;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.text.ParseException;
 
 /**
  * User: aaron
@@ -39,22 +38,38 @@ public abstract class CommandLineProgram {
     /**
      * the default log level
      */
+    @Argument(fullName="logging_level",
+              shortName="l",
+              doc="Set the minimum level of logging, i.e. setting INFO get's you INFO up to FATAL, setting ERROR gets you ERROR and FATAL level logging. (DEBUG, INFO, WARN, ERROR, FATAL, OFF). ",
+              required=false)    
     public String logging_level = "ERROR";
 
 
     /**
      * where to send the output of our logger
      */
+    @Argument(fullName="log_to_file",
+              shortName="log",
+              doc="Set the logging location",
+              required=false)    
     public String toFile = null;
 
     /**
      * do we want to silence the command line output
      */
+    @Argument(fullName="quiet_output_mode",
+              shortName="quiet",
+              doc="Set the logging to quiet mode, no output to stdout",
+              required=false)
     public Boolean quietMode = false;
 
     /**
      * do we want to generate debugging information with the logs
      */
+    @Argument(fullName="debug_mode",
+              shortName="debug",
+              doc="Set the logging file string to include a lot of debugging information (SLOW!)",
+              required=false)    
     public Boolean debugMode = false;
 
 
@@ -103,8 +118,8 @@ public abstract class CommandLineProgram {
     /**
      * this is used to indicate if they've asked for help
      */
+    @Argument(fullName="help",shortName="h",doc="Generate this help message",required=false)    
     public Boolean help = false;
-
 
     /**
      * This function is called to start processing the command line, and kick
