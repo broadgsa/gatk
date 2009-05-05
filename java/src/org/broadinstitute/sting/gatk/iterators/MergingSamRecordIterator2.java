@@ -34,7 +34,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
     protected final SamFileHeaderMerger samHeaderMerger;
     protected final SAMFileHeader.SortOrder sortOrder;
     protected static Logger logger = Logger.getLogger(MergingSamRecordIterator2.class);
-
+    private SAMRecord mNextRecord;
     protected boolean initialized = false;
 
     /**
@@ -48,14 +48,11 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
 
     }
 
-    /**
-     * this class MUST only be initialized once, since the creation of the
-     */
+    /** this class MUST only be initialized once, since the creation of the */
     private void lazyInitialization() {
         if (initialized) {
             throw new UnsupportedOperationException("You cannot double initialize a MergingSamRecordIterator2");
         }
-        initialized = true;
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
             if (this.sortOrder != SAMFileHeader.SortOrder.unsorted && reader.getFileHeader().getSortOrder() != this.sortOrder) {
@@ -65,9 +62,11 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, comparator);
             addIfNotEmpty(iterator);
         }
+        setInitialized();
+
     }
 
-      public boolean supportsSeeking() {
+    public boolean supportsSeeking() {
         return true;
     }
 
@@ -75,7 +74,6 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         if (initialized) {
             throw new IllegalStateException("You cannot double initialize a MergingSamRecordIterator2");
         }
-        initialized = true;
         final SAMRecordComparator comparator = getComparator();
 
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
@@ -83,13 +81,14 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, recordIter, comparator);
             addIfNotEmpty(iterator);
         }
+        setInitialized();
+
     }
 
     public void query(final String contig, final int start, final int stop, final boolean contained) {
         if (initialized) {
             throw new IllegalStateException("You cannot double initialize a MergingSamRecordIterator2");
         }
-        initialized = true;
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
             //reader.close();
@@ -97,31 +96,57 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, recordIter, comparator);
             addIfNotEmpty(iterator);
         }
+        setInitialized();
+
     }
 
     public void queryContained(final String contig, final int start, final int stop) {
         if (initialized) {
             throw new IllegalStateException("You cannot double initialize a MergingSamRecordIterator2");
         }
-        initialized = true;
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
             Iterator<SAMRecord> recordIter = reader.queryContained(contig, start, stop);
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, recordIter, comparator);
             addIfNotEmpty(iterator);
         }
+        setInitialized();
+
     }
+
+    private void setInitialized() {
+        initialized = true;
+        mNextRecord = nextRecord();
+    }
+
 
     /** Returns true if any of the underlying iterators has more records, otherwise false. */
     public boolean hasNext() {
         if (!initialized) {
             lazyInitialization();
         }
-        return !this.pq.isEmpty();
+        if (this.pq.isEmpty() && mNextRecord == null) {
+            return false;
+        }
+        return true;
+    }
+
+    public SAMRecord next() {
+        SAMRecord r = mNextRecord;
+        if (!this.pq.isEmpty()) {
+            mNextRecord = nextRecord();
+        } else {
+            mNextRecord = null;
+        }
+        return r;
+    }
+
+    public SAMRecord peek() {
+        return mNextRecord;
     }
 
     /** Returns the next record from the top most iterator during merging. */
-    public SAMRecord next() {
+    public SAMRecord nextRecord() {
         if (!initialized) {
             lazyInitialization();
         }
@@ -147,7 +172,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
                 record.setAttribute(SAMTag.RG.toString(), readGroups.get(0).getReadGroupId());
                 record.setAttribute(SAMTag.SM.toString(), readGroups.get(0).getReadGroupId());
             } else {
-               logger.warn("Unable to set read group of ungrouped read: unable to pick default group, there are " + readGroups.size() + " possible.");
+                logger.warn("Unable to set read group of ungrouped read: unable to pick default group, there are " + readGroups.size() + " possible.");
             }
         }
 
@@ -222,7 +247,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
 
     /**
      * closes all the file handles for the readers....DO THIS or you will run out of handles
-     * with sharding.  
+     * with sharding.
      */
     public void close() {
         for (SAMFileReader reader : samHeaderMerger.getReaders()) {
@@ -233,6 +258,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
 
     /**
      * allows us to be used in the new style for loops
+     *
      * @return
      */
     public Iterator<SAMRecord> iterator() {

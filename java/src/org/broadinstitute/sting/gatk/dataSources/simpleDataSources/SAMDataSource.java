@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
 import edu.mit.broad.picard.sam.SamFileHeaderMerger;
-import edu.mit.broad.picard.util.PeekableIterator;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMReadGroupRecord;
@@ -184,18 +183,11 @@ public class SAMDataSource implements SimpleDataSource {
         SamFileHeaderMerger headerMerger = CreateHeader();
         MergingSamRecordIterator2 iter = null;
 
-        /*if (false) { // !includeUnmappedReads) {
-            // make a merging iterator for this record
-            iter = new MergingSamRecordIterator2(headerMerger);
-
-            bound = fastMappedReadSeek(shard.getSize(), iter);
-        } else {*/
         if (!intoUnmappedReads) {
             // make a merging iterator for this record
             iter = new MergingSamRecordIterator2(headerMerger);
 
-            //bound = unmappedReadSeek(shard.getSize(), iter);
-            bound = fastMappedReadSeek(shard.getSize(), iter);
+           bound = fastMappedReadSeek(shard.getSize(), iter);
         }
         if (bound == null || intoUnmappedReads) {
             if (iter != null) {
@@ -204,7 +196,6 @@ public class SAMDataSource implements SimpleDataSource {
             iter = new MergingSamRecordIterator2(CreateHeader());
             bound = toUnmappedReads(shard.getSize(), iter);
         }
-        //}
 
         if (bound == null) {
             shard.signalDone();
@@ -234,37 +225,35 @@ public class SAMDataSource implements SimpleDataSource {
     private BoundedReadIterator toUnmappedReads(long readCount, MergingSamRecordIterator2 iter) throws SimpleDataSourceLoadException {
         BoundedReadIterator bound;// is this the first time we're doing this?
         int count = 0;
-        PeekableIterator<SAMRecord> peek = new PeekableIterator(iter);
-        // throw away as many reads as it takes
         SAMRecord d = null;
-        while (peek.hasNext()) {
-            d = peek.peek();
+        while (iter.hasNext()) {
+            d = iter.peek();
             int x = d.getReferenceIndex();
             if (x < 0 || x >= d.getHeader().getSequenceDictionary().getSequences().size()) {
                 // we have the magic read that starts the unmapped read segment!
                 break;
             }
-            peek.next();
+            iter.next();
         }
 
         // check to see what happened, did we run out of reads?
-        if (!peek.hasNext()) {
+        if (!iter.hasNext()) {
             return null;
         }
 
         // now walk until we've taken the unmapped read count
-        while (peek.hasNext() && count < this.readsTaken) {
-            peek.next();
+        while (iter.hasNext() && count < this.readsTaken) {
+            iter.next();
         }
 
         // check to see what happened, did we run out of reads?
-        if (!peek.hasNext()) {
+        if (!iter.hasNext()) {
             return null;
         }
 
         // we're good, increment our read cout
         this.readsTaken += readCount;
-        return new BoundedReadIterator(peek, readCount);
+        return new BoundedReadIterator(iter, readCount);
 
     }
 
