@@ -228,6 +228,8 @@
                 <fileset dir="${test.classes}">
                     <include name="**/${single}.class"/>
                     <exclude name="**/BaseTest.class"/>
+		    <!-- Omit inner classes -->
+		    <exclude name="**/*$*.class" />
                 </fileset>
             </batchtest>
         </junit>
