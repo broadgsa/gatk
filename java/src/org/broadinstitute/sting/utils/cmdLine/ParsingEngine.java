@@ -14,6 +14,7 @@ import java.util.regex.Matcher;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collection;
+import java.util.Arrays;
 
 /**
  * Created by IntelliJ IDEA.
@@ -35,8 +36,9 @@ import java.util.Collection;
 public class ParsingEngine {
     /**
      * A list of defined arguments against which command lines are matched.
+     * Package protected for testing access.
      */
-    private ArgumentDefinitions argumentDefinitions = new ArgumentDefinitions();
+    ArgumentDefinitions argumentDefinitions = new ArgumentDefinitions();
 
     /**
      * Techniques for parsing and for argument lookup.
@@ -46,12 +48,13 @@ public class ParsingEngine {
     /**
      * our log, which we want to capture anything from org.broadinstitute.sting
      */
-    protected static Logger logger = Logger.getLogger(ArgumentParser.class);    
+    protected static Logger logger = Logger.getLogger(ArgumentParser.class);
 
     public ParsingEngine() {
-        parsingMethods.add( new ParsingMethod(Pattern.compile("\\s*--([\\w\\.]+)\\s*"), new FullNameDefinitionMatcher()) );
-        parsingMethods.add( new ParsingMethod(Pattern.compile("\\s*-([\\w\\.]+)\\s*"), new ShortNameDefinitionMatcher()) );
-        parsingMethods.add( new ParsingMethod(Pattern.compile("\\s*-([\\w\\.])([\\w\\.]+)\\s*"), new ShortNameDefinitionMatcher()) );
+        parsingMethods.add( new ParsingMethod(Pattern.compile("\\s*--([\\w\\.]+)\\s*"), ArgumentDefinitions.FullNameDefinitionMatcher) );
+        parsingMethods.add( new ParsingMethod(Pattern.compile("\\s*-([\\w\\.])([\\w\\.]*)\\s*"),
+                            ArgumentDefinitions.ShortNameDefinitionMatcher,
+                            ArgumentDefinitions.ShortNameAliasProvider) );
     }
 
     /**
@@ -62,9 +65,9 @@ public class ParsingEngine {
      */
     public void addArgumentSources( Class... sources ) {
         for( Class source: sources ) {
-            Field[] fields = source.getFields();
+            Field[] fields = source.getDeclaredFields();
             for( Field field: fields ) {
-                Argument argument = field.getAnnotation(Argument.class);
+                Argument argument = field.getAnnotation(Argument.class);                
                 if(argument != null)
                     argumentDefinitions.add( argument, source, field );
             }
@@ -88,10 +91,39 @@ public class ParsingEngine {
 
     /**
      * Validates the list of command-line argument matches.  On
-     * failure ...TBD...
+     * failure throws an exception with detailed info about the particular failures.
      */
     public void validate( ArgumentMatches argumentMatches ) {
-        
+        // Find missing required arguments.
+        Collection<ArgumentDefinition> requiredArguments = argumentDefinitions.findArgumentDefinitions( true, new ArgumentDefinitions.RequiredDefinitionMatcher() );
+        Collection<ArgumentDefinition> missingArguments = new ArrayList<ArgumentDefinition>();
+        for( ArgumentDefinition requiredArgument: requiredArguments ) {
+            if( !argumentMatches.hasMatch(requiredArgument) )
+                missingArguments.add( requiredArgument );                
+        }
+
+        if( missingArguments.size() > 0 )
+            throw new MissingArgumentException( missingArguments );
+
+        // Find invalid arguments.  Invalid arguments will have a null argument definition.
+        Collection<ArgumentMatch> invalidArguments = argumentMatches.findMatches(null);
+        if( invalidArguments.size() > 0 )
+            throw new InvalidArgumentException( invalidArguments );
+
+        // Find values without an associated mate.
+        if( argumentMatches.MissingArgument.values().size() > 0 )
+            throw new InvalidArgumentValueException( argumentMatches.MissingArgument );
+
+        // Find arguments with too many values.
+        Collection<ArgumentMatch> overvaluedArguments = new ArrayList<ArgumentMatch>();
+        for( ArgumentMatch argumentMatch: argumentMatches ) {
+            // Warning: assumes that definition is not null (asserted by checks above).
+            if( !argumentMatch.definition.isMultiValued() && argumentMatch.values().size() > 1 )
+                overvaluedArguments.add(argumentMatch);
+        }
+
+        if( !overvaluedArguments.isEmpty() )
+            throw new TooManyValuesForArgumentException(overvaluedArguments);
     }
 
     /**
@@ -104,8 +136,8 @@ public class ParsingEngine {
             ArgumentDefinition definition = match.definition;
             if( object.getClass().equals(definition.sourceClass) ) {
                 try {
-                    if( !isArgumentBoolean(definition) )
-                        definition.sourceField.set( object, constructFromString( definition.sourceField, match.values ) );
+                    if( !isArgumentFlag(definition) )
+                        definition.sourceField.set( object, constructFromString( definition.sourceField, match.values() ) );
                     else
                         definition.sourceField.set( object, true );
                 }
@@ -117,7 +149,12 @@ public class ParsingEngine {
         }
     }
 
-    private boolean isArgumentBoolean( ArgumentDefinition definition ) {
+    /**
+     * Returns true if the argument is a flag (a 0-valued argument).
+     * @param definition Argument definition.
+     * @return True if argument is a flag; false otherwise.
+     */
+    private boolean isArgumentFlag( ArgumentDefinition definition ) {
         return (definition.sourceField.getType() == Boolean.class) || (definition.sourceField.getType() == Boolean.TYPE);
     }
 
@@ -145,8 +182,8 @@ public class ParsingEngine {
             throw new IllegalArgumentException( "Token is not recognizable as an argument: " + token );
 
         for( ParsingMethod parsingMethod: parsingMethods ) {
-            if( parsingMethod.hasMatch( argumentDefinitions, token ) )
-                return parsingMethod.findMatch( argumentDefinitions, token, position );
+            if( parsingMethod.matches( argumentDefinitions, token ) )
+                return parsingMethod.match( argumentDefinitions, token, position );
         }
 
         // No parse results found.
@@ -179,15 +216,20 @@ public class ParsingEngine {
      * @param tokens The command-line input.
      */
     private void fitValuesToArguments( ArgumentMatches argumentMatches, String[] tokens ) {
-        ArgumentMatch lastMatched = null;
-
         for( int i = 0; i < tokens.length; i++ ) {
-            if( argumentMatches.hasMatch(i) ) {
-                lastMatched = argumentMatches.getMatch(i);
+            // If this is the site of a successfully matched argument, pass it over.
+            if( argumentMatches.hasMatch(i) )
                 continue;
-            }
-            
-            lastMatched.addValue( tokens[i] );
+
+            // tokens[i] must be an argument value.  Match it with the previous argument.
+            String value = tokens[i];
+            int argumentSite = i - 1;
+
+            // If the argument is present and doesn't already have a value associated with the given site, add the value.
+            if( argumentMatches.hasMatch(argumentSite) && !argumentMatches.getMatch(argumentSite).hasValueAtSite(argumentSite))
+                argumentMatches.getMatch(argumentSite).addValue( argumentSite, value );
+            else
+                argumentMatches.MissingArgument.addValue( i, value );
         }
     }
 
@@ -303,18 +345,24 @@ public class ParsingEngine {
     private class ParsingMethod {
         public final Pattern pattern;
         public final DefinitionMatcher definitionMatcher;
+        public final AliasProvider aliasProvider;
 
         public ParsingMethod( Pattern pattern, DefinitionMatcher definitionMatcher ) {
+            this( pattern, definitionMatcher, null );
+        }
+
+        public ParsingMethod( Pattern pattern, DefinitionMatcher definitionMatcher, AliasProvider aliasProvider ) {
             this.pattern = pattern;
             this.definitionMatcher = definitionMatcher;
+            this.aliasProvider = aliasProvider;
         }
 
-        public boolean hasMatch( ArgumentDefinitions definitions, String token ) {
+        public boolean matches( ArgumentDefinitions definitions, String token ) {
             Matcher matcher = pattern.matcher(token);
-            return matcher.matches() && definitionMatcher.get( definitions, matcher.group(1) ) != null;
+            return matcher.matches();
         }
 
-        public ArgumentMatch findMatch( ArgumentDefinitions definitions, String token, int position ) {
+        public ArgumentMatch match( ArgumentDefinitions definitions, String token, int position ) {
             Matcher matcher = pattern.matcher(token);
 
             // Didn't match?  Must be bad input.
@@ -323,19 +371,107 @@ public class ParsingEngine {
 
             // If the argument is valid, parse out the argument and value (if present).
             String argument = matcher.group(1);
-            String value = matcher.groupCount() > 1 ? matcher.group(2) : null;
+            String value = null;
+            if( matcher.groupCount() > 1 && matcher.group(2).trim().length() > 0)
+                value = matcher.group(2).trim();
 
-            // Try to find a matching argument.  If found, label that as the match.
-            ArgumentDefinition argumentDefinition = definitionMatcher.get( definitions, argument );
+            // If an alias provider has been provided, determine the possible list of argument names that this
+            // argument / value pair can represent.
+            ArgumentDefinition bestMatchArgumentDefinition = null;
+            if( aliasProvider != null ) {
+                List<String> aliases = aliasProvider.getAliases( argument, value );
+                String bestAlias = null;
 
-            if( argumentDefinition != null ) {
-                ArgumentMatch argumentMatch = new ArgumentMatch( argumentDefinition, position );
-                if( value != null )
-                    argumentMatch.addValue( value );
-                return argumentMatch;
+                for( String alias: aliases ) {
+                    if( definitions.findArgumentDefinition(alias,definitionMatcher) != null ) {
+                        bestAlias = alias;
+                        bestMatchArgumentDefinition = definitions.findArgumentDefinition(alias,definitionMatcher);
+                        break;
+                    }
+                }
+
+                // Couldn't find anything appropriate?  The aliases should be in best-to-worst order, so
+                if( bestAlias == null ) {
+                    bestAlias = aliases.get(0);
+                }
+
+                if( aliasProvider.doesAliasConsumeValue(bestAlias,argument,value) ) value = null;
+                argument = bestAlias;                
             }
+            else
+                bestMatchArgumentDefinition = definitions.findArgumentDefinition( argument, definitionMatcher );                
 
-            throw new IllegalArgumentException( String.format("Unable to find match for token %s", token) );
+            // Try to find a matching argument.  If found, label that as the match.  If not found, add the argument
+                // with a null definition.
+            ArgumentMatch argumentMatch = new ArgumentMatch( argument, bestMatchArgumentDefinition, position );
+            if( value != null )
+                argumentMatch.addValue( position, value );
+            return argumentMatch;
         }
+    }
+}
+
+/**
+ * An exception indicating that some required arguments are missing.
+ */
+class MissingArgumentException extends StingException {
+    public MissingArgumentException( Collection<ArgumentDefinition> missingArguments ) {
+        super( formatArguments(missingArguments) );
+    }
+
+    private static String formatArguments( Collection<ArgumentDefinition> missingArguments ) {
+        StringBuilder sb = new StringBuilder();
+        for( ArgumentDefinition missingArgument: missingArguments )
+            sb.append( String.format("Argument with name '%s' is missing.", missingArgument.fullName) );
+        return sb.toString();
+    }
+}
+
+/**
+ * An exception for undefined arguments.
+ */
+class InvalidArgumentException extends StingException {
+    public InvalidArgumentException( Collection<ArgumentMatch> invalidArguments ) {
+        super( formatArguments(invalidArguments) );
+    }
+
+    private static String formatArguments( Collection<ArgumentMatch> invalidArguments ) {
+        StringBuilder sb = new StringBuilder();
+        for( ArgumentMatch invalidArgument: invalidArguments )
+            sb.append( String.format("Argument with name '%s' isn't defined.", invalidArgument.label) );
+        return sb.toString();
+    }
+}
+
+/**
+ * An exception for values that can't be mated with any argument.
+ */
+class InvalidArgumentValueException extends StingException {
+    public InvalidArgumentValueException( ArgumentMatch invalidValues ) {
+        super( formatArguments(invalidValues) );
+    }
+
+    private static String formatArguments( ArgumentMatch invalidValues ) {
+        StringBuilder sb = new StringBuilder();
+        for( int index: invalidValues.indices.keySet() )
+            for( String value: invalidValues.indices.get(index) )
+                sb.append( String.format("Invalid argument value '%s' at position %d", value, index) );
+        return sb.toString();
+    }
+}
+
+/**
+ * An exception indicating that too many values have been provided for the given argument.
+ */
+class TooManyValuesForArgumentException extends StingException {
+    public TooManyValuesForArgumentException( Collection<ArgumentMatch> arguments ) {
+        super( formatArguments(arguments) );
+    }
+
+    private static String formatArguments( Collection<ArgumentMatch> arguments ) {
+        StringBuilder sb = new StringBuilder();
+        for( ArgumentMatch argument: arguments )
+            sb.append( String.format("Argument with name '%s' has to many values: %s", argument.label, Arrays.deepToString(argument.values().toArray())) );
+        return sb.toString();
     }
 }

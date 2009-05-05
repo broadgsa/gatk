@@ -7,6 +7,8 @@ import java.util.TreeMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Collection;
+import java.util.HashMap;
 /**
  * Created by IntelliJ IDEA.
  * User: mhanna
@@ -33,22 +35,27 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      */
     Map<Integer,ArgumentMatch> argumentMatches = new TreeMap<Integer,ArgumentMatch>();
 
+    /**
+     * Provide a place to put command-line argument values that don't seem to belong to
+     * any particular command-line option.
+     */
+    public ArgumentMatch MissingArgument = new ArgumentMatch();    
+
     void mergeInto( ArgumentMatch match ) {
         boolean definitionExists = false;
 
         // Clone the list of argument matches to avoid ConcurrentModificationExceptions.
-        Set<ArgumentMatch> uniqueMatches = getUniqueMatches();
-        for( ArgumentMatch argumentMatch: uniqueMatches ) {
-            if( argumentMatch.definition.equals(match.definition) ) {
+        for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
+            if( argumentMatch.definition == match.definition ) {
                 argumentMatch.mergeInto( match );
-                for( int index: match.indices )
+                for( int index: match.indices.keySet() )
                     argumentMatches.put( index, argumentMatch );
                 definitionExists = true;
             }
         }
 
         if( !definitionExists ) {
-            for( int index: match.indices )
+            for( int index: match.indices.keySet() )
                 argumentMatches.put( index, match );
         }
     }
@@ -89,6 +96,30 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
     private Set<ArgumentMatch> getUniqueMatches() {
         return new HashSet<ArgumentMatch>( argumentMatches.values() );
     }
+
+    /**
+     * Does the match collection have a match for this argument definition.
+     * @param definition Definition to match.
+     * @return True if a match exists; false otherwise.
+     */
+    public boolean hasMatch( ArgumentDefinition definition ) {
+        return findMatches( definition ).size() > 0;
+    }
+
+    /**
+     * Return all argument matches of this definition.
+     * @param definition Argument definition to match.
+     * @return List of all matches.
+     */
+    public Collection<ArgumentMatch> findMatches( ArgumentDefinition definition ) {
+        Collection<ArgumentMatch> matches = new HashSet<ArgumentMatch>();
+        for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
+            if( argumentMatch.definition == definition )
+                matches.add( argumentMatch );
+        }        
+        return matches;
+    }
+
 }
 
 /**
@@ -101,18 +132,27 @@ class ArgumentMatch {
     public final ArgumentDefinition definition;
 
     /**
-     * Index into the string of arguments where this match was found.
+     * The text that's been matched, as it appears in the command line arguments.
      */
-    public final Set<Integer> indices = new HashSet<Integer>();
+    public final String label;
 
     /**
-     * The values associated with this parameter.
+     * Maps indicies of command line arguments to values paired with that argument.
      */
-    public final List<String> values = new ArrayList<String>();
+    public final Map<Integer,List<String>> indices = new HashMap<Integer,List<String>>();
 
-    public ArgumentMatch( ArgumentDefinition definition, int index ) {
+    /**
+     * Create a new argument match, defining its properties later.  Used to create invalid arguments.
+     */
+    public ArgumentMatch() {
+        definition = null;
+        label = null;
+    }
+
+    public ArgumentMatch( String label, ArgumentDefinition definition, int index ) {
+        this.label = label;
         this.definition = definition;
-        indices.add(index);
+        indices.put(index,null);
     }
 
     /**
@@ -121,15 +161,40 @@ class ArgumentMatch {
      * @param other The other match to merge into.
      */
     public void mergeInto( ArgumentMatch other ) {
-        indices.addAll(other.indices);
-        values.addAll(other.values);
+        indices.putAll(other.indices);
     }
 
     /**
      * Associate a value with this merge maapping.
+     * @param index index of the command-line argument to which this value is mated.
      * @param value Text representation of value to add.
      */
-    public void addValue( String value ) {
-        this.values.add(value);
+    public void addValue( int index, String value ) {
+        if( !indices.containsKey(index) || indices.get(index) == null )
+            indices.put(index, new ArrayList<String>() );
+        indices.get(index).add(value);
+    }
+
+    /**
+     * Does this argument already have a value at the given site?
+     * Arguments are only allowed to be single-valued.
+     * @param index Index at which to check for values.
+     * @return True if the argument has a value at the given site.  False otherwise.
+     */
+    public boolean hasValueAtSite( int index ) {
+        return indices.get(index) != null && indices.get(index).size() >= 1;
+    }
+
+    /**
+     * Return the values associated with this argument match.
+     * @return A collection of the string representation of these value.
+     */
+    public List<String> values() {
+        List<String> values = new ArrayList<String>();
+        for( int index: indices.keySet() ) {
+            if( indices.get(index) != null )
+                values.addAll(indices.get(index));
+        }
+        return values;
     }
 }

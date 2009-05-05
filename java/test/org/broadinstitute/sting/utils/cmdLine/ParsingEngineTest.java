@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.cmdLine;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.StingException;
 import org.junit.Test;
 import org.junit.Before;
 import org.junit.Assert;
@@ -62,6 +63,26 @@ public class ParsingEngineTest extends BaseTest {
         parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
 
         Assert.assertEquals("Argument is not correctly initialized", "na12878.bam", argProvider.inputFile );
+    }
+
+    @Test
+    public void multiCharShortNameArgumentTest() {
+        final String[] commandLine = new String[] {"-out","out.txt"};
+
+        parsingEngine.addArgumentSources( MultiCharShortNameArgProvider.class );
+        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
+        parsingEngine.validate(argumentMatches);
+
+        MultiCharShortNameArgProvider argProvider = new MultiCharShortNameArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+
+        Assert.assertEquals("Argument is not correctly initialized", "out.txt", argProvider.outputFile );
+    }
+
+
+    private class MultiCharShortNameArgProvider {
+        @Argument(shortName="out")
+        public String outputFile;
     }
 
     @Test
@@ -127,7 +148,6 @@ public class ParsingEngineTest extends BaseTest {
         Assert.assertEquals("2nd filename is incorrect", "bar.txt", argProvider.inputFile[1] );        
     }
 
-
     private class MultiValueArgProvider {
         @Argument(fullName="input_file",shortName="I")
         public String[] inputFile;
@@ -183,12 +203,146 @@ public class ParsingEngineTest extends BaseTest {
         public List integers;
     }
 
+    @Test(expected=MissingArgumentException.class)
+    public void requiredArgTest() {
+        final String[] commandLine = new String[0];
 
-    // To test
-    // misc first element
-    // multiple trailing values
-    // differing input types
-    // spurious arguments with in conjuction with immediate setters "-Ifoo.txt bar.txt"
-    // required but missing arguments
-    // invalid arguments
+        parsingEngine.addArgumentSources( RequiredArgProvider.class );
+        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
+        parsingEngine.validate( argumentMatches );
+    }
+
+    private class RequiredArgProvider {
+        @Argument(required=true)
+        public Integer value;
+    }
+
+    @Test
+    public void unrequiredArgTest() {
+        final String[] commandLine = new String[0];
+
+        parsingEngine.addArgumentSources( UnrequiredArgProvider.class );
+        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
+        parsingEngine.validate( argumentMatches );
+
+        UnrequiredArgProvider argProvider = new UnrequiredArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+
+        Assert.assertNull( "Value was unrequired and unspecified; contents should be null", argProvider.value );
+    }
+
+    private class UnrequiredArgProvider {
+        @Argument(required=false)
+        public Integer value;
+    }
+
+    @Test(expected=InvalidArgumentException.class)
+    public void invalidArgTest() {
+        final String[] commandLine = new String[] { "--foo" };
+
+        parsingEngine.addArgumentSources( UnrequiredArgProvider.class );
+        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
+        parsingEngine.validate( argumentMatches );        
+    }
+
+    @Test(expected=StingException.class)
+    public void duplicateLongNameTest() {
+        parsingEngine.addArgumentSources( DuplicateLongNameProvider.class );        
+    }
+
+    private class DuplicateLongNameProvider {
+        @Argument(fullName="myarg")
+        public Integer foo;
+
+        @Argument(fullName="myarg")
+        public Integer bar;
+    }
+
+    @Test(expected=StingException.class)
+    public void duplicateShortNameTest() {
+        parsingEngine.addArgumentSources( DuplicateShortNameProvider.class );
+    }
+
+
+    private class DuplicateShortNameProvider {
+        @Argument(shortName="myarg")
+        public Integer foo;
+
+        @Argument(shortName="myarg")
+        public Integer bar;
+    }
+
+    @Test(expected=InvalidArgumentValueException.class)
+    public void missingArgumentNameTest() {
+        final String[] commandLine = new String[] {"foo.txt"};
+
+        parsingEngine.addArgumentSources( NoArgProvider.class );
+        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
+        parsingEngine.validate(argumentMatches);
+    }
+
+    private class NoArgProvider {
+
+    }
+
+    @Test(expected=InvalidArgumentValueException.class)
+    public void extraValueTest() {
+        final String[] commandLine = new String[] {"-Ifoo.txt", "bar.txt"};
+
+        parsingEngine.addArgumentSources( InputFileArgProvider.class );
+        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
+        parsingEngine.validate(argumentMatches);
+    }
+
+    @Test(expected=MissingArgumentException.class)
+    public void multipleInvalidArgTest() {
+        final String[] commandLine = new String[] {"-N1", "-N2", "-N3"};
+
+        parsingEngine.addArgumentSources( RequiredArgProvider.class );
+        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
+        parsingEngine.validate( argumentMatches );
+    }
+
+    @Test(expected=TooManyValuesForArgumentException.class)
+    public void invalidArgCountTest() {
+        final String[] commandLine = new String[] {"--value","1","--value","2","--value","3"};
+
+        parsingEngine.addArgumentSources( RequiredArgProvider.class );
+        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
+        parsingEngine.validate( argumentMatches );
+    }
+
+    @Test
+    public void packageProtectedArgTest() {
+        final String[] commandLine = new String[] {"--foo", "1"};
+
+        parsingEngine.addArgumentSources( PackageProtectedArgProvider.class );
+        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
+        parsingEngine.validate(argumentMatches);
+
+        PackageProtectedArgProvider argProvider = new PackageProtectedArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+
+        Assert.assertEquals("Argument is not correctly initialized", 1, argProvider.foo.intValue() );
+    }
+
+    private class PackageProtectedArgProvider {
+        @Argument
+        Integer foo;
+    }
+
+    @Test
+    public void correctDefaultArgNameTest() {
+        parsingEngine.addArgumentSources( CamelCaseArgProvider.class );
+
+        DefinitionMatcher matcher = ArgumentDefinitions.FullNameDefinitionMatcher;
+        ArgumentDefinition definition = parsingEngine.argumentDefinitions.findArgumentDefinition("myarg", matcher);
+
+        Assert.assertNotNull("Invalid default argument name assigned", definition );
+    }
+
+    private class CamelCaseArgProvider {
+        @Argument
+        Integer myArg;
+    }
 }
