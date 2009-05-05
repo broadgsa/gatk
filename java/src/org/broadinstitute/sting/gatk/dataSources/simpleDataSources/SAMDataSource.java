@@ -189,7 +189,7 @@ public class SAMDataSource implements SimpleDataSource {
 
            bound = fastMappedReadSeek(shard.getSize(), iter);
         }
-        if (bound == null || intoUnmappedReads) {
+        if ((bound == null || intoUnmappedReads) && includeUnmappedReads) {
             if (iter != null) {
                 iter.close();
             }

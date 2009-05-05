@@ -89,11 +89,16 @@ public class TraverseReads extends TraversalEngine {
         // while we still have more reads
         for (SAMRecord read : iter) {
 
-            // get the genome loc from the read
-            GenomeLoc site = new GenomeLoc(read);
+            // our locus context
+            LocusContext locus = null;
 
-            // Jump forward in the reference to this locus location
-            LocusContext locus = new LocusContext(site, Arrays.asList(read), Arrays.asList(0));
+            if (read.getReferenceIndex() >= 0) {
+                // get the genome loc from the read
+                GenomeLoc site = new GenomeLoc(read);
+
+                // Jump forward in the reference to this locus location
+                locus = new LocusContext(site, Arrays.asList(read), Arrays.asList(0));
+            }
 
             // update the number of reads we've seen
             TraversalStatistics.nRecords++;
@@ -108,9 +113,9 @@ public class TraverseReads extends TraversalEngine {
                 sum = readWalker.reduce(x, sum);
             }
 
-            printProgress("loci", locus.getLocation());
+            if (locus != null) { printProgress("loci", locus.getLocation()); }
         }
-        System.err.println(TraversalStatistics.nRecords);
+        //System.err.println(TraversalStatistics.nRecords);
         return sum;
     }
 
