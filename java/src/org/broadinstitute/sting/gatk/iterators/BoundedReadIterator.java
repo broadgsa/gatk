@@ -40,7 +40,7 @@ public class BoundedReadIterator implements CloseableIterator<SAMRecord>, Iterab
     private long currentCount = 0;
 
     // the iterator we want to decorate
-    private final MergingSamRecordIterator2 iterator;
+    private final CloseableIterator<SAMRecord> iterator;
 
     // our unmapped read flag
     private boolean doNotUseThatUnmappedReadPile = false;
@@ -56,7 +56,7 @@ public class BoundedReadIterator implements CloseableIterator<SAMRecord>, Iterab
      * @param iter
      * @param readCount
      */
-    public BoundedReadIterator(MergingSamRecordIterator2 iter, long readCount) {
+    public BoundedReadIterator(CloseableIterator<SAMRecord> iter, long readCount) {
         if (iter != null) {
             isOpen = true;
 
@@ -71,7 +71,12 @@ public class BoundedReadIterator implements CloseableIterator<SAMRecord>, Iterab
 
 
     public SAMFileHeader getMergedHeader() {
-        return iterator.getMergedHeader();
+        // todo: this is bad, we need an iterface out there for samrecords that supports getting the header,
+        // regardless of the merging
+        if (iterator instanceof MergingSamRecordIterator2)
+            return ((MergingSamRecordIterator2)iterator).getMergedHeader();
+        else
+            return null;
     }
 
     /**

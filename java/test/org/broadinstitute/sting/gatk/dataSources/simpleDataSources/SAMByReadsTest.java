@@ -1,16 +1,20 @@
 package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
 import static junit.framework.Assert.fail;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
+import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
+import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
+import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -54,7 +58,7 @@ public class SAMByReadsTest extends BaseTest {
         fl = new ArrayList<String>();
 
         // sequence
-        seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly17/v0/Homo_sapiens_assembly17.fasta"));
         GenomeLoc.setupRefContigOrdering(seq.getSequenceDictionary());
     }
 
@@ -63,53 +67,43 @@ public class SAMByReadsTest extends BaseTest {
     @Test
     public void testTotalReadCount() {
         logger.warn("Executing testTotalReadCount");
-        // the sharding strat.
-        //ShardStrategy strat = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
-
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
-
+       
         // setup the test files
-        fl.add("/humgen/gsa-scr1/GATK_Data/Validation_Data/10035.5.clean.bam");
-
-        // make sure we don't see dupes
-        HashSet<String> names = new HashSet<String>();
-
+        fl.add("/humgen/gsa-scr1/GATK_Data/Validation_Data/index_test.bam");
+        final int targetReadCount = 5000;
+        
+        ShardStrategy shardStrategy = ShardStrategyFactory.shatterByReadCount(seq.getSequenceDictionary(),targetReadCount);
         
         try {
             SAMDataSource data = new SAMDataSource(fl);
-            final int targetReadCount = 500000;
 
             // check the total read count
-            final int totalReads = 1782980;
+            final int totalReads = 10000;
 
             int readsSeen = 0;
             BoundedReadIterator iter;
-            /*
 
-            while ((iter = data.seek(targetReadCount)) != null) {
+
+            for (Shard sd : shardStrategy) {
                 int readcnt = 0;
-              
+
+                iter = (BoundedReadIterator)data.seek(sd);
+
                 for (SAMRecord r : iter) {
-                    String readName = r.getReadName();
-                    if (names.contains(readName)) {
-                        fail("We saw read " + readName + " twice");
-                    }
-                    names.add(readName);
+
                     readcnt++;
+
                 }
 
                 
                 readsSeen += readcnt;
-                logger.warn("Seen " + readsSeen + " reads.");
+                //logger.warn("Seen " + readsSeen + " reads.");
 
             }
             // make sure we've seen all the reads
             assertEquals(totalReads,readsSeen);
-            */
+            logger.warn("Success " + readsSeen + " equals target count of " + totalReads);
+
         }
         
         catch (SimpleDataSourceLoadException e) {
