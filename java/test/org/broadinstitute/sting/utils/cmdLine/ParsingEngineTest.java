@@ -33,7 +33,7 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     private class InputFileArgProvider {
-        @Argument(fullName="input_file",shortName="I")
+        @Argument(fullName="input_file",doc="input file",shortName="I")
         public String inputFile;
     }
 
@@ -81,7 +81,7 @@ public class ParsingEngineTest extends BaseTest {
 
 
     private class MultiCharShortNameArgProvider {
-        @Argument(shortName="out")
+        @Argument(shortName="out", doc="output file")
         public String outputFile;
     }
 
@@ -128,7 +128,7 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     private class AllLociArgProvider {
-        @Argument(fullName="all_loci",shortName="A")
+        @Argument(fullName="all_loci",shortName="A", doc="all loci")
         public boolean allLoci = false;
     }
 
@@ -149,7 +149,7 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     private class MultiValueArgProvider {
-        @Argument(fullName="input_file",shortName="I")
+        @Argument(fullName="input_file",shortName="I", doc="input file")
         public String[] inputFile;
     }
 
@@ -174,7 +174,7 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     private class IntegerListArgProvider {
-        @Argument(fullName="integer_list",shortName="N")
+        @Argument(fullName="integer_list",shortName="N",doc="integer list")
         public List<Integer> integers;
     }
 
@@ -199,7 +199,7 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     private class UntypedListArgProvider {
-        @Argument(fullName="untyped_list",shortName="N")
+        @Argument(fullName="untyped_list",shortName="N", doc="untyped list")
         public List integers;
     }
 
@@ -213,7 +213,7 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     private class RequiredArgProvider {
-        @Argument(required=true)
+        @Argument(required=true,doc="value")
         public Integer value;
     }
 
@@ -232,7 +232,7 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     private class UnrequiredArgProvider {
-        @Argument(required=false)
+        @Argument(required=false,doc="unrequired value")
         public Integer value;
     }
 
@@ -251,10 +251,10 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     private class DuplicateLongNameProvider {
-        @Argument(fullName="myarg")
+        @Argument(fullName="myarg",doc="my arg")
         public Integer foo;
 
-        @Argument(fullName="myarg")
+        @Argument(fullName="myarg", doc="my arg")
         public Integer bar;
     }
 
@@ -265,10 +265,10 @@ public class ParsingEngineTest extends BaseTest {
 
 
     private class DuplicateShortNameProvider {
-        @Argument(shortName="myarg")
+        @Argument(shortName="myarg", doc="my arg")
         public Integer foo;
 
-        @Argument(shortName="myarg")
+        @Argument(shortName="myarg", doc="my arg")
         public Integer bar;
     }
 
@@ -327,7 +327,7 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     private class PackageProtectedArgProvider {
-        @Argument
+        @Argument(doc="foo")
         Integer foo;
     }
 
@@ -342,7 +342,7 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     private class CamelCaseArgProvider {
-        @Argument
+        @Argument(doc="my arg")
         Integer myArg;
     }
 }

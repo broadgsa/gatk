@@ -17,9 +17,9 @@ import java.util.List;
 
 @WalkerName("IndelIntervals")
 public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval, IndelIntervalWalker.Interval> {
-    @Argument(fullName="maxReadLength", shortName="maxRead", required=false, defaultValue="-1")
+    @Argument(fullName="maxReadLength", shortName="maxRead", doc="max read length", required=false, defaultValue="-1")
     public int maxReadLength;
-    @Argument(fullName="minIndelsPerInterval", shortName="minIndels", required=false, defaultValue="1")
+    @Argument(fullName="minIndelsPerInterval", shortName="minIndels", doc="min indels per interval", required=false, defaultValue="1")
     public int minIntervalIndelCount;
 
     public void initialize() {}

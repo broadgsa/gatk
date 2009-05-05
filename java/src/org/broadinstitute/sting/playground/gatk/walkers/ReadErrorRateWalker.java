@@ -20,9 +20,9 @@ import java.util.Random;
  * @author Kiran Garimella
  */
 public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
-    @Argument(fullName="printVisualHits",   shortName="v",  required=false, defaultValue="false") public boolean printVisualHits;
-    @Argument(fullName="useNextBestBase",   shortName="nb", required=false, defaultValue="false") public boolean useNextBestBase;
-    @Argument(fullName="useNextRandomBase", shortName="nr", required=false, defaultValue="false") public boolean useNextRandomBase;
+    @Argument(fullName="printVisualHits",   shortName="v",  doc="print visual hits",    required=false, defaultValue="false") public boolean printVisualHits;
+    @Argument(fullName="useNextBestBase",   shortName="nb", doc="use next best base",   required=false, defaultValue="false") public boolean useNextBestBase;
+    @Argument(fullName="useNextRandomBase", shortName="nr", doc="use next random base", required=false, defaultValue="false") public boolean useNextRandomBase;
 
     /**
      * Ignore reads with indels or clipping

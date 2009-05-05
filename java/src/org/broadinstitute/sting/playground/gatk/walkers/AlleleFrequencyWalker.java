@@ -21,7 +21,7 @@ import java.io.DataInputStream;
 public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, String>// implements AllelicVariant
 {
     @Argument(doc="Number of chromosomes in data") public int    N;
-    @Argument(required=false,defaultValue="0") public int DOWNSAMPLE;
+    @Argument(required=false,doc="downsample",defaultValue="0") public int DOWNSAMPLE;
     @Argument(doc="File to output GFF formatted allele frequency calls") public String GFF_OUTPUT_FILE;
     @Argument(shortName="met", doc="Turns on logging of metrics on the fly with AlleleFrequency calculation") public boolean LOG_METRICS;
     @Argument(required=false, defaultValue="metrics.out", doc="Name of file where metrics will output") public String METRICS_OUTPUT_FILE;

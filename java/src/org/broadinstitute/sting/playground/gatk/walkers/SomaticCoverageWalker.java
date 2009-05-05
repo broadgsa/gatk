@@ -21,13 +21,13 @@ import edu.mit.broad.picard.PicardException;
 
 public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
 
-    @Argument(fullName = "tumor_sample_name", shortName = "s1", required = true)
+    @Argument(fullName = "tumor_sample_name", shortName = "s1", doc="tumor sample name", required = true)
     public String tumorSampleName;
 
-    @Argument(fullName = "normal_sample_name", shortName = "s2", required = true)
+    @Argument(fullName = "normal_sample_name", shortName = "s2", doc="normal sample name", required = true)
     public String normalSampleName;
 
-    @Argument(fullName = "extended", shortName="ext", required=false, defaultValue = "false")
+    @Argument(fullName = "extended", shortName="ext", doc="extended output", required=false, defaultValue = "false")
     public boolean extendedOutput;
 
 

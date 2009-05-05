@@ -24,10 +24,10 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
     AlleleFrequencyWalker       pooled_caller = null;
     List<String> sample_names = null;
 
-    @Argument(required=false, shortName="downsample", defaultValue="4") public int DOWNSAMPLE;
-    @Argument(required=false, shortName="downsample_noise", defaultValue="3") public int DOWNSAMPLE_NOISE;
-    @Argument(required=false, shortName="log_metrics", defaultValue="true") public boolean LOG_METRICS;
-    @Argument(required=false, shortName="fractional_counts", defaultValue="false") public boolean FRACTIONAL_COUNTS;
+    @Argument(required=false, shortName="downsample", doc="downsample", defaultValue="4") public int DOWNSAMPLE;
+    @Argument(required=false, shortName="downsample_noise", doc="downsample noise", defaultValue="3") public int DOWNSAMPLE_NOISE;
+    @Argument(required=false, shortName="log_metrics", doc="log metrics", defaultValue="true") public boolean LOG_METRICS;
+    @Argument(required=false, shortName="fractional_counts", doc="fractional counts", defaultValue="false") public boolean FRACTIONAL_COUNTS;
     
     private Random random;
 

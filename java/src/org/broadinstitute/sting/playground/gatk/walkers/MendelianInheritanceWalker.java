@@ -14,9 +14,9 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 public class MendelianInheritanceWalker  extends RefWalker<TrioConcordanceRecord, TrioConcordanceRecord> {
 
-	@Argument(fullName="consensus_cutoff", shortName="XC",required=true ) public Double CONS_CUTOFF;
-	@Argument(fullName="snp_cutoff", shortName="XS",required=true ) public Double SNP_CUTOFF;
-	@Argument(fullName="indel_cutoff", shortName="XI",required=true ) public Double INDEL_CUTOFF;
+	@Argument(fullName="consensus_cutoff", shortName="XC", doc="consensus cutoff", required=true ) public Double CONS_CUTOFF;
+	@Argument(fullName="snp_cutoff", shortName="XS", doc="snp cutoff", required=true ) public Double SNP_CUTOFF;
+	@Argument(fullName="indel_cutoff", shortName="XI", doc="indel cutoff", required=true ) public Double INDEL_CUTOFF;
 	@Argument(fullName="log_concordant", shortName="LC",doc="If set, all trio-concordant sites will be logged at level INFO") public boolean LOG_CONCORDANT; 
 	@Argument(fullName="log_discordant", shortName="LD",doc="If set, all trio-discordant sites will be logged at level INFO") public boolean LOG_DISCORDANT; 
 	

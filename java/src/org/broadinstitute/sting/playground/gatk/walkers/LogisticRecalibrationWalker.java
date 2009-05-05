@@ -17,10 +17,10 @@ import java.io.FileNotFoundException;
 
 @WalkerName("LogisticRecalibration")
 public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
-    @Argument(shortName="logisticParams", required=true)
+    @Argument(shortName="logisticParams", doc="logistic params file", required=true)
     public String logisticParamsFile;
 
-    @Argument(shortName="outputBAM", required=false, defaultValue="")
+    @Argument(shortName="outputBAM", doc="output BAM file", required=false, defaultValue="")
     public String outputFile;
 
     HashMap<String, LogisticRegressor> regressors = new HashMap<String, LogisticRegressor>();

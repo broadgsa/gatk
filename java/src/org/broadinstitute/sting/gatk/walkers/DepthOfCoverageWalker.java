@@ -15,7 +15,7 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>> {
-    @Argument(fullName="suppressLocusPrinting",required=false,defaultValue="false")
+    @Argument(fullName="suppressLocusPrinting",doc="Suppress printing",required=false,defaultValue="false")
     public boolean suppressPrinting;
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {

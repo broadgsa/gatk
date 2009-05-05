@@ -42,7 +42,7 @@ public @interface Argument {
      * --help argument is specified. 
      * @return Doc string associated with this command-line argument.
      */
-    String doc() default "";
+    String doc();
 
     /**
      * Is this command-line argument required.  The application should exit

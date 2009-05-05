@@ -15,10 +15,10 @@ import java.io.FileNotFoundException;
 
 @WalkerName("CountCovariates")
 public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
-    @Argument(fullName="MAX_READ_LENGTH", shortName="mrl", required=false,defaultValue="101")
+    @Argument(fullName="MAX_READ_LENGTH", shortName="mrl", doc="max read length", required=false,defaultValue="101")
     public int MAX_READ_LENGTH;
 
-    @Argument(fullName="MAX_QUAL_SCORE", shortName="mqs", required=false,defaultValue="63")
+    @Argument(fullName="MAX_QUAL_SCORE", shortName="mqs", doc="max quality score", required=false,defaultValue="63")
     public int MAX_QUAL_SCORE;
 
     @Argument(fullName="OUTPUT_FILEROOT", shortName="outroot", required=false, defaultValue="output", doc="Filename root for the outputted logistic regression training files")

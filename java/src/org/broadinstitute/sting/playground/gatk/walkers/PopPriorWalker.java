@@ -20,7 +20,7 @@ import edu.mit.broad.picard.PicardException;
 
 public class PopPriorWalker extends LocusWalker<Integer, Integer> {
 
-    @Argument(fullName = "quality_score_cutoff", required = false) public Byte qualityScoreCutoff;
+    @Argument(fullName = "quality_score_cutoff", doc="quality score cutoff", required = false) public Byte qualityScoreCutoff;
 
     public PopPriorWalker() {
     }

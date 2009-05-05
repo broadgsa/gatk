@@ -19,7 +19,7 @@ import java.io.File;
 
 @WalkerName("IntervalCleaner")
 public class IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> {
-    @Argument(fullName="maxReadLength", shortName="maxRead", required=false, defaultValue="-1")
+    @Argument(fullName="maxReadLength", shortName="maxRead", doc="max read length", required=false, defaultValue="-1")
     public int maxReadLength;
     @Argument(fullName="OutputCleaned", shortName="O", required=true, doc="Output file (sam or bam) for improved (realigned) reads")
     public String OUT;
