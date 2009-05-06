@@ -66,21 +66,33 @@ public class ParsingEngine {
     }
 
     /**
-     * Add an argument source.  Argument sources are expected to have
+     * Add a main argument source.  Argument sources are expected to have
      * any number of fields with an @Argument annotation attached.
-     * @param source An argument source from which to extract
-     *               command-line arguments.
+     * @param source     An argument source from which to extract command-line arguments.
      */
     public void addArgumentSource( Class source ) {
-        do {
+        addArgumentSource(null, source);
+    }
+
+    /**
+     * Add an argument source.  Argument sources are expected to have
+     * any number of fields with an @Argument annotation attached.
+     * @param sourceName name for this argument source.  'Null' indicates that this source should be treated
+     *                   as the main module.
+     * @param source     An argument source from which to extract command-line arguments.
+     */
+    public void addArgumentSource( String sourceName, Class source ) {
+        Collection<ArgumentDefinition> argumentsFromSource = new ArrayList<ArgumentDefinition>();
+        while( source != null ) {
             Field[] fields = source.getDeclaredFields();
             for( Field field: fields ) {
                 Argument argument = field.getAnnotation(Argument.class);
                 if(argument != null)
-                    argumentDefinitions.add( argument, source, field );
+                    argumentsFromSource.add( new ArgumentDefinition(argument,source,field) );
             }
             source = source.getSuperclass();
-        } while( source != null );
+        }
+        argumentDefinitions.add( new ArgumentDefinitionGroup(sourceName, argumentsFromSource) );
     }
 
     /**
@@ -457,9 +469,18 @@ public class ParsingEngine {
 }
 
 /**
+ * Generic class for handling misc parsing exceptions.
+ */
+class ParseException extends StingException {
+    public ParseException( String message ) {
+        super( message );
+    }
+}
+
+/**
  * An exception indicating that some required arguments are missing.
  */
-class MissingArgumentException extends StingException {
+class MissingArgumentException extends ParseException {
     public MissingArgumentException( Collection<ArgumentDefinition> missingArguments ) {
         super( formatArguments(missingArguments) );
     }
@@ -467,14 +488,8 @@ class MissingArgumentException extends StingException {
     private static String formatArguments( Collection<ArgumentDefinition> missingArguments ) {
         StringBuilder sb = new StringBuilder();
         for( ArgumentDefinition missingArgument: missingArguments )
-            sb.append( String.format("Argument with name '%s' is missing.", missingArgument.fullName) );
+            sb.append( String.format("Argument with name '%s' is missing.%n", missingArgument.fullName) );
         return sb.toString();
-    }
-}
-
-class ParseException extends StingException {
-    public ParseException( String message ) {
-        super( message );
     }
 }
 
@@ -489,7 +504,7 @@ class InvalidArgumentException extends ParseException {
     private static String formatArguments( Collection<ArgumentMatch> invalidArguments ) {
         StringBuilder sb = new StringBuilder();
         for( ArgumentMatch invalidArgument: invalidArguments )
-            sb.append( String.format("Argument with name '%s' isn't defined.", invalidArgument.label) );
+            sb.append( String.format("Argument with name '%s' isn't defined.%n", invalidArgument.label) );
         return sb.toString();
     }
 }
@@ -506,7 +521,7 @@ class InvalidArgumentValueException extends ParseException {
         StringBuilder sb = new StringBuilder();
         for( int index: invalidValues.indices.keySet() )
             for( String value: invalidValues.indices.get(index) )
-                sb.append( String.format("Invalid argument value '%s' at position %d", value, index) );
+                sb.append( String.format("Invalid argument value '%s' at position %d.%n", value, index) );
         return sb.toString();
     }
 }

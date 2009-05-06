@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Collections;
 
 /**
  * Created by IntelliJ IDEA.
@@ -34,23 +35,28 @@ class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
     private Set<ArgumentDefinition> argumentDefinitions = new HashSet<ArgumentDefinition>();
 
     /**
-     * Adds an argument to the this argument definition list.
-     * @param argument The argument to add.
-     * @param sourceClass Class where the argument was defined.
-     * @param sourceField Field in which the argument was defined.
+     * The groupings of argument definitions.  Used mainly for help output.
      */
-    public void add( Argument argument, Class sourceClass, Field sourceField ) {
-        ArgumentDefinition definition = new ArgumentDefinition( argument, sourceClass, sourceField );
-        if( definition.fullName.length() == 0 ) {
-            throw new IllegalArgumentException( "Argument cannot have 0-length fullname." );
+    private Set<ArgumentDefinitionGroup> argumentDefinitionGroups = new HashSet<ArgumentDefinitionGroup>();
+
+    /**
+     * Adds an argument to the this argument definition list.
+     * @param argumentDefinitionGroup The group of arguments to add.
+     */
+    public void add( ArgumentDefinitionGroup argumentDefinitionGroup ) {
+        for( ArgumentDefinition definition: argumentDefinitionGroup ) {
+            // Do some basic validation before adding the definition. 
+            if( definition.fullName.length() == 0 )
+                throw new IllegalArgumentException( "Argument cannot have 0-length fullname." );
+            if( hasArgumentDefinition( definition.fullName, FullNameDefinitionMatcher ) )
+                throw new StingException("Duplicate definition of argument with full name: " + definition.fullName);
+            if( hasArgumentDefinition( definition.shortName, ShortNameDefinitionMatcher ) )
+                throw new StingException("Duplicate definition of argument with short name: " + definition.shortName);
+
+            argumentDefinitions.add( definition );
         }
 
-        if( hasArgumentDefinition( definition.fullName, FullNameDefinitionMatcher ) )
-            throw new StingException("Duplicate definition of argument with full name: " + definition.fullName);
-        if( hasArgumentDefinition( definition.shortName, ShortNameDefinitionMatcher ) )
-            throw new StingException("Duplicate definition of argument with short name: " + definition.shortName);
-
-        argumentDefinitions.add( definition );
+        argumentDefinitionGroups.add( argumentDefinitionGroup );
     }
 
     /**
@@ -97,8 +103,16 @@ class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
     }
 
     /**
+     * Return a list of the available argument groups.
+     * @return All the argument groups that have been added.
+     */
+    Collection<ArgumentDefinitionGroup> getArgumentDefinitionGroups() {
+        return argumentDefinitionGroups;
+    }
+
+    /**
      * Iterates through all command-line arguments.
-     * @return
+     * @return an iterator over command-line arguments.
      */
     public Iterator<ArgumentDefinition> iterator() {
         return argumentDefinitions.iterator();
@@ -107,7 +121,7 @@ class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
     /**
      * Match the full name of a definition.
      */
-    public static DefinitionMatcher FullNameDefinitionMatcher = new DefinitionMatcher() {
+    static DefinitionMatcher FullNameDefinitionMatcher = new DefinitionMatcher() {
         public boolean matches( ArgumentDefinition definition, Object key ) {
             if( definition.fullName == null )
                 return key == null;
@@ -119,7 +133,7 @@ class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
     /**
      * Match the short name of a definition.
      */
-    public static DefinitionMatcher ShortNameDefinitionMatcher = new DefinitionMatcher() {
+    static DefinitionMatcher ShortNameDefinitionMatcher = new DefinitionMatcher() {
         public boolean matches( ArgumentDefinition definition, Object key ) {
             if( definition.shortName == null )
                 return key == null;
@@ -128,7 +142,7 @@ class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
         }
     };
 
-    public static AliasProvider ShortNameAliasProvider = new AliasProvider() {
+    static AliasProvider ShortNameAliasProvider = new AliasProvider() {
         /**
          * Short names can come in the form -Ofoo.txt, -O foo.txt, or -out (multi-character short name).
          * Given the argument name and built-in provided, see if these can be formed into some other argument
@@ -159,13 +173,41 @@ class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
     /**
      * Find all required definitions.
      */
-    public static DefinitionMatcher RequiredDefinitionMatcher = new DefinitionMatcher() {
+    static DefinitionMatcher RequiredDefinitionMatcher = new DefinitionMatcher() {
         public boolean matches( ArgumentDefinition definition, Object key ) {
             if( !(key instanceof Boolean) )
                 throw new IllegalArgumentException("RequiredDefinitionMatcher requires boolean key");
             return definition.required == (Boolean)key;
         }
     };
+}
+
+/**
+ * A group of argument definitions.
+ */
+class ArgumentDefinitionGroup implements Iterable<ArgumentDefinition> {
+    /**
+     * Name of this group.
+     */
+    public final String groupName;
+
+    /**
+     * The argument definitions associated with this group.
+     */
+    public final Collection<ArgumentDefinition> argumentDefinitions;
+
+    public ArgumentDefinitionGroup( String groupName, Collection<ArgumentDefinition> argumentDefinitions ) {
+        this.groupName = groupName;
+        this.argumentDefinitions = Collections.unmodifiableCollection( argumentDefinitions );
+    }
+
+    /**
+     * Iterate over the arguments in an argument definition group.
+     * @return
+     */
+    public Iterator<ArgumentDefinition> iterator() {
+        return argumentDefinitions.iterator();
+    }
 }
 
 /**

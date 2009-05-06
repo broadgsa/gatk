@@ -1,11 +1,20 @@
 package org.broadinstitute.sting.utils.cmdLine;
 
+import org.broadinstitute.sting.utils.StingException;
+
 import java.util.Formatter;
 import java.util.Locale;
 import java.util.Formattable;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Comparator;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.SortedSet;
+import java.util.Collection;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 /**
@@ -37,20 +46,66 @@ public class HelpFormatter {
      * @param argumentDefinitions Argument definitions for which help should be printed.
      */
     public void printHelp( ArgumentDefinitions argumentDefinitions ) {
-        System.out.printf("%s%n%n%s%n", getSynopsis(argumentDefinitions), getDetailed(argumentDefinitions) );
+        SortedSet<ArgumentDefinition> mainArguments = getMainArguments( argumentDefinitions );
+        Map<String,SortedSet<ArgumentDefinition>> pluginsByGroup = getPluginArguments( argumentDefinitions );
+
+        System.out.printf("%s%s%n",
+                getSynopsis(mainArguments,pluginsByGroup),
+                getDetailed(mainArguments,pluginsByGroup) );
+    }
+
+    /**
+     * Retrieve a sorted set of the command-line arguments for the main application from the ArgumentDefinitions object.
+     * @param argumentDefinitions Predefined argument definitions.
+     * @return A list of argument definitions.
+     */
+    private SortedSet<ArgumentDefinition> getMainArguments( ArgumentDefinitions argumentDefinitions ) {
+        for( ArgumentDefinitionGroup argumentGroup: argumentDefinitions.getArgumentDefinitionGroups() ) {
+            // A null groupName is the signal that these are the application's main arguments.
+            if( argumentGroup.groupName == null ){
+                SortedSet<ArgumentDefinition> sortedDefinitions = new TreeSet<ArgumentDefinition>( new ArgumentDefinitionComparator() );
+                sortedDefinitions.addAll( argumentGroup.argumentDefinitions );
+                return sortedDefinitions;
+            }
+        }
+        throw new StingException( "Unable to retrieve main command-line arguments." );
+    }
+
+    /**
+     * Retrieve a sorted set of the command-line arguments for application plugin objects.
+     * @param argumentDefinitions Predefined argument definitions.
+     * @return A map of argument group name -> a list of argument definitions.
+     */
+    private Map<String,SortedSet<ArgumentDefinition>> getPluginArguments( ArgumentDefinitions argumentDefinitions ) {
+        Map<String,SortedSet<ArgumentDefinition>> pluginsByGroup = new HashMap<String,SortedSet<ArgumentDefinition>>();
+        for( ArgumentDefinitionGroup argumentGroup: argumentDefinitions.getArgumentDefinitionGroups() ) {
+            // A null groupName is the signal that these are the application's main arguments.
+            if( argumentGroup.groupName == null )
+                continue;
+            SortedSet<ArgumentDefinition> sortedDefinitions = new TreeSet<ArgumentDefinition>( new ArgumentDefinitionComparator() );
+            sortedDefinitions.addAll( argumentGroup.argumentDefinitions );
+            pluginsByGroup.put( argumentGroup.groupName, sortedDefinitions );
+        }
+        return pluginsByGroup;
     }
 
     /**
      * Gets the synopsis: the actual command to run.
-     * @param argumentDefinitions Argument definitions for which help should be printed.
+     * @param mainArguments Main program arguments.
+     * @praam pluginArgumentGroups Groups of plugin arguments
      * @return A synopsis line.
      */
-    private String getSynopsis( ArgumentDefinitions argumentDefinitions ) {
+    private String getSynopsis( SortedSet<ArgumentDefinition> mainArguments, Map<String,SortedSet<ArgumentDefinition>> pluginArgumentGroups ) {
         // Build out the synopsis all as one long line.        
         StringBuilder lineBuilder = new StringBuilder();
         Formatter lineFormatter = new Formatter( lineBuilder );
 
         lineFormatter.format("java -jar dist/GenomeAnalysisTK.jar");
+
+        List<ArgumentDefinition> argumentDefinitions = new ArrayList<ArgumentDefinition>();
+        argumentDefinitions.addAll( mainArguments );
+        for( SortedSet pluginArguments: pluginArgumentGroups.values() )
+            argumentDefinitions.addAll( pluginArguments );
 
         for( ArgumentDefinition argumentDefinition: argumentDefinitions ) {
             lineFormatter.format(" ");
@@ -82,21 +137,34 @@ public class HelpFormatter {
 
     /**
      * Gets detailed output about each argument type.
-     * @param argumentDefinitions Argument definitions for which help should be printed.
+     * @param mainArguments Main program arguments.
+     * @param pluginArgumentGroups Groups of plugin arguments
      * @return Detailed text about all arguments.
      */
-    private String getDetailed( ArgumentDefinitions argumentDefinitions ) {
+    private String getDetailed( SortedSet<ArgumentDefinition> mainArguments, Map<String,SortedSet<ArgumentDefinition>> pluginArgumentGroups ) {
+        StringBuilder builder = new StringBuilder();
+
+        builder.append( getDetailForGroup( mainArguments ) );
+
+        for( String groupName: pluginArgumentGroups.keySet() ) {
+            builder.append( String.format("Arguments for %s:%n", groupName ) );
+            builder.append( getDetailForGroup( pluginArgumentGroups.get(groupName) ) );
+        }
+        return builder.toString();
+    }
+
+    private String getDetailForGroup( SortedSet<ArgumentDefinition> argumentDefinitions ) {
         StringBuilder builder = new StringBuilder();
         Formatter formatter = new Formatter( builder );
 
         // Try to fit the entire argument definition across the screen, but impose an arbitrary cap of 3/4 *
-        // LINE_WIDTH in case the length of the arguments gets out of control. 
+        // LINE_WIDTH in case the length of the arguments gets out of control.
         int argWidth = Math.min( findLongestArgumentCallingInfo(argumentDefinitions), (LINE_WIDTH*3)/4 - ARG_DOC_SEPARATION_WIDTH );
         int docWidth = LINE_WIDTH - argWidth - ARG_DOC_SEPARATION_WIDTH;
 
         for( ArgumentDefinition argumentDefinition: argumentDefinitions ) {
             Iterator<String> wordWrappedArgs = wordWrap( getArgumentCallingInfo(argumentDefinition), argWidth ).iterator();
-            Iterator<String> wordWrappedDoc  = wordWrap( argumentDefinition.doc, docWidth ).iterator(); 
+            Iterator<String> wordWrappedDoc  = wordWrap( argumentDefinition.doc, docWidth ).iterator();
 
             while( wordWrappedArgs.hasNext() || wordWrappedDoc.hasNext() ) {
                 String arg = wordWrappedArgs.hasNext() ? wordWrappedArgs.next() : "";
@@ -135,7 +203,7 @@ public class HelpFormatter {
      * @param argumentDefinitions argument definitions to inspect.
      * @return longest argument length.
      */
-    private int findLongestArgumentCallingInfo( ArgumentDefinitions argumentDefinitions ) {
+    private int findLongestArgumentCallingInfo( Collection<ArgumentDefinition> argumentDefinitions ) {
         int longest = 0;
         for( ArgumentDefinition argumentDefinition: argumentDefinitions ) {
             String argumentText = getArgumentCallingInfo( argumentDefinition );
@@ -166,5 +234,24 @@ public class HelpFormatter {
                 wrapped.add( matcher.group() );
         }
         return wrapped;
+    }
+
+    /**
+     * A comparator to reorder arguments in alphabetical order.
+     */
+    private class ArgumentDefinitionComparator implements Comparator<ArgumentDefinition> {
+        public int compare( ArgumentDefinition lhs, ArgumentDefinition rhs ) {
+            if( lhs.shortName == null && rhs.shortName == null )
+                return lhs.fullName.compareTo( rhs.fullName );
+            // short names always come before long names.
+            else if ( lhs.shortName == null )
+                return -1;
+            else if ( rhs.shortName == null )
+                return 1;
+            else if ( lhs.shortName.equals(rhs.shortName) )
+                return lhs.fullName.compareTo( rhs.fullName );
+            else
+                return lhs.shortName.compareTo( rhs.shortName );
+        }
     }
 }

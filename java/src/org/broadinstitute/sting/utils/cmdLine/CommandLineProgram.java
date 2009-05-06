@@ -73,7 +73,6 @@ public abstract class CommandLineProgram {
               required=false)    
     protected Boolean debugMode = false;
 
-
     /**
      * our logging output patterns
      */
@@ -145,7 +144,7 @@ public abstract class CommandLineProgram {
 
                 Class[] argumentSources = clp.getArgumentSources();
                 for( Class argumentSource: argumentSources )
-                    parser.addArgumentSource( argumentSource );
+                    parser.addArgumentSource( clp.getArgumentSourceName(argumentSource), argumentSource );
                 parser.parse(args);
                 parser.validate();
             }
