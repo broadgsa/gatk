@@ -60,7 +60,7 @@ public class ParsingEngine {
 
     public ParsingEngine() {
         parsingMethods.add( new ParsingMethod(Pattern.compile("\\s*--([\\w\\.]+)\\s*"), ArgumentDefinitions.FullNameDefinitionMatcher) );
-        parsingMethods.add( new ParsingMethod(Pattern.compile("\\s*-([\\w\\.])([\\w\\.]*)\\s*"),
+        parsingMethods.add( new ParsingMethod(Pattern.compile("\\s*-([\\w\\.])([\\w\\.\\/:\\-]*)\\s*"),
                             ArgumentDefinitions.ShortNameDefinitionMatcher,
                             ArgumentDefinitions.ShortNameAliasProvider) );
     }

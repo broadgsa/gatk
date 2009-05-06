@@ -50,7 +50,7 @@ class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
                 throw new IllegalArgumentException( "Argument cannot have 0-length fullname." );
             if( hasArgumentDefinition( definition.fullName, FullNameDefinitionMatcher ) )
                 throw new StingException("Duplicate definition of argument with full name: " + definition.fullName);
-            if( hasArgumentDefinition( definition.shortName, ShortNameDefinitionMatcher ) )
+            if( definition.shortName != null && hasArgumentDefinition( definition.shortName, ShortNameDefinitionMatcher ) )
                 throw new StingException("Duplicate definition of argument with short name: " + definition.shortName);
 
             argumentDefinitions.add( definition );

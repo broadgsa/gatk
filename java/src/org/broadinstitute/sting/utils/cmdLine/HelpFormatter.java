@@ -3,15 +3,12 @@ package org.broadinstitute.sting.utils.cmdLine;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.Formatter;
-import java.util.Locale;
-import java.util.Formattable;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Comparator;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.SortedSet;
 import java.util.Collection;
