@@ -67,6 +67,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
 
     private final int WAIT_STATE = 0;
     private final int ACTIVE_STATE = 1;
+    private int INDEL_COUNT_CUTOFF = 2;
     
     private boolean avoiding_region; // some regions are too funky (contain very long indel trains)-
     // we will determine their span and report them,
@@ -97,7 +98,8 @@ public class IndelRecordPileCollector implements RecordReceiver {
                 //+" Bndries="+mIndelRegionStart +":"+ mIndelRegionStop;
     }
 	
-
+    public void setIndelCountAcceptanceCutoff(int n) { INDEL_COUNT_CUTOFF = n; }
+    
     public IndelRecordPileCollector(RecordReceiver rr, RecordPileReceiver rp) throws java.io.IOException {
         mRecordPile = new LinkedList<SAMRecord>();
         mAllIndels = new TreeSet<CountedObject<Indel> >(
@@ -259,7 +261,8 @@ public class IndelRecordPileCollector implements RecordReceiver {
     private void emit() {
 
         if ( mState == WAIT_STATE || avoiding_region ) {
-            if ( avoiding_region )  {
+  //          System.out.println("Emitting uninteresting pile");
+          if ( avoiding_region )  {
                 long start = mAllIndels.first().getObject().getStart();
                 long stop = mAllIndels.last().getObject().getStop();
                 System.out.println("Genomic region "+mLastContig+":"+ start + "-"+ stop +
@@ -284,7 +287,7 @@ public class IndelRecordPileCollector implements RecordReceiver {
         // can be more than one pile in what we have stored. Also, we can still have gapless reads
         // at the ends of the piles that do not really overlap with indel sites.
 	
-       
+  //     System.out.println("Emitting pile with indels ("+mRecordPile.size()+" reads, "+mAllIndels.size()+" indels)");
         if ( mAllIndels.size() == 0 ) throw new RuntimeException("Attempt to emit pile with no indels");
         
         HistogramAsNeeded(mAllIndels);
@@ -468,14 +471,15 @@ public class IndelRecordPileCollector implements RecordReceiver {
         }
     }
 	
-    /** Retruns true if the indel run has to be printed into output; currently, indel run is acceptable
+    /** Returns true if an attempt should be made to clean alignments around the
+     * specified indel train; currently, indel run is acceptable
      * if it contains at least one indel onbserved more than once.
      * @param indels list of indels with counts to check for being acceptable
      * @return true if the indel run has to be printed
      */
     private boolean shouldAcceptForOutput(List<CountedObject<Indel>> indels) {
         for ( CountedObject<Indel> o :  indels ) {
-            if ( o.getCount() >= 2 ) return true;
+            if ( o.getCount() >= INDEL_COUNT_CUTOFF ) return true;
         }
         return false;
     }

@@ -31,6 +31,7 @@ public class IndelInspectorMain extends CommandLineProgram {
     @Option(doc="Maximum number of errors allowed (see ERR_MODE)") public Integer MAX_ERRS;
     @Option(shortName="R", doc="Reference fasta or fasta.gz file") public File REF_FILE;
     @Option(doc="Ignore reads that are longer than the specified cutoff (not a good way to do things but might be necessary because of performance issues)", optional=true) public Integer MAX_READ_LENGTH;
+    @Option(doc="Realignment will be attempted around trains of indels with at least of them observed COUNT_CUTOFF times or more",optional=true) public Integer COUNT_CUTOFF;
 
     /** Required main method implementation. */
     public static void main(final String[] argv) {
@@ -41,6 +42,9 @@ public class IndelInspectorMain extends CommandLineProgram {
 
         int discarded_cigar_count = 0;
         int discarded_long_read_count = 0;
+        int discarded_maxerr = 0;
+        int reads_accepted = 0;
+        int reads_with_indels_accepted = 0;
 
         ReferenceSequenceFileWalker reference = new ReferenceSequenceFileWalker(
                     REF_FILE
@@ -84,6 +88,7 @@ public class IndelInspectorMain extends CommandLineProgram {
         if ( col == null ) return 1; 
 
         col.setControlRun(CONTROL_RUN);
+        col.setIndelCountAcceptanceCutoff(COUNT_CUTOFF);
 
         if ( ! CONTROL_RUN ) {
             if ( VERBOSITY_LEVEL == null ) VERBOSITY_LEVEL = new String("SILENT");
@@ -97,8 +102,9 @@ public class IndelInspectorMain extends CommandLineProgram {
         }
 
         String cur_contig = null;
-        int counter = 0;
-
+       long t=0,tc=System.currentTimeMillis(); // time
+        boolean done_printing = false;
+        
         for ( SAMRecord r : samReader ) {
 
             if ( r.getReadUnmappedFlag() ) continue; 
@@ -108,19 +114,25 @@ public class IndelInspectorMain extends CommandLineProgram {
                 // if contig is specified and we are past that contig, we are done:
                 if ( location != null && GenomeLoc.compareContigs(cur_contig, location.getContig()) == 1 ) break;
                 if ( location == null || GenomeLoc.compareContigs(cur_contig, location.getContig()) == 0 ) {
+                	if ( location != null ) System.out.println("Time spent to scroll input bam file to the specified chromosome: "+ ((System.currentTimeMillis()-tc)/1000) + " seconds.");
+                	tc = System.currentTimeMillis();
                     contig_seq = reference.get(r.getReferenceIndex());
+                    t = System.currentTimeMillis();
                     String refstr = new String(contig_seq.getBases());
                     if (!CONTROL_RUN) pileBuilder.setReferenceSequence(refstr);
-                    System.out.println("loaded contig "+cur_contig+" (index="+r.getReferenceIndex()+"); length="+contig_seq.getBases().length+" tst="+contig_seq.toString());
+                    System.out.println("Contig "+cur_contig+" (index="+r.getReferenceIndex()+") loaded in "+ ((t-tc)/1000) +" seconds; length="+contig_seq.getBases().length+" tst="+contig_seq.toString());
                 }
             }
 
             // if contig is specified and we did not reach it yet, skip the records until we reach that contig:
             if ( location != null && GenomeLoc.compareContigs(cur_contig, location.getContig()) == -1 ) continue;
 
-
             if ( location != null && r.getAlignmentEnd() < location.getStart() ) continue;
 
+            if ( location != null && ! done_printing ) {
+            	System.out.println("Time spent to scroll input bam file to the specified location on the chromosome: " + ((System.currentTimeMillis()-t)/1000)+" seconds.");
+            	done_printing = true;
+            }
             // if stop position is specified and we are past that, stop reading:
             if ( location != null && r.getAlignmentStart() > location.getStop() ) break;
 
@@ -130,12 +142,14 @@ public class IndelInspectorMain extends CommandLineProgram {
             // let's just skip the reads that contain those other elements (clipped reads?)
             Cigar c = r.getCigar();
             boolean cigar_acceptable = true;
+            boolean has_indel = false;
+            
             for ( int z = 0 ; z < c.numCigarElements() ; z++ ) {
                 CigarElement ce = c.getCigarElement(z);
                 switch ( ce.getOperator() ) {
-                case M:
+                case M: break;
                 case I:
-                case D: break;
+                case D: has_indel = true; break;
                 default: 
                 	cigar_acceptable = false;
                 }
@@ -168,7 +182,13 @@ public class IndelInspectorMain extends CommandLineProgram {
             else if ( ERR_MODE.equals("MC") ) err = AlignmentUtils.numMismatches(r,contig_seq);
             else if ( ERR_MODE.equals("ERR")) err = numErrors(r,contig_seq);
             else if ( ERR_MODE.equals("MG")) err = numMismatchesGaps(r,contig_seq);
-            if ( err > MAX_ERRS.intValue() ) continue;
+            if ( err > MAX_ERRS.intValue() ) {
+            	discarded_maxerr++;
+            	continue;
+            }
+            
+            reads_accepted++;
+            if ( has_indel ) reads_with_indels_accepted++;
             //        	counter++;
             //        	if ( counter % 1000000 == 0 ) System.out.println(counter+" records; "+col.memStatsString());
             col.receive(r);
@@ -182,6 +202,8 @@ public class IndelInspectorMain extends CommandLineProgram {
         System.out.println("done.");
         System.out.println("Discarded reads with non-M,I,D cigar elements: "+ discarded_cigar_count);
         System.out.println("Discarded long reads (above "+MAX_READ_LENGTH+" bp): "+ discarded_long_read_count);
+        System.out.println("Discarded reads with error counts above "+MAX_ERRS+ ": "+ discarded_maxerr);
+        System.out.println("Reads passed to realigner: "+ reads_accepted+" total; "+reads_with_indels_accepted+" with indel(s)");
         System.out.println();
         col.printLengthHistograms();
         samReader.close();
