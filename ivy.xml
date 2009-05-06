@@ -7,7 +7,6 @@
     <dependency org="junit" name="junit" rev="4.4" />
     <dependency org="log4j" name="log4j" rev="1.2.15" />
     <dependency org="colt" name="colt" rev="1.2.0" />
-    <dependency org="commons-cli" name="commons-cli" rev="1.2" />
     <dependency org="bcel" name="bcel" rev="5.1" />
 
     <!-- The following are all castor dependencies. Remove when transitive dependencies are working -->

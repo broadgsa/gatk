@@ -4,8 +4,6 @@ import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;

@@ -204,7 +204,7 @@ public abstract class CommandLineProgram {
             // return the result
             System.exit(result);
         }
-        catch (org.apache.commons.cli.ParseException e) {
+        catch (ParseException e) {
             logger.fatal("Unable to pass command line arguments: " + e.getMessage() );
             clp.parser.printHelp();
         }
@@ -257,7 +257,7 @@ public abstract class CommandLineProgram {
      * this function checks the logger level passed in on the command line, taking the lowest
      * level that was provided.
      */
-    private void setupLoggerLevel() throws org.apache.commons.cli.ParseException {
+    private void setupLoggerLevel() throws ParseException {
 
         Level par = Level.ERROR;
         if (logging_level.equals("DEBUG")) {
@@ -280,7 +280,7 @@ public abstract class CommandLineProgram {
         }
         else {
             // we don't understand the logging level, let's get out of here
-            throw new org.apache.commons.cli.ParseException("Unable to match: " + logging_level + " to a logging level, make sure it's a valid level (INFO, DEBUG, ERROR, FATAL, OFF)");
+            throw new ParseException("Unable to match: " + logging_level + " to a logging level, make sure it's a valid level (INFO, DEBUG, ERROR, FATAL, OFF)");
         }
 
         logger.setLevel(par);

@@ -49,7 +49,7 @@ public class ParsingEngine {
     /**
      * our log, which we want to capture anything from org.broadinstitute.sting
      */
-    protected static Logger logger = Logger.getLogger(ArgumentParser.class);
+    protected static Logger logger = Logger.getLogger(ParsingEngine.class);
 
     public ParsingEngine() {
         parsingMethods.add( new ParsingMethod(Pattern.compile("\\s*--([\\w\\.]+)\\s*"), ArgumentDefinitions.FullNameDefinitionMatcher) );
@@ -467,10 +467,16 @@ class MissingArgumentException extends StingException {
     }
 }
 
+class ParseException extends StingException {
+    public ParseException( String message ) {
+        super( message );
+    }
+}
+
 /**
  * An exception for undefined arguments.
  */
-class InvalidArgumentException extends StingException {
+class InvalidArgumentException extends ParseException {
     public InvalidArgumentException( Collection<ArgumentMatch> invalidArguments ) {
         super( formatArguments(invalidArguments) );
     }
@@ -486,7 +492,7 @@ class InvalidArgumentException extends StingException {
 /**
  * An exception for values that can't be mated with any argument.
  */
-class InvalidArgumentValueException extends StingException {
+class InvalidArgumentValueException extends ParseException {
     public InvalidArgumentValueException( ArgumentMatch invalidValues ) {
         super( formatArguments(invalidValues) );
     }
@@ -503,7 +509,7 @@ class InvalidArgumentValueException extends StingException {
 /**
  * An exception indicating that too many values have been provided for the given argument.
  */
-class TooManyValuesForArgumentException extends StingException {
+class TooManyValuesForArgumentException extends ParseException {
     public TooManyValuesForArgumentException( Collection<ArgumentMatch> arguments ) {
         super( formatArguments(arguments) );
     }
