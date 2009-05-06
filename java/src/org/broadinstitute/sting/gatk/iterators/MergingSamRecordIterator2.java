@@ -150,7 +150,11 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         if (!initialized) {
             lazyInitialization();
         }
+
         final ComparableSamRecordIterator iterator = this.pq.poll();
+        if (iterator == null) {
+            return null;
+        }
         final SAMRecord record = iterator.next();
         addIfNotEmpty(iterator);
 
