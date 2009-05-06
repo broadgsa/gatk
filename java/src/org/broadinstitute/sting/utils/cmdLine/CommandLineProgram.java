@@ -30,7 +30,6 @@ public abstract class CommandLineProgram {
      * The command-line program and the arguments it returned.
      */
     private ParsingEngine parser = null;
-    private ArgumentMatches parameters = null; 
 
     /**
      * our log, which we want to capture anything from org.broadinstitute.sting
@@ -44,7 +43,7 @@ public abstract class CommandLineProgram {
               shortName="l",
               doc="Set the minimum level of logging, i.e. setting INFO get's you INFO up to FATAL, setting ERROR gets you ERROR and FATAL level logging. (DEBUG, INFO, WARN, ERROR, FATAL, OFF). ",
               required=false)    
-    public String logging_level = "ERROR";
+    protected String logging_level = "ERROR";
 
 
     /**
@@ -54,7 +53,7 @@ public abstract class CommandLineProgram {
               shortName="log",
               doc="Set the logging location",
               required=false)    
-    public String toFile = null;
+    protected String toFile = null;
 
     /**
      * do we want to silence the command line output
@@ -63,7 +62,7 @@ public abstract class CommandLineProgram {
               shortName="quiet",
               doc="Set the logging to quiet mode, no output to stdout",
               required=false)
-    public Boolean quietMode = false;
+    protected Boolean quietMode = false;
 
     /**
      * do we want to generate debugging information with the logs
@@ -72,7 +71,7 @@ public abstract class CommandLineProgram {
               shortName="debug",
               doc="Set the logging file string to include a lot of debugging information (SLOW!)",
               required=false)    
-    public Boolean debugMode = false;
+    protected Boolean debugMode = false;
 
 
     /**
@@ -135,23 +134,24 @@ public abstract class CommandLineProgram {
 
             // setup the parser
             ParsingEngine parser = clp.parser = new ParsingEngine();
-            parser.addArgumentSources( clp.getClass() );
+            parser.addArgumentSource( clp.getClass() );
 
             // process the args
             if( clp.canAddArgumentsDynamically() ) {
                 // if the command-line program can toss in extra args, fetch them and reparse the arguments.
-                clp.parameters = parser.parse(args);
-                parser.validate( clp.parameters, EnumSet.of(ParsingEngine.ValidationType.InvalidArgument) );
-                parser.loadArgumentsIntoObject( clp, clp.parameters );
+                parser.parse(args);
+                parser.validate( EnumSet.of(ParsingEngine.ValidationType.InvalidArgument) );
+                parser.loadArgumentsIntoObject( clp );
 
                 Class[] argumentSources = clp.getArgumentSources();
-                parser.addArgumentSources( argumentSources );
-                clp.parameters = parser.parse(args);
-                parser.validate( clp.parameters );
+                for( Class argumentSource: argumentSources )
+                    parser.addArgumentSource( argumentSource );
+                parser.parse(args);
+                parser.validate();
             }
             else {
-                clp.parameters = parser.parse(args);
-                parser.validate( clp.parameters );
+                parser.parse(args);
+                parser.validate();
             }
 
             // if we're in debug mode, set the mode up
@@ -224,7 +224,7 @@ public abstract class CommandLineProgram {
      * @param obj Object to inspect for command line arguments.
      */
     public void loadArgumentsIntoObject( Object obj ) {
-        parser.loadArgumentsIntoObject( obj, parameters );
+        parser.loadArgumentsIntoObject( obj );
     }
 
     /**

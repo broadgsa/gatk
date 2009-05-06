@@ -42,6 +42,13 @@ public class ParsingEngine {
     ArgumentDefinitions argumentDefinitions = new ArgumentDefinitions();
 
     /**
+     * A list of matches from defined arguments to command-line text.
+     * Indicates as best as possible where command-line text remains unmatched
+     * to existing arguments.
+     */
+    ArgumentMatches argumentMatches = null;
+
+    /**
      * Techniques for parsing and for argument lookup.
      */
     private List<ParsingMethod> parsingMethods = new ArrayList<ParsingMethod>();
@@ -61,18 +68,19 @@ public class ParsingEngine {
     /**
      * Add an argument source.  Argument sources are expected to have
      * any number of fields with an @Argument annotation attached.
-     * @param sources A list of argument sources from which to extract
-     *                command-line arguments.
+     * @param source An argument source from which to extract
+     *               command-line arguments.
      */
-    public void addArgumentSources( Class... sources ) {
-        for( Class source: sources ) {
-            Field[] fields = source.getFields();
+    public void addArgumentSource( Class source ) {
+        do {
+            Field[] fields = source.getDeclaredFields();
             for( Field field: fields ) {
-                Argument argument = field.getAnnotation(Argument.class);                
+                Argument argument = field.getAnnotation(Argument.class);
                 if(argument != null)
                     argumentDefinitions.add( argument, source, field );
             }
-        }
+            source = source.getSuperclass();
+        } while( source != null );
     }
 
     /**
@@ -84,10 +92,9 @@ public class ParsingEngine {
      * @return A object indicating which matches are best.  Might return
      *         an empty object, but will never return null.
      */
-    public ArgumentMatches parse( String[] tokens ) {
-        ArgumentMatches argumentMatches = parseArguments( tokens );
+    public void parse( String[] tokens ) {
+        argumentMatches = parseArguments( tokens );
         fitValuesToArguments( argumentMatches, tokens );
-        return argumentMatches;
     }
 
     public enum ValidationType { MissingRequiredArgument,
@@ -97,19 +104,17 @@ public class ParsingEngine {
 
     /**
      * Validates the list of command-line argument matches.
-     * @param argumentMatches Matches to validate.
      */
-    public void validate( ArgumentMatches argumentMatches ) {
-        validate( argumentMatches, EnumSet.noneOf(ValidationType.class) );
+    public void validate() {
+        validate( EnumSet.noneOf(ValidationType.class) );
     }
 
     /**
      * Validates the list of command-line argument matches.  On failure throws an exception with detailed info about the
      * particular failures.  Takes an EnumSet indicating which validation checks to skip.
-     * @param argumentMatches Matches to validate.
      * @param skipValidationOf List of validation checks to skip.
      */
-    public void validate( ArgumentMatches argumentMatches, EnumSet<ValidationType> skipValidationOf ) {
+    public void validate( EnumSet<ValidationType> skipValidationOf ) {
         // Find missing required arguments.
         if( !skipValidationOf.contains(ValidationType.MissingRequiredArgument) ) {
             Collection<ArgumentDefinition> requiredArguments =
@@ -156,10 +161,9 @@ public class ParsingEngine {
     /**
      * Loads a set of matched command-line arguments into the given object.
      * @param object Object into which to add arguments.
-     * @param matches List of matches.
      */
-    public void loadArgumentsIntoObject( Object object, ArgumentMatches matches ) {
-        for( ArgumentMatch match: matches ) {
+    public void loadArgumentsIntoObject( Object object ) {
+        for( ArgumentMatch match: argumentMatches ) {
             ArgumentDefinition definition = match.definition;
 
             // A null definition might be in the list if some invalid arguments were passed in but we
@@ -167,8 +171,9 @@ public class ParsingEngine {
             if( definition == null )
                 continue;
 
-            if( object.getClass().equals(definition.sourceClass) ) {
+            if( definition.sourceClass.isAssignableFrom(object.getClass()) ) {
                 try {
+                    definition.sourceField.setAccessible(true);
                     if( !isArgumentFlag(definition) )
                         definition.sourceField.set( object, constructFromString( definition.sourceField, match.values() ) );
                     else

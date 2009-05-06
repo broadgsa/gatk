@@ -42,12 +42,12 @@ public class ParsingEngineTest extends BaseTest {
     public void shortNameArgumentTest() {
         final String[] commandLine = new String[] {"-I","na12878.bam"};
 
-        parsingEngine.addArgumentSources( InputFileArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches);
+        parsingEngine.addArgumentSource( InputFileArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
 
         InputFileArgProvider argProvider = new InputFileArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+        parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertEquals("Argument is not correctly initialized", "na12878.bam", argProvider.inputFile );
     }
@@ -56,12 +56,12 @@ public class ParsingEngineTest extends BaseTest {
     public void shortNameCompositeArgumentTest() {
         final String[] commandLine = new String[] {"-Ina12878.bam"};
 
-        parsingEngine.addArgumentSources( InputFileArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches);
+        parsingEngine.addArgumentSource( InputFileArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
 
         InputFileArgProvider argProvider = new InputFileArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+        parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertEquals("Argument is not correctly initialized", "na12878.bam", argProvider.inputFile );
     }
@@ -70,12 +70,12 @@ public class ParsingEngineTest extends BaseTest {
     public void multiCharShortNameArgumentTest() {
         final String[] commandLine = new String[] {"-out","out.txt"};
 
-        parsingEngine.addArgumentSources( MultiCharShortNameArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches);
+        parsingEngine.addArgumentSource( MultiCharShortNameArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
 
         MultiCharShortNameArgProvider argProvider = new MultiCharShortNameArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+        parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertEquals("Argument is not correctly initialized", "out.txt", argProvider.outputFile );
     }
@@ -90,12 +90,12 @@ public class ParsingEngineTest extends BaseTest {
     public void longNameArgumentTest() {
         final String[] commandLine = new String[] {"--input_file", "na12878.bam"};
 
-        parsingEngine.addArgumentSources( InputFileArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches);
+        parsingEngine.addArgumentSource( InputFileArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
 
         InputFileArgProvider argProvider = new InputFileArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+        parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertEquals("Argument is not correctly initialized", "na12878.bam", argProvider.inputFile );
     }
@@ -104,12 +104,12 @@ public class ParsingEngineTest extends BaseTest {
     public void extraWhitespaceTest() {
         final String[] commandLine = new String[] {"  --input_file ", "na12878.bam"};
 
-        parsingEngine.addArgumentSources( InputFileArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches);
+        parsingEngine.addArgumentSource( InputFileArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
 
         InputFileArgProvider argProvider = new InputFileArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+        parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertEquals("Argument is not correctly initialized", "na12878.bam", argProvider.inputFile );
     }
@@ -118,12 +118,12 @@ public class ParsingEngineTest extends BaseTest {
     public void flagTest() {
         final String[] commandLine = new String[] {"--all_loci"};
 
-        parsingEngine.addArgumentSources( AllLociArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches);
+        parsingEngine.addArgumentSource( AllLociArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
 
         AllLociArgProvider argProvider = new AllLociArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+        parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertTrue("Argument is not correctly initialized", argProvider.allLoci );
     }
@@ -137,12 +137,12 @@ public class ParsingEngineTest extends BaseTest {
     public void arrayTest() {
         final String[] commandLine = new String[] {"-Ifoo.txt", "--input_file", "bar.txt"};
 
-        parsingEngine.addArgumentSources( MultiValueArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches);
+        parsingEngine.addArgumentSource( MultiValueArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
 
         MultiValueArgProvider argProvider = new MultiValueArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+        parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertEquals("Argument array is of incorrect length", 2, argProvider.inputFile.length);
         Assert.assertEquals("1st filename is incorrect", "foo.txt", argProvider.inputFile[0] );
@@ -158,12 +158,12 @@ public class ParsingEngineTest extends BaseTest {
     public void typedCollectionTest() {
         final String[] commandLine = new String[] { "-N2", "-N4", "-N6", "-N8", "-N10" };
 
-        parsingEngine.addArgumentSources( IntegerListArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches);
+        parsingEngine.addArgumentSource( IntegerListArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
 
         IntegerListArgProvider argProvider = new IntegerListArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+        parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertNotNull("Argument array is null",argProvider.integers); 
         Assert.assertEquals("Argument array is of incorrect length", 5, argProvider.integers.size());
@@ -183,12 +183,12 @@ public class ParsingEngineTest extends BaseTest {
     public void untypedCollectionTest() {
         final String[] commandLine = new String[] { "-N2", "-N4", "-N6", "-N8", "-N10" };
 
-        parsingEngine.addArgumentSources( UntypedListArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches);
+        parsingEngine.addArgumentSource( UntypedListArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
 
         UntypedListArgProvider argProvider = new UntypedListArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+        parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertNotNull("Argument array is null",argProvider.integers);
         Assert.assertEquals("Argument array is of incorrect length", 5, argProvider.integers.size());
@@ -208,9 +208,9 @@ public class ParsingEngineTest extends BaseTest {
     public void requiredArgTest() {
         final String[] commandLine = new String[0];
 
-        parsingEngine.addArgumentSources( RequiredArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate( argumentMatches );
+        parsingEngine.addArgumentSource( RequiredArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
     }
 
     private class RequiredArgProvider {
@@ -222,12 +222,12 @@ public class ParsingEngineTest extends BaseTest {
     public void disableValidationOfRequiredArgTest() {
         final String[] commandLine = new String[0];
 
-        parsingEngine.addArgumentSources( RequiredArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate( argumentMatches, EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument) );
+        parsingEngine.addArgumentSource( RequiredArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate( EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument) );
 
         RequiredArgProvider argProvider = new RequiredArgProvider();
-        parsingEngine.loadArgumentsIntoObject(argProvider, argumentMatches);
+        parsingEngine.loadArgumentsIntoObject(argProvider );
 
         Assert.assertNull("Value should have remain unset",argProvider.value);
     }
@@ -236,12 +236,12 @@ public class ParsingEngineTest extends BaseTest {
     public void unrequiredArgTest() {
         final String[] commandLine = new String[0];
 
-        parsingEngine.addArgumentSources( UnrequiredArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate( argumentMatches );
+        parsingEngine.addArgumentSource( UnrequiredArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
 
         UnrequiredArgProvider argProvider = new UnrequiredArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+        parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertNull( "Value was unrequired and unspecified; contents should be null", argProvider.value );
     }
@@ -255,14 +255,14 @@ public class ParsingEngineTest extends BaseTest {
     public void invalidArgTest() {
         final String[] commandLine = new String[] { "--foo" };
 
-        parsingEngine.addArgumentSources( UnrequiredArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate( argumentMatches );        
+        parsingEngine.addArgumentSource( UnrequiredArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
     }
 
     @Test(expected=StingException.class)
     public void duplicateLongNameTest() {
-        parsingEngine.addArgumentSources( DuplicateLongNameProvider.class );        
+        parsingEngine.addArgumentSource( DuplicateLongNameProvider.class );
     }
 
     private class DuplicateLongNameProvider {
@@ -275,7 +275,7 @@ public class ParsingEngineTest extends BaseTest {
 
     @Test(expected=StingException.class)
     public void duplicateShortNameTest() {
-        parsingEngine.addArgumentSources( DuplicateShortNameProvider.class );
+        parsingEngine.addArgumentSource( DuplicateShortNameProvider.class );
     }
 
 
@@ -291,9 +291,9 @@ public class ParsingEngineTest extends BaseTest {
     public void missingArgumentNameTest() {
         final String[] commandLine = new String[] {"foo.txt"};
 
-        parsingEngine.addArgumentSources( NoArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches);
+        parsingEngine.addArgumentSource( NoArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
     }
 
     private class NoArgProvider {
@@ -304,40 +304,39 @@ public class ParsingEngineTest extends BaseTest {
     public void extraValueTest() {
         final String[] commandLine = new String[] {"-Ifoo.txt", "bar.txt"};
 
-        parsingEngine.addArgumentSources( InputFileArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches);
+        parsingEngine.addArgumentSource( InputFileArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
     }
 
     @Test(expected=MissingArgumentException.class)
     public void multipleInvalidArgTest() {
         final String[] commandLine = new String[] {"-N1", "-N2", "-N3"};
 
-        parsingEngine.addArgumentSources( RequiredArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate( argumentMatches );
+        parsingEngine.addArgumentSource( RequiredArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
     }
 
     @Test(expected=TooManyValuesForArgumentException.class)
     public void invalidArgCountTest() {
         final String[] commandLine = new String[] {"--value","1","--value","2","--value","3"};
 
-        parsingEngine.addArgumentSources( RequiredArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate( argumentMatches );
+        parsingEngine.addArgumentSource( RequiredArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
     }
 
-    /*
     @Test
     public void packageProtectedArgTest() {
         final String[] commandLine = new String[] {"--foo", "1"};
 
-        parsingEngine.addArgumentSources( PackageProtectedArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches);
+        parsingEngine.addArgumentSource( PackageProtectedArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
 
         PackageProtectedArgProvider argProvider = new PackageProtectedArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches);
+        parsingEngine.loadArgumentsIntoObject(argProvider);
 
         Assert.assertEquals("Argument is not correctly initialized", 1, argProvider.foo.intValue() );
     }
@@ -346,11 +345,32 @@ public class ParsingEngineTest extends BaseTest {
         @Argument(doc="foo")
         Integer foo;
     }
-    */
+
+    @Test
+    public void derivedArgTest() {
+        final String[] commandLine = new String[] {"--bar", "5"};
+
+        parsingEngine.addArgumentSource( DerivedArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        DerivedArgProvider argProvider = new DerivedArgProvider();
+        parsingEngine.loadArgumentsIntoObject(argProvider);
+
+        Assert.assertEquals("Argument is not correctly initialized", 5, argProvider.bar.intValue() );
+    }
+
+    private class DerivedArgProvider extends BaseArgProvider {
+    }
+
+    private class BaseArgProvider {
+        @Argument(doc="bar")
+        public Integer bar;
+    }
 
     @Test
     public void correctDefaultArgNameTest() {
-        parsingEngine.addArgumentSources( CamelCaseArgProvider.class );
+        parsingEngine.addArgumentSource( CamelCaseArgProvider.class );
 
         DefinitionMatcher matcher = ArgumentDefinitions.FullNameDefinitionMatcher;
         ArgumentDefinition definition = parsingEngine.argumentDefinitions.findArgumentDefinition("myarg", matcher);
@@ -367,9 +387,9 @@ public class ParsingEngineTest extends BaseTest {
     public void booleanWithParameterTest() {
         final String[] commandLine = new String[] {"--mybool", "true"};
 
-        parsingEngine.addArgumentSources( BooleanArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches);
+        parsingEngine.addArgumentSource( BooleanArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
     }
 
     private class BooleanArgProvider {
@@ -381,12 +401,12 @@ public class ParsingEngineTest extends BaseTest {
     public void testValidParseForAnalysisType() {
         final String[] commandLine = new String[] {"--analysis_type", "Pileup" };
 
-        parsingEngine.addArgumentSources( AnalysisTypeArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches, EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument) );
+        parsingEngine.addArgumentSource( AnalysisTypeArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate( EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument) );
 
         AnalysisTypeArgProvider argProvider = new AnalysisTypeArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches );
+        parsingEngine.loadArgumentsIntoObject( argProvider );
 
         Assert.assertEquals("Argument is not correctly initialized", "Pileup", argProvider.Analysis_Name );
     }
@@ -400,9 +420,9 @@ public class ParsingEngineTest extends BaseTest {
     public void testInvalidParseForAnalysisType() {
         final String[] commandLine = new String[] {"--analysis_type", "Pileup", "-TCountReads" };
 
-        parsingEngine.addArgumentSources( AnalysisTypeArgProvider.class );
-        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
-        parsingEngine.validate(argumentMatches, EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument) );
+        parsingEngine.addArgumentSource( AnalysisTypeArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate( EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument) );
     }
 
 }
