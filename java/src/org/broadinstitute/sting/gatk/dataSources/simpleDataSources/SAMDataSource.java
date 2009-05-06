@@ -5,12 +5,12 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.dataSources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
 import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
@@ -145,7 +145,7 @@ public class SAMDataSource implements SimpleDataSource {
      * @param shard the shard to get data for
      * @return an iterator for that region
      */
-    public CloseableIterator<SAMRecord> seek(Shard shard) throws SimpleDataSourceLoadException {
+    public StingSAMIterator seek(Shard shard) throws SimpleDataSourceLoadException {
         if (shard.getShardType() == Shard.ShardType.READ) {
             return seekRead((ReadShard) shard);
         } else if (shard.getShardType() == Shard.ShardType.LOCUS) {

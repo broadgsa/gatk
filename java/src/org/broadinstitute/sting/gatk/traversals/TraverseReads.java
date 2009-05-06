@@ -5,7 +5,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.dataSources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -74,7 +74,7 @@ public class TraverseReads extends TraversalEngine {
      */
     public <M, T> T traverse(Walker<M, T> walker,
                              Shard shard,
-                             BoundedReadIterator iter,
+                             StingSAMIterator iter,
                              T sum) {
 
         logger.debug(String.format("TraverseReads.traverse Genomic interval is %s", ((ReadShard) shard).getSize()));

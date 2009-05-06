@@ -1,21 +1,20 @@
 package org.broadinstitute.sting.gatk.executive;
 
+import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
-import java.util.List;
-import java.io.FileNotFoundException;
 import java.io.File;
-
-import edu.mit.broad.picard.reference.ReferenceSequenceFile;
+import java.io.FileNotFoundException;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -50,7 +49,7 @@ public abstract class MicroScheduler {
         }
         else {
             logger.info("Creating linear microscheduler");
-            return new LinearMicroScheduler( reads, ref );
+            return new LinearMicroScheduler( reads, ref, walker );
         }
     }
 
