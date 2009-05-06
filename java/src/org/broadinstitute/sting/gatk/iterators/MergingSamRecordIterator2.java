@@ -15,7 +15,6 @@ import edu.mit.broad.picard.sam.ReservedTagConstants;
 import edu.mit.broad.picard.sam.SamFileHeaderMerger;
 import edu.mit.broad.picard.util.PeekableIterator;
 import net.sf.samtools.*;
-import net.sf.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;
 
 import java.lang.reflect.Constructor;
@@ -29,7 +28,7 @@ import java.util.PriorityQueue;
  * iterable stream. The underlying iterators/files must all have the same sort order unless
  * the requested output format is unsorted, in which case any combination is valid.
  */
-public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, Iterable<SAMRecord> {
+public class MergingSamRecordIterator2 implements StingSAMIterator {
     protected PriorityQueue<ComparableSamRecordIterator> pq = null;
     protected final SamFileHeaderMerger samHeaderMerger;
     protected final SAMFileHeader.SortOrder sortOrder;
@@ -152,6 +151,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         }
 
         final ComparableSamRecordIterator iterator = this.pq.poll();
+
         if (iterator == null) {
             return null;
         }
@@ -244,7 +244,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
     }
 
     /** Returns the merged header that the merging iterator is working from. */
-    public SAMFileHeader getMergedHeader() {
+    public SAMFileHeader getHeader() {
         return this.samHeaderMerger.getMergedHeader();
     }
 

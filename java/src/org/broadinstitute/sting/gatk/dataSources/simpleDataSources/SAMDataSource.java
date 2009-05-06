@@ -269,7 +269,7 @@ public class SAMDataSource implements SimpleDataSource {
     private BoundedReadIterator fastMappedReadSeek(long readCount, MergingSamRecordIterator2 iter) throws SimpleDataSourceLoadException {
         BoundedReadIterator bound;// is this the first time we're doing this?
         if (lastReadPos == null) {
-            lastReadPos = new GenomeLoc(iter.getMergedHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, 0);
+            lastReadPos = new GenomeLoc(iter.getHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, 0);
             iter.queryContained(lastReadPos.getContig(), 1, -1);
             bound = new BoundedReadIterator(iter, readCount);
             this.readsTaken = readCount;
@@ -339,7 +339,7 @@ public class SAMDataSource implements SimpleDataSource {
             }
             // in case we're run out of reads, get out
             else {
-                throw new StingException("Danger");
+                throw new StingException("Danger: weve run out reads in fastMappedReadSeek");
                 //return null;
             }
             bound = new BoundedReadIterator(iter, readCount);

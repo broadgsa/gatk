@@ -7,9 +7,11 @@ import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
 import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -21,7 +23,7 @@ import java.util.List;
  */
 public class LinearMicroScheduler extends MicroScheduler {
 
-    private TraverseLociByReference traversalEngine = null;
+    private TraversalEngine traversalEngine = null;
 
     public TraversalEngine getTraversalEngine() {
         return traversalEngine;
@@ -46,12 +48,15 @@ public class LinearMicroScheduler extends MicroScheduler {
         ShardStrategy shardStrategy = getShardStrategy( reference, locations );
         SAMDataSource dataSource = getReadsDataSource();
 
+        // determine if we're a read walker: they get a slightly different, but not in any way worse execute methodology
+        boolean readwalker = (walker instanceof ReadWalker) ? true : false;
+
         boolean walkerInitialized = false;
         Object accumulator = null;
 
         for(Shard shard: shardStrategy) {
 
-            MergingSamRecordIterator2 readShard = null;
+            StingSAMIterator readShard = null;
             try {
                 readShard = (MergingSamRecordIterator2)dataSource.seek( shard );
             }
@@ -63,7 +68,7 @@ public class LinearMicroScheduler extends MicroScheduler {
             LocusContextProvider locusProvider = new LocusContextProvider( readShard );
 
             // set the sam header of the traversal engine
-            traversalEngine.setSAMHeader(readShard.getMergedHeader());
+            traversalEngine.setSAMHeader(readShard.getHeader());
 
             if (!walkerInitialized) {
                 walker.initialize();
@@ -71,7 +76,7 @@ public class LinearMicroScheduler extends MicroScheduler {
                 walkerInitialized = true;
             }
 
-            accumulator = traversalEngine.traverse( walker, shard, referenceProvider, locusProvider, accumulator );
+            accumulator = ((TraverseLociByReference)traversalEngine).traverse( walker, shard, referenceProvider, locusProvider, accumulator );
             readShard.close();
         }
 

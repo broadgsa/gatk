@@ -148,31 +148,31 @@ public class TraverseReadsTest extends BaseTest {
             Shard shard = shardStrategy.next();
             BoundedReadIterator readIter = null;
             try {
-                readIter = (BoundedReadIterator)dataSource.seek(shard);
+                readIter = (BoundedReadIterator) dataSource.seek(shard);
             }
             catch (SimpleDataSourceLoadException ex) {
                 throw new RuntimeException(ex);
             }
 
-                //LocusContextProvider locusProvider = new LocusContextProvider( readIter );
+            //LocusContextProvider locusProvider = new LocusContextProvider( readIter );
 
-                // set the sam header of the traversal engine
-                traversalEngine.setSAMHeader(readIter.getMergedHeader());
+            // set the sam header of the traversal engine
+            traversalEngine.setSAMHeader(readIter.getHeader());
 
-                if (!walkerInitialized) {
-                    countReadWalker.initialize();
-                    accumulator = ((ReadWalker<?, ?>) countReadWalker).reduceInit();
-                    walkerInitialized = true;
+            if (!walkerInitialized) {
+                countReadWalker.initialize();
+                accumulator = ((ReadWalker<?, ?>) countReadWalker).reduceInit();
+                walkerInitialized = true;
 
-                }
-                if (shard == null) {
-                    fail("Shard == null");
-                }
+            }
+            if (shard == null) {
+                fail("Shard == null");
+            }
 
 
-                accumulator = traversalEngine.traverse(countReadWalker, shard, readIter, accumulator);
-                readIter.close();
-            
+            accumulator = traversalEngine.traverse(countReadWalker, shard, readIter, accumulator);
+            readIter.close();
+
         }
 
         traversalEngine.printOnTraversalDone("loci", accumulator);
@@ -181,7 +181,7 @@ public class TraverseReadsTest extends BaseTest {
         if (!(accumulator instanceof Integer)) {
             fail("Count read walker should return an interger.");
         }
-        if (((Integer)accumulator) != 9721) {
+        if (((Integer) accumulator) != 9721) {
             fail("there should be 9721 mapped reads in the index file");
         }
     }
@@ -229,30 +229,30 @@ public class TraverseReadsTest extends BaseTest {
             Shard shard = shardStrategy.next();
             BoundedReadIterator readIter = null;
             try {
-                readIter = (BoundedReadIterator)dataSource.seek(shard);
+                readIter = (BoundedReadIterator) dataSource.seek(shard);
             }
             catch (SimpleDataSourceLoadException ex) {
                 throw new RuntimeException(ex);
             }
 
-                //LocusContextProvider locusProvider = new LocusContextProvider( readIter );
+            //LocusContextProvider locusProvider = new LocusContextProvider( readIter );
 
-                // set the sam header of the traversal engine
-                traversalEngine.setSAMHeader(readIter.getMergedHeader());
+            // set the sam header of the traversal engine
+            traversalEngine.setSAMHeader(readIter.getHeader());
 
-                if (!walkerInitialized) {
-                    countReadWalker.initialize();
-                    accumulator = ((ReadWalker<?, ?>) countReadWalker).reduceInit();
-                    walkerInitialized = true;
+            if (!walkerInitialized) {
+                countReadWalker.initialize();
+                accumulator = ((ReadWalker<?, ?>) countReadWalker).reduceInit();
+                walkerInitialized = true;
 
-                }
-                if (shard == null) {
-                    fail("Shard == null");
-                }
+            }
+            if (shard == null) {
+                fail("Shard == null");
+            }
 
 
-                accumulator = traversalEngine.traverse(countReadWalker, shard, readIter, accumulator);
-                readIter.close();
+            accumulator = traversalEngine.traverse(countReadWalker, shard, readIter, accumulator);
+            readIter.close();
 
         }
 
@@ -262,7 +262,7 @@ public class TraverseReadsTest extends BaseTest {
         if (!(accumulator instanceof Integer)) {
             fail("Count read walker should return an interger.");
         }
-        if (((Integer)accumulator) != 10000) {
+        if (((Integer) accumulator) != 10000) {
             fail("there should be 9721 mapped reads in the index file");
         }
     }

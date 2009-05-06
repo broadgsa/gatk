@@ -33,7 +33,7 @@ import java.util.Iterator;
  * This class implements a read iterator that is bounded by the number of reads
  * it will produce over the iteration.
  */
-public class BoundedReadIterator implements CloseableIterator<SAMRecord>, Iterable<SAMRecord> {
+public class BoundedReadIterator implements StingSAMIterator {
 
     // the genome loc we're bounding
     final private long readCount;
@@ -70,11 +70,11 @@ public class BoundedReadIterator implements CloseableIterator<SAMRecord>, Iterab
     }
 
 
-    public SAMFileHeader getMergedHeader() {
+    public SAMFileHeader getHeader() {
         // todo: this is bad, we need an iterface out there for samrecords that supports getting the header,
         // regardless of the merging
         if (iterator instanceof MergingSamRecordIterator2)
-            return ((MergingSamRecordIterator2)iterator).getMergedHeader();
+            return ((MergingSamRecordIterator2)iterator).getHeader();
         else
             return null;
     }
