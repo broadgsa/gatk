@@ -249,14 +249,14 @@ class ArgumentDefinition {
      * @param sourceField Source field for the argument, extracted from the sourceClass.
      */
     public ArgumentDefinition( Argument argument, Class sourceClass, Field sourceField ) {
+        this.sourceClass = sourceClass;
+        this.sourceField = sourceField;
+
         fullName = argument.fullName().trim().length() > 0 ? argument.fullName().trim() : sourceField.getName().toLowerCase();
         shortName = argument.shortName().trim().length() > 0 ? argument.shortName().trim() : null;
         doc = argument.doc();
-        required = argument.required();
+        required = argument.required() && !isFlag();
         exclusive = argument.exclusive().trim().length() > 0 ? argument.exclusive().trim() : null;
-
-        this.sourceClass = sourceClass;
-        this.sourceField = sourceField;
     }
 
     /**
