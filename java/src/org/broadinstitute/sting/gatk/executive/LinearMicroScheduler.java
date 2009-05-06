@@ -14,6 +14,8 @@ import org.broadinstitute.sting.gatk.traversals.TraverseReads;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.io.File;
@@ -37,16 +39,16 @@ public class LinearMicroScheduler extends MicroScheduler {
      * @param reads   Reads file(s) to process.
      * @param refFile Reference for driving the traversal.
      */
-    protected LinearMicroScheduler(List<File> reads, File refFile, Walker walker) {
+    protected LinearMicroScheduler(List<File> reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods, Walker walker) {
         super(reads, refFile);
 
         // determine if we're a read walker: they get a slightly different, but not in any way worse execute methodology. I pinky swear...
         isAReadWalker = (walker instanceof ReadWalker) ? true : false;
 
         if (isAReadWalker) {
-            traversalEngine = new TraverseByReads(reads, refFile, new java.util.ArrayList());
+            traversalEngine = new TraverseByReads(reads, refFile, rods);
         } else {
-            traversalEngine = new TraverseLociByReference(reads, refFile, new java.util.ArrayList());
+            traversalEngine = new TraverseLociByReference(reads, refFile, rods);
         }
     }
 

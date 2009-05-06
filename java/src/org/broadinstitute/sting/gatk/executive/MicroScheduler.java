@@ -9,6 +9,8 @@ import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSou
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
@@ -42,14 +44,14 @@ public abstract class MicroScheduler {
      * @param nThreadsToUse Number of threads to utilize.
      * @return The best-fit microscheduler.
      */
-    public static MicroScheduler create( Walker walker, List<File> reads, File ref, int nThreadsToUse ) {
+    public static MicroScheduler create( Walker walker, List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods, int nThreadsToUse ) {
         if( walker instanceof TreeReducible && nThreadsToUse > 1 ) {
             logger.info("Creating hierarchical microscheduler");
-            return new HierarchicalMicroScheduler( reads, ref, nThreadsToUse );
+            return new HierarchicalMicroScheduler( reads, ref, rods, nThreadsToUse );
         }
         else {
             logger.info("Creating linear microscheduler");
-            return new LinearMicroScheduler( reads, ref, walker );
+            return new LinearMicroScheduler( reads, ref, rods, walker );
         }
     }
 

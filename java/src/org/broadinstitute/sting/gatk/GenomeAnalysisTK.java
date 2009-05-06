@@ -105,6 +105,9 @@ public class GenomeAnalysisTK extends CommandLineProgram {
     @Argument(fullName="numthreads",shortName="nt",doc="How many threads should be allocated to running this analysis.",required=false)    
     protected int numThreads = 1;
 
+    @Argument(fullName="rodBind",shortName="B",doc="",required=false)
+    protected ArrayList<String> ROD_BINDINGS = new ArrayList<String>();    
+
     /**
      * Collection of output streams used by the walker.
      */
@@ -115,8 +118,6 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      */
     private static Logger logger = Logger.getLogger(GenomeAnalysisTK.class);
 
-    @Argument(fullName="rodBind",shortName="B",doc="",required=false)    
-    protected static ArrayList<String> ROD_BINDINGS = new ArrayList<String>();
 
 
     /**
@@ -168,7 +169,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      * @param type
      * @param file
      */
-    private static void bindConvenienceRods(final String name, final String type, final String file )
+    private void bindConvenienceRods(final String name, final String type, final String file )
     {
         ROD_BINDINGS.add(name);
         ROD_BINDINGS.add(type);
@@ -247,7 +248,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                     //                                  is not filtered.
                     if( !DISABLE_THREADING ) {
                         logger.warn("Preliminary threading support ENABLED");
-                        microScheduler = MicroScheduler.create( walker, INPUT_FILES, REF_FILE_ARG, numThreads );
+                        microScheduler = MicroScheduler.create( walker, INPUT_FILES, REF_FILE_ARG, rods, numThreads );
                         this.engine = microScheduler.getTraversalEngine();
                     }
                     else {

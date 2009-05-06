@@ -76,7 +76,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     // Given result of map function
     public Integer reduceInit() { return 0; }
     public Integer reduce(Integer value, Integer sum) {
-        return reduce(sum,value);
+        return treeReduce(sum,value);
     }
     public Integer treeReduce(Integer lhs, Integer rhs) {
         return lhs + rhs;

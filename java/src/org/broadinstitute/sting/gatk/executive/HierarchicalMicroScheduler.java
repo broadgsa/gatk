@@ -9,6 +9,8 @@ import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
 import org.broadinstitute.sting.gatk.OutputTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
@@ -58,12 +60,12 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
      * @param refFile Reference for driving the traversal.
      * @param nThreadsToUse maximum number of threads to use to do the work
      */
-    protected HierarchicalMicroScheduler( List<File> reads, File refFile, int nThreadsToUse ) {
+    protected HierarchicalMicroScheduler( List<File> reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods, int nThreadsToUse ) {
         super( reads, refFile );
 
 
         this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);        
-        traversalEngine = new TraverseLociByReference( reads, refFile, new java.util.ArrayList() );
+        traversalEngine = new TraverseLociByReference( reads, refFile, rods );
     }
 
     public TraversalEngine getTraversalEngine() {
