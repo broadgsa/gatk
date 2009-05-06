@@ -50,6 +50,7 @@ public abstract class BaseTest {
     @BeforeClass
     public static void baseStartup() {
         if (!alreadySetup) {
+          
             alreadySetup = true;
             // setup a basic log configuration
             BasicConfigurator.configure();
@@ -148,15 +149,11 @@ public abstract class BaseTest {
 
     // pass through to the junit 3 calls, which are not annotated
     @Before
-    final public void baseSetup() throws Exception {
-        startTime = System.currentTimeMillis();
+    public void baseSetup() throws Exception {
     }
 
     @After
     public void baseTearDown() throws Exception {
-        long endTime = System.currentTimeMillis();
-        
-        logger.warn(String.format("runtime: %dms", (endTime - startTime)));
     }
 
 }

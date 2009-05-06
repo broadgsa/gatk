@@ -211,10 +211,11 @@
     </target>
 
     <!-- TEST -->
-    <target name="test" depends="test.compile" description="Run unit tests">
+    <target name="test" depends="test.compile,agent" description="Run unit tests">
         <mkdir dir="${report}"/>
         <echo message="Sting: Running test cases!"/>
         <junit printsummary="yes" showoutput="yes" clonevm="yes" haltonfailure="yes" failureProperty="test.failure">
+            <jvmarg value="-javaagent:build/TestAgent.jar"/>
             <formatter type="brief" usefile="false" />
             <classpath>
                 <path refid="external.dependencies"/>
@@ -228,8 +229,10 @@
                 <fileset dir="${test.classes}">
                     <include name="**/${single}.class"/>
                     <exclude name="**/BaseTest.class"/>
-		    <!-- Omit inner classes -->
-		    <exclude name="**/*$*.class" />
+                    <!-- omit our instrumenation class -->
+                    <exclude name="**/TrivialInstrumenter.class"/>
+		            <!-- Omit inner classes -->
+		            <exclude name="**/*$*.class" />
                 </fileset>
             </batchtest>
         </junit>
@@ -237,7 +240,20 @@
 
     </target>
 
+    <!-- this builds the instrumentation library we're going to use for test cases -->
+    <target name="agent" description="build the agent">
+        <echo message="Sting: Creating test agent!"/>
+        <jar jarfile="build/TestAgent.jar">
+            <fileset dir="build">
+            <include name="**/TrivialInstrumenter.class" />
+          </fileset>
 
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}"/>
+                <attribute name="Premain-Class" value="org.broadinstitute.sting.TrivialInstrumenter"/>
+            </manifest>
+        </jar>
+    </target>
     
     <target name="javadoc" depends="init,resolve" description="generates javadoc">
         <mkdir dir="javadoc"/>
