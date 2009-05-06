@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Collection;
 import java.util.Arrays;
+import java.util.EnumSet;
 
 /**
  * Created by IntelliJ IDEA.
@@ -89,41 +90,67 @@ public class ParsingEngine {
         return argumentMatches;
     }
 
+    public enum ValidationType { MissingRequiredArgument,
+                                 InvalidArgument,
+                                 ValueMissingArgument,
+                                 TooManyValuesForArgument };
+
     /**
-     * Validates the list of command-line argument matches.  On
-     * failure throws an exception with detailed info about the particular failures.
+     * Validates the list of command-line argument matches.
+     * @param argumentMatches Matches to validate.
      */
     public void validate( ArgumentMatches argumentMatches ) {
-        // Find missing required arguments.
-        Collection<ArgumentDefinition> requiredArguments = argumentDefinitions.findArgumentDefinitions( true, new ArgumentDefinitions.RequiredDefinitionMatcher() );
-        Collection<ArgumentDefinition> missingArguments = new ArrayList<ArgumentDefinition>();
-        for( ArgumentDefinition requiredArgument: requiredArguments ) {
-            if( !argumentMatches.hasMatch(requiredArgument) )
-                missingArguments.add( requiredArgument );                
-        }
+        validate( argumentMatches, EnumSet.noneOf(ValidationType.class) );
+    }
 
-        if( missingArguments.size() > 0 )
-            throw new MissingArgumentException( missingArguments );
+    /**
+     * Validates the list of command-line argument matches.  On failure throws an exception with detailed info about the
+     * particular failures.  Takes an EnumSet indicating which validation checks to skip.
+     * @param argumentMatches Matches to validate.
+     * @param skipValidationOf List of validation checks to skip.
+     */
+    public void validate( ArgumentMatches argumentMatches, EnumSet<ValidationType> skipValidationOf ) {
+        // Find missing required arguments.
+        if( !skipValidationOf.contains(ValidationType.MissingRequiredArgument) ) {
+            Collection<ArgumentDefinition> requiredArguments =
+                    argumentDefinitions.findArgumentDefinitions( true, ArgumentDefinitions.RequiredDefinitionMatcher );
+            Collection<ArgumentDefinition> missingArguments = new ArrayList<ArgumentDefinition>();
+            for( ArgumentDefinition requiredArgument: requiredArguments ) {
+                if( !argumentMatches.hasMatch(requiredArgument) )
+                    missingArguments.add( requiredArgument );
+            }
+
+            if( missingArguments.size() > 0 )
+                throw new MissingArgumentException( missingArguments );
+        }
 
         // Find invalid arguments.  Invalid arguments will have a null argument definition.
-        Collection<ArgumentMatch> invalidArguments = argumentMatches.findMatches(null);
-        if( invalidArguments.size() > 0 )
-            throw new InvalidArgumentException( invalidArguments );
-
-        // Find values without an associated mate.
-        if( argumentMatches.MissingArgument.values().size() > 0 )
-            throw new InvalidArgumentValueException( argumentMatches.MissingArgument );
-
-        // Find arguments with too many values.
-        Collection<ArgumentMatch> overvaluedArguments = new ArrayList<ArgumentMatch>();
-        for( ArgumentMatch argumentMatch: argumentMatches ) {
-            // Warning: assumes that definition is not null (asserted by checks above).
-            if( !argumentMatch.definition.isMultiValued() && argumentMatch.values().size() > 1 )
-                overvaluedArguments.add(argumentMatch);
+        if( !skipValidationOf.contains(ValidationType.InvalidArgument) ) {
+            Collection<ArgumentMatch> invalidArguments = argumentMatches.findMatches(null);
+            if( invalidArguments.size() > 0 )
+                throw new InvalidArgumentException( invalidArguments );
         }
 
-        if( !overvaluedArguments.isEmpty() )
-            throw new TooManyValuesForArgumentException(overvaluedArguments);
+        // Find values without an associated mate.
+        if( !skipValidationOf.contains(ValidationType.ValueMissingArgument) ) {
+            if( argumentMatches.MissingArgument.values().size() > 0 )
+                throw new InvalidArgumentValueException( argumentMatches.MissingArgument );
+        }
+
+        // Find arguments with too many values.
+        if( !skipValidationOf.contains(ValidationType.TooManyValuesForArgument)) {
+            Collection<ArgumentMatch> overvaluedArguments = new ArrayList<ArgumentMatch>();
+            for( ArgumentMatch argumentMatch: argumentMatches ) {
+                // Warning: assumes that definition is not null (asserted by checks above).
+                if( argumentMatch.definition != null &&
+                        !argumentMatch.definition.isMultiValued() &&
+                        argumentMatch.values().size() > 1 )
+                    overvaluedArguments.add(argumentMatch);
+            }
+
+            if( !overvaluedArguments.isEmpty() )
+                throw new TooManyValuesForArgumentException(overvaluedArguments);
+        }
     }
 
     /**

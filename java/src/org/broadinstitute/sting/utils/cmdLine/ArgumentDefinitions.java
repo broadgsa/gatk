@@ -150,13 +150,13 @@ class ArgumentDefinitions {
     /**
      * Find all required definitions.
      */
-    public static class RequiredDefinitionMatcher implements DefinitionMatcher {
+    public static DefinitionMatcher RequiredDefinitionMatcher = new DefinitionMatcher() {
         public boolean matches( ArgumentDefinition definition, Object key ) {
             if( !(key instanceof Boolean) )
                 throw new IllegalArgumentException("RequiredDefinitionMatcher requires boolean key");
             return definition.required == (Boolean)key;
         }
-    }
+    };
 }
 
 /**

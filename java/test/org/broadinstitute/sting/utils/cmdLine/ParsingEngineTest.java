@@ -7,6 +7,7 @@ import org.junit.Before;
 import org.junit.Assert;
 
 import java.util.List;
+import java.util.EnumSet;
 /**
  * Created by IntelliJ IDEA.
  * User: mhanna
@@ -218,6 +219,20 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     @Test
+    public void disableValidationOfRequiredArgTest() {
+        final String[] commandLine = new String[0];
+
+        parsingEngine.addArgumentSources( RequiredArgProvider.class );
+        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
+        parsingEngine.validate( argumentMatches, EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument) );
+
+        RequiredArgProvider argProvider = new RequiredArgProvider();
+        parsingEngine.loadArgumentsIntoObject(argProvider, argumentMatches);
+
+        Assert.assertNull("Value should have remain unset",argProvider.value);
+    }
+
+    @Test
     public void unrequiredArgTest() {
         final String[] commandLine = new String[0];
 
@@ -359,4 +374,33 @@ public class ParsingEngineTest extends BaseTest {
         @Argument(doc="my bool")
         boolean myBool;
     }
+
+    @Test
+    public void testValidParseForAnalysisType() {
+        final String[] commandLine = new String[] {"--analysis_type", "Pileup" };
+
+        parsingEngine.addArgumentSources( AnalysisTypeArgProvider.class );
+        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
+        parsingEngine.validate(argumentMatches, EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument) );
+
+        AnalysisTypeArgProvider argProvider = new AnalysisTypeArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider, argumentMatches );
+
+        Assert.assertEquals("Argument is not correctly initialized", "Pileup", argProvider.Analysis_Name );
+    }
+
+    private class AnalysisTypeArgProvider {
+        @Argument(fullName="analysis_type", shortName="T", doc="Type of analysis to run")
+        public String Analysis_Name = null;
+    }
+
+    @Test(expected=TooManyValuesForArgumentException.class)
+    public void testInvalidParseForAnalysisType() {
+        final String[] commandLine = new String[] {"--analysis_type", "Pileup", "-TCountReads" };
+
+        parsingEngine.addArgumentSources( AnalysisTypeArgProvider.class );
+        ArgumentMatches argumentMatches = parsingEngine.parse( commandLine );
+        parsingEngine.validate(argumentMatches, EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument) );
+    }
+
 }
