@@ -66,7 +66,7 @@ public class ParsingEngine {
      */
     public void addArgumentSources( Class... sources ) {
         for( Class source: sources ) {
-            Field[] fields = source.getDeclaredFields();
+            Field[] fields = source.getFields();
             for( Field field: fields ) {
                 Argument argument = field.getAnnotation(Argument.class);                
                 if(argument != null)
@@ -161,6 +161,12 @@ public class ParsingEngine {
     public void loadArgumentsIntoObject( Object object, ArgumentMatches matches ) {
         for( ArgumentMatch match: matches ) {
             ArgumentDefinition definition = match.definition;
+
+            // A null definition might be in the list if some invalid arguments were passed in but we
+            // want to load in a subset of data for better error reporting.  Ignore null definitions.
+            if( definition == null )
+                continue;
+
             if( object.getClass().equals(definition.sourceClass) ) {
                 try {
                     if( !isArgumentFlag(definition) )
@@ -174,6 +180,13 @@ public class ParsingEngine {
                 }
             }
         }
+    }
+
+    /**
+     * Prints out the help associated with these command-line argument definitions.
+     */
+    public void printHelp() {
+        new HelpFormatter().printHelp(argumentDefinitions);
     }
 
     /**

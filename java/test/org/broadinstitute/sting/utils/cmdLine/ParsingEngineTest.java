@@ -327,6 +327,7 @@ public class ParsingEngineTest extends BaseTest {
         parsingEngine.validate( argumentMatches );
     }
 
+    /*
     @Test
     public void packageProtectedArgTest() {
         final String[] commandLine = new String[] {"--foo", "1"};
@@ -345,6 +346,7 @@ public class ParsingEngineTest extends BaseTest {
         @Argument(doc="foo")
         Integer foo;
     }
+    */
 
     @Test
     public void correctDefaultArgNameTest() {

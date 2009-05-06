@@ -65,7 +65,7 @@ public class ArgumentParser {
      */
     public void printHelp() {
         // automatically generate the help statement
-        HelpFormatter formatter = new HelpFormatter();
+        org.apache.commons.cli.HelpFormatter formatter = new org.apache.commons.cli.HelpFormatter();
         formatter.printHelp(100,
                 "java -Xmx4096m -jar dist/GenomeAnalysisTK.jar",
                 "",

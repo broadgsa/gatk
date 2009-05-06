@@ -122,45 +122,6 @@ public class GenomeAnalysisTK extends CommandLineProgram {
 
 
     /**
-     * setup our arguments, both required and optional
-     * <p/>
-     * Flags don't take an argument, the associated Boolean gets set to true if the flag appears on the command line.
-     */
-    protected void setupArgs() {
-        m_parser.addOptionalArgList("input_file", "I", "SAM or BAM file", "INPUT_FILES");
-        m_parser.addOptionalArg("maximum_reads", "M", "Maximum number of reads to process before exiting", "MAX_READS_ARG");
-        m_parser.addOptionalArg("validation_strictness", "S", "How strict should we be with validation (LENIENT|SILENT|STRICT)", "STRICTNESS_ARG");
-        m_parser.addOptionalArg("reference_sequence", "R", "Reference sequence file", "REF_FILE_ARG");
-        m_parser.addOptionalArg("genome_region", "L", "Genome region to operation on: from chr:start-end", "REGION_STR");
-        m_parser.addRequiredArg("analysis_type", "T", "Type of analysis to run", "Analysis_Name");
-        m_parser.addOptionalArg("DBSNP", "D", "DBSNP file", "DBSNP_FILE");
-        m_parser.addOptionalArg("hapmap", "H", "Hapmap file", "HAPMAP_FILE");
-        m_parser.addOptionalArg("hapmap_chip", "hc", "Hapmap chip file", "HAPMAP_CHIP_FILE");
-        m_parser.addOptionalFlag("threaded_IO", "P", "If set, enables threaded I/O operations", "ENABLED_THREADED_IO");
-        m_parser.addOptionalFlag("unsafe", "U", "If set, enables unsafe operations, nothing will be checked at runtime.", "UNSAFE");
-        m_parser.addOptionalArg("sort_on_the_fly", "sort", "Maximum number of reads to sort on the fly", "MAX_ON_FLY_SORTS");
-        m_parser.addOptionalArg("downsample_to_fraction", "dfrac", "Fraction [0.0-1.0] of reads to downsample to", "DOWNSAMPLE_FRACTION");
-        m_parser.addOptionalArg("downsample_to_coverage", "dcov", "Coverage [integer] to downsample to", "DOWNSAMPLE_COVERAGE");
-        m_parser.addOptionalArg("intervals_file", "V", "File containing list of genomic intervals to operate on. line := <contig> <start> <end>", "INTERVALS_FILE");
-        m_parser.addOptionalFlag("all_loci", "A", "Should we process all loci, not just those covered by reads", "WALK_ALL_LOCI");
-        m_parser.addOptionalArg("out", "o", "An output file presented to the walker.  Will overwrite contents if file exists.", "outFileName" );
-        m_parser.addOptionalArg("err", "e", "An error output file presented to the walker.  Will overwrite contents if file exists.", "errFileName" );
-        m_parser.addOptionalArg("outerr", "oe", "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", "outErrFileName");
-
-        m_parser.addOptionalArg("numthreads", "nt", "How many threads should be allocated to running this analysis.", "numThreads");
-        m_parser.addOptionalFlag("disablethreading", "dt", "Disable experimental threading support.", "DISABLE_THREADING");
-
-        // --rodBind <name> <type> <file>
-        //m_parser.addOptionalArg("rods", "B", "Bind rod with <name> and <type> to <file>", "ROD_BINDINGS");
-
-        Option rodBinder = OptionBuilder.withArgName("rodBind")
-                                        .hasArgs()
-                                        .withDescription( "" )
-                                        .create("B");
-        m_parser.addOptionalArg(rodBinder, "ROD_BINDINGS");
-    }
-
-    /**
      * GATK can add arguments dynamically based on analysis type.
      * @return true
      */

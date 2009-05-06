@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.fourbasecaller;
 
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.io.File;
@@ -13,17 +14,14 @@ import net.sf.samtools.SAMRecord;
 public class MatchSQTagToStrand extends CommandLineProgram {
     public static MatchSQTagToStrand Instance = null;
 
+    @Argument(fullName="sam_in",  shortName="I", doc="Input SAM file")
     public File SAM_IN;
+    @Argument(fullName="sam_out", shortName="O", doc="Output SAM file")
     public File SAM_OUT;
 
     public static void main(String[] argv) {
         Instance = new MatchSQTagToStrand();
         start(Instance, argv);
-    }
-
-    protected void setupArgs() {
-        m_parser.addRequiredArg("sam_in",  "I", "Input SAM file",  "SAM_IN");
-        m_parser.addRequiredArg("sam_out", "O", "Output SAM file", "SAM_OUT");
     }
 
     protected int execute() {

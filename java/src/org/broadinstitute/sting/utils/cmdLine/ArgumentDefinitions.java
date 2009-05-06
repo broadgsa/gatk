@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 /**
  * Created by IntelliJ IDEA.
@@ -26,7 +27,7 @@ import java.util.ArrayList;
 /**
  * A collection of argument definitions.
  */
-class ArgumentDefinitions {
+class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
     /**
      * Backing data set of argument stored by short name and long name.
      */
@@ -93,6 +94,14 @@ class ArgumentDefinitions {
                 selectedArgumentDefinitions.add( argumentDefinition );
         }
         return selectedArgumentDefinitions;
+    }
+
+    /**
+     * Iterates through all command-line arguments.
+     * @return
+     */
+    public Iterator<ArgumentDefinition> iterator() {
+        return argumentDefinitions.iterator();
     }
 
     /**

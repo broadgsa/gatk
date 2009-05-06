@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.fourbasecaller;
 
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.io.*;
@@ -14,19 +15,16 @@ import net.sf.samtools.SAMFileWriterFactory;
 public class CombineSamAndFourProbs extends CommandLineProgram {
     public static CombineSamAndFourProbs Instance = null;
 
+    @Argument(fullName="sam",      shortName="S", doc="Input SAM file")
     public File SAM;
+    @Argument(fullName="fourprob", shortName="F", doc="Input text file := read_name sq_field")
     public File FOURPROBS;
+    @Argument(fullName="sam_out",  shortName="O", doc="Output SAM file")
     public File SAM_OUT;
 
     public static void main(String[] argv) {
         Instance = new CombineSamAndFourProbs();
         start(Instance, argv);
-    }
-
-    protected void setupArgs() {
-        m_parser.addRequiredArg("sam",      "S", "Input SAM file",                        "SAM");
-        m_parser.addRequiredArg("fourprob", "F", "Input text file := read_name sq_field", "FOURPROBS");
-        m_parser.addRequiredArg("sam_out",  "O", "Output SAM file",                       "SAM_OUT");
     }
 
     protected int execute() {

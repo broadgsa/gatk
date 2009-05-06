@@ -5,6 +5,7 @@ import org.apache.log4j.*;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.EnumSet;
 
 /**
  * User: aaron
@@ -26,9 +27,10 @@ import java.text.SimpleDateFormat;
 public abstract class CommandLineProgram {
 
     /**
-     * Our Argument parser, which handles parsing the command line in GNU format
+     * The command-line program and the arguments it returned.
      */
-    protected ArgumentParser m_parser;
+    private ParsingEngine parser = null;
+    private ArgumentMatches parameters = null; 
 
     /**
      * our log, which we want to capture anything from org.broadinstitute.sting
@@ -78,12 +80,6 @@ public abstract class CommandLineProgram {
      */
     private static String patternString = "%p %m %n";
     private static String debugPatternString = "%n[level] %p%n[date]\t\t %d{dd MMM yyyy HH:mm:ss,SSS} %n[class]\t\t %C %n[location]\t %l %n[line number]\t %L %n[message]\t %m %n";
-
-    /**
-     * the contract for the inheriting class is that they have a setupArgs()
-     * function which sets up the args to the specific program.
-     */
-    protected abstract void setupArgs();
 
     /**
      * Will this application want to vary its argument list dynamically?
@@ -137,34 +133,25 @@ public abstract class CommandLineProgram {
             // setup our log layout
             PatternLayout layout = new PatternLayout();
 
-
             // setup the parser
-            clp.m_parser = new ArgumentParser(clp.getClass().getName(), clp);
-
-            // setup the default help and logging args controlled by the base class
-            clp.setupDefaultArgs();
-
-            // setup the args
-            clp.setupArgs();
+            ParsingEngine parser = clp.parser = new ParsingEngine();
+            parser.addArgumentSources( clp.getClass() );
 
             // process the args
             if( clp.canAddArgumentsDynamically() ) {
                 // if the command-line program can toss in extra args, fetch them and reparse the arguments.
-                clp.m_parser.processArgs(args, true);
-                clp.m_parser.loadArgumentsIntoObject( clp );
+                clp.parameters = parser.parse(args);
+                parser.validate( clp.parameters, EnumSet.of(ParsingEngine.ValidationType.InvalidArgument) );
+                parser.loadArgumentsIntoObject( clp, clp.parameters );
 
                 Class[] argumentSources = clp.getArgumentSources();
-                for( Class argumentSource: argumentSources )
-                    clp.addArgumentSource( argumentSource );
-                clp.m_parser.processArgs(args, false);
-
-                // HACK: Load arguments into object again.  Apache CLI always stops processing when an option
-                //       is unrecognized, so if core arguments were intermixed with walker arguments, stop processing.
-                clp.m_parser.loadArgumentsIntoObject( clp );
+                parser.addArgumentSources( argumentSources );
+                clp.parameters = parser.parse(args);
+                parser.validate( clp.parameters );
             }
             else {
-                clp.m_parser.processArgs(args, false);
-                clp.m_parser.loadArgumentsIntoObject( clp );
+                clp.parameters = parser.parse(args);
+                parser.validate( clp.parameters );
             }
 
             // if we're in debug mode, set the mode up
@@ -190,7 +177,7 @@ public abstract class CommandLineProgram {
 
             // they asked for help, give it to them
             if (clp.help) {
-                clp.m_parser.printHelp();
+                parser.printHelp();
                 System.exit(1);
             }
 
@@ -219,7 +206,7 @@ public abstract class CommandLineProgram {
         }
         catch (org.apache.commons.cli.ParseException e) {
             logger.fatal("Unable to pass command line arguments: " + e.getMessage() );
-            clp.m_parser.printHelp();
+            clp.parser.printHelp();
         }
         catch (Exception e) {
             // we catch all exceptions here. if it makes it to this level, we're in trouble.  Let's bail!
@@ -237,7 +224,7 @@ public abstract class CommandLineProgram {
      * @param obj Object to inspect for command line arguments.
      */
     public void loadArgumentsIntoObject( Object obj ) {
-        m_parser.loadArgumentsIntoObject( obj );
+        parser.loadArgumentsIntoObject( obj, parameters );
     }
 
     /**
@@ -298,27 +285,4 @@ public abstract class CommandLineProgram {
 
         logger.setLevel(par);
     }
-
-    /**
-     * Pass along a new set of valid command line arguments.  In this case,
-     * probably a class with @argument annotations.
-     * @param source
-     */
-    private void addArgumentSource( Class source ) {
-        m_parser.addArgumentSource( this, source );
-    }
-
-    /**
-     * we have some default options that should always get checked for in the
-     * arguments provided to the program
-     */
-    private void setupDefaultArgs() {
-        m_parser.addOptionalFlag("help", "h", "Generate this help message", "help");
-        m_parser.addOptionalArg("logging_level", "l", "Set the minimum level of logging, i.e. setting INFO get's you INFO up to FATAL, setting ERROR gets you ERROR and FATAL level logging. (DEBUG, INFO, WARN, ERROR, FATAL, OFF). ", "logging_level");
-        m_parser.addOptionalArg("log_to_file", "log", "Set the logging location", "toFile");
-        m_parser.addOptionalFlag("quiet_output_mode", "quiet", "Set the logging to quiet mode, no output to stdout", "quietMode");
-        m_parser.addOptionalFlag("debug_mode", "debug", "Set the logging file string to include a lot of debugging information (SLOW!)", "debugMode");
-    }
-
-
 }

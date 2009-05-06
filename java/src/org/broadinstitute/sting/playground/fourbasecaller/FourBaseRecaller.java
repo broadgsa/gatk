@@ -13,6 +13,7 @@ import org.broadinstitute.sting.playground.illumina.FirecrestReadData;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,33 +22,30 @@ import java.io.PrintWriter;
 public class FourBaseRecaller extends CommandLineProgram {
     public static FourBaseRecaller Instance = null;
     
+    @Argument(fullName="dir",         shortName="D", doc="Illumina Bustard directory")
     public File DIR;
+    @Argument(fullName="lane",        shortName="L", doc="Illumina flowcell lane")
     public int LANE;
+    @Argument(fullName="run_barcode", shortName="B", doc="Illumina Run Barcode (e.g. 305PJAAXX080716)")
     public String RUN_BARCODE;
+    @Argument(fullName="out",         shortName="O", doc="Output path for sam file")
     public File OUT;
+    @Argument(fullName="end",         shortName="E", doc="End of read to process (0 = whole read, i.e. unpaired; 1 = first end; 2 = second end)", required=false)
     public int END = 0;
+    @Argument(fullName="tlim",        shortName="T", doc="Number of reads to use for parameter initialization", required=false)
     public int TRAINING_LIMIT = 1000000000;
+    @Argument(fullName="clim",        shortName="C", doc="Number of reads to basecall", required=false)
     public int CALLING_LIMIT = 1000000000;
+    @Argument(fullName="raw",         shortName="R", doc="Use raw intensities?", required=false)
     public Boolean RAW = false;
+    @Argument(fullName="old",         shortName="1", doc="Old Bustard 1.1 mode?", required=false)
     public Boolean OLD = false;
+    @Argument(fullName="context",     shortName="X", doc="Correct for context?", required=false)
     public Boolean CONTEXT = false;
 
     public static void main(String[] argv) {
         Instance = new FourBaseRecaller();
         start(Instance, argv);
-    }
-
-    protected void setupArgs() {
-        m_parser.addRequiredArg("dir",         "D", "Illumina Bustard directory", "DIR");
-        m_parser.addRequiredArg("lane",        "L", "Illumina flowcell lane", "LANE");
-        m_parser.addOptionalArg("end",         "E", "End of read to process (0 = whole read, i.e. unpaired; 1 = first end; 2 = second end)", "END");
-        m_parser.addRequiredArg("run_barcode", "B", "Illumina Run Barcode (e.g. 305PJAAXX080716)", "RUN_BARCODE");
-        m_parser.addRequiredArg("out",         "O", "Output path for sam file", "OUT");
-        m_parser.addOptionalArg("tlim",        "T", "Number of reads to use for parameter initialization", "TRAINING_LIMIT");
-        m_parser.addOptionalArg("clim",        "C", "Number of reads to basecall", "CALLING_LIMIT");
-        m_parser.addOptionalFlag("raw",        "R", "Use raw intensities?", "RAW");
-        m_parser.addOptionalFlag("old",        "1", "Old Bustard 1.1 mode?", "OLD");
-        m_parser.addOptionalFlag("context",    "X", "Correct for context?", "CONTEXT");
     }
 
     protected int execute() {
