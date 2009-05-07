@@ -21,6 +21,14 @@ abstract public class BasicPileup implements Pileup {
         return String.format("%s: %s %s %s", getLocation(), getRef(), getBases(), getQuals());
     }
 
+    public static List<Integer> constantOffset( List<SAMRecord> reads, int i ) {
+        List<Integer> l = new ArrayList<Integer>(reads.size());
+        for ( SAMRecord read : reads ) {
+            l.add(i);
+        }
+        return l;
+    }
+
     public static String basePileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
         StringBuilder bases = new StringBuilder();
         for ( byte base : basePileup(reads, offsets)) {
@@ -252,5 +260,20 @@ abstract public class BasicPileup implements Pileup {
             return "Quals not equal";
 
         return null;
+    }
+
+    public static byte consensusBase(String bases) {
+        String canon = bases.toUpperCase();
+        int ACount = Utils.countOccurances('A', bases);
+        int CCount = Utils.countOccurances('C', bases);
+        int TCount = Utils.countOccurances('T', bases);
+        int GCount = Utils.countOccurances('G', bases);
+
+        int m = Math.max(ACount, Math.max(CCount, Math.max(TCount, GCount)));
+        if ( ACount == m ) return 'A';
+        if ( CCount == m ) return 'C';
+        if ( TCount == m ) return 'T';
+        if ( GCount == m ) return 'G';
+        return 0;
     }
 }
