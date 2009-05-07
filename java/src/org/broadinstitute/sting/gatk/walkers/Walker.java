@@ -35,7 +35,6 @@ public abstract class Walker<MapType, ReduceType> {
     protected Walker() {
         if( GenomeAnalysisTK.Instance != null ) {
             GenomeAnalysisTK gatk = GenomeAnalysisTK.Instance;
-            gatk.loadArgumentsIntoObject(this);
             out = new PrintStream( gatk.getOutputTracker().getOutStream() );
             err = new PrintStream( gatk.getOutputTracker().getErrStream() );
         }

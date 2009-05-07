@@ -152,6 +152,12 @@ class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
             return definition.required == (Boolean)key;
         }
     };
+
+    static DefinitionMatcher VerifiableDefinitionMatcher = new DefinitionMatcher() {
+        public boolean matches( ArgumentDefinition definition, Object key ) {
+            return definition.validation != null;
+        }        
+    };
 }
 
 /**
@@ -211,6 +217,11 @@ class ArgumentDefinition {
      */
     public final String exclusiveOf;
 
+    /**
+     * Can we validate this regular expression?
+     */
+    public final String validation;
+
     public final Class sourceClass;
     public final Field sourceField;
 
@@ -229,6 +240,7 @@ class ArgumentDefinition {
         doc = argument.doc();
         required = argument.required() && !isFlag();
         exclusiveOf = argument.exclusiveOf().trim().length() > 0 ? argument.exclusiveOf().trim() : null;
+        validation = argument.validation().trim().length() > 0 ? argument.validation().trim() : null;
     }
 
     /**

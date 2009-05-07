@@ -350,7 +350,7 @@ public class ParsingEngineTest extends BaseTest {
         public Integer bar;
     }
 
-    @Test(expected=InvalidArgumentValueException.class)
+    @Test(expected=UnmatchedArgumentException.class)
     public void missingArgumentNameTest() {
         final String[] commandLine = new String[] {"foo.txt"};
 
@@ -363,7 +363,7 @@ public class ParsingEngineTest extends BaseTest {
 
     }
 
-    @Test(expected=InvalidArgumentValueException.class)
+    @Test(expected=UnmatchedArgumentException.class)
     public void extraValueTest() {
         final String[] commandLine = new String[] {"-Ifoo.txt", "bar.txt"};
 
@@ -446,7 +446,7 @@ public class ParsingEngineTest extends BaseTest {
         Integer myArg;
     }
 
-    @Test(expected=InvalidArgumentValueException.class)
+    @Test(expected=UnmatchedArgumentException.class)
     public void booleanWithParameterTest() {
         final String[] commandLine = new String[] {"--mybool", "true"};
 
@@ -461,7 +461,7 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     @Test
-    public void testValidParseForAnalysisType() {
+    public void validParseForAnalysisTypeTest() {
         final String[] commandLine = new String[] {"--analysis_type", "Pileup" };
 
         parsingEngine.addArgumentSource( AnalysisTypeArgProvider.class );
@@ -480,7 +480,7 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     @Test(expected=TooManyValuesForArgumentException.class)
-    public void testInvalidParseForAnalysisType() {
+    public void invalidParseForAnalysisTypeTest() {
         final String[] commandLine = new String[] {"--analysis_type", "Pileup", "-TCountReads" };
 
         parsingEngine.addArgumentSource( AnalysisTypeArgProvider.class );
@@ -489,7 +489,7 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     @Test(expected=ArgumentsAreMutuallyExclusiveException.class)
-    public void testMutuallyExclusiveArguments() {
+    public void mutuallyExclusiveArgumentsTest() {
         // Passing only foo should work fine...
         String[] commandLine = new String[] {"--foo","5"};
 
@@ -515,5 +515,30 @@ public class ParsingEngineTest extends BaseTest {
 
         @Argument(doc="bar",required=false)
         Integer bar;
+    }
+
+    @Test(expected=InvalidArgumentValueException.class)
+    public void argumentValidationTest() {
+        // Passing only foo should work fine...
+        String[] commandLine = new String[] {"--value","521"};
+
+        parsingEngine.addArgumentSource( ValidatingArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        ValidatingArgProvider argProvider = new ValidatingArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals("Argument is not correctly initialized", 521, argProvider.value.intValue() );
+
+        // Try some invalid arguments
+        commandLine = new String[] {"--value","foo"};
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+    }
+
+    private class ValidatingArgProvider {
+        @Argument(doc="value",validation="\\d+")
+        Integer value;
     }
 }

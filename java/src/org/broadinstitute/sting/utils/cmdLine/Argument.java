@@ -59,4 +59,10 @@ public @interface Argument {
      *         argument should be independent.
      */
     String exclusiveOf() default "";
+
+    /**
+     * Provide a regexp-based validation string.
+     * @return Non-empty regexp for validation, blank otherwise. 
+     */
+    String validation() default "";
 }

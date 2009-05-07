@@ -108,6 +108,7 @@ public class ParsingEngine {
 
     public enum ValidationType { MissingRequiredArgument,
                                  InvalidArgument,
+                                 InvalidArgumentValue,
                                  ValueMissingArgument,
                                  TooManyValuesForArgument,
                                  MutuallyExclusive };
@@ -146,10 +147,29 @@ public class ParsingEngine {
                 throw new InvalidArgumentException( invalidArguments );
         }
 
+        // Find invalid argument values (arguments that fail the regexp test.
+        if( !skipValidationOf.contains(ValidationType.InvalidArgumentValue) ) {
+            Collection<ArgumentDefinition> verifiableArguments = 
+                    argumentDefinitions.findArgumentDefinitions( null, ArgumentDefinitions.VerifiableDefinitionMatcher );
+            Collection<Pair<ArgumentDefinition,String>> invalidValues = new ArrayList<Pair<ArgumentDefinition,String>>();
+            for( ArgumentDefinition verifiableArgument: verifiableArguments ) {
+                Collection<ArgumentMatch> verifiableMatches = argumentMatches.findMatches( verifiableArgument );
+                for( ArgumentMatch verifiableMatch: verifiableMatches ) {
+                    for( String value: verifiableMatch.values() ) {
+                        if( !value.matches(verifiableArgument.validation) )
+                            invalidValues.add( new Pair<ArgumentDefinition,String>(verifiableArgument, value) );
+                    }
+                }
+            }
+
+            if( invalidValues.size() > 0 )
+                throw new InvalidArgumentValueException( invalidValues );
+        }
+
         // Find values without an associated mate.
         if( !skipValidationOf.contains(ValidationType.ValueMissingArgument) ) {
             if( argumentMatches.MissingArgument.values().size() > 0 )
-                throw new InvalidArgumentValueException( argumentMatches.MissingArgument );
+                throw new UnmatchedArgumentException( argumentMatches.MissingArgument );
         }
 
         // Find arguments with too many values.
@@ -457,10 +477,31 @@ class InvalidArgumentException extends ParseException {
 }
 
 /**
- * An exception for values that can't be mated with any argument.
+ * An exception for values whose format is invalid.
  */
 class InvalidArgumentValueException extends ParseException {
-    public InvalidArgumentValueException( ArgumentMatch invalidValues ) {
+    public InvalidArgumentValueException( Collection<Pair<ArgumentDefinition,String>> invalidArgumentValues ) {
+        super( formatArguments(invalidArgumentValues) );
+    }
+
+    private static String formatArguments( Collection<Pair<ArgumentDefinition,String>> invalidArgumentValues ) {
+        StringBuilder sb = new StringBuilder();
+        for( Pair<ArgumentDefinition,String> invalidValue: invalidArgumentValues ) {
+            sb.append( String.format("%nArgument '--%s' has value of incorrect format: %s (should match %s)",
+                                     invalidValue.first.fullName,
+                                     invalidValue.second,
+                                     invalidValue.first.validation) );
+        }
+        return sb.toString();
+    }
+}
+
+
+/**
+ * An exception for values that can't be mated with any argument.
+ */
+class UnmatchedArgumentException extends ParseException {
+    public UnmatchedArgumentException( ArgumentMatch invalidValues ) {
         super( formatArguments(invalidValues) );
     }
 
