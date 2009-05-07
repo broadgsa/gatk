@@ -42,12 +42,12 @@ public class HelpFormatter {
      * Prints the help, given a collection of argument definitions.
      * @param argumentDefinitions Argument definitions for which help should be printed.
      */
-    public void printHelp( ArgumentDefinitions argumentDefinitions ) {
+    public void printHelp( String runningInstructions, ArgumentDefinitions argumentDefinitions ) {
         SortedSet<ArgumentDefinition> mainArguments = getMainArguments( argumentDefinitions );
         Map<String,SortedSet<ArgumentDefinition>> pluginsByGroup = getPluginArguments( argumentDefinitions );
 
         System.out.printf("%s%s%n",
-                getSynopsis(mainArguments,pluginsByGroup),
+                getSynopsis(runningInstructions,mainArguments,pluginsByGroup),
                 getDetailed(mainArguments,pluginsByGroup) );
     }
 
@@ -89,15 +89,18 @@ public class HelpFormatter {
     /**
      * Gets the synopsis: the actual command to run.
      * @param mainArguments Main program arguments.
-     * @praam pluginArgumentGroups Groups of plugin arguments
+     * @param runningInstructions Instructions on how to run hte application.
+     * @param pluginArgumentGroups Groups of plugin arguments
      * @return A synopsis line.
      */
-    private String getSynopsis( SortedSet<ArgumentDefinition> mainArguments, Map<String,SortedSet<ArgumentDefinition>> pluginArgumentGroups ) {
+    private String getSynopsis( String runningInstructions,
+                                SortedSet<ArgumentDefinition> mainArguments,
+                                Map<String,SortedSet<ArgumentDefinition>> pluginArgumentGroups ) {
         // Build out the synopsis all as one long line.        
         StringBuilder lineBuilder = new StringBuilder();
         Formatter lineFormatter = new Formatter( lineBuilder );
 
-        lineFormatter.format("java -jar dist/GenomeAnalysisTK.jar");
+        lineFormatter.format("java %s", runningInstructions);
 
         List<ArgumentDefinition> argumentDefinitions = new ArrayList<ArgumentDefinition>();
         argumentDefinitions.addAll( mainArguments );

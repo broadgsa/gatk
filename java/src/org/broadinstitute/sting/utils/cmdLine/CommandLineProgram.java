@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.utils.cmdLine;
 
 import org.apache.log4j.*;
+import org.broadinstitute.sting.utils.JVMUtils;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -74,10 +76,41 @@ public abstract class CommandLineProgram {
     protected Boolean debugMode = false;
 
     /**
+     * this is used to indicate if they've asked for help
+     */
+    @Argument(fullName="help",shortName="h",doc="Generate this help message",required=false)
+    public Boolean help = false;    
+
+    /**
      * our logging output patterns
      */
     private static String patternString = "%p %m %n";
     private static String debugPatternString = "%n[level] %p%n[date]\t\t %d{dd MMM yyyy HH:mm:ss,SSS} %n[class]\t\t %C %n[location]\t %l %n[line number]\t %L %n[message]\t %m %n";
+
+    /**
+     * Retrieves text from the application regarding what parameters to put on the
+     * JVM command line to run this application.
+     * @return helpful instructions on the class / jar to run.
+     */
+    protected String getRunningInstructions() {
+        // Default implementation to find a command line that makes sense.
+        // If the user is running from a jar, return '-jar <jarname>'; otherwise
+        // return the full class name.
+        String runningInstructions = null;
+        try {
+            runningInstructions = JVMUtils.getLocationFor( getClass() ).getName();
+        }
+        catch( IOException ex ) {
+            throw new StingException("Unable to determine running instructions", ex);
+        }
+
+        if( runningInstructions.endsWith(".jar") )
+            runningInstructions = String.format("-jar %s", runningInstructions);
+        else
+            runningInstructions = getClass().getName();
+
+        return runningInstructions;
+    }
 
     /**
      * Will this application want to vary its argument list dynamically?
@@ -108,12 +141,6 @@ public abstract class CommandLineProgram {
      */
     protected abstract int execute();
 
-
-    /**
-     * this is used to indicate if they've asked for help
-     */
-    @Argument(fullName="help",shortName="h",doc="Generate this help message",required=false)    
-    public Boolean help = false;
 
     /**
      * This function is called to start processing the command line, and kick
@@ -177,7 +204,7 @@ public abstract class CommandLineProgram {
 
             // they asked for help, give it to them
             if (clp.help) {
-                parser.printHelp();
+                parser.printHelp( clp.getRunningInstructions() );
                 System.exit(1);
             }
 
@@ -206,7 +233,7 @@ public abstract class CommandLineProgram {
         }
         catch (ParseException e) {
             logger.fatal("Unable to pass command line arguments: " + e.getMessage() );
-            clp.parser.printHelp();
+            clp.parser.printHelp( clp.getRunningInstructions() );
         }
         catch (Exception e) {
             // we catch all exceptions here. if it makes it to this level, we're in trouble.  Let's bail!
