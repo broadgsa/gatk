@@ -114,6 +114,7 @@ public class DupUtils {
         // make the combined read by copying the first read and setting the
         // bases and quals to new arrays
         SAMRecord comb = tmpCopyRead(duplicates.get(0));
+        comb.setDuplicateReadFlag(false);
         int readLen = comb.getReadBases().length;
         byte[] bases = new byte[readLen];
         byte[] quals = new byte[readLen];

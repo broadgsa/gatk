@@ -92,7 +92,7 @@ public class CombineDuplicatesWalker extends DuplicateWalker<SAMRecord, SAMFileW
         //logger.info(String.format("%s has %d duplicates%n", loc, duplicateReads.size()));
         SAMRecord combinedRead = null;
 
-        if ( duplicateReads.size() == 1 ) {
+        if ( duplicateReads.size() == 1 && ! duplicateReads.get(0).getDuplicateReadFlag() ) {
             // we are a unique read
             combinedRead = duplicateReads.get(0);
         } else {
@@ -102,6 +102,10 @@ public class CombineDuplicatesWalker extends DuplicateWalker<SAMRecord, SAMFileW
             //}
             combinedRead = DupUtils.combineDuplicates(duplicateReads, MAX_QUALITY_SCORE);
         }
+
+        if ( combinedRead.getDuplicateReadFlag() )
+            throw new RuntimeException(String.format("Combined read %s [of %d] is a duplicate after combination -- this is a bug%n%s",
+                    combinedRead.getReadName(), duplicateReads.size(), combinedRead.format()));
         
         return combinedRead;
     }

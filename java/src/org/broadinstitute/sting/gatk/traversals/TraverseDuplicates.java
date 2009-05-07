@@ -115,7 +115,12 @@ public class TraverseDuplicates extends TraversalEngine {
                 final GenomeLoc readLoc = new GenomeLoc(read);
                 final GenomeLoc readMateLoc = new GenomeLoc(read.getMateReferenceIndex(), read.getMateAlignmentStart(), read.getMateAlignmentStart());
                 if (DEBUG) logger.debug(String.format("Examining reads at %s vs. %s at %s / %s vs. %s / %s%n", key.getReadName(), read.getReadName(), keyLoc, keyMateLoc, readLoc, readMateLoc));
-                if ( readLoc.compareTo(keyLoc) == 0 && readMateLoc.compareTo(keyMateLoc) == 0 ) {
+
+                // read and key start at the same place, and either the this read and the key
+                // share a mate location or the read is flagged as a duplicate
+                if ( readLoc.compareTo(keyLoc) == 0 &&
+                        ( readMateLoc.compareTo(keyMateLoc) == 0) ||
+                          read.getDuplicateReadFlag() ) {
                     // we are at the same position as the dup and have the same mat pos, it's a dup
                     if (DEBUG) logger.debug(String.format("  => Adding read to dups list: %s%n", read));
                     dups.add(read);
@@ -157,8 +162,11 @@ public class TraverseDuplicates extends TraversalEngine {
             List<SAMRecord> uniqueReads =  split.getFirst();
             List<SAMRecord> duplicateReads =  split.getSecond();
 
-            logger.debug(String.format("*** TraverseDuplicates.traverse at %s has %d unique and %d duplicate reads",
-                    site, uniqueReads.size(), duplicateReads.size()));
+            logger.debug(String.format("*** TraverseDuplicates.traverse at %s with %d reads has %d unique and %d duplicate reads",
+                    site, reads.size(), uniqueReads.size(), duplicateReads.size()));
+            if ( reads.size() != uniqueReads.size() + duplicateReads.size() )
+                    throw new RuntimeException(String.format("Bug occurred spliting reads [N=%d] at loc %s into unique [N=%d] and duplicates [N=%d], sizes don't match",
+                            reads.size(), uniqueReads.size(), duplicateReads.size()));
 
             // Jump forward in the reference to this locus location
             LocusContext locus = new LocusContext(site, duplicateReads, Arrays.asList(0));
