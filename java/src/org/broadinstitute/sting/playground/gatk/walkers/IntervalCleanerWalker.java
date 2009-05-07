@@ -135,24 +135,30 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 // do a pairwise alignment against the reference
                 AlignedRead aRead = altReads.get(index);
                 SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getReadString());
-                int idx = swConsensus.getAlignmentStart2wrt1();
+                int refIdx = swConsensus.getAlignmentStart2wrt1();
 
                 // create the new consensus
                 StringBuffer sb = new StringBuffer();
-                sb.append(reference.substring(0, idx));
-                sb.append(aRead.getReadString());
+                sb.append(reference.substring(0, refIdx));
                 Cigar c = swConsensus.getCigar();
 
                 int indelCount = 0;
+                int altIdx = 0;
                 for ( int i = 0 ; i < c.numCigarElements() ; i++ ) {
                     CigarElement ce = c.getCigarElement(i);
                     switch( ce.getOperator() ) {
                         case D:
                             indelCount++;
+                            refIdx += ce.getLength();
+                            break;
                         case M:
-                            idx += ce.getLength();
+                            sb.append(reference.substring(refIdx, refIdx+ce.getLength()));
+                            refIdx += ce.getLength();
+                            altIdx += ce.getLength();
                             break;
                         case I:
+                            sb.append(aRead.getReadString().substring(altIdx, altIdx+ce.getLength()));
+                            altIdx += ce.getLength();
                             indelCount++;
                             break;
                     }
@@ -161,16 +167,12 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 if ( indelCount > 1 )
                     continue;
 
-                sb.append(reference.substring(idx));
+                sb.append(reference.substring(refIdx));
                 String altConsensus =  sb.toString();
 
                 // for each imperfect match to the reference, score it against this alternative
                 Consensus consensus = new Consensus(altConsensus, c, swConsensus.getAlignmentStart2wrt1());
                 for ( int j = 0; j < altReads.size(); j++ ) {
-                    if (j == index) {
-                        consensus.readIndexes.add(new Pair<Integer, Integer>(j, swConsensus.getAlignmentStart2wrt1()));
-                        continue;
-                    }
                     AlignedRead toTest = altReads.get(j);
                     Pair<Integer, Integer> altAlignment = findBestOffset(altConsensus, toTest);
 
@@ -282,7 +284,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 indelOffsetOnRead = altCE2.getLength();
             }
         } else if ( altCE2.getOperator() == CigarOperator.D ) {
-            readCigar.add(altCE2);            
+            if ( sawAlignmentStart )
+                readCigar.add(altCE2);
             indelOffsetOnRef = altCE2.getLength();
         } else {
             throw new RuntimeException("Operator of middle block is not I or D: " + altCE2.getOperator());
@@ -301,7 +304,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             if ( ce.getOperator() != CigarOperator.D )
                 readRemaining -= ce.getLength();
         }
-        readCigar.add(new CigarElement(readRemaining, CigarOperator.M));
+        if ( readRemaining > 0 )
+            readCigar.add(new CigarElement(readRemaining, CigarOperator.M));
         aRead.getRead().setCigar(readCigar);
     }
 
