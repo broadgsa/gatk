@@ -27,8 +27,8 @@ public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName = "normal_sample_name", shortName = "s2", doc="normal sample name", required = true)
     public String normalSampleName;
 
-    @Argument(fullName = "extended", shortName="ext", doc="extended output", required=false, defaultValue = "false")
-    public boolean extendedOutput;
+    @Argument(fullName = "extended", shortName="ext", doc="extended output", required=false)
+    public boolean extendedOutput = false;
 
 
     // --normal_sample_name TCGA-06-0188-10B-01W --tumor_sample_name TCGA-06-0188-01A-01W

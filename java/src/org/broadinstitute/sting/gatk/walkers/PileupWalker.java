@@ -15,11 +15,11 @@ import org.broadinstitute.sting.utils.ReadBackedPileup;
  * To change this template use File | Settings | File Templates.
  */
 public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeReducible<Integer> {
-    @Argument(fullName="verbose",doc="verbose",required=false,defaultValue="false")
-    public boolean VERBOSE;
+    @Argument(fullName="verbose",doc="verbose",required=false)
+    public boolean VERBOSE = false;
 
-    @Argument(fullName="extended",shortName="ext",doc="extended",required=false,defaultValue="false")
-    public boolean EXTENDED;
+    @Argument(fullName="extended",shortName="ext",doc="extended",required=false)
+    public boolean EXTENDED = false;
     
     public boolean FLAG_UNCOVERED_BASES = true;     // todo: how do I make this a command line argument?
     

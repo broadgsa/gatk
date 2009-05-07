@@ -218,6 +218,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
         Walker<?,?> my_walker = null;
         try {
             my_walker = walkerManager.createWalkerByName( Analysis_Name );
+            loadArgumentsIntoObject( my_walker );
         }
         catch( InstantiationException ex ) {
             throw new RuntimeException( "Unable to instantiate walker.", ex );

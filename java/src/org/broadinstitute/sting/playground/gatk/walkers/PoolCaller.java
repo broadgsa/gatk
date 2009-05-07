@@ -24,7 +24,7 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
     List<String> sample_names = null;
 
     //@Argument(required=false, shortName="log_metrics", defaultValue="true") public boolean LOG_METRICS;
-    @Argument(required=false, shortName="fractional_counts", doc="fractional counts", defaultValue="false") public boolean FRACTIONAL_COUNTS;
+    @Argument(required=false, shortName="fractional_counts", doc="fractional counts") public boolean FRACTIONAL_COUNTS = false;
     
     private Random random;
 

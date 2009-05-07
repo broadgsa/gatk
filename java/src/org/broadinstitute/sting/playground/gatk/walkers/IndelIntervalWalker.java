@@ -17,10 +17,10 @@ import java.util.List;
 
 @WalkerName("IndelIntervals")
 public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval, IndelIntervalWalker.Interval> {
-    @Argument(fullName="maxReadLength", shortName="maxRead", doc="max read length", required=false, defaultValue="-1")
-    public int maxReadLength;
-    @Argument(fullName="minIndelsPerInterval", shortName="minIndels", doc="min indels per interval", required=false, defaultValue="1")
-    public int minIntervalIndelCount;
+    @Argument(fullName="maxReadLength", shortName="maxRead", doc="max read length", required=false)
+    public int maxReadLength = -1;
+    @Argument(fullName="minIndelsPerInterval", shortName="minIndels", doc="min indels per interval", required=false)
+    public int minIntervalIndelCount = 1;
 
     public void initialize() {}
 

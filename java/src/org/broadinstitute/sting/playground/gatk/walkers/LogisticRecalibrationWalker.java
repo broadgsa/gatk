@@ -20,8 +20,8 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
     @Argument(shortName="logisticParams", doc="logistic params file", required=true)
     public String logisticParamsFile;
 
-    @Argument(shortName="outputBAM", doc="output BAM file", required=false, defaultValue="")
-    public String outputFile;
+    @Argument(shortName="outputBAM", doc="output BAM file", required=false)
+    public String outputFile = "";
 
     HashMap<String, LogisticRegressor> regressors = new HashMap<String, LogisticRegressor>();
     private static Logger logger = Logger.getLogger(LogisticRecalibrationWalker.class);

@@ -109,14 +109,14 @@ class DuplicateComp {
  * To change this template use File | Settings | File Templates.
  */
 public class DuplicateQualsWalker extends DuplicateWalker<List<DuplicateComp>, QualityTracker> {
-    @Argument(fullName="filterUnobservedQuals", shortName="filterUnobservedQuals", required=false, defaultValue="false", doc="Show only quality bins with at least one observation in the data")
-    public boolean FILTER_UNOBSERVED_QUALS;
+    @Argument(fullName="filterUnobservedQuals", shortName="filterUnobservedQuals", required=false, doc="Show only quality bins with at least one observation in the data")
+    public boolean FILTER_UNOBSERVED_QUALS = false;
 
-    @Argument(fullName="maxPairwiseCompsPerDupSet", shortName="maxPairwiseCompsPerDupSet", required=false, defaultValue="100", doc="Maximumize number of pairwise comparisons to perform among duplicate read sets")
-    public int MAX_PAIRSIZE_COMPS_PER_DUPLICATE_SET;
+    @Argument(fullName="maxPairwiseCompsPerDupSet", shortName="maxPairwiseCompsPerDupSet", required=false, doc="Maximumize number of pairwise comparisons to perform among duplicate read sets")
+    public int MAX_PAIRSIZE_COMPS_PER_DUPLICATE_SET = 100;
 
-    @Argument(fullName="combinedQuals", shortName="combinedQuals", required=false, defaultValue="false", doc="Combine and assess pairwise base qualities")
-    public boolean COMBINE_QUALS;
+    @Argument(fullName="combinedQuals", shortName="combinedQuals", required=false, doc="Combine and assess pairwise base qualities")
+    public boolean COMBINE_QUALS = false;
 
     final boolean DEBUG = false;
     final private boolean ACTUALLY_DO_WORK = true;

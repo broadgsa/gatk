@@ -15,17 +15,17 @@ import java.io.FileNotFoundException;
 
 @WalkerName("CountCovariates")
 public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
-    @Argument(fullName="MAX_READ_LENGTH", shortName="mrl", doc="max read length", required=false,defaultValue="101")
-    public int MAX_READ_LENGTH;
+    @Argument(fullName="MAX_READ_LENGTH", shortName="mrl", doc="max read length", required=false)
+    public int MAX_READ_LENGTH = 101;
 
-    @Argument(fullName="MAX_QUAL_SCORE", shortName="mqs", doc="max quality score", required=false,defaultValue="63")
-    public int MAX_QUAL_SCORE;
+    @Argument(fullName="MAX_QUAL_SCORE", shortName="mqs", doc="max quality score", required=false)
+    public int MAX_QUAL_SCORE = 63;
 
-    @Argument(fullName="OUTPUT_FILEROOT", shortName="outroot", required=false, defaultValue="output", doc="Filename root for the outputted logistic regression training files")
-    public String OUTPUT_FILEROOT;
+    @Argument(fullName="OUTPUT_FILEROOT", shortName="outroot", required=false, doc="Filename root for the outputted logistic regression training files")
+    public String OUTPUT_FILEROOT = "output";
 
-    @Argument(fullName="CREATE_TRAINING_DATA", shortName="trainingdata", required=false, defaultValue="false", doc="Create training data files for logistic regression")
-    public boolean CREATE_TRAINING_DATA;
+    @Argument(fullName="CREATE_TRAINING_DATA", shortName="trainingdata", required=false, doc="Create training data files for logistic regression")
+    public boolean CREATE_TRAINING_DATA = false;
 
     int NDINUCS = 16;
     RecalData[][][] data = new RecalData[MAX_READ_LENGTH+1][MAX_QUAL_SCORE+1][NDINUCS];

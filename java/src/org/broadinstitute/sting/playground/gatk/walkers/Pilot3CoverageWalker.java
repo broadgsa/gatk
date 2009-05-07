@@ -21,10 +21,10 @@ import edu.mit.broad.picard.PicardException;
 
 public class Pilot3CoverageWalker extends LocusWalker<Integer, Integer> {
 
-    @Argument(fullName = "extended", shortName="ext", doc="extended output", required=false, defaultValue = "false")
-    public boolean extendedOutput;
+    @Argument(fullName = "extended", shortName="ext", doc="extended output", required=false)
+    public boolean extendedOutput = false;
 
-    @Argument(fullName="min_mapq", shortName="mmq", required=false, defaultValue="1", doc="Minimum mapping quality of reads to consider") public Integer MIN_MAPQ;
+    @Argument(fullName="min_mapq", shortName="mmq", required=false, doc="Minimum mapping quality of reads to consider") public Integer MIN_MAPQ = 1;
 
 
     public void initialize() {

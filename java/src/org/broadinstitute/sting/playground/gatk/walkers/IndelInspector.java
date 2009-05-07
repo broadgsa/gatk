@@ -17,13 +17,13 @@ import edu.mit.broad.picard.reference.ReferenceSequence;
 
 @WalkerName("InspectIndels")
 public class IndelInspector extends ReadWalker<Integer, Integer> {
-    @Argument(fullName="IndelVerbosity", shortName="iverb", required=false, defaultValue="SILENT", doc="Verbosity level: SILENT, PILESUMMARY, ALIGNMENTS") public String VERBOSITY_LEVEL;
+    @Argument(fullName="IndelVerbosity", shortName="iverb", required=false, doc="Verbosity level: SILENT, PILESUMMARY, ALIGNMENTS") public String VERBOSITY_LEVEL = "SILENT";
     @Argument(fullName="OutputNormal", shortName="outNorm", required=true, doc="Output file (sam or bam) for non-indel related reads and indel reads that were not improved") public String OUT1;
     @Argument(fullName="OutputIndel", shortName="outIndel", required=true, doc="Output file (sam or bam) for improved (realigned) indel related reads") public String OUT2;
-    @Argument(fullName="ControlRun", shortName="paranoid", required=false, defaultValue="false", doc="If true, all reads that would be otherwise picked and processed by this tool will be saved, unmodified, into the OutputNormal file") public boolean CONTROL_RUN;
+    @Argument(fullName="ControlRun", shortName="paranoid", required=false, doc="If true, all reads that would be otherwise picked and processed by this tool will be saved, unmodified, into the OutputNormal file") public boolean CONTROL_RUN = false;
     @Argument(fullName="ErrorCheckMode", shortName="error", required=false, doc="Error counting mode: MM (mismatches only (from sam tags)), MC (mismatches only doing actual mismatch count on the fly (use this if tags are incorrectly set)), ERR (errors (arachne style: mm+gap lengths)), MG (count mismatches and gaps as one error each)") public String ERR_MODE;
-    @Argument(fullName="MaxErrors", shortName="maxError", required=false, defaultValue="10000", doc="Maximum number of errors allowed (see ERR_MODE)") public Integer MAX_ERRS;
-    @Argument(fullName="MaxReadLength", shortName="maxRead", required=false, defaultValue="-1", doc="Ignore reads that are longer than the specified cutoff (not a good way to do things but might be necessary because of performance issues)") public int MAX_READ_LENGTH;
+    @Argument(fullName="MaxErrors", shortName="maxError", required=false, doc="Maximum number of errors allowed (see ERR_MODE)") public Integer MAX_ERRS = 10000;
+    @Argument(fullName="MaxReadLength", shortName="maxRead", required=false, doc="Ignore reads that are longer than the specified cutoff (not a good way to do things but might be necessary because of performance issues)") public int MAX_READ_LENGTH = -1;
 
     private int discarded_cigar_count = 0;
     private int discarded_long_read_count = 0;

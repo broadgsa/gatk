@@ -17,8 +17,8 @@ import org.broadinstitute.sting.utils.ReadBackedPileup;
  * To change this template use File | Settings | File Templates.
  */
 public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats> {
-    @Argument(fullName="continue_after_error",doc="Continue after an error",required=false,defaultValue="false")
-    public boolean CONTINUE_AFTER_AN_ERROR;
+    @Argument(fullName="continue_after_error",doc="Continue after an error",required=false)
+    public boolean CONTINUE_AFTER_AN_ERROR = false;
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         Pileup pileup = new ReadBackedPileup(ref, context);

@@ -21,10 +21,10 @@ import java.io.DataInputStream;
 public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, String>// implements AllelicVariant
 {
     @Argument(doc="Number of chromosomes in data") public int    N;
-    @Argument(required=false,doc="downsample",defaultValue="0") public int DOWNSAMPLE;
+    @Argument(required=false,doc="downsample") public int DOWNSAMPLE = 0;
     @Argument(doc="File to output GFF formatted allele frequency calls") public String GFF_OUTPUT_FILE;
     @Argument(shortName="met", doc="Turns on logging of metrics on the fly with AlleleFrequency calculation") public boolean LOG_METRICS;
-    @Argument(required=false, defaultValue="metrics.out", doc="Name of file where metrics will output") public String METRICS_OUTPUT_FILE;
+    @Argument(required=false, doc="Name of file where metrics will output") public String METRICS_OUTPUT_FILE = "metrics.out";
     @Argument(required=false, doc="Ignores 4-base probabilities and only uses the quality of the best/called base") public boolean FORCE_1BASE_PROBS;
 
     protected static Logger logger = Logger.getLogger(AlleleFrequencyWalker.class);

@@ -59,10 +59,4 @@ public @interface Argument {
      *         argument should be independent.
      */
     String exclusive() default "";
-
-    /**
-     * What is the default value for this argument type.
-     * @return Default value of this argument type.
-     */
-    String defaultValue() default "";
 }

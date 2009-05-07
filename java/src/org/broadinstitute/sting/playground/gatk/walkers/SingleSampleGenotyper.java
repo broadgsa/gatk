@@ -19,15 +19,15 @@ import java.util.*;
 // j.maguire 3-7-2009
 
 public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, Integer>  {
-    @Argument(fullName="metrics",      shortName="met",          doc="metrics",      required=false, defaultValue="/dev/null") public String metricsFileName;
-    @Argument(fullName="metInterval",  shortName="mi",           doc="metInterval",  required=false, defaultValue="50000")     public Integer metricsInterval;
-    @Argument(fullName="printMetrics", shortName="printMetrics", doc="printMetrics", required=false, defaultValue="true")      public Boolean printMetrics;
-    @Argument(fullName="lodThreshold", shortName="lod",          doc="lodThreshold", required=false, defaultValue="5.0")       public Double lodThreshold;
-    @Argument(fullName="fourBaseMode", shortName="fb",           doc="fourBaseMode", required=false, defaultValue="false")     public Boolean fourBaseMode;
-    @Argument(fullName="retest",       shortName="re",           doc="retest",       required=false, defaultValue="false")     public Boolean retest;
-    @Argument(fullName="qHom",         shortName="qHom",         doc="qHom",         required=false, defaultValue="0.04")      public Double qHom;
-    @Argument(fullName="qHet",         shortName="qHet",         doc="qHet",         required=false, defaultValue="0.49")      public Double qHet;
-    @Argument(fullName="qHomNonRef",   shortName="qHomNonRef",   doc="qHomNonRef",   required=false, defaultValue="0.97")      public Double qHomNonRef;
+    @Argument(fullName="metrics",      shortName="met",          doc="metrics",      required=false) public String metricsFileName = "/dev/null";
+    @Argument(fullName="metInterval",  shortName="mi",           doc="metInterval",  required=false)     public Integer metricsInterval = 50000;
+    @Argument(fullName="printMetrics", shortName="printMetrics", doc="printMetrics", required=false)      public Boolean printMetrics = true;
+    @Argument(fullName="lodThreshold", shortName="lod",          doc="lodThreshold", required=false)       public Double lodThreshold = 5.0;
+    @Argument(fullName="fourBaseMode", shortName="fb",           doc="fourBaseMode", required=false)     public Boolean fourBaseMode = false;
+    @Argument(fullName="retest",       shortName="re",           doc="retest",       required=false)     public Boolean retest = false;
+    @Argument(fullName="qHom",         shortName="qHom",         doc="qHom",         required=false)      public Double qHom = 0.04;
+    @Argument(fullName="qHet",         shortName="qHet",         doc="qHet",         required=false)      public Double qHet = 0.49;
+    @Argument(fullName="qHomNonRef",   shortName="qHomNonRef",   doc="qHomNonRef",   required=false)      public Double qHomNonRef = 0.97;
 
     public AlleleMetrics metrics;
     

@@ -24,11 +24,11 @@ import java.io.File;
  * @author Kiran Garimella
  */
 public class IOCrusherWalker extends ReadWalker<SAMRecord, ArrayList<SAMFileWriter>> {
-    @Argument(shortName="nWaysOut",doc="n ways out",required=false,defaultValue="1")
-    public int nWaysOut;
+    @Argument(shortName="nWaysOut",doc="n ways out",required=false)
+    public int nWaysOut = 1;
 
-    @Argument(shortName="readScaling",doc="read scaling",required=false,defaultValue="1")
-    public float readScaling;
+    @Argument(shortName="readScaling",doc="read scaling",required=false)
+    public float readScaling = 1;
 
     @Argument(shortName="outputBase",doc="output base",required=true)
     public String outputBase;

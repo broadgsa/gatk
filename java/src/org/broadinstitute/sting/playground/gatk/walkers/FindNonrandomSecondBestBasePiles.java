@@ -21,8 +21,8 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class FindNonrandomSecondBestBasePiles extends LocusWalker<Integer, Integer> {
-    @Argument(fullName="verbose",doc="verbose",required=false,defaultValue="false")
-    public boolean VERBOSE;
+    @Argument(fullName="verbose",doc="verbose",required=false)
+    public boolean VERBOSE = false;
     
     private AlleleFrequencyWalker caller_1b;
     private AlleleFrequencyWalker caller_4b;

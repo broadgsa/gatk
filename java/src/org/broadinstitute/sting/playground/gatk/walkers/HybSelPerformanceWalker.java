@@ -12,8 +12,8 @@ import java.util.List;
 import net.sf.samtools.SAMRecord;
 
 public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerformanceWalker.TargetInfo> {
-    @Argument(fullName="min_mapq", shortName="mmq", required=false, defaultValue="1", doc="Minimum mapping quality of reads to consider") public Integer MIN_MAPQ;
-    @Argument(fullName="include_duplicates", shortName="idup", required=false, defaultValue="false", doc="consider duplicate reads") public Boolean INCLUDE_DUPLICATE_READS;
+    @Argument(fullName="min_mapq", shortName="mmq", required=false, doc="Minimum mapping quality of reads to consider") public Integer MIN_MAPQ = 1;
+    @Argument(fullName="include_duplicates", shortName="idup", required=false, doc="consider duplicate reads") public Boolean INCLUDE_DUPLICATE_READS = false;
 
     public static class TargetInfo {
         public int counts = 0;
