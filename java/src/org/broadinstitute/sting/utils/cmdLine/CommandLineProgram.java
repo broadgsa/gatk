@@ -232,8 +232,9 @@ public abstract class CommandLineProgram {
             System.exit(result);
         }
         catch (ParseException e) {
-            logger.fatal("Unable to pass command line arguments: " + e.getMessage() );
             clp.parser.printHelp( clp.getRunningInstructions() );
+            // Rethrow the exception to exit with an error.
+            throw e;
         }
         catch (Exception e) {
             // we catch all exceptions here. if it makes it to this level, we're in trouble.  Let's bail!

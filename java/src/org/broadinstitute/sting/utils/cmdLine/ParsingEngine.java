@@ -430,8 +430,12 @@ class MissingArgumentException extends ParseException {
 
     private static String formatArguments( Collection<ArgumentDefinition> missingArguments ) {
         StringBuilder sb = new StringBuilder();
-        for( ArgumentDefinition missingArgument: missingArguments )
-            sb.append( String.format("Argument with name '%s' is missing.%n", missingArgument.fullName) );
+        for( ArgumentDefinition missingArgument: missingArguments ) {
+            if( missingArgument.shortName != null )
+                sb.append( String.format("%nArgument with name '--%s' (-%s) is missing.", missingArgument.fullName, missingArgument.shortName) );
+            else
+                sb.append( String.format("%nArgument with name '--%s' is missing.", missingArgument.fullName) );
+        }
         return sb.toString();
     }
 }
@@ -447,7 +451,7 @@ class InvalidArgumentException extends ParseException {
     private static String formatArguments( Collection<ArgumentMatch> invalidArguments ) {
         StringBuilder sb = new StringBuilder();
         for( ArgumentMatch invalidArgument: invalidArguments )
-            sb.append( String.format("Argument with name '%s' isn't defined.%n", invalidArgument.label) );
+            sb.append( String.format("%nArgument with name '%s' isn't defined.", invalidArgument.label) );
         return sb.toString();
     }
 }
@@ -464,7 +468,7 @@ class InvalidArgumentValueException extends ParseException {
         StringBuilder sb = new StringBuilder();
         for( int index: invalidValues.indices.keySet() )
             for( String value: invalidValues.indices.get(index) )
-                sb.append( String.format("Invalid argument value '%s' at position %d.%n", value, index) );
+                sb.append( String.format("%nInvalid argument value '%s' at position %d.", value, index) );
         return sb.toString();
     }
 }
@@ -480,7 +484,7 @@ class TooManyValuesForArgumentException extends ParseException {
     private static String formatArguments( Collection<ArgumentMatch> arguments ) {
         StringBuilder sb = new StringBuilder();
         for( ArgumentMatch argument: arguments )
-            sb.append( String.format("Argument '%s' has to many values: %s", argument.label, Arrays.deepToString(argument.values().toArray())) );
+            sb.append( String.format("%nArgument '%s' has to many values: %s.", argument.label, Arrays.deepToString(argument.values().toArray())) );
         return sb.toString();
     }
 }
@@ -496,7 +500,7 @@ class ArgumentsAreMutuallyExclusiveException extends ParseException {
     private static String formatArguments( Collection<Pair<ArgumentMatch,ArgumentMatch>> arguments ) {
         StringBuilder sb = new StringBuilder();
         for( Pair<ArgumentMatch,ArgumentMatch> argument: arguments )
-            sb.append( String.format("Arguments '%s' and '%s' are mutually exclusive.", argument.first.definition.fullName, argument.second.definition.fullName ) );
+            sb.append( String.format("%nArguments '%s' and '%s' are mutually exclusive.", argument.first.definition.fullName, argument.second.definition.fullName ) );
         return sb.toString();
     }
 
