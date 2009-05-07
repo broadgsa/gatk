@@ -151,6 +151,7 @@ public abstract class CommandLineProgram {
             else {
                 parser.parse(args);
                 parser.validate();
+                parser.loadArgumentsIntoObject( clp );
             }
 
             // if we're in debug mode, set the mode up
