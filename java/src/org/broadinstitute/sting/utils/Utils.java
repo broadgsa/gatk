@@ -374,6 +374,25 @@ public class Utils {
     public static double percentage(int x, int base) { return (base> 0 ? ((double)x/(double)base)*100.0 : 0); }
     public static double percentage(long x, long base) { return (base> 0 ? ((double)x/(double)base)*100.0 : 0); }
 
+
+    public static int countOccurances(char c, String s) {
+        int count = 0;
+        for ( int i = 0; i < s.length(); i++ ) {
+            count += s.charAt(i) == c ? 1 : 0;
+        }
+        return count;
+    }
+
+    public static byte listMaxByte(List<Byte> quals) {
+        if ( quals.size() == 0 ) return 0;
+        byte m = quals.get(0);
+        for ( byte b : quals ) {
+            m = b > m ? b : m;
+        }
+        return m;
+    }
+
+
     /* TEST ME
     public static void main(String[] argv) {
         List<Integer> l1 = new LinkedList<Integer>();
