@@ -425,4 +425,32 @@ public class ParsingEngineTest extends BaseTest {
         parsingEngine.validate( EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument) );
     }
 
+    @Test(expected=ArgumentsAreMutuallyExclusiveException.class)
+    public void testMutuallyExclusiveArguments() {
+        // Passing only foo should work fine...
+        String[] commandLine = new String[] {"--foo","5"};
+
+        parsingEngine.addArgumentSource( MutuallyExclusiveArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        MutuallyExclusiveArgProvider argProvider = new MutuallyExclusiveArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals("Argument is not correctly initialized", 5, argProvider.foo.intValue() );
+
+        // But when foo and bar come together, danger!
+        commandLine = new String[] {"--foo","5","--bar","6"};
+
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();        
+    }
+
+    private class MutuallyExclusiveArgProvider {
+        @Argument(doc="foo",exclusiveOf="bar")
+        Integer foo;
+
+        @Argument(doc="bar",required=false)
+        Integer bar;
+    }
 }

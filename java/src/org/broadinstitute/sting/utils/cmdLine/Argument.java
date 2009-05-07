@@ -58,5 +58,5 @@ public @interface Argument {
      * @return A comma-separated string listing other arguments of which this
      *         argument should be independent.
      */
-    String exclusive() default "";
+    String exclusiveOf() default "";
 }

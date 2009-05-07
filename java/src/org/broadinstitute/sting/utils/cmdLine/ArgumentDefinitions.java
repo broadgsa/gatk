@@ -237,7 +237,7 @@ class ArgumentDefinition {
     /**
      * Is this argument exclusive of other arguments?
      */
-    public final String exclusive;
+    public final String exclusiveOf;
 
     public final Class sourceClass;
     public final Field sourceField;
@@ -256,7 +256,7 @@ class ArgumentDefinition {
         shortName = argument.shortName().trim().length() > 0 ? argument.shortName().trim() : null;
         doc = argument.doc();
         required = argument.required() && !isFlag();
-        exclusive = argument.exclusive().trim().length() > 0 ? argument.exclusive().trim() : null;
+        exclusiveOf = argument.exclusiveOf().trim().length() > 0 ? argument.exclusiveOf().trim() : null;
     }
 
     /**

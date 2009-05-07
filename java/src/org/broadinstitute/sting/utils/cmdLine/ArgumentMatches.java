@@ -120,6 +120,17 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
         return matches;
     }
 
+    /**
+     * Find all successful matches (a 'successful' match is one paired with a definition).
+     */
+    public Collection<ArgumentMatch> findSuccessfulMatches() {
+        Collection<ArgumentMatch> matches = new HashSet<ArgumentMatch>();
+        for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
+            if( argumentMatch.definition != null )
+                matches.add( argumentMatch );
+        }
+        return matches;
+    }
 }
 
 /**

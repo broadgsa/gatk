@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.cmdLine;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Pair;
 import org.apache.log4j.Logger;
 
 import java.lang.reflect.Field;
@@ -112,7 +113,8 @@ public class ParsingEngine {
     public enum ValidationType { MissingRequiredArgument,
                                  InvalidArgument,
                                  ValueMissingArgument,
-                                 TooManyValuesForArgument };
+                                 TooManyValuesForArgument,
+                                 MutuallyExclusive };
 
     /**
      * Validates the list of command-line argument matches.
@@ -157,16 +159,34 @@ public class ParsingEngine {
         // Find arguments with too many values.
         if( !skipValidationOf.contains(ValidationType.TooManyValuesForArgument)) {
             Collection<ArgumentMatch> overvaluedArguments = new ArrayList<ArgumentMatch>();
-            for( ArgumentMatch argumentMatch: argumentMatches ) {
+            for( ArgumentMatch argumentMatch: argumentMatches.findSuccessfulMatches() ) {
                 // Warning: assumes that definition is not null (asserted by checks above).
-                if( argumentMatch.definition != null &&
-                        !argumentMatch.definition.isMultiValued() &&
-                        argumentMatch.values().size() > 1 )
+                if( !argumentMatch.definition.isMultiValued() && argumentMatch.values().size() > 1 )
                     overvaluedArguments.add(argumentMatch);
             }
 
             if( !overvaluedArguments.isEmpty() )
                 throw new TooManyValuesForArgumentException(overvaluedArguments);
+        }
+
+        // Find sets of options that are supposed to be mutually exclusive.
+        if( !skipValidationOf.contains(ValidationType.MutuallyExclusive)) {
+            Collection<Pair<ArgumentMatch,ArgumentMatch>> invalidPairs = new ArrayList<Pair<ArgumentMatch,ArgumentMatch>>();
+            for( ArgumentMatch argumentMatch: argumentMatches.findSuccessfulMatches() ) {
+                if( argumentMatch.definition.exclusiveOf != null ) {
+                    for( ArgumentMatch conflictingMatch: argumentMatches.findSuccessfulMatches() ) {
+                        // Skip over the current element.
+                        if( argumentMatch == conflictingMatch )
+                            continue;
+                        if( argumentMatch.definition.exclusiveOf.equals(conflictingMatch.definition.fullName) ||
+                            argumentMatch.definition.exclusiveOf.equals(conflictingMatch.definition.shortName))
+                            invalidPairs.add( new Pair<ArgumentMatch,ArgumentMatch>(argumentMatch, conflictingMatch) );
+                    }
+                }
+            }
+
+            if( !invalidPairs.isEmpty() )
+                throw new ArgumentsAreMutuallyExclusiveException( invalidPairs );
         }
     }
 
@@ -537,7 +557,24 @@ class TooManyValuesForArgumentException extends ParseException {
     private static String formatArguments( Collection<ArgumentMatch> arguments ) {
         StringBuilder sb = new StringBuilder();
         for( ArgumentMatch argument: arguments )
-            sb.append( String.format("Argument with name '%s' has to many values: %s", argument.label, Arrays.deepToString(argument.values().toArray())) );
+            sb.append( String.format("Argument '%s' has to many values: %s", argument.label, Arrays.deepToString(argument.values().toArray())) );
         return sb.toString();
     }
+}
+
+/**
+ * An exception indicating that mutually exclusive options have been passed in the same command line.
+ */
+class ArgumentsAreMutuallyExclusiveException extends ParseException {
+    public ArgumentsAreMutuallyExclusiveException( Collection<Pair<ArgumentMatch,ArgumentMatch>> arguments ) {
+        super( formatArguments(arguments) );
+    }
+
+    private static String formatArguments( Collection<Pair<ArgumentMatch,ArgumentMatch>> arguments ) {
+        StringBuilder sb = new StringBuilder();
+        for( Pair<ArgumentMatch,ArgumentMatch> argument: arguments )
+            sb.append( String.format("Arguments '%s' and '%s' are mutually exclusive.", argument.first.definition.fullName, argument.second.definition.fullName ) );
+        return sb.toString();
+    }
+
 }
