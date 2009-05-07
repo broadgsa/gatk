@@ -142,34 +142,6 @@ class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
         }
     };
 
-    static AliasProvider ShortNameAliasProvider = new AliasProvider() {
-        /**
-         * Short names can come in the form -Ofoo.txt, -O foo.txt, or -out (multi-character short name).
-         * Given the argument name and built-in provided, see if these can be formed into some other argument
-         * name.
-         * @param argument Name of the argument, as parsed.  For a short name, will be a single letter.
-         * @param value Value of the argument, as parsed.
-         * @return Any potential aliases for the given shortname.
-         */
-        public List<String> getAliases( String argument, String value ) {
-            List<String> aliases = new ArrayList<String>();
-            aliases.add(argument+value);
-            aliases.add(argument);
-            return aliases;
-        }
-
-        /**
-         * Is the value part of the given alias, or something separate that should be treated as an argument value.
-         * @param alias The alias to use.
-         * @param argument The parsed argument.
-         * @param value The parsed value.
-         * @return True if this alias should be used instead of the given value.
-         */
-        public boolean doesAliasConsumeValue( String alias, String argument, String value ) {
-            return alias.equals(argument + value);
-        }
-    };
-
     /**
      * Find all required definitions.
      */
@@ -288,25 +260,4 @@ interface DefinitionMatcher {
      * @return True if the key matches the definition, false otherwise.
      */
     boolean matches( ArgumentDefinition definition, Object key );
-}
-
-/**
- * A way to get alternate names for the argument given the recognized name and value.
- */
-interface AliasProvider {
-    /**
-     * Give all alternate names for the given argument / value pair.  The aliases should
-     * be returned in 'preferred order'.
-     * @param argument The argument.
-     * @param value The value.
-     * @return All possible names.
-     */
-    List<String> getAliases( String argument, String value );
-
-    /**
-     * True if this alias 'consumes' the value, meaning that the argument + value together
-     * represent some other alias.
-     * @return True if the value should still be used.  False otherwise.
-     */
-    boolean doesAliasConsumeValue( String alias, String argument, String value );
 }

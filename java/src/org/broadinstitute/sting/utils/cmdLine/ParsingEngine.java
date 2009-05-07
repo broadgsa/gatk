@@ -10,8 +10,6 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collection;
@@ -60,10 +58,8 @@ public class ParsingEngine {
     protected static Logger logger = Logger.getLogger(ParsingEngine.class);
 
     public ParsingEngine() {
-        parsingMethods.add( new ParsingMethod(Pattern.compile("\\s*--([\\w\\.]+)\\s*"), ArgumentDefinitions.FullNameDefinitionMatcher) );
-        parsingMethods.add( new ParsingMethod(Pattern.compile("\\s*-([\\w\\.])([\\w\\.\\/:\\-]*)\\s*"),
-                            ArgumentDefinitions.ShortNameDefinitionMatcher,
-                            ArgumentDefinitions.ShortNameAliasProvider) );
+        parsingMethods.add( new FullNameParsingMethod() );
+        parsingMethods.add( new ShortNameParsingMethod() );
     }
 
     /**
@@ -242,7 +238,7 @@ public class ParsingEngine {
      */
     private boolean isArgumentForm( String token ) {
         for( ParsingMethod parsingMethod: parsingMethods ) {
-            if( parsingMethod.pattern.matcher(token).matches() )
+            if( parsingMethod.matches(token) )
                 return true;
         }
 
@@ -259,7 +255,7 @@ public class ParsingEngine {
             throw new IllegalArgumentException( "Token is not recognizable as an argument: " + token );
 
         for( ParsingMethod parsingMethod: parsingMethods ) {
-            if( parsingMethod.matches( argumentDefinitions, token ) )
+            if( parsingMethod.matches( token ) )
                 return parsingMethod.match( argumentDefinitions, token, position );
         }
 
@@ -411,79 +407,6 @@ public class ParsingEngine {
                 logger.fatal("constructFromString:InstantiationException: cannot convert field " + f.toString());
                 throw new RuntimeException("constructFromString:InstantiationException: Failed conversion " + e.getMessage());
             }
-        }
-    }
-
-
-    
-    /**
-     * Holds a pattern, along with how to get to the argument definitions that could match that pattern.
-     */
-    private class ParsingMethod {
-        public final Pattern pattern;
-        public final DefinitionMatcher definitionMatcher;
-        public final AliasProvider aliasProvider;
-
-        public ParsingMethod( Pattern pattern, DefinitionMatcher definitionMatcher ) {
-            this( pattern, definitionMatcher, null );
-        }
-
-        public ParsingMethod( Pattern pattern, DefinitionMatcher definitionMatcher, AliasProvider aliasProvider ) {
-            this.pattern = pattern;
-            this.definitionMatcher = definitionMatcher;
-            this.aliasProvider = aliasProvider;
-        }
-
-        public boolean matches( ArgumentDefinitions definitions, String token ) {
-            Matcher matcher = pattern.matcher(token);
-            return matcher.matches();
-        }
-
-        public ArgumentMatch match( ArgumentDefinitions definitions, String token, int position ) {
-            Matcher matcher = pattern.matcher(token);
-
-            // Didn't match?  Must be bad input.
-            if( !matcher.matches() )
-                throw new IllegalArgumentException( String.format("Unable to parse token %s with pattern %s", token, pattern.pattern()) );
-
-            // If the argument is valid, parse out the argument and value (if present).
-            String argument = matcher.group(1);
-            String value = null;
-            if( matcher.groupCount() > 1 && matcher.group(2).trim().length() > 0)
-                value = matcher.group(2).trim();
-
-            // If an alias provider has been provided, determine the possible list of argument names that this
-            // argument / value pair can represent.
-            ArgumentDefinition bestMatchArgumentDefinition = null;
-            if( aliasProvider != null ) {
-                List<String> aliases = aliasProvider.getAliases( argument, value );
-                String bestAlias = null;
-
-                for( String alias: aliases ) {
-                    if( definitions.findArgumentDefinition(alias,definitionMatcher) != null ) {
-                        bestAlias = alias;
-                        bestMatchArgumentDefinition = definitions.findArgumentDefinition(alias,definitionMatcher);
-                        break;
-                    }
-                }
-
-                // Couldn't find anything appropriate?  The aliases should be in best-to-worst order, so
-                if( bestAlias == null ) {
-                    bestAlias = aliases.get(0);
-                }
-
-                if( aliasProvider.doesAliasConsumeValue(bestAlias,argument,value) ) value = null;
-                argument = bestAlias;                
-            }
-            else
-                bestMatchArgumentDefinition = definitions.findArgumentDefinition( argument, definitionMatcher );                
-
-            // Try to find a matching argument.  If found, label that as the match.  If not found, add the argument
-                // with a null definition.
-            ArgumentMatch argumentMatch = new ArgumentMatch( argument, bestMatchArgumentDefinition, position );
-            if( value != null )
-                argumentMatch.addValue( position, value );
-            return argumentMatch;
         }
     }
 }
