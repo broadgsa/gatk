@@ -8,7 +8,8 @@
     <dependency org="log4j" name="log4j" rev="1.2.15" />
     <dependency org="colt" name="colt" rev="1.2.0" />
     <dependency org="bcel" name="bcel" rev="5.1" />
-
+    <dependency org="org.simpleframework" name="simple-xml" rev="2.0.4" />
+      
     <!-- The following are all castor dependencies. Remove when transitive dependencies are working -->
     <dependency org="commons-logging" name="commons-logging" rev="latest.integration" />
     <dependency org="org.codehaus.castor" name="castor-core" rev="1.3" />
