@@ -67,6 +67,39 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     @Test
+    public void absolutePathnameInCompositeArgumentTest() {
+        final String[] commandLine = new String[] {"-I/broad/1KG/legacy_data/trio/na12878.bam"};
+
+        parsingEngine.addArgumentSource( InputFileArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        InputFileArgProvider argProvider = new InputFileArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals("Argument is not correctly initialized", "/broad/1KG/legacy_data/trio/na12878.bam", argProvider.inputFile );
+    }
+
+    @Test
+    public void chrRangeInCompositeArgumentTest() {
+        final String[] commandLine = new String[] {"-Lchr1:10000-11000"};
+
+        parsingEngine.addArgumentSource( ChrRangeArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        ChrRangeArgProvider argProvider = new ChrRangeArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals("Argument is not correctly initialized", "chr1:10000-11000", argProvider.REGION_STR );
+    }
+
+    private class ChrRangeArgProvider {
+        @Argument(fullName="genome_region", shortName="L", doc="Genome region to operation on: from chr:start-end")
+        public String REGION_STR = null;
+    }
+
+    @Test
     public void multiCharShortNameArgumentTest() {
         final String[] commandLine = new String[] {"-out","out.txt"};
 
@@ -216,6 +249,36 @@ public class ParsingEngineTest extends BaseTest {
     private class RequiredArgProvider {
         @Argument(required=true,doc="value")
         public Integer value;
+    }
+
+    @Test
+    public void defaultValueTest() {
+        // First try getting the default.
+        String[] commandLine = new String[0];
+
+        parsingEngine.addArgumentSource( DefaultValueArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        DefaultValueArgProvider argProvider = new DefaultValueArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals("Default value is not correctly initialized", 42, argProvider.value.intValue() );
+
+        // Then try to override it.
+        commandLine = new String[] { "--value", "27" };
+
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals("Default value is not correctly initialized", 27, argProvider.value.intValue() );        
+    }
+
+    private class DefaultValueArgProvider {
+        @Argument(doc="value",required=false)
+        public Integer value = 42;
     }
 
     @Test
