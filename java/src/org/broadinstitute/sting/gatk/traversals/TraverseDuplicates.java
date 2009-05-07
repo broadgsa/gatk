@@ -15,6 +15,7 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.io.File;
@@ -89,8 +90,9 @@ public class TraverseDuplicates extends TraversalEngine {
         return l;
     }
 
-    private List<SAMRecord> collectDuplicates(List<SAMRecord> reads) {
-        ArrayList<SAMRecord> dups = new ArrayList<SAMRecord>();
+    private Pair<List<SAMRecord>, List<SAMRecord>> splitDuplicates(List<SAMRecord> reads) {
+        List<SAMRecord> uniques = new ArrayList<SAMRecord>();
+        List<SAMRecord> dups = new ArrayList<SAMRecord>();
 
         // find the first duplicate
         SAMRecord key = null;
@@ -104,7 +106,7 @@ public class TraverseDuplicates extends TraversalEngine {
         }
 
         // At this point, there are two possibilities, we have found at least one dup or not
-        //System.out.printf("Key is %s%n", key);
+        // if it's a dup, add it to the dups list, otherwise add it to the uniques list 
         if ( key != null ) {
             final GenomeLoc keyLoc = new GenomeLoc(key);
             final GenomeLoc keyMateLoc = new GenomeLoc(key.getMateReferenceIndex(), key.getMateAlignmentStart(), key.getMateAlignmentStart());
@@ -117,11 +119,15 @@ public class TraverseDuplicates extends TraversalEngine {
                     // we are at the same position as the dup and have the same mat pos, it's a dup
                     if (DEBUG) logger.debug(String.format("  => Adding read to dups list: %s%n", read));
                     dups.add(read);
+                } else {
+                    uniques.add(read);
                 }
             }
+        } else {
+            uniques = reads;
         }
 
-        return dups;
+        return new Pair<List<SAMRecord>, List<SAMRecord>>(uniques, dups);
     }
 
     /**
@@ -146,9 +152,13 @@ public class TraverseDuplicates extends TraversalEngine {
         for (SAMRecord read: iter) {
             // get the genome loc from the read
             GenomeLoc site = new GenomeLoc(read);
-            logger.debug(String.format("*** TraverseDuplicates.traverse at %s", site));
             List<SAMRecord> reads = readsAtLoc(read, iter);
-            List<SAMRecord> duplicateReads = collectDuplicates(reads);
+            Pair<List<SAMRecord>, List<SAMRecord>> split = splitDuplicates(reads);
+            List<SAMRecord> uniqueReads =  split.getFirst();
+            List<SAMRecord> duplicateReads =  split.getSecond();
+
+            logger.debug(String.format("*** TraverseDuplicates.traverse at %s has %d unique and %d duplicate reads",
+                    site, uniqueReads.size(), duplicateReads.size()));
 
             // Jump forward in the reference to this locus location
             LocusContext locus = new LocusContext(site, duplicateReads, Arrays.asList(0));
@@ -161,11 +171,16 @@ public class TraverseDuplicates extends TraversalEngine {
 
             byte[] refBases = new byte[0];
 
-            final boolean keepMeP = dupWalker.filter(site, refBases, locus, duplicateReads);
-            if (keepMeP) {
-                M x = dupWalker.map(site, refBases, locus, duplicateReads);
-                sum = dupWalker.reduce(x, sum);
+            if ( dupWalker.mapUniqueReadsTooP() ) {
+                // Send each unique read to the map function
+                for ( SAMRecord unique : uniqueReads ) {
+                    List<SAMRecord> l = Arrays.asList(unique);
+                    sum = mapOne(dupWalker, l, site, refBases, locus, sum);
+                }
             }
+
+            if ( duplicateReads.size() > 0 )
+                sum = mapOne(dupWalker, duplicateReads, site, refBases, locus, sum);
 
             printProgress("dups", site);
 
@@ -213,7 +228,20 @@ public class TraverseDuplicates extends TraversalEngine {
             return result;
         }
     }
-    
+
+    public <M, T> T mapOne(DuplicateWalker<M, T> dupWalker,
+                           List<SAMRecord> readSet,
+                           GenomeLoc site,
+                           byte[] refBases,
+                           LocusContext locus,
+                           T sum) {
+        final boolean keepMeP = dupWalker.filter(site, refBases, locus, readSet);
+        if (keepMeP) {
+            M x = dupWalker.map(site, refBases, locus, readSet);
+            sum = dupWalker.reduce(x, sum);
+        }
+        return sum;
+    }
 
     // --------------------------------------------------------------------------------------------------------------
     //

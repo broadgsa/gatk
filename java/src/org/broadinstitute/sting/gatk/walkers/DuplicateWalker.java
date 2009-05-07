@@ -29,6 +29,15 @@ public abstract class DuplicateWalker<MapType, ReduceType> extends Walker<MapTyp
     public boolean requiresReads()     { return true; }
     public boolean cannotHandleReads() { return false; }
 
+
+    /**
+     * Called by the traversal engine to decide whether to send non-duplicates as lists of
+     * singleton reads to the map function.  By default it's false.
+     * 
+     * @return true if you want to see non duplicates during the traversal
+     */
+    public boolean mapUniqueReadsTooP() { return false; }
+
     // Map over the org.broadinstitute.sting.gatk.LocusContext
     public abstract MapType map(GenomeLoc loc, byte[] refBases, LocusContext context, List<SAMRecord> duplicateReads);
 
