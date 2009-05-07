@@ -43,9 +43,13 @@ public class QualityUtils {
      */
     static public byte probToQual(double prob, double eps) {
         double lp = Math.round(-10.0*Math.log10(1.0 - prob + eps));
-        byte b = (byte) Math.min(lp, 63);
+        byte b = boundQual((int)lp);
         //System.out.printf("LP is %f, byte is %d%n", lp, b);
         return b;
+    }
+
+    static public byte boundQual(int qual) {
+        return (byte) Math.min(qual, 63);        
     }
 
     /**
