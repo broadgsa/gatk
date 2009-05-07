@@ -27,15 +27,15 @@ import net.sf.samtools.SAMFileHeader;
  * To change this template use File | Settings | File Templates.
  */
 public class CombineDuplicatesWalker extends DuplicateWalker<SAMRecord, SAMFileWriter> {
-    @Argument(fullName="outputBAM", shortName="outputBAM", required=false, defaultValue="", doc="BAM File to write combined duplicates to")
-    public String outputFilename;
+    @Argument(fullName="outputBAM", shortName="outputBAM", required=false, doc="BAM File to write combined duplicates to")
+    public String outputFilename = null;
 
-    @Argument(fullName="includeUniqueReads", shortName="includeUniqueReads", required=false, defaultValue="true", doc="If true, also writes out non-duplicate reads in file")
-    public boolean INCLUDE_UNIQUE_READS;
+    @Argument(fullName="includeUniqueReads", shortName="includeUniqueReads", required=false, doc="If true, also writes out non-duplicate reads in file")
+    public boolean INCLUDE_UNIQUE_READS = true;
 
-    @Argument(fullName="maxQ", shortName="maxQ", required=false, defaultValue="50",
+    @Argument(fullName="maxQ", shortName="maxQ", required=false,
             doc="The maximum Q score allowed for combined reads, reflects the background error rate giving rise to perfect bases that don't correspond to the reference")
-    public int MAX_QUALITY_SCORE;
+    public int MAX_QUALITY_SCORE = 50;
 
     final boolean DEBUG = false;
 

@@ -100,8 +100,8 @@ public class DuplicateQualsWalker extends DuplicateWalker<List<DuplicateComp>, Q
     @Argument(fullName="combinedQuals", shortName="combinedQuals", required=false, doc="Combine and assess pairwise base qualities")
     public boolean COMBINE_QUALS = false;
 
-    @Argument(fullName="combineAllDups", shortName="combineAllDups", required=false, defaultValue="false", doc="Combine and assess pairwise base qualities")
-    public boolean COMBINE_ALL_DUPS;
+    @Argument(fullName="combineAllDups", shortName="combineAllDups", required=false, doc="Combine and assess pairwise base qualities")
+    public boolean COMBINE_ALL_DUPS = false;
 
     final boolean DEBUG = false;
     final private boolean ACTUALLY_DO_WORK = true;
