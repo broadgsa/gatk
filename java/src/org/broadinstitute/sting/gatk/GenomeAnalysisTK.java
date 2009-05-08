@@ -171,9 +171,7 @@ public class GenomeAnalysisTK extends CommandLineProgram {
      */
     private void bindConvenienceRods(final String name, final String type, final String file )
     {
-        ROD_BINDINGS.add(name);
-        ROD_BINDINGS.add(type);
-        ROD_BINDINGS.add(file);
+        ROD_BINDINGS.add( Utils.join(",", new String[] { name, type, file }) );
     }
 
     private static void printExitSystemMsg(final String msg) {
