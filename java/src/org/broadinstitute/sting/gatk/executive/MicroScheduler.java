@@ -37,6 +37,9 @@ public abstract class MicroScheduler {
 
     protected IndexedFastaSequenceFile reference;
 
+    protected TraversalEngine traversalEngine = null;
+
+
     /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
      * selected walker.
@@ -70,7 +73,9 @@ public abstract class MicroScheduler {
      * of the microscheduler shouldn't need to know anything about the traversal engine.
      * @return The traversal engine.
      */
-    public abstract TraversalEngine getTraversalEngine();
+    public TraversalEngine getTraversalEngine() {
+        return traversalEngine;
+    }
 
     /**
      * Walks a walker over the given list of intervals.
@@ -115,6 +120,12 @@ public abstract class MicroScheduler {
         catch( FileNotFoundException ex ) {
             throw new RuntimeException( ex );
         }
+
+        // Side effect: initialize the traversal engine with reads data.
+        // TODO: Give users a dedicated way of getting the header so that the MicroScheduler
+        //       doesn't have to bend over backward providing legacy getters and setters.
+        traversalEngine.setSAMHeader(dataSource.getHeader());
+
         return dataSource;
     }
 

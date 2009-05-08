@@ -38,14 +38,16 @@ public class SAMDataSource implements SimpleDataSource {
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(SAMDataSource.class);
 
-    // are we set to locus mode or read mode for dividing
-    private boolean locusMode = true;
-
     // How strict should we be with SAM/BAM parsing?
     protected SAMFileReader.ValidationStringency strictness = SAMFileReader.ValidationStringency.SILENT;
 
     // our list of readers
     private final List<File> samFileList = new ArrayList<File>();
+
+    /**
+     * SAM header file.
+     */
+    private final SAMFileHeader header;
 
     // used for the reads case, the last count of reads retrieved
     private long readsTaken = 0;
@@ -87,6 +89,7 @@ public class SAMDataSource implements SimpleDataSource {
 
         }
 
+        header  = createHeaderMerger().getMergedHeader();
     }
 
     /**
@@ -120,18 +123,13 @@ public class SAMDataSource implements SimpleDataSource {
     public MergingSamRecordIterator2 seekLocus(GenomeLoc location) throws SimpleDataSourceLoadException {
 
         // right now this is pretty damn heavy, it copies the file list into a reader list every time
-        SamFileHeaderMerger headerMerger = CreateHeader();
+        SamFileHeaderMerger headerMerger = createHeaderMerger();
 
         // make a merging iterator for this record
         MergingSamRecordIterator2 iter = new MergingSamRecordIterator2(headerMerger);
 
-
         // we do different things for locus and read modes
-        if (locusMode) {
-            iter.queryOverlapping(location.getContig(), (int) location.getStart(), (int) location.getStop() + 1);
-        } else {
-            iter.queryContained(location.getContig(), (int) location.getStart(), (int) location.getStop() + 1);
-        }
+        iter.queryOverlapping(location.getContig(), (int) location.getStart(), (int) location.getStop() + 1);
 
         // return the iterator
         return iter;
@@ -168,6 +166,13 @@ public class SAMDataSource implements SimpleDataSource {
         includeUnmappedReads = seeUnMappedReads;
     }
 
+    /**
+     * Gets the (potentially merged) SAM file header.
+     * @return SAM file header.
+     */
+    public SAMFileHeader getHeader() {
+        return header; 
+    }
 
     /**
      * <p>
@@ -180,7 +185,7 @@ public class SAMDataSource implements SimpleDataSource {
     private BoundedReadIterator seekRead(ReadShard shard) throws SimpleDataSourceLoadException {
 
         BoundedReadIterator bound = null;
-        SamFileHeaderMerger headerMerger = CreateHeader();
+        SamFileHeaderMerger headerMerger = createHeaderMerger();
         MergingSamRecordIterator2 iter = null;
 
         if (!intoUnmappedReads) {
@@ -193,7 +198,7 @@ public class SAMDataSource implements SimpleDataSource {
             if (iter != null) {
                 iter.close();
             }
-            iter = new MergingSamRecordIterator2(CreateHeader());
+            iter = new MergingSamRecordIterator2(createHeaderMerger());
             bound = toUnmappedReads(shard.getSize(), iter);
         }
 
@@ -204,7 +209,7 @@ public class SAMDataSource implements SimpleDataSource {
         return bound;
     }
 
-    private SamFileHeaderMerger CreateHeader() {
+    private SamFileHeaderMerger createHeaderMerger() {
         // TODO: make extremely less horrible
         List<SAMFileReader> lst = GetReaderList();
 
@@ -314,7 +319,7 @@ public class SAMDataSource implements SimpleDataSource {
                         iter.close();
                         // now merge the headers
                         // right now this is pretty damn heavy, it copies the file list into a reader list every time
-                        SamFileHeaderMerger mg = CreateHeader();
+                        SamFileHeaderMerger mg = createHeaderMerger();
                         iter = new MergingSamRecordIterator2(mg);
                         iter.queryContained(lastReadPos.getContig(), 1, Integer.MAX_VALUE);
                         return new BoundedReadIterator(iter,readCount);

@@ -29,10 +29,4 @@ import net.sf.samtools.util.CloseableIterator;
  * A descriptions should go here. Blame aaron if it's missing.
  */
 public interface StingSAMIterator extends CloseableIterator<SAMRecord>, Iterable<SAMRecord> {
-
-    /**
-     * gets the header from the iterator
-     * @return the samfileheader for the iterator, null if one is not available
-     */
-    public SAMFileHeader getHeader();
 }

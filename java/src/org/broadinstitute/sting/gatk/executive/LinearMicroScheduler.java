@@ -7,7 +7,6 @@ import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.traversals.TraverseByReads;
 import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
 import org.broadinstitute.sting.gatk.traversals.TraverseReads;
@@ -24,14 +23,7 @@ import java.util.List;
 /** A micro-scheduling manager for single-threaded execution of a traversal. */
 public class LinearMicroScheduler extends MicroScheduler {
 
-    private TraversalEngine traversalEngine = null;
-
     private boolean isAReadWalker = false;
-
-    /** get the traversal engine */
-    public TraversalEngine getTraversalEngine() {
-        return traversalEngine;
-    }
 
     /**
      * Create a new linear microscheduler to process the given reads and reference.
@@ -62,30 +54,15 @@ public class LinearMicroScheduler extends MicroScheduler {
         ShardStrategy shardStrategy = getShardStrategy(reference, locations);
         SAMDataSource dataSource = getReadsDataSource();
 
-        boolean walkerInitialized = false;
-        Object accumulator = null;
+        walker.initialize();
+        Object accumulator = ((LocusWalker<?, ?>) walker).reduceInit();
 
         for (Shard shard : shardStrategy) {
 
-            StingSAMIterator readShard = null;
-            try {
-                readShard = dataSource.seek(shard);
-            }
-            catch (SimpleDataSourceLoadException ex) {
-                throw new RuntimeException(ex);
-            }
+            StingSAMIterator readShard = dataSource.seek(shard);
 
             ReferenceProvider referenceProvider = new ReferenceProvider(reference, shard.getGenomeLoc());
             LocusContextProvider locusProvider = new LocusContextProvider(readShard);
-
-            // set the sam header of the traversal engine
-            traversalEngine.setSAMHeader(readShard.getHeader());
-
-            if (!walkerInitialized) {
-                walker.initialize();
-                accumulator = ((LocusWalker<?, ?>) walker).reduceInit();
-                walkerInitialized = true;
-            }
 
             if (!isAReadWalker) {
                 accumulator = ((TraverseLociByReference) traversalEngine).traverse(walker, shard, referenceProvider, locusProvider, accumulator);
