@@ -5,6 +5,8 @@ import org.broadinstitute.sting.utils.StingException;
 import org.simpleframework.xml.Element;
 import org.simpleframework.xml.Root;
 import org.simpleframework.xml.Serializer;
+import org.simpleframework.xml.stream.Format;
+import org.simpleframework.xml.stream.HyphenStyle;
 import org.simpleframework.xml.core.Persister;
 
 import java.io.File;
@@ -103,7 +105,7 @@ public class SampleXmlMarshaller {
     }
 
     public static void marshal(SampleXmlMarshaller sample, String filename) {
-       Serializer serializer = new Persister();
+       Serializer serializer = new Persister(new Format(new HyphenStyle()));
         File out = new File(filename);
         try {
             serializer.write(sample, out);
@@ -113,7 +115,7 @@ public class SampleXmlMarshaller {
     }
 
     public static SampleXmlMarshaller unmarshal(String filename) {
-        Serializer serializer = new Persister();
+        Serializer serializer = new Persister(new Format(new HyphenStyle()));
         File source = new File(filename);
         try {
             SampleXmlMarshaller example = serializer.read(SampleXmlMarshaller.class, source);
