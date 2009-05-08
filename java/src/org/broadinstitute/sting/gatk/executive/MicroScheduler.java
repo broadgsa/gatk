@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.gatk.traversals.TraverseByReads;
+import org.broadinstitute.sting.gatk.traversals.TraverseReads;
 import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -69,7 +69,7 @@ public abstract class MicroScheduler {
      */
     protected MicroScheduler( Walker walker, List<File> reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods ) {
         if (walker instanceof ReadWalker) {
-            traversalEngine = new TraverseByReads(reads, refFile, rods);
+            traversalEngine = new TraverseReads(reads, refFile, rods);
         } else {
             traversalEngine = new TraverseLociByReference(reads, refFile, rods);
         }
@@ -102,13 +102,16 @@ public abstract class MicroScheduler {
      */
     protected ShardStrategy getShardStrategy( ReferenceSequenceFile drivingDataSource, List<GenomeLoc> intervals ) {
         ShardStrategy shardStrategy = null;
-        if( intervals != null )
-            shardStrategy = ShardStrategyFactory.shatter( ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
+        ShardStrategyFactory.SHATTER_STRATEGY shardType = (traversalEngine instanceof TraverseReads) ?
+                ShardStrategyFactory.SHATTER_STRATEGY.READS : ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
+        
+        if( intervals != null && shardType != ShardStrategyFactory.SHATTER_STRATEGY.READS)
+            shardStrategy = ShardStrategyFactory.shatter( shardType,
                                                           drivingDataSource.getSequenceDictionary(),
                                                           SHARD_SIZE,
                                                           intervals );
         else
-            shardStrategy = ShardStrategyFactory.shatter( ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
+            shardStrategy = ShardStrategyFactory.shatter( shardType,
                                                           drivingDataSource.getSequenceDictionary(),
                                                           SHARD_SIZE );
 
