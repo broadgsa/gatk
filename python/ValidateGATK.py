@@ -195,7 +195,7 @@ def main():
             if isIntervalFile(region):
                 cmd += " --intervals_file " + region
 
-            cmd += " -B pileup SAMPileup " + pileup
+            cmd += " -B pileup,SAMPileup," + pileup
             print cmd
             farm_commands.cmd(cmd, OPTIONS.farmQueue, outputFile=validationOutput, just_print_commands=OPTIONS.justPrint)
 
