@@ -28,8 +28,4 @@ public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, R
 
     // Map over the org.broadinstitute.sting.gatk.LocusContext
     public abstract MapType map(RefMetaDataTracker tracker, char ref, LocusContext context);
-
-    // Given result of map function
-    public abstract ReduceType reduceInit();
-    public abstract ReduceType reduce(MapType value, ReduceType sum);
 }

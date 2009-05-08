@@ -56,6 +56,20 @@ public abstract class Walker<MapType, ReduceType> {
 
     public void initialize() { }
 
+    /**
+     * Provide an initial value for reduce computations.
+     * @return Initial value of reduce.
+     */
+    public abstract ReduceType reduceInit();
+
+    /**
+     * Reduces a single map with the accumulator provided as the ReduceType.
+     * @param value result of the map.
+     * @param sum accumulator for the reduce.
+     * @return accumulator with result of the map taken into account.
+     */
+    public abstract ReduceType reduce(MapType value, ReduceType sum);    
+
     public void onTraversalDone(ReduceType result) {
         out.println("[REDUCE RESULT] Traversal result is: " + result);
     }

@@ -55,7 +55,7 @@ public class LinearMicroScheduler extends MicroScheduler {
         SAMDataSource dataSource = getReadsDataSource();
 
         walker.initialize();
-        Object accumulator = ((LocusWalker<?, ?>) walker).reduceInit();
+        Object accumulator = walker.reduceInit();
 
         for (Shard shard : shardStrategy) {
 

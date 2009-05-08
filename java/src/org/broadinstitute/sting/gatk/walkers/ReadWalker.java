@@ -24,8 +24,4 @@ public abstract class ReadWalker<MapType, ReduceType> extends Walker<MapType, Re
 
     // Map over the org.broadinstitute.sting.gatk.LocusContext
     public abstract MapType map(LocusContext context, SAMRecord read);
-
-    // Given result of map function
-    public abstract ReduceType reduceInit();
-    public abstract ReduceType reduce(MapType value, ReduceType sum);
 }
