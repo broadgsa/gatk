@@ -3,6 +3,8 @@ package org.broadinstitute.sting.gatk.walkers;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.LocusContext;
 
+import net.sf.samtools.SAMRecord;
+
 /**
  * Created by IntelliJ IDEA.
  * User: ebanks
@@ -13,8 +15,16 @@ import org.broadinstitute.sting.gatk.LocusContext;
 public abstract class LocusWindowWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
     public boolean filter(RefMetaDataTracker tracker, String ref, LocusContext context) {
-        return true;    // We are keeping all the reads
+        return true;    // We are keeping all the intervals
     }
+
+    // do we care about reads that are not part of our intervals?
+    public boolean actOnNonIntervalReads() {
+        return false;   // Don't act on them
+    }
+
+    // What do we do with the reads that are not part of our intervals?
+    public void nonIntervalReadAction(SAMRecord read) { }
 
     // Map over the org.broadinstitute.sting.gatk.LocusContext
     public abstract MapType map(RefMetaDataTracker tracker, String ref, LocusContext context);

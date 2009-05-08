@@ -21,6 +21,9 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public int maxReadLength = -1;
     @Argument(fullName="OutputCleaned", shortName="O", required=true, doc="Output file (sam or bam) for improved (realigned) reads")
     public String OUT;
+    @Argument(fullName="OutputAllReads", shortName="all", doc="print out all reads (otherwise, just those within the intervals)", required=false)
+    public boolean printAllReads = false;
+
     public static final int MAX_QUAL = 99;
 
     private SAMFileWriter writer;
@@ -30,12 +33,28 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(header, false, new File(OUT));
     }
 
+    // do we care about reads that are not part of our intervals?
+    public boolean actOnNonIntervalReads() {
+        return printAllReads;
+    }
+
+    // What do we do with the reads that are not part of our intervals?
+    public void nonIntervalReadAction(SAMRecord read) {
+        writer.addAlignment(read);
+    }
+
     public Integer map(RefMetaDataTracker tracker, String ref, LocusContext context) {
         List<SAMRecord> reads = context.getReads();
         ArrayList<SAMRecord> goodReads = new ArrayList<SAMRecord>();
         for ( SAMRecord read : reads ) {
-            if ( read.getReadLength() <= maxReadLength )
+            if ( read.getReadLength() <= maxReadLength &&
+                 !read.getReadUnmappedFlag() &&
+                 !read.getNotPrimaryAlignmentFlag() &&
+                 !read.getDuplicateReadFlag() &&
+                 read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START )
                 goodReads.add(read);
+            else
+                writer.addAlignment(read);
         }
 
         clean(goodReads, ref, context.getLocation().getStart());
@@ -57,34 +76,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public void onTraversalDone(Integer result) {
         out.println("Saw " + result + " intervals");
         writer.close();
-    }
-
-    private static int mismatchQualitySumCigar(AlignedRead aRead, String ref, int refIndex) {
-        String read = aRead.getReadString();
-        String quals = aRead.getBaseQualityString();
-        Cigar c = aRead.getCigar();
-
-        int sum = 0;
-        int readIndex = 0;
-        for ( int i = 0 ; i < c.numCigarElements() ; i++ ) {
-            CigarElement ce = c.getCigarElement(i);
-            switch( ce.getOperator() ) {
-                case M:
-                    for ( int j = 0 ; j < ce.getLength() ; j++, refIndex++, readIndex++ ) {
-                        if ( Character.toUpperCase(read.charAt(readIndex)) != Character.toUpperCase(ref.charAt(refIndex)) )
-                            sum += (int)quals.charAt(readIndex) - 33;
-                    }
-                    break;
-                case I:
-                    readIndex += ce.getLength();
-                    break;
-                case D:
-                    refIndex += ce.getLength();
-                    break;
-                default: throw new RuntimeException("Unrecognized cigar element");
-            }
-        }
-        return sum;
     }
 
     private static int mismatchQualitySum(AlignedRead aRead, String ref, int refIndex) {
@@ -136,6 +127,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 AlignedRead aRead = altReads.get(index);
                 SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getReadString());
                 int refIdx = swConsensus.getAlignmentStart2wrt1();
+                if ( refIdx < 0 || refIdx > reference.length() - aRead.getReadString().length() )
+                    continue;
 
                 // create the new consensus
                 StringBuffer sb = new StringBuffer();
@@ -199,7 +192,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
 
         // if the best alternate consensus has a smaller sum of quality score mismatches, then clean!
-        if ( bestConsensus.mismatchSum < totalMismatchSum ) {
+        if ( bestConsensus != null && bestConsensus.mismatchSum < totalMismatchSum ) {
             logger.info("CLEAN: " + bestConsensus.str);
 
             // clean the appropriate reads

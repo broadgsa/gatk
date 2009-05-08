@@ -69,20 +69,13 @@ public class TraverseByLocusWindows extends TraversalEngine {
         if ( locations.isEmpty() ) {
             logger.debug("There are no intervals provided for the traversal");
         } else {
-            if ( ! samReader.hasIndex() )
+            if ( !samReader.hasIndex() )
                 Utils.scareUser("Processing locations were requested, but no index was found for the input SAM/BAM file. This operation is potentially dangerously slow, aborting.");
 
-            for ( GenomeLoc interval : locations ) {
-                logger.debug(String.format("Processing interval %s", interval.toString()));
-
-                CloseableIterator<SAMRecord> readIter = samReader.queryOverlapping( interval.getContig(),
-                        (int)interval.getStart(),
-                        (int)interval.getStop());
-
-                Iterator<SAMRecord> wrappedIter = WrapReadsIterator( readIter, false );
-                sum = carryWalkerOverInterval(walker, wrappedIter, sum, interval);
-                readIter.close();
-            }
+            if ( walker.actOnNonIntervalReads() )
+                sum = fullInputTraversal(walker, locations, sum);
+            else
+                sum = strictIntervalTraversal(walker, locations, sum);            
         }
 
         //printOnTraversalDone("intervals", sum);
@@ -90,20 +83,81 @@ public class TraverseByLocusWindows extends TraversalEngine {
         return sum;
     }
 
+    protected <M, T> T strictIntervalTraversal(LocusWindowWalker<M, T> walker, ArrayList<GenomeLoc> locations, T sum) {
+        for ( GenomeLoc interval : locations ) {
+            logger.debug(String.format("Processing interval %s", interval.toString()));
+
+            CloseableIterator<SAMRecord> readIter = samReader.queryOverlapping( interval.getContig(),
+                    (int)interval.getStart(),
+                    (int)interval.getStop());
+
+            Iterator<SAMRecord> wrappedIter = WrapReadsIterator( readIter, false );
+            sum = carryWalkerOverInterval(walker, wrappedIter, sum, interval);
+            readIter.close();
+        }
+        return sum;
+    }
+
+    protected <M, T> T fullInputTraversal(LocusWindowWalker<M, T> walker, ArrayList<GenomeLoc> locations, T sum) {
+
+        // set everything up
+        GenomeLoc currentInterval = (locations.size() > 0 ? locations.get(0) : null);
+        int locationsIndex = 0;
+        ArrayList<SAMRecord> intervalReads = new ArrayList<SAMRecord>();
+        Iterator<SAMRecord> readIter = samReader.iterator();
+
+        while (readIter.hasNext()) {
+            TraversalStatistics.nRecords++;
+            SAMRecord read = readIter.next();
+
+            // if there are no locations or we're past the last one or it's unmapped, then act on the read separately
+            if ( currentInterval == null || read.getReadUnmappedFlag() ) {
+                walker.nonIntervalReadAction(read);
+            }
+            else {
+                GenomeLoc loc = new GenomeLoc(read);
+                // if we're in the current interval, add it to the list
+                if ( currentInterval.overlapsP(loc) ) {
+                    intervalReads.add(read);
+                }
+                // if we're not yet in the interval, act on the read separately
+                else if ( currentInterval.isPast(loc) ) {
+                    walker.nonIntervalReadAction(read);
+                }
+                // otherwise, we're past the interval so first deal with the collected reads and then this one
+                else {
+                    if ( intervalReads.size() > 0 ) {
+                        Iterator<SAMRecord> wrappedIter = WrapReadsIterator(intervalReads.iterator(), false);
+                        sum = carryWalkerOverInterval(walker, wrappedIter, sum, currentInterval);
+
+                        // then prepare for the next interval
+                        intervalReads.clear();
+                        currentInterval = (++locationsIndex < locations.size() ? locations.get(locationsIndex) : null);                       
+                    }
+                    walker.nonIntervalReadAction(read);
+                }
+            }
+        }
+        // some cleanup
+        if ( intervalReads.size() > 0 ) {
+            Iterator<SAMRecord> wrappedIter = WrapReadsIterator(intervalReads.iterator(), false);
+            sum = carryWalkerOverInterval(walker, wrappedIter, sum, currentInterval);
+        }
+
+        return sum;
+    }
+
     protected <M, T> T carryWalkerOverInterval(LocusWindowWalker<M, T> walker, Iterator<SAMRecord> readIter, T sum, GenomeLoc interval ) {
         logger.debug(String.format("TraverseByIntervals.carryWalkerOverInterval Genomic interval is %s", interval));
-
-        // prepare the read filtering read iterator and provide it to a new interval iterator
-        FilteringIterator filterIter = new FilteringIterator(readIter, new locusStreamFilterFunc());
 
         ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
         ArrayList<Integer> offsets = new ArrayList<Integer>();
         boolean done = false;
         long leftmostIndex = interval.getStart(),
                 rightmostIndex = interval.getStop();
-        while (filterIter.hasNext() && !done) {
+        while (readIter.hasNext() && !done) {
             TraversalStatistics.nRecords++;
-            SAMRecord read = filterIter.next();
+            SAMRecord read = readIter.next();
             reads.add(read);
             offsets.add((int)(read.getAlignmentStart() - interval.getStart()));
             if ( read.getAlignmentStart() < leftmostIndex )
