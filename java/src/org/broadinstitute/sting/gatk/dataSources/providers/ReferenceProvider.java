@@ -18,15 +18,29 @@ public class ReferenceProvider {
     private IndexedFastaSequenceFile sequenceFile;
     private Shard shard;
 
-    // Lazy
+    /**
+     * Track the reference sequence and the last point accessed.  Used to
+     * track state when traversing over the reference.
+     */
     private ReferenceSequence referenceSequence;
     private GenomeLoc referenceInterval;
 
+    /**
+     * Create a new reference provider supplying data from the given reference.
+     * @param sequenceFile Reference file to use.
+     * @param shard Shard over which to retrieve data.
+     */
     public ReferenceProvider( IndexedFastaSequenceFile sequenceFile, Shard shard ) {
         this.sequenceFile = sequenceFile;
         this.shard = shard;
     }
 
+    /**
+     * Gets the reference base at a single point.
+     * @param genomeLoc The location at which to fetch the reference base.
+     * @return The character representing the reference base.
+     * @throws InvalidPositionException in case the position is invalid.
+     */
     public char getReferenceBase( GenomeLoc genomeLoc ) throws InvalidPositionException {
         if( referenceSequence == null )
             lazyInitializeLocusAccess();            
