@@ -4,14 +4,19 @@ import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
+import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
+import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
+import org.broadinstitute.sting.gatk.traversals.TraverseByReads;
+import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
@@ -30,15 +35,14 @@ import java.util.List;
  * Shards and schedules data in manageable chunks.
  */
 public abstract class MicroScheduler {
-    private List<File> reads;
     private static long SHARD_SIZE = 100000L;    
 
     protected static Logger logger = Logger.getLogger(MicroScheduler.class);
 
-    protected IndexedFastaSequenceFile reference;
+    protected final TraversalEngine traversalEngine;
+    protected final IndexedFastaSequenceFile reference;
 
-    protected TraversalEngine traversalEngine = null;
-
+    private final SAMDataSource reads;
 
     /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
@@ -50,11 +54,11 @@ public abstract class MicroScheduler {
     public static MicroScheduler create( Walker walker, List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods, int nThreadsToUse ) {
         if( walker instanceof TreeReducible && nThreadsToUse > 1 ) {
             logger.info("Creating hierarchical microscheduler");
-            return new HierarchicalMicroScheduler( reads, ref, rods, nThreadsToUse );
+            return new HierarchicalMicroScheduler( walker, reads, ref, rods, nThreadsToUse );
         }
         else {
             logger.info("Creating linear microscheduler");
-            return new LinearMicroScheduler( reads, ref, rods, walker );
+            return new LinearMicroScheduler( walker, reads, ref, rods );
         }
     }
 
@@ -63,8 +67,14 @@ public abstract class MicroScheduler {
      * @param reads The reads.
      * @param refFile File pointer to the reference.
      */
-    protected MicroScheduler( List<File> reads, File refFile ) {
-        this.reads = reads;
+    protected MicroScheduler( Walker walker, List<File> reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods ) {
+        if (walker instanceof ReadWalker) {
+            traversalEngine = new TraverseByReads(reads, refFile, rods);
+        } else {
+            traversalEngine = new TraverseLociByReference(reads, refFile, rods);
+        }
+
+        this.reads = getReadsDataSource( reads );
         this.reference = openReferenceSequenceFile( refFile );
     }
 
@@ -106,20 +116,28 @@ public abstract class MicroScheduler {
     }
 
     /**
+     * Gets an window into all the data that can be viewed as a single shard.
+     * @param shard The section of data to view.
+     * @return An accessor for all the data in this shard.
+     */
+    protected ShardDataProvider getShardDataProvider( Shard shard ) {
+        return new ShardDataProvider( shard, reads, reference );
+    }
+
+    /**
      * Gets a data source for the given set of reads.
      * @return A data source for the given set of reads.
      */
-    protected SAMDataSource getReadsDataSource() {
-        SAMDataSource dataSource = null;
+    private SAMDataSource getReadsDataSource( List<File> reads ) {
+        List<File> unpackedReads = null;
         try {
-            dataSource = new SAMDataSource( TraversalEngine.unpackReads(reads) );
-        }
-        catch( SimpleDataSourceLoadException ex ) {
-            throw new RuntimeException( ex );
+            unpackedReads = TraversalEngine.unpackReads(reads);
         }
         catch( FileNotFoundException ex ) {
-            throw new RuntimeException( ex );
+            throw new StingException( "Cannot unpack list of reads files", ex );
         }
+
+        SAMDataSource dataSource = new SAMDataSource( unpackedReads );
 
         // Side effect: initialize the traversal engine with reads data.
         // TODO: Give users a dedicated way of getting the header so that the MicroScheduler

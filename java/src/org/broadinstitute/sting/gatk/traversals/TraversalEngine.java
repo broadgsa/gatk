@@ -14,6 +14,8 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
+import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
@@ -287,7 +289,7 @@ public abstract class TraversalEngine {
      * @param <T> Type of the computation.
      */
     public <T> void printOnTraversalDone( T sum ) {
-        throw new UnsupportedOperationException( "This method should be overridden." );
+        throw new UnsupportedOperationException( "This method is a required override for new traversal engines.  Please port your traversal engine to the new style." );
     }
 
     /**
@@ -544,6 +546,14 @@ public abstract class TraversalEngine {
     public <M, T> T traverse(Walker<M, T> walker, ArrayList<GenomeLoc> locations) {
         return null;
     }
+
+    public <M,T> T traverse( Walker<M,T> walker,
+                             Shard shard,
+                             ShardDataProvider dataProvider,
+                             T sum ) {
+        throw new UnsupportedOperationException( "This method is a required override for new traversal engines.  Please port your traversal engine to the new style." );
+    }
+
 
     // --------------------------------------------------------------------------------------------------------------
     //

@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
+import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
@@ -127,51 +128,31 @@ public class TraverseReadsTest extends BaseTest {
         ShardStrategy shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS,
                 ref.getSequenceDictionary(),
                 readSize);
-        SAMDataSource dataSource = null;
+
+        List<File> unpackedReads = null;
         try {
-            dataSource = new SAMDataSource(TraversalEngine.unpackReads(bamList));
-            dataSource.viewUnmappedReads(true);
-            //dataSource.viewUnmappedReads(false);
-        }
-        catch (SimpleDataSourceLoadException ex) {
-            throw new RuntimeException(ex);
+            unpackedReads = TraversalEngine.unpackReads(bamList);
         }
         catch (FileNotFoundException ex) {
             throw new RuntimeException(ex);
         }
 
+        SAMDataSource dataSource = new SAMDataSource(unpackedReads);
         dataSource.viewUnmappedReads(false);
 
-        boolean walkerInitialized = false;
-        Object accumulator = null;
+        countReadWalker.initialize();
+        Object accumulator = countReadWalker.reduceInit();
+
         while (shardStrategy.hasNext()) {
             Shard shard = shardStrategy.next();
-            BoundedReadIterator readIter = null;
-            try {
-                readIter = (BoundedReadIterator) dataSource.seek(shard);
-            }
-            catch (SimpleDataSourceLoadException ex) {
-                throw new RuntimeException(ex);
-            }
 
-            //LocusContextProvider locusProvider = new LocusContextProvider( readIter );
-
-            // set the sam header of the traversal engine
-            traversalEngine.setSAMHeader(readIter.getHeader());
-
-            if (!walkerInitialized) {
-                countReadWalker.initialize();
-                accumulator = ((ReadWalker<?, ?>) countReadWalker).reduceInit();
-                walkerInitialized = true;
-
-            }
             if (shard == null) {
                 fail("Shard == null");
             }
 
-
-            accumulator = traversalEngine.traverse(countReadWalker, shard, readIter, accumulator);
-            readIter.close();
+            ShardDataProvider dataProvider = new ShardDataProvider(shard,dataSource,null);
+            accumulator = traversalEngine.traverse(countReadWalker, shard, dataProvider, accumulator);
+            dataProvider.close();
 
         }
 
@@ -208,52 +189,30 @@ public class TraverseReadsTest extends BaseTest {
         ShardStrategy shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS,
                 ref.getSequenceDictionary(),
                 readSize);
-        SAMDataSource dataSource = null;
+        List<File> unpackedReads = null;
         try {
-            dataSource = new SAMDataSource(TraversalEngine.unpackReads(bamList));
-            dataSource.viewUnmappedReads(true);
-            //dataSource.viewUnmappedReads(false);
-        }
-        catch (SimpleDataSourceLoadException ex) {
-            throw new RuntimeException(ex);
+            unpackedReads = TraversalEngine.unpackReads(bamList);
         }
         catch (FileNotFoundException ex) {
             throw new RuntimeException(ex);
         }
 
+        SAMDataSource dataSource = new SAMDataSource(unpackedReads);
         dataSource.viewUnmappedReads(true);
 
-        boolean walkerInitialized = false;
-        Object accumulator = null;
+        countReadWalker.initialize();
+        Object accumulator = countReadWalker.reduceInit();
+
         while (shardStrategy.hasNext()) {
             Shard shard = shardStrategy.next();
-            BoundedReadIterator readIter = null;
-            try {
-                readIter = (BoundedReadIterator) dataSource.seek(shard);
-            }
-            catch (SimpleDataSourceLoadException ex) {
-                throw new RuntimeException(ex);
-            }
 
-            //LocusContextProvider locusProvider = new LocusContextProvider( readIter );
-
-            // set the sam header of the traversal engine
-            traversalEngine.setSAMHeader(readIter.getHeader());
-
-            if (!walkerInitialized) {
-                countReadWalker.initialize();
-                accumulator = ((ReadWalker<?, ?>) countReadWalker).reduceInit();
-                walkerInitialized = true;
-
-            }
             if (shard == null) {
                 fail("Shard == null");
             }
 
-
-            accumulator = traversalEngine.traverse(countReadWalker, shard, readIter, accumulator);
-            readIter.close();
-
+            ShardDataProvider dataProvider = new ShardDataProvider(shard,dataSource,null);
+            accumulator = traversalEngine.traverse(countReadWalker, shard, dataProvider, accumulator);
+            dataProvider.close();
         }
 
         traversalEngine.printOnTraversalDone("loci", accumulator);
@@ -263,7 +222,7 @@ public class TraverseReadsTest extends BaseTest {
             fail("Count read walker should return an interger.");
         }
         if (((Integer) accumulator) != 10000) {
-            fail("there should be 9721 mapped reads in the index file");
+            fail("there should be 10000 mapped reads in the index file");
         }
     }
 

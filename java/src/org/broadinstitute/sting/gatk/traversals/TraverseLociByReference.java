@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextProvider;
 import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceProvider;
 import org.broadinstitute.sting.gatk.dataSources.providers.InvalidPositionException;
+import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -45,10 +46,10 @@ public class TraverseLociByReference extends TraversalEngine {
         throw new UnsupportedOperationException("This traversal type not supported by TraverseLociByReference");
     }
 
+    @Override
     public <M,T> T traverse( Walker<M,T> walker,
                              Shard shard,
-                             ReferenceProvider referenceProvider,
-                             LocusContextProvider locusProvider,
+                             ShardDataProvider dataProvider,
                              T sum ) {
         logger.debug(String.format("TraverseLociByReference.traverse Genomic interval is %s", shard.getGenomeLoc()));
 
@@ -67,9 +68,8 @@ public class TraverseLociByReference extends TraversalEngine {
             // Iterate forward to get all reference ordered data covering this locus
             final RefMetaDataTracker tracker = getReferenceOrderedDataAtLocus( site );
 
-            LocusContext locus = locusProvider.getLocusContext( site );
-
-            char refBase = referenceProvider.getReferenceBase( site );
+            LocusContext locus = dataProvider.getLocusContext( site );
+            char refBase = dataProvider.getReferenceBase( site );
 
             if ( DOWNSAMPLE_BY_COVERAGE )
                 locus.downsampleToCoverage(downsamplingCoverage);

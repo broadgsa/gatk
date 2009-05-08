@@ -5,7 +5,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.dataSources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -74,7 +74,7 @@ public class TraverseReads extends TraversalEngine {
      */
     public <M, T> T traverse(Walker<M, T> walker,
                              Shard shard,
-                             StingSAMIterator iter,
+                             ShardDataProvider dataProvider,
                              T sum) {
 
         logger.debug(String.format("TraverseReads.traverse Genomic interval is %s", ((ReadShard) shard).getSize()));
@@ -82,12 +82,15 @@ public class TraverseReads extends TraversalEngine {
         if (!(walker instanceof ReadWalker))
             throw new IllegalArgumentException("Walker isn't a read walker!");
 
+        if( !dataProvider.hasReads() )
+            throw new IllegalArgumentException("Unable to traverse reads; no read data is available.");
+
         ReadWalker<M, T> readWalker = (ReadWalker<M, T>) walker;
 
         int readCNT = 0;
 
         // while we still have more reads
-        for (SAMRecord read : iter) {
+        for (SAMRecord read : dataProvider.getReadIterator()) {
 
             // our locus context
             LocusContext locus = null;

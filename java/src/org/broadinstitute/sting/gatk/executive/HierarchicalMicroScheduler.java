@@ -1,12 +1,10 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
 import org.broadinstitute.sting.gatk.OutputTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
@@ -60,16 +58,11 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
      * @param refFile Reference for driving the traversal.
      * @param nThreadsToUse maximum number of threads to use to do the work
      */
-    protected HierarchicalMicroScheduler( List<File> reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods, int nThreadsToUse ) {
-        super( reads, refFile );
-
-
-        this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);        
-        traversalEngine = new TraverseLociByReference( reads, refFile, rods );
-    }
-
-    public TraversalEngine getTraversalEngine() {
-        return traversalEngine;
+    protected HierarchicalMicroScheduler( Walker walker, List<File> reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods, int nThreadsToUse ) {
+        super( walker, reads, refFile, rods );
+        this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
+        if( !(traversalEngine instanceof TraverseLociByReference) )
+            throw new UnsupportedOperationException("Traversal engine supports only traverse loci by reference at this time.");
     }
 
     public void execute( Walker walker, List<GenomeLoc> intervals ) {
@@ -78,8 +71,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
             throw new IllegalArgumentException("Hierarchical microscheduler only works with TreeReducible walkers");
 
         ShardStrategy shardStrategy = getShardStrategy( reference, intervals );
-        SAMDataSource dataSource = getReadsDataSource();
-
         ReduceTree reduceTree = new ReduceTree( this );        
 
         walker.initialize();
@@ -100,7 +91,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
             if( isTreeReduceReady() )
                 queueNextTreeReduce( walker );
             else if( isShardTraversePending() )
-                queueNextShardTraverse( walker, dataSource, reduceTree );
+                queueNextShardTraverse( walker, reduceTree );
         }
 
         // Merge any lingering output files.  If these files aren't ready,
@@ -208,19 +199,19 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
     /**
      * Queues the next traversal of a walker from the traversal tasks queue.
      * @param walker Walker to apply to the dataset.
-     * @param dataSource Source of the reads
+     * @param reduceTree Tree of reduces to which to add this shard traverse.
      */
-    protected Future queueNextShardTraverse( Walker walker, SAMDataSource dataSource, ReduceTree reduceTree ) {
+    protected Future queueNextShardTraverse( Walker walker, ReduceTree reduceTree ) {
         if( traverseTasks.size() == 0 )
             throw new IllegalStateException( "Cannot traverse; no pending traversals exist.");
 
+        Shard shard = traverseTasks.remove();
         OutputMerger outputMerger = new OutputMerger();
 
         ShardTraverser traverser = new ShardTraverser( traversalEngine,
                                                        walker,
-                                                       traverseTasks.remove(),
-                                                       reference,
-                                                       dataSource,
+                                                       shard,
+                                                       getShardDataProvider(shard),
                                                        outputMerger );
 
         Future traverseResult = threadPool.submit(traverser);
