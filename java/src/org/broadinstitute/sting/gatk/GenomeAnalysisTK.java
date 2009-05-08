@@ -245,17 +245,8 @@ public class GenomeAnalysisTK extends CommandLineProgram {
                     Utils.scareUser(String.format("Analysis %s doesn't support SAM/BAM reads, but a read file %s was provided", Analysis_Name, INPUT_FILES));
 
                 if ( WALK_ALL_LOCI ) {
-                    // TODO: Temporary debugging code.  Activate the new debugging code only when the MicroScheduler
-                    //                                  is not filtered.
-                    if( !DISABLE_THREADING ) {
-                        logger.warn("Preliminary threading support ENABLED");
-                        microScheduler = MicroScheduler.create( walker, INPUT_FILES, REF_FILE_ARG, rods, numThreads );
-                        this.engine = microScheduler.getTraversalEngine();
-                    }
-                    else {
-                        logger.warn("Preliminary threading support DISABLED");
-                        this.engine = new TraverseByLociByReference(INPUT_FILES, REF_FILE_ARG, rods);
-                    }
+                    microScheduler = MicroScheduler.create( walker, INPUT_FILES, REF_FILE_ARG, rods, numThreads );
+                    this.engine = microScheduler.getTraversalEngine();
                 }
                 else
                 	this.engine = new TraverseByLoci(INPUT_FILES, REF_FILE_ARG, rods);
