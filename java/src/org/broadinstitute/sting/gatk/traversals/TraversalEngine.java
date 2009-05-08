@@ -281,13 +281,23 @@ public abstract class TraversalEngine {
     }
 
     /**
+     * A passthrough method so that subclasses can report which types of traversals they're using.
+     * TODO: Make this method abstract once all traversals support it.
+     * @param sum Result of the computation.
+     * @param <T> Type of the computation.
+     */
+    public <T> void printOnTraversalDone( T sum ) {
+        throw new UnsupportedOperationException( "This method should be overridden." );
+    }
+
+    /**
      * Called after a traversal to print out information about the traversal process
      *
      * @param type String describing this type of traversal ("loci", "read")
      * @param sum  The reduce result of the traversal
      * @param <T>  ReduceType of the traversal
      */
-    public <T> void printOnTraversalDone(final String type, T sum) {
+    protected <T> void printOnTraversalDone(final String type, T sum) {
         printProgress(true, type, null);
         logger.info("Traversal reduce result is " + sum);
         final long curTime = System.currentTimeMillis();

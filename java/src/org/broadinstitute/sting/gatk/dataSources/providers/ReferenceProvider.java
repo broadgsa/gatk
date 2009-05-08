@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.dataSources.providers;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import edu.mit.broad.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
 
@@ -16,7 +17,8 @@ public class ReferenceProvider {
     private ReferenceSequence referenceSequence;
     private GenomeLoc referenceInterval;
 
-    public ReferenceProvider( IndexedFastaSequenceFile sequenceFile, GenomeLoc position ) {
+    public ReferenceProvider( IndexedFastaSequenceFile sequenceFile, Shard shard ) {
+        GenomeLoc position = shard.getGenomeLoc();
         this.referenceSequence = sequenceFile.getSubsequenceAt( position.getContig(),
                                                                 position.getStart(),
                                                                 position.getStop() );

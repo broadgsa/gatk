@@ -117,7 +117,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
             throw new StingException("Unable to retrieve result", ex );
         }
         
-        traversalEngine.printOnTraversalDone("loci", result);
+        traversalEngine.printOnTraversalDone(result);
         walker.onTraversalDone(result);
     }
 

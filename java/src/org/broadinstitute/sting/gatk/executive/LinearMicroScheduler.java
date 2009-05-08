@@ -5,12 +5,10 @@ import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceProvider;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.traversals.TraverseByReads;
 import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
 import org.broadinstitute.sting.gatk.traversals.TraverseReads;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
@@ -61,7 +59,7 @@ public class LinearMicroScheduler extends MicroScheduler {
 
             StingSAMIterator readShard = dataSource.seek(shard);
 
-            ReferenceProvider referenceProvider = new ReferenceProvider(reference, shard.getGenomeLoc());
+            ReferenceProvider referenceProvider = new ReferenceProvider(reference, shard);
             LocusContextProvider locusProvider = new LocusContextProvider(readShard);
 
             if (!isAReadWalker) {
@@ -73,8 +71,7 @@ public class LinearMicroScheduler extends MicroScheduler {
             readShard.close();
         }
 
-        String type = (isAReadWalker) ? "read" : "loci";
-        traversalEngine.printOnTraversalDone(type, accumulator);
+        traversalEngine.printOnTraversalDone(accumulator);
 
         walker.onTraversalDone(accumulator);
     }

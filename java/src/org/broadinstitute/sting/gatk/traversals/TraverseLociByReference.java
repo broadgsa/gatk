@@ -90,4 +90,14 @@ public class TraverseLociByReference extends TraversalEngine {
 
         return sum;
     }
+
+    /**
+     * Temporary override of printOnTraversalDone.
+     * TODO: Add some sort of TE.getName() function once all TraversalEngines are ported.
+     * @param sum Result of the computation.
+     * @param <T> Type of the result.
+     */
+    public <T> void printOnTraversalDone( T sum ) {
+        printOnTraversalDone( "loci", sum );
+    }
 }

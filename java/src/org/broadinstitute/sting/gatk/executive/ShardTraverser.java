@@ -53,12 +53,12 @@ public class ShardTraverser implements Callable {
     }
 
     public Object call() {
-        Object accumulator = ((LocusWalker<?,?>)walker).reduceInit();
+        Object accumulator = walker.reduceInit();
 
         CloseableIterator<SAMRecord> readShard = null;
         readShard = reads.seek( shard );
 
-        ReferenceProvider referenceProvider = new ReferenceProvider( reference, shard.getGenomeLoc() );
+        ReferenceProvider referenceProvider = new ReferenceProvider( reference, shard );
         LocusContextProvider locusProvider = new LocusContextProvider( readShard );
 
         OutputTracker outputTracker = GenomeAnalysisTK.Instance.getOutputTracker();
