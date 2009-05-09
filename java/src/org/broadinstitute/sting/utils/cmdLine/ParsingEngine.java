@@ -86,6 +86,9 @@ public class ParsingEngine {
                 Argument argument = field.getAnnotation(Argument.class);
                 if(argument != null)
                     argumentsFromSource.add( new ArgumentDefinition(argument,source,field) );
+                ArgumentCollection argumentCollection = field.getAnnotation(ArgumentCollection.class);
+                if(argumentCollection != null)
+                    addArgumentSource(sourceName, field.getType());
             }
             source = source.getSuperclass();
         }
