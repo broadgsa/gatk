@@ -2,6 +2,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.ComparableSAMRecord;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
@@ -11,8 +12,7 @@ import org.broadinstitute.sting.playground.indels.*;
 
 import net.sf.samtools.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.io.File;
 
 @WalkerName("IntervalCleaner")
@@ -27,10 +27,13 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public static final int MAX_QUAL = 99;
 
     private SAMFileWriter writer;
+    // we need to sort the reads ourselves because SAM headers get messed up and claim to be "unsorted" sometimes
+    private TreeSet<ComparableSAMRecord> readsToWrite;
 
     public void initialize() {
         SAMFileHeader header = getToolkit().getSamReader().getFileHeader();
         writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(header, false, new File(OUT));
+        readsToWrite = new TreeSet<ComparableSAMRecord>();
     }
 
     // do we care about reads that are not part of our intervals?
@@ -54,7 +57,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                  read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START )
                 goodReads.add(read);
             else
-                writer.addAlignment(read);
+                readsToWrite.add(new ComparableSAMRecord(read));
         }
 
         clean(goodReads, ref, context.getLocation().getStart());
@@ -62,6 +65,9 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         //testCleanWithDeletion();
         //testCleanWithInsertion();
 
+        Iterator<ComparableSAMRecord> iter = readsToWrite.iterator();
+        while ( iter.hasNext() )
+            writer.addAlignment(iter.next().getRecord());
         return 1;
     }
 
@@ -198,13 +204,13 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             // clean the appropriate reads
             for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes )
                 updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.getSecond(), altReads.get(indexPair.getFirst()), (int)leftmostIndex);
-
-            // write them out
-            for ( SAMRecord rec : refReads )
-                writer.addAlignment(rec);
-            for ( AlignedRead aRec : altReads )
-                writer.addAlignment(aRec.getRead());           
         }
+
+        // write them out
+        for ( SAMRecord rec : refReads )
+            readsToWrite.add(new ComparableSAMRecord(rec));
+        for ( AlignedRead aRec : altReads )
+            readsToWrite.add(new ComparableSAMRecord(aRec.getRead()));
     }
 
     private Pair<Integer, Integer> findBestOffset(String ref, AlignedRead read) {
@@ -540,18 +546,18 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
 
         // if the best alternate consensus has a smaller sum of quality score mismatches, then clean!
-        if ( bestConsensus.mismatchSum < totalMismatchSum ) {
+        if ( bestConsensus != null && bestConsensus.mismatchSum < totalMismatchSum ) {
             logger.info("CLEAN: " + bestConsensus.str);
 
             // clean the appropriate reads
             for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes )
                 updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.getSecond(), altReads.get(indexPair.getFirst()), (int)leftmostIndex);
-
-            // write them out
-            for ( SAMRecord rec : refReads )
-                writer.addAlignment(rec);
-            for ( AlignedRead aRec : altReads )
-                writer.addAlignment(aRec.getRead());
         }
+
+        // write them out
+        for ( SAMRecord rec : refReads )
+            readsToWrite.add(new ComparableSAMRecord(rec));
+        for ( AlignedRead aRec : altReads )
+            readsToWrite.add(new ComparableSAMRecord(aRec.getRead()));
     }
 }
