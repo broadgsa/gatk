@@ -109,9 +109,9 @@ public class ShardDataProvider {
     }
 
     /**
-     * Gets the reference base associated with this particular point on the genome.
+     * Gets the reference sequence, as a char[], for the provided read.
      * @param read the read to fetch the reference sequence for
-     * @return a char string of bases representing the reference sequence corresponding to passed in read
+     * @return a char string of bases representing the reference sequence mapped to passed in read
      */
     public char[] getReferenceForRead( SAMRecord read ) {
         return referenceProvider.getReferenceBases(read);
