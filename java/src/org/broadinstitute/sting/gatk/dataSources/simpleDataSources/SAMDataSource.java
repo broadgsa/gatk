@@ -285,11 +285,13 @@ public class SAMDataSource implements SimpleDataSource {
             iter.queryContained(lastReadPos.getContig(), (int) lastReadPos.getStop(), -1);
 
             // move the number of reads we read from the last pos
+            boolean atLeastOneReadSeen = false; // we have a problem where some chomesomes don't have a single read (i.e. the chrN_random chrom.)
             while (iter.hasNext() && this.readsAtLastPos > 0) {
                 iter.next();
                 --readsAtLastPos;
+                atLeastOneReadSeen = true;
             }
-            if (readsAtLastPos != 0) {
+            if (readsAtLastPos != 0 && atLeastOneReadSeen) {
                 throw new SimpleDataSourceLoadException("Seek problem: reads at last position count != 0");
             }
 
