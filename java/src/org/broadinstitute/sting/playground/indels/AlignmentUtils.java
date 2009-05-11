@@ -50,6 +50,39 @@ public class AlignmentUtils {
         return mm_count;
     }
 
+    /**
+     * mhanna - 11 May 2009 - stubbed out competing method that works with partial references. 
+     * Computes number of mismatches in the read alignment to the refence <code>ref</code>
+     * specified in the record <code>r</code>. Indels are completely <i>ignored</i> by this method:
+     * only base mismatches in the alignment segments where both sequences are present are counted.
+     * @param r
+     * @return
+     */
+    public static int numMismatches(SAMRecord r, char[] ref) {
+        if ( r.getReadUnmappedFlag() ) return 1000000;
+        int i_ref = 0; // position on the ref
+        int i_read = 0;                    // position on the read
+        int mm_count = 0; // number of mismatches
+        Cigar c = r.getCigar();
+        for ( int k = 0 ; k < c.numCigarElements() ; k++ ) {
+            CigarElement ce = c.getCigarElement(k);
+            switch( ce.getOperator() ) {
+                case M:
+                    for ( int l = 0 ; l < ce.getLength() ; l++, i_ref++, i_read++ ) {
+                        if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) == 'N' ) continue; // do not count N's ?
+                        if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) !=
+                             Character.toUpperCase(ref[i_ref]) ) mm_count++;
+                    }
+                    break;
+                case I: i_read += ce.getLength(); break;
+                case D: i_ref += ce.getLength(); break;
+                default: throw new RuntimeException("Unrecognized cigar element");
+            }
+
+        }
+        return mm_count;
+    }
+
     // IMPORTANT NOTE: ALTHOUGH THIS METHOD IS EXTREMELY SIMILAR TO THE ONE ABOVE, WE NEED
     // TWO SEPARATE IMPLEMENTATIONS IN ORDER TO PREVENT JAVA STRINGS FROM FORCING US TO
     // PERFORM EXPENSIVE ARRAY COPYING WHEN TRYING TO GET A BYTE ARRAY...

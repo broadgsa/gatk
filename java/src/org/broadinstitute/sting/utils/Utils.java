@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.util.StringUtil;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 
 import java.util.*;
@@ -119,14 +120,20 @@ public class Utils {
         return c;
     }
 
+    public static ArrayList<Byte> subseq(char[] fullArray) {
+        byte[] fullByteArray = new byte[fullArray.length];
+        StringUtil.charsToBytes(fullArray,0,fullArray.length,fullByteArray,0);
+        return subseq(fullByteArray);
+    }
+
     public static ArrayList<Byte> subseq(byte[] fullArray) {
-        return subseq(fullArray, 0, fullArray.length);
+        return subseq(fullArray, 0, fullArray.length-1);
     }
 
     public static ArrayList<Byte> subseq(byte[] fullArray, int start, int end) {
         assert end < fullArray.length;
         ArrayList<Byte> dest = new ArrayList<Byte>(end - start + 1);
-        for (int i = start; i < end; i++) {
+        for (int i = start; i <= end; i++) {
             dest.add(fullArray[i]);
         }
         return dest;

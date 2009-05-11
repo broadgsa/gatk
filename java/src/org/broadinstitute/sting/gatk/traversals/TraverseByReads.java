@@ -17,6 +17,7 @@ import java.util.LinkedList;
 import java.io.File;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.StringUtil;
 
 /**
  * Created by IntelliJ IDEA.
@@ -84,11 +85,21 @@ public class TraverseByReads extends TraversalEngine {
             final List<SAMRecord> reads = Arrays.asList(read);
             GenomeLoc loc = new GenomeLoc(read);
 
+            char[] refBases = null;
+
             // Jump forward in the reference to this locus location
             LocusContext locus = new LocusContext(loc, reads, offsets);
             if (!loc.isUnmapped() && refIter != null) {
                 final ReferenceIterator refSite = refIter.seekForward(loc);
                 locus.setReferenceContig(refSite.getCurrentContig());
+
+                // MAQ alignments sometimes go off the end of the reference.  Take this
+                // into account by only returning a shortened version of the reference.                
+                int refStart = read.getAlignmentStart()-1;
+                int refLength = Math.min( read.getAlignmentEnd() - read.getAlignmentStart() + 1,
+                                          refSite.getCurrentContig().length() - read.getAlignmentStart() );
+
+                refBases = StringUtil.bytesToString( refSite.getCurrentContig().getBases(),refStart,refLength ).toCharArray();
             }
 
             GenomeLoc.removePastLocs(loc, notYetTraversedLocations);
@@ -97,9 +108,9 @@ public class TraverseByReads extends TraversalEngine {
                 //
                 // execute the walker contact
                 //
-                final boolean keepMeP = walker.filter(locus, read);
+                final boolean keepMeP = walker.filter(refBases, read);
                 if (keepMeP) {
-                    M x = walker.map(locus, read);
+                    M x = walker.map(refBases, read);
                     sum = walker.reduce(x, sum);
                 }
 

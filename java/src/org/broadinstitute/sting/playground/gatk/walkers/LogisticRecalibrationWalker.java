@@ -90,7 +90,7 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
     }
 
 
-    public SAMRecord map(LocusContext context, SAMRecord read) {
+    public SAMRecord map(char[] ref, SAMRecord read) {
         SAMRecord recalRead = read;
         byte[] bases = read.getReadBases();
         byte[] quals = read.getBaseQualities();

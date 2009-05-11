@@ -19,7 +19,7 @@ public class SAMToFastqAndSqWalker extends ReadWalker<Integer, Integer> {
 
     private boolean ready = false;
     
-    public Integer map(LocusContext context, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read) {
         if (!ready) {
             try {
                 fastqbw = new PrintWriter(FASTQFILE);

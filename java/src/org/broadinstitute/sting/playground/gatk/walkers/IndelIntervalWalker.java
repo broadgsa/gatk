@@ -24,18 +24,21 @@ public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval
 
     public void initialize() {}
 
-    public boolean filter(LocusContext context, SAMRecord read) {
+    public boolean filter(char[] ref, SAMRecord read) {
         return ( !read.getReadUnmappedFlag() &&            // mapped
                  read.getReadLength() <= maxReadLength &&  // not too big
                  read.getAlignmentBlocks().size() > 1);    // indel
     }
 
-    public Interval map(LocusContext context, SAMRecord read) {
+    public Interval map(char[] ref, SAMRecord read) {
         List<AlignmentBlock> blocks = read.getAlignmentBlocks();
         long indelLeftEdge = read.getAlignmentStart() + blocks.get(0).getLength() - 1;
         long indelRightEdge = read.getAlignmentEnd() - blocks.get(blocks.size()-1).getLength() + 1;
-        GenomeLoc indelLoc = new GenomeLoc(context.getLocation().getContigIndex(), indelLeftEdge, indelRightEdge);
-        return new Interval(context.getLocation(), indelLoc);
+
+        GenomeLoc indelLoc = new GenomeLoc(read.getReferenceIndex(), indelLeftEdge, indelRightEdge);
+        GenomeLoc refLoc = new GenomeLoc(read.getReferenceIndex(), read.getAlignmentStart(), read.getAlignmentEnd());
+
+        return new Interval(refLoc, indelLoc);
     }
 
     public Interval reduceInit() {

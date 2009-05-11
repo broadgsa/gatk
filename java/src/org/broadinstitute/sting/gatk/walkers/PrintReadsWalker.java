@@ -4,7 +4,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.LocusContext;
 
 public class PrintReadsWalker extends ReadWalker<Integer, Integer> {
-    public Integer map(LocusContext context, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read) {
         out.println(read.format());
         return 1;
     }

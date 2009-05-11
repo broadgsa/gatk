@@ -23,12 +23,12 @@ public class BaseQualityHistoWalker extends ReadWalker<Integer, Integer> {
     }
 
     // Do we actually want to operate on the context?
-    public boolean filter(LocusContext context, SAMRecord read) {
+    public boolean filter(char[] ref, SAMRecord read) {
         return true;    // We are keeping all the reads
     }
 
     // Map over the org.broadinstitute.sting.gatk.LocusContext
-    public Integer map(LocusContext context, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read) {
         for ( byte qual : read.getBaseQualities() ) {
             //System.out.println(qual);
             this.qualCounts[qual]++;

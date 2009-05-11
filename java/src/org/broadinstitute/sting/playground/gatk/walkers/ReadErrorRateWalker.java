@@ -27,12 +27,11 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
     /**
      * Ignore reads with indels or clipping
      *
-     * @param context  the reference context
      * @param read     the read to assess
      * @return true if the read can be processed, false if it should be ignored
      */
-    public boolean filter(LocusContext context, SAMRecord read) {
-        return (read.getCigar().numCigarElements() == 1 && read.getAlignmentStart() + read.getReadLength() < context.getReferenceContig().length());
+    public boolean filter(char[] ref, SAMRecord read) {
+        return (read.getCigar().numCigarElements() == 1 && read.getReadLength() > ref.length);
     }
 
     /**
@@ -41,17 +40,15 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
      * of this array is always "true" so that we can figure out how many reads we
      * processed in a thread-safe manner.
      * 
-     * @param context  the reference context
      * @param read     the read to assess
      * @return An array of length (read_length + 1) indicating where the mismatches occur.
      *         Last element is for internal use so the reduce() function can figure out how
      *         many reads we processed.
      */
-    public boolean[] map(LocusContext context, SAMRecord read) {
+    public boolean[] map(char[] ref, SAMRecord read) {
         boolean[] errorsPerCycle = new boolean[read.getReadLength() + 1];
 
         byte[] bases  = read.getReadBases();
-        byte[] contig = context.getReferenceContig().getBases();
         byte[] sq     = (byte[]) read.getAttribute("SQ");
 
         if (printVisualHits) {
@@ -61,16 +58,16 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
             }
             System.out.println();
 
-            for (int cycle = 0, offset = (int) context.getPosition() - 1; cycle < bases.length; cycle++, offset++) {
-                byte compBase = convertIUPACBaseToSimpleBase(contig[offset]);
+            for (int cycle = 0; cycle < bases.length; cycle++) {
+                byte compBase = convertIUPACBaseToSimpleBase((byte)ref[cycle]);
 
                 System.out.print((char) compBase);
             }
             System.out.println("\n");
         }
 
-        for (int cycle = 0, offset = (int) context.getPosition() - 1; cycle < bases.length; cycle++, offset++) {
-            byte compBase = convertIUPACBaseToSimpleBase(contig[offset]);
+        for (int cycle = 0; cycle < bases.length; cycle++) {
+            byte compBase = convertIUPACBaseToSimpleBase((byte)ref[cycle]);
 
             if (compBase != '.') {
                 if (useNextBestBase || useNextRandomBase) {

@@ -17,11 +17,11 @@ public abstract class ReadWalker<MapType, ReduceType> extends Walker<MapType, Re
     /** Must return true for reads that need to be processed. Reads, for which this method return false will
      * be skipped by the engine and never passed to the walker.
      */
-    public boolean filter(LocusContext context, SAMRecord read) {
+    public boolean filter(char[] ref, SAMRecord read) {
         // We are keeping all the reads
         return true;
     }
 
     // Map over the org.broadinstitute.sting.gatk.LocusContext
-    public abstract MapType map(LocusContext context, SAMRecord read);
+    public abstract MapType map(char[] ref, SAMRecord read);
 }

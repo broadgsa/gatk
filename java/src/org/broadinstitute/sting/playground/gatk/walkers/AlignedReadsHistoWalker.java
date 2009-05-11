@@ -22,16 +22,14 @@ public class AlignedReadsHistoWalker extends ReadWalker<Integer, Integer> {
         }
     }
 
-    public String walkerType() { return "ByRead"; }
-
     // Do we actually want to operate on the context?
-    public boolean filter(LocusContext context, SAMRecord read) {
+    public boolean filter(char[] ref, SAMRecord read) {
 	    // we only want aligned reads
 	    return !read.getReadUnmappedFlag();
     }
 
     // Map over the org.broadinstitute.sting.atk.LocusContext
-    public Integer map(LocusContext context, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read) {
         //System.out.println(read.getAttribute("NM"));
         int editDist = Integer.parseInt(read.getAttribute("NM").toString());
         if (editDist <= 50)

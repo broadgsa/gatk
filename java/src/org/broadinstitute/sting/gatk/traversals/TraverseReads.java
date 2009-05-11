@@ -112,9 +112,9 @@ public class TraverseReads extends TraversalEngine {
             // update the number of reads we've seen
             TraversalStatistics.nRecords++;
 
-            final boolean keepMeP = readWalker.filter(locus, read);
+            final boolean keepMeP = readWalker.filter(refSeq, read);
             if (keepMeP) {
-                M x = readWalker.map(locus, read);
+                M x = readWalker.map(refSeq, read);
                 sum = readWalker.reduce(x, sum);
             }
 

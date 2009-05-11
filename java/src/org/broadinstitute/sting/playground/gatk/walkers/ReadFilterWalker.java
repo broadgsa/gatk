@@ -23,12 +23,12 @@ public class ReadFilterWalker extends ReadWalker<Integer,Integer> {
     }
 
 	@Override
-    public boolean filter(LocusContext context, SAMRecord read) {
+    public boolean filter(char[] ref, SAMRecord read) {
 		return read.getReadLength() <= max_len;
 	}
 
 	@Override
-	public Integer map(LocusContext context, SAMRecord read) {
+	public Integer map(char[] ref, SAMRecord read) {
 		writer.addAlignment(read);
 		return 1;
 	}

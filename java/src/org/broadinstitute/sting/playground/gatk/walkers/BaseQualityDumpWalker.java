@@ -12,12 +12,12 @@ public class BaseQualityDumpWalker extends ReadWalker<Integer, Integer> {
     protected final int MAX_TARGET_EDIT_DISTANCE = 4; //10;
 
     // Do we actually want to operate on the context?
-    public boolean filter(LocusContext context, SAMRecord read) {
+    public boolean filter(char[] ref, SAMRecord read) {
 	    // we only want aligned reads
 	    return !read.getReadUnmappedFlag();
     }
 
-    public Integer map(LocusContext context, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read) {
 
         int editDist = Integer.parseInt(read.getAttribute("NM").toString());
 

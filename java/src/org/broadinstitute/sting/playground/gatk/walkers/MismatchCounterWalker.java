@@ -13,20 +13,18 @@ import java.util.List;
 
 @WalkerName("CountMismatches")
 public class MismatchCounterWalker extends ReadWalker<Integer, Integer> {
-    public Integer map(LocusContext context, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read) {
         int nMismatches = 0;
         
-        ReferenceSequence refseq = context.getReferenceContig();
-
         int start = read.getAlignmentStart()-1;
         int stop  = read.getAlignmentEnd();
         // sometimes BWA outputs screwy reads
-        if ( stop >= context.getReferenceContig().getBases().length )
+        if ( stop - start > ref.length )
             return 0;
 
         if ( read.getAlignmentBlocks().size() == 1 ) {
             // No indels
-            List<Byte> refSeq = Utils.subseq(context.getReferenceContig().getBases(), start, stop);
+            List<Byte> refSeq = Utils.subseq(ref);
             List<Byte> readBases = Utils.subseq(read.getReadBases());
 
             assert(refSeq.size() == readBases.size());

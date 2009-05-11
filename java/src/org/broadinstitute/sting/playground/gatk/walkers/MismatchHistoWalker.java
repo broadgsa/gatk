@@ -19,12 +19,12 @@ public class MismatchHistoWalker extends ReadWalker<Integer, Integer> {
     protected final int MAX_TARGET_EDIT_DISTANCE = 10;
 
     // Do we actually want to operate on the context?
-    public boolean filter(LocusContext context, SAMRecord read) {
+    public boolean filter(char[] ref, SAMRecord read) {
 	    // we only want aligned reads
 	    return !read.getReadUnmappedFlag();
     }
 
-    public Integer map(LocusContext context, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read) {
 
         int editDist = Integer.parseInt(read.getAttribute("NM").toString());
 
@@ -33,20 +33,18 @@ public class MismatchHistoWalker extends ReadWalker<Integer, Integer> {
              editDist >= MIN_TARGET_EDIT_DISTANCE &&
              editDist <= MAX_TARGET_EDIT_DISTANCE ) {
 
-            ReferenceSequence refseq = context.getReferenceContig();
-
             int start = read.getAlignmentStart()-1;
             int stop  = read.getAlignmentEnd();
             // sometimes BWA outputs screwy reads
-            if ( stop >= context.getReferenceContig().getBases().length )
+            if ( stop - start > ref.length )
                 return 0;
 
-            List<Byte> refSeq = Utils.subseq(context.getReferenceContig().getBases(), start, stop);
+            List<Byte> refSeq = Utils.subseq(ref);
             List<Byte> readBases = Utils.subseq(read.getReadBases());
             assert(refSeq.size() == readBases.size());
 
             // it's actually faster to reallocate a resized array than to use ArrayLists...
-            if ( refSeq.size() > mismatchCounts.length ) {
+            if ( ref.length > mismatchCounts.length ) {
                 int oldLength = mismatchCounts.length;
                 mismatchCounts = (long[])resizeArray(mismatchCounts, refSeq.size());
                 for ( int i = oldLength; i < refSeq.size(); i++ )

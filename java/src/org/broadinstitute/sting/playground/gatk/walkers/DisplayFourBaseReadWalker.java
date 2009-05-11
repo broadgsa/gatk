@@ -6,7 +6,7 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import net.sf.samtools.SAMRecord;
 
 public class DisplayFourBaseReadWalker extends ReadWalker<Integer, Integer> {
-    public Integer map(LocusContext context, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read) {
         String bases = read.getReadString();
 
         boolean displayed = false;

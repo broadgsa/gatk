@@ -39,7 +39,7 @@ public class IOCrusherWalker extends ReadWalker<SAMRecord, ArrayList<SAMFileWrit
     /**
      *
      */
-    public SAMRecord map(LocusContext context, SAMRecord read) {
+    public SAMRecord map(char[] ref, SAMRecord read) {
         nReadsRead++;
         return read;
     }

@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import edu.mit.broad.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMSequenceRecord;
 
 /**
  * Created by IntelliJ IDEA.
@@ -54,6 +55,8 @@ public class ReferenceProvider {
      * Gets the bases of the reference that are aligned to the given read.
      * @param read the read for which to extract reference information.
      * @return The bases corresponding to this read, or null if the read is unmapped.
+     *         If the alignment goes off the end of the contig, return just the portion
+     *         mapped to the reference.
      */
     public char[] getReferenceBases( SAMRecord read ) {
         if( read.getReadUnmappedFlag() )
@@ -62,6 +65,10 @@ public class ReferenceProvider {
         String contig = read.getReferenceName();
         int start = read.getAlignmentStart();
         int stop = read.getAlignmentEnd();
+
+        SAMSequenceRecord sequenceRecord = sequenceFile.getSequenceDictionary().getSequence(contig);
+        if( stop > sequenceRecord.getSequenceLength() )
+            stop = sequenceRecord.getSequenceLength();
 
         ReferenceSequence alignmentToReference = sequenceFile.getSubsequenceAt( contig, start, stop );
         return StringUtil.bytesToString(alignmentToReference.getBases()).toCharArray();

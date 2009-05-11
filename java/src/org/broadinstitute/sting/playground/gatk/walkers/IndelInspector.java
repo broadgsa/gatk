@@ -75,7 +75,7 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
         }
     }
 
-    public Integer map(LocusContext context, SAMRecord read) {
+    public Integer map(char[] ref, SAMRecord read) {
 
     	total_reads++;
  
@@ -84,7 +84,8 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
     		ptWriter.receive(read); // make sure we still write the read to the output, we do not want to lose data!
     		return 0;
     	}
-    	
+
+        /* 11 May 2009 - Commented out because we no longer have the full reference sequence for sanity checking.
         ReferenceSequence contig_seq = context.getReferenceContig();
         if ( read.getReferenceName() != cur_contig) {
             cur_contig = read.getReferenceName();
@@ -94,6 +95,7 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
                 pileBuilder.setReferenceSequence(refstr);
             out.println("loaded contig "+cur_contig+" (index="+read.getReferenceIndex()+"); length="+contig_seq.getBases().length+" tst="+contig_seq.toString());
         }
+        */
 
         //    if ( cur_contig.equals("chrM") || GenomeLoc.compareContigs(cur_contig,"chrY") > 0 ) continue; // skip chrM and unplaced contigs for now
 
@@ -138,10 +140,10 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
 */
 
         if ( ERR_MODE != null ) {
-            if ( ERR_MODE.equals("MM"))       err = numMismatches(read,contig_seq);
-            else if ( ERR_MODE.equals("MC") ) err = AlignmentUtils.numMismatches(read,contig_seq);
-            else if ( ERR_MODE.equals("ERR")) err = numErrors(read,contig_seq);
-            else if ( ERR_MODE.equals("MG"))  err = numMismatchesGaps(read,contig_seq);
+            if ( ERR_MODE.equals("MM"))       err = numMismatches(read,ref);
+            else if ( ERR_MODE.equals("MC") ) err = AlignmentUtils.numMismatches(read,ref);
+            else if ( ERR_MODE.equals("ERR")) err = numErrors(read,ref);
+            else if ( ERR_MODE.equals("MG"))  err = numMismatchesGaps(read,ref);
             if ( err > MAX_ERRS ) {
             	ptWriter.receive(read);
             	discarded_maxerr_count++;
@@ -159,10 +161,10 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
 	 * @return number of errors (number of mismatches plus total length of all insertions/deletions
 	 * @throws RuntimeException
 	 */
-    private static int numErrors(SAMRecord r, ReferenceSequence refseq) throws RuntimeException {
+    private static int numErrors(SAMRecord r, char[] ref) throws RuntimeException {
 
 		// NM currently stores the total number of mismatches in all blocks + 1
-        int errs = numMismatches(r,refseq);
+        int errs = numMismatches(r,ref);
 
 		// now we have to add the total length of all indels:
 		Cigar c = r.getCigar();
@@ -187,10 +189,10 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
 	 * deletion will be counted as a single error regardless of the length)
 	 * @throws RuntimeException
 	 */
-    private static int numMismatchesGaps(SAMRecord r,ReferenceSequence refseq) throws RuntimeException {
+    private static int numMismatchesGaps(SAMRecord r,char[] ref) throws RuntimeException {
 
 		// NM currently stores the total number of mismatches in all blocks + 1
-        int errs = numMismatches(r,refseq);
+        int errs = numMismatches(r,ref);
 
 		// now we have to add the total length of all indels:
 		Cigar c = r.getCigar();
@@ -209,7 +211,7 @@ public class IndelInspector extends ReadWalker<Integer, Integer> {
 	}
 
     /** This method is a HACK: it is designed to work around the current bug in NM tags created  at CRD */
-    private static int numMismatches(SAMRecord r, ReferenceSequence refseq) throws RuntimeException {
+    private static int numMismatches(SAMRecord r, char[] refseq) throws RuntimeException {
 
         // NM currently stores the total number of mismatches in all blocks + 1
         Integer i = (Integer)r.getAttribute("NM");
