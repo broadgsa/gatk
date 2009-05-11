@@ -256,6 +256,15 @@ public abstract class CommandLineProgram {
     }
 
     /**
+     * a manual way to load argument providing objects into the program
+     * @param clp the command line program
+     * @param cls the class to load the arguments off of
+     */
+    public void loadAdditionalSource(CommandLineProgram clp, Class cls ) {
+        parser.addArgumentSource( clp.getArgumentSourceName(cls), cls );
+    }
+
+    /**
      * generateHeaderInformation
      * <p/>
      * 
@@ -312,5 +321,47 @@ public abstract class CommandLineProgram {
         }
 
         logger.setLevel(par);
+    }
+
+    /**
+     * a function used to indicate an error occured in the command line tool
+     *
+     * @param msg
+     */
+    private static void printExitSystemMsg(final String msg) {
+        System.out.printf("------------------------------------------------------------------------------------------%n");
+        System.out.printf("An error has occurred%n");
+        System.out.printf("Check your command line arguments for any typos or inconsistencies.%n");
+        System.out.printf("If you think it's because of a bug or a feature in GATK that should work, please report this to gsadevelopers@broad.mit.edu%n");
+        System.out.printf("%n");
+        System.out.printf("%s%n", msg);
+    }
+
+    /**
+     * used to indicate an error occured
+     * @param msg the message to display
+     */
+    public static void exitSystemWithError(final String msg) {
+        printExitSystemMsg(msg);
+        System.exit(1);
+    }
+
+    /**
+     * used to indicate an error occured
+     * @param msg the message
+     * @param e the error
+     */
+    public static void exitSystemWithError(final String msg, Exception e) {
+        e.printStackTrace();
+        printExitSystemMsg(msg);
+        System.exit(1);
+    }
+
+    /**
+     * used to indicate an error occured
+     * @param e the exception occured
+     */
+    public static void exitSystemWithError(Exception e) {
+        exitSystemWithError(e.getMessage(), e);
     }
 }
