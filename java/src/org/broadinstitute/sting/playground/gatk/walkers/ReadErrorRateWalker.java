@@ -31,7 +31,7 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
      * @return true if the read can be processed, false if it should be ignored
      */
     public boolean filter(char[] ref, SAMRecord read) {
-        return (read.getCigar().numCigarElements() == 1 && read.getReadLength() > ref.length);
+        return (read.getCigar().numCigarElements() == 1 && read.getReadLength() <= ref.length);
     }
 
     /**
