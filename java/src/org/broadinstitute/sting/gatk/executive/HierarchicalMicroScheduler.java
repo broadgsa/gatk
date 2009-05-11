@@ -5,7 +5,7 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.OutputTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
@@ -176,7 +176,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
      * the final data streams.
      */
     protected void mergeExistingOutput() {
-        OutputTracker outputTracker = GenomeAnalysisTK.Instance.getOutputTracker();
+        OutputTracker outputTracker = GenomeAnalysisEngine.instance.getOutputTracker();
         while( isOutputMergeReady() )
             outputMergeTasks.remove().mergeInto( outputTracker.getGlobalOutStream(), outputTracker.getGlobalErrStream() );
     }
@@ -185,7 +185,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
      * Merge any output that hasn't yet been taken care of by the blocking thread.
      */
     protected void mergeRemainingOutput() {
-        OutputTracker outputTracker = GenomeAnalysisTK.Instance.getOutputTracker();
+        OutputTracker outputTracker = GenomeAnalysisEngine.instance.getOutputTracker();
         while( outputMergeTasks.size() > 0 ) {
             OutputMerger outputMerger = outputMergeTasks.remove();
             synchronized(outputMerger) {

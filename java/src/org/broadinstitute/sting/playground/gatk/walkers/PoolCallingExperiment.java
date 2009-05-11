@@ -33,7 +33,7 @@ public class PoolCallingExperiment extends LocusWalker<AlleleFrequencyEstimate, 
 
     public void initialize() 
     { 
-        GenomeAnalysisTK toolkit = this.getToolkit();
+        GenomeAnalysisEngine toolkit = this.getToolkit();
         SAMFileHeader header = toolkit.getEngine().getSAMHeader();
         List<SAMReadGroupRecord> read_groups = header.getReadGroups();
 

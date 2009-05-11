@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 
-import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
 import org.apache.log4j.Logger;
@@ -33,8 +33,8 @@ public abstract class Walker<MapType, ReduceType> {
     protected PrintStream err = null;
 
     protected Walker() {
-        if( GenomeAnalysisTK.Instance != null ) {
-            GenomeAnalysisTK gatk = GenomeAnalysisTK.Instance;
+        if( GenomeAnalysisEngine.instance != null ) {
+            GenomeAnalysisEngine gatk = GenomeAnalysisEngine.instance;
             out = new PrintStream( gatk.getOutputTracker().getOutStream() );
             err = new PrintStream( gatk.getOutputTracker().getErrStream() );
         }
@@ -50,8 +50,8 @@ public abstract class Walker<MapType, ReduceType> {
      * team.
      * @return The genome analysis toolkit.
      */
-    protected GenomeAnalysisTK getToolkit() {
-        return GenomeAnalysisTK.Instance;
+    protected GenomeAnalysisEngine getToolkit() {
+        return GenomeAnalysisEngine.instance;
     }
 
     public void initialize() { }

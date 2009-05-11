@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.executive;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
-import org.broadinstitute.sting.gatk.GenomeAnalysisTK;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.OutputTracker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 
@@ -44,7 +44,7 @@ public class ShardTraverser implements Callable {
 
     public Object call() {
         Object accumulator = walker.reduceInit();
-        OutputTracker outputTracker = GenomeAnalysisTK.Instance.getOutputTracker();
+        OutputTracker outputTracker = GenomeAnalysisEngine.instance.getOutputTracker();
         outputTracker.setLocalStreams( output.getOutStream(), output.getErrStream() );
 
         try {

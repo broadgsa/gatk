@@ -20,7 +20,7 @@ public class CoverageBySample extends LocusWalker<String, String>
 
     public void initialize() 
     { 
-        GenomeAnalysisTK toolkit = this.getToolkit();
+        GenomeAnalysisEngine toolkit = this.getToolkit();
         SAMFileHeader header = toolkit.getSamReader().getFileHeader();
         List<SAMReadGroupRecord> read_groups = header.getReadGroups();
 
