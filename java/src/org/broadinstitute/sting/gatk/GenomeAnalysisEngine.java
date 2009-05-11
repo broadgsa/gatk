@@ -13,7 +13,6 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.gatk.GATKArgumentCollection;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +47,7 @@ public class GenomeAnalysisEngine {
      * @param args      the argument collection, where we get all our setup information from
      * @param my_walker the walker we're running with
      */
-    protected GenomeAnalysisEngine(GATKArgumentCollection args, Walker my_walker) {
+    public GenomeAnalysisEngine(GATKArgumentCollection args, Walker my_walker) {
 
         // validate our parameters
         if (args == null || my_walker == null) {

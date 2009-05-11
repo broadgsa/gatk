@@ -97,7 +97,7 @@
         <jar jarfile="dist/GenomeAnalysisTK.jar">
             <fileset dir="build" includes="**/gatk/**/*.class"/>
             <manifest>
-                <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.GenomeAnalysisTK"/>
+                <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.CommandLineGATK"/>
             </manifest>
         </jar>
 
