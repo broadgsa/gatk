@@ -95,20 +95,22 @@ public class TraverseReads extends TraversalEngine {
             // our locus context
             LocusContext locus = null;
 
+            // an array of characters that represent the reference
+            char[] refSeq = null;
+
             if (read.getReferenceIndex() >= 0) {
                 // get the genome loc from the read
                 GenomeLoc site = new GenomeLoc(read);
 
                 // Jump forward in the reference to this locus location
                 locus = new LocusContext(site, Arrays.asList(read), Arrays.asList(0));
+
+                // get the array of characters for the reference sequence, since we're a mapped read
+                refSeq = dataProvider.getReferenceForRead( read );
             }
 
             // update the number of reads we've seen
             TraversalStatistics.nRecords++;
-
-
-            // we still have to fix the locus context provider to take care of this problem with > 1 length contexts
-            // LocusContext locus = locusProvider.getLocusContext(site);
 
             final boolean keepMeP = readWalker.filter(locus, read);
             if (keepMeP) {
@@ -118,7 +120,6 @@ public class TraverseReads extends TraversalEngine {
 
             if (locus != null) { printProgress("loci", locus.getLocation()); }
         }
-        //System.err.println(TraversalStatistics.nRecords);
         return sum;
     }
 

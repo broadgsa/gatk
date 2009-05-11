@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import net.sf.samtools.SAMRecord;
 /**
  * User: hanna
  * Date: May 8, 2009
@@ -105,6 +106,15 @@ public class ShardDataProvider {
      */
     public char getReferenceBase( GenomeLoc genomeLoc ) {
         return referenceProvider.getReferenceBase(genomeLoc);        
+    }
+
+    /**
+     * Gets the reference base associated with this particular point on the genome.
+     * @param read the read to fetch the reference sequence for
+     * @return a char string of bases representing the reference sequence corresponding to passed in read
+     */
+    public char[] getReferenceForRead( SAMRecord read ) {
+        return referenceProvider.getReferenceBases(read);
     }
 
     /**
