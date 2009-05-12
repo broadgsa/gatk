@@ -59,7 +59,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             else
                 readsToWrite.add(new ComparableSAMRecord(read));
         }
-
         clean(goodReads, ref, context.getLocation().getStart());
         //bruteForceClean(goodReads, ref, context.getLocation().getStart());
         //testCleanWithDeletion();
@@ -68,6 +67,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         Iterator<ComparableSAMRecord> iter = readsToWrite.iterator();
         while ( iter.hasNext() )
             writer.addAlignment(iter.next().getRecord());
+        readsToWrite.clear();
         return 1;
     }
 
@@ -133,7 +133,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 AlignedRead aRead = altReads.get(index);
                 SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getReadString());
                 int refIdx = swConsensus.getAlignmentStart2wrt1();
-                if ( refIdx < 0 || refIdx > reference.length() - aRead.getReadString().length() )
+                if ( refIdx < 0 )
                     continue;
 
                 // create the new consensus
@@ -143,6 +143,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
                 int indelCount = 0;
                 int altIdx = 0;
+                boolean ok_flag = true;
                 for ( int i = 0 ; i < c.numCigarElements() ; i++ ) {
                     CigarElement ce = c.getCigarElement(i);
                     switch( ce.getOperator() ) {
@@ -151,7 +152,10 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                             refIdx += ce.getLength();
                             break;
                         case M:
-                            sb.append(reference.substring(refIdx, refIdx+ce.getLength()));
+                            if ( reference.length() < refIdx+ce.getLength() )
+                                ok_flag = false;
+                            else
+                                sb.append(reference.substring(refIdx, refIdx+ce.getLength()));
                             refIdx += ce.getLength();
                             altIdx += ce.getLength();
                             break;
@@ -162,8 +166,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                             break;
                     }
                 }
-                // make sure that there is at most only a single indel!
-                if ( indelCount > 1 )
+                // make sure that there is at most only a single indel and it aligns appropriately!
+                if ( !ok_flag || indelCount > 1 || reference.length() < refIdx )
                     continue;
 
                 sb.append(reference.substring(refIdx));

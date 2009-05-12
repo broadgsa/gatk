@@ -36,7 +36,7 @@ public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval
         long indelRightEdge = read.getAlignmentEnd() - blocks.get(blocks.size()-1).getLength() + 1;
 
         GenomeLoc indelLoc = new GenomeLoc(read.getReferenceIndex(), indelLeftEdge, indelRightEdge);
-        GenomeLoc refLoc = new GenomeLoc(read.getReferenceIndex(), read.getAlignmentStart(), read.getAlignmentEnd());
+        GenomeLoc refLoc = new GenomeLoc(read);
 
         return new Interval(refLoc, indelLoc);
     }

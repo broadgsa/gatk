@@ -9,15 +9,13 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.Pair;
 
-import java.util.List;
-import java.util.Iterator;
-import java.util.ArrayList;
+import java.util.*;
 import java.io.File;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
-import edu.mit.broad.picard.filter.FilteringIterator;
 
 /**
  * Created by IntelliJ IDEA.
@@ -85,21 +83,33 @@ public class TraverseByLocusWindows extends TraversalEngine {
     }
 
     protected <M, T> T strictIntervalTraversal(LocusWindowWalker<M, T> walker, List<GenomeLoc> locations, T sum) {
+        LocusContext nextLocusToCarry = null;
         for ( GenomeLoc interval : locations ) {
             logger.debug(String.format("Processing interval %s", interval.toString()));
 
             CloseableIterator<SAMRecord> readIter = samReader.queryOverlapping( interval.getContig(),
                     (int)interval.getStart(),
                     (int)interval.getStop());
-
-            Iterator<SAMRecord> wrappedIter = WrapReadsIterator( readIter, false );
-            sum = carryWalkerOverInterval(walker, wrappedIter, sum, interval);
+            Iterator<SAMRecord> wrappedIter = WrapReadsIterator(readIter, false);
+            LocusContext locus = getLocusContext(wrappedIter, interval);
             readIter.close();
+
+            if ( nextLocusToCarry == null ) {
+                nextLocusToCarry = locus;
+            } else if ( nextLocusToCarry.getLocation().overlapsP(locus.getLocation()) ) {
+                nextLocusToCarry = merge(nextLocusToCarry, locus);
+            } else {
+                sum = carryWalkerOverInterval(walker, sum, nextLocusToCarry);
+                nextLocusToCarry = locus;
+            }
         }
+        if ( nextLocusToCarry != null )
+            sum = carryWalkerOverInterval(walker, sum, nextLocusToCarry);
         return sum;
     }
 
     protected <M, T> T fullInputTraversal(LocusWindowWalker<M, T> walker, List<GenomeLoc> locations, T sum) {
+        ArrayList<LocusContext> nextLociToCarry = new ArrayList<LocusContext>();
 
         // set everything up
         GenomeLoc currentInterval = (locations.size() > 0 ? locations.get(0) : null);
@@ -113,6 +123,12 @@ public class TraverseByLocusWindows extends TraversalEngine {
 
             // if there are no locations or we're past the last one or it's unmapped, then act on the read separately
             if ( currentInterval == null || read.getReadUnmappedFlag() ) {
+                if ( nextLociToCarry.size() > 0 ) {
+                    sum = carryWalkerOverInterval(walker, sum, nextLociToCarry.get(0));
+                    for (int i=1; i < nextLociToCarry.size(); i++)
+                        walker.nonIntervalReadAction(nextLociToCarry.get(i).getReads().get(0));
+                    nextLociToCarry.clear();
+                }
                 walker.nonIntervalReadAction(read);
             }
             else {
@@ -123,36 +139,82 @@ public class TraverseByLocusWindows extends TraversalEngine {
                 }
                 // if we're not yet in the interval, act on the read separately
                 else if ( currentInterval.isPast(loc) ) {
-                    walker.nonIntervalReadAction(read);
+                    if ( nextLociToCarry.size() == 0 ) {
+                        walker.nonIntervalReadAction(read);
+                    } else {
+                        ArrayList<SAMRecord> list = new ArrayList<SAMRecord>();
+                        list.add(read);
+                        nextLociToCarry.add(new LocusContext(loc, list, null));
+                    }                        
                 }
                 // otherwise, we're past the interval so first deal with the collected reads and then this one
                 else {
                     if ( intervalReads.size() > 0 ) {
                         Iterator<SAMRecord> wrappedIter = WrapReadsIterator(intervalReads.iterator(), false);
-                        sum = carryWalkerOverInterval(walker, wrappedIter, sum, currentInterval);
+                        LocusContext locus = getLocusContext(wrappedIter, currentInterval);
+
+                        if ( nextLociToCarry.size() == 0 ) {
+                            nextLociToCarry.add(locus);
+                        } else if ( nextLociToCarry.get(0).getLocation().overlapsP(locus.getLocation()) ) {
+                            LocusContext newLocus = merge(nextLociToCarry.get(0), locus);
+                            for (int i=1; i < nextLociToCarry.size(); i++)
+                                newLocus = merge(newLocus, nextLociToCarry.get(i));    
+                            nextLociToCarry.clear();
+                            nextLociToCarry.add(newLocus);
+                        } else {
+                            sum = carryWalkerOverInterval(walker, sum, nextLociToCarry.get(0));
+                            for (int i=1; i < nextLociToCarry.size(); i++)
+                                walker.nonIntervalReadAction(nextLociToCarry.get(i).getReads().get(0));
+                            nextLociToCarry.clear();
+                            nextLociToCarry.add(locus);
+                        }
 
                         // then prepare for the next interval
                         intervalReads.clear();
-                        currentInterval = (++locationsIndex < locations.size() ? locations.get(locationsIndex) : null);                       
                     }
-                    walker.nonIntervalReadAction(read);
+                    currentInterval = (++locationsIndex < locations.size() ? locations.get(locationsIndex) : null);
+
+                    if ( nextLociToCarry.size() == 0 ) {
+                        walker.nonIntervalReadAction(read);
+                    } else {
+                        ArrayList<SAMRecord> list = new ArrayList<SAMRecord>();
+                        list.add(read);
+                        nextLociToCarry.add(new LocusContext(loc, list, null));
+                    }
                 }
             }
         }
         // some cleanup
         if ( intervalReads.size() > 0 ) {
             Iterator<SAMRecord> wrappedIter = WrapReadsIterator(intervalReads.iterator(), false);
-            sum = carryWalkerOverInterval(walker, wrappedIter, sum, currentInterval);
+            LocusContext locus = getLocusContext(wrappedIter, currentInterval);
+            if ( nextLociToCarry.size() == 0 ) {
+                nextLociToCarry.add(locus);
+            } else if ( nextLociToCarry.get(0).getLocation().overlapsP(locus.getLocation()) ) {
+                LocusContext newLocus = merge(nextLociToCarry.get(0), locus);
+                for (int i=1; i < nextLociToCarry.size(); i++)
+                    newLocus = merge(newLocus, nextLociToCarry.get(i));
+                nextLociToCarry.clear();
+                nextLociToCarry.add(newLocus);
+            } else {
+                sum = carryWalkerOverInterval(walker, sum, nextLociToCarry.get(0));
+                for (int i=1; i < nextLociToCarry.size(); i++)
+                    walker.nonIntervalReadAction(nextLociToCarry.get(i).getReads().get(0));
+                nextLociToCarry.clear();
+                nextLociToCarry.add(locus);
+            }
+        }
+        if ( nextLociToCarry.size() > 0 ) {
+            sum = carryWalkerOverInterval(walker, sum, nextLociToCarry.get(0));
+            for (int i=1; i < nextLociToCarry.size(); i++)
+                walker.nonIntervalReadAction(nextLociToCarry.get(i).getReads().get(0));
         }
 
         return sum;
     }
 
-    protected <M, T> T carryWalkerOverInterval(LocusWindowWalker<M, T> walker, Iterator<SAMRecord> readIter, T sum, GenomeLoc interval ) {
-        logger.debug(String.format("TraverseByIntervals.carryWalkerOverInterval Genomic interval is %s", interval));
-
+    private LocusContext getLocusContext(Iterator<SAMRecord> readIter, GenomeLoc interval) {
         ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
-        ArrayList<Integer> offsets = new ArrayList<Integer>();
         boolean done = false;
         long leftmostIndex = interval.getStart(),
                 rightmostIndex = interval.getStop();
@@ -160,7 +222,6 @@ public class TraverseByLocusWindows extends TraversalEngine {
             TraversalStatistics.nRecords++;
             SAMRecord read = readIter.next();
             reads.add(read);
-            offsets.add((int)(read.getAlignmentStart() - interval.getStart()));
             if ( read.getAlignmentStart() < leftmostIndex )
                 leftmostIndex = read.getAlignmentStart();
             if ( read.getAlignmentEnd() > rightmostIndex )
@@ -172,27 +233,49 @@ public class TraverseByLocusWindows extends TraversalEngine {
         }
 
         GenomeLoc window = new GenomeLoc(interval.getContig(), leftmostIndex, rightmostIndex);
-        LocusContext locus = new LocusContext(window, reads, offsets);
+        LocusContext locus = new LocusContext(window, reads, null);
         if ( DOWNSAMPLE_BY_COVERAGE )
             locus.downsampleToCoverage(downsamplingCoverage);
 
-        ReferenceIterator refSite = refIter.seekForward(window);
+        return locus;
+    }
+
+    private LocusContext merge(LocusContext locus1, LocusContext locus2) {
+        GenomeLoc loc = locus1.getLocation().merge(locus2.getLocation());
+        TreeSet<SAMRecord> set = new TreeSet<SAMRecord>(new Comparator<SAMRecord>() {
+            public int compare(SAMRecord obj1, SAMRecord obj2) {
+                GenomeLoc myLoc = new GenomeLoc(obj1);
+                GenomeLoc hisLoc = new GenomeLoc(obj2);
+                int comparison = myLoc.compareTo(hisLoc);
+                 // if the reads have the same start position, we must give a non-zero comparison
+                 // (because java Sets often require "consistency with equals")
+                if ( comparison == 0 )
+                    comparison = obj1.getReadName().compareTo(obj2.getReadName());
+                return comparison;
+            }
+        });
+
+        set.addAll(locus1.getReads());
+        set.addAll(locus2.getReads());
+        return new LocusContext(loc, new ArrayList<SAMRecord>(set), null);
+    }
+
+    protected <M, T> T carryWalkerOverInterval(LocusWindowWalker<M, T> walker, T sum, LocusContext window) {
+        ReferenceIterator refSite = refIter.seekForward(window.getLocation());
         StringBuffer refBases = new StringBuffer(refSite.getBaseAsString());
-        int locusLength = (int)(rightmostIndex - leftmostIndex);
+        int locusLength = (int)(window.getLocation().getStop() - window.getLocation().getStart());
         for ( int i = 0; i < locusLength; i++ ) {
             refSite = refSite.next();
             refBases.append(refSite.getBaseAsChar());
         }
-        locus.setReferenceContig(refSite.getCurrentContig());
+        window.setReferenceContig(refSite.getCurrentContig());
 
         // Iterate forward to get all reference ordered data covering this interval
-        final RefMetaDataTracker tracker = getReferenceOrderedDataAtLocus(locus.getLocation());
+        final RefMetaDataTracker tracker = getReferenceOrderedDataAtLocus(window.getLocation());
 
-        sum = walkAtinterval( walker, sum, locus, refBases.toString(), tracker );
+        sum = walkAtinterval( walker, sum, window, refBases.toString(), tracker );
 
-        //System.out.format("Working at %s\n", locus.getLocation().toString());
-
-        printProgress("intervals", locus.getLocation());
+        printProgress("intervals", window.getLocation());
 
         return sum;
     }
@@ -202,8 +285,6 @@ public class TraverseByLocusWindows extends TraversalEngine {
                                        final LocusContext locus,
                                        final String refSeq,
                                        final RefMetaDataTracker tracker ) {
-
-        //logger.debug(String.format("  Reference: %s:%d %c", refSite.getCurrentContig().getName(), refSite.getPosition(), refBase));
 
         //
         // Execute our contract with the walker.  Call filter, map, and reduce
