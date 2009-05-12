@@ -1,10 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -21,7 +17,7 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
     public String logisticParamsFile;
 
     @Argument(shortName="outputBAM", doc="output BAM file", required=false)
-    public String outputFile = "";
+    public String outputBamFile = "";
 
     HashMap<String, LogisticRegressor> regressors = new HashMap<String, LogisticRegressor>();
     private static Logger logger = Logger.getLogger(LogisticRecalibrationWalker.class);
@@ -140,10 +136,10 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
     }
 
     public SAMFileWriter reduceInit() {
-        if ( outputFile != null ) { // ! outputFile.equals("") ) {
+        if ( outputBamFile != null ) { // ! outputBamFile.equals("") ) {
             SAMFileWriterFactory fact = new SAMFileWriterFactory();
-            SAMFileHeader header = this.getToolkit().getSamReader().getFileHeader();
-            return fact.makeBAMWriter(header, true, new File(outputFile));
+            SAMFileHeader header = this.getToolkit().getEngine().getSAMHeader();
+            return fact.makeBAMWriter(header, true, new File(outputBamFile));
         }
         else {
             return null;

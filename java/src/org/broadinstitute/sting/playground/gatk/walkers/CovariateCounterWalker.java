@@ -10,6 +10,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
 
@@ -26,6 +27,15 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
     @Argument(fullName="CREATE_TRAINING_DATA", shortName="trainingdata", required=false, doc="Create training data files for logistic regression")
     public boolean CREATE_TRAINING_DATA = false;
+
+    @Argument(fullName="DOWNSAMPLE_FRACTION", shortName="sample", required=false, doc="Fraction of bases to randomly sample")
+    public float DOWNSAMPLE_FRACTION=1.0f;
+
+    @Argument(fullName="MIN_MAPPING_QUALITY", shortName="minmap", required=false, doc="Only use reads with at least this quality score")
+    public int MIN_MAPPING_QUALITY = 0;
+
+    @Argument(fullName="READ_GROUP", shortName="rg", required=false, doc="Only use reads with this read group (@RG)")
+    public String READ_GROUP = "none";
 
     int NDINUCS = 16;
     RecalData[][][] data = new RecalData[MAX_READ_LENGTH+1][MAX_QUAL_SCORE+1][NDINUCS];
@@ -98,23 +108,27 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             List<SAMRecord> reads = context.getReads();
             List<Integer> offsets = context.getOffsets();
             for (int i =0; i < reads.size(); i++ ) {
-                
                 SAMRecord read = reads.get(i);
-                int offset = offsets.get(i);
-                int numBases = read.getReadLength();
-                if ( offset > 0 && offset < (numBases-1) ) { // skip first and last bases because they suck and they don't have a dinuc count
-                    char base = (char)read.getReadBases()[offset];
-                    int qual = (int)read.getBaseQualities()[offset];
-                    //out.printf("%d %d %d\n", offset, qual, bases2dinucIndex(prevBase,base));
-                    // previous base is the next base in terms of machine chemistry if this is a negative strand
-                    char prevBase = (char)read.getReadBases()[offset + (read.getReadNegativeStrandFlag() ? 1 : -1)];
-                    int dinuc_index = bases2dinucIndex(prevBase,base);
-                    if (qual > 0 && qual <= MAX_QUAL_SCORE) {
-                        // Convert offset into cycle position which means reversing the position of reads on the negative strand
-                        int cycle = read.getReadNegativeStrandFlag() ? numBases - offset - 1 : offset;
-                        data[cycle][qual][dinuc_index].inc(base,ref);
-                        if (CREATE_TRAINING_DATA)
-                            dinuc_outs.get(dinuc_index).format("%d,%d,%d\n", qual, cycle, nuc2num[base]==nuc2num[ref] ? 0 : 1);
+
+
+                if ((READ_GROUP.equals("none") || read.getAttribute("RG") != null && read.getAttribute("RG").equals(READ_GROUP)) &&
+                    (read.getMappingQuality() >= MIN_MAPPING_QUALITY) &&
+                    (DOWNSAMPLE_FRACTION == 1.0 || random_genrator.nextFloat() < DOWNSAMPLE_FRACTION)) {
+                    //(random_genrator.nextFloat() <= DOWNSAMPLE_FRACTION)
+                    int offset = offsets.get(i);
+                    int numBases = read.getReadLength();
+                    if ( offset > 0 && offset < (numBases-1) ) { // skip first and last bases because they suck and they don't have a dinuc count
+                        char base = (char)read.getReadBases()[offset];
+                        int qual = (int)read.getBaseQualities()[offset];
+                        //out.printf("%d %d %d\n", offset, qual, bases2dinucIndex(prevBase,base));
+                        // previous base is the next base in terms of machine chemistry if this is a negative strand
+                        char prevBase = (char)read.getReadBases()[offset + (read.getReadNegativeStrandFlag() ? 1 : -1)];
+                        int dinuc_index = bases2dinucIndex(prevBase,base);
+                        if (qual > 0 && qual <= MAX_QUAL_SCORE) {
+                            // Convert offset into cycle position which means reversing the position of reads on the negative strand
+                            int cycle = read.getReadNegativeStrandFlag() ? numBases - offset - 1 : offset;
+                            data[cycle][qual][dinuc_index].inc(base,ref);
+                        }
                     }
                 }
             }
@@ -134,10 +148,30 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         qualityDiffVsDinucleotide();
 
         // Close dinuc filehandles
-        if (CREATE_TRAINING_DATA)
-            for ( PrintStream dinuc_stream : this.dinuc_outs)
-                dinuc_stream.close();
+        if (CREATE_TRAINING_DATA) writeTrainingData();
 
+    }
+
+    void writeTrainingData() {
+        for ( int i=0; i<NDINUCS; i++) {
+            PrintStream dinuc_out = null;
+            try {
+                dinuc_out = new PrintStream( dinuc_root+"."+dinucIndex2bases(i)+".csv");
+                dinuc_out.println("logitQ,pos,indicator,count");
+
+                for ( RecalData datum: flattenData ) {
+                    if ((datum.N - datum.B) > 0)
+                        dinuc_out.format("%d,%d,%d,%d\n", datum.qual, datum.pos, 0, datum.N - datum.B);
+                    if (datum.B > 0)
+                        dinuc_out.format("%d,%d,%d,%d\n", datum.qual, datum.pos, 0, datum.B);
+                }
+            } catch (FileNotFoundException e) {
+                System.err.println("FileNotFoundException: " + e.getMessage());
+            } finally {
+                if (dinuc_out != null)
+                    dinuc_out.close();
+            }
+        }
     }
 
     class MeanReportedQuality {
@@ -249,17 +283,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         num2nuc[2] = 'G';
         num2nuc[3] = 'T';
     }
-
+    Random random_genrator;
     // Print out data for regression
     public CovariateCounterWalker()  throws FileNotFoundException {
-        if (CREATE_TRAINING_DATA)
-            for ( int i=0; i<NDINUCS; i++) {
-                PrintStream next_dinuc = new PrintStream( dinuc_root+"."+dinucIndex2bases(i)+".csv");
-                next_dinuc.println("logitQ,pos,indicator");
-                dinuc_outs.add(next_dinuc);
-            }
         ByQualFile = new PrintStream(OUTPUT_FILEROOT+".empirical_v_reported_quality.csv");
         ByCycleFile = new PrintStream(OUTPUT_FILEROOT+".quality_difference_v_cycle.csv");
         ByDinucFile = new PrintStream(OUTPUT_FILEROOT+".quality_difference_v_dinucleotide.csv");
+        random_genrator = new Random(123454321); // keep same random seed while debugging
     }
 }

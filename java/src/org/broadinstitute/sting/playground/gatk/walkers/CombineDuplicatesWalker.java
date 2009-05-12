@@ -3,15 +3,10 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.duplicates.DuplicateComp;
 import org.broadinstitute.sting.utils.duplicates.DupUtils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.List;
-import java.util.ArrayList;
-import java.io.PrintStream;
 import java.io.File;
 
 import net.sf.samtools.SAMRecord;
@@ -53,7 +48,7 @@ public class CombineDuplicatesWalker extends DuplicateWalker<SAMRecord, SAMFileW
     }
 
     public SAMFileWriter reduceInit() {
-        if ( outputFilename != null ) { // ! outputFile.equals("") ) {
+        if ( outputFilename != null ) { // ! outputBamFile.equals("") ) {
             SAMFileWriterFactory fact = new SAMFileWriterFactory();
             SAMFileHeader header = this.getToolkit().getSamReader().getFileHeader();
             return fact.makeBAMWriter(header, true, new File(outputFilename));
