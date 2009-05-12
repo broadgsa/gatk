@@ -106,7 +106,8 @@ public class TraverseReads extends TraversalEngine {
                 locus = new LocusContext(site, Arrays.asList(read), Arrays.asList(0));
 
                 // get the array of characters for the reference sequence, since we're a mapped read
-                refSeq = dataProvider.getReferenceForRead( read );
+                if( dataProvider.hasReference() )
+                    refSeq = dataProvider.getReferenceForRead( read );
             }
 
             // update the number of reads we've seen
