@@ -293,7 +293,13 @@ public class GenomeAnalysisEngine {
         return outputTracker;
     }
 
-
+    /**
+     * This function is deprecated in the new traversal engines, if you need to get the header
+     * please get the engine and then use the getHeader function
+     *
+     * @return
+     */
+    @Deprecated
     public SAMFileReader getSamReader() {
         return this.engine.getSamReader();
     }

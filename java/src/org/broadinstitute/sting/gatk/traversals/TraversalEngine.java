@@ -590,6 +590,6 @@ public abstract class TraversalEngine {
                 logger.warn(msg);
         }
     }
-
+    @Deprecated
     public SAMFileReader getSamReader() { return this.samReader; }
 }
