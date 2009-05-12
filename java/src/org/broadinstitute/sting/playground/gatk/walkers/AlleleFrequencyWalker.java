@@ -364,7 +364,8 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
                                                                          depth,
                                                                          new String(bases),
                                                                          quals,
-                                                                         posteriors);
+                                                                         posteriors,
+																		 "unknown_sample");
         return alleleFreq;
     }
 
