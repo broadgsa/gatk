@@ -90,7 +90,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         int sum = 0;
         for ( int readIndex = 0 ; readIndex < read.length() ; readIndex++, refIndex++ ) {
-            if ( refIndex > ref.length() )
+            if ( refIndex >= ref.length() )
                 sum += MAX_QUAL;
             else if ( Character.toUpperCase(read.charAt(readIndex)) != Character.toUpperCase(ref.charAt(refIndex)) )
                 sum += (int)quals.charAt(readIndex) - 33;
