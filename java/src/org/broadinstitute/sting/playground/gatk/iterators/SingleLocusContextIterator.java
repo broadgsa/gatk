@@ -3,7 +3,7 @@ package org.broadinstitute.sting.playground.gatk.iterators;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
-import org.broadinstitute.sting.gatk.iterators.LocusIterator;
+import org.broadinstitute.sting.gatk.iterators.LocusContextIterator;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Predicate;
@@ -19,7 +19,7 @@ import edu.mit.broad.picard.filter.FilteringIterator;
 /**
  * Iterator that traverses a SAM File, accumulating information on a per-locus basis
  */
-public class SingleLocusIterator extends LocusIterator {
+public class SingleLocusContextIterator extends LocusContextIterator {
 
     // -----------------------------------------------------------------------------------------------------------------
     //
@@ -37,7 +37,7 @@ public class SingleLocusIterator extends LocusIterator {
     // constructors and other basic operations
     //
     // -----------------------------------------------------------------------------------------------------------------
-    public SingleLocusIterator(final CloseableIterator<SAMRecord> samIterator) {
+    public SingleLocusContextIterator(final CloseableIterator<SAMRecord> samIterator) {
         FilteringIterator filterIter = new FilteringIterator(samIterator, new locusStreamFilterFunc());
         this.it = new PushbackIterator<SAMRecord>(filterIter);
 
@@ -105,7 +105,7 @@ public class SingleLocusIterator extends LocusIterator {
                     read.getReferenceName().equals(contig); // should be index for efficiency
         }
     }
-    Predicate KeepReadP = new SingleLocusIterator.KeepReadPFunc();
+    Predicate KeepReadP = new SingleLocusContextIterator.KeepReadPFunc();
 
     private void calcOffsetsOfWindow(final int position) {
         offsets.clear();

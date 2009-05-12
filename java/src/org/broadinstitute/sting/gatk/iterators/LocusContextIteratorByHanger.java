@@ -1,29 +1,24 @@
 package org.broadinstitute.sting.gatk.iterators;
 
-import net.sf.samtools.util.CloseableIterator;
-import net.sf.samtools.util.RuntimeIOException;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.AlignmentBlock;
 import org.broadinstitute.sting.utils.*;
 
-import java.util.List;
 import java.util.Iterator;
 
 import org.broadinstitute.sting.utils.RefHanger;
-import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
-import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.apache.log4j.Logger;
 
 /**
  * Iterator that traverses a SAM File, accumulating information on a per-locus basis
  */
-public class LocusIteratorByHanger extends LocusIterator {
+public class LocusContextIteratorByHanger extends LocusContextIterator {
 
     /**
      * our log, which we want to capture anything from this class
      */
-    private static Logger logger = Logger.getLogger(LocusIteratorByHanger.class);
+    private static Logger logger = Logger.getLogger(LocusContextIteratorByHanger.class);
 
     // -----------------------------------------------------------------------------------------------------------------
     //
@@ -43,7 +38,7 @@ public class LocusIteratorByHanger extends LocusIterator {
     // constructors and other basic operations
     //
     // -----------------------------------------------------------------------------------------------------------------
-    public LocusIteratorByHanger(final Iterator<SAMRecord> samIterator) {
+    public LocusContextIteratorByHanger(final Iterator<SAMRecord> samIterator) {
         this.it = new PushbackIterator<SAMRecord>(samIterator);
     }
 

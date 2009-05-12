@@ -9,7 +9,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
 /**
  * Iterator that traverses a SAM File, accumulating information on a per-locus basis
  */
-public abstract class LocusIterator implements Iterable<LocusContext>, CloseableIterator<LocusContext> {
+public abstract class LocusContextIterator implements Iterable<LocusContext>, CloseableIterator<LocusContext> {
     // -----------------------------------------------------------------------------------------------------------------
     //
     // constructors and other basic operations

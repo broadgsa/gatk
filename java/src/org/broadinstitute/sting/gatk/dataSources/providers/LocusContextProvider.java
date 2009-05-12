@@ -1,13 +1,11 @@
 package org.broadinstitute.sting.gatk.dataSources.providers;
 
 import edu.mit.broad.picard.filter.FilteringIterator;
-import edu.mit.broad.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.iterators.LocusIterator;
-import org.broadinstitute.sting.gatk.iterators.LocusIteratorByHanger;
-import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
+import org.broadinstitute.sting.gatk.iterators.LocusContextIterator;
+import org.broadinstitute.sting.gatk.iterators.LocusContextIteratorByHanger;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -26,14 +24,14 @@ public class LocusContextProvider {
 
     // What's the last locus accessed?  Used for sanity checking.
     private GenomeLoc lastLoc = null;
-    private LocusIterator loci;
+    private LocusContextIterator loci;
     private LocusContext locus;
     protected static Logger logger = Logger.getLogger(LocusContextProvider.class);
 
     public LocusContextProvider( Iterator<SAMRecord> reads ) {
         this.reads = new FilteringIterator(reads, new TraversalEngine.locusStreamFilterFunc());
         // prepare the iterator by loci from reads
-        loci = new LocusIteratorByHanger(this.reads);
+        loci = new LocusContextIteratorByHanger(this.reads);
     }
 
     public LocusContext getLocusContext( GenomeLoc loc ) {
@@ -56,7 +54,7 @@ public class LocusContextProvider {
         return locusContext;
     }
 
-    private LocusContext advanceReadsToLoc(LocusIterator locusIter, GenomeLoc target) {
+    private LocusContext advanceReadsToLoc(LocusContextIterator locusIter, GenomeLoc target) {
         if ( ! locusIter.hasNext() )
             return null;
 

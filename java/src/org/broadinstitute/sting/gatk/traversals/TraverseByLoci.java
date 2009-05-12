@@ -7,14 +7,13 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
-import org.broadinstitute.sting.gatk.iterators.LocusIterator;
-import org.broadinstitute.sting.gatk.iterators.LocusIteratorByHanger;
+import org.broadinstitute.sting.gatk.iterators.LocusContextIterator;
+import org.broadinstitute.sting.gatk.iterators.LocusContextIteratorByHanger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.util.List;
 import java.util.Iterator;
-import java.util.ArrayList;
 import java.io.File;
 
 import net.sf.samtools.SAMRecord;
@@ -109,7 +108,7 @@ public class TraverseByLoci extends TraversalEngine {
         FilteringIterator filterIter = new FilteringIterator(readIter, new locusStreamFilterFunc());
 
         boolean done = false;
-        LocusIterator iter = new LocusIteratorByHanger(filterIter);
+        LocusContextIterator iter = new LocusContextIteratorByHanger(filterIter);
         while (iter.hasNext() && !done) {
             TraversalStatistics.nRecords++;
 
