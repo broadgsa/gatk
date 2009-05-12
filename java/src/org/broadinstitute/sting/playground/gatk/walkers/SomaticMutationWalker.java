@@ -51,10 +51,10 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
         }
     }
 
-    @Argument(fullName = "tumor_sample_name", shortName = "s1", required = true)
+    @Argument(fullName = "tumor_sample_name", shortName = "s1", required = true, doc="Name of the tumor sample")
     public String tumorSampleName;
 
-    @Argument(fullName = "normal_sample_name", shortName = "s2", required = true)
+    @Argument(fullName = "normal_sample_name", shortName = "s2", required = true, doc="Name of the normal sample")
     public String normalSampleName;
 
     public void initialize() {
