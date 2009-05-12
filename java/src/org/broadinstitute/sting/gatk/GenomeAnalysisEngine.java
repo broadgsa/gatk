@@ -184,8 +184,7 @@ public class GenomeAnalysisEngine {
             microScheduler = MicroScheduler.create(my_walker, argCollection.samFiles, argCollection.referenceFile, rods, argCollection.numberOfThreads);
             engine = microScheduler.getTraversalEngine();
         }
-        else if (my_walker instanceof ReadWalker)
-        {
+        else if (my_walker instanceof ReadWalker) {
             if (argCollection.referenceFile == null)
                 Utils.scareUser(String.format("Locus-based traversals require a reference file but none was given"));
             microScheduler = MicroScheduler.create(my_walker, argCollection.samFiles, argCollection.referenceFile, rods, argCollection.numberOfThreads);
@@ -236,15 +235,17 @@ public class GenomeAnalysisEngine {
      * @return a list of genomeLoc representing the interval file
      */
     private List<GenomeLoc> setupIntervalRegion() {
-        List<GenomeLoc> locs;
-        if( new File(argCollection.intervals).exists() ) {
-            logger.info("Intervals argument specifies a file.  Loading intervals from file.");
-            return GenomeLoc.IntervalFileToList(argCollection.intervals);
+        List<GenomeLoc> locs = null;
+        if (argCollection.intervals != null) {
+            if (new File(argCollection.intervals).exists()) {
+                logger.info("Intervals argument specifies a file.  Loading intervals from file.");
+                locs = GenomeLoc.IntervalFileToList(argCollection.intervals);
+            } else {
+                logger.info("Intervals argument does not specify a file.  Trying to parse it as a simple string.");
+                locs = GenomeLoc.parseGenomeLocs(argCollection.intervals);
+            }
         }
-        else {
-            logger.info("Intervals argument does not specify a file.  Trying to parse it as a simple string.");
-            return GenomeLoc.parseGenomeLocs(argCollection.intervals);
-        }
+        return locs;
     }
 
     /**

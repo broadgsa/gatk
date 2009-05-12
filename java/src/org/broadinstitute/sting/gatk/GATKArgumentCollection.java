@@ -68,7 +68,6 @@ public class GATKArgumentCollection {
     public File referenceFile = null;
 
     @Element(required=false)
-    @Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
     public String analysisName = null;
 
     // parameters and their defaults

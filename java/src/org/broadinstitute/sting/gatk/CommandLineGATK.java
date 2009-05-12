@@ -2,9 +2,9 @@ package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
-import org.broadinstitute.sting.gatk.GATKArgumentCollection;
 
 /**
  *
@@ -35,6 +35,9 @@ import org.broadinstitute.sting.gatk.GATKArgumentCollection;
  * the gatk engine should  deal with any data related information.
  */
 public class CommandLineGATK extends CommandLineProgram {
+
+    @Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
+    public String analysisName = null;
 
     @ArgumentCollection // our argument collection, the collection of command line args we accept
     public GATKArgumentCollection argCollection = new GATKArgumentCollection();
@@ -68,14 +71,16 @@ public class CommandLineGATK extends CommandLineProgram {
     protected int execute() {
         Walker<?, ?> mWalker = null;
         try {
-            mWalker = walkerManager.createWalkerByName(argCollection.analysisName);
+            mWalker = walkerManager.createWalkerByName(analysisName);
         } catch (InstantiationException ex) {
             throw new RuntimeException("Unable to instantiate walker.", ex);
         }
         catch (IllegalAccessException ex) {
             throw new RuntimeException("Unable to access walker", ex);
         }
+        loadArgumentsIntoObject(argCollection);
         loadArgumentsIntoObject(mWalker);
+        this.argCollection.analysisName = this.analysisName;
         try {
             GATKEngine = new GenomeAnalysisEngine(argCollection, mWalker);
         } catch (StingException exp) {
@@ -103,16 +108,20 @@ public class CommandLineGATK extends CommandLineProgram {
      */
     @Override
     protected Class[] getArgumentSources() {
-        loadArgumentsIntoObject(this.argCollection);
-        if (argCollection.analysisName == null)
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        if (analysisName == null)
             throw new IllegalArgumentException("Must provide analysis name");
 
         walkerManager = new WalkerManager(pluginPathName);
 
-        if (!walkerManager.doesWalkerExist(argCollection.analysisName))
+        if (!walkerManager.doesWalkerExist(analysisName))
             throw new IllegalArgumentException("Invalid analysis name");
 
-        return new Class[]{walkerManager.getWalkerClassByName(argCollection.analysisName)};
+        return new Class[]{walkerManager.getWalkerClassByName(analysisName)};
     }
 
     @Override
