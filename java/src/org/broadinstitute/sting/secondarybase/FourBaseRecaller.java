@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.fourbasecaller;
+package org.broadinstitute.sting.secondarybase;
 
 import edu.mit.broad.picard.illumina.BustardFileParser;
 import edu.mit.broad.picard.illumina.BustardReadData;
@@ -8,8 +8,9 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.playground.illumina.FirecrestFileParser;
-import org.broadinstitute.sting.playground.illumina.FirecrestReadData;
+import org.broadinstitute.sting.secondarybase.FirecrestFileParser;
+import org.broadinstitute.sting.secondarybase.FirecrestReadData;
+import org.broadinstitute.sting.secondarybase.FourProb;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;

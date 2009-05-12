@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.fourbasecaller;
+package org.broadinstitute.sting.secondarybase;
 
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.cmdLine.Argument;

@@ -102,44 +102,57 @@
         </jar>
 
         <jar jarfile="dist/FourBaseRecaller.jar" whenmanifestonly="skip">
-          <!--<fileset dir="build" includes="**/fourbasecaller/**/*.class" />-->
           <fileset dir="build">
-            <include name="**/fourbasecaller/**/*.class" />
-            <include name="**/illumina/**/*.class" />
+            <include name="**/secondarybase/**/*.class" />
           </fileset>
           <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.fourbasecaller.FourBaseRecaller" />
+            <attribute name="Main-Class" value="org.broadinstitute.sting.secondarybase.FourBaseRecaller" />
           </manifest>
         </jar>
 
-        <jar jarfile="dist/CombineSamAndFourProbs.jar" whenmanifestonly="skip">
-          <!--<fileset dir="build" includes="**/fourbasecaller/**/*.class" />-->
+        <jar jarfile="dist/AnnotateSecondaryBase.jar" whenmanifestonly="skip">
           <fileset dir="build">
-            <include name="**/fourbasecaller/**/*.class" />
-            <include name="**/illumina/**/*.class" />
+            <include name="**/secondarybase/**/*.class" />
           </fileset>
           <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.fourbasecaller.CombineSamAndFourProbs" />
+            <attribute name="Main-Class" value="org.broadinstitute.sting.secondarybase.AnnotateSecondaryBase" />
+          </manifest>
+        </jar>
+
+<!--
+        <jar jarfile="dist/CombineSamAndFourProbs.jar" whenmanifestonly="skip">
+          <fileset dir="build">
+            <include name="**/secondarybase/**/*.class" />
+          </fileset>
+          <manifest>
+            <attribute name="Main-Class" value="org.broadinstitute.sting.secondarybase.CombineSamAndFourProbs" />
           </manifest>
         </jar>
 
         <jar jarfile="dist/MatchSQTagToStrand.jar" whenmanifestonly="skip">
-          <!--<fileset dir="build" includes="**/fourbasecaller/**/*.class" />-->
           <fileset dir="build">
-            <include name="**/fourbasecaller/**/*.class" />
-            <include name="**/illumina/**/*.class" />
+            <include name="**/secondarybase/**/*.class" />
           </fileset>
           <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.fourbasecaller.MatchSQTagToStrand" />
+            <attribute name="Main-Class" value="org.broadinstitute.sting.secondarybase.MatchSQTagToStrand" />
           </manifest>
         </jar>
+
+        <jar jarfile="dist/AddFourProbsToSAM.jar" whenmanifestonly="skip">
+          <fileset dir="build">
+            <include name="**/secondarybase/**/*.class" />
+          </fileset>
+          <manifest>
+            <attribute name="Main-Class" value="org.broadinstitute.sting.secondarybase.AddFourProbsToSAM" />
+          </manifest>
+        </jar>
+-->
 
         <jar jarfile="dist/Playground.jar" whenmanifestonly="skip">
             <fileset dir="build">
                 <include name="**/*.class"/>
                 <exclude name="**/utils/**"/>
                 <exclude name="**/gatk/**"/>
-                <exclude name="**/fourbasecaller/**"/>
             </fileset>
         </jar>
 
@@ -166,6 +179,13 @@
             </manifest>
         </jar>
 
+        <jar jarfile="dist/AnnotateSecondaryBase.jar" update="true" whenmanifestonly="skip">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}" />
+            </manifest>
+        </jar>
+
+<!--
         <jar jarfile="dist/CombineSamAndFourProbs.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
@@ -177,6 +197,13 @@
                 <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
         </jar>
+
+        <jar jarfile="dist/AddFourProbsToSAM.jar" update="true" whenmanifestonly="skip">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}" />
+            </manifest>
+        </jar>
+-->
 
         <jar jarfile="dist/Playground.jar" update="true" whenmanifestonly="skip">
             <manifest>

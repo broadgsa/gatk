@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.fourbasecaller;
+package org.broadinstitute.sting.secondarybase;
 
 import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleFactory1D;
@@ -6,7 +6,6 @@ import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.DoubleFactory2D;
 import cern.colt.matrix.linalg.Algebra;
 
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.io.*;

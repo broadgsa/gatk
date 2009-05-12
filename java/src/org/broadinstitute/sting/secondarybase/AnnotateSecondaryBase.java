@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.fourbasecaller;
+package org.broadinstitute.sting.secondarybase;
 
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -6,6 +6,7 @@ import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.playground.fourbasecaller.BasecallingReadModel;
 
 import java.io.File;
 import java.util.HashMap;

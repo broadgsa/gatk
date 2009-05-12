@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.fourbasecaller;
+package org.broadinstitute.sting.secondarybase;
 
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.QualityUtils;
