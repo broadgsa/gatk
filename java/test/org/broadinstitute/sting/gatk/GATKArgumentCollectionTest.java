@@ -76,7 +76,6 @@ public class GATKArgumentCollectionTest extends BaseTest {
         collect.maximumReads = "-1";
         collect.strictnessLevel = "strict";
         collect.referenceFile = new File("referenceFile".toLowerCase());
-        collect.genomeRegion = "genomeRegion".toLowerCase();
         collect.analysisName = "analysisName".toLowerCase();
         collect.DBSNPFile = "DBSNPFile".toLowerCase();
         collect.HAPMAPFile = "HAPMAPFile".toLowerCase();
@@ -86,7 +85,7 @@ public class GATKArgumentCollectionTest extends BaseTest {
         collect.maximumReadSorts = "maximumReadSorts".toLowerCase();
         collect.downsampleFraction = "downsampleFraction".toLowerCase();
         collect.downsampleCoverage = "downsampleCoverage".toLowerCase();
-        collect.intervalsFile = "intervalsFile".toLowerCase();
+        collect.intervals = "intervals".toLowerCase();
         collect.walkAllLoci = true;
         collect.disableThreading = false;
         collect.outFileName = "outFileName".toLowerCase();

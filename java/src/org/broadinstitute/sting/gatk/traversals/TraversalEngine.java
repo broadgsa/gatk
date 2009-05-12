@@ -87,7 +87,7 @@ public abstract class TraversalEngine {
 
 
     // Locations we are going to process during the traversal
-    private ArrayList<GenomeLoc> locs = null;
+    private List<GenomeLoc> locs = null;
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -194,32 +194,12 @@ public abstract class TraversalEngine {
     }
 
     /**
-     * Parses the location string locStr and sets the traversal engine to only process
-     * regions specified by the location string.  The string is of the form:
-     * Of the form: loc1;loc2;...
-     * Where each locN can be:
-     * 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
-     *
-     * @param locStr
+     * Sets the intervals over which the traversal(s) should happen.
+     * @param locs
      */
-    public void setLocation(final String locStr) {
-        this.locs = GenomeLoc.parseGenomeLocs(locStr);
+    public void setLocation(final List<GenomeLoc> locs) {
+        this.locs = locs;
     }
-
-    /**
-     * Read a file of genome locations to process.
-     * regions specified by the location string.  The string is of the form:
-     * Of the form: loc1;loc2;...
-     * Where each locN can be:
-     * 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
-     *
-     * @param file_name
-     */
-    public void setLocationFromFile(final String file_name) {
-
-      this.locs = GenomeLoc.IntervalFileToList(file_name);
-    }
-
 
 
     public boolean hasLocations() {
@@ -533,7 +513,7 @@ public abstract class TraversalEngine {
             }
             walker.onTraversalDone(map);
         } else {
-            ArrayList<GenomeLoc> l = new ArrayList<GenomeLoc>();
+            List<GenomeLoc> l = new ArrayList<GenomeLoc>();
             if ( hasLocations() )
                 l = locs;
             sum = traverse(walker, l);
@@ -543,7 +523,7 @@ public abstract class TraversalEngine {
         return sum;
     }
 
-    public <M, T> T traverse(Walker<M, T> walker, ArrayList<GenomeLoc> locations) {
+    public <M, T> T traverse(Walker<M, T> walker, List<GenomeLoc> locations) {
         return null;
     }
 

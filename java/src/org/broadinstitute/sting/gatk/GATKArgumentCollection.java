@@ -68,10 +68,6 @@ public class GATKArgumentCollection {
     public File referenceFile = null;
 
     @Element(required=false)
-    @Argument(fullName = "genome_region", shortName = "L", doc = "Genome region to operation on: from chr:start-end", required = false)
-    public String genomeRegion = null;
-
-    @Element(required=false)
     @Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
     public String analysisName = null;
 
@@ -112,8 +108,8 @@ public class GATKArgumentCollection {
     public String downsampleCoverage = null;
 
     @Element(required=false)
-    @Argument(fullName = "intervals_file", shortName = "V", doc = "File containing list of genomic intervals to operate on. line := <contig> <start> <end>", required = false)
-    public String intervalsFile = null;
+    @Argument(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.", required = false)
+    public String intervals = null;
 
     @Element(required=false)
     @Argument(fullName = "all_loci", shortName = "A", doc = "Should we process all loci, not just those covered by reads", required = false)
@@ -222,7 +218,7 @@ public class GATKArgumentCollection {
         if (!other.referenceFile.equals(this.referenceFile)) {
             return false;
         }
-        if (!other.genomeRegion.equals(this.genomeRegion)) {
+        if (!other.intervals.equals(this.intervals)) {
             return false;
         }
         if (!other.analysisName.equals(this.analysisName)) {
@@ -250,9 +246,6 @@ public class GATKArgumentCollection {
             return false;
         }
         if (!other.downsampleCoverage.equals(this.downsampleCoverage)) {
-            return false;
-        }
-        if (!other.intervalsFile.equals(this.intervalsFile)) {
             return false;
         }
         if (!other.walkAllLoci.equals(this.walkAllLoci)) {

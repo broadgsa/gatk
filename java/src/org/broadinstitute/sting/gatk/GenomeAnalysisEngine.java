@@ -16,6 +16,7 @@ import org.broadinstitute.sting.utils.Utils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.io.File;
 
 public class GenomeAnalysisEngine {
 
@@ -76,7 +77,7 @@ public class GenomeAnalysisEngine {
         ReferenceOrderedData.parseBindings(logger, argCollection.RODBindings, rods);
 
         // create the output streams
-        initializeOutputStreams();
+        initializeOutputStreams( my_walker );
 
         // our microscheduler, which is in charge of running everything
         MicroScheduler microScheduler = null;
@@ -205,12 +206,9 @@ public class GenomeAnalysisEngine {
 
         engine.setMaxReads(Integer.parseInt(argCollection.maximumReads));
 
-        if (argCollection.genomeRegion != null) {
-            engine.setLocation(argCollection.genomeRegion);
-        }
         // we default interval files over the genome region strin
-        if (argCollection.intervalsFile != null) {
-            engine.setLocationFromFile(argCollection.intervalsFile);
+        if (argCollection.intervals != null) {
+            engine.setLocation(setupIntervalRegion());
         }
         // hmm...
         if (argCollection.maximumReadSorts != null) {
@@ -239,11 +237,14 @@ public class GenomeAnalysisEngine {
      */
     private List<GenomeLoc> setupIntervalRegion() {
         List<GenomeLoc> locs;
-        if (argCollection.intervalsFile != null)
-            locs = GenomeLoc.IntervalFileToList(argCollection.intervalsFile);
-        else
-            locs = GenomeLoc.parseGenomeLocs(argCollection.genomeRegion);
-        return locs;
+        if( new File(argCollection.intervals).exists() ) {
+            logger.info("Intervals argument specifies a file.  Loading intervals from file.");
+            return GenomeLoc.IntervalFileToList(argCollection.intervals);
+        }
+        else {
+            logger.info("Intervals argument does not specify a file.  Trying to parse it as a simple string.");
+            return GenomeLoc.parseGenomeLocs(argCollection.intervals);
+        }
     }
 
     /**
@@ -276,9 +277,10 @@ public class GenomeAnalysisEngine {
 
 
     /** Initialize the output streams as specified by the user. */
-    private void initializeOutputStreams() {
+    private void initializeOutputStreams( Walker walker ) {
         outputTracker = (argCollection.outErrFileName != null) ? new OutputTracker(argCollection.outErrFileName, argCollection.outErrFileName)
                 : new OutputTracker(argCollection.outFileName, argCollection.errFileName);
+        walker.initializeOutputStreams(outputTracker);
     }
 
     /**
