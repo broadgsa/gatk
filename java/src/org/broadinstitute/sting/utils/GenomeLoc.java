@@ -275,7 +275,7 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
      * @param curr Current genome Location
      * @return true if we are past the last location to process
      */
-    public static boolean pastFinalLocation(GenomeLoc curr, ArrayList<GenomeLoc> locs) {
+    public static boolean pastFinalLocation(GenomeLoc curr, List<GenomeLoc> locs) {
         return (locs.size() > 0 && curr.isPast(locs.get(locs.size() - 1)));
     }
 

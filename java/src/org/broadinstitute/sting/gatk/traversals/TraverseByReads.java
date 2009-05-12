@@ -32,7 +32,8 @@ public class TraverseByReads extends TraversalEngine {
         super(reads, ref, rods);        
     }
 
-    public <M,T> T traverse(Walker<M,T> walker, ArrayList<GenomeLoc> locations) {
+    @Override
+    public <M,T> T traverse(Walker<M,T> walker, List<GenomeLoc> locations) {
         if ( walker instanceof ReadWalker ) {
             Walker x = walker;
             ReadWalker<?, ?> readWalker = (ReadWalker<?, ?>)x;
@@ -53,7 +54,7 @@ public class TraverseByReads extends TraversalEngine {
      * @param <>    ReduceType -- the result of calling reduce() on the walker
      * @return 0 on success
      */
-    public <M, T> Object traverseByRead(ReadWalker<M, T> walker, ArrayList<GenomeLoc> locations) {
+    public <M, T> Object traverseByRead(ReadWalker<M, T> walker, List<GenomeLoc> locations) {
         samReadIter = initializeReads();
         if ( refFileName != null && !locations.isEmpty() )
             GenomeLoc.setupRefContigOrdering(new FastaSequenceFile2(refFileName));

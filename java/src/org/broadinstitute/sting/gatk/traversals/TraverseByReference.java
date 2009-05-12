@@ -42,7 +42,7 @@ public class TraverseByReference extends TraverseByLoci {
      * @param <T>    ReduceType -- the result of calling reduce() on the walker
      * @return 0 on success
      */
-    protected <M, T> T traverseByLoci(LocusWalker<M, T> walker, ArrayList<GenomeLoc> locations) {
+    protected <M, T> T traverseByLoci(LocusWalker<M, T> walker, List<GenomeLoc> locations) {
         logger.debug("Entering traverseByReference");
 
         // initialize the walker object

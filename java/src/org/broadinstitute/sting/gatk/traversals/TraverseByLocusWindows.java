@@ -32,7 +32,8 @@ public class TraverseByLocusWindows extends TraversalEngine {
         super(reads, ref, rods);
     }
 
-    public <M,T> T traverse(Walker<M,T> walker, ArrayList<GenomeLoc> locations) {
+    @Override
+    public <M,T> T traverse(Walker<M,T> walker, List<GenomeLoc> locations) {
         if ( walker instanceof LocusWindowWalker ) {
             LocusWindowWalker<M, T> locusWindowWalker = (LocusWindowWalker<M, T>)walker;
             T sum = traverseByIntervals(locusWindowWalker, locations);
@@ -52,7 +53,7 @@ public class TraverseByLocusWindows extends TraversalEngine {
      * @param <T>    ReduceType -- the result of calling reduce() on the walker
      * @return 0 on success
      */
-    protected <M, T> T traverseByIntervals(LocusWindowWalker<M, T> walker, ArrayList<GenomeLoc> locations) {
+    protected <M, T> T traverseByIntervals(LocusWindowWalker<M, T> walker, List<GenomeLoc> locations) {
         logger.debug("Entering traverseByIntervals");
 
         if(readsFiles.size() > 1)
@@ -83,7 +84,7 @@ public class TraverseByLocusWindows extends TraversalEngine {
         return sum;
     }
 
-    protected <M, T> T strictIntervalTraversal(LocusWindowWalker<M, T> walker, ArrayList<GenomeLoc> locations, T sum) {
+    protected <M, T> T strictIntervalTraversal(LocusWindowWalker<M, T> walker, List<GenomeLoc> locations, T sum) {
         for ( GenomeLoc interval : locations ) {
             logger.debug(String.format("Processing interval %s", interval.toString()));
 
@@ -98,7 +99,7 @@ public class TraverseByLocusWindows extends TraversalEngine {
         return sum;
     }
 
-    protected <M, T> T fullInputTraversal(LocusWindowWalker<M, T> walker, ArrayList<GenomeLoc> locations, T sum) {
+    protected <M, T> T fullInputTraversal(LocusWindowWalker<M, T> walker, List<GenomeLoc> locations, T sum) {
 
         // set everything up
         GenomeLoc currentInterval = (locations.size() > 0 ? locations.get(0) : null);

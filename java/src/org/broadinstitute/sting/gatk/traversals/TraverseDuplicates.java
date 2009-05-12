@@ -256,7 +256,8 @@ public class TraverseDuplicates extends TraversalEngine {
     // old style interface to the system
     //
     // --------------------------------------------------------------------------------------------------------------
-    public <M,T> T traverse(Walker<M,T> walker, ArrayList<GenomeLoc> locations) {
+    @Override
+    public <M,T> T traverse(Walker<M,T> walker, List<GenomeLoc> locations) {
         if ( walker instanceof DuplicateWalker) {
             Walker x = walker;
             DuplicateWalker<?, ?> dupWalker = (DuplicateWalker<?, ?>)x;
@@ -269,7 +270,7 @@ public class TraverseDuplicates extends TraversalEngine {
     /**
      * Should we deleted at the soonist possible opportunity
      */
-    public <M, T> Object traverseByRead(DuplicateWalker<M, T> walker, ArrayList<GenomeLoc> locations) {
+    public <M, T> Object traverseByRead(DuplicateWalker<M, T> walker, List<GenomeLoc> locations) {
         samReadIter = initializeReads();
 
         // Initialize the walker

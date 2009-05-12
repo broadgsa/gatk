@@ -203,7 +203,7 @@ public abstract class TraversalEngine {
 
 
     public boolean hasLocations() {
-        return this.locs != null;
+        return this.locs != null && !this.locs.isEmpty();
     }
 
     // --------------------------------------------------------------------------------------------------------------

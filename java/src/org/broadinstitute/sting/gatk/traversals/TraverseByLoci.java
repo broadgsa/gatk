@@ -34,7 +34,8 @@ public class TraverseByLoci extends TraversalEngine {
         super(reads, ref, rods);
     }
 
-    public <M,T> T traverse(Walker<M,T> walker, ArrayList<GenomeLoc> locations) {
+    @Override
+    public <M,T> T traverse(Walker<M,T> walker, List<GenomeLoc> locations) {
         if ( walker instanceof LocusWalker ) {
             LocusWalker<M, T> locusWalker = (LocusWalker<M, T>)walker;
             T sum = traverseByLoci(locusWalker, locations);
@@ -54,7 +55,7 @@ public class TraverseByLoci extends TraversalEngine {
      * @param <T>    ReduceType -- the result of calling reduce() on the walker
      * @return 0 on success
      */
-    protected <M, T> T traverseByLoci(LocusWalker<M, T> walker, ArrayList<GenomeLoc> locations) {
+    protected <M, T> T traverseByLoci(LocusWalker<M, T> walker, List<GenomeLoc> locations) {
         logger.debug("Entering traverseByLoci");
 
         if(readsFiles.size() > 1)
