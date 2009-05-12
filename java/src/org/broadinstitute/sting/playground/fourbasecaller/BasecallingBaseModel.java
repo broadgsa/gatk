@@ -69,21 +69,13 @@ public class BasecallingBaseModel {
 
     /**
      * Add a single training point to the model to estimate the means.
-     *
-     * @param basePrev       the previous cycle's base call (A, C, G, T)
-     * @param baseCur        the current cycle's base call (A, C, G, T)
      */
-    public void addMeanPoint(char basePrev, char baseCur, byte qualCur, double[] fourintensity) {
-        int actualBasePrevIndex = BaseUtils.simpleBaseToBaseIndex(basePrev);
-        int actualBaseCurIndex = BaseUtils.simpleBaseToBaseIndex(baseCur);
-        double actualWeight = QualityUtils.qualToProb(qualCur);
-
+    public void addMeanPoint(double[][] probMatrix, double[] fourIntensity) {
         for (int basePrevIndex = 0; basePrevIndex < numTheories; basePrevIndex++) {
             for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
-                // We want to upweight the correct theory as much as we can and spread the remainder out evenly between all other hypotheses.
-                double weight = (baseCurIndex == actualBaseCurIndex && (!correctForContext || basePrevIndex == actualBasePrevIndex)) ? actualWeight : ((1.0 - actualWeight)/((double) (4*numTheories - 1)));
+                double weight = probMatrix[basePrevIndex][baseCurIndex];                
 
-                DoubleMatrix1D weightedChannelIntensities = (DoubleFactory1D.dense).make(fourintensity);
+                DoubleMatrix1D weightedChannelIntensities = (DoubleFactory1D.dense).make(fourIntensity);
                 weightedChannelIntensities.assign(F.mult(weight));
 
                 sums[basePrevIndex][baseCurIndex].assign(weightedChannelIntensities, F.plus);
@@ -96,26 +88,16 @@ public class BasecallingBaseModel {
 
     /**
      * Add a single training point to the model to estimate the covariances.
-     *
-     * @param basePrev       the previous cycle's base call (A, C, G, T)
-     * @param baseCur        the current cycle's base call (A, C, G, T)
-     * @param qualCur        the quality score for the current cycle's base call
-     * @param fourintensity  the four intensities for the current cycle's base call
      */
-    public void addCovariancePoint(char basePrev, char baseCur, byte qualCur, double[] fourintensity) {
-        int actualBasePrevIndex = BaseUtils.simpleBaseToBaseIndex(basePrev);
-        int actualBaseCurIndex = BaseUtils.simpleBaseToBaseIndex(baseCur);
-        double actualWeight = QualityUtils.qualToProb(qualCur);
-
+    public void addCovariancePoint(double[][] probMatrix, double[] fourIntensity) {
         for (int basePrevIndex = 0; basePrevIndex < numTheories; basePrevIndex++) {
             for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
-                // We want to upweight the correct theory as much as we can and spread the remainder out evenly between all other hypotheses.
-                double weight = (baseCurIndex == actualBaseCurIndex && (!correctForContext || basePrevIndex == actualBasePrevIndex)) ? actualWeight : ((1.0 - actualWeight)/((double) (4*numTheories - 1)));
+                double weight = probMatrix[basePrevIndex][baseCurIndex];
 
                 DoubleMatrix1D mean = sums[basePrevIndex][baseCurIndex].copy();
                 mean.assign(F.div(counts[basePrevIndex][baseCurIndex]));
 
-                DoubleMatrix1D sub = (DoubleFactory1D.dense).make(fourintensity);
+                DoubleMatrix1D sub = (DoubleFactory1D.dense).make(fourIntensity);
                 sub.assign(mean, F.minus);
 
                 DoubleMatrix2D cov = (DoubleFactory2D.dense).make(4, 4);

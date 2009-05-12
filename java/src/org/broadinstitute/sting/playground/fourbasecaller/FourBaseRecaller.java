@@ -93,7 +93,12 @@ public class FourBaseRecaller extends CommandLineProgram {
                 //double[] fourprob = getBaseProbabilityDistribution(bases.charAt(cycle), quals[cycle]);
                 double[] fourintensity = (RAW || OLD) ? rawintensities[cycle + cycle_offset] : intensities[cycle + cycle_offset];
 
-                model.addMeanPoint(cycle, cycle == 0 ? '.' : bases.charAt(cycle - 1), baseCur, qualCur, fourintensity);
+                //model.addMeanPoint(cycle, cycle == 0 ? '.' : bases.charAt(cycle - 1), baseCur, qualCur, fourintensity);
+                model.addMeanPoint(cycle,
+                                   model.getBaseProbabilityMatrix(cycle, cycle == 0 ? '.' : bases.charAt(cycle - 1),
+                                                                  baseCur,
+                                                                  QualityUtils.qualToProb(qualCur)),
+                                   fourintensity);
             }
 
             queryid++;
@@ -119,10 +124,13 @@ public class FourBaseRecaller extends CommandLineProgram {
             for (int cycle = 0; cycle < bases.length(); cycle++) {
                 char baseCur  = bases.charAt(cycle);
                 byte qualCur  = quals[cycle];
-                //double[] fourprob = getBaseProbabilityDistribution(bases.charAt(cycle), quals[cycle]);
                 double[] fourintensity = (RAW || OLD) ? rawintensities[cycle + cycle_offset] : intensities[cycle + cycle_offset];
 
-                model.addCovariancePoint(cycle, cycle == 0 ? '.' : bases.charAt(cycle - 1), baseCur, qualCur, fourintensity);
+                model.addCovariancePoint(cycle,
+                                         model.getBaseProbabilityMatrix(cycle, cycle == 0 ? '.' : bases.charAt(cycle - 1),
+                                                                        baseCur,
+                                                                        QualityUtils.qualToProb(qualCur)),
+                                         fourintensity);
             }
 
             queryid++;

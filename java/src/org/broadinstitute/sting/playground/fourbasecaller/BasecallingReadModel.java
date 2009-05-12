@@ -7,11 +7,11 @@ import java.io.File;
 
 /**
  * BasecallingReadModel represents the statistical models for
- * all bases in all cycles.  It allows for easy, one-pass
- * training via the addTrainingPoint() method, and for the
- * computation of the 4x4 likelihood matrix or the 1x4
- * probability vector (with contextual components marginalized
- * out of the likelihood matrix).
+ * all bases in all cycles.  It allows for easy training via
+ * the addTrainingPoint() method, and for the computation of
+ * the 4x4 likelihood matrix or the 1x4 probability vector
+ * (with contextual components marginalized out of the
+ * likelihood matrix).
  *
  * @author Kiran Garimella
  */
@@ -38,26 +38,20 @@ public class BasecallingReadModel {
      * Add a single training point to the model means.
      *
      * @param cycle         the cycle for which this point should be added
-     * @param basePrev      the previous base
-     * @param baseCur       the current base
-     * @param qualCur       the current base's quality
      * @param fourintensity the four intensities of the current base
      */
-    public void addMeanPoint(int cycle, char basePrev, char baseCur, byte qualCur, double[] fourintensity) {
-        basemodels[cycle].addMeanPoint(basePrev, baseCur, qualCur, fourintensity);
+    public void addMeanPoint(int cycle, double[][] probMatrix, double[] fourintensity) {
+        basemodels[cycle].addMeanPoint(probMatrix, fourintensity);
     }
 
     /**
      * Add a single training point to the model covariances.
      *
      * @param cycle         the cycle for which this point should be added
-     * @param basePrev      the previous base
-     * @param baseCur       the current base
-     * @param qualCur       the current base's quality
      * @param fourintensity the four intensities of the current base
      */
-    public void addCovariancePoint(int cycle, char basePrev, char baseCur, byte qualCur, double[] fourintensity) {
-        basemodels[cycle].addCovariancePoint(basePrev, baseCur, qualCur, fourintensity);
+    public void addCovariancePoint(int cycle, double[][] probMatrix, double[] fourintensity) {
+        basemodels[cycle].addCovariancePoint(probMatrix, fourintensity);
     }
 
     /**
@@ -108,19 +102,33 @@ public class BasecallingReadModel {
 
         FourProb fp = new FourProb(likes);
 
-        /*
-        System.out.println(fp.baseAtRank(0) + ":");
-        for (int basePrevIndex = 0; basePrevIndex < likes.length; basePrevIndex++) {
-            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
-                System.out.print(likes[basePrevIndex][baseCurIndex] + " ");
-            }
-            System.out.println();
-        }
-        System.out.println();
-        */
-
-        //return new FourProb(likes);
         return fp;
+    }
+
+    /**
+     * Returns the base probability matrix
+     *
+     * @param cycle        the cycle of the base
+     * @param basePrev     the previous base
+     * @param baseCur      the current base
+     * @param probCur      the probability of the current base
+     * @return the base probability matrix (1x4 if no contextual correction, 4x4 otherwise)
+     */
+    public double[][] getBaseProbabilityMatrix(int cycle, char basePrev, char baseCur, double probCur) {
+        double[][] dist = new double[(correctForContext && cycle > 0) ? 4 : 1][4];
+
+        int actualBasePrevIndex = (correctForContext && cycle > 0) ? BaseUtils.simpleBaseToBaseIndex(basePrev) : 0;
+        int actualBaseCurIndex = BaseUtils.simpleBaseToBaseIndex(baseCur);
+
+        double residualTheories = (double) (dist.length*dist[0].length - 1);
+
+        for (int basePrevIndex = 0; basePrevIndex < dist.length; basePrevIndex++) {
+            for (int baseCurIndex = 0; baseCurIndex < dist[basePrevIndex].length; baseCurIndex++) {
+                dist[basePrevIndex][baseCurIndex] = (basePrevIndex == actualBasePrevIndex && baseCurIndex == actualBaseCurIndex) ? probCur : ((1.0 - probCur)/residualTheories);
+            }
+        }
+
+        return dist;
     }
 
     /**
