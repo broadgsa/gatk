@@ -5,7 +5,9 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 
 import org.broadinstitute.sting.playground.utils.*;
+import org.broadinstitute.sting.playground.utils.GenotypeLikelihoods.IndelCall;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.BasicPileup;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.MathUtils;
@@ -18,25 +20,31 @@ import java.util.*;
 // Draft single sample genotyper
 // j.maguire 3-7-2009
 
-public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, Integer>  {
+public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, String>  
+{
     @Argument(fullName="metrics",      shortName="met",          doc="metrics",      required=false) public String metricsFileName = "/dev/null";
     @Argument(fullName="metInterval",  shortName="mi",           doc="metInterval",  required=false)     public Integer metricsInterval = 50000;
     @Argument(fullName="printMetrics", shortName="printMetrics", doc="printMetrics", required=false)      public Boolean printMetrics = true;
     @Argument(fullName="lodThreshold", shortName="lod",          doc="lodThreshold", required=false)       public Double lodThreshold = 5.0;
     @Argument(fullName="fourBaseMode", shortName="fb",           doc="fourBaseMode", required=false)     public Boolean fourBaseMode = false;
     @Argument(fullName="retest",       shortName="re",           doc="retest",       required=false)     public Boolean retest = false;
+    @Argument(fullName="call_indels",  shortName="call_indels",  doc="Call Indels",  required=false)     public Boolean call_indels = false;
     @Argument(fullName="qHom",         shortName="qHom",         doc="qHom",         required=false)      public Double qHom = 0.04;
     @Argument(fullName="qHet",         shortName="qHet",         doc="qHet",         required=false)      public Double qHet = 0.49;
     @Argument(fullName="qHomNonRef",   shortName="qHomNonRef",   doc="qHomNonRef",   required=false)      public Double qHomNonRef = 0.97;
 
     public AlleleMetrics metrics;
+
+	public String sample_name;
     
     public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) { return true; }
     public boolean requiresReads() { return true; }
-    public void initialize() { metrics = new AlleleMetrics(metricsFileName, lodThreshold); }
+    public void initialize() { metrics = new AlleleMetrics(metricsFileName, lodThreshold); sample_name = null; }
 
     public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         String rodString = getRodString(tracker);
+
+		if (ref == 'N') { return null; }
 
         /*
         AlleleFrequencyEstimate freq;
@@ -57,8 +65,21 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
             freq = getOneProbAlleleFrequency(ref, context, rodString);
         }
         */
+		
+		if (context.getReads().size() != 0)
+		{
+			SAMRecord read = context.getReads().get(0);
+	        String RG = (String)(read.getAttribute("RG"));
+			String local_sample_name = read.getHeader().getReadGroup(RG).getSample();
+			if (sample_name == null) { sample_name = local_sample_name; }
+			else 
+			{ 
+				if (! sample_name.equals(local_sample_name)) { System.out.printf("SAMPLE NAME MIXUP: %s vs. %s\n", sample_name, local_sample_name); }
+				assert(sample_name.equals(local_sample_name)); 
+			}
+		}
 
-        AlleleFrequencyEstimate freq = getOneProbAlleleFrequency(ref, context, rodString);
+        AlleleFrequencyEstimate freq = getOneProbAlleleFrequency(ref, context, rodString, sample_name);
 
         if (printMetrics) {
             if (freq != null) { metrics.nextPosition(freq, tracker); }
@@ -151,7 +172,8 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
                                                                        probs.length,
                                                                        ReadBackedPileup.basePileupAsString(context.getReads(), context.getOffsets()),
                                                                        probs,
-                                                                       posteriors);
+                                                                       posteriors,
+																	   "unknown_sample");
 
             return freq;
         }
@@ -250,14 +272,29 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         return secondaryBaseCounts;
     }
 
-    private AlleleFrequencyEstimate getOneProbAlleleFrequency(char ref, LocusContext context, String rodString) {
+    private AlleleFrequencyEstimate getOneProbAlleleFrequency(char ref, LocusContext context, String rodString, String sample_name) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         String bases = pileup.getBases();
 
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
         ref = Character.toUpperCase(ref);
+
+		// Handle indels.
+		if (call_indels)
+		{
+			String[] indels = BasicPileup.indelPileup(reads, offsets);
+			IndelCall indel_call = GenotypeLikelihoods.callIndel(indels);
+			if (indel_call != null)
+			{
+				if (! indel_call.type.equals("ref"))
+				{ 
+					System.out.printf("INDEL %s %s\n", context.getLocation(), indel_call); 
+				}
+			}
+		}
         
+		// Handle single-base polymorphisms.
         GenotypeLikelihoods G = new GenotypeLikelihoods();
         for ( int i = 0; i < reads.size(); i++ )  
         {
@@ -272,7 +309,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
             G.applyFourBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
         }
 
-        return G.toAlleleFrequencyEstimate(context.getLocation(), ref, bases.length(), bases, G.likelihoods);
+        return G.toAlleleFrequencyEstimate(context.getLocation(), ref, bases.length(), bases, G.likelihoods, sample_name);
     }
 
     private String getRodString(RefMetaDataTracker tracker) {
@@ -300,6 +337,83 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     }
 
     // Given result of map function
-    public Integer reduceInit() { return 0; }
-    public Integer reduce(AlleleFrequencyEstimate value, Integer sum) { return 0; }
+    private String  confident_ref_interval_contig  = "";
+    private long    confident_ref_interval_start   = 0;
+    private double  confident_ref_interval_LOD_sum = 0;
+    private double  confident_ref_interval_length  = 0;
+    private long    last_position_considered       = -1;
+    private boolean inside_confident_ref_interval  = false;
+
+    public String reduceInit() 
+	{ 
+        confident_ref_interval_contig  = "";
+        confident_ref_interval_start   = 0;
+        confident_ref_interval_LOD_sum = 0;
+        confident_ref_interval_length  = 0;
+        last_position_considered       = -1;
+        inside_confident_ref_interval  = false;
+        return "";
+    }
+
+    public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
+	{
+        // Print RESULT data for confident calls
+
+       long current_offset = alleleFreq.location.getStart(); //Integer.parseInt(tokens[1]);
+
+        if (inside_confident_ref_interval &&
+                ((alleleFreq.lodVsRef > -5.0) || (current_offset != last_position_considered + 1)) )
+        {
+            // No longer hom-ref, so output a ref line.
+            double lod = confident_ref_interval_LOD_sum / confident_ref_interval_length;
+
+            out.format("%s\tCALLER\tREFERENCE\t%d\t%d\t%f\t.\t.\tLENGTH %d\n",
+                            confident_ref_interval_contig,
+                            confident_ref_interval_start,
+                            last_position_considered,
+                            lod,
+                            (int)(confident_ref_interval_length));
+
+            inside_confident_ref_interval = false;
+        }
+        else if (inside_confident_ref_interval && (alleleFreq.lodVsRef <= -5.0))
+        {
+            // Still hom-ref so increment the counters.
+            confident_ref_interval_LOD_sum += alleleFreq.lodVsRef;
+            confident_ref_interval_length  += 1;
+        }
+        else if ((!inside_confident_ref_interval) && (alleleFreq.lodVsRef > -5.0))
+        {
+            // do nothing.
+        }
+        else if ((!inside_confident_ref_interval) && (alleleFreq.lodVsRef <= -5.0))
+        {
+            // We moved into a hom-ref region so start a new interval.
+            confident_ref_interval_contig  = alleleFreq.location.getContig();
+            confident_ref_interval_start   = alleleFreq.location.getStart();
+            confident_ref_interval_LOD_sum = alleleFreq.lodVsRef;
+            confident_ref_interval_length  = 1;
+            inside_confident_ref_interval  = true;
+        }
+
+        last_position_considered = current_offset;
+        
+        if (alleleFreq.lodVsRef >= 5) {
+            out.print(alleleFreq.asGFFString());
+
+            /*
+            String gtype = genotypeTypeString(alleleFreq.qstar, alleleFreq.N);
+            System.out.print("DEBUG " + gtype + " ");
+            if (gtype.contentEquals("het")) {
+                System.out.println(alleleFreq.ref + "" + alleleFreq.alt);
+            } else if (gtype.contentEquals("hom")) {
+                System.out.println(alleleFreq.ref + "" + alleleFreq.ref);
+            } else {
+                System.out.println(alleleFreq.alt + "" + alleleFreq.alt);
+            }
+            */
+        }
+
+        return "";
+    }
 }
