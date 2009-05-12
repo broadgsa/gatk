@@ -6,7 +6,7 @@ import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.playground.fourbasecaller.BasecallingReadModel;
+import org.broadinstitute.sting.secondarybase.BasecallingReadModel;
 
 import java.io.File;
 import java.util.HashMap;
