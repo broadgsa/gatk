@@ -56,8 +56,8 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
         ref = Character.toUpperCase(ref);
 
         rodGFF hmi = getHapmapInfo(tracker);
+        boolean isInDbSNP = isInDbSNP(tracker);
 
-        /*
         if (hmi != null) {
             ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
             String bases = pileup.getBases();
@@ -81,7 +81,6 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
                 }
             }
         }
-        */
 
         AlleleFrequencyEstimate call_1b = caller_1b.map(tracker, ref, context);
         AlleleFrequencyEstimate call_4b = caller_4b.map(tracker, ref, context);
@@ -89,6 +88,36 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
         //if (call_1b.qhat != call_4b.qhat && call_4b.lodVsNextBest >= 5.0) {
         //    printDebuggingInfo(ref, context, call_1b, call_4b, hmi, System.out);
         //}
+
+        String calltype_1b = "homref";
+        if (isHet(call_1b)) { calltype_1b = "het"; }
+        if (isHomNonRef(call_1b)) { calltype_1b = "homnonref"; }
+
+        String calltype_4b = "homref";
+        if (isHet(call_4b)) { calltype_4b = "het"; }
+        if (isHomNonRef(call_4b)) { calltype_4b = "homnonref"; }
+
+        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+        String bases = pileup.getBases();
+        String bases2 = pileup.getSecondaryBasePileup();
+
+        out.printf("%s %c %s %s %4.4f %4.4f %s %s %4.4f %4.4f %b %b %s %s %s\n",
+                          context.getLocation().toString(),
+                          ref,
+                          calltype_1b,
+                          call_1b.genotype(),
+                          call_1b.lodVsRef,
+                          call_1b.lodVsNextBest,
+                          calltype_4b,
+                          call_4b.genotype(),
+                          call_4b.lodVsRef,
+                          call_4b.lodVsNextBest,
+                          isInDbSNP,
+                          hmi != null,
+                          (hmi != null) ? hmi.getFeature() : "NN",
+                          bases,
+                          bases2
+                          );
 
         caller_1b.metrics.nextPosition(call_1b, tracker);
         caller_4b.metrics.nextPosition(call_4b, tracker);
@@ -131,6 +160,24 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
         }
 
         return hapmap_chip_genotype;
+    }
+
+    private boolean isInDbSNP(RefMetaDataTracker tracker) {
+        boolean is_dbSNP_SNP = false;
+
+        for ( ReferenceOrderedDatum datum : tracker.getAllRods() )
+        {
+            if ( datum != null )
+            {
+                if ( datum instanceof rodDbSNP)
+                {
+                    rodDbSNP dbsnp = (rodDbSNP)datum;
+                    if (dbsnp.isSNP()) is_dbSNP_SNP = true;
+                }
+            }
+        }
+
+        return is_dbSNP_SNP;
     }
 
     private void printDebuggingInfo(char ref, LocusContext context, AlleleFrequencyEstimate call_1b, AlleleFrequencyEstimate call_4b, rodGFF hmi, PrintStream lout) {
@@ -220,5 +267,11 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
 
                               );
         }
+
+        System.out.print("1-Base Metrics");
+        caller_1b.metrics.printMetricsAtLocusIntervals(1);
+        System.out.print("4-Base Metrics");
+        caller_4b.metrics.printMetricsAtLocusIntervals(1);
+        System.out.println("--------------");
     }
 }
