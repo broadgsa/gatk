@@ -34,17 +34,19 @@ public class AlleleFrequencyEstimate {
     public String bases;
     public double[][] quals;
     public double[] posteriors;
+	public String sample_name;
 
     GenomeLoc l;
 
-    public AlleleFrequencyEstimate(GenomeLoc location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, double pBest, double pRef, int depth, String bases, double[][] quals, double[] posteriors)
+
+    public AlleleFrequencyEstimate(GenomeLoc location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, double pBest, double pRef, int depth, String bases, double[][] quals, double[] posteriors, String sample_name)
     {
         if( Double.isNaN(lodVsRef)) { System.out.printf("%s: lodVsRef is NaN\n", location.toString()); }
         if( Double.isNaN(lodVsNextBest)) { System.out.printf("lodVsNextBest is NaN\n"); }
         if( Double.isNaN(qhat)) { System.out.printf("qhat is NaN\n"); }
         if( Double.isNaN(qstar)) { System.out.printf("qstar is NaN\n"); }
         if( Double.isNaN(pBest)) { System.out.printf("pBest is NaN\n"); }
-        if( Double.isNaN(pRef)) { System.out.printf("pRef is NaN\n"); }
+        if( Double.isNaN(pRef)) { System.out.printf("pRef is NaN (%c %s)\n", ref, bases); }
 
         if( Double.isInfinite(lodVsRef)) 
         { 
@@ -82,12 +84,18 @@ public class AlleleFrequencyEstimate {
         this.qstar = qstar;
         this.lodVsRef = lodVsRef;
         this.lodVsNextBest = lodVsNextBest;
+		this.pBest = pBest;
+		this.pRef = pRef;
         this.depth = depth;
         this.notes = "";
         this.bases = bases;
         this.quals = quals;
         this.posteriors = posteriors;
+		this.sample_name = sample_name;
     }
+
+    public boolean isREF() { return (this.lodVsRef <= -5.0); }
+    public boolean isSNP() { return (this.lodVsRef >=  5.0); }
 
     /** Return the most likely genotype. */
     public String genotype()
@@ -120,9 +128,11 @@ public class AlleleFrequencyEstimate {
                                location.getStart(),
                                location.getStart(),
                                lodVsRef);
+        s += String.format("\t;\tSAMPLE %s", sample_name);
         s += String.format("\t;\tREF %c", ref);
         s += String.format("\t;\tALT %c", alt);
         s += String.format("\t;\tFREQ %f", qstar);
+        s += String.format("\t;\tGENOTYPE %s", this.genotype());
         s += String.format("\t;\tDEPTH %d", depth);
         s += String.format("\t;\tLODvsREF %f", lodVsRef);
         s += String.format("\t;\tLODvsNEXTBEST %f", lodVsNextBest);
