@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.gatk.LocusContext;
-import net.sf.samtools.SAMRecord;
+import net.sf.samtools.*;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -224,6 +224,63 @@ abstract public class BasicPileup implements Pileup {
         }
 
         return distString;
+    }
+
+    public static String[] indelPileup( List<SAMRecord> reads, List<Integer> offsets ) 
+    {
+        String[] indels = new String[reads.size()];
+
+        for (int i = 0; i < reads.size(); i++)
+        {
+            SAMRecord read = reads.get(i);
+            Cigar cigar    = read.getCigar();
+			int offset     = offsets.get(i);
+
+            String cigar_string = read.getCigarString();	 
+			if (! (cigar_string.contains("I") || cigar_string.contains("D"))) { indels[i] = "null"; continue; }
+
+			//System.out.printf("%s:%d %s %s %s ", read.getReferenceName(), read.getAlignmentStart(), read.getReadName(), read.getReadString(), cigar_string);
+            int k = 0;
+            for (int j = 0; j < cigar.numCigarElements(); j++)
+            {
+                CigarOperator operator = cigar.getCigarElement(j).getOperator();
+                int           length   = cigar.getCigarElement(j).getLength();
+                if (operator == CigarOperator.M) 
+                { 
+                    k += length; 
+                }
+                else if ((k == offset+1) && (operator == CigarOperator.I))
+                {
+                    // this insertion is associated with this offset (kinda ;) ).
+  					indels[i] = read.getReadString().substring(k, k+length);	 
+					//System.out.printf("(I,%d,%d)", k, offset);
+					break;
+                }
+                else if ((k != offset+1) && (operator == CigarOperator.I)) 
+                { 
+					//System.out.printf("(i,%d,%d)", k, offset);
+                    k += length; 
+                }
+                else if ((k == offset) && (operator == CigarOperator.D))
+                {
+					// this deletion is associated with this offset.
+  					indels[i] = length + "D";
+					//System.out.printf("(D,%d,%d)", k, offset);
+   					break;
+                }
+                else if (k >= offset) 
+                {
+                    // no indel here.
+                    indels[i] = "null";
+					//System.out.printf("(N,%d,%d)", k, offset);
+                    break;
+                }
+            }
+			if (indels[i] == null) { indels[i] = "null"; }
+			//System.out.printf("\n");
+        }
+
+        return indels;
     }
 
     public static String pileupDiff(final Pileup a, final Pileup b)
