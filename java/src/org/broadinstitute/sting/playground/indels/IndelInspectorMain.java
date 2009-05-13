@@ -24,14 +24,15 @@ public class IndelInspectorMain extends CommandLineProgram {
     @Option(shortName="I", doc="SAM or BAM file for calling",optional=true) public File INPUT_FILE;
     @Option(shortName="L",doc="Genomic interval to run on, as contig[:start[-stop]]; whole genome if not specified", optional=true) public String GENOME_LOCATION;
     @Option(shortName="V",doc="Verbosity level: SILENT, PILESUMMARY, ALIGNMENTS", optional=true) public String VERBOSITY_LEVEL;
-    @Option(doc="Output file (sam or bam) for non-indel related reads and indel reads that were not improved") public String OUT1; 
+    @Option(doc="Output file (sam or bam) for non-indel related reads and indel reads that were not improved (see OUTF)") public String OUT1; 
     @Option(doc="Output file (sam or bam) for improved (realigned) indel related reads") public String OUT2;
+    @Option(doc="Output file (sam or bam) for indel related reads that fail to realign", optional = true ) public String OUTF;
     @Option(doc="[paranoid] If true, all reads that would be otherwise picked and processed by this tool will be saved, unmodified, into OUT1", optional=true) public Boolean CONTROL_RUN;
     @Option(doc="Error counting mode: MM - mismatches only (from sam tags), MC - mismatches only doing actual mismatch count on the fly (use this if tags are incorrectly set); ERR - errors (arachne style: mm+gap lengths), MG - count mismatches and gaps as one error each") public String ERR_MODE;
     @Option(doc="Maximum number of errors allowed (see ERR_MODE)") public Integer MAX_ERRS;
     @Option(shortName="R", doc="Reference fasta or fasta.gz file") public File REF_FILE;
     @Option(doc="Ignore reads that are longer than the specified cutoff (not a good way to do things but might be necessary because of performance issues)", optional=true) public Integer MAX_READ_LENGTH;
-    @Option(doc="Realignment will be attempted around trains of indels with at least of them observed COUNT_CUTOFF times or more",optional=true) public Integer COUNT_CUTOFF;
+    @Option(doc="Realignment will be attempted around trains of indels with at least one indel observed COUNT_CUTOFF times or more",optional=true) public Integer COUNT_CUTOFF;
 
     /** Required main method implementation. */
     public static void main(final String[] argv) {
@@ -60,6 +61,8 @@ public class IndelInspectorMain extends CommandLineProgram {
             location = GenomeLoc.parseGenomeLoc(GENOME_LOCATION);
         }
         
+        if ( COUNT_CUTOFF == null ) COUNT_CUTOFF = 2;
+        
         if ( ! ERR_MODE.equals("MM") && ! ERR_MODE.equals("MG") && ! ERR_MODE.equals("ERR") && ! ERR_MODE.equals("MC") ) {
             System.out.println("Unknown value specified for ERR_MODE: "+ERR_MODE);
             return 1;
@@ -77,9 +80,11 @@ public class IndelInspectorMain extends CommandLineProgram {
 
         IndelRecordPileCollector col = null;
         PassThroughWriter ptWriter = new PassThroughWriter(OUT1,samReader.getFileHeader());
+        PassThroughWriter ptFailedWriter = null;
+        if ( OUTF != null ) ptFailedWriter = new PassThroughWriter(OUTF,samReader.getFileHeader());
         PileBuilder pileBuilder = null;
         if ( CONTROL_RUN == null ) CONTROL_RUN=false;
-        if ( ! CONTROL_RUN ) pileBuilder = new PileBuilder(OUT2,samReader.getFileHeader(),ptWriter);
+        if ( ! CONTROL_RUN ) pileBuilder = new PileBuilder(OUT2,samReader.getFileHeader(), ptFailedWriter == null? ptWriter : ptFailedWriter);
 
         try {
             if ( CONTROL_RUN ) col = new IndelRecordPileCollector(ptWriter, new DiscardingPileReceiver() );

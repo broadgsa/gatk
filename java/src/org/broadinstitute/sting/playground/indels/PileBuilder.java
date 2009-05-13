@@ -357,8 +357,13 @@ public class PileBuilder implements RecordPileReceiver {
                 int id = id_iter.next();
 
                 SAMRecord r = as_list.get(id);
-                if ( pile_failed || pile_unmodified ) {
+                if ( pile_failed  ) {
                     failedPileReceiver.receive(r); // nothing to do, send failed piles directly for writing
+                    continue;
+                }
+
+                if (  pile_unmodified ) {
+                    samWriter.addAlignment(r); // nothing to do, "cleaned" pile has not changed, so we just write all reads back
                     continue;
                 }
 
