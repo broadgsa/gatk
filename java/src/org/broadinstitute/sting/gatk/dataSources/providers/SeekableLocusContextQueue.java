@@ -31,7 +31,7 @@ import edu.mit.broad.picard.filter.FilteringIterator;
  * implementation of java.util.Queue interface.
  */
 
-public class LocusContextQueue {
+public class SeekableLocusContextQueue implements LocusContextQueue {
     private Shard shard;
     private LocusContextIterator loci;
 
@@ -46,13 +46,13 @@ public class LocusContextQueue {
      */
     private LocusContext nextLocusContext = null;
 
-    private static Logger logger = Logger.getLogger(LocusContextQueue.class);
+    private static Logger logger = Logger.getLogger(SeekableLocusContextQueue.class);
 
     /**
-     * Create a new queue of locus contexts, sorted in
+     * Create a new queue of locus contexts.
      * @param provider
      */
-    public LocusContextQueue(ShardDataProvider provider) {
+    public SeekableLocusContextQueue(ShardDataProvider provider) {
         Iterator<SAMRecord> reads = new FilteringIterator(provider.getReadIterator(), new TraversalEngine.locusStreamFilterFunc());
         this.loci = new LocusContextIteratorByHanger(reads);
         this.shard = provider.getShard();

@@ -4,11 +4,13 @@ import org.junit.Test;
 import org.junit.After;
 import org.junit.Assert;
 import org.broadinstitute.sting.utils.io.RedirectingOutputStream;
+import org.broadinstitute.sting.BaseTest;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.Scanner; /**
+import java.util.Scanner; 
+/**
  * User: hanna
  * Date: Apr 30, 2009
  * Time: 10:20:18 AM
@@ -25,7 +27,7 @@ import java.util.Scanner; /**
  * For the file opening and closing mechanisms.
  */
 
-public class OutputTrackerTest {
+public class OutputTrackerTest extends BaseTest {
     public static final String OUTPUT_FILENAME = "OutputTrackerTest.out";
     public static final String ERROR_FILENAME = "OutputTrackerTest.err";
 

@@ -1,9 +1,11 @@
 package org.broadinstitute.sting.utils.threading;
 
 import org.junit.Test;
+import org.broadinstitute.sting.BaseTest;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors; /**
+import java.util.concurrent.Executors; 
+/**
  * User: hanna
  * Date: Apr 29, 2009
  * Time: 4:30:55 PM
@@ -20,7 +22,7 @@ import java.util.concurrent.Executors; /**
  * Tests for the thread pool monitor class.
  */
 
-public class ThreadPoolMonitorTest {
+public class ThreadPoolMonitorTest extends BaseTest {
     private ExecutorService threadPool = Executors.newFixedThreadPool(1);
 
     /**

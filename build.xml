@@ -2,7 +2,7 @@
     <description>Compile and distribute the Sting toolkit</description>
 
     <property name="source.dir" value="java/src" />
-    <property name="single" value="*" />
+    <property name="single" value="*Test" />
 
     <!-- Set target based on STING_BUILD_TYPE environment variable -->
     <property environment="env"/>
@@ -256,10 +256,6 @@
                 <fileset dir="${test.classes}">
                     <include name="**/${single}.class"/>
                     <exclude name="**/BaseTest.class"/>
-                    <!-- omit our instrumenation class -->
-                    <exclude name="**/TrivialInstrumenter.class"/>
-		            <!-- Omit inner classes -->
-		            <exclude name="**/*$*.class" />
                 </fileset>
             </batchtest>
         </junit>

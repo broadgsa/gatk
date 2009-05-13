@@ -6,7 +6,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceLocusIterator;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextQueue;
+import org.broadinstitute.sting.gatk.dataSources.providers.SeekableLocusContextQueue;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -58,7 +58,7 @@ public class TraverseLociByReference extends TraversalEngine {
         LocusWalker<M, T> locusWalker = (LocusWalker<M, T>)walker;
 
         LocusIterator locusIterator = new ReferenceLocusIterator( dataProvider );
-        LocusContextQueue locusContextQueue = new LocusContextQueue( dataProvider ); 
+        SeekableLocusContextQueue locusContextQueue = new SeekableLocusContextQueue( dataProvider );
 
         // We keep processing while the next reference location is within the interval
         while( locusIterator.hasNext() ) {

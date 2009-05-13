@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.junit.Before;
 import org.junit.After;
 import org.junit.Ignore;
+import org.broadinstitute.sting.BaseTest;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -29,7 +30,7 @@ import java.util.ArrayList;
  * Make sure the reduce tree organizes reduces in the correct way.
  */
 
-public class ReduceTreeTest implements ReduceTree.TreeReduceNotifier {
+public class ReduceTreeTest extends BaseTest implements ReduceTree.TreeReduceNotifier {
 
     /**
      * The tree indicating reduce order.
