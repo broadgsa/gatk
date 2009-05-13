@@ -3,20 +3,16 @@ package org.broadinstitute.sting.gatk.traversals;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextProvider;
+import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.dataSources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
-import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.io.File;
 import java.util.*;
@@ -137,9 +133,6 @@ public class TraverseDuplicates extends TraversalEngine {
 
     /**
      * Traverse by reads, given the data and the walker
-     * @param walker the walker to execute over
-     * @param shard the shard of data to feed the walker
-     * @param locusProvider the factory for loci
      * @param sum of type T, the return from the walker
      * @param <M> the generic type
      * @param <T> the return type of the reduce function
@@ -294,7 +287,6 @@ public class TraverseDuplicates extends TraversalEngine {
      * Traverse by reads, given the data and the walker
      * @param walker the walker to execute over
      * @param shard the shard of data to feed the walker
-     * @param locusProvider the factory for loci
      * @param sum of type T, the return from the walker
      * @param <M> the generic type
      * @param <T> the return type of the reduce function
@@ -302,8 +294,7 @@ public class TraverseDuplicates extends TraversalEngine {
      */
     public <M, T> T traverse(Walker<M, T> walker,
                              Shard shard,
-                             LocusContextProvider locusProvider,
-                             BoundedReadIterator readIter,
+                             ShardDataProvider dataProvider,
                              T sum) {
 
         logger.debug(String.format("TraverseDuplicates.traverse Genomic interval is %s", ((ReadShard)shard).getSize()));
@@ -319,8 +310,8 @@ public class TraverseDuplicates extends TraversalEngine {
         //   -> those with the same mate pair position, for paired reads
         //   -> those flagged as unpaired and duplicated but having the same start and end and
 
-        FilteringIterator filterIter = new FilteringIterator(readIter, new duplicateStreamFilterFunc());
+        FilteringIterator filterIter = new FilteringIterator(dataProvider.getReadIterator(), new duplicateStreamFilterFunc());
         PushbackIterator<SAMRecord> iter = new PushbackIterator<SAMRecord>(filterIter);
-        return actuallyTraverse(dupWalker, readIter, sum);
+        return actuallyTraverse(dupWalker, iter, sum);
     }
 }

@@ -4,14 +4,13 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextProvider;
-import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceProvider;
-import org.broadinstitute.sting.gatk.dataSources.providers.InvalidPositionException;
+import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceLocusIterator;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextQueue;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
+import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.apache.log4j.Logger;
@@ -57,18 +56,20 @@ public class TraverseLociByReference extends TraversalEngine {
             throw new IllegalArgumentException("Walker isn't a loci walker!");
 
         LocusWalker<M, T> locusWalker = (LocusWalker<M, T>)walker;
-        GenomeLoc loc = shard.getGenomeLoc();
+
+        LocusIterator locusIterator = new ReferenceLocusIterator( dataProvider );
+        LocusContextQueue locusContextQueue = new LocusContextQueue( dataProvider ); 
 
         // We keep processing while the next reference location is within the interval
-        for( long pos = loc.getStart(); pos <= loc.getStop(); pos++ ) {
-            GenomeLoc site = new GenomeLoc( loc.getContig(), pos );
+        while( locusIterator.hasNext() ) {
+            GenomeLoc site = locusIterator.next();
 
             TraversalStatistics.nRecords++;
 
             // Iterate forward to get all reference ordered data covering this locus
             final RefMetaDataTracker tracker = getReferenceOrderedDataAtLocus( site );
 
-            LocusContext locus = dataProvider.getLocusContext( site );
+            LocusContext locus = locusContextQueue.seek( site ).peek();
             char refBase = dataProvider.getReferenceBase( site );
 
             if ( DOWNSAMPLE_BY_COVERAGE )

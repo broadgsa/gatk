@@ -2,9 +2,7 @@ package org.broadinstitute.sting.gatk.dataSources.providers;
 
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.dataSources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import net.sf.samtools.SAMRecord;
@@ -27,15 +25,14 @@ import net.sf.samtools.SAMRecord;
  */
 public class ShardDataProvider {
     /**
+     * The shard over which we're providing data.
+     */
+    private final Shard shard;
+
+    /**
      * The raw collection of reads.
      */
     private final StingSAMIterator reads;
-
-    /**
-     * Information about the locus.  Can be accessed mutually exclusively
-     * with the reads iterator.
-     */
-    private final LocusContextProvider locusContextProvider;
 
     /**
      * Provider of reference data for this particular shard.
@@ -43,11 +40,12 @@ public class ShardDataProvider {
     private final ReferenceProvider referenceProvider;
 
     /**
-     * Users should only drive using the reads directly or using the locus.
-     * Perhaps in the future we can support direct simultaneous access to both. 
+     * Retrieves the shard associated with this data provider.
+     * @return The shard associated with this data provider.
      */
-    private enum LastAccessType { READS, LOCUS };
-    private LastAccessType lastAccessed = null;
+    public Shard getShard() {
+        return shard;
+    }
 
     /**
      * Can this data source provide reads?
@@ -55,14 +53,6 @@ public class ShardDataProvider {
      */
     public boolean hasReads() {
         return reads != null;
-    }
-
-    /**
-     * Can this data source provide a locus context?
-     * @return True if possible, false otherwise.
-     */
-    public boolean hasLocusContext() {
-        return locusContextProvider != null;
     }
 
     /**
@@ -79,24 +69,7 @@ public class ShardDataProvider {
      * @return An iterator over all reads in this shard.
      */
     public StingSAMIterator getReadIterator() {
-        if( LastAccessType.LOCUS.equals(lastAccessed) )
-            throw new UnsupportedOperationException("Cannot mix direct access to reads with access to locus context");
-        lastAccessed = LastAccessType.READS;
         return reads;
-    }
-
-    /**
-     * Gets a locus context for a particular region on the genome.
-     * WARNING: Right now, this cannot be concurrently accessed with the read iterator.
-     * WARNING: Right now, accesses must be sequential along the genome.  
-     * @param genomeLoc The location for which to determine the context.
-     * @return The context associated with this location.
-     */
-    public LocusContext getLocusContext( GenomeLoc genomeLoc ) {
-        if( LastAccessType.READS.equals(lastAccessed) )
-            throw new UnsupportedOperationException("Cannot mix direct access to reads with access to locus context");
-        lastAccessed = LastAccessType.LOCUS;
-        return locusContextProvider.getLocusContext( genomeLoc );
     }
 
     /**
@@ -124,12 +97,21 @@ public class ShardDataProvider {
      * @param reference A getter for a section of the reference.
      */
     public ShardDataProvider( Shard shard, SAMDataSource reads, IndexedFastaSequenceFile reference ) {
+        this.shard = shard;
         // Provide basic reads information.
         this.reads = reads.seek( shard );
-        // Watch out!  the locus context provider will start prefetching data off the queue.  Only create this
-        // if absolutely necessary.
-        this.locusContextProvider = !(shard instanceof ReadShard) ? new LocusContextProvider(this.reads) : null;
         this.referenceProvider = (reference != null) ? new ReferenceProvider(reference,shard) : null;
+    }
+
+    /**
+     * Skeletal, package protected constructor for unit tests which require a ShardDataProvider.
+     * @param shard the shard
+     * @param reads reads iterator.
+     */
+    ShardDataProvider( Shard shard, StingSAMIterator reads ) {
+        this.shard = shard;
+        this.reads = reads;
+        this.referenceProvider = null;
     }
 
     /**

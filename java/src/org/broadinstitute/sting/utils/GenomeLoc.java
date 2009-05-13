@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  *
  *
  */
-public class GenomeLoc implements Comparable<GenomeLoc> {
+public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
     private static Logger logger = Logger.getLogger(GenomeLoc.class);
 
     private Integer contigIndex;
@@ -432,6 +432,11 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         return this.compareTo(left) > -1 && this.compareTo(right) < 1;
     }
 
+    public final boolean isBefore( GenomeLoc that ) {
+        int comparison = this.compareContigs(that);
+        return ( comparison == -1 || ( comparison == 0 && this.getStop() < that.getStart() ));        
+    }
+
     public final boolean isPast( GenomeLoc that ) {
         int comparison = this.compareContigs(that);
         return ( comparison == 1 || ( comparison == 0 && this.getStart() > that.getStop() ));
@@ -451,16 +456,32 @@ public class GenomeLoc implements Comparable<GenomeLoc> {
         return n;
     }
 
-    // Dangerous
-//    public boolean equals(Object o) {
-//        // Not strictly necessary, but often a good optimization
-//         if (this == o)
-//           return true;
-//         if (!(o instanceof GenomeLoc))
-//           return false;
-//         else
-//            return compareContigs((GenomeLoc)o) == 0;
-//    }
+    /**
+     * Check to see whether two genomeLocs are equal.
+     * Note that this implementation ignores the contigInfo object.
+     * @param other Other contig to compare.
+     */
+    @Override
+    public boolean equals(Object other) {
+        if(other == null)
+            return false;
+        if(other instanceof GenomeLoc) {
+            GenomeLoc otherGenomeLoc = (GenomeLoc)other;
+            return this.contigIndex.equals(otherGenomeLoc.contigIndex) &&
+                   this.start == otherGenomeLoc.start &&
+                   this.stop == otherGenomeLoc.stop;
+        }
+        return false;
+    }
+
+    /**
+     * Return a new GenomeLoc at this same position.
+     * @return A GenomeLoc with the same contents as the current loc.
+     */
+    @Override
+    public Object clone() {
+        return new GenomeLoc(this);
+    }
 
     //
     // Comparison operations
