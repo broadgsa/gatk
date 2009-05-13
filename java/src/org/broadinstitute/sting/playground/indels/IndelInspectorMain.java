@@ -213,6 +213,7 @@ public class IndelInspectorMain extends CommandLineProgram {
         col.printLengthHistograms();
         samReader.close();
         ptWriter.close();
+        if ( ptFailedWriter != null ) ptFailedWriter.close();
         return 0;
     }
 	
