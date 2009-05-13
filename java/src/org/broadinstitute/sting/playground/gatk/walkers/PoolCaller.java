@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Random;
 import java.io.*;
 
+// Draft iterative pooled caller
+// j.maguire 4-27-2009
+
 public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String> 
 {
     List<SingleSampleGenotyper> callers = null;
@@ -28,11 +31,11 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
     @Argument(required=false, shortName="max_iterations", doc="Maximum number of iterations for EM") public int MAX_ITERATIONS = 10;
     @Argument(fullName="lodThreshold", shortName="lod", required=false, doc="lod threshold for outputting individual genotypes")       public Double lodThreshold = 2.0;
     @Argument(fullName="discovery_output", shortName="discovery_output", required=true, doc="file to write SNP discovery output to")       public String DISCOVERY_OUTPUT;
+    @Argument(fullName="individual_output_prefix", shortName="individual_output_prefix", required=true, doc="prefix to write individual SNP calls to") public String INDIVIDUAL_OUTPUT_PREFIX;
+
     
     private Random random;
-
     private SAMFileHeader header;
-
 	private PrintStream discovery_output_file;
 
     public void initialize() 
@@ -69,27 +72,26 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
             System.out.println("SAMPLE: " + sample_name);
 
             SingleSampleGenotyper caller = new SingleSampleGenotyper();
-            caller.metricsFileName = "/dev/null";
+			caller.callsFileName = INDIVIDUAL_OUTPUT_PREFIX + "." + sample_name + ".calls";
+			caller.metricsFileName = INDIVIDUAL_OUTPUT_PREFIX + "." + sample_name + ".metrics";
             caller.lodThreshold = lodThreshold;
             caller.fourBaseMode = false;
             caller.printMetrics = false;
-            caller.initialize();
+            //caller.initialize();
             callers.add(caller);
         } 
     }
 
     public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) 
     {
-		if (ref == 'N') { return null; }
+
 
         // 1. seperate each context.
         LocusContext[] contexts = new LocusContext[sample_names.size()];
         for (int i = 0; i < sample_names.size(); i++)
         {
             contexts[i] = filterLocusContext(context, sample_names.get(i), 0);
-            //System.out.printf("DEPTH %s %d\n", sample_names.get(i), contexts[i].getReads().size());
         }
-        //System.out.printf("DEPTH %s %d\n", "TOTAL", context.getReads().size());
 
         // EM Loop:
 	    AlleleFrequencyEstimate[] calls = null;

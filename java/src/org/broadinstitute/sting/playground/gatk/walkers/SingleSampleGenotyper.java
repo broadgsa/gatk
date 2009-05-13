@@ -15,6 +15,7 @@ import org.broadinstitute.sting.utils.QualityUtils;
 
 import net.sf.samtools.SAMRecord;
 
+import java.io.*;
 import java.util.*;
 
 // Draft single sample genotyper
@@ -22,6 +23,7 @@ import java.util.*;
 
 public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, String>  
 {
+    @Argument(fullName="calls",        shortName="calls",        doc="File to write SNP calls to",      required=true) public String callsFileName;
     @Argument(fullName="metrics",      shortName="met",          doc="metrics",      required=false) public String metricsFileName = "/dev/null";
     @Argument(fullName="metInterval",  shortName="mi",           doc="metInterval",  required=false)     public Integer metricsInterval = 50000;
     @Argument(fullName="printMetrics", shortName="printMetrics", doc="printMetrics", required=false)      public Boolean printMetrics = true;
@@ -34,38 +36,32 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     @Argument(fullName="qHomNonRef",   shortName="qHomNonRef",   doc="qHomNonRef",   required=false)      public Double qHomNonRef = 0.97;
 
     public AlleleMetrics metrics;
+	public PrintStream   calls_file;
 
 	public String sample_name;
     
     public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) { return true; }
     public boolean requiresReads() { return true; }
-    public void initialize() { metrics = new AlleleMetrics(metricsFileName, lodThreshold); sample_name = null; }
+    public void initialize() 
+	{ 
+		try 
+		{
+			metrics = new AlleleMetrics(metricsFileName, lodThreshold); 
+			sample_name = null; 
+			calls_file = new PrintStream(callsFileName);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace(); 
+			System.exit(-1);
+		}
+	}
 
     public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         String rodString = getRodString(tracker);
 
 		if (ref == 'N') { return null; }
 
-        /*
-        AlleleFrequencyEstimate freq;
-        if (fourBaseMode) {
-            if (retest) {
-                // Compute single quality score genotype likelihoods
-                freq = getOneProbAlleleFrequency(ref, context, rodString);
-
-                if (freq.qhat > 0.1) {
-                    // If we found a putative variant, recompute four-base prob genotype likelihoods
-                    freq = getFourProbAlleleFrequency(ref, context, rodString, tracker);
-                }
-            } else {
-                freq = getFourProbAlleleFrequency(ref, context, rodString, tracker);
-            }
-        } else  {
-            // Compute single quality score genotype likelihoods
-            freq = getOneProbAlleleFrequency(ref, context, rodString);
-        }
-        */
-		
 		if (context.getReads().size() != 0)
 		{
 			SAMRecord read = context.getReads().get(0);
@@ -367,7 +363,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
             // No longer hom-ref, so output a ref line.
             double lod = confident_ref_interval_LOD_sum / confident_ref_interval_length;
 
-            out.format("%s\tCALLER\tREFERENCE\t%d\t%d\t%f\t.\t.\tLENGTH %d\n",
+            calls_file.format("%s\tCALLER\tREFERENCE\t%d\t%d\t%f\t.\t.\tLENGTH %d\n",
                             confident_ref_interval_contig,
                             confident_ref_interval_start,
                             last_position_considered,
@@ -399,7 +395,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         last_position_considered = current_offset;
         
         if (alleleFreq.lodVsRef >= 5) {
-            out.print(alleleFreq.asGFFString());
+            calls_file.print(alleleFreq.asGFFString());
 
             /*
             String gtype = genotypeTypeString(alleleFreq.qstar, alleleFreq.N);
