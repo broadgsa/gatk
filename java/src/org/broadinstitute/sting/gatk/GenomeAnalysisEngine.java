@@ -307,4 +307,11 @@ public class GenomeAnalysisEngine {
     public TraversalEngine getEngine() {
         return this.engine;
     }
+
+    /**
+     * Gets the collection of GATK main application arguments for enhanced walker validation.
+     */
+    public GATKArgumentCollection getArguments() {
+        return this.argCollection;
+    }
 }
