@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.CloseableIterator;
 
 import java.util.Iterator;
 
@@ -40,7 +39,7 @@ public class BoundedReadIterator implements StingSAMIterator {
     private long currentCount = 0;
 
     // the iterator we want to decorate
-    private final CloseableIterator<SAMRecord> iterator;
+    private final StingSAMIterator iterator;
 
     // our unmapped read flag
     private boolean doNotUseThatUnmappedReadPile = false;
@@ -56,7 +55,7 @@ public class BoundedReadIterator implements StingSAMIterator {
      * @param iter
      * @param readCount
      */
-    public BoundedReadIterator(CloseableIterator<SAMRecord> iter, long readCount) {
+    public BoundedReadIterator(StingSAMIterator iter, long readCount) {
         if (iter != null) {
             isOpen = true;
 

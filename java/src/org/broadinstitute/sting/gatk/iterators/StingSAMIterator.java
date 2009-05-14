@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.util.CloseableIterator;
 /**
  *
@@ -24,9 +23,9 @@ import net.sf.samtools.util.CloseableIterator;
  * @version 1.0
  * @date May 6, 2009
  * <p/>
- * Interface ClosableGetHeaderIterator
+ * Interface StingSAMIterator
  * <p/>
- * A descriptions should go here. Blame aaron if it's missing.
+ * This is the standard interface for all iterators in the Sting package that iterate over SAMRecords
  */
 public interface StingSAMIterator extends CloseableIterator<SAMRecord>, Iterable<SAMRecord> {
 }

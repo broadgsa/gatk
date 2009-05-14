@@ -3,9 +3,10 @@ package org.broadinstitute.sting.gatk.traversals;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.dataSources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -87,10 +88,11 @@ public class TraverseReads extends TraversalEngine {
 
         ReadWalker<M, T> readWalker = (ReadWalker<M, T>) walker;
 
-        int readCNT = 0;
+        // we allow a bunch of wrapping iterators for down sampling, threadingIO, etc.
+        StingSAMIterator it = ApplyDecoratingIterators(true, dataProvider.getReadIterator());
 
         // while we still have more reads
-        for (SAMRecord read : dataProvider.getReadIterator()) {
+        for (SAMRecord read : it) {
 
             // our locus context
             LocusContext locus = null;
@@ -132,5 +134,5 @@ public class TraverseReads extends TraversalEngine {
      */
     public <T> void printOnTraversalDone( T sum ) {
         printOnTraversalDone( "reads", sum );
-    }    
+    }
 }

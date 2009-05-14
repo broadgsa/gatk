@@ -8,7 +8,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 
-public class SortSamIterator implements Iterator<SAMRecord> {
+// TODO: Deprecate? 
+// I don't think we need this if we're only allowing sorted and indexed BAM Files in the GATK - Aaron
+public class SortSamIterator implements StingSAMIterator {
 
     Iterator<ComparableSAMRecord> it;
 
@@ -30,5 +32,13 @@ public class SortSamIterator implements Iterator<SAMRecord> {
 
     public void remove() {
         throw new UnsupportedOperationException("Can not remove records from a SAM file via an iterator!");
+    }
+
+    public void close() {
+        // nothing to do right now
+    }
+
+    public Iterator<SAMRecord> iterator() {
+        return this;  
     }
 }

@@ -378,9 +378,21 @@ public abstract class TraversalEngine {
         }
     }
 
-    protected Iterator<SAMRecord> WrapReadsIterator( final Iterator<SAMRecord> rawIterator, final boolean enableVerification ) {
-        Iterator<SAMRecord> wrappedIterator = rawIterator;
+    @Deprecated
+    protected StingSAMIterator WrapReadsIterator( final Iterator<SAMRecord> rawIterator, final boolean enableVerification ) {
+        StingSAMIterator wrappedIterator = StingSAMIteratorAdapter.adapt(rawIterator);
+        wrappedIterator = ApplyDecoratingIterators(enableVerification, wrappedIterator);
 
+
+        if (THREADED_IO) {
+            logger.info(String.format("Enabling threaded I/O with buffer of %d reads", THREADED_IO_BUFFER_SIZE));
+            wrappedIterator = StingSAMIteratorAdapter.adapt(new ThreadedIterator<SAMRecord>(wrappedIterator, THREADED_IO_BUFFER_SIZE));
+        }
+
+        return wrappedIterator;
+    }
+
+    protected StingSAMIterator ApplyDecoratingIterators(boolean enableVerification, StingSAMIterator wrappedIterator) {
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away
         if (DOWNSAMPLE_BY_FRACTION)
@@ -391,12 +403,6 @@ public abstract class TraversalEngine {
 
         if (beSafeP && enableVerification)
             wrappedIterator = new VerifyingSamIterator(wrappedIterator);
-
-        if (THREADED_IO) {
-            logger.info(String.format("Enabling threaded I/O with buffer of %d reads", THREADED_IO_BUFFER_SIZE));
-            wrappedIterator = new ThreadedIterator<SAMRecord>(wrappedIterator, THREADED_IO_BUFFER_SIZE);
-        }
-
         return wrappedIterator;
     }
 

@@ -1,17 +1,14 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
-import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.CountReadsWalker;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
@@ -62,8 +59,8 @@ public class TraverseReadsTest extends BaseTest {
     private List<File> bamList;
     private Walker countReadWalker;
     private File output;
-    private static long readSize = 100000;
-    TraverseReads traversalEngine = null;
+    private long readSize = 100000;
+    private TraverseReads traversalEngine = null;
 
     /**
      * This function does the setup of our parser, before each method call.
@@ -117,11 +114,6 @@ public class TraverseReadsTest extends BaseTest {
         }
         catch (FileNotFoundException ex) {
             throw new RuntimeException("File not found opening fasta file; please do this check before MicroManaging", ex);
-        }
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
         GenomeLoc.setupRefContigOrdering(ref);
 
@@ -178,11 +170,6 @@ public class TraverseReadsTest extends BaseTest {
         }
         catch (FileNotFoundException ex) {
             throw new RuntimeException("File not found opening fasta file; please do this check before MicroManaging", ex);
-        }
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
         GenomeLoc.setupRefContigOrdering(ref);
 

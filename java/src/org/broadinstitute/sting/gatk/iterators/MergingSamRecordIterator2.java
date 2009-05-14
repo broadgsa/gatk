@@ -271,7 +271,7 @@ public class MergingSamRecordIterator2 implements StingSAMIterator {
 }
 
 // Should replace picard class with the same name
-class ComparableSamRecordIterator extends PeekableIterator<SAMRecord> implements Comparable<ComparableSamRecordIterator> {
+class ComparableSamRecordIterator extends PeekableIterator<SAMRecord> implements Comparable<ComparableSamRecordIterator>, StingSAMIterator {
     private final Comparator<SAMRecord> comparator;
     private final SAMFileReader reader;
 
@@ -318,5 +318,9 @@ class ComparableSamRecordIterator extends PeekableIterator<SAMRecord> implements
         final SAMRecord record2 = that.peek();
         //System.out.printf("Comparing %s vs. %s => %d%n", record.getReadName(), record2.getReadName(), comparator.compare(record, record2));
         return comparator.compare(record, record2);
+    }
+
+    public Iterator<SAMRecord> iterator() {
+        return this;
     }
 }

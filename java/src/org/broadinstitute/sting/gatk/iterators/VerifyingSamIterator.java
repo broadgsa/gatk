@@ -2,11 +2,9 @@ package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.RuntimeIOException;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.Iterator;
-
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
 
 /**
  * Created by IntelliJ IDEA.
@@ -15,13 +13,13 @@ import org.broadinstitute.sting.utils.Utils;
  * Time: 6:02:31 PM
  * To change this template use File | Settings | File Templates.
  */
-public class VerifyingSamIterator implements Iterator<SAMRecord> {
-    Iterator<SAMRecord> it;
+public class VerifyingSamIterator implements StingSAMIterator {
+    StingSAMIterator it;
     SAMRecord last = null;
     boolean checkOrderP = true;
     long nOutOfOrderReads = 0; 
 
-    public VerifyingSamIterator(Iterator<SAMRecord> it) {
+    public VerifyingSamIterator(StingSAMIterator it) {
         this.it = it;
     }
 
@@ -63,5 +61,13 @@ public class VerifyingSamIterator implements Iterator<SAMRecord> {
 
     public void remove() {
         throw new UnsupportedOperationException("Can not remove records from a SAM file via an iterator!");
+    }
+
+    public void close() {
+        it.close();
+    }
+
+    public Iterator<SAMRecord> iterator() {
+        return this;
     }
 }
