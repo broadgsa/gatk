@@ -13,7 +13,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 
-import net.sf.samtools.SAMRecord;
+import net.sf.samtools.*;
 
 import java.io.*;
 import java.util.*;
@@ -46,8 +46,8 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 	{ 
 		try 
 		{
-			metrics = new AlleleMetrics(metricsFileName, lodThreshold); 
 			sample_name = null; 
+			metrics = new AlleleMetrics(metricsFileName, lodThreshold); 
 			calls_file = new PrintStream(callsFileName);
 		}
 		catch (Exception e)
@@ -66,12 +66,16 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 		{
 			SAMRecord read = context.getReads().get(0);
 	        String RG = (String)(read.getAttribute("RG"));
-			String local_sample_name = read.getHeader().getReadGroup(RG).getSample();
-			if (sample_name == null) { sample_name = local_sample_name; }
-			else 
-			{ 
-				if (! sample_name.equals(local_sample_name)) { System.out.printf("SAMPLE NAME MIXUP: %s vs. %s\n", sample_name, local_sample_name); }
-				assert(sample_name.equals(local_sample_name)); 
+			SAMReadGroupRecord read_group_record = read.getHeader().getReadGroup(RG);
+			if (read_group_record != null)
+			{
+				String local_sample_name = read.getHeader().getReadGroup(RG).getSample();
+				if (sample_name == null) { sample_name = local_sample_name; }
+				else 
+				{ 
+					if (! sample_name.equals(local_sample_name)) { System.out.printf("SAMPLE NAME MIXUP: %s vs. %s\n", sample_name, local_sample_name); }
+					assert(sample_name.equals(local_sample_name)); 
+				}
 			}
 		}
 
