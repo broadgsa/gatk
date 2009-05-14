@@ -6,6 +6,7 @@ import org.broadinstitute.sting.secondarybase.BasecallingBaseModel;
 import org.broadinstitute.sting.secondarybase.FourProb;
 
 import java.io.File;
+import java.util.ArrayList;
 
 /**
  * BasecallingReadModel represents the statistical models for
@@ -36,6 +37,20 @@ public class BasecallingReadModel {
         }
     }
 
+    public void train(BasecallingTrainingSet trainingSet) {
+        ArrayList<RawRead> trainingData = trainingSet.getTrainingData();
+
+        for (int readIndex = 0; readIndex < trainingData.size(); readIndex++) {
+            RawRead read = trainingData.get(readIndex);
+            addMeanPoints(read);
+        }
+
+        for (int readIndex = 0; readIndex < trainingData.size(); readIndex++) {
+            RawRead read = trainingData.get(readIndex);
+            addCovariancePoints(read);
+        }
+    }
+
     /**
      * Add a single training point to the model means.
      *
@@ -46,6 +61,27 @@ public class BasecallingReadModel {
         basemodels[cycle].addMeanPoint(probMatrix, fourintensity);
     }
 
+    public void addMeanPoints(RawRead read) {
+        byte[] seqs = read.getSequence();
+        byte[] quals = read.getQuals();
+        short[][] ints = read.getIntensities();
+
+        for (int cycle = 0; cycle < seqs.length; cycle++) {
+            char basePrev = (char) ((cycle == 0) ? '.' : seqs[cycle - 1]);
+            char baseCur = (char) seqs[cycle];
+            double probCur = QualityUtils.qualToProb(quals[cycle]);
+
+            double[][] probMatrix = getBaseProbabilityMatrix(cycle, basePrev, baseCur, probCur);
+
+            double[] fourIntensity = new double[4];
+            for (int channel = 0; channel < 4; channel++) {
+                fourIntensity[channel] = (double) ints[cycle][channel];
+            }
+
+            basemodels[cycle].addMeanPoint(probMatrix, fourIntensity);
+        }
+    }
+
     /**
      * Add a single training point to the model covariances.
      *
@@ -54,6 +90,27 @@ public class BasecallingReadModel {
      */
     public void addCovariancePoint(int cycle, double[][] probMatrix, double[] fourintensity) {
         basemodels[cycle].addCovariancePoint(probMatrix, fourintensity);
+    }
+
+    public void addCovariancePoints(RawRead read) {
+        byte[] seqs = read.getSequence();
+        byte[] quals = read.getQuals();
+        short[][] ints = read.getIntensities();
+
+        for (int cycle = 0; cycle < seqs.length; cycle++) {
+            char basePrev = (char) ((cycle == 0) ? '.' : seqs[cycle - 1]);
+            char baseCur = (char) seqs[cycle];
+            double probCur = QualityUtils.qualToProb(quals[cycle]);
+
+            double[][] probMatrix = getBaseProbabilityMatrix(cycle, basePrev, baseCur, probCur);
+
+            double[] fourIntensity = new double[4];
+            for (int channel = 0; channel < 4; channel++) {
+                fourIntensity[channel] = (double) ints[cycle][channel];
+            }
+
+            basemodels[cycle].addCovariancePoint(probMatrix, fourIntensity);
+        }
     }
 
     /**
@@ -105,6 +162,26 @@ public class BasecallingReadModel {
         FourProb fp = new FourProb(likes);
 
         return fp;
+    }
+
+    public FourProbRead call(RawRead read) {
+        FourProbRead fpr = new FourProbRead(read.getReadLength());
+        
+        for (int cycle = 0; cycle < read.getReadLength(); cycle++) {
+            char basePrev = (char) ((cycle == 0) ? '.' : read.getSequence()[cycle - 1]);
+            byte qualPrev = ((cycle == 0) ? 0 : read.getQuals()[cycle - 1]);
+
+            double[] fourIntensity = new double[4];
+            for (int channel = 0; channel < 4; channel++) {
+                fourIntensity[channel] = (double) read.getIntensities()[cycle][channel];
+            }
+
+            //fps[cycle] = computeProbabilities(cycle, basePrev, qualPrev, fourIntensity);
+            fpr.add(cycle, computeProbabilities(cycle, basePrev, qualPrev, fourIntensity));
+
+        }
+
+        return fpr;
     }
 
     /**
