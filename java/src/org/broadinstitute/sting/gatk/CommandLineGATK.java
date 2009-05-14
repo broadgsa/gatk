@@ -108,11 +108,6 @@ public class CommandLineGATK extends CommandLineProgram {
      */
     @Override
     protected Class[] getArgumentSources() {
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
         if (analysisName == null)
             throw new IllegalArgumentException("Must provide analysis name");
 
