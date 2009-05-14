@@ -28,7 +28,7 @@ public abstract class BasicReferenceOrderedDatum implements ReferenceOrderedDatu
     public String toSimpleString() { return toString(); }
     public String repl() { return this.toString(); }
 
-    public String delimiter() {
+    public String delimiterRegex() {
         return "\t";
     }
 

@@ -24,7 +24,7 @@ public interface ReferenceOrderedDatum extends Comparable<ReferenceOrderedDatum>
      * Used by the ROD system to determine how to split input lines
      * @return Regex string delimiter separating fields
      */
-    public String delimiter();
+    public String delimiterRegex();
 
     public GenomeLoc getLocation();
     public int compareTo( ReferenceOrderedDatum that );

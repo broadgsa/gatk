@@ -20,7 +20,23 @@ import org.apache.log4j.Logger;
  * User: mdepristo
  * Date: Feb 27, 2009
  * Time: 10:47:14 AM
- * To change this template use File | Settings | File Templates.
+ *
+ * System for interacting with tabular formatted data of the following format:
+ *
+ * # comment line
+ * # must include HEADER KEYWORD
+ * HEADER COL1 ... COLN
+ * chr:pos data1 ... dataN
+ *
+ * The system supports the rod interface.  You can just access tabularRODs through the normal ROD system.
+ *
+ * You can also write your own files, as such:
+ *
+ * ArrayList<String> header = new ArrayList<String>(Arrays.asList("HEADER", "col1", "col2", "col3"));
+ * assertTrue(TabularROD.headerString(header).equals("HEADER\tcol1\tcol2\tcol3"));
+ * String rowData = String.format("%d %d %d", 1, 2, 3);
+ * TabularROD row = new TabularROD("myName", header, new GenomeLoc("chrM", 1), rowData.split(" "));
+ * assertTrue(row.toString().equals("chrM:1\t1\t2\t3"));
  */
 public class TabularROD extends BasicReferenceOrderedDatum implements Map<String, String> {
     private static Logger logger = Logger.getLogger(TabularROD.class);
@@ -28,6 +44,59 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
     private GenomeLoc loc;
     private HashMap<String, String> attributes;
     private ArrayList<String> header;
+
+    public static String DEFAULT_DELIMITER = "\t";
+    public static String DEFAULT_DELIMITER_REGEX = "\\s+";
+
+    public static String DELIMITER = DEFAULT_DELIMITER;
+    public static String DELIMITER_REGEX = DEFAULT_DELIMITER_REGEX;
+
+    private static int MAX_LINES_TO_LOOK_FOR_HEADER = 1000;
+    private static Pattern HEADER_PATTERN = Pattern.compile("^\\s*HEADER.*");
+    private static Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
+
+    /**
+     * Set the global tabular ROD delimiter and the regex to split the delimiter.
+     *
+     * The delimiter to put between fields, while the regex is used to split lines
+     * 
+     * @param delimiter
+     * @param delimeterRegex
+     */
+    public static void setDelimiter(final String delimiter, final String delimeterRegex) {
+        DELIMITER = delimiter;
+        DELIMITER_REGEX = delimeterRegex;
+    }
+
+    /**
+     * Returns a parsable string representation for the
+     * @param header
+     */
+    public static String headerString(final ArrayList<String> header) {
+        requireGoodHeader(header);
+        return Utils.join(DELIMITER, header);
+    }
+
+    /**
+     * Returns a comment line containing the *single line* string msg
+     * 
+     * @param msg
+     * @return
+     */
+    public static String commentString(final String msg) {
+        return "# " + msg;
+    }
+
+    private static boolean headerIsGood(final ArrayList<String> header) {
+        if ( header.size() == 0 ) return false;
+        if ( ! header.get(0).equals("HEADER") ) return false;
+        return true;
+    }
+
+    private static void requireGoodHeader(final ArrayList<String> header) {
+        if ( ! headerIsGood(header) )
+            throw new RuntimeException("Header must begin with HEADER keyword");
+    }
 
     // ----------------------------------------------------------------------
     //
@@ -39,10 +108,41 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
         attributes = new HashMap<String, String>();
     }
 
-    public TabularROD(final String name, ArrayList<String> header) {
-        super(name);
-        attributes = new HashMap<String, String>();
+    /**
+     * Make a new TabularROD with name, using header columns header, at loc, without any bound data.  Data
+     * must be bound to each corresponding header[i] field before the object is really usable.
+     *
+     * @param name
+     * @param header
+     * @param loc
+     */
+    public TabularROD(final String name, ArrayList<String> header, GenomeLoc loc) {
+        this(name);
         this.header = header;
+        this.loc = loc;
+        requireGoodHeader(this.header);
+    }
+
+    /**
+     * Make a new TabularROD with name, using header columns header, at loc, with data associated with the
+     * header columns.  data and header are assumed to be in the same order, and bindings will be established
+     * from header[i] = data[i].  The TabularROD at this stage can be printed, manipulated, it is considered
+     * a full fledged, initialized object.
+     *
+     * @param name
+     * @param header
+     * @param loc
+     * @param data
+     */
+    public TabularROD(final String name, ArrayList<String> header, GenomeLoc loc, String[] data) {
+        this(name, header, loc);
+        
+        if ( header.size() != data.length + 1 )
+            throw new RuntimeException(String.format("Incorrect tabular data format: header has %d columns but %d data elements were provided: %s",
+                                                    header.size(), data.length, Utils.join("\t", data)));
+        for ( int i = 0; i < data.length; i++ ) {
+            put(header.get(i+1), data[i]);
+        }
     }
 
     /**
@@ -61,7 +161,8 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
             Matcher m = HEADER_PATTERN.matcher(line);
             if ( m.matches() ) {
                 //System.out.printf("Found a header line: %s%n", line);
-                header = new ArrayList<String>(Arrays.asList(line.split("\\s+")));
+                header = new ArrayList<String>(Arrays.asList(line.split(DELIMITER_REGEX)));
+                //System.out.printf("HEADER IS %s%n", Utils.join(":", header));
             }
 
             if ( linesLookedAt++ > MAX_LINES_TO_LOOK_FOR_HEADER )
@@ -75,21 +176,20 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
             throw new RuntimeException("Couldn't find header line in TabularROD!");
         }
 
-        //System.exit(1);
         return header;
     }
 
-    private static int MAX_LINES_TO_LOOK_FOR_HEADER = 1000;
-    private static Pattern HEADER_PATTERN = Pattern.compile("^\\s*HEADER.*");
-    private static Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
-
     // ----------------------------------------------------------------------
     //
-    // Accessors
+    // ROD accessors
     //
     // ----------------------------------------------------------------------
     public GenomeLoc getLocation() {
         return loc;
+    }
+
+    public ArrayList<String> getHeader() {
+        return header;
     }
 
     public String get(final Object key) {
@@ -113,7 +213,7 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
         for ( String key : header ) {
             if ( containsKey(key) ) { // avoid the header
                 strings.add(this.get(key));
-                System.out.printf("Adding %s%n", this.get(key));
+                //System.out.printf("Adding %s%n", this.get(key));
             }
         }
         return Utils.join("\t", strings);
@@ -149,10 +249,24 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
         return String.format("%s\t%s", getLocation(), getAttributeString());
     }
 
-    public String delimiter() {
-        return "\\s+";
+    /**
+     * The delimiter regular expression that should be used to separate fields in data rows
+     * and header.
+     * 
+     * @return
+     */
+    public String delimiterRegex() {
+        return DELIMITER_REGEX;
     }
 
+    /**
+     * Used by ROD management system to set the data in this ROD associated with a line in a rod
+     * 
+     * @param headerObj
+     * @param parts
+     * @return
+     * @throws IOException
+     */
     public boolean parseLine(final Object headerObj, final String[] parts) throws IOException {
         header = (ArrayList<String>)(headerObj);
 

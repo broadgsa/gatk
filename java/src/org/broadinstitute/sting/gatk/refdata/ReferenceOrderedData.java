@@ -133,7 +133,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         this.type = type;
         this.name = name;
         this.header = initializeROD(name, file, type);
-        this.fieldDelimiter = newROD(name, type).delimiter();
+        this.fieldDelimiter = newROD(name, type).delimiterRegex();
     }
 
     public String getName() { return name; }
