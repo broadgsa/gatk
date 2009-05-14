@@ -1,7 +1,10 @@
 package org.broadinstitute.sting.secondarybase;
 
-import org.broadinstitute.sting.utils.BaseUtils;
-
+/**
+ * RawRead represents lane and tile coordinates, raw intensities, read bases, and quality scores
+ *
+ * @author Kiran Garimella
+ */
 public class RawRead {
     private byte lane;
     private short tile;
@@ -12,6 +15,14 @@ public class RawRead {
     private byte[] quals;
     private short[][] intensities;
 
+    /**
+     * Construct a raw read from the output of a PasteParser (in the order of int, seq, prb).
+     * Takes data within specified cycle ranges.
+     *
+     * @param pastedReadString  the 3x(fragment length) output array from the PasteParser.
+     * @param cycleBegin        the start cycle for the read (0-based, inclusive)
+     * @param cycleEnd          the end cycle for the read (0-based, inclusive)
+     */
     public RawRead(String[][] pastedReadString, int cycleBegin, int cycleEnd) {
         lane = Byte.valueOf(pastedReadString[0][0]);
         tile = Short.valueOf(pastedReadString[0][1]);
@@ -43,25 +54,96 @@ public class RawRead {
         }
     }
 
+    /**
+     * Get lane number of read
+     *
+     * @return lane number of read
+     */
     public byte getLane() { return lane; }
+
+    /**
+     * Get tile number of read
+     *
+     * @return tile number of read
+     */
     public int getTile() { return tile; }
+
+    /**
+     * Get x-coordinate of read
+     *
+     * @return x-coordinate of read
+     */
     public int getXCoordinate() { return x; }
+
+    /**
+     * Get y-coordinate of read
+     *
+     * @return y-coordinate of read
+     */
     public int getYCoordinate() { return y; }
 
+    /**
+     * Get read key (lane:tile:x:y)
+     *
+     * @return read key (lane:tile:x:y)
+     */
     public String getReadKey() { return String.format("%d:%d:%d:%d", lane, tile, x, y); }
 
+    /**
+     * Get the read sequence between the cycles specified in the constructor as a byte array
+     *
+     * @return read sequence
+     */
     public byte[] getSequence() { return sequence; }
+
+    /**
+     * Set the read sequence from a byte array
+     *
+     * @param sequence  the read sequence in byte array form
+     */
     public void setSequence(byte[] sequence) { this.sequence = sequence; }
 
+    /**
+     * Get the read sequence as a string
+     *
+     * @return  the read sequence in string form
+     */
     public String getSequenceAsString() {
         return new String(getSequence());
     }
 
+    /**
+     * Get the quals
+     *
+     * @return a byte array of quals
+     */
     public byte[] getQuals() { return quals; }
+
+    /**
+     * Set the quals
+     *
+     * @param quals  a byte array of quals
+     */
     public void setQuals(byte[] quals) { this.quals = quals; }
 
+    /**
+     * Get the raw read intensities
+     *
+     * @return the (readLength)x(numChannels) array of raw intensities
+     */
     public short[][] getIntensities() { return intensities; }
+
+    /**
+     * Set the raw intensities
+     *
+     * @param intensities  the (readLength)x(numChannels) array of raw intensities
+     */
     public void setIntensities(short[][] intensities) { this.intensities = intensities; }
 
+    /**
+     * Get the read length
+     *
+     * @return the read length
+     */
     public int getReadLength() { return sequence.length; }
 }

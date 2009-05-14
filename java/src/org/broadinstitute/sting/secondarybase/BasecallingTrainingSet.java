@@ -1,20 +1,24 @@
 package org.broadinstitute.sting.secondarybase;
 
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
-
-import java.util.HashMap;
-import java.util.Vector;
-import java.util.ArrayList;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-import java.io.File;
-
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * BasecallingTrainingSet holds a set of raw read sequences, their raw intensities, and quality scores.
+ *
+ * @author Kiran Garimella
+ */
 public class BasecallingTrainingSet {
     private File bustardDir;
     private int lane;
@@ -24,6 +28,15 @@ public class BasecallingTrainingSet {
 
     private ArrayList<RawRead> trainingData;
 
+    /**
+     * Constructor for BasecallingTrainingSet.
+     *
+     * @param bustardDir     the Bustard directory for the sample
+     * @param lane           the lane for the sample
+     * @param cycleBegin     the start cycle for the beginning of the read (0-based, inclusive)
+     * @param cycleEnd       the stop ccle for the end of the read (0-based, inclusive)
+     * @param trainingLimit  the number of training reads to accept
+     */
     public BasecallingTrainingSet(File bustardDir, int lane, int cycleBegin, int cycleEnd, int trainingLimit) {
         this.bustardDir = bustardDir;
         this.lane = lane;
@@ -32,14 +45,27 @@ public class BasecallingTrainingSet {
         this.trainingLimit = trainingLimit;
     }
 
+    /**
+     * Get the training data array list
+     *
+     * @return  the arraylist of raw training reads
+     */
     public ArrayList<RawRead> getTrainingData() {
         return this.trainingData;
     }
 
+    /**
+     * Set the training data array list
+     *
+     * @param trainingData  the arraylist of raw training reads
+     */
     public void setTrainingData(ArrayList<RawRead> trainingData) {
         this.trainingData = trainingData;
     }
 
+    /**
+     * Take the first N reads that have no ambiguous bases and add them to the training set.
+     */
     public void loadFirstNUnambiguousReadsTrainingSet() {
         this.trainingData = new ArrayList<RawRead>(trainingLimit);
 
@@ -65,12 +91,25 @@ public class BasecallingTrainingSet {
         }
     }
 
+    /**
+     * Load a training set from perfect reads in an already-aligned bam file
+     *
+     * @param samIn      the SAM/BAM file to load the reads from
+     * @param reference  the reference to which the reads should be compared
+     */
     public void loadPreAlignedTrainingSet(File samIn, File reference) {
         Vector< HashMap<String, SAMRecord> > trainingReads = getPerfectAlignmentsByTile(samIn, reference);
 
         trainingData = correlateReadsAndIntensities(trainingReads);
     }
 
+    /**
+     * Find perfect reads and group them by tile.
+     *
+     * @param samIn      the SAM/BAM file to load the raeds from
+     * @param reference  the reference to which the reads should be compared
+     * @return a vector of perfect reads, grouped by tile
+     */
     private Vector<HashMap<String, SAMRecord>> getPerfectAlignmentsByTile(File samIn, File reference) {
         FastaSequenceFile2 ref = new FastaSequenceFile2(reference);
         String currentContig = "none";
@@ -132,6 +171,12 @@ public class BasecallingTrainingSet {
         return trainingReads;
     }
 
+    /**
+     * Correlate the perfect reads with their raw intensities.  Sloooooooow.
+     *
+     * @param trainingReads  the perfect reads, grouped by tile
+     * @return a training set of raw sequence, intensities, and quality scores (all set to 40 for these perfect bases)
+     */
     private ArrayList<RawRead> correlateReadsAndIntensities(Vector<HashMap<String, SAMRecord>> trainingReads) {
         ArrayList<RawRead> newTrainingData = new ArrayList<RawRead>(trainingLimit);
 

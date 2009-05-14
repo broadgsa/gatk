@@ -1,14 +1,15 @@
 package org.broadinstitute.sting.secondarybase;
 
-import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleFactory1D;
-import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.DoubleFactory2D;
+import cern.colt.matrix.DoubleMatrix1D;
+import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.linalg.Algebra;
-
 import org.broadinstitute.sting.utils.BaseUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 
 /**
  * BasecallingBaseModel is a class that represents the statistical

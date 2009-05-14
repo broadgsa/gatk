@@ -1,13 +1,11 @@
 package org.broadinstitute.sting.playground.fourbasecaller;
 
-import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
+import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 
 import java.io.File;
 import java.util.HashMap;
-
-import net.sf.samtools.*;
 
 public class AddFourProbsToSAM extends CommandLineProgram {
     public static AddFourProbsToSAM Instance = null;

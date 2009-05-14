@@ -9,14 +9,11 @@
 */
 package org.broadinstitute.sting.secondarybase;
 
-import edu.mit.broad.picard.util.PasteParser;
-import edu.mit.broad.picard.util.FormatUtil;
-import edu.mit.broad.picard.util.BasicTextFileParser;
 import edu.mit.broad.picard.PicardException;
+import edu.mit.broad.picard.util.BasicTextFileParser;
+import edu.mit.broad.picard.util.FormatUtil;
 
 import java.io.File;
-
-import org.broadinstitute.sting.secondarybase.FirecrestReadData;
 
 /**
  * Class to parse the data in an Illumina Firecrest directory and return an iterator over that data, in order

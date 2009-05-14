@@ -17,10 +17,6 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.*;
 
-import net.sf.samtools.util.StringUtil;
-import org.broadinstitute.sting.secondarybase.FirecrestReadData;
-import org.broadinstitute.sting.secondarybase.FirecrestFilenameComparator;
-
 /**
  * Abstract base class for implementing parsers for various versions of Firecrest output
  */

@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.secondarybase;
 
-import java.util.StringTokenizer;
-
 public class FourIntensity {
     private float[] fIntensities;
 

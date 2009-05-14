@@ -1,19 +1,17 @@
 package org.broadinstitute.sting.secondarybase;
 
+import edu.mit.broad.picard.util.BasicTextFileParser;
+import edu.mit.broad.picard.util.PasteParser;
 import org.broadinstitute.sting.utils.StingException;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FilenameFilter;
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
-
-import edu.mit.broad.picard.util.PasteParser;
-import edu.mit.broad.picard.util.BasicTextFileParser;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class IlluminaParser implements Iterator<RawRead>, Iterable<RawRead>, Closeable {
     private File bustardDir;

@@ -1,18 +1,14 @@
 package org.broadinstitute.sting.secondarybase;
 
-import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.secondarybase.BasecallingReadModel;
-
-import java.io.File;
-import java.util.HashMap;
-import java.util.Vector;
-
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
+
+import java.io.File;
 
 public class AnnotateSecondaryBase extends CommandLineProgram {
     public static AnnotateSecondaryBase Instance = null;
@@ -58,10 +54,10 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
         SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, SAM_OUT);
 
         IlluminaParser iparser = new IlluminaParser(BUSTARD_DIR, LANE, CYCLE_BEGIN, CYCLE_END);
+        RawRead rr;
 
         int basesConsistent = 0, basesTotal = 0;
 
-        RawRead rr;
         while ((rr = iparser.next()) != null) {
             FourProbRead fpr = model.call(rr);
 
@@ -87,10 +83,9 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
         }
 
         iparser.close();
-        
         sfw.close();
 
-        System.out.println("Done.");
+        System.out.println("\nDone.");
 
         return 0;
     }

@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.secondarybase;
 
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.Utils;
 
 /**
  * FourProb represents four base hypotheses, their probabilities, and the ranking among one another.

@@ -2,8 +2,6 @@ package org.broadinstitute.sting.secondarybase;
 
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.secondarybase.BasecallingBaseModel;
-import org.broadinstitute.sting.secondarybase.FourProb;
 
 import java.io.File;
 import java.util.ArrayList;

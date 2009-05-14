@@ -1,16 +1,18 @@
 package org.broadinstitute.sting.secondarybase;
 
-import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.QualityUtils;
-
-import java.io.*;
-import java.util.HashMap;
-
 import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.HashMap;
 
 public class CombineSamAndFourProbs extends CommandLineProgram {
     public static CombineSamAndFourProbs Instance = null;

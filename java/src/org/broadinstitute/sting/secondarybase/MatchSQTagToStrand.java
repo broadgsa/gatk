@@ -1,15 +1,14 @@
 package org.broadinstitute.sting.secondarybase;
 
-import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.QualityUtils;
-
-import java.io.File;
-
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
+
+import java.io.File;
 
 public class MatchSQTagToStrand extends CommandLineProgram {
     public static MatchSQTagToStrand Instance = null;
