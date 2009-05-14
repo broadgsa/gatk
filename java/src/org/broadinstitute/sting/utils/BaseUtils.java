@@ -75,6 +75,28 @@ public class BaseUtils {
         return baseIndexToSimpleBase(crossTalkPartnerIndex(simpleBaseToBaseIndex(base)));
     }
 
+    /**
+     * Return the complement of a base index.
+     *
+     * @param baseIndex  the base index (0:A, 1:C, 2:G, 3:T)
+     * @return the complementary base index
+     */
+    static public byte complementIndex(int baseIndex) {
+        switch (baseIndex) {
+            case 0: return 3; // a -> t
+            case 1: return 2; // c -> g
+            case 2: return 1; // g -> c
+            case 3: return 0; // t -> a
+            default: return -1; // wtf?
+        }
+    }
+
+    /**
+     * Return the complement of a base.
+     *
+     * @param base  the base [AaCcGgTt]
+     * @return the complementary base
+     */
     static public byte simpleComplement(char base) {
         switch (base) {
             case 'A':
@@ -89,6 +111,11 @@ public class BaseUtils {
         }
     }
 
+    /**
+     * Reverse complement a byte array of bases
+     * @param bases  the byte array of bases
+     * @return the reverse complement of the base byte array
+     */
     static public byte[] simpleReverseComplement(byte[] bases) {
         byte[] rcbases = new byte[bases.length];
 

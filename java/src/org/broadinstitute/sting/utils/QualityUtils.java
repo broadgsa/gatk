@@ -48,6 +48,12 @@ public class QualityUtils {
         return b;
     }
 
+    /**
+     * Return a quality score, capped at 63.
+     *
+     * @param qual  the uncapped quality score
+     * @return the capped quality score
+     */
     static public byte boundQual(int qual) {
         return (byte) Math.min(qual, 63);        
     }
@@ -73,6 +79,14 @@ public class QualityUtils {
         return compressedQual;
     }
 
+    /**
+     * Compress a base and a log probabiliy difference (-10log10(p3/p2)) into
+     * a single byte so that it can be output in a SAMRecord's SQ field.
+     *
+     * @param baseIndex  the base index
+     * @param probdiff   the log probability difference between the secondary and tertiary bases (-10log10(p3/p2))
+     * @return a byte containing the index and the log probability difference
+     */
     static public byte baseAndProbDiffToCompressedQuality(int baseIndex, double probdiff) {
         byte compressedQual = 0;
 
@@ -110,6 +124,12 @@ public class QualityUtils {
         return ((double) x2)/100.0;
     }
 
+    /**
+     * From a compressed base, extract the log probability difference between the secondary and tertiary bases.
+     *
+     * @param compressedQual the compressed quality score, as returned by baseAndProbDiffToCompressedQuality
+     * @return the log probability difference (-10log10(p3/p2))
+     */
     static public double compressedQualityToProbDiff(byte compressedQual) {
         // Because java natives are signed, extra care must be taken to avoid
         // shifting a 1 into the sign bit in the implicit promotion of 2 to an int.
@@ -117,22 +137,6 @@ public class QualityUtils {
         x2 = (x2 >>> 2);
 
         return ((double) x2);
-    }
-
-    /**
-     * Return the complement of a base index.
-     * 
-     * @param baseIndex  the base index (0:A, 1:C, 2:G, 3:T)
-     * @return the complementary base index
-     */
-    static public byte complement(int baseIndex) {
-        switch (baseIndex) {
-            case 0: return 3; // a -> t
-            case 1: return 2; // c -> g
-            case 2: return 1; // g -> c
-            case 3: return 0; // t -> a
-            default: return -1; // wtf?
-        }
     }
 
     /**
@@ -145,7 +149,7 @@ public class QualityUtils {
         int baseIndex = compressedQualityToBaseIndex(compressedQual);
         double prob = compressedQualityToProb(compressedQual);
 
-        return baseAndProbToCompressedQuality(complement(baseIndex), prob);
+        return baseAndProbToCompressedQuality(BaseUtils.complementIndex(baseIndex), prob);
     }
 
     /**
