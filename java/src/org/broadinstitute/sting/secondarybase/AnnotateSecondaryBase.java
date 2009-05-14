@@ -2,6 +2,7 @@ package org.broadinstitute.sting.secondarybase;
 
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.secondarybase.BasecallingReadModel;
 
 import java.io.File;
@@ -38,23 +39,27 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
 
         if (SAM_IN == null || !SAM_IN.exists()) {
             // Iterate through raw Firecrest data and store the first N reads up to TRAINING_LIMIT
-            System.out.println("Training from the first " + TRAINING_LIMIT + " reads in the raw data.");
+            System.out.println("Loading training set from the first " + TRAINING_LIMIT + " reads in the raw data...");
             trainingSet.loadFirstNUnambiguousReadsTrainingSet();
         } else {
             // Find alignments with zero mismatches and store them until we've picked up TRAINING_LIMIT alignments
-            System.out.println("Training from the first " + TRAINING_LIMIT + " perfect reads in the aligned data.");
+            System.out.println("Loading training set from the first " + TRAINING_LIMIT + " perfect reads in the aligned data...");
             trainingSet.loadPreAlignedTrainingSet(SAM_IN, REFERENCE);
         }
 
         // Iterate through the stored training data and add the info to the BasecallingReadModel
+        System.out.println("Applying training set...");
         BasecallingReadModel model = new BasecallingReadModel(CYCLE_END - CYCLE_BEGIN + 1, CONTEXT);
         model.train(trainingSet);
 
         // Call bases and write results
+        System.out.println("Calling bases and writing SAM file...");
         SAMFileHeader sfh = new SAMFileHeader();
         SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, SAM_OUT);
 
         IlluminaParser iparser = new IlluminaParser(BUSTARD_DIR, LANE, CYCLE_BEGIN, CYCLE_END);
+
+        int basesConsistent = 0, basesTotal = 0;
 
         RawRead rr;
         while ((rr = iparser.next()) != null) {
@@ -62,13 +67,32 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
 
             SAMRecord sr = constructSAMRecord(rr, fpr, sfh, RUN_BARCODE);
             sfw.addAlignment(sr);
+
+            for (int cycle = 0; cycle < fpr.size(); cycle++) {
+                int rawBaseIndex = BaseUtils.simpleBaseToBaseIndex((char) rr.getSequence()[cycle]);
+                int fpBaseIndex = fpr.get(cycle).indexAtRank(0);
+
+                if (rawBaseIndex >= 0 && fpBaseIndex >= 0) {
+                    basesTotal++;
+
+                    if (rawBaseIndex == fpBaseIndex) {
+                        basesConsistent++;
+                    }
+                }
+            }
+
+            if (basesTotal % 10000 == 0 && basesTotal > 0) {
+                System.out.printf("%% bases consistent: %d/%d (%4.4f)\r", basesConsistent, basesTotal, ((double) basesConsistent)/((double) basesTotal));
+            }
         }
 
         iparser.close();
         
         sfw.close();
 
-        return 0;        
+        System.out.println("Done.");
+
+        return 0;
     }
 
     private SAMRecord constructSAMRecord(RawRead rr, FourProbRead fpr, SAMFileHeader sfh, String runBarcode) {
