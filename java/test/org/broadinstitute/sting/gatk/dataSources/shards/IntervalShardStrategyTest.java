@@ -15,8 +15,8 @@ import java.util.ArrayList;
 /**
  *
  * User: aaron
- * Date: Apr 8, 2009
- * Time: 11:31:04 AM
+ * Date: May 14, 2009
+ * Time: 3:52:57 PM
  *
  * The Broad Institute
  * SOFTWARE COPYRIGHT NOTICE AGREEMENT 
@@ -32,15 +32,13 @@ import java.util.ArrayList;
 /**
  * @author aaron
  * @version 1.0
- * @date Apr 8, 2009
+ * @date May 14, 2009
  * <p/>
- * Class ShardFactoryTest
+ * Class LocusWindowShardStrategyTest
  * <p/>
- * Tests the shard strategy factory.  This tests the whole sharding interface, and should be
- * split in the future into seperate test cases.
- * TODO: split out for the seperate sharding classes
+ * LocusWindowShardStrategy tests
  */
-public class ShardStrategyFactoryTest extends BaseTest {
+public class IntervalShardStrategyTest extends BaseTest {
 
     private static FastaSequenceFile2 seq;
 
@@ -85,81 +83,55 @@ public class ShardStrategyFactoryTest extends BaseTest {
 
     /** Tests that we got a string parameter in correctly */
     @Test
-    public void testFullGenomeCycle() {
-        logger.warn("Executing testFullGenomeCycle");
-
-        GenomeLoc.setupRefContigOrdering(seq.getSequenceDictionary());
-
-        ShardStrategy strategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
-        int shardCount = 0;
-        try {
-
-            for (Shard s : strategy) {
-                GenomeLoc l = s.getGenomeLoc();
-                //logger.debug("Shard start: " + l.getStart() + " stop " + l.getStop() + " contig " + l.getContig());
-                shardCount++;
-            }
-
-            // check to make sure we got apple shards
-            //logger.debug("shardCount : " + shardCount + " seq size = " + seq.getSequenceDictionary().size());
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            fail("We Shouldn't of seen an exception! : " + e.getMessage() + "; shard count " + shardCount);
-        }
-    }
-
-
-    /** Tests that we got a string parameter in correctly */
-    @Test
     public void testIntervalGenomeCycle() throws InterruptedException {
         logger.warn("Executing testIntervalGenomeCycle");
 
         SAMSequenceDictionary dic = seq.getSequenceDictionary();
-        SAMSequenceRecord s = dic.getSequence(1);
-        // Character stream writing
 
-       
+
+        // setup a list of genome locs that represent the whole file
+        SAMSequenceRecord s = dic.getSequence(1);
         int stop = s.getSequenceLength();
         int size = 10000;
         int location = 1;
+
         GenomeLoc.setupRefContigOrdering(dic);
         // keep track of the number of genome locs we build
         int genomeLocs = 0;
         ArrayList<GenomeLoc> locations = new ArrayList<GenomeLoc>();
-
         try {
             while (location + size < stop) {
-            logger.debug("s = " + s.getSequenceName() + " " + location + " " + size);
-            // lets make up some fake locations
-            GenomeLoc gl = new GenomeLoc(s.getSequenceName(), location, location + size - 1);
-            logger.debug("loc = " + location);
+                // lets make up some fake locations
+                GenomeLoc gl = new GenomeLoc(s.getSequenceName(), location, location + size - 1);
+                logger.debug("loc = " + location);
 
-            // let's move the location up, with a size space
-            location += (size * 2);
+                // let's move the location up, with a size space
+                location += (size * 2);
 
-            // add our current location to the list
-            locations.add(gl);
+                // add our current location to the list
+                locations.add(gl);
 
-            // add another genome location
-            ++genomeLocs;
-        }
+                // add another genome location
+                ++genomeLocs;
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
         logger.debug("Location count = " + genomeLocs);
-        ShardStrategy strategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 5000, locations);
+        ShardStrategy strategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL, seq.getSequenceDictionary(), 0, locations);
         int shardCount = 0;
         try {
             for (Shard sh : strategy) {
                 GenomeLoc l = sh.getGenomeLoc();
-
-                logger.debug("Shard start: " + l.getStart() + " stop " + l.getStop() + " contig " + l.getContig());
+                GenomeLoc truth = locations.get(shardCount);
+                if (l.compareTo(truth) != 0) {
+                    String truthStr = truth.getContig() + ":" + truth.getStart() + ":" + truth.getStop();
+                    String lStr = l.getContig() + ":" + l.getStart() + ":" + l.getStop();
+                    fail("Genome loc " + truthStr + " doesn't equal " + lStr);
+                }
                 shardCount++;
             }
-
-             logger.debug("Shard count = " + shardCount); 
-            assertEquals(shardCount, genomeLocs * 2);
+            assertEquals(shardCount, genomeLocs);
 
         } catch (Exception e) {
             e.printStackTrace();

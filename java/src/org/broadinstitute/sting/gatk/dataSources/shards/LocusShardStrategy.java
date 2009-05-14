@@ -143,7 +143,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
         if (this.intervals == null) {
             return nonIntervaledNext(length, proposedSize, nextStart);
         } else {
-            return intervaledNext(length, proposedSize, nextStart);
+            return intervaledNext(proposedSize, nextStart);
         }
 
     }
@@ -151,16 +151,15 @@ public abstract class LocusShardStrategy implements ShardStrategy {
     /**
      * Interval based next processing
      *
-     * @param length       the length of the sequence
      * @param proposedSize the proposed size
      * @param nextStart    where we start from
      * @return the shard that represents this data
      */
-    private Shard intervaledNext(long length, long proposedSize, long nextStart) {
+    private Shard intervaledNext(long proposedSize, long nextStart) {
         // get the current genome location
         GenomeLoc loc = intervals.get(currentInterval);
-        if (nextStart + proposedSize > loc.getStop()) {
-            // we need to move the next interval
+        if (nextStart + proposedSize >= loc.getStop()) {
+            // we need to get the rest of the current loc in a shard (return it), and move to the next location
             proposedSize = loc.getStop() - nextStart;
             lastGenomeLocSize = proposedSize;
 
@@ -263,6 +262,18 @@ public abstract class LocusShardStrategy implements ShardStrategy {
      */
     public Iterator<Shard> iterator() {
         return this;
+    }
+
+    /**
+     * this allows a shard strategy to get the current interval.  It's kind of a hack, but for the
+     * locusWindowShardStrategy it was the best approach.
+     * @return
+     */
+    protected GenomeLoc getCurrentInterval() {
+        if (this.intervals == null || currentInterval < 0) {
+            return null;
+        }
+        return intervals.get(currentInterval);
     }
 
 }

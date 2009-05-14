@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.dataSources.shards;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.List;
 
@@ -35,7 +36,7 @@ import java.util.List;
  */
 public class ShardStrategyFactory {
     public enum SHATTER_STRATEGY {
-        LINEAR, EXPONENTIAL, READS
+        LINEAR, EXPONENTIAL, READS, INTERVAL
     }
 
     /** our log, which we want to capture anything from this class */
@@ -59,7 +60,7 @@ public class ShardStrategyFactory {
             case READS:
                 return new ReadShardStrategy(dic, startingSize);
             default:
-                throw new RuntimeException("Strategy: " + strat + " isn't implemented");
+                throw new StingException("Strategy: " + strat + " isn't implemented for this type of shatter request");
         }
 
     }
@@ -78,7 +79,7 @@ public class ShardStrategyFactory {
             case EXPONENTIAL:
                 return new ExpGrowthLocusShardStrategy(convertFrom);
             default:
-                throw new RuntimeException("Strategy: " + strat + " isn't implemented");
+                throw new StingException("Strategy: " + strat + " isn't implemented");
 
         }
     }
@@ -100,15 +101,17 @@ public class ShardStrategyFactory {
                 return new ExpGrowthLocusShardStrategy(dic, startingSize, lst);
             case READS:
                 // return new ReadShardStrategy(dic, startingSize);
-                throw new RuntimeException("Strategy: " + strat + " isn't implemented for intervals");
+                throw new StingException("Strategy: " + strat + " isn't implemented for intervals");
+            case INTERVAL:
+                return new IntervalShardStrategy(dic, lst);
             default:
-                throw new RuntimeException("Strategy: " + strat + " isn't implemented");
+                throw new StingException("Strategy: " + strat + " isn't implemented");
         }
 
     }
 
     /**
-     * convert between types
+     * setup a reads shattering strategy
      *
      * @param readCount the number of reads to include in each shard
      * @return
