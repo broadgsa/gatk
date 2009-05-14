@@ -60,9 +60,6 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
         while ((rr = iparser.next()) != null) {
             FourProbRead fpr = model.call(rr);
 
-            System.out.println(rr.getSequenceAsString());
-            System.out.println(fpr.getPrimaryBaseSequence());
-
             SAMRecord sr = constructSAMRecord(rr, fpr, sfh, RUN_BARCODE);
             sfw.addAlignment(sr);
         }
