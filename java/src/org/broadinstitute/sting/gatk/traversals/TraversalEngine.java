@@ -179,6 +179,8 @@ public abstract class TraversalEngine {
      * @return the header if it's stored, null if not
      */
     public SAMFileHeader getSAMHeader() {
+        if ( myHeader == null )
+            myHeader = samReader.getFileHeader();
         return myHeader;
     }
 
