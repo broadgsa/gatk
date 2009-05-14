@@ -39,6 +39,12 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
         attributes = new HashMap<String, String>();
     }
 
+    public TabularROD(final String name, ArrayList<String> header) {
+        super(name);
+        attributes = new HashMap<String, String>();
+        this.header = header;
+    }
+
     /**
      * Walks through the source files looking for the header line, which it returns as a
      * list of strings.
