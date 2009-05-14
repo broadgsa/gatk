@@ -89,7 +89,7 @@ public class TraverseReads extends TraversalEngine {
         ReadWalker<M, T> readWalker = (ReadWalker<M, T>) walker;
 
         // we allow a bunch of wrapping iterators for down sampling, threadingIO, etc.
-        StingSAMIterator it = ApplyDecoratingIterators(true, dataProvider.getReadIterator());
+        StingSAMIterator it = applyDecoratingIterators(true, dataProvider.getReadIterator());
 
         // while we still have more reads
         for (SAMRecord read : it) {

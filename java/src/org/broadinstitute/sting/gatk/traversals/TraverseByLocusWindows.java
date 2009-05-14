@@ -9,7 +9,6 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.Pair;
 
 import java.util.*;
 import java.io.File;
@@ -90,7 +89,7 @@ public class TraverseByLocusWindows extends TraversalEngine {
             CloseableIterator<SAMRecord> readIter = samReader.queryOverlapping( interval.getContig(),
                     (int)interval.getStart(),
                     (int)interval.getStop());
-            Iterator<SAMRecord> wrappedIter = WrapReadsIterator(readIter, false);
+            Iterator<SAMRecord> wrappedIter = wrapReadsIterator(readIter, false);
             LocusContext locus = getLocusContext(wrappedIter, interval);
             readIter.close();
 
@@ -150,7 +149,7 @@ public class TraverseByLocusWindows extends TraversalEngine {
                 // otherwise, we're past the interval so first deal with the collected reads and then this one
                 else {
                     if ( intervalReads.size() > 0 ) {
-                        Iterator<SAMRecord> wrappedIter = WrapReadsIterator(intervalReads.iterator(), false);
+                        Iterator<SAMRecord> wrappedIter = wrapReadsIterator(intervalReads.iterator(), false);
                         LocusContext locus = getLocusContext(wrappedIter, currentInterval);
 
                         if ( nextLociToCarry.size() == 0 ) {
@@ -186,7 +185,7 @@ public class TraverseByLocusWindows extends TraversalEngine {
         }
         // some cleanup
         if ( intervalReads.size() > 0 ) {
-            Iterator<SAMRecord> wrappedIter = WrapReadsIterator(intervalReads.iterator(), false);
+            Iterator<SAMRecord> wrappedIter = wrapReadsIterator(intervalReads.iterator(), false);
             LocusContext locus = getLocusContext(wrappedIter, currentInterval);
             if ( nextLociToCarry.size() == 0 ) {
                 nextLociToCarry.add(locus);

@@ -350,7 +350,7 @@ public abstract class TraversalEngine {
             samReader = initializeSAMFile(allReadsFiles.get(0));
         else
             samReader = null;
-        return WrapReadsIterator(getReadsIterator(samReader), true);
+        return wrapReadsIterator(getReadsIterator(samReader), true);
     }
 
     protected Iterator<SAMRecord> getReadsIterator(final SAMFileReader samReader) {
@@ -381,9 +381,9 @@ public abstract class TraversalEngine {
     }
 
     @Deprecated
-    protected StingSAMIterator WrapReadsIterator( final Iterator<SAMRecord> rawIterator, final boolean enableVerification ) {
+    protected StingSAMIterator wrapReadsIterator( final Iterator<SAMRecord> rawIterator, final boolean enableVerification ) {
         StingSAMIterator wrappedIterator = StingSAMIteratorAdapter.adapt(rawIterator);
-        wrappedIterator = ApplyDecoratingIterators(enableVerification, wrappedIterator);
+        wrappedIterator = applyDecoratingIterators(enableVerification, wrappedIterator);
 
 
         if (THREADED_IO) {
@@ -394,7 +394,7 @@ public abstract class TraversalEngine {
         return wrappedIterator;
     }
 
-    protected StingSAMIterator ApplyDecoratingIterators(boolean enableVerification, StingSAMIterator wrappedIterator) {
+    protected StingSAMIterator applyDecoratingIterators(boolean enableVerification, StingSAMIterator wrappedIterator) {
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away
         if (DOWNSAMPLE_BY_FRACTION)

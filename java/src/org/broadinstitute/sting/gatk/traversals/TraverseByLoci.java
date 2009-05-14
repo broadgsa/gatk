@@ -81,7 +81,7 @@ public class TraverseByLoci extends TraversalEngine {
                         (int)interval.getStart(),
                         (int)interval.getStop()+1 );
 
-                Iterator<SAMRecord> wrappedIter = WrapReadsIterator( readIter, false );
+                Iterator<SAMRecord> wrappedIter = wrapReadsIterator( readIter, false );
                 sum = carryWalkerOverInterval(walker, wrappedIter, sum, interval);
                 readIter.close();
             }
@@ -89,7 +89,7 @@ public class TraverseByLoci extends TraversalEngine {
         else {
             // We aren't locus oriented
             logger.debug("Doing non-interval-based traversal");
-            samReadIter = WrapReadsIterator(getReadsIterator(samReader), true);
+            samReadIter = wrapReadsIterator(getReadsIterator(samReader), true);
             sum = carryWalkerOverInterval(walker, samReadIter, sum, null);
         }
 
