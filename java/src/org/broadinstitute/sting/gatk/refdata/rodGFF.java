@@ -18,7 +18,7 @@ import org.broadinstitute.sting.utils.Utils;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class rodGFF extends ReferenceOrderedDatum {
+public class rodGFF extends BasicReferenceOrderedDatum {
     private String contig, source, feature, strand, frame;
     private long start, stop;
     private double score;
@@ -134,7 +134,7 @@ public class rodGFF extends ReferenceOrderedDatum {
         return attributes;
     }
 
-    public void parseLine(final String[] parts) {
+    public boolean parseLine(final Object header, final String[] parts) {
         //System.out.printf("Parsing GFFLine %s%n", Utils.join(" ", parts));
 
         final String contig = parts[0];
@@ -152,5 +152,6 @@ public class rodGFF extends ReferenceOrderedDatum {
         final String attributeParts = Utils.join(" ", parts, 8, parts.length);
         HashMap<String, String> attributes = parseAttributes(attributeParts);
         setValues(contig, source, feature, start, stop, score, strand, frame, attributes);
+        return true;
     }
 }

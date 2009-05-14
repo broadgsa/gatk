@@ -42,7 +42,8 @@ public abstract class BaseTest {
 
     protected static String seqLocation = "/seq";
     protected static String oneKGLocation = "/broad/1KG";
-
+    protected static String testDir = "testdata/";
+    
     protected static boolean alreadySetup = false;
     private static long startTime;
 

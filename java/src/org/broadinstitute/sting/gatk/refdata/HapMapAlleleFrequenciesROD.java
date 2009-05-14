@@ -11,7 +11,7 @@ import edu.mit.broad.picard.util.SequenceUtil;
 /**
  * ReferenceOrderedDatum class to hold HapMap AlleleFrequency Data
  */
-public class HapMapAlleleFrequenciesROD extends ReferenceOrderedDatum {
+public class HapMapAlleleFrequenciesROD extends BasicReferenceOrderedDatum {
     public GenomeLoc loc;       // genome location of SNP
                                 // Reference sequence chromosome or scaffold
                                 // Start and stop positions in chrom
@@ -46,7 +46,7 @@ public class HapMapAlleleFrequenciesROD extends ReferenceOrderedDatum {
 
         return String.format(
                 "%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\t%d\t%d\t%1.3f\t%1.3f\t%d",
-                rsNumber, hgBuild, getContig(), getStart(), strand, alleles, refAllele, varAllele,
+                rsNumber, hgBuild, getLocation().getContig(), getLocation().getStart(), strand, alleles, refAllele, varAllele,
                 refCounts, varCounts, refFreq, varFreq, totalCounts);
     }
 
@@ -58,7 +58,7 @@ public class HapMapAlleleFrequenciesROD extends ReferenceOrderedDatum {
         return toString();
     }
 
-    public void parseLine(final String[] parts) {
+    public boolean parseLine(final Object header, final String[] parts) {
         try {
             // rs11511647 <=> HG18 <=> chr10 <=> 62765 <=> + <=> T/C <=> T <=> C <=> 21 <=> 97 <=> 0.178 <=> 0.822 <=> 118
 
@@ -85,6 +85,7 @@ public class HapMapAlleleFrequenciesROD extends ReferenceOrderedDatum {
             System.out.printf("  Exception caught during parsing HapMap Allele Freq %s%n", Utils.join(" <=> ", parts));
             throw e;
         }
+        return true;
     }
 
     public double getVarAlleleFreq() { return this.varFreq; }

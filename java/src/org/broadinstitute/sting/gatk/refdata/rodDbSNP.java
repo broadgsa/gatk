@@ -19,7 +19,7 @@ import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class rodDbSNP extends ReferenceOrderedDatum implements AllelicVariant {
+public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVariant {
     public GenomeLoc loc;       // genome location of SNP
                                 // Reference sequence chromosome or scaffold
                                 // Start and stop positions in chrom
@@ -128,7 +128,8 @@ public class rodDbSNP extends ReferenceOrderedDatum implements AllelicVariant {
     // ----------------------------------------------------------------------
     public String toString() {
         return String.format("%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\t%d",
-                getContig(), getStart(), getStop(), name, strand, refBases, observed, molType,
+                getLocation().getContig(), getLocation().getStart(), getLocation().getStop(),
+                name, strand, refBases, observed, molType,
                 varType, validationStatus, avHet, avHetSE, func, locType, weight );
     }
 
@@ -147,11 +148,12 @@ public class rodDbSNP extends ReferenceOrderedDatum implements AllelicVariant {
 
     public String repl() {
         return String.format("%d\t%s\t%d\t%d\t%s\t0\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\t%d",
-                585, getContig(), getStart()-1, getStop()-1, name, strand, refBases, refBases, observed, molType,
+                585, getLocation().getContig(), getLocation().getStart()-1, getLocation().getStop()-1,
+                name, strand, refBases, refBases, observed, molType,
                 varType, validationStatus, avHet, avHetSE, func, locType, weight );
     }
 
-    public void parseLine(final String[] parts) {
+    public boolean parseLine(final Object header, final String[] parts) {
         try {
             String contig = parts[1];
             long start = Long.parseLong(parts[2]) + 1; // The final is 0 based
@@ -170,6 +172,7 @@ public class rodDbSNP extends ReferenceOrderedDatum implements AllelicVariant {
             func = parts[15];
             locType = parts[16];
             weight = Integer.parseInt(parts[17]);
+            return true;
         } catch ( RuntimeException e ) {
             System.out.printf("  Exception caught during parsing GFFLine %s%n", Utils.join(" <=> ", parts));
             throw e;

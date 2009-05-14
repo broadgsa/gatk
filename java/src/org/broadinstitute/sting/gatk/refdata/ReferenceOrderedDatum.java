@@ -2,6 +2,10 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
 /**
  * Created by IntelliJ IDEA.
  * User: mdepristo
@@ -9,27 +13,28 @@ import org.broadinstitute.sting.utils.GenomeLoc;
  * Time: 10:49:47 AM
  * To change this template use File | Settings | File Templates.
  */
-public abstract class ReferenceOrderedDatum implements Comparable<ReferenceOrderedDatum> {
-    protected String name;
+public interface ReferenceOrderedDatum extends Comparable<ReferenceOrderedDatum> {
+    public String getName();
+    public boolean parseLine(final Object header, final String[] parts) throws IOException;
+    public String toString();
+    public String toSimpleString();
+    public String repl();
 
-    public ReferenceOrderedDatum(String name) {
-        this.name = name;
-    }
+    /**
+     * Used by the ROD system to determine how to split input lines
+     * @return Regex string delimiter separating fields
+     */
+    public String delimiter();
 
-    public String getName() { return this.name; }
+    public GenomeLoc getLocation();
+    public int compareTo( ReferenceOrderedDatum that );
 
-    public abstract void parseLine(final String[] parts);
-
-    public abstract String toString();
-    public abstract String toSimpleString();
-    public abstract String repl();
-
-    public abstract GenomeLoc getLocation();
-    public int compareTo( ReferenceOrderedDatum that ) {
-        return getLocation().compareTo(that.getLocation());
-    }
-
-    public final String getContig() { return getLocation().getContig(); }
-    public final long getStart() { return getLocation().getStart(); }
-    public final long getStop() { return getLocation().getStop(); }
+    /**
+     * Backdoor hook to read header, meta-data, etc. associated with the file.  Will be
+     * called by the ROD system before streaming starts
+     *
+     * @param source source data file on disk from which this rod stream will be pulled
+     * @return a header object that will be passed to parseLine command
+     */
+    public Object initialize(final File source) throws FileNotFoundException;
 }

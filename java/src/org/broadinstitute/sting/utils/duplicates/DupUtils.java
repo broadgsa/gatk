@@ -51,7 +51,7 @@ public class DupUtils {
         copy.setInferredInsertSize(read.getInferredInsertSize());
         copy.setMappingQuality(read.getMappingQuality());
         copy.setCigar(read.getCigar());
-        copy.setFlags(copy.getFlags());
+        copy.setFlags(read.getFlags());
 
         return copy;
     }

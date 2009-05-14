@@ -25,6 +25,13 @@ import org.apache.log4j.Logger;
 public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements Iterable<ROD> {
     private String name;
     private File file = null;
+    private String fieldDelimiter;
+    
+    /**
+     * Header object returned from the datum
+     */
+    private Object header = null;
+    
     private Class<ROD> type = null; // runtime type information for object construction
 
     // ----------------------------------------------------------------------
@@ -53,6 +60,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         addModule("dbSNP", rodDbSNP.class);
         addModule("HapMapAlleleFrequencies", HapMapAlleleFrequenciesROD.class);
         addModule("SAMPileup", rodSAMPileup.class);
+        addModule("Table", TabularROD.class);
     }
 
 
@@ -124,6 +132,8 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         this.file = file;
         this.type = type;
         this.name = name;
+        this.header = initializeROD(name, file, type);
+        this.fieldDelimiter = newROD(name, type).delimiter();
     }
 
     public String getName() { return name; }
@@ -218,8 +228,9 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         public ROD next() {
             final String line = parser.next();
             //System.out.printf("Line is %s%n", line);
-            String parts[] = line.split("\t");
-            return parseLine(parts);
+            String parts[] = line.split(fieldDelimiter);
+            ROD n = parseLine(parts);
+            return n != null ? n : next();
         }
  
         public void remove() {
@@ -263,52 +274,41 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
             return prev; 
         }
 
-        //
-        // Seeks forward in the file until we reach (or cross) a record at contig / pos
-        // If we don't find anything and cross beyond contig / pos, we return null
-        // Otherwise we return the first object who's start is at pos
-        //
+        /**
+         * Seeks forward in the file until we reach (or cross) a record at contig / pos
+         * If we don't find anything and cross beyond contig / pos, we return null
+         * Otherwise we return the first object who's start is at pos
+         *
+         * @param loc
+         * @return
+         */
         public ROD seekForward(final GenomeLoc loc) {
-            return seekForward(loc.getContig(), loc.getStart());
-        }
-
-        protected ROD seekForward(final String contigName, final long pos) {
-            final boolean DEBUG = false; 
+            final boolean DEBUG = false;
         
             ROD result = null;
             
-            if ( DEBUG ) System.out.printf("  *** starting seek to %s %d %s%n", contigName, pos, prev);
+            if ( DEBUG ) System.out.printf("  *** starting seek to %s %d %s%n", loc.getContig(), loc.getStart(), prev);
             while ( hasNext() ) {
                 ROD current = next();
                 //System.out.printf("    -> Seeking to %s %d AT %s %d%n", contigName, pos, current.getContig(), current.getStart());
-                int strCmp = GenomeLoc.compareContigs( contigName, prev.getContig() );// contigName.compareTo( prev.getContig() );
-                if ( strCmp == 0 ) {
-                    // The contigs are equal
-                    if ( current.getStart() > pos ) {
-                        // There was nothing to find, push back next and return null
-                        it.pushback(current);
-                        break;
-                    }
-                    else if ( pos == current.getStart() ) {
-                        // We found a record at contig / pos, return it
-                        result = current;
-                        break;
-                    }
+                int cmp = current.getLocation().compareTo(loc);
+                if ( cmp < 0 ) {
+                    // current occurs before loc, continue searching
+                    continue;
                 }
-                else if ( strCmp < 0 ) {
-                    if ( DEBUG ) System.out.printf("    -> Jumped to contig %s%n", contigName);
-                    // We've gone past the desired contig, break
+                else if ( cmp == 0 ) {
+                    result = current;
+                    break;
+                } else {
+                    // current is after loc
                     it.pushback(current);
                     break;
                 }
             }
 
             if ( DEBUG ) {
-                if ( result == null )
-                    ;
-                    //System.out.printf("    --- seek result to %s %d is NULL%n", contigName, pos);
-                else
-                    System.out.printf("    ### Found %s %d%n", result.getContig(), result.getStart());
+                if ( result != null )
+                    System.out.printf("    ### Found %s%n", result.getLocation());
             }
             
 
@@ -326,26 +326,39 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     // Parsing
     //
     // ----------------------------------------------------------------------
-    ROD parseLine(final String[] parts) {
-        //System.out.printf("Parsing GFFLine %s%n", Utils.join(" ", parts));
+    private ROD newROD( final String name, final Class<ROD> type ) {
         try {
-            //ROD obj = type.newInstance();
             Constructor<ROD> c = type.getConstructor(String.class);
-            ROD obj = (ROD)c.newInstance(name);
-            obj.parseLine(parts);
-            return obj;
+            return (ROD)c.newInstance(name);
         } catch ( java.lang.InstantiationException e ) {
-            System.out.println(e);
-            return null; // wow, unsafe!
+            throw new RuntimeException(e);
         } catch ( java.lang.IllegalAccessException e ) {
-            System.out.println(e);
-            return null; // wow, unsafe!
+            throw new RuntimeException(e);
         } catch ( java.lang.NoSuchMethodException e ) {
-            System.out.println(e);
-            return null; // wow, unsafe!
+            throw new RuntimeException(e);
         } catch ( InvocationTargetException e ) {
-            System.out.println(e);
-            return null; // wow, unsafe!
+            throw new RuntimeException(e);
         }
+    }
+
+    private Object initializeROD(final String name, final File file, final Class<ROD> type) {
+        ROD rod = newROD(name, type);
+        try {
+            return rod.initialize(file);
+        } catch ( FileNotFoundException e ) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private ROD parseLine(final String[] parts) {
+        //System.out.printf("Parsing GFFLine %s%n", Utils.join(" ", parts));
+        ROD obj = newROD(name, type);
+        try {
+            if ( ! obj.parseLine(header, parts) )
+                obj = null;
+        } catch (IOException e) {
+            throw new RuntimeException("Badly formed ROD: " + e);
+        }
+        return obj;
     }
 }

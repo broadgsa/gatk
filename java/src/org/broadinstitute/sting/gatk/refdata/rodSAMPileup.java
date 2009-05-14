@@ -25,7 +25,7 @@ import org.broadinstitute.sting.utils.Pileup;
  * Time: 2:58:33 PM
  * To change this template use File | Settings | File Templates.
  */
-public class rodSAMPileup extends ReferenceOrderedDatum implements Genotype, Pileup {
+public class rodSAMPileup extends BasicReferenceOrderedDatum implements Genotype, Pileup {
     private static final int NO_VARIANT = -1;
     private static final int SNP_VARIANT = 0;
     private static final int INSERTION_VARIANT = 1;
@@ -69,7 +69,7 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements Genotype, Pil
     }
 
     @Override
-    public void parseLine(final String[] parts) {
+    public boolean parseLine(final Object header, final String[] parts) {
 //    	          0          1             2         3                  4         5            6         7
 //    	*     chrX     466           T         Y                170      170       88      32 ... (piles of read bases  and quals follow)
 //    	 *    chrX    141444     *     +CA/+CA       32       468     255     25     +CA     *       5       2       12      6
@@ -134,6 +134,7 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements Genotype, Pil
             System.out.printf("  Exception caught during parsing BasicPileup line:  %s%n", Utils.join(" <=> ", parts));
             throw e;
         }
+        return true;
   //      if ( nNonref > 1 ) System.out.println("SAM pileup: WARNING: multi-allelic variant :  ("+refBaseChar+") -->"+toMediumString());
     }
 
@@ -319,7 +320,7 @@ public class rodSAMPileup extends ReferenceOrderedDatum implements Genotype, Pil
     // ----------------------------------------------------------------------
     public String toString() {
         return String.format("%s\t%d\t%d\t%s\t%s\t%s",
-                getContig(), getStart(), getStop(), name, refBases, observedString);
+                getLocation().getContig(), getLocation().getStart(), getLocation().getStop(), name, refBases, observedString);
     }
 
     public String toSimpleString() {
