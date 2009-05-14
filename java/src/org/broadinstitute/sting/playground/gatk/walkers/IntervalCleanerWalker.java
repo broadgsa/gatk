@@ -140,6 +140,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 StringBuffer sb = new StringBuffer();
                 sb.append(reference.substring(0, refIdx));
                 Cigar c = swConsensus.getCigar();
+                //out.println("CIGAR = " + cigarToString(c));
 
                 int indelCount = 0;
                 int altIdx = 0;
@@ -563,5 +564,21 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             readsToWrite.add(new ComparableSAMRecord(rec));
         for ( AlignedRead aRec : altReads )
             readsToWrite.add(new ComparableSAMRecord(aRec.getRead()));
+    }
+
+    public static String cigarToString(Cigar cig) {
+        StringBuilder b = new StringBuilder();
+
+        for ( int i = 0 ; i < cig.numCigarElements() ; i++ ) {
+            char c='?';
+            switch ( cig.getCigarElement(i).getOperator() ) {
+            case M : c = 'M'; break;
+            case D : c = 'D'; break;
+            case I : c = 'I'; break;
+            }
+            b.append(cig.getCigarElement(i).getLength());
+            b.append(c);
+        }
+        return b.toString();
     }
 }
