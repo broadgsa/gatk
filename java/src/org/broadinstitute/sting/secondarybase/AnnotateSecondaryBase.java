@@ -2,36 +2,31 @@ package org.broadinstitute.sting.secondarybase;
 
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.secondarybase.BasecallingReadModel;
 
 import java.io.File;
 import java.util.HashMap;
-import java.util.ArrayList;
 import java.util.Vector;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 
-import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.CloseableIterator;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMFileWriterFactory;
 
 public class AnnotateSecondaryBase extends CommandLineProgram {
     public static AnnotateSecondaryBase Instance = null;
 
-    @Argument(fullName="dir", shortName="D", doc="Illumina Firecrest directory") public File FIRECREST_DIR;
+    @Argument(fullName="dir", shortName="D", doc="Illumina Bustard directory") public File BUSTARD_DIR;
     @Argument(fullName="lane", shortName="L", doc="Illumina flowcell lane") public int LANE;
-    @Argument(fullName="sam_in", shortName="SI", doc="The file to annotate") public File SAM_IN;
+    @Argument(fullName="sam_in", shortName="SI", doc="The file to use for training and annotation", required=false) public File SAM_IN;
     @Argument(fullName="sam_out", shortName="SO", doc="Output path for sam file") public File SAM_OUT;
     @Argument(fullName="reference", shortName="R", doc="Reference sequence to which sam_in is aligned (in fasta format)") public File REFERENCE;
     @Argument(fullName="cycle_begin", shortName="CB", doc="On what cycle does the read begin? (0-based inclusive)") public int CYCLE_BEGIN;
     @Argument(fullName="cycle_end", shortName="CE", doc="On what cycle does the read end? (0-based inclusive)") public int CYCLE_END;
-    @Argument(fullName="tlim", shortName="T", doc="Number of reads to use for parameter initialization", required=false) public int TRAINING_LIMIT = 1000000;
+    @Argument(fullName="tlim", shortName="T", doc="Number of reads to use for parameter initialization", required=false) public int TRAINING_LIMIT = 250000;
     @Argument(fullName="clim", shortName="C", doc="Number of reads to basecall", required=false) public int CALLING_LIMIT = Integer.MAX_VALUE;
     @Argument(fullName="context", shortName="X", doc="Attempt to correct for context?", required=false) public Boolean CONTEXT = false;
+    @Argument(fullName="runbarcode", shortName="B", doc="Run barcode (embedded as part of the read name") public String RUN_BARCODE;
 
     public static void main(String[] argv) {
         Instance = new AnnotateSecondaryBase();
@@ -39,94 +34,55 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
     }
 
     protected int execute() {
-        // Iterate through bam file
-            // take an alignment
-            // verify that it has zero mismatches to the reference
-            // if so, store it
-            // continue until we've picked up TRAINING_LIMIT alignments
-        Vector< HashMap<String, SAMRecord> > trainingSet = loadPreAlignedTrainingSet();
+        BasecallingTrainingSet trainingSet = new BasecallingTrainingSet(BUSTARD_DIR, LANE, CYCLE_BEGIN, CYCLE_END, TRAINING_LIMIT);
 
-        // Iterate through the stored alignments
-            // find the corresponding firecrest intensity line
-            // add the info to the BasecallingReadModel
-        BasecallingReadModel model = train(trainingSet);
+        if (SAM_IN == null || !SAM_IN.exists()) {
+            // Iterate through raw Firecrest data and store the first N reads up to TRAINING_LIMIT
+            System.out.println("Training from the first " + TRAINING_LIMIT + " reads in the raw data.");
+            trainingSet.loadFirstNUnambiguousReadsTrainingSet();
+        } else {
+            // Find alignments with zero mismatches and store them until we've picked up TRAINING_LIMIT alignments
+            System.out.println("Training from the first " + TRAINING_LIMIT + " perfect reads in the aligned data.");
+            trainingSet.loadPreAlignedTrainingSet(SAM_IN, REFERENCE);
+        }
 
-        // Iterate through the bam file
-            // take an alignment
-            // call it
-            // stick the 2nd-best bases into the file
-            // spit the alignment back out
+        // Iterate through the stored training data and add the info to the BasecallingReadModel
+        BasecallingReadModel model = new BasecallingReadModel(CYCLE_END - CYCLE_BEGIN + 1, CONTEXT);
+        model.train(trainingSet);
+
+        // Call bases and write results
+        SAMFileHeader sfh = new SAMFileHeader();
+        SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, SAM_OUT);
+
+        IlluminaParser iparser = new IlluminaParser(BUSTARD_DIR, LANE, CYCLE_BEGIN, CYCLE_END);
+
+        RawRead rr;
+        while ((rr = iparser.next()) != null) {
+            FourProbRead fpr = model.call(rr);
+
+            System.out.println(rr.getSequenceAsString());
+            System.out.println(fpr.getPrimaryBaseSequence());
+
+            SAMRecord sr = constructSAMRecord(rr, fpr, sfh, RUN_BARCODE);
+            sfw.addAlignment(sr);
+        }
+
+        iparser.close();
+        
+        sfw.close();
 
         return 0;        
     }
 
-    private Vector< HashMap<String, SAMRecord> > loadPreAlignedTrainingSet() {
-        FastaSequenceFile2 ref = new FastaSequenceFile2(REFERENCE);
-        String currentContig = "none";
-        byte[] refbases = null;
+    private SAMRecord constructSAMRecord(RawRead rr, FourProbRead fpr, SAMFileHeader sfh, String runBarcode) {
+        SAMRecord sr = new SAMRecord(sfh);
 
-        SAMFileReader sf = new SAMFileReader(SAM_IN);
-        SAMRecord sr;
-        CloseableIterator<SAMRecord> sfit = sf.iterator();
+        sr.setReadName(runBarcode + ":" + rr.getReadKey() + "#0");
+        sr.setReadUmappedFlag(true);
+        sr.setReadString(rr.getSequenceAsString());
+        sr.setBaseQualities(rr.getQuals());
+        sr.setAttribute("SQ", fpr.getSQTag(rr));
 
-        int numTrainingReads = 0;
-        Vector< HashMap<String, SAMRecord> > trainingReads = new Vector< HashMap<String, SAMRecord> >(100);
-
-        while (numTrainingReads < TRAINING_LIMIT && (sr = sfit.next()) != null) {
-            if (sr.getCigar().numCigarElements() == 1) {
-                int offset = sr.getAlignmentStart();
-
-                if (!currentContig.matches(sr.getReferenceName())) {
-                    ref.seekToContig(sr.getReferenceName());
-                    currentContig = sr.getReferenceName();
-                    refbases = ref.nextSequence().getBases();
-                }
-
-                int mismatches = 0;
-
-                String refString = "";
-                for (int i = offset, j = 0; i < offset + sr.getReadBases().length; i++, j++) {
-                    refString += (char) refbases[i - 1];
-
-                    mismatches += (BaseUtils.simpleBaseToBaseIndex((char) refbases[i - 1]) !=
-                                   BaseUtils.simpleBaseToBaseIndex((char) sr.getReadBases()[j]))
-                                  ? 1 : 0;
-                }
-
-                if (mismatches == 0) {
-                    Pattern p = Pattern.compile(":(\\d):(\\d+):(\\d+):(\\d+)#");
-                    Matcher m = p.matcher(sr.getReadName());
-
-                    if (m.find()) {
-                        int tile = Integer.valueOf(m.group(2));
-                        String readKey = String.format("%s:%s:%s:%s", m.group(1), m.group(2), m.group(3), m.group(4));
-
-                        if (tile > trainingReads.size()) {
-                            trainingReads.setSize(tile + 1);
-                        }
-
-                        if (trainingReads.get(tile) == null) {
-                            HashMap<String, SAMRecord> tileTrainingReads = new HashMap<String, SAMRecord>();
-                            trainingReads.set(tile, tileTrainingReads);
-                        }
-
-                        trainingReads.get(tile).put(readKey, sr);
-                        numTrainingReads++;
-                    } else {
-                        throw new StingException("Pattern '" + p.pattern() + "' does not match against read name '" + sr.getReadName() + "'");
-                    }
-                }
-            }
-        }
-
-        System.out.println("Collected " + numTrainingReads + " reads.");
-
-        return trainingReads;
-    }
-
-    private BasecallingReadModel train(Vector< HashMap<String, SAMRecord> > trainingSet) {
-        BasecallingReadModel model = new BasecallingReadModel(CYCLE_END - CYCLE_BEGIN + 1, CONTEXT);
-
-        return model;
+        return sr;
     }
 }
