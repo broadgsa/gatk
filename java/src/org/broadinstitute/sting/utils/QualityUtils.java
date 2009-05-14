@@ -73,6 +73,18 @@ public class QualityUtils {
         return compressedQual;
     }
 
+    static public byte baseAndProbDiffToCompressedQuality(int baseIndex, double probdiff) {
+        byte compressedQual = 0;
+
+        compressedQual = (byte) baseIndex;
+
+        byte cprob = (byte) probdiff;
+        byte qualmask = (byte) 252;
+        compressedQual += ((cprob << 2) & qualmask);
+
+        return compressedQual;
+    }
+
     /**
      * From a compressed base, extract the base index (0:A, 1:C, 2:G, 3:T)
      *
@@ -96,6 +108,15 @@ public class QualityUtils {
         x2 = (x2 >>> 2);
 
         return ((double) x2)/100.0;
+    }
+
+    static public double compressedQualityToProbDiff(byte compressedQual) {
+        // Because java natives are signed, extra care must be taken to avoid
+        // shifting a 1 into the sign bit in the implicit promotion of 2 to an int.
+        int x2 = ((int) compressedQual) & 0xff;
+        x2 = (x2 >>> 2);
+
+        return ((double) x2);
     }
 
     /**
