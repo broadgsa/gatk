@@ -14,6 +14,7 @@ import net.sf.samtools.*;
 
 import java.util.*;
 import java.io.File;
+import java.io.FileWriter;
 
 @WalkerName("IntervalCleaner")
 public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> {
@@ -21,18 +22,30 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public int maxReadLength = -1;
     @Argument(fullName="OutputCleaned", shortName="O", required=true, doc="Output file (sam or bam) for improved (realigned) reads")
     public String OUT;
+    @Argument(fullName="OutputIndels", shortName="indels", required=false, doc="Output file (text) for the indels found")
+    public String OUT_INDELS = null;
     @Argument(fullName="OutputAllReads", shortName="all", doc="print out all reads (otherwise, just those within the intervals)", required=false)
     public boolean printAllReads = false;
 
     public static final int MAX_QUAL = 99;
 
     private SAMFileWriter writer;
+    private FileWriter indelOutput = null;
+
     // we need to sort the reads ourselves because SAM headers get messed up and claim to be "unsorted" sometimes
     private TreeSet<ComparableSAMRecord> readsToWrite;
 
     public void initialize() {
-        SAMFileHeader header = getToolkit().getSamReader().getFileHeader();
+        SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
         writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(header, false, new File(OUT));
+        if ( OUT_INDELS != null ) {
+            try {
+                indelOutput = new FileWriter(new File(OUT_INDELS));
+            } catch (Exception e) {
+                err.println(e.getMessage());
+                indelOutput = null;
+            }
+        }
         readsToWrite = new TreeSet<ComparableSAMRecord>();
     }
 
@@ -82,6 +95,13 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public void onTraversalDone(Integer result) {
         out.println("Saw " + result + " intervals");
         writer.close();
+        if ( OUT_INDELS != null ) {
+            try {
+                indelOutput.close();
+            } catch (Exception e) {
+                err.println(e.getMessage());
+            }
+        }
     }
 
     private static int mismatchQualitySum(AlignedRead aRead, String ref, int refIndex) {
@@ -205,6 +225,17 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         // if the best alternate consensus has a smaller sum of quality score mismatches, then clean!
         if ( bestConsensus != null && bestConsensus.mismatchSum < totalMismatchSum ) {
             logger.info("CLEAN: " + bestConsensus.str);
+            if ( indelOutput != null && bestConsensus.cigar.numCigarElements() > 1 ) {
+                StringBuffer str = new StringBuffer();
+                str.append(reads.get(0).getReferenceName());
+                int position = bestConsensus.positionOnReference + bestConsensus.cigar.getCigarElement(0).getLength();
+                str.append(":" + (leftmostIndex + position));
+                CigarElement ce = bestConsensus.cigar.getCigarElement(1);
+                str.append(" " + ce.getLength() + ce.getOperator() + "\n");
+                try {
+                    indelOutput.write(str.toString());
+                } catch (Exception e) {}
+            }
 
             // clean the appropriate reads
             for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes )
@@ -571,10 +602,10 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         for ( int i = 0 ; i < cig.numCigarElements() ; i++ ) {
             char c='?';
-            switch ( cig.getCigarElement(i).getOperator() ) {
-            case M : c = 'M'; break;
-            case D : c = 'D'; break;
-            case I : c = 'I'; break;
+            switch ( cig.getCigarElement(i).getOperator() ) {            
+                case M : c = 'M'; break;
+                case D : c = 'D'; break;
+                case I : c = 'I'; break;
             }
             b.append(cig.getCigarElement(i).getLength());
             b.append(c);
