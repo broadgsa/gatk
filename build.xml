@@ -61,21 +61,12 @@
 	<condition property="target.is.playground" value="true">
           <equals arg1="${target}" arg2="playground"/>
 	</condition>
-
-        <path id="source">
-          <dirset dir="${source.dir}">
-	    <patternset>
-              <include name="org/broadinstitute/sting/*"/>
-              <exclude name="**/playground/**" unless="target.is.playground"/>
-	    </patternset>
-          </dirset>
-	</path>
-
+        
         <!-- Compile the java code from ${src} into build -->
-        <javac destdir="build" classpathref="external.dependencies"
+        <javac srcdir="${source.dir}" destdir="build" classpathref="external.dependencies"
                debug="true" debuglevel="lines,vars,source">
             <!--compilerarg value="-Xlint:unchecked" /-->
-            <src refid="source" />
+             <exclude name="**/playground/**" unless="target.is.playground"/>
         </javac>
     </target>
 
