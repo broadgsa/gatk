@@ -182,6 +182,8 @@ public class BasecallingTrainingSet {
 
         IlluminaParser iparser = new IlluminaParser(bustardDir, lane, cycleBegin, cycleEnd);
 
+        int totalReadCount = 0;
+
         for (int tile = 1; tile < trainingReads.size(); tile++) {
             iparser.seekToTile(tile);
 
@@ -192,6 +194,13 @@ public class BasecallingTrainingSet {
                 String readKey = iread.getReadKey();
 
                 if (trainingReads.get(tile).containsKey(readKey)) {
+                    System.out.printf("\tTile %d: found %d of %d (%4.4f in tile, %4.4f total)            \r",
+                                      tile,
+                                      tileReadCount,
+                                      trainingReads.get(tile).size(),
+                                      ((double) tileReadCount)/((double) trainingReads.get(tile).size()),
+                                      ((double) totalReadCount)/((double) trainingLimit));
+
                     byte[] quals = new byte[iread.getReadLength()];
                     for (int qualIndex = 0; qualIndex < quals.length; qualIndex++) {
                         quals[qualIndex] = 40;
@@ -201,6 +210,7 @@ public class BasecallingTrainingSet {
                     newTrainingData.add(iread);
 
                     tileReadCount++;
+                    totalReadCount++;
                 }
             }
         }
