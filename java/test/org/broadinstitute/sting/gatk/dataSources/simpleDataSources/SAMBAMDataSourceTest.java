@@ -7,6 +7,8 @@ import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import org.junit.After;
@@ -45,7 +47,7 @@ import java.util.List;
  */
 public class SAMBAMDataSourceTest extends BaseTest {
 
-    private List<String> fl;
+    private List<File> fl;
     private FastaSequenceFile2 seq;
 
     /**
@@ -55,7 +57,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
      */
     @Before
     public void doForEachTest() {
-        fl = new ArrayList<String>();
+        fl = new ArrayList<File>();
 
         // sequence
         seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
@@ -83,18 +85,18 @@ public class SAMBAMDataSourceTest extends BaseTest {
         int count = 0;
 
         // setup the data
-        fl.add(oneKGLocation + "/pilot3/sams/NA12892.bam");
-
+        fl.add(new File(oneKGLocation + "/pilot3/sams/NA12892.bam"));
+        Reads reads = new Reads(fl);
 
         try {
-            SAMDataSource data = new SAMDataSource(fl);
+            SAMDataSource data = new SAMDataSource(reads);
             for (Shard sh : strat) {
                 int readCount = 0;
                 count++;
 
                 logger.debug("Start : " + sh.getGenomeLoc().getStart() + " stop : " + sh.getGenomeLoc().getStop() + " contig " + sh.getGenomeLoc().getContig());
                 logger.debug("count = " + count);
-                MergingSamRecordIterator2 datum = (MergingSamRecordIterator2)data.seek(sh);
+                StingSAMIterator datum = data.seek(sh);
 
                 // for the first couple of shards make sure we can see the reads
                 if (count < 5) {
@@ -126,7 +128,8 @@ public class SAMBAMDataSourceTest extends BaseTest {
 
 
         // setup the test files
-        fl.add(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188.aligned.duplicates_marked.bam");
+        fl.add(new File(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188.aligned.duplicates_marked.bam"));
+        Reads reads = new Reads(fl);
 
         ArrayList<Integer> readcountPerShard = new ArrayList<Integer>();
         ArrayList<Integer> readcountPerShard2 = new ArrayList<Integer>();
@@ -136,7 +139,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
         int count = 0;
 
         try {
-            SAMDataSource data = new SAMDataSource(fl);
+            SAMDataSource data = new SAMDataSource(reads);
             for (Shard sh : strat) {
                 int readCount = 0;
                 count++;
@@ -144,7 +147,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
                     break;
                 }
 
-                MergingSamRecordIterator2 datum = (MergingSamRecordIterator2)data.seek(sh);
+                StingSAMIterator datum = data.seek(sh);
 
                 for (SAMRecord r : datum) {
                     readCount++;
@@ -163,15 +166,17 @@ public class SAMBAMDataSourceTest extends BaseTest {
 
         // setup the data and the counter before our second run
         fl.clear();
-        fl.add(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188-01A-01W.aligned.duplicates_marked.bam");
-        fl.add(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188-10B-01W.aligned.duplicates_marked.bam");
+        fl.add(new File(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188-01A-01W.aligned.duplicates_marked.bam"));
+        fl.add(new File(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188-10B-01W.aligned.duplicates_marked.bam"));
+        reads = new Reads(fl);
+
         count = 0;
         // the sharding strat.
         strat = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR, seq.getSequenceDictionary(), 100000);
 
         logger.debug("Pile two:");
         try {
-            SAMDataSource data = new SAMDataSource(fl);
+            SAMDataSource data = new SAMDataSource(reads);
             for (Shard sh : strat) {
                 int readCount = 0;
                 count++;
@@ -181,7 +186,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
                     break;
                 }
 
-                MergingSamRecordIterator2 datum = (MergingSamRecordIterator2)data.seek(sh);
+                StingSAMIterator datum = data.seek(sh);
 
                 for (SAMRecord r : datum) {
                     readCount++;

@@ -10,6 +10,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.CountReadsWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
@@ -121,15 +122,7 @@ public class TraverseReadsTest extends BaseTest {
                 ref.getSequenceDictionary(),
                 readSize);
 
-        List<File> unpackedReads = null;
-        try {
-            unpackedReads = TraversalEngine.unpackReads(bamList);
-        }
-        catch (FileNotFoundException ex) {
-            throw new RuntimeException(ex);
-        }
-
-        SAMDataSource dataSource = new SAMDataSource(unpackedReads);
+        SAMDataSource dataSource = new SAMDataSource(new Reads(bamList));
         dataSource.viewUnmappedReads(false);
 
         countReadWalker.initialize();
@@ -176,15 +169,8 @@ public class TraverseReadsTest extends BaseTest {
         ShardStrategy shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS,
                 ref.getSequenceDictionary(),
                 readSize);
-        List<File> unpackedReads = null;
-        try {
-            unpackedReads = TraversalEngine.unpackReads(bamList);
-        }
-        catch (FileNotFoundException ex) {
-            throw new RuntimeException(ex);
-        }
 
-        SAMDataSource dataSource = new SAMDataSource(unpackedReads);
+        SAMDataSource dataSource = new SAMDataSource(new Reads(bamList));
         dataSource.viewUnmappedReads(true);
 
         countReadWalker.initialize();

@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.io.File;
@@ -20,7 +21,7 @@ public class LinearMicroScheduler extends MicroScheduler {
      * @param reads   Reads file(s) to process.
      * @param refFile Reference for driving the traversal.
      */
-    protected LinearMicroScheduler( Walker walker, List<File> reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods ) {
+    protected LinearMicroScheduler( Walker walker, Reads reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods ) {
         super(walker, reads, refFile, rods);
     }
 

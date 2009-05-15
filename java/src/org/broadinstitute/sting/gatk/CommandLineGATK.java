@@ -1,10 +1,17 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.xReadLines;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
+
+import java.io.FileNotFoundException;
+import java.io.File;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  *
@@ -80,6 +87,9 @@ public class CommandLineGATK extends CommandLineProgram {
         }
         loadArgumentsIntoObject(argCollection);
         loadArgumentsIntoObject(mWalker);
+
+        processArguments(argCollection);
+
         this.argCollection.analysisName = this.analysisName;
         try {
             GATKEngine = new GenomeAnalysisEngine(argCollection, mWalker);
@@ -131,5 +141,39 @@ public class CommandLineGATK extends CommandLineProgram {
     public void setArgCollection(GATKArgumentCollection argCollection) {
         this.argCollection = argCollection;
     }
+
+
+    /**
+     * Preprocess the arguments before submitting them to the GATK engine.
+     * @param argCollection Collection of arguments to preprocess.
+     */
+    private void processArguments( GATKArgumentCollection argCollection ) {
+        argCollection.samFiles = unpackReads( argCollection.samFiles );    
+    }
+
+    /**
+     * Unpack the files to be processed, given a list of files.  That list of files can
+     * itself contain lists of other files to be read.
+     * @param inputFiles
+     * @return
+     */
+    private List<File> unpackReads( List<File> inputFiles ) {
+        List<File> unpackedReads = new ArrayList<File>();
+        for( File inputFile: inputFiles ) {
+            if( inputFile.getName().endsWith(".list") ) {
+                try {
+                    for( String fileName : new xReadLines(inputFile) )
+                        unpackedReads.add( new File(fileName) );
+                }
+                catch( FileNotFoundException ex ) {
+                    throw new StingException("Unable to find file while unpacking reads", ex);
+                }
+            }
+            else
+                unpackedReads.add( inputFile );
+        }
+        return unpackedReads;
+    }
+
 
 }

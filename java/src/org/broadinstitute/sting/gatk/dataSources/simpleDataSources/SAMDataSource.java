@@ -11,6 +11,9 @@ import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
 import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
+import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
@@ -32,6 +35,11 @@ import java.util.List;
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
 public class SAMDataSource implements SimpleDataSource {
+    /**
+     * Backing support for reads.
+     */
+    private Reads reads = null;
+
     /** our SAM data files */
     private final SAMFileHeader.SortOrder SORT_ORDER = SAMFileHeader.SortOrder.coordinate;
 
@@ -65,25 +73,18 @@ public class SAMDataSource implements SimpleDataSource {
     /**
      * constructor, given sam files
      *
-     * @param samFiles the list of sam files
+     * @param reads the list of sam files
      */
-    public SAMDataSource(List<?> samFiles) throws SimpleDataSourceLoadException {
+    public SAMDataSource(Reads reads) throws SimpleDataSourceLoadException {
+        this.reads = reads;
+
         // check the length
-        if (samFiles.size() < 1) {
+        if (reads.getReadsFiles().size() < 1) {
             throw new SimpleDataSourceLoadException("SAMDataSource: you must provide a list of length greater then 0");
         }
-        for (Object fileName : samFiles) {
-            File smFile;
-            if (samFiles.get(0) instanceof String) {
-                smFile = new File((String) samFiles.get(0));
-            } else if (samFiles.get(0) instanceof File) {
-                smFile = (File) fileName;
-            } else {
-                throw new SimpleDataSourceLoadException("SAMDataSource: unknown samFile list type, must be String or File");
-            }
-
+        for (File smFile : reads.getReadsFiles()) {
             if (!smFile.canRead()) {
-                throw new SimpleDataSourceLoadException("SAMDataSource: Unable to load file: " + fileName);
+                throw new SimpleDataSourceLoadException("SAMDataSource: Unable to load file: " + smFile.getName());
             }
             samFileList.add(smFile);
 
@@ -120,7 +121,7 @@ public class SAMDataSource implements SimpleDataSource {
      * @param location the genome location to extract data for
      * @return an iterator for that region
      */
-    public MergingSamRecordIterator2 seekLocus(GenomeLoc location) throws SimpleDataSourceLoadException {
+    public StingSAMIterator seekLocus(GenomeLoc location) throws SimpleDataSourceLoadException {
 
         // right now this is pretty damn heavy, it copies the file list into a reader list every time
         SamFileHeaderMerger headerMerger = createHeaderMerger();
@@ -132,7 +133,7 @@ public class SAMDataSource implements SimpleDataSource {
         iter.queryOverlapping(location.getContig(), (int) location.getStart(), (int) location.getStop() + 1);
 
         // return the iterator
-        return iter;
+        return StingSAMIteratorAdapter.adapt( reads, iter );
     }
 
     /**
@@ -144,13 +145,26 @@ public class SAMDataSource implements SimpleDataSource {
      * @return an iterator for that region
      */
     public StingSAMIterator seek(Shard shard) throws SimpleDataSourceLoadException {
+        StingSAMIterator iterator = null;
         if (shard.getShardType() == Shard.ShardType.READ) {
-            return seekRead((ReadShard) shard);
+            iterator = seekRead((ReadShard) shard);
+            iterator = TraversalEngine.applyDecoratingIterators(true,
+                                                                iterator,
+                                                                reads.getDownsamplingFraction(),
+                                                                reads.getMaxOnTheFlySorts(),
+                                                                reads.getSafetyChecking());
         } else if (shard.getShardType() == Shard.ShardType.LOCUS) {
-            return seekLocus(shard.getGenomeLoc());
+            iterator = seekLocus(shard.getGenomeLoc());
+            iterator = TraversalEngine.applyDecoratingIterators(false,
+                                                                iterator,
+                                                                reads.getDownsamplingFraction(),
+                                                                reads.getMaxOnTheFlySorts(),
+                                                                reads.getSafetyChecking());
         } else {
             throw new StingException("seek: Unknown shard type");
         }
+
+        return iterator;
     }
 
 
@@ -204,7 +218,7 @@ public class SAMDataSource implements SimpleDataSource {
 
         if (bound == null) {
             shard.signalDone();
-            bound = new BoundedReadIterator(iter, 0);
+            bound = new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads,iter), 0);
         }
         return bound;
     }
@@ -258,7 +272,7 @@ public class SAMDataSource implements SimpleDataSource {
 
         // we're good, increment our read cout
         this.readsTaken += readCount;
-        return new BoundedReadIterator(iter, readCount);
+        return new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads,iter), readCount);
 
     }
 
@@ -276,7 +290,7 @@ public class SAMDataSource implements SimpleDataSource {
         if (lastReadPos == null) {
             lastReadPos = new GenomeLoc(iter.getHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, 0);
             iter.queryContained(lastReadPos.getContig(), 1, -1);
-            bound = new BoundedReadIterator(iter, readCount);
+            bound = new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads,iter), readCount);
             this.readsTaken = readCount;
         }
         // we're not at the beginning, not at the end, so we move forward with our ghastly plan...
@@ -324,7 +338,7 @@ public class SAMDataSource implements SimpleDataSource {
                         SamFileHeaderMerger mg = createHeaderMerger();
                         iter = new MergingSamRecordIterator2(mg);
                         iter.queryContained(lastReadPos.getContig(), 1, Integer.MAX_VALUE);
-                        return new BoundedReadIterator(iter,readCount);
+                        return new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads,iter),readCount);
                     }
                 }
             }
@@ -349,7 +363,7 @@ public class SAMDataSource implements SimpleDataSource {
                 throw new StingException("Danger: weve run out reads in fastMappedReadSeek");
                 //return null;
             }
-            bound = new BoundedReadIterator(iter, readCount);
+            bound = new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads,iter), readCount);
         }
 
 

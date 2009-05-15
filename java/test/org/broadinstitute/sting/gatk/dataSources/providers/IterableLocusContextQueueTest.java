@@ -84,7 +84,8 @@ public class IterableLocusContextQueueTest extends LocusContextQueueTemplate {
                 if(new GenomeLoc(read).containsP(locusContext.getLocation()))
                     Assert.assertTrue("Target locus context does not contain reads", locusContext.getReads().contains(read) );
             }
-
         }
+
+        Assert.assertFalse("Iterator is not bounded at boundaries of shard", iterableQueue.hasNext());
     }
 }

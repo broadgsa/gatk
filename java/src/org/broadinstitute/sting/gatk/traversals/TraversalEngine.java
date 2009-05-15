@@ -16,6 +16,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
@@ -131,11 +132,11 @@ public abstract class TraversalEngine {
         this.walkOverAllSites = walkOverAllSites;
     }
 
-    public void setDebugging(final boolean d) {
+    private void setDebugging(final boolean d) {
         DEBUGGING = d;
     }
 
-    public void setSafetyChecking(final boolean beSafeP) {
+    private void setSafetyChecking(final boolean beSafeP) {
         if (!beSafeP)
             logger.warn("*** Turning off safety checking, I hope you know what you are doing.  Errors will result in debugging assert failures and other inscrutable messages...");
         this.beSafeP = beSafeP;
@@ -147,24 +148,37 @@ public abstract class TraversalEngine {
         this.FILTER_UNSORTED_READS = filterUnsorted;
     }
 
-    public void setSortOnFly(final int maxReadsToSort) {
+    private void setSortOnFly(final int maxReadsToSort) {
         logger.info("Sorting read file on the fly: max reads allowed is " + maxReadsToSort);
         SORT_ON_FLY = true;
         maxOnFlySorts = maxReadsToSort;
     }
 
-    public void setSortOnFly() { setSortOnFly(100000); }
+    private void setSortOnFly() { setSortOnFly(100000); }
 
-    public void setDownsampleByFraction(final double fraction) {
+    private void setDownsampleByFraction(final double fraction) {
         logger.info("Downsampling to approximately " + (fraction * 100.0) + "% of filtered reads");
         DOWNSAMPLE_BY_FRACTION = true;
         downsamplingFraction = fraction;
     }
 
-    public void setDownsampleByCoverage(final int coverage) {
+    private void setDownsampleByCoverage(final int coverage) {
         logger.info("Downsampling to coverage " + coverage);
         DOWNSAMPLE_BY_COVERAGE = true;
         downsamplingCoverage = coverage;
+    }
+
+    /**
+     * Sets up read filtering performed by the traversal engine.
+     * @param reads Read filters to instantiate as the traversal engine walks over the data.
+     * @deprecated Should only be used by old-style traversals.
+     */
+    @Deprecated
+    public void setReadFilters( Reads reads) {
+        if( reads.getDownsamplingFraction() != null ) setDownsampleByFraction(reads.getDownsamplingFraction());
+        if( reads.getDownsampleToCoverage() != null ) setDownsampleByCoverage(reads.getDownsampleToCoverage());
+        if( reads.getMaxOnTheFlySorts() != null ) setSortOnFly(reads.getMaxOnTheFlySorts());
+        if( reads.getSafetyChecking() != null ) setSafetyChecking(reads.getSafetyChecking());
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -318,36 +332,9 @@ public abstract class TraversalEngine {
         return true;
     }
 
-    /**
-     * Unpack the files to be processed, given a list of files.  That list of files can
-     * itself contain lists of other files to be read.
-     * @param inputFiles
-     * @return
-     */
-    public static List<File> unpackReads( List<File> inputFiles ) throws FileNotFoundException {
-        List<File> unpackedReads = new ArrayList<File>();
-        for( File inputFile: inputFiles ) {
-            if( inputFile.getName().endsWith(".list") ) {
-                for( String fileName : new xReadLines(inputFile) )
-                    unpackedReads.add( new File(fileName) );
-            }
-            else
-                unpackedReads.add( inputFile );
-        }
-        return unpackedReads;
-    }
-
     protected Iterator<SAMRecord> initializeReads() {
-        List<File> allReadsFiles = null;
-        try {
-            allReadsFiles = unpackReads( readsFiles );
-        }
-        catch( FileNotFoundException ex ) {
-            throw new RuntimeException("Unable to unpack reads", ex );
-        }
-
-        if( allReadsFiles.size() == 1 )
-            samReader = initializeSAMFile(allReadsFiles.get(0));
+        if( readsFiles.size() == 1 )
+            samReader = initializeSAMFile(readsFiles.get(0));
         else
             samReader = null;
         return wrapReadsIterator(getReadsIterator(samReader), true);
@@ -358,16 +345,9 @@ public abstract class TraversalEngine {
         if ( samReader == null && readsFiles.size() > 0 ) {
             SAMFileHeader.SortOrder SORT_ORDER = SAMFileHeader.SortOrder.coordinate;
 
-            List<File> allReadsFiles = null;
             List<SAMFileReader> readers = new ArrayList<SAMFileReader>();
-            try {
-                allReadsFiles = unpackReads( readsFiles );
-            }
-            catch(FileNotFoundException ex) {
-                throw new RuntimeException("Unable to unpack reads", ex);
-            }
 
-            for ( File readsFile: allReadsFiles ) {
+            for ( File readsFile: readsFiles ) {
                 SAMFileReader reader = initializeSAMFile(readsFile);
                 readers.add(reader);
             }
@@ -382,28 +362,52 @@ public abstract class TraversalEngine {
 
     @Deprecated
     protected StingSAMIterator wrapReadsIterator( final Iterator<SAMRecord> rawIterator, final boolean enableVerification ) {
-        StingSAMIterator wrappedIterator = StingSAMIteratorAdapter.adapt(rawIterator);
-        wrappedIterator = applyDecoratingIterators(enableVerification, wrappedIterator);
-
+        // Reads sourceInfo is gone by this point in the traversal engine.  Stub in a null and rely on the iterator to
+        // throw an exception if reads info isn't present.
+        StingSAMIterator wrappedIterator = StingSAMIteratorAdapter.adapt(null,rawIterator);
+        wrappedIterator = applyDecoratingIterators(enableVerification,wrappedIterator);
 
         if (THREADED_IO) {
             logger.info(String.format("Enabling threaded I/O with buffer of %d reads", THREADED_IO_BUFFER_SIZE));
-            wrappedIterator = StingSAMIteratorAdapter.adapt(new ThreadedIterator<SAMRecord>(wrappedIterator, THREADED_IO_BUFFER_SIZE));
+            wrappedIterator = StingSAMIteratorAdapter.adapt(null,new ThreadedIterator<SAMRecord>(wrappedIterator, THREADED_IO_BUFFER_SIZE));
         }
 
         return wrappedIterator;
     }
 
-    protected StingSAMIterator applyDecoratingIterators(boolean enableVerification, StingSAMIterator wrappedIterator) {
+    /**
+     * Repackage instance variables and call static method.
+     * TODO: This method's days are numbered.
+     * @param enableVerification
+     * @param wrappedIterator
+     * @return
+     */
+    protected StingSAMIterator applyDecoratingIterators( final boolean enableVerification, final StingSAMIterator wrappedIterator ) {
+        return applyDecoratingIterators(enableVerification,
+                                        wrappedIterator,
+                                        DOWNSAMPLE_BY_FRACTION ? downsamplingFraction : null,
+                                        SORT_ON_FLY ? maxOnFlySorts : null,
+                                        beSafeP);
+    }
+
+    /**
+     * WARNING: In TraversalEngine for backward compatibility ONLY.  Reads are not used as the data source, only as parameters
+     *          for validation.
+     */
+    public static StingSAMIterator applyDecoratingIterators(boolean enableVerification,
+                                                            StingSAMIterator wrappedIterator,
+                                                            Double downsamplingFraction,
+                                                            Integer maxOnFlySorts,
+                                                            Boolean beSafeP) {
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away
-        if (DOWNSAMPLE_BY_FRACTION)
+        if (downsamplingFraction != null)
             wrappedIterator = new DownsampleIterator(wrappedIterator, downsamplingFraction);
 
-        if (SORT_ON_FLY)
+        if (maxOnFlySorts != null)
             wrappedIterator = new SortSamIterator(wrappedIterator, maxOnFlySorts);
 
-        if (beSafeP && enableVerification)
+        if (beSafeP != null && beSafeP && enableVerification)
             wrappedIterator = new VerifyingSamIterator(wrappedIterator);
         return wrappedIterator;
     }

@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SimpleDataSourceLoadException;
+import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import static org.junit.Assert.assertEquals;
@@ -48,7 +49,7 @@ import java.util.List;
 public class BoundedReadIteratorTest extends BaseTest {
 
     /** the file list and the fasta sequence */
-    private List<String> fl;
+    private List<File> fl;
     private FastaSequenceFile2 seq;
 
     /**
@@ -58,7 +59,7 @@ public class BoundedReadIteratorTest extends BaseTest {
      */
     @Before
     public void doForEachTest() {
-        fl = new ArrayList<String>();
+        fl = new ArrayList<File>();
 
         // sequence
         seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
@@ -76,14 +77,15 @@ public class BoundedReadIteratorTest extends BaseTest {
 
 
         // setup the test files
-        fl.add(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188.aligned.duplicates_marked.bam");
+        fl.add(new File(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188.aligned.duplicates_marked.bam"));
+        Reads reads = new Reads(fl);
 
         // our target read
         final long boundedReadCount = 100;
         long shardReadCount = 0;
 
         try {
-            SAMDataSource data = new SAMDataSource(fl);
+            SAMDataSource data = new SAMDataSource(reads);
 
             // make sure we have a shard
             if (!strat.hasNext()) {
@@ -92,8 +94,8 @@ public class BoundedReadIteratorTest extends BaseTest {
             Shard sd = strat.next();
 
 
-            MergingSamRecordIterator2 datum = (MergingSamRecordIterator2)data.seek(sd);
-            MergingSamRecordIterator2 datum2 = (MergingSamRecordIterator2)data.seek(sd);
+            StingSAMIterator datum = data.seek(sd);
+            StingSAMIterator datum2 = data.seek(sd);
 
             // check the reads in the shard
             for (SAMRecord r : datum) {
@@ -102,7 +104,7 @@ public class BoundedReadIteratorTest extends BaseTest {
             }
 
             // create the bounded iterator
-            BoundedReadIterator iter = new BoundedReadIterator(datum2, boundedReadCount);
+            BoundedReadIterator iter = new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads,datum2), boundedReadCount);
 
             // now see how many reads are in the bounded iterator
             int readCount = 0;

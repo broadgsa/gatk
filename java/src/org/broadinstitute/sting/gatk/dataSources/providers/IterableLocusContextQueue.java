@@ -1,17 +1,9 @@
 package org.broadinstitute.sting.gatk.dataSources.providers;
 
-import net.sf.samtools.SAMRecord;
-
-import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import edu.mit.broad.picard.filter.FilteringIterator;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.gatk.iterators.LocusContextIteratorByHanger;
-import org.broadinstitute.sting.gatk.iterators.LocusContextIterator;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.utils.GenomeLoc;
 /**
  * User: hanna
@@ -30,24 +22,25 @@ import org.broadinstitute.sting.utils.GenomeLoc;
  * A LocusContextQueue over which the user can iterate.  
  */
 
-public class IterableLocusContextQueue implements LocusContextQueue, LocusIterator {
-    private Shard shard;
-    private LocusContextIterator loci;
-
+public class IterableLocusContextQueue extends LocusContextQueue implements LocusIterator {
     /**
      * What's the context for the last locus accessed?
      * @param provider
      */
-    private LocusContext nextLocusContext = null;    
+    private LocusContext prefetched = null;
+
+    /**
+     * Has this prefetch been consumed?  If this flag is set,
+     * the prefetch will skip to the next argument in the system.
+     */
+    private boolean prefetchConsumed = true;
 
     /**
      * Create a new queue of locus contexts.
      * @param provider
      */
     public IterableLocusContextQueue(ShardDataProvider provider) {
-        Iterator<SAMRecord> reads = new FilteringIterator(provider.getReadIterator(), new TraversalEngine.locusStreamFilterFunc());
-        this.loci = new LocusContextIteratorByHanger(reads);
-        this.shard = provider.getShard();
+        super( provider );
     }
 
     /**
@@ -55,7 +48,8 @@ public class IterableLocusContextQueue implements LocusContextQueue, LocusIterat
      * @return True if another locus present in this iterator.  Otherwise, false.
      */
     public boolean hasNext() {
-        return loci.hasNext();
+        prefetchLocusContext();
+        return prefetched != null;
     }
 
     /**
@@ -63,12 +57,36 @@ public class IterableLocusContextQueue implements LocusContextQueue, LocusIterat
      * @return Next element in the queue.
      */
     public GenomeLoc next() {
-        do {
-            nextLocusContext = loci.next();
+        prefetchLocusContext();
+        prefetchConsumed = true;
+        // Signal that the prefetcher needs to grab another entry off the queue.        
+        return prefetched.getLocation();
+    }
+
+    /**
+     * Find the next locus context within the bounds of a member variable and store
+     * it in the prefetched member variable.  When the prefetch is consumed, the 'consumer'
+     * should signal it as such by marking prefetchConsumed = true.
+     */
+    private void prefetchLocusContext() {
+        if( !prefetchConsumed )
+            return;
+
+        prefetched = null;
+        prefetchConsumed = false;        
+
+        // If another locus context bounded by this shard exists, find it.
+        boolean prefetchOutOfBounds = true;
+        while( hasNextLocusContext() && prefetchOutOfBounds ) {
+            prefetched = getNextLocusContext();
+            prefetchOutOfBounds = (prefetched.getLocation().isBefore(shard.getGenomeLoc()) ||
+                                   prefetched.getLocation().isPast(shard.getGenomeLoc()));
         }
-        while( nextLocusContext.getLocation().isBefore(shard.getGenomeLoc()) );
-        
-        return nextLocusContext.getLocation();
+
+        // Can't find a valid prefetch?  Set prefetch to null.  If prefetched == null and
+        // prefetchConsumed == false, the queue is out of entries.
+        if( prefetchOutOfBounds )
+            prefetched = null;
     }
 
     /**
@@ -83,9 +101,9 @@ public class IterableLocusContextQueue implements LocusContextQueue, LocusIterat
      * @return
      */
     public LocusContext peek() {
-        if( nextLocusContext == null )
+        if( prefetched == null )
             throw new NoSuchElementException("No more elements remaining in queue");
-        return nextLocusContext;
+        return prefetched;
     }
 
     /**
@@ -93,10 +111,8 @@ public class IterableLocusContextQueue implements LocusContextQueue, LocusIterat
      * @param seekPoint
      */
     public LocusContextQueue seek( GenomeLoc seekPoint ) {
-        if( nextLocusContext == null || !seekPoint.equals(nextLocusContext.getLocation()) ) {
-            nextLocusContext = null;
+        if( prefetched == null || !seekPoint.equals(prefetched.getLocation()) )
             throw new IllegalArgumentException("IterableLocusContextQueue doesn't support seeking and iterator is in the wrong position.");
-        }
         return this;
     }
 

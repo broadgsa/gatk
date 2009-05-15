@@ -15,6 +15,7 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
@@ -51,7 +52,7 @@ public abstract class MicroScheduler {
      * @param nThreadsToUse Number of threads to utilize.
      * @return The best-fit microscheduler.
      */
-    public static MicroScheduler create( Walker walker, List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods, int nThreadsToUse ) {
+    public static MicroScheduler create( Walker walker, Reads reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods, int nThreadsToUse ) {
         if( walker instanceof TreeReducible && nThreadsToUse > 1 ) {
             logger.info("Creating hierarchical microscheduler");
             return new HierarchicalMicroScheduler( walker, reads, ref, rods, nThreadsToUse );
@@ -67,11 +68,11 @@ public abstract class MicroScheduler {
      * @param reads The reads.
      * @param refFile File pointer to the reference.
      */
-    protected MicroScheduler( Walker walker, List<File> reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods ) {
+    protected MicroScheduler( Walker walker, Reads reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods ) {
         if (walker instanceof ReadWalker) {
-            traversalEngine = new TraverseReads(reads, refFile, rods);
+            traversalEngine = new TraverseReads(reads.getReadsFiles(), refFile, rods);
         } else {
-            traversalEngine = new TraverseLociByReference(reads, refFile, rods);
+            traversalEngine = new TraverseLociByReference(reads.getReadsFiles(), refFile, rods);
         }
 
         this.reads = getReadsDataSource( reads );
@@ -132,16 +133,8 @@ public abstract class MicroScheduler {
      * Gets a data source for the given set of reads.
      * @return A data source for the given set of reads.
      */
-    private SAMDataSource getReadsDataSource( List<File> reads ) {
-        List<File> unpackedReads = null;
-        try {
-            unpackedReads = TraversalEngine.unpackReads(reads);
-        }
-        catch( FileNotFoundException ex ) {
-            throw new StingException( "Cannot unpack list of reads files", ex );
-        }
-
-        SAMDataSource dataSource = new SAMDataSource( unpackedReads );
+    private SAMDataSource getReadsDataSource( Reads reads ) {
+        SAMDataSource dataSource = new SAMDataSource( reads );
 
         // Side effect: initialize the traversal engine with reads data.
         // TODO: Give users a dedicated way of getting the header so that the MicroScheduler

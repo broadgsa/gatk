@@ -97,7 +97,7 @@ public class StingSAMIteratorAdapterTest extends BaseTest {
         final int COUNT = 100;
         MyTestIterator it = new MyTestIterator();
 
-        StingSAMIterator samIt = StingSAMIteratorAdapter.adapt(it);
+        StingSAMIterator samIt = StingSAMIteratorAdapter.adapt(null,it);
         int countCheck = 0;
         while (samIt.hasNext()) {
             samIt.next();
@@ -116,7 +116,7 @@ public class StingSAMIteratorAdapterTest extends BaseTest {
 
         MyTestCloseableIterator it = new MyTestCloseableIterator();
 
-        StingSAMIterator samIt = StingSAMIteratorAdapter.adapt(it);
+        StingSAMIterator samIt = StingSAMIteratorAdapter.adapt(null,it);
 
         int countCheck = 0;
         while (samIt.hasNext()) {
@@ -133,7 +133,7 @@ public class StingSAMIteratorAdapterTest extends BaseTest {
 
         MyTestCloseableIterator it = new MyTestCloseableIterator();
         
-        StingSAMIterator samIt = StingSAMIteratorAdapter.adapt(it);
+        StingSAMIterator samIt = StingSAMIteratorAdapter.adapt(null,it);
 
 
         int countCheck = 0;

@@ -2,11 +2,15 @@ package org.broadinstitute.sting.gatk.traversals;
 
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceLocusIterator;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.dataSources.providers.SeekableLocusContextQueue;
+import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextQueue;
+import org.broadinstitute.sting.gatk.dataSources.providers.IterableLocusContextQueue;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -33,7 +37,6 @@ public class TraverseLociByReference extends TraversalEngine {
      */
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
 
-
     public TraverseLociByReference(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         super( reads, ref, rods );
     }
@@ -57,8 +60,23 @@ public class TraverseLociByReference extends TraversalEngine {
 
         LocusWalker<M, T> locusWalker = (LocusWalker<M, T>)walker;
 
-        LocusIterator locusIterator = new ReferenceLocusIterator( dataProvider );
-        SeekableLocusContextQueue locusContextQueue = new SeekableLocusContextQueue( dataProvider );
+        LocusIterator locusIterator = null;
+        LocusContextQueue locusContextQueue = null;
+
+        DataSource dataSource = WalkerManager.getWalkerDataSource(walker);
+        switch( dataSource ) {
+            case REFERENCE:
+                locusIterator = new ReferenceLocusIterator( dataProvider );
+                locusContextQueue = new SeekableLocusContextQueue( dataProvider );
+                break;
+            case READS:
+                IterableLocusContextQueue iterableQueue = new IterableLocusContextQueue( dataProvider );
+                locusIterator = iterableQueue;
+                locusContextQueue = iterableQueue;
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported traversal type: " + dataSource);
+        }
 
         // We keep processing while the next reference location is within the interval
         while( locusIterator.hasNext() ) {
@@ -71,9 +89,6 @@ public class TraverseLociByReference extends TraversalEngine {
 
             LocusContext locus = locusContextQueue.seek( site ).peek();
             char refBase = dataProvider.getReferenceBase( site );
-
-            if ( DOWNSAMPLE_BY_COVERAGE )
-                locus.downsampleToCoverage(downsamplingCoverage);
 
             final boolean keepMeP = locusWalker.filter(tracker, refBase, locus);
             if (keepMeP) {

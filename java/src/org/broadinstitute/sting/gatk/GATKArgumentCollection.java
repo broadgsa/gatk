@@ -96,15 +96,15 @@ public class GATKArgumentCollection {
 
     @Element(required=false)
     @Argument(fullName = "sort_on_the_fly", shortName = "sort", doc = "Maximum number of reads to sort on the fly", required = false)
-    public String maximumReadSorts = null;
+    public Integer maximumReadSorts = null;
 
     @Element(required=false)
     @Argument(fullName = "downsample_to_fraction", shortName = "dfrac", doc = "Fraction [0.0-1.0] of reads to downsample to", required = false)
-    public String downsampleFraction = null;
+    public Double downsampleFraction = null;
 
     @Element(required=false)
     @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to", required = false)
-    public String downsampleCoverage = null;
+    public Integer downsampleCoverage = null;
 
     @Element(required=false)
     @Argument(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.", required = false)
@@ -238,13 +238,16 @@ public class GATKArgumentCollection {
         if (!other.unsafe.equals(this.unsafe)) {
             return false;
         }
-        if (!other.maximumReadSorts.equals(this.maximumReadSorts)) {
+        if ((other.maximumReadSorts == null && this.maximumReadSorts != null) ||
+            (other.maximumReadSorts != null && !other.maximumReadSorts.equals(this.maximumReadSorts))) {
             return false;
         }
-        if (!other.downsampleFraction.equals(this.downsampleFraction)) {
+        if ((other.downsampleFraction == null && this.downsampleFraction != null) ||
+            (other.downsampleFraction != null && !other.downsampleFraction.equals(this.downsampleFraction))) {
             return false;
         }
-        if (!other.downsampleCoverage.equals(this.downsampleCoverage)) {
+        if ((other.downsampleCoverage == null && this.downsampleCoverage != null) ||
+            (other.downsampleCoverage != null && !other.downsampleCoverage.equals(this.downsampleCoverage))) {
             return false;
         }
         if (!other.walkAllLoci.equals(this.walkAllLoci)) {

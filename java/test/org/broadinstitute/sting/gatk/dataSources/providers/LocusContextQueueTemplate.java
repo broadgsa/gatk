@@ -7,8 +7,10 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.shards.LocusShard;
+import org.broadinstitute.sting.gatk.Reads;
 
 import java.io.FileNotFoundException;
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Iterator;
@@ -292,6 +294,11 @@ public abstract class LocusContextQueueTemplate extends BaseTest {
             List<SAMRecord> backingList = new ArrayList<SAMRecord>();
             backingList.addAll(Arrays.asList(reads));
             backingIterator = backingList.iterator();
+        }
+
+        public Reads getSourceInfo() {
+            // There are no sources for these reads.
+            return new Reads(new ArrayList<File>());
         }
 
         public boolean hasNext() {

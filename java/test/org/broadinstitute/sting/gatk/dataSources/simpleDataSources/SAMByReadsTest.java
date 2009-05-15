@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
+import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import static org.junit.Assert.assertEquals;
@@ -46,7 +47,7 @@ import java.util.List;
 public class SAMByReadsTest extends BaseTest {
 
     private FastaSequenceFile2 seq;
-    private List<String> fl;
+    private List<File> fl;
 
     /**
      * This function does the setup of our parser, before each method call.
@@ -55,7 +56,7 @@ public class SAMByReadsTest extends BaseTest {
      */
     @Before
     public void doForEachTest() {
-        fl = new ArrayList<String>();
+        fl = new ArrayList<File>();
 
         // sequence
         seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly17/v0/Homo_sapiens_assembly17.fasta"));
@@ -69,13 +70,15 @@ public class SAMByReadsTest extends BaseTest {
         logger.warn("Executing testTotalReadCount");
        
         // setup the test files
-        fl.add("/humgen/gsa-scr1/GATK_Data/Validation_Data/index_test.bam");
+        fl.add(new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/index_test.bam"));
+        Reads reads = new Reads(fl);
+
         final int targetReadCount = 5000;
         
         ShardStrategy shardStrategy = ShardStrategyFactory.shatterByReadCount(seq.getSequenceDictionary(),targetReadCount);
         
         try {
-            SAMDataSource data = new SAMDataSource(fl);
+            SAMDataSource data = new SAMDataSource(reads);
 
             // check the total read count
             final int totalReads = 10000;

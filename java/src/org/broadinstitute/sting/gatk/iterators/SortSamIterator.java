@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import org.broadinstitute.sting.utils.ComparableSAMRecord;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.gatk.Reads;
 
 import net.sf.samtools.SAMRecord;
 
@@ -11,11 +13,11 @@ import java.util.Iterator;
 // TODO: Deprecate? 
 // I don't think we need this if we're only allowing sorted and indexed BAM Files in the GATK - Aaron
 public class SortSamIterator implements StingSAMIterator {
+    private Reads sourceInfo;
+    private Iterator<ComparableSAMRecord> it;
 
-    Iterator<ComparableSAMRecord> it;
-
-    public SortSamIterator(Iterator<SAMRecord> unsortedIter, int maxSorts) {
-
+    public SortSamIterator(StingSAMIterator unsortedIter, int maxSorts) {
+        sourceInfo = unsortedIter.getSourceInfo();
         ArrayList<ComparableSAMRecord> list = new ArrayList<ComparableSAMRecord>();
         while (unsortedIter.hasNext()) {
             list.add(new ComparableSAMRecord(unsortedIter.next()));
@@ -25,6 +27,16 @@ public class SortSamIterator implements StingSAMIterator {
         }
         Collections.sort(list);
         it = list.iterator();
+    }
+
+    /**
+     * Retrieves information about reads sources.
+     * @return Info about the sources of reads.
+     */
+    public Reads getSourceInfo() {
+        if( sourceInfo == null )
+            throw new StingException("Unable to provide source info for the reads.  Please upgrade to the new data sharding framework.");
+        return sourceInfo;
     }
 
     public boolean hasNext() { return it.hasNext(); }

@@ -6,7 +6,6 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.dataSources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -88,11 +87,8 @@ public class TraverseReads extends TraversalEngine {
 
         ReadWalker<M, T> readWalker = (ReadWalker<M, T>) walker;
 
-        // we allow a bunch of wrapping iterators for down sampling, threadingIO, etc.
-        StingSAMIterator it = applyDecoratingIterators(true, dataProvider.getReadIterator());
-
         // while we still have more reads
-        for (SAMRecord read : it) {
+        for (SAMRecord read : dataProvider.getReadIterator()) {
 
             // our locus context
             LocusContext locus = null;

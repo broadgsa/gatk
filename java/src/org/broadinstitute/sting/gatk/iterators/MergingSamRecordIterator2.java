@@ -15,7 +15,10 @@ import edu.mit.broad.picard.sam.ReservedTagConstants;
 import edu.mit.broad.picard.sam.SamFileHeaderMerger;
 import edu.mit.broad.picard.util.PeekableIterator;
 import net.sf.samtools.*;
+import net.sf.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.lang.reflect.Constructor;
 import java.util.Comparator;
@@ -28,7 +31,7 @@ import java.util.PriorityQueue;
  * iterable stream. The underlying iterators/files must all have the same sort order unless
  * the requested output format is unsorted, in which case any combination is valid.
  */
-public class MergingSamRecordIterator2 implements StingSAMIterator {
+public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, Iterable<SAMRecord> {
     protected PriorityQueue<ComparableSamRecordIterator> pq = null;
     protected final SamFileHeaderMerger samHeaderMerger;
     protected final SAMFileHeader.SortOrder sortOrder;
@@ -272,6 +275,7 @@ public class MergingSamRecordIterator2 implements StingSAMIterator {
 
 // Should replace picard class with the same name
 class ComparableSamRecordIterator extends PeekableIterator<SAMRecord> implements Comparable<ComparableSamRecordIterator>, StingSAMIterator {
+    private Reads sourceInfo;
     private final Comparator<SAMRecord> comparator;
     private final SAMFileReader reader;
 
@@ -294,6 +298,12 @@ class ComparableSamRecordIterator extends PeekableIterator<SAMRecord> implements
         this.reader = sam;
         this.comparator = comparator;
     }
+
+    public Reads getSourceInfo() {
+        if( sourceInfo == null )
+            throw new StingException("Unable to provide source info for the reads.  Please upgrade to the new data sharding framework.");
+        return sourceInfo;
+    }    
 
     /** Returns the reader from which this iterator was constructed. */
     public SAMFileReader getReader() {

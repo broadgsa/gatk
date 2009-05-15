@@ -15,8 +15,11 @@ import java.util.Map;
 
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.utils.JVMUtils;
 import org.broadinstitute.sting.utils.PathUtils;
+import org.broadinstitute.sting.utils.StingException;
 import org.apache.log4j.Logger;
 
 /**
@@ -95,8 +98,26 @@ public class WalkerManager {
         return (Walker) walker.newInstance();
     }
 
+    /**
+     * Retrieves the walker class given a walker name.
+     * @param walkerName Name of the walker.
+     * @return Class representing the walker.
+     */
     public Class getWalkerClassByName(String walkerName) {
         return walkers.get(walkerName);
+    }
+
+    /**
+     * Gets the data source for the provided walker.
+     * @param walker The walker.
+     * @return Which type of data source to traverse over...reads or reference?
+     */
+    public static DataSource getWalkerDataSource(Walker walker) {
+        Class<? extends Walker> walkerClass = walker.getClass();
+        By byDataSource = walkerClass.getAnnotation(By.class);
+        if( byDataSource == null )
+            throw new StingException("Unable to find By annotation for walker class " + walkerClass.getName());
+        return byDataSource.value();
     }
 
     /**

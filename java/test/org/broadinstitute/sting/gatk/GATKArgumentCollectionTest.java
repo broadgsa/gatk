@@ -82,9 +82,9 @@ public class GATKArgumentCollectionTest extends BaseTest {
         collect.HAPMAPChipFile = "HAPMAPChipFile".toLowerCase();
         collect.enabledThreadedIO = true;
         collect.unsafe = false;
-        collect.maximumReadSorts = "maximumReadSorts".toLowerCase();
-        collect.downsampleFraction = "downsampleFraction".toLowerCase();
-        collect.downsampleCoverage = "downsampleCoverage".toLowerCase();
+        collect.maximumReadSorts = null;
+        collect.downsampleFraction = null;
+        collect.downsampleCoverage = null;
         collect.intervals = "intervals".toLowerCase();
         collect.walkAllLoci = true;
         collect.disableThreading = false;

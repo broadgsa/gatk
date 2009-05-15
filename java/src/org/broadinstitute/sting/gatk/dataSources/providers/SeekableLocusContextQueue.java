@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.dataSources.providers;
 import org.broadinstitute.sting.gatk.iterators.LocusContextIterator;
 import org.broadinstitute.sting.gatk.iterators.LocusContextIteratorByHanger;
 import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -31,10 +32,7 @@ import edu.mit.broad.picard.filter.FilteringIterator;
  * implementation of java.util.Queue interface.
  */
 
-public class SeekableLocusContextQueue implements LocusContextQueue {
-    private Shard shard;
-    private LocusContextIterator loci;
-
+public class SeekableLocusContextQueue extends LocusContextQueue {
     /**
      * Gets the position to which the last seek was requested.
      */
@@ -53,15 +51,13 @@ public class SeekableLocusContextQueue implements LocusContextQueue {
      * @param provider
      */
     public SeekableLocusContextQueue(ShardDataProvider provider) {
-        Iterator<SAMRecord> reads = new FilteringIterator(provider.getReadIterator(), new TraversalEngine.locusStreamFilterFunc());
-        this.loci = new LocusContextIteratorByHanger(reads);
-        this.shard = provider.getShard();
+        super(provider);
 
         // Seed the state tracking members with the first possible seek position and the first possible locus context.
         seekPoint = new GenomeLoc(shard.getGenomeLoc().getContigIndex(),shard.getGenomeLoc().getStart());
 
-        if( loci.hasNext() )
-            nextLocusContext = loci.next();
+        if( hasNextLocusContext() )
+            nextLocusContext = getNextLocusContext();
         else
             nextLocusContext = this.createEmptyLocusContext(seekPoint);                
     }
@@ -94,15 +90,15 @@ public class SeekableLocusContextQueue implements LocusContextQueue {
         seekPoint = (GenomeLoc)target.clone();
 
         // Search for the next locus context following the target positions.
-        while (nextLocusContext.getLocation().isBefore(target) && loci.hasNext() ) {
+        while (nextLocusContext.getLocation().isBefore(target) && hasNextLocusContext() ) {
             logger.debug(String.format("  current locus is %s vs %s => %d", nextLocusContext.getLocation(),
                                                                             target,
                                                                             nextLocusContext.getLocation().compareTo(target)));
-            nextLocusContext = loci.next();
+            nextLocusContext = getNextLocusContext();
         }
 
         // Couldn't find a next?  Force the nextLocusContext to null.
-        if( nextLocusContext.getLocation().isBefore(target) && !loci.hasNext() )
+        if( nextLocusContext.getLocation().isBefore(target) && !hasNextLocusContext() )
             nextLocusContext = createEmptyLocusContext( seekPoint );
 
         return this;

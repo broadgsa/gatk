@@ -84,7 +84,7 @@ public class GenomeAnalysisEngine {
 
         // if we're a read or a locus walker, we use the new system.  Right now we have complicated
         // branching based on the input data, but this should disapear when all the traversals are switched over
-        if ((my_walker instanceof LocusWalker && argCollection.walkAllLoci && !(argCollection.samFiles == null || argCollection.samFiles.size() == 0)) ||
+        if ((my_walker instanceof LocusWalker && !(argCollection.samFiles == null || argCollection.samFiles.size() == 0)) ||
                 my_walker instanceof ReadWalker) {
             microScheduler = createMicroscheduler(my_walker, rods);
         } else { // we have an old style traversal, once we're done return
@@ -181,13 +181,15 @@ public class GenomeAnalysisEngine {
                 Utils.scareUser(String.format("Analysis %s doesn't support SAM/BAM reads, but a read file %s was provided", argCollection.analysisName, argCollection.samFiles));
 
             // create the MicroScheduler
-            microScheduler = MicroScheduler.create(my_walker, argCollection.samFiles, argCollection.referenceFile, rods, argCollection.numberOfThreads);
+            if( argCollection.walkAllLoci )
+                Utils.scareUser("Argument --all_loci is deprecated.  Please annotate your walker with @By(DataSource.REFERENCE) to perform a by-reference traversal.");
+            microScheduler = MicroScheduler.create(my_walker, new Reads(argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
             engine = microScheduler.getTraversalEngine();
         }
         else if (my_walker instanceof ReadWalker) {
             if (argCollection.referenceFile == null)
                 Utils.scareUser(String.format("Locus-based traversals require a reference file but none was given"));
-            microScheduler = MicroScheduler.create(my_walker, argCollection.samFiles, argCollection.referenceFile, rods, argCollection.numberOfThreads);
+            microScheduler = MicroScheduler.create(my_walker, new Reads(argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
             engine = microScheduler.getTraversalEngine();
         }
 
@@ -209,25 +211,13 @@ public class GenomeAnalysisEngine {
         if (argCollection.intervals != null) {
             engine.setLocation(setupIntervalRegion());
         }
-        // hmm...
-        if (argCollection.maximumReadSorts != null) {
-            engine.setSortOnFly(Integer.parseInt(argCollection.maximumReadSorts));
-        }
 
-        if (argCollection.downsampleFraction != null) {
-            engine.setDownsampleByFraction(Double.parseDouble(argCollection.downsampleFraction));
-        }
+        engine.setReadFilters(new Reads(argCollection));
 
-        if (argCollection.downsampleCoverage != null) {
-            engine.setDownsampleByCoverage(Integer.parseInt(argCollection.downsampleCoverage));
-        }
-
-        engine.setSafetyChecking(!argCollection.unsafe);
         engine.setThreadedIO(argCollection.enabledThreadedIO);
         engine.setWalkOverAllSites(argCollection.walkAllLoci);
         engine.initialize();
     }
-
 
     /**
      * setup the interval regions, from either the interval file of the genome region string

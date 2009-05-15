@@ -5,6 +5,8 @@ import net.sf.samtools.SAMRecord;
 
 import java.util.Iterator;
 
+import org.broadinstitute.sting.gatk.Reads;
+
 /**
  *
  * User: aaron
@@ -66,6 +68,14 @@ public class BoundedReadIterator implements StingSAMIterator {
 
     public void useUnmappedReads(boolean useThem) {
         this.doNotUseThatUnmappedReadPile = useThem;
+    }
+
+    /**
+     * Retrieves information about reads sources.
+     * @return Info about the sources of reads.
+     */
+    public Reads getSourceInfo() {
+        return iterator.getSourceInfo();
     }
 
 
