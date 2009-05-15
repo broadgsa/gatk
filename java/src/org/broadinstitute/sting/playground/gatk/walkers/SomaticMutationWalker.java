@@ -57,6 +57,8 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName = "normal_sample_name", shortName = "s2", required = true, doc="Name of the normal sample")
     public String normalSampleName;
 
+    public boolean bedOutput = true;
+
     public void initialize() {
     }
 
@@ -174,10 +176,11 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             }
 
             // make sure we've seen at least 1 obs of the alternate allele within 20bp of the read-middle
-            if (midp.get(altAllele) > 20) {
-                out.println("Rejecting due to midpoint check!");
-                return 0;
-            }
+            boolean failedMidpointCheck = midp.get(altAllele) > 20;
+//            if (failedMidpointCheck) {
+//                out.println("Rejecting due to midpoint check!");
+//                return 0;
+//            }
 
             double[] refAlt = extractRefAlt(normalGL, ref, altAllele);
             double normalLod = refAlt[0] - Math.log10(refAlt[1] + refAlt[2]);
@@ -190,16 +193,32 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
 
             // if we're still here... we've got a somatic mutation!  Output the results
             // and stop looking for mutants!
-            out.println(context.getLocation() + " " + upRef + " " + altAllele +
-            " TScore:" + tumorLod +
-            " TRefSum: " + tumorQualitySums.get(ref) +
-            " TAltSum: " + tumorQualitySums.get(altAllele) +
-            " NScore:" + normalLod +
-            " NRefSum: " + normalQualitySums.get(ref) +
-            " NAltSum: " + normalQualitySums.get(altAllele) + " " +
-                    tumorBases.toString() + " " +
-                    normalBases.toString()
-                    );
+            if (bedOutput) {
+                out.println(
+                context.getContig() + "\t" +
+                        context.getPosition() + "\t" +
+                        context.getPosition() + "\t" +
+                        "TScore:" + tumorLod +
+                        "__TRefSum: " + tumorQualitySums.get(ref) +
+                        "__TAltSum: " + tumorQualitySums.get(altAllele) +
+                        "__NScore:" + normalLod +
+                        "__NRefSum: " + normalQualitySums.get(ref) +
+                        "__NAltSum: " + normalQualitySums.get(altAllele) +
+                        (failedMidpointCheck?"__FAILED-MPCHECK":"")
+                );
+
+            } else {
+                out.println(context.getLocation() + " " + upRef + " " + altAllele +
+                " TScore:" + tumorLod +
+                " TRefSum: " + tumorQualitySums.get(ref) +
+                " TAltSum: " + tumorQualitySums.get(altAllele) +
+                " NScore:" + normalLod +
+                " NRefSum: " + normalQualitySums.get(ref) +
+                " NAltSum: " + normalQualitySums.get(altAllele) + " " +
+                        tumorBases.toString() + " " +
+                        normalBases.toString()
+                        );
+            }
 
 
             return 1;
