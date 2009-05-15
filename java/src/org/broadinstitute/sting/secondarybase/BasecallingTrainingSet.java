@@ -34,7 +34,7 @@ public class BasecallingTrainingSet {
      * @param bustardDir     the Bustard directory for the sample
      * @param lane           the lane for the sample
      * @param cycleBegin     the start cycle for the beginning of the read (0-based, inclusive)
-     * @param cycleEnd       the stop ccle for the end of the read (0-based, inclusive)
+     * @param cycleEnd       the stop cycle for the end of the read (0-based, inclusive)
      * @param trainingLimit  the number of training reads to accept
      */
     public BasecallingTrainingSet(File bustardDir, int lane, int cycleBegin, int cycleEnd, int trainingLimit) {
