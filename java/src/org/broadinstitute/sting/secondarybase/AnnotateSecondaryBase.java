@@ -56,9 +56,9 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
         IlluminaParser iparser = new IlluminaParser(BUSTARD_DIR, LANE, CYCLE_BEGIN, CYCLE_END);
         RawRead rr;
 
-        int basesConsistent = 0, basesTotal = 0;
+        int basesConsistent = 0, basesTotal = 0, readsTotal = 0;
 
-        while ((rr = iparser.next()) != null) {
+        while (readsTotal < CALLING_LIMIT && (rr = iparser.next()) != null) {
             FourProbRead fpr = model.call(rr);
 
             SAMRecord sr = constructSAMRecord(rr, fpr, sfh, RUN_BARCODE);
@@ -80,12 +80,15 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
             if (basesTotal % 10000 == 0 && basesTotal > 0) {
                 System.out.printf("%% bases consistent: %d/%d (%4.4f)\r", basesConsistent, basesTotal, ((double) basesConsistent)/((double) basesTotal));
             }
+
+            readsTotal++;
         }
 
         iparser.close();
         sfw.close();
 
-        System.out.println("\nDone.");
+        System.out.printf("%% bases consistent: %d/%d (%4.4f)\n", basesConsistent, basesTotal, ((double) basesConsistent)/((double) basesTotal));
+        System.out.println("Done.");
 
         return 0;
     }
