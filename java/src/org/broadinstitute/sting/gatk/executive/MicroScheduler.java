@@ -91,8 +91,9 @@ public abstract class MicroScheduler {
      * Walks a walker over the given list of intervals.
      * @param walker Computation to perform over dataset.
      * @param intervals A list of intervals over which to walk.  Null for whole dataset.
+     * @return the return type of the walker
      */
-    public abstract void execute( Walker walker, List<GenomeLoc> intervals);
+    public abstract Object execute( Walker walker, List<GenomeLoc> intervals);
 
     /**
      * Get the sharding strategy given a driving data source.

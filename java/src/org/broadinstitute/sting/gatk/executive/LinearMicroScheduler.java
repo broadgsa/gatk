@@ -30,7 +30,7 @@ public class LinearMicroScheduler extends MicroScheduler {
      * @param walker    Computation to perform over dataset.
      * @param locations Subset of the dataset over which to walk.
      */
-    public void execute(Walker walker, List<GenomeLoc> locations) {
+    public Object execute(Walker walker, List<GenomeLoc> locations) {
         ShardStrategy shardStrategy = getShardStrategy(reference, locations);
 
         walker.initialize();
@@ -45,6 +45,8 @@ public class LinearMicroScheduler extends MicroScheduler {
         traversalEngine.printOnTraversalDone(accumulator);
 
         walker.onTraversalDone(accumulator);
+
+        return accumulator;
     }
 
 

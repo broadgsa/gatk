@@ -65,7 +65,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
             throw new UnsupportedOperationException("Traversal engine supports only traverse loci by reference at this time.");
     }
 
-    public void execute( Walker walker, List<GenomeLoc> intervals ) {
+    public Object execute( Walker walker, List<GenomeLoc> intervals ) {
         // Fast fail for walkers not supporting TreeReducible interface.
         if( !(walker instanceof TreeReducible) )
             throw new IllegalArgumentException("Hierarchical microscheduler only works with TreeReducible walkers");
@@ -110,6 +110,8 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         
         traversalEngine.printOnTraversalDone(result);
         walker.onTraversalDone(result);
+
+        return result;
     }
 
     /**
