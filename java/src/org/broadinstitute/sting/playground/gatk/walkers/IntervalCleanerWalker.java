@@ -26,6 +26,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public String OUT_INDELS = null;
     @Argument(fullName="OutputAllReads", shortName="all", doc="print out all reads (otherwise, just those within the intervals)", required=false)
     public boolean printAllReads = false;
+    @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
+    public double LOD_THRESHOLD = 5.0;
 
     public static final int MAX_QUAL = 99;
 
@@ -160,7 +162,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 StringBuffer sb = new StringBuffer();
                 sb.append(reference.substring(0, refIdx));
                 Cigar c = swConsensus.getCigar();
-                //out.println("CIGAR = " + cigarToString(c));
+                logger.info("CIGAR = " + cigarToString(c));
 
                 int indelCount = 0;
                 int altIdx = 0;
@@ -311,7 +313,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             // for reads that start in an insertion
             if ( !sawAlignmentStart && myPosOnAlt < endOfFirstBlock + altCE2.getLength() ) {
                 aRead.getRead().setAlignmentStart(leftmostIndex + endOfFirstBlock);
-                readCigar.add(new CigarElement(myPosOnAlt - endOfFirstBlock, CigarOperator.I));
+                readCigar.add(new CigarElement(altCE2.getLength() - (myPosOnAlt - endOfFirstBlock), CigarOperator.I));
                 indelOffsetOnRead = myPosOnAlt - endOfFirstBlock;
                 sawAlignmentStart = true;
             } else if ( sawAlignmentStart ) {
@@ -582,7 +584,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
 
         // if the best alternate consensus has a smaller sum of quality score mismatches, then clean!
-        if ( bestConsensus != null && bestConsensus.mismatchSum < totalMismatchSum ) {
+        if ( bestConsensus != null && ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0 >= LOD_THRESHOLD ) {
             logger.info("CLEAN: " + bestConsensus.str);
 
             // clean the appropriate reads
