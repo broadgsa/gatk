@@ -147,17 +147,25 @@ public class AlleleFrequencyEstimate {
         return s;
     }
 
-    public String asTabularString() {
-        return String.format("RESULT %s %c %c %f %f %f %f %d %s\n",
+    public String asTabularStringHeader() 
+	{
+		return "location sample_name ref alt genotype qhat qstar lodVsRef lodVsNextBest depth bases";
+	}
+
+    public String asTabularString() 
+	{
+        return String.format("%s %s %c %c %s %f %f %f %f %d %s",
 	                                        location,
+											sample_name,
 	                                        ref,
 	                                        alt,
+											genotype(),
 	                                        qhat,
 	                                        qstar,
                                             lodVsRef,
                                             lodVsNextBest,
 	                                        depth, 
-                                            notes);
+											bases);
     }
 
     public String toString() { return asTabularString(); }

@@ -34,6 +34,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     @Argument(fullName="qHom",         shortName="qHom",         doc="qHom",         required=false)      public Double qHom = 0.04;
     @Argument(fullName="qHet",         shortName="qHet",         doc="qHet",         required=false)      public Double qHet = 0.49;
     @Argument(fullName="qHomNonRef",   shortName="qHomNonRef",   doc="qHomNonRef",   required=false)      public Double qHomNonRef = 0.97;
+    @Argument(fullName="sample_name_regex", shortName="sample_name_regex", required=false, doc="sample_name_regex") public String SAMPLE_NAME_REGEX = null;
 
     public AlleleMetrics metrics;
 	public PrintStream   calls_file;
@@ -47,8 +48,8 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 		try 
 		{
 			sample_name = null; 
-			metrics = new AlleleMetrics(metricsFileName, lodThreshold); 
-			calls_file = new PrintStream(callsFileName);
+			if (metricsFileName != null) { metrics    = new AlleleMetrics(metricsFileName, lodThreshold); }
+			if (callsFileName != null)   { calls_file = new PrintStream(callsFileName); }
 		}
 		catch (Exception e)
 		{
@@ -70,6 +71,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 			if (read_group_record != null)
 			{
 				String local_sample_name = read.getHeader().getReadGroup(RG).getSample();
+				if (SAMPLE_NAME_REGEX != null) { local_sample_name = local_sample_name.replaceAll(SAMPLE_NAME_REGEX, "$1"); }
 				if (sample_name == null) { sample_name = local_sample_name; }
 				else 
 				{ 
@@ -357,6 +359,13 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
     public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
 	{
+		calls_file.println(alleleFreq.asTabularString());
+		return "";
+	}
+
+	/*
+    public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
+	{
         // Print RESULT data for confident calls
 
        long current_offset = alleleFreq.location.getStart(); //Integer.parseInt(tokens[1]);
@@ -401,19 +410,18 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         if (alleleFreq.lodVsRef >= 5) {
             calls_file.print(alleleFreq.asGFFString());
 
-            /*
-            String gtype = genotypeTypeString(alleleFreq.qstar, alleleFreq.N);
-            System.out.print("DEBUG " + gtype + " ");
-            if (gtype.contentEquals("het")) {
-                System.out.println(alleleFreq.ref + "" + alleleFreq.alt);
-            } else if (gtype.contentEquals("hom")) {
-                System.out.println(alleleFreq.ref + "" + alleleFreq.ref);
-            } else {
-                System.out.println(alleleFreq.alt + "" + alleleFreq.alt);
-            }
-            */
+            //String gtype = genotypeTypeString(alleleFreq.qstar, alleleFreq.N);
+            //System.out.print("DEBUG " + gtype + " ");
+            //if (gtype.contentEquals("het")) {
+            //    System.out.println(alleleFreq.ref + "" + alleleFreq.alt);
+            //} else if (gtype.contentEquals("hom")) {
+            //    System.out.println(alleleFreq.ref + "" + alleleFreq.ref);
+            //} else {
+            //    System.out.println(alleleFreq.alt + "" + alleleFreq.alt);
+            //}
         }
 
         return "";
     }
+	*/
 }

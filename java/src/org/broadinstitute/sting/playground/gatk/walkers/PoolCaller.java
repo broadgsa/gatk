@@ -29,18 +29,23 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
     @Argument(required=false, shortName="max_iterations", doc="Maximum number of iterations for EM") public int MAX_ITERATIONS = 10;
     @Argument(fullName="lodThreshold", shortName="lod", required=false, doc="lod threshold for outputting individual genotypes")       public Double lodThreshold = 2.0;
     @Argument(fullName="discovery_output", shortName="discovery_output", required=true, doc="file to write SNP discovery output to")       public String DISCOVERY_OUTPUT;
-    @Argument(fullName="individual_output_prefix", shortName="individual_output_prefix", required=true, doc="prefix to write individual SNP calls to") public String INDIVIDUAL_OUTPUT_PREFIX;
+    @Argument(fullName="individual_output", shortName="individual_output", required=true, doc="file to write individual SNP calls to") public String INDIVIDUAL_OUTPUT;
+    @Argument(fullName="sample_name_regex", shortName="sample_name_regex", required=false, doc="sample_name_regex") public String SAMPLE_NAME_REGEX = null;
 
-    
     private Random random;
     private SAMFileHeader header;
 	private PrintStream discovery_output_file;
+	private PrintStream individual_output_file;
+
+	AlleleFrequencyEstimate[] calls;
+	ArrayList<String>         caller_sums;
 
     public void initialize() 
     { 
 		try
 		{
 			discovery_output_file = new PrintStream(DISCOVERY_OUTPUT);
+			individual_output_file = new PrintStream(INDIVIDUAL_OUTPUT);
 		} 
 		catch (Exception e)
 		{
@@ -60,6 +65,7 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 
         sample_names    = new ArrayList<String>();
         callers         = new ArrayList<SingleSampleGenotyper>();
+		caller_sums     = new ArrayList<String>();
 
         random = new Random(42);
 
@@ -68,37 +74,37 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
         for (int i = 0; i < read_groups.size(); i++)
         {
             String sample_name = read_groups.get(i).getSample();
+
+			if (SAMPLE_NAME_REGEX != null) { sample_name = sample_name.replaceAll(SAMPLE_NAME_REGEX, "$1"); }
+
 			if (unique_sample_names.contains(sample_name)) { continue; }
 			unique_sample_names.add(sample_name);
             sample_names.add(sample_name);
             System.out.println("SAMPLE: " + sample_name);
 
             SingleSampleGenotyper caller = new SingleSampleGenotyper();
-			caller.callsFileName = INDIVIDUAL_OUTPUT_PREFIX + "." + sample_name + ".calls";
-			caller.metricsFileName = INDIVIDUAL_OUTPUT_PREFIX + "." + sample_name + ".metrics";
+			caller.callsFileName = null;
+			caller.metricsFileName = null;
             caller.lodThreshold = lodThreshold;
             caller.fourBaseMode = false;
             caller.printMetrics = false;
+			caller.SAMPLE_NAME_REGEX = SAMPLE_NAME_REGEX;
             caller.initialize();
+			caller.calls_file = individual_output_file;
+			caller_sums.add(caller.reduceInit());
             callers.add(caller);
         } 
     }
 
     public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) 
     {
-
-
         // 1. seperate each context.
-        LocusContext[] contexts = new LocusContext[sample_names.size()];
-        for (int i = 0; i < sample_names.size(); i++)
-        {
-            contexts[i] = filterLocusContext(context, sample_names.get(i), 0);
-        }
+        LocusContext[] contexts = filterLocusContext(context, sample_names, 0);
 
         // EM Loop:
-	    AlleleFrequencyEstimate[] calls = null;
 	    double EM_alt_freq;
 	    double EM_N = 0;
+		calls = null;
 
 		// this line is kinda hacky
 		if (MAX_ITERATIONS == 1) { EM_alt_freq = -1; }
@@ -126,7 +132,6 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 	                String genotype = calls[i].genotype();
 
                     likelihood += calls[i].posterior();
-	
 	
                     if (! FRACTIONAL_COUNTS)
                     {
@@ -173,10 +178,8 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
             ReadBackedPileup pileup = new ReadBackedPileup(ref, contexts[i]);  
             if (calls[i].depth == 0) { continue; }
 			//if (calls[i].lodVsRef < lodThreshold) { continue; }
-            out.printf("%s %s %c %f %s %f %f %f %f %f %s\n", context.getLocation(), sample_names.get(i), ref, EM_alt_freq, calls[i].genotype(), calls[i].lodVsRef, calls[i].lodVsNextBest, calls[i].pBest, calls[i].pRef, discovery_lod, pileup.getBases());
+            //discovery_output_file.printf("%s %s %c %f %s %f %f %f %f %f %s\n", context.getLocation(), sample_names.get(i), ref, EM_alt_freq, calls[i].genotype(), calls[i].lodVsRef, calls[i].lodVsNextBest, calls[i].pBest, calls[i].pRef, discovery_lod, pileup.getBases());
         }
-
-        System.out.printf("EVAL %s\n", context.getLocation());
                                 
         //for (int i = 0; i < likelihood_trajectory.length; i++)
         //{
@@ -207,10 +210,23 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
         return new LocusContext(location, reads, offsets);
     }
 
-    private LocusContext filterLocusContext(LocusContext context, String sample_name, int downsample)
+    private LocusContext[] filterLocusContext(LocusContext context, List<String> sample_names, int downsample)
     {
-        ArrayList<SAMRecord> reads   = new ArrayList<SAMRecord>();
-        ArrayList<Integer>   offsets = new ArrayList<Integer>();
+		HashMap<String,Integer> index = new HashMap<String,Integer>();
+		for (int i = 0; i < sample_names.size(); i++)
+		{
+			index.put(sample_names.get(i), i);
+		}
+
+		LocusContext[] contexts = new LocusContext[sample_names.size()];
+		ArrayList<SAMRecord>[] reads = new ArrayList[sample_names.size()];
+		ArrayList<Integer>[] offsets = new ArrayList[sample_names.size()];
+
+		for (int i = 0; i < sample_names.size(); i++)
+		{
+			reads[i] = new ArrayList<SAMRecord>();
+			offsets[i] = new ArrayList<Integer>();
+		}
 
         for (int i = 0; i < context.getReads().size(); i++)
         {
@@ -219,51 +235,71 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
             String RG = (String)(read.getAttribute("RG"));
 
             assert(header != null);
-            //System.out.printf("RG: %s\n", RG);
             assert(header.getReadGroup(RG) != null);
 
             String sample = header.getReadGroup(RG).getSample();
-            if (sample == sample_name) 
-            { 
-                reads.add(read); 
-                offsets.add(offset); 
-            }
+			if (SAMPLE_NAME_REGEX != null) { sample = sample.replaceAll(SAMPLE_NAME_REGEX, "$1"); }
+            reads[index.get(sample)].add(read); 
+            offsets[index.get(sample)].add(offset); 
         }
 
         if (downsample != 0)
         {
-            List<Integer> perm = new ArrayList<Integer>(); 
-            for (int i = 0; i < reads.size(); i++) { perm.add(i); }
-            perm = Utils.RandomSubset(perm, downsample);
-           
-            ArrayList<SAMRecord> downsampled_reads = new ArrayList<SAMRecord>();
-            ArrayList<Integer> downsampled_offsets = new ArrayList<Integer>();
-
-            for (int i = 0; i < perm.size(); i++)
-            {
-                downsampled_reads.add(reads.get(perm.get(i)));
-                downsampled_offsets.add(offsets.get(perm.get(i)));
-            }
-
-            reads = downsampled_reads;
-            offsets = downsampled_offsets;
+			for (int j = 0; j < reads.length; j++)
+			{
+	            List<Integer> perm = new ArrayList<Integer>(); 
+	            for (int i = 0; i < reads[j].size(); i++) { perm.add(i); }
+	            perm = Utils.RandomSubset(perm, downsample);
+	           
+	            ArrayList<SAMRecord> downsampled_reads = new ArrayList<SAMRecord>();
+	            ArrayList<Integer> downsampled_offsets = new ArrayList<Integer>();
+	
+	            for (int i = 0; i < perm.size(); i++)
+	            {
+	                downsampled_reads.add(reads[j].get(perm.get(i)));
+	                downsampled_offsets.add(offsets[j].get(perm.get(i)));
+	            }
+	
+	            reads[j] = downsampled_reads;
+	            offsets[j] = downsampled_offsets;
+				contexts[j] = new LocusContext(context.getLocation(), reads[j], offsets[j]);
+			}
         }
+		else
+		{
+			for (int j = 0; j < reads.length; j++)
+			{
+				contexts[j] = new LocusContext(context.getLocation(), reads[j], offsets[j]);
+			}
+		}
 
-        return new LocusContext(context.getLocation(), reads, offsets);
+        return contexts;
     }
 
     public void onTraversalDone() 
     {
-        return;
+		discovery_output_file.flush();
+		discovery_output_file.close();
+		individual_output_file.flush();
+		individual_output_file.close();
+		return;
     }
 
     public String reduceInit() 
     { 
-        return "";
+		for (int i = 0; i < callers.size(); i++)
+		{
+			callers.get(i).reduceInit(); 
+		}
+		return "";
     }
 
     public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
     {
+		for (int i = 0; i < callers.size(); i++)
+		{
+			caller_sums.set(i, callers.get(i).reduce(calls[i], caller_sums.get(i))); 
+		}
         return "";
     }
 
