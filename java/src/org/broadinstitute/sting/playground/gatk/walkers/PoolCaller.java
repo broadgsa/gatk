@@ -14,9 +14,7 @@ import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.io.*;
 
 // Draft iterative pooled caller
@@ -65,9 +63,13 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 
         random = new Random(42);
 
+		HashSet<String> unique_sample_names = new HashSet<String>();
+
         for (int i = 0; i < read_groups.size(); i++)
         {
             String sample_name = read_groups.get(i).getSample();
+			if (unique_sample_names.contains(sample_name)) { continue; }
+			unique_sample_names.add(sample_name);
             sample_names.add(sample_name);
             System.out.println("SAMPLE: " + sample_name);
 
@@ -77,7 +79,7 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
             caller.lodThreshold = lodThreshold;
             caller.fourBaseMode = false;
             caller.printMetrics = false;
-            //caller.initialize();
+            caller.initialize();
             callers.add(caller);
         } 
     }
