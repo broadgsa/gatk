@@ -18,17 +18,22 @@ public class CoverageBySample extends LocusWalker<String, String>
 
     public boolean requiresReads()     { return true; }    
 
+    private SAMFileHeader header;
+
     public void initialize() 
     { 
         GenomeAnalysisEngine toolkit = this.getToolkit();
-        SAMFileHeader header = toolkit.getSamReader().getFileHeader();
+        this.header = toolkit.getEngine().getSAMHeader();
         List<SAMReadGroupRecord> read_groups = header.getReadGroups();
 
         sample_names    = new ArrayList<String>();
+		HashSet<String> unique_sample_names = new HashSet<String>();
 
         for (int i = 0; i < read_groups.size(); i++)
         {
             String sample_name = read_groups.get(i).getSample();
+			if (unique_sample_names.contains(sample_name)) { continue; }
+			unique_sample_names.add(sample_name);
             sample_names.add(sample_name);
         } 
     }
@@ -36,30 +41,31 @@ public class CoverageBySample extends LocusWalker<String, String>
     public String map(RefMetaDataTracker tracker, char ref, LocusContext context) 
     {
         String line = context.getLocation().getContig() + " " + context.getLocation().getStart() + " " ;
+		HashMap<String,Integer> counts = countReadsBySample(context);
         for (int i = 0; i < sample_names.size(); i++)
         {
-            int count = countReadsBySample(context, sample_names.get(i));
+            int count = counts.get(sample_names.get(i));
             line += " " + count;
         }
         line += "\n";
         return line;
     }
 
-    private int countReadsBySample(LocusContext context, String sample_name)
+    private HashMap<String,Integer> countReadsBySample(LocusContext context)
     {
-        int count = 0;
+		HashMap<String,Integer> counts = new HashMap<String,Integer>();
+		for (int i = 0; i < sample_names.size(); i++)
+		{
+			counts.put(sample_names.get(i), 0);
+		}
         for (int i = 0; i < context.getReads().size(); i++)
         {
             SAMRecord read = context.getReads().get(i);
-            Integer offset = context.getOffsets().get(i);
             String RG = (String)(read.getAttribute("RG"));
-            String sample = read.getHeader().getReadGroup(RG).getSample();
-            if (sample == sample_name) 
-            { 
-                count += 1;
-            }
+            String sample = header.getReadGroup(RG).getSample();
+			counts.put(sample, counts.get(sample)+1); 
         }
-        return count;
+        return counts;
     }
 
     public void onTraversalDone() 
@@ -82,7 +88,7 @@ public class CoverageBySample extends LocusWalker<String, String>
     public String reduce(String line, String sum) 
     {
         out.print(line);
-        return sum + line; 
+        return "";
     }
 
     
