@@ -225,8 +225,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
 
         // if the best alternate consensus has a smaller sum of quality score mismatches, then clean!
-        if ( bestConsensus != null && bestConsensus.mismatchSum < totalMismatchSum ) {
-            logger.info("CLEAN: " + bestConsensus.str);
+        if ( bestConsensus != null && ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0 >= LOD_THRESHOLD ) {
+            logger.info("CLEAN: " + bestConsensus.str );
             if ( indelOutput != null && bestConsensus.cigar.numCigarElements() > 1 ) {
                 StringBuffer str = new StringBuffer();
                 str.append(reads.get(0).getReferenceName());
