@@ -51,7 +51,7 @@ public class BasecallingStats {
      * @return the percent of bases called consistently
      */
     public double getPercentConsistent() {
-        return ((double) getBasesConsistent())/((double) getReadsTotal());
+        return ((double) getBasesConsistent())/((double) getBasesTotal());
     }
 
     /**
