@@ -58,8 +58,8 @@ public class ParsingEngine {
     protected static Logger logger = Logger.getLogger(ParsingEngine.class);
 
     public ParsingEngine() {
-        parsingMethods.add( new FullNameParsingMethod() );
-        parsingMethods.add( new ShortNameParsingMethod() );
+        parsingMethods.add( ParsingMethod.FullNameParsingMethod );
+        parsingMethods.add( ParsingMethod.ShortNameParsingMethod );
     }
 
     /**

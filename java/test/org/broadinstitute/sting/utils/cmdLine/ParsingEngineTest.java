@@ -53,53 +53,6 @@ public class ParsingEngineTest extends BaseTest {
     }
     
     @Test
-    public void shortNameCompositeArgumentTest() {
-        final String[] commandLine = new String[] {"-Ina12878.bam"};
-
-        parsingEngine.addArgumentSource( InputFileArgProvider.class );
-        parsingEngine.parse( commandLine );
-        parsingEngine.validate();
-
-        InputFileArgProvider argProvider = new InputFileArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider );
-
-        Assert.assertEquals("Argument is not correctly initialized", "na12878.bam", argProvider.inputFile );
-    }
-
-    @Test
-    public void absolutePathnameInCompositeArgumentTest() {
-        final String[] commandLine = new String[] {"-I/broad/1KG/legacy_data/trio/na12878.bam"};
-
-        parsingEngine.addArgumentSource( InputFileArgProvider.class );
-        parsingEngine.parse( commandLine );
-        parsingEngine.validate();
-
-        InputFileArgProvider argProvider = new InputFileArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider );
-
-        Assert.assertEquals("Argument is not correctly initialized", "/broad/1KG/legacy_data/trio/na12878.bam", argProvider.inputFile );
-    }
-
-    @Test
-    public void chrRangeInCompositeArgumentTest() {
-        final String[] commandLine = new String[] {"-Lchr1:10000-11000"};
-
-        parsingEngine.addArgumentSource( ChrRangeArgProvider.class );
-        parsingEngine.parse( commandLine );
-        parsingEngine.validate();
-
-        ChrRangeArgProvider argProvider = new ChrRangeArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider );
-
-        Assert.assertEquals("Argument is not correctly initialized", "chr1:10000-11000", argProvider.REGION_STR );
-    }
-
-    private class ChrRangeArgProvider {
-        @Argument(fullName="genome_region", shortName="L", doc="Genome region to operation on: from chr:start-end")
-        public String REGION_STR = null;
-    }
-
-    @Test
     public void multiCharShortNameArgumentTest() {
         final String[] commandLine = new String[] {"-out","out.txt"};
 
@@ -168,7 +121,7 @@ public class ParsingEngineTest extends BaseTest {
 
     @Test
     public void arrayTest() {
-        final String[] commandLine = new String[] {"-Ifoo.txt", "--input_file", "bar.txt"};
+        final String[] commandLine = new String[] {"-I", "foo.txt", "--input_file", "bar.txt"};
 
         parsingEngine.addArgumentSource( MultiValueArgProvider.class );
         parsingEngine.parse( commandLine );
@@ -189,7 +142,7 @@ public class ParsingEngineTest extends BaseTest {
 
     @Test
     public void typedCollectionTest() {
-        final String[] commandLine = new String[] { "-N2", "-N4", "-N6", "-N8", "-N10" };
+        final String[] commandLine = new String[] { "-N","2","-N","4","-N","6","-N","8","-N","10" };
 
         parsingEngine.addArgumentSource( IntegerListArgProvider.class );
         parsingEngine.parse( commandLine );
@@ -214,7 +167,7 @@ public class ParsingEngineTest extends BaseTest {
 
     @Test
     public void untypedCollectionTest() {
-        final String[] commandLine = new String[] { "-N2", "-N4", "-N6", "-N8", "-N10" };
+        final String[] commandLine = new String[] { "-N","2","-N","4","-N","6","-N","8","-N","10" };
 
         parsingEngine.addArgumentSource( UntypedListArgProvider.class );
         parsingEngine.parse( commandLine );
@@ -365,7 +318,7 @@ public class ParsingEngineTest extends BaseTest {
 
     @Test(expected=UnmatchedArgumentException.class)
     public void extraValueTest() {
-        final String[] commandLine = new String[] {"-Ifoo.txt", "bar.txt"};
+        final String[] commandLine = new String[] {"-I", "foo.txt", "bar.txt"};
 
         parsingEngine.addArgumentSource( InputFileArgProvider.class );
         parsingEngine.parse( commandLine );
@@ -481,7 +434,7 @@ public class ParsingEngineTest extends BaseTest {
 
     @Test(expected=TooManyValuesForArgumentException.class)
     public void invalidParseForAnalysisTypeTest() {
-        final String[] commandLine = new String[] {"--analysis_type", "Pileup", "-TCountReads" };
+        final String[] commandLine = new String[] {"--analysis_type", "Pileup", "-T", "CountReads" };
 
         parsingEngine.addArgumentSource( AnalysisTypeArgProvider.class );
         parsingEngine.parse( commandLine );
