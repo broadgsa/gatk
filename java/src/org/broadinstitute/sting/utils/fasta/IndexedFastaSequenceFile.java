@@ -67,19 +67,20 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
         dictionaryName = dictionaryName.substring(0, dictionaryName.lastIndexOf(".fasta"));
         dictionaryName += ".dict";
         final File dictionary = new File(dictionaryName);
-        if (dictionary.exists()) {
-            IoUtil.assertFileIsReadable(dictionary);
+        if (!dictionary.exists())
+            throw new PicardException("Unable to load .dict file.  Dictionary is required for the indexed fasta reader.");    
 
-            try {
-                final SAMTextHeaderCodec codec = new SAMTextHeaderCodec();
-                final SAMFileHeader header = codec.decode(new AsciiLineReader(new FileInputStream(dictionary)), dictionary);
-                if (header.getSequenceDictionary() != null && header.getSequenceDictionary().size() > 0) {
-                    this.sequenceDictionary = header.getSequenceDictionary();
-                }
+        IoUtil.assertFileIsReadable(dictionary);
+
+        try {
+            final SAMTextHeaderCodec codec = new SAMTextHeaderCodec();
+            final SAMFileHeader header = codec.decode(new AsciiLineReader(new FileInputStream(dictionary)), dictionary);
+            if (header.getSequenceDictionary() != null && header.getSequenceDictionary().size() > 0) {
+                this.sequenceDictionary = header.getSequenceDictionary();
             }
-            catch (Exception e) {
-                throw new PicardException("Could not open sequence dictionary file: " + dictionaryName, e);
-            }
+        }
+        catch (Exception e) {
+            throw new PicardException("Could not open sequence dictionary file: " + dictionaryName, e);
         }
 
     }
