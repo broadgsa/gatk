@@ -47,13 +47,6 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
     protected int execute() {
         BasecallingTrainingSet trainingSet = new BasecallingTrainingSet(BUSTARD_DIR, LANE, CYCLE_BEGIN, CYCLE_END, TRAINING_LIMIT);
 
-        /*
-        // This doesn't work right now...
-        // Find alignments with zero mismatches and store them until we've picked up TRAINING_LIMIT alignments
-        System.out.println("Loading training set from the first " + TRAINING_LIMIT + " perfect reads in the aligned data...");
-        trainingSet.loadPreAlignedTrainingSet(SAM_IN, REFERENCE);
-        */
-
         // Iterate through raw Firecrest data and store the first N reads up to TRAINING_LIMIT
         System.out.println("Loading training set from the first " + TRAINING_LIMIT + " reads in the raw data...");
         trainingSet.loadFirstNUnambiguousReadsTrainingSet();
@@ -68,41 +61,21 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
         SAMFileHeader sfh = new SAMFileHeader();
         SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, SAM_OUT);
 
+        BasecallingStats bstats = new BasecallingStats();
         IlluminaParser iparser = new IlluminaParser(BUSTARD_DIR, LANE, CYCLE_BEGIN, CYCLE_END);
+        
         RawRead rr;
-
-        int basesConsistent = 0, basesTotal = 0, readsTotal = 0;
-
-        while (readsTotal < CALLING_LIMIT && (rr = iparser.next()) != null) {
+        while (bstats.getReadsTotal() < CALLING_LIMIT && (rr = iparser.next()) != null) {
             FourProbRead fpr = model.call(rr);
 
-            SAMRecord sr = constructSAMRecord(rr, fpr, sfh, RUN_BARCODE);
-            sfw.addAlignment(sr);
-
-            for (int cycle = 0; cycle < fpr.size(); cycle++) {
-                int rawBaseIndex = BaseUtils.simpleBaseToBaseIndex((char) rr.getSequence()[cycle]);
-                int fpBaseIndex = fpr.get(cycle).indexAtRank(0);
-
-                if (rawBaseIndex >= 0 && fpBaseIndex >= 0) {
-                    basesTotal++;
-
-                    if (rawBaseIndex == fpBaseIndex) {
-                        basesConsistent++;
-                    }
-                }
-            }
-
-            if (basesTotal % 10000 == 0 && basesTotal > 0) {
-                System.out.printf("%% bases consistent: %d/%d (%4.4f)\r", basesConsistent, basesTotal, ((double) basesConsistent)/((double) basesTotal));
-            }
-
-            readsTotal++;
+            sfw.addAlignment(constructSAMRecord(rr, fpr, sfh, RUN_BARCODE));
+            bstats.update(rr, fpr, 10000);
         }
 
         iparser.close();
         sfw.close();
 
-        System.out.printf("%% bases consistent: %d/%d (%4.4f)\n", basesConsistent, basesTotal, ((double) basesConsistent)/((double) basesTotal));
+        System.out.printf("%% bases consistent: %d/%d (%4.4f)\n", bstats.getBasesConsistent(), bstats.getBasesTotal(), bstats.getPercentConsistent());
         System.out.println("Done.");
 
         return 0;
