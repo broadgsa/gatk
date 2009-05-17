@@ -36,7 +36,6 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
     @Argument(fullName="cycle_end", shortName="CE", doc="On what cycle does the read end? (0-based inclusive)") public int CYCLE_END;
     @Argument(fullName="tlim", shortName="T", doc="Number of reads to use for parameter initialization", required=false) public int TRAINING_LIMIT = 250000;
     @Argument(fullName="clim", shortName="C", doc="Number of reads to basecall", required=false) public int CALLING_LIMIT = Integer.MAX_VALUE;
-    @Argument(fullName="context", shortName="X", doc="Attempt to correct for context?", required=false) public Boolean CONTEXT = false;
     @Argument(fullName="runbarcode", shortName="B", doc="Run barcode (embedded as part of the read name") public String RUN_BARCODE;
 
     public static void main(String[] argv) {
@@ -48,12 +47,12 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
         BasecallingTrainingSet trainingSet = new BasecallingTrainingSet(BUSTARD_DIR, LANE, CYCLE_BEGIN, CYCLE_END, TRAINING_LIMIT);
 
         // Iterate through raw Firecrest data and store the first N reads up to TRAINING_LIMIT
-        System.out.println("Loading training set from the first " + TRAINING_LIMIT + " reads in the raw data...");
+        System.out.println("Loading training set from the first " + TRAINING_LIMIT + " unambiguous reads in the raw data...");
         trainingSet.loadFirstNUnambiguousReadsTrainingSet();
 
         // Iterate through the stored training data and add the info to the BasecallingReadModel
         System.out.println("Applying training set...");
-        BasecallingReadModel model = new BasecallingReadModel(CYCLE_END - CYCLE_BEGIN + 1, CONTEXT);
+        BasecallingReadModel model = new BasecallingReadModel(CYCLE_END - CYCLE_BEGIN + 1, true);
         model.train(trainingSet);
 
         // Call bases and write results
@@ -69,13 +68,15 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
             FourProbRead fpr = model.call(rr);
 
             sfw.addAlignment(constructSAMRecord(rr, fpr, sfh, RUN_BARCODE));
-            bstats.update(rr, fpr, 10000);
+            bstats.update(rr, fpr);
+
+            bstats.notifyOnInterval(10000);
         }
 
         iparser.close();
         sfw.close();
 
-        System.out.printf("%% bases consistent: %d/%d (%4.4f)\n", bstats.getBasesConsistent(), bstats.getBasesTotal(), bstats.getPercentConsistent());
+        bstats.notifyNow();
         System.out.println("Done.");
 
         return 0;
