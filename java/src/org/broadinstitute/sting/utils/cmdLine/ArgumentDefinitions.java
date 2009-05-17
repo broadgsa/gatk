@@ -56,6 +56,18 @@ class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
             argumentDefinitions.add( definition );
         }
 
+        // Find an existing argument definition group with this name.
+        // If one exists, merge this group into the other.
+        Iterator<ArgumentDefinitionGroup> definitionGroupIterator = argumentDefinitionGroups.iterator();
+        while( definitionGroupIterator.hasNext() ) {
+            ArgumentDefinitionGroup candidate = definitionGroupIterator.next();            
+            if( candidate.groupNameMatches(argumentDefinitionGroup) ) {
+                argumentDefinitionGroup = argumentDefinitionGroup.mergeInto(candidate);
+                definitionGroupIterator.remove();
+            }
+        }
+
+        // Otherwise, add the new group.
         argumentDefinitionGroups.add( argumentDefinitionGroup );
     }
 
@@ -177,6 +189,34 @@ class ArgumentDefinitionGroup implements Iterable<ArgumentDefinition> {
     public ArgumentDefinitionGroup( String groupName, Collection<ArgumentDefinition> argumentDefinitions ) {
         this.groupName = groupName;
         this.argumentDefinitions = Collections.unmodifiableCollection( argumentDefinitions );
+    }
+
+    /**
+     * Does the name of this argument group match the name of another?
+     */
+    public boolean groupNameMatches( ArgumentDefinitionGroup other ) {
+        if( this.groupName == null && other.groupName == null )
+            return true;
+        if( this.groupName == null && other.groupName != null )
+            return false;
+        return this.groupName.equals(other.groupName);
+    }
+
+    /**
+     * Merges another argument group into this argument group.  Return a new
+     * group since argument groups are supposed to be immutable. Asserts that
+     * both argument groups have the same name.
+     */
+    public ArgumentDefinitionGroup mergeInto( ArgumentDefinitionGroup other ) {
+        if( !groupNameMatches(other) )
+            throw new StingException("Unable to merge two argument groups with differing names.");
+
+        // Create a merged definition group.
+        Collection<ArgumentDefinition> mergedDefinitions = new ArrayList<ArgumentDefinition>();
+        mergedDefinitions.addAll(this.argumentDefinitions);
+        mergedDefinitions.addAll(other.argumentDefinitions);
+
+        return new ArgumentDefinitionGroup(groupName,mergedDefinitions);
     }
 
     /**
