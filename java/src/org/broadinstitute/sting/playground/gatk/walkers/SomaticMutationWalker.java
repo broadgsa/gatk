@@ -6,6 +6,8 @@ import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.HapMapAlleleFrequenciesROD;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.playground.utils.GenotypeLikelihoods;
 import net.sf.samtools.SAMRecord;
@@ -14,6 +16,7 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
+@By(DataSource.REFERENCE)
 public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
     protected static class QualitySums {
         private int a = 0;
@@ -72,6 +75,8 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
     public static int MAX_INSERT_SIZE = 10000;
     public static int MIN_MUTANT_SUM_PRETEST = 60;
     public static int MIN_MUTANT_SUM = 100;
+
+    public static int MIN_QSCORE = 13;
 
     public static double TUMOR_LOD = 6.3d;
 //    public static double TUMOR_LOD = 1.0d;
@@ -138,11 +143,11 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             
             if (normalSampleName.equals(sample)) {
                 normalGL.add(ref, base, qual);
-                normalQualitySums.incrementSum(base, qual);
+                if (qual > MIN_QSCORE) normalQualitySums.incrementSum(base, qual);
                 normalBases.append(base);
             } else if (tumorSampleName.equals(sample)) {
                 tumorGL.add(ref, base, qual);
-                tumorQualitySums.incrementSum(base, qual);
+                if (qual > MIN_QSCORE) tumorQualitySums.incrementSum(base, qual);
                 tumorBases.append(base);
 
                 int midDist = Math.abs((int)(read.getReadLength() / 2) - offset);
@@ -204,6 +209,7 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
                         "__NScore:" + normalLod +
                         "__NRefSum: " + normalQualitySums.get(ref) +
                         "__NAltSum: " + normalQualitySums.get(altAllele) +
+                        "__MIDP: " + midp.get(altAllele) + 
                         (failedMidpointCheck?"__FAILED-MPCHECK":"")
                 );
 
