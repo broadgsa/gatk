@@ -114,6 +114,7 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
         double[] trajectory = new double[MAX_ITERATIONS + 1]; trajectory[0] = EM_alt_freq;
         double[] likelihood_trajectory = new double[MAX_ITERATIONS + 1]; likelihood_trajectory[0] = 0.0;
         boolean is_a_snp = false;
+		char alt = 'N';
         for (int iterations = 0; iterations < MAX_ITERATIONS; iterations++)
         { 
 	        // 6. Re-call from shallow coverage using the estimated frequency as a prior, 
@@ -131,7 +132,9 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 	                calls[i] = callers.get(i).map(tracker, ref, contexts[i]);
 	                String genotype = calls[i].genotype();
 
-                    likelihood += calls[i].posterior();
+					if (calls[i].alt != 'N') { alt = calls[i].alt; }
+
+                    likelihood += calls[i].pBest;
 	
                     if (! FRACTIONAL_COUNTS)
                     {
@@ -156,9 +159,18 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
             }
 	        EM_alt_freq = EM_sum / EM_N;
             trajectory[iterations+1] = EM_alt_freq;
-            likelihood_trajectory[iterations+1] = likelihood/(double)EM_N;
+            likelihood_trajectory[iterations+1] = likelihood;
 
-            //System.out.printf("DBGTRAJ %f %f %f %f\n", EM_sum, EM_N, trajectory[iterations], trajectory[iterations+1]);
+			if (likelihood_trajectory[iterations] == likelihood_trajectory[iterations+1]) { break; }
+
+            //System.out.printf("DBGTRAJ %s %f %f %f %f %f %f\n", 
+			//						context.getLocation(),
+			//						EM_sum, 
+			//						EM_N, 
+			//						trajectory[iterations], 
+			//						trajectory[iterations+1], 
+			//						likelihood_trajectory[iterations],
+			//						likelihood_trajectory[iterations+1]);
         }
 
         // 7. Output some statistics.
@@ -171,7 +183,8 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 			//System.out.printf("DBG %f %f %c %s\n", calls[i].pBest, calls[i].pRef, ref, calls[i].bases);
 		}
 		double discovery_lod = discovery_posterior - discovery_null;
-		discovery_output_file.printf("%s %f %f %f %f\n", context.getLocation(), EM_alt_freq, discovery_posterior, discovery_null, discovery_lod);
+		if (discovery_lod == 0) { alt = 'N'; }
+		discovery_output_file.printf("%s %c %c %f %f %f %f\n", context.getLocation(), ref, alt, EM_alt_freq, discovery_posterior, discovery_null, discovery_lod);
 
         for (int i = 0; i < sample_names.size(); i++)
         {
