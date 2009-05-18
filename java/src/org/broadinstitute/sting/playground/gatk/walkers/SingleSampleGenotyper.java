@@ -278,6 +278,12 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         String bases = pileup.getBases();
 
+		if (bases.length() == 0)
+		{
+	        GenotypeLikelihoods G = new GenotypeLikelihoods();
+	        return G.toAlleleFrequencyEstimate(context.getLocation(), ref, bases.length(), bases, G.likelihoods, sample_name);
+		}
+
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
         ref = Character.toUpperCase(ref);
@@ -305,7 +311,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
             G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset]);
         }
-        G.ApplyPrior(ref, this.allele_frequency_prior);
+        G.ApplyPrior(ref, this.alt_allele, this.allele_frequency_prior);
 
         if (fourBaseMode) {
             G.applyFourBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
@@ -333,9 +339,11 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     }
 
     double allele_frequency_prior = -1;
-    public void setAlleleFrequencyPrior(double freq)
+	char alt_allele;
+    public void setAlleleFrequencyPrior(double freq, char alt)
     {
         this.allele_frequency_prior = freq;
+		this.alt_allele = alt;
     }
 
     // Given result of map function

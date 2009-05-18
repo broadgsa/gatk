@@ -137,18 +137,24 @@ public class GenotypeLikelihoods {
         return s;
     }
 
-    public void ApplyPrior(char ref, double p_alt) 
+    public void ApplyPrior(char ref, char alt, double p_alt) 
     {
-        for (int i = 0; i < genotypes.length; i++) {
+        for (int i = 0; i < genotypes.length; i++) 
+		{
             if ((p_alt == -1) || (p_alt <= 1e-6))
             {
-	            if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) {
+	            if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) 
+				{
 	                // hom-ref
 	                likelihoods[i] += Math.log10(1.0 - 1e-3);
-	            } else if ((genotypes[i].charAt(0) != ref) && (genotypes[i].charAt(1) != ref)) {
+	            } 
+				else if ((genotypes[i].charAt(0) != ref) && (genotypes[i].charAt(1) != ref)) 
+				{
 	                // hom-nonref
 	                likelihoods[i] += Math.log10(1e-5);
-	            } else {
+	            } 
+				else 
+				{
 	                // het
 	                likelihoods[i] += Math.log10(1e-3);
 	            }
@@ -156,16 +162,27 @@ public class GenotypeLikelihoods {
             }
             else
             {
-	            if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) {
+	            if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) 
+				{
 	                // hom-ref
 	                likelihoods[i] += 2.0 * Math.log10(1.0 - p_alt);
-	            } else if ((genotypes[i].charAt(0) != ref) && (genotypes[i].charAt(1) != ref)) {
+	            } 
+				else if ((genotypes[i].charAt(0) == alt) && (genotypes[i].charAt(1) == alt)) 
+				{
 	                // hom-nonref
 	                likelihoods[i] += 2.0 * Math.log10(p_alt);
-	            } else {
+	            } 
+				else if (((genotypes[i].charAt(0) == alt) && (genotypes[i].charAt(1) == ref)) ||
+						 ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == alt)))
+				{
 	                // het
 	                likelihoods[i] += Math.log10((1.0-p_alt) * p_alt * 2.0);
 	            }
+				else
+				{
+					// something else (noise!)
+					likelihoods[i] += Math.log10(1e-5);
+				}
 
                 if (Double.isInfinite(likelihoods[i])) { likelihoods[i] = -1000; }
             }

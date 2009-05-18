@@ -98,6 +98,8 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 
     public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) 
     {
+		if (ref == 'N') { return null; }
+
         // 1. seperate each context.
         LocusContext[] contexts = filterLocusContext(context, sample_names, 0);
 
@@ -114,7 +116,31 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
         double[] trajectory = new double[MAX_ITERATIONS + 1]; trajectory[0] = EM_alt_freq;
         double[] likelihood_trajectory = new double[MAX_ITERATIONS + 1]; likelihood_trajectory[0] = 0.0;
         boolean is_a_snp = false;
+
+		// Pick the alternate base
 		char alt = 'N';
+		{
+        	ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+			String bases = pileup.getBases();
+			int A = 0;
+			int C = 0;
+			int G = 0; 
+			int T = 0;
+			int max_count = -1;
+			for (int i = 0; i < bases.length(); i++)
+			{
+				char b = bases.charAt(i);
+				if (b == ref) { continue; }
+				switch (b)
+				{
+					case 'A' : A += 1; if (A > max_count) { max_count = A; alt = 'A'; } break;
+					case 'C' : C += 1; if (C > max_count) { max_count = C; alt = 'C'; } break;
+					case 'G' : G += 1; if (G > max_count) { max_count = G; alt = 'G'; } break;
+					case 'T' : T += 1; if (T > max_count) { max_count = T; alt = 'T'; } break;
+				}
+			}
+		}
+
         for (int iterations = 0; iterations < MAX_ITERATIONS; iterations++)
         { 
 	        // 6. Re-call from shallow coverage using the estimated frequency as a prior, 
@@ -128,11 +154,9 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 
 	        for (int i = 0; i < sample_names.size(); i++)
 	        {
-	                callers.get(i).setAlleleFrequencyPrior(EM_alt_freq);
+	                callers.get(i).setAlleleFrequencyPrior(EM_alt_freq, alt);
 	                calls[i] = callers.get(i).map(tracker, ref, contexts[i]);
 	                String genotype = calls[i].genotype();
-
-					if (calls[i].alt != 'N') { alt = calls[i].alt; }
 
                     likelihood += calls[i].pBest;
 	
@@ -157,7 +181,7 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
                     }   
 
             }
-	        EM_alt_freq = EM_sum / EM_N;
+	        EM_alt_freq = Math.min(EM_sum / EM_N, 0.99999);
             trajectory[iterations+1] = EM_alt_freq;
             likelihood_trajectory[iterations+1] = likelihood;
 
