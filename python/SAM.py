@@ -92,6 +92,18 @@ SAM_ISFIRSTREAD  = 0x0040 # the read is the first read in a pair 1,2
 SAM_ISSECONDREAD = 0x0080 # the read is the second read in a pair 1,2 
 SAM_NOTPRIMARY   = 0x0100 # the alignment is not primary (a read having split hits may have multiple primary alignment records) 
 
+SAM_FLAGS = {
+    SAM_SEQPAIRED       : 'the read is paired in sequencing, no matter whether it is mapped in a pair',
+    SAM_MAPPAIRED       : 'the read is mapped in a proper pair (depends on the protocol, normally inferred during alignment) 1', 
+    SAM_UNMAPPED        : 'the query sequence itself is unmapped',
+    SAM_MATEUNMAPPED    : 'the mate is unmapped 1', 
+    SAM_QUERYSTRAND     : 'strand of the query (0 for forward; 1 for reverse strand)' ,
+    SAM_MATESTRAND      : 'strand of the mate 1' ,
+    SAM_ISFIRSTREAD     : 'the read is the first read in a pair 1,2' ,
+    SAM_ISSECONDREAD    : 'the read is the second read in a pair 1,2',
+    SAM_NOTPRIMARY      : 'the alignment is not primary (a read having split hits may have multiple primary alignment records)'
+    }
+   
 def SAMRecordFromArgs( qname, flags, rname, pos, mapq, cigar, seq, quals, pairContig = '*', pairPos = 0, insertSize = 0 ):
     r = SAMRecord()
     r.setValuesFromArgs( qname, flags, rname, pos, mapq, cigar, seq, quals, pairContig, pairPos, insertSize )
@@ -104,8 +116,15 @@ def SAMRecordFromString( str ):
     
 def SAMFlagValue( flags, testFlag ):
     return testFlag & flags
+
 def SAMFlagIsSet( flags, testFlag ):
     return SAMFlagValue(flags, testFlag) <> 0
+
+def SAMFlagsDescs( flags ):
+    def keepMe(p):
+        flagKey, flagDesc = p
+        return [flagKey, SAMFlagIsSet(flags, flagKey), flagDesc]
+    return sorted(map( keepMe, SAM_FLAGS.iteritems() ))            
 
 # -----------------------------------------------------------------------------------------------
 #
