@@ -166,17 +166,31 @@ public abstract class CommandLineProgram {
             if( clp.canAddArgumentsDynamically() ) {
                 // if the command-line program can toss in extra args, fetch them and reparse the arguments.
                 parser.parse(args);
-                parser.validate( EnumSet.of(ParsingEngine.ValidationType.InvalidArgument) );
+
+                // Allow invalid and missing required arguments to pass this validation step.
+                //   - InvalidArgument in case these arguments are specified by plugins.
+                //   - MissingRequiredArgument in case the user requested help.  Handle that later, once we've
+                //                             determined the full complement of arguments.
+                parser.validate( EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument,
+                                            ParsingEngine.ValidationType.InvalidArgument) );
                 parser.loadArgumentsIntoObject( clp );
 
                 Class[] argumentSources = clp.getArgumentSources();
                 for( Class argumentSource: argumentSources )
                     parser.addArgumentSource( clp.getArgumentSourceName(argumentSource), argumentSource );
                 parser.parse(args);
+
+                if( isHelpPresent( clp, parser ) )
+                    printHelpAndExit( clp, parser );                
+
                 parser.validate();
             }
             else {
                 parser.parse(args);
+
+                if( isHelpPresent( clp, parser ) )
+                    printHelpAndExit( clp, parser );
+
                 parser.validate();
                 parser.loadArgumentsIntoObject( clp );
             }
@@ -200,12 +214,6 @@ public abstract class CommandLineProgram {
                 //Category root = Category.getRoot();
                 //root.removeAllAppenders();
                 //logger.removeAllAppenders();
-            }
-
-            // they asked for help, give it to them
-            if (clp.help) {
-                parser.printHelp( clp.getRunningInstructions() );
-                System.exit(1);
             }
 
             // if they specify a log location, output our data there
@@ -335,6 +343,26 @@ public abstract class CommandLineProgram {
         System.out.printf("If you think it's because of a bug or a feature in GATK that should work, please report this to gsadevelopers@broad.mit.edu%n");
         System.out.printf("%n");
         System.out.printf("%s%n", msg);
+    }
+
+    /**
+     * Do a cursory search for the given argument.
+     * @param clp Instance of the command-line program.
+     * @param parser Parser
+     * @return True if help is present; false otherwise.
+     */
+    private static boolean isHelpPresent( CommandLineProgram clp, ParsingEngine parser ) {
+        return parser.isArgumentPresent("help");
+    }
+
+    /**
+     * Print help and exit.
+     * @param clp Instance of the command-line program.
+     * @param parser True if help is present; false otherwise.
+     */
+    private static void printHelpAndExit( CommandLineProgram clp, ParsingEngine parser ) {
+        parser.printHelp( clp.getRunningInstructions() );
+        System.exit(0);
     }
 
     /**

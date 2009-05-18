@@ -96,6 +96,18 @@ public class ParsingEngine {
     }
 
     /**
+     * Do a cursory search to see if an argument with the given name is present.
+     * @param argumentFullName full name of the argument.
+     * @return True if the argument is present.  False otherwise.
+     */
+    public boolean isArgumentPresent( String argumentFullName ) {
+        ArgumentDefinition definition =
+                argumentDefinitions.findArgumentDefinition(argumentFullName,ArgumentDefinitions.FullNameDefinitionMatcher);
+        return argumentMatches.hasMatch(definition);
+
+    }
+
+    /**
      * Parse the given set of command-line arguments, returning
      * an ArgumentMatches object describing the best fit of these
      * command-line arguments to the arguments that are actually
@@ -214,26 +226,34 @@ public class ParsingEngine {
      * @param object Object into which to add arguments.
      */
     public void loadArgumentsIntoObject( Object object ) {
-        for( ArgumentMatch match: argumentMatches ) {
-            ArgumentDefinition definition = match.definition;
+        for( ArgumentMatch match: argumentMatches )
+            loadArgumentIntoObject( match, object );
+    }
 
-            // A null definition might be in the list if some invalid arguments were passed in but we
-            // want to load in a subset of data for better error reporting.  Ignore null definitions.
-            if( definition == null )
-                continue;
+    /**
+     * Loads a single argument into the object.
+     * @param argument Argument to load into the object.
+     * @param object Target for the argument.
+     */
+    public void loadArgumentIntoObject( ArgumentMatch argument, Object object ) {
+        ArgumentDefinition definition = argument.definition;
 
-            if( definition.sourceClass.isAssignableFrom(object.getClass()) ) {
-                try {
-                    definition.sourceField.setAccessible(true);
-                    if( !isArgumentFlag(definition) )
-                        definition.sourceField.set( object, constructFromString( definition.sourceField, match.values() ) );
-                    else
-                        definition.sourceField.set( object, true );
-                }
-                catch( IllegalAccessException ex ) {
-                    //logger.fatal("processArgs: cannot convert field " + field.toString());
-                    throw new StingException("processArgs: Failed conversion " + ex.getMessage(), ex);                    
-                }
+        // A null definition might be in the list if some invalid arguments were passed in but we
+        // want to load in a subset of data for better error reporting.  Ignore null definitions.
+        if( definition == null )
+            return;
+
+        if( definition.sourceClass.isAssignableFrom(object.getClass()) ) {
+            try {
+                definition.sourceField.setAccessible(true);
+                if( !isArgumentFlag(definition) )
+                    definition.sourceField.set( object, constructFromString( definition.sourceField, argument.values() ) );
+                else
+                    definition.sourceField.set( object, true );
+            }
+            catch( IllegalAccessException ex ) {
+                //logger.fatal("processArgs: cannot convert field " + field.toString());
+                throw new StingException("processArgs: Failed conversion " + ex.getMessage(), ex);
             }
         }
     }
