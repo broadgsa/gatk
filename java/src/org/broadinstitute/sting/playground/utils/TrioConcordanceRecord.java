@@ -75,12 +75,12 @@ public class TrioConcordanceRecord {
 	public String toString() {
 		StringBuilder b = new StringBuilder();
 		
-		b.append(String.format("%ntotal assessed in trio: %d%n   reference: %d (%3.2f)%n", assessed_loci, consistent_ref, Utils.percentage(consistent_ref,assessed_loci )) );
-		b.append(String.format("   total snp sites: %d%n      consistent snp: %d (%3.2f)%n      multiallelic snp: %d (%3.2f)%n      inconsistent snp: %d (%3.2f)%n", 
+		b.append(String.format("%ntotal assessed in trio: %d%n   reference: %d (%3.2f%%)%n", assessed_loci, consistent_ref, Utils.percentage(consistent_ref,assessed_loci )) );
+		b.append(String.format("   total snp sites: %d%n      consistent snp: %d (%3.2f%%)%n      multiallelic snp: %d (%3.2f%%)%n      inconsistent snp: %d (%3.2f%%)%n", 
 				totalSNP(), consistent_snp, Utils.percentage(consistent_snp,totalSNP() ), non_biallelic_snp, Utils.percentage(non_biallelic_snp,totalSNP()), 
 				inconsistent_snp, Utils.percentage(inconsistent_snp, totalSNP())  ) );
 		
-		b.append(String.format("   total indel sites: %d%n      consistent indel: %d (%3.2f)%n      multiallelic indel: %d (%3.2f)%n      inconsistent indels: %d (%3.2f)%n         missing from daughter: %d (%3.2f)%n         missing from both parents: %d (%3.2f)%n", 
+		b.append(String.format("   total indel sites: %d%n      consistent indel: %d (%3.2f%%)%n      multiallelic indel: %d (%3.2f%%)%n      inconsistent indels: %d (%3.2f%%)%n         missing from daughter: %d (%3.2f%%)%n         missing from both parents: %d (%3.2f%%)%n", 
 				totalIndels(), consistent_indels, Utils.percentage(consistent_indels,totalIndels()), 
 				non_biallelic_indel, Utils.percentage(non_biallelic_indel, totalIndels()),
 				inconsistent_indels, Utils.percentage(inconsistent_indels, totalIndels()),
