@@ -651,7 +651,8 @@ def main():
         raise Exception('Does not support mutation density > 1 for mutations of class', OPTIONS.mutationType)
 
     readLen = OPTIONS.readLen
-    header = SAMHeader( "MarkD", readLen ) 
+    fastaRecords = [seq for seq in readRef(OPTIONS.reference)]
+    header = SAMHeader( fastaRecords[0].id, len(fastaRecords[0].seq) ) 
     SAMout = SAMIO( outputSAM, header, debugging=OPTIONS.debug )
     
     mutationsout = open(root + '.mutations.txt', 'w')
@@ -665,7 +666,7 @@ def main():
 
     counter = 0
     refLen = 0
-    for ref in readRef(OPTIONS.reference):
+    for ref in fastaRecords:
         refLen = len(ref.seq)
         
         # write the crazy ref file info needed by samtools
