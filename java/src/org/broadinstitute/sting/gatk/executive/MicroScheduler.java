@@ -9,7 +9,7 @@ import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.traversals.TraverseReads;
-import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
+import org.broadinstitute.sting.gatk.traversals.TraverseLoci;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -72,7 +72,7 @@ public abstract class MicroScheduler {
         if (walker instanceof ReadWalker) {
             traversalEngine = new TraverseReads(reads.getReadsFiles(), refFile, rods);
         } else {
-            traversalEngine = new TraverseLociByReference(reads.getReadsFiles(), refFile, rods);
+            traversalEngine = new TraverseLoci(reads.getReadsFiles(), refFile, rods);
         }
 
         this.reads = getReadsDataSource( reads );

@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.executive;
 
-import org.broadinstitute.sting.gatk.traversals.TraverseLociByReference;
+import org.broadinstitute.sting.gatk.traversals.TraverseLoci;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
@@ -42,7 +42,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
      */
     private static final int MAX_OUTSTANDING_OUTPUT_MERGES = 50;
 
-    private TraverseLociByReference traversalEngine = null;
+    private TraverseLoci traversalEngine = null;
 
     /**
      * Manage currently running threads.
@@ -62,7 +62,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
     protected HierarchicalMicroScheduler( Walker walker, Reads reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods, int nThreadsToUse ) {
         super( walker, reads, refFile, rods );
         this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
-        if( !(traversalEngine instanceof TraverseLociByReference) )
+        if( !(traversalEngine instanceof TraverseLoci) )
             throw new UnsupportedOperationException("Traversal engine supports only traverse loci by reference at this time.");
     }
 

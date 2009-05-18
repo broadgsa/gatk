@@ -30,14 +30,14 @@ import java.io.File;
  * mhanna - Added better data source integration.
  * TODO: Gain confidence in this implementation and remove the original.
  */
-public class TraverseLociByReference extends TraversalEngine {
+public class TraverseLoci extends TraversalEngine {
 
     /**
      * our log, which we want to capture anything from this class
      */
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
 
-    public TraverseLociByReference(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+    public TraverseLoci(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         super( reads, ref, rods );
     }
 
@@ -45,7 +45,7 @@ public class TraverseLociByReference extends TraversalEngine {
         if ( locations.isEmpty() )
             Utils.scareUser("Requested all locations be processed without providing locations to be processed!");
 
-        throw new UnsupportedOperationException("This traversal type not supported by TraverseLociByReference");
+        throw new UnsupportedOperationException("This traversal type not supported by TraverseLoci");
     }
 
     @Override
@@ -53,7 +53,7 @@ public class TraverseLociByReference extends TraversalEngine {
                              Shard shard,
                              ShardDataProvider dataProvider,
                              T sum ) {
-        logger.debug(String.format("TraverseLociByReference.traverse Genomic interval is %s", shard.getGenomeLoc()));
+        logger.debug(String.format("TraverseLoci.traverse Genomic interval is %s", shard.getGenomeLoc()));
 
         if ( !(walker instanceof LocusWalker) )
             throw new IllegalArgumentException("Walker isn't a loci walker!");
