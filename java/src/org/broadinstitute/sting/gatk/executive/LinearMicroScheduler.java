@@ -32,20 +32,23 @@ public class LinearMicroScheduler extends MicroScheduler {
      * @param locations Subset of the dataset over which to walk.
      */
     public Object execute(Walker walker, List<GenomeLoc> locations) {
-        ShardStrategy shardStrategy = getShardStrategy(reference, locations);
+        ShardStrategy shardStrategy = getShardStrategy(walker, reference, locations);
 
         walker.initialize();
-        Object accumulator = walker.reduceInit();
+        Accumulator accumulator = Accumulator.create(walker);
 
         for (Shard shard : shardStrategy) {
             ShardDataProvider dataProvider = getShardDataProvider( shard );
-            accumulator = traversalEngine.traverse(walker, shard, dataProvider, accumulator);
+
+            Object result = traversalEngine.traverse(walker, shard, dataProvider, accumulator.getReduceInit());
+            accumulator.accumulate( shard, result );
+
             dataProvider.close();
         }
 
-        traversalEngine.printOnTraversalDone(accumulator);
+        Object result = accumulator.finishTraversal();
 
-        walker.onTraversalDone(accumulator);
+        traversalEngine.printOnTraversalDone(result);
 
         return accumulator;
     }

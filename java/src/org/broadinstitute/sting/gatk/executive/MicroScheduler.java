@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.traversals.TraverseLoci;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.Reads;
@@ -98,26 +99,40 @@ public abstract class MicroScheduler {
 
     /**
      * Get the sharding strategy given a driving data source.
+     * @param walker Walker for which to infer sharding strategy.
      * @param drivingDataSource Data on which to shard.
      * @param intervals Intervals to use when limiting sharding.
      * @return Sharding strategy for this driving data source.
      */
-    protected ShardStrategy getShardStrategy( ReferenceSequenceFile drivingDataSource, List<GenomeLoc> intervals ) {
+    protected ShardStrategy getShardStrategy( Walker walker, ReferenceSequenceFile drivingDataSource, List<GenomeLoc> intervals ) {
         ShardStrategy shardStrategy = null;
-        ShardStrategyFactory.SHATTER_STRATEGY shardType = (traversalEngine instanceof TraverseReads) ?
-                ShardStrategyFactory.SHATTER_STRATEGY.READS : ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
-        
-        if( intervals != null && shardType != ShardStrategyFactory.SHATTER_STRATEGY.READS)
-            shardStrategy = ShardStrategyFactory.shatter( shardType,
-                                                          drivingDataSource.getSequenceDictionary(),
-                                                          SHARD_SIZE,
-                                                          intervals );
-        else
-            shardStrategy = ShardStrategyFactory.shatter( shardType,
+
+        if( walker instanceof LocusWalker ) {
+            if( intervals != null ) {
+                ShardStrategyFactory.SHATTER_STRATEGY shardType = (walker.isReduceByInterval()) ?
+                                                                   ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL :
+                                                                   ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
+
+                shardStrategy = ShardStrategyFactory.shatter( shardType,
+                                                              drivingDataSource.getSequenceDictionary(),
+                                                              SHARD_SIZE,
+                                                              intervals );
+            }
+            else
+                shardStrategy = ShardStrategyFactory.shatter( ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
+                                                              drivingDataSource.getSequenceDictionary(),
+                                                              SHARD_SIZE );
+
+        }
+        else if( walker instanceof ReadWalker ) {
+            shardStrategy = ShardStrategyFactory.shatter( ShardStrategyFactory.SHATTER_STRATEGY.READS,
                                                           drivingDataSource.getSequenceDictionary(),
                                                           SHARD_SIZE );
+        }
+        else
+            throw new StingException("Unable to support walker of type" + walker.getClass().getName());
 
-        return shardStrategy;
+        return shardStrategy;        
     }
 
     /**

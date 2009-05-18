@@ -71,7 +71,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         if( !(walker instanceof TreeReducible) )
             throw new IllegalArgumentException("Hierarchical microscheduler only works with TreeReducible walkers");
 
-        ShardStrategy shardStrategy = getShardStrategy( reference, intervals );
+        ShardStrategy shardStrategy = getShardStrategy( walker, reference, intervals );
         ReduceTree reduceTree = new ReduceTree( this );        
 
         walker.initialize();
