@@ -1,14 +1,13 @@
 package org.broadinstitute.sting.secondarybase;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMFileWriterFactory;
-import net.sf.samtools.SAMRecord;
+import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 
 import java.io.File;
+import java.util.HashMap;
 
 /**
  * AnnotateSecondaryBase computes the second best base for every base in an Illumina lane.
@@ -56,30 +55,97 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
         model.train(trainingSet);
 
         // Call bases and write results
-        System.out.println("Calling bases and writing SAM file...");
         SAMFileHeader sfh = new SAMFileHeader();
         SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, SAM_OUT);
 
         BasecallingStats bstats = new BasecallingStats();
         IlluminaParser iparser = new IlluminaParser(BUSTARD_DIR, LANE, CYCLE_BEGIN, CYCLE_END);
-        
+
+        HashMap<String, byte[]> sqhash = null;
+        if (canAnnotate(SAM_IN)) {
+            System.out.println("Loading read names from aligned SAM file...");
+            
+            sqhash = new HashMap<String, byte[]>(10000000);
+
+            SAMFileReader samIn = new SAMFileReader(SAM_IN);
+
+            for (SAMRecord sr : samIn) {
+                sqhash.put(sr.getReadName(), null);
+            }
+
+            samIn.close();
+        }
+
+        System.out.println("Calling bases...");
         RawRead rr;
         while (bstats.getReadsTotal() < CALLING_LIMIT && (rr = iparser.next()) != null) {
-            FourProbRead fpr = model.call(rr);
+            if (canAnnotate(SAM_IN)) {
+                String readname = String.format("%s:%s#0", RUN_BARCODE, rr.getReadKey());
 
-            sfw.addAlignment(constructSAMRecord(rr, fpr, sfh, RUN_BARCODE));
-            bstats.update(rr, fpr);
+                if (sqhash.containsKey(readname)) {
+                    FourProbRead fpr = model.call(rr);
 
-            bstats.notifyOnInterval(10000);
+                    byte[] sqtag = fpr.getSQTag(rr);
+
+                    sqhash.put(readname, sqtag);
+
+                    bstats.update(rr, fpr);
+                    bstats.notifyOnInterval(10000);
+                }
+            } else {
+                FourProbRead fpr = model.call(rr);
+
+                sfw.addAlignment(constructSAMRecord(rr, fpr, sfh, RUN_BARCODE));
+
+                bstats.update(rr, fpr);
+                bstats.notifyOnInterval(10000);
+            }
         }
 
         iparser.close();
-        sfw.close();
 
         bstats.notifyNow();
+
+        if (canAnnotate(SAM_IN)) {
+            // Correlate SQ tags with aligned SAM records:
+            System.out.println("Merge unaligned and aligned SAM files...");
+
+            SAMFileReader samIn = new SAMFileReader(SAM_IN);
+
+            for (SAMRecord sr : samIn) {
+                if (sqhash.containsKey(sr.getReadName())) {
+                    byte[] sqtag = sqhash.get(sr.getReadName());
+
+                    if (sqtag != null) {
+                        if (sr.getReadNegativeStrandFlag()) {
+                            QualityUtils.reverseComplementCompressedQualityArray(sqtag);
+                        }
+
+                        sr.setAttribute("SQ", sqtag);
+                    }
+                }
+                
+                sfw.addAlignment(sr);
+            }
+
+            samIn.close();
+        }
+        
+        sfw.close();
+
         System.out.println("Done.");
 
         return 0;
+    }
+
+    /**
+     * Simple test to determine whether we're in aligned bam annotation mode or not.
+     *
+     * @param samfile  the aligned sam file
+     * @return true if the file exists, false otherwise
+     */
+    private boolean canAnnotate(File samfile) {
+        return (samfile != null && samfile.exists());
     }
 
     /**
