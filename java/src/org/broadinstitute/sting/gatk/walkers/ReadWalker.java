@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.LocusContext;
 
 /**
  * Created by IntelliJ IDEA.
@@ -10,6 +9,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
  * Time: 2:52:28 PM
  * To change this template use File | Settings | File Templates.
  */
+@Requires(DataSource.READS)
 public abstract class ReadWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     public boolean requiresOrderedReads() { return false; }
     

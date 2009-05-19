@@ -16,6 +16,7 @@ import org.broadinstitute.sting.utils.ReadBackedPileup;
  * Time: 3:22:14 PM
  * To change this template use File | Settings | File Templates.
  */
+@Requires(value={DataSource.READS,DataSource.REFERENCE},referenceMetaData=@RMD(name="pileup",type=rodSAMPileup.class))
 public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats> {
     @Argument(fullName="continue_after_error",doc="Continue after an error",required=false)
     public boolean CONTINUE_AFTER_AN_ERROR = false;

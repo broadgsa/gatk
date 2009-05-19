@@ -239,7 +239,7 @@ public abstract class CommandLineProgram {
             // return the result
             System.exit(result);
         }
-        catch (ParseException e) {
+        catch (ArgumentException e) {
             clp.parser.printHelp( clp.getRunningInstructions() );
             // Rethrow the exception to exit with an error.
             throw e;
@@ -302,7 +302,7 @@ public abstract class CommandLineProgram {
      * this function checks the logger level passed in on the command line, taking the lowest
      * level that was provided.
      */
-    private void setupLoggerLevel() throws ParseException {
+    private void setupLoggerLevel()  {
 
         Level par = Level.ERROR;
         if (logging_level.equals("DEBUG")) {
@@ -325,7 +325,7 @@ public abstract class CommandLineProgram {
         }
         else {
             // we don't understand the logging level, let's get out of here
-            throw new ParseException("Unable to match: " + logging_level + " to a logging level, make sure it's a valid level (INFO, DEBUG, ERROR, FATAL, OFF)");
+            throw new ArgumentException("Unable to match: " + logging_level + " to a logging level, make sure it's a valid level (INFO, DEBUG, ERROR, FATAL, OFF)");
         }
 
         logger.setLevel(par);

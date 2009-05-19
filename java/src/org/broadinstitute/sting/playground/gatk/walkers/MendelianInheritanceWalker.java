@@ -9,9 +9,15 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodSAMPileup;
 import org.broadinstitute.sting.gatk.refdata.Genotype;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
+import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.playground.utils.TrioConcordanceRecord;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
+@Requires(value=DataSource.REFERENCE,referenceMetaData={@RMD(name="mother",type=rodSAMPileup.class),
+                                                        @RMD(name="father",type=rodSAMPileup.class),
+                                                        @RMD(name="daughter",type=rodSAMPileup.class)})
 public class MendelianInheritanceWalker  extends RefWalker<TrioConcordanceRecord, TrioConcordanceRecord> {
 
 	@Argument(fullName="consensus_cutoff", shortName="XC", doc="consensus cutoff", required=true ) public Double CONS_CUTOFF;

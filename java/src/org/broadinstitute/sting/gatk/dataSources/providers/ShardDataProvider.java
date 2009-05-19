@@ -1,11 +1,16 @@
 package org.broadinstitute.sting.gatk.dataSources.providers;
 
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import net.sf.samtools.SAMRecord;
+
+import java.io.File;
+import java.util.ArrayList;
 /**
  * User: hanna
  * Date: May 8, 2009
@@ -99,7 +104,7 @@ public class ShardDataProvider {
     public ShardDataProvider( Shard shard, SAMDataSource reads, IndexedFastaSequenceFile reference ) {
         this.shard = shard;
         // Provide basic reads information.
-        this.reads = reads.seek( shard );
+        this.reads = (reads != null) ? reads.seek( shard ) : new NullSAMIterator(new Reads(new ArrayList<File>()));
         this.referenceProvider = (reference != null) ? new ReferenceProvider(reference,shard) : null;
     }
 

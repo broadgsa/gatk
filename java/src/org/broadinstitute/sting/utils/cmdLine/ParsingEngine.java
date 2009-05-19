@@ -457,7 +457,7 @@ public class ParsingEngine {
 /**
  * An exception indicating that some required arguments are missing.
  */
-class MissingArgumentException extends ParseException {
+class MissingArgumentException extends ArgumentException {
     public MissingArgumentException( Collection<ArgumentDefinition> missingArguments ) {
         super( formatArguments(missingArguments) );
     }
@@ -477,7 +477,7 @@ class MissingArgumentException extends ParseException {
 /**
  * An exception for undefined arguments.
  */
-class InvalidArgumentException extends ParseException {
+class InvalidArgumentException extends ArgumentException {
     public InvalidArgumentException( Collection<ArgumentMatch> invalidArguments ) {
         super( formatArguments(invalidArguments) );
     }
@@ -493,7 +493,7 @@ class InvalidArgumentException extends ParseException {
 /**
  * An exception for values whose format is invalid.
  */
-class InvalidArgumentValueException extends ParseException {
+class InvalidArgumentValueException extends ArgumentException {
     public InvalidArgumentValueException( Collection<Pair<ArgumentDefinition,String>> invalidArgumentValues ) {
         super( formatArguments(invalidArgumentValues) );
     }
@@ -514,7 +514,7 @@ class InvalidArgumentValueException extends ParseException {
 /**
  * An exception for values that can't be mated with any argument.
  */
-class UnmatchedArgumentException extends ParseException {
+class UnmatchedArgumentException extends ArgumentException {
     public UnmatchedArgumentException( ArgumentMatch invalidValues ) {
         super( formatArguments(invalidValues) );
     }
@@ -531,7 +531,7 @@ class UnmatchedArgumentException extends ParseException {
 /**
  * An exception indicating that too many values have been provided for the given argument.
  */
-class TooManyValuesForArgumentException extends ParseException {
+class TooManyValuesForArgumentException extends ArgumentException {
     public TooManyValuesForArgumentException( Collection<ArgumentMatch> arguments ) {
         super( formatArguments(arguments) );
     }
@@ -547,7 +547,7 @@ class TooManyValuesForArgumentException extends ParseException {
 /**
  * An exception indicating that mutually exclusive options have been passed in the same command line.
  */
-class ArgumentsAreMutuallyExclusiveException extends ParseException {
+class ArgumentsAreMutuallyExclusiveException extends ArgumentException {
     public ArgumentsAreMutuallyExclusiveException( Collection<Pair<ArgumentMatch,ArgumentMatch>> arguments ) {
         super( formatArguments(arguments) );
     }

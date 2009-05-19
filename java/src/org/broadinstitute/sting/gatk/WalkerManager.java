@@ -5,18 +5,23 @@ import net.sf.functionalj.reflect.JdkStdReflect;
 import net.sf.functionalj.FunctionN;
 import net.sf.functionalj.Functions;
 
-import java.lang.reflect.Modifier;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Arrays;
 
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.By;
+import org.broadinstitute.sting.gatk.walkers.Allows;
+import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.gatk.walkers.RMD;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.utils.JVMUtils;
 import org.broadinstitute.sting.utils.PathUtils;
 import org.broadinstitute.sting.utils.StingException;
@@ -121,6 +126,71 @@ public class WalkerManager {
     }
 
     /**
+     * Determine whether the given walker supports the given data source.
+     * @param walker Walker to query.
+     * @param dataSource Source to check for .
+     * @return True if the walker forbids this data type.  False otherwise.
+     */
+    public static boolean isAllowed(Walker walker, DataSource dataSource) {
+        Allows allowsDataSource = getWalkerAllowed(walker);
+
+        // Allows is less restrictive than requires.  If an allows
+        // clause is not specified, any kind of data is allowed.
+        if( allowsDataSource == null )
+            return true;
+
+        return Arrays.asList(allowsDataSource.value()).contains(dataSource);
+    }
+
+    /**
+     * Determine whether the given walker supports the given reference ordered data.
+     * @param walker Walker to query.
+     * @param rod Source to check.
+     * @return True if the walker forbids this data type.  False otherwise.
+     */
+    public static boolean isAllowed(Walker walker, ReferenceOrderedData<? extends ReferenceOrderedDatum> rod) {
+        Allows allowsDataSource = getWalkerAllowed(walker);
+
+        // Allows is less restrictive than requires.  If an allows
+        // clause is not specified, any kind of data is allowed.
+        if( allowsDataSource == null )
+            return true;
+
+        // The difference between unspecified RMD and the empty set of metadata can't be detected.
+        // Treat an empty 'allows' as 'allow everything'.  Maybe we can have a special RMD flag to account for this
+        // case in the future.
+        if( allowsDataSource.referenceMetaData().length == 0 )
+            return true;
+
+        for( RMD allowed: allowsDataSource.referenceMetaData() ) {
+            if( rod.matches(allowed.name(),allowed.type()) )
+                return true;
+        }
+        return false;
+    }
+
+    /**
+     * Determine whether the given walker requires the given data source.
+     * @param walker Walker to query.
+     * @param dataSource Source to check for.
+     * @return True if the walker allows this data type.  False otherwise.
+     */
+    public static boolean isRequired(Walker walker, DataSource dataSource) {
+        Requires requiresDataSource = getWalkerRequirements(walker);
+        return Arrays.asList(requiresDataSource.value()).contains(dataSource);
+    }
+
+    /**
+     * Get a list of RODs required by the walker.
+     * @param walker Walker to query.
+     * @return True if the walker allows this data type.  False otherwise.
+     */
+    public static List<RMD> getRequiredMetaData(Walker walker) {
+        Requires requiresDataSource = getWalkerRequirements(walker);
+        return Arrays.asList(requiresDataSource.referenceMetaData());
+    }
+
+    /**
      * Load classes internal to the classpath from an arbitrary location.
      *
      * @param location Location from which to load classes.
@@ -173,7 +243,7 @@ public class WalkerManager {
      * @param walkerType The type of walker.
      * @return A name for this type of walker.
      */
-    public static String getWalkerName(Class<Walker> walkerType) {
+    public static String getWalkerName(Class<? extends Walker> walkerType) {
         String walkerName = "";
 
         if (walkerType.getAnnotation(WalkerName.class) != null)
@@ -186,5 +256,30 @@ public class WalkerManager {
         }
 
         return walkerName;
+    }
+
+    /**
+     * Utility to get the requires attribute from the walker.
+     * Throws an exception if requirements are missing.
+     * @param walker Walker to query for required data.
+     * @return Required data attribute.
+     */
+    private static Requires getWalkerRequirements(Walker walker) {
+        Class<? extends Walker> walkerClass = walker.getClass();
+        Requires requiresDataSource = walkerClass.getAnnotation(Requires.class);
+        if( requiresDataSource == null )
+            throw new StingException( "Unable to find data types required by walker class " + walkerClass.getName());
+        return requiresDataSource;
+    }
+
+    /**
+     * Utility to get the forbidden attribute from the walker.
+     * @param walker Walker to query for required data.
+     * @return Required data attribute.  Null if forbidden info isn't present.
+     */
+    private static Allows getWalkerAllowed(Walker walker) {
+        Class<? extends Walker> walkerClass = walker.getClass();
+        Allows allowsDataSource = walkerClass.getAnnotation(Allows.class);
+        return allowsDataSource;
     }
 }

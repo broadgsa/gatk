@@ -5,8 +5,8 @@ import org.broadinstitute.sting.utils.StingException;
 /**
  * Generic class for handling misc parsing exceptions.
  */
-public class ParseException extends StingException {
-    public ParseException( String message ) {
+public class ArgumentException extends StingException {
+    public ArgumentException( String message ) {
         super( message );
     }
 }

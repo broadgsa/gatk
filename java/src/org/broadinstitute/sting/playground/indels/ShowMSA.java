@@ -2,7 +2,8 @@ package org.broadinstitute.sting.playground.indels;
 
 import java.io.File;
 
-import edu.mit.broad.picard.reference.*;
+import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
+import edu.mit.broad.picard.reference.ReferenceSequenceFileWalker;
 import edu.mit.broad.picard.cmdline.CommandLineProgram;
 import edu.mit.broad.picard.cmdline.Option;
 import edu.mit.broad.picard.cmdline.Usage;

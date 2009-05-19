@@ -138,6 +138,17 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
 
     public String getName() { return name; }
 
+    /**
+     * Special equals override to see if this ROD is of type name, type.
+     * Implemented to preserve data hiding whenever possible.
+     * @param name Name to check.
+     * @param type Type to check.
+     * @return True if these parameters imply this rod.  False otherwise.
+     */
+    public boolean matches( String name, Class<? extends ReferenceOrderedDatum> type ) {
+        return this.name.equals(name) && this.type.equals(type);
+    }
+
     public RODIterator iterator() {
         return new RODIterator(new SimpleRODIterator());
     }

@@ -149,6 +149,10 @@ public abstract class MicroScheduler {
      * @return A data source for the given set of reads.
      */
     private SAMDataSource getReadsDataSource( Reads reads ) {
+        // By reference traversals are happy with no reads.  Make sure that case is handled.
+        if( reads.getReadsFiles().size() == 0 )
+            return null;
+
         SAMDataSource dataSource = new SAMDataSource( reads );
 
         // Side effect: initialize the traversal engine with reads data.

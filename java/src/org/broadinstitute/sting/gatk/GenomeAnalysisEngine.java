@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,6 +77,9 @@ public class GenomeAnalysisEngine {
         // parse out the rod bindings
         ReferenceOrderedData.parseBindings(logger, argCollection.RODBindings, rods);
 
+        // Validate the walker inputs against the walker.
+        validateInputsAgainstWalker(my_walker, argCollection, rods);
+
         // create the output streams
         initializeOutputStreams( my_walker );
 
@@ -84,8 +88,7 @@ public class GenomeAnalysisEngine {
 
         // if we're a read or a locus walker, we use the new system.  Right now we have complicated
         // branching based on the input data, but this should disapear when all the traversals are switched over
-        if ((my_walker instanceof LocusWalker && !(argCollection.samFiles == null || argCollection.samFiles.size() == 0)) ||
-                my_walker instanceof ReadWalker) {
+        if (my_walker instanceof LocusWalker || my_walker instanceof ReadWalker) {
             microScheduler = createMicroscheduler(my_walker, rods);
         } else { // we have an old style traversal, once we're done return
             legacyTraversal(my_walker, rods);
@@ -125,18 +128,6 @@ public class GenomeAnalysisEngine {
     private void legacyTraversal(Walker my_walker, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         if (my_walker instanceof LocusWindowWalker) {
             this.engine = new TraverseByLocusWindows(argCollection.samFiles, argCollection.referenceFile, rods);
-        } else if (my_walker instanceof LocusWalker) {
-            if (argCollection.referenceFile == null)
-                Utils.scareUser(String.format("Locus-based traversals require a reference file but none was given"));
-            if (argCollection.samFiles == null || argCollection.samFiles.size() == 0) {
-                if (((LocusWalker) my_walker).requiresReads())
-                    Utils.scareUser(String.format("Analysis %s requires reads, but none were given", argCollection.analysisName));
-                this.engine = new TraverseByReference(null, argCollection.referenceFile, rods);
-            } else {
-                if (((LocusWalker) my_walker).cannotHandleReads())
-                    Utils.scareUser(String.format("Analysis %s doesn't support SAM/BAM reads, but a read file %s was provided", argCollection.analysisName, argCollection.samFiles));
-                this.engine = new TraverseByLoci(argCollection.samFiles, argCollection.referenceFile, rods);
-            }
         } else if (my_walker instanceof DuplicateWalker) {
             // we're a duplicate walker
             this.engine = new TraverseDuplicates(argCollection.samFiles, argCollection.referenceFile, rods);
@@ -174,12 +165,6 @@ public class GenomeAnalysisEngine {
 
         // we need to verify different parameter based on the walker type
         if (my_walker instanceof LocusWalker) {
-            // some warnings
-            if (argCollection.referenceFile == null)
-                Utils.scareUser(String.format("Locus-based traversals require a reference file but none was given"));
-            if (((LocusWalker) my_walker).cannotHandleReads())
-                Utils.scareUser(String.format("Analysis %s doesn't support SAM/BAM reads, but a read file %s was provided", argCollection.analysisName, argCollection.samFiles));
-
             // create the MicroScheduler
             if( argCollection.walkAllLoci )
                 Utils.scareUser("Argument --all_loci is deprecated.  Please annotate your walker with @By(DataSource.REFERENCE) to perform a by-reference traversal.");
@@ -236,6 +221,42 @@ public class GenomeAnalysisEngine {
             }
         }
         return locs;
+    }
+
+    private void validateInputsAgainstWalker(Walker walker,
+                                             GATKArgumentCollection arguments,
+                                             List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+        String walkerName = WalkerManager.getWalkerName(walker.getClass());
+
+        // Check what the walker says is required against what was provided on the command line.
+        if( WalkerManager.isRequired(walker,DataSource.READS) && (arguments.samFiles == null || arguments.samFiles.size() == 0) )
+            throw new ArgumentException(String.format("Walker %s requires reads but none were provided.  If this is incorrect, alter the walker's @Requires annotation.",walkerName));
+        if( WalkerManager.isRequired(walker,DataSource.REFERENCE) && arguments.referenceFile == null )
+            throw new ArgumentException(String.format("Walker %s requires a reference but none was provided.  If this is incorrect, alter the walker's @Requires annotation.",walkerName));
+
+        // Check what the walker says is allowed against what was provided on the command line.
+        if( (arguments.samFiles != null && arguments.samFiles.size() > 0) && !WalkerManager.isAllowed(walker,DataSource.READS) )
+            throw new ArgumentException(String.format("Walker %s does not allow reads but reads were provided.  If this is incorrect, alter the walker's @Allows annotation",walkerName));
+        if( arguments.referenceFile != null && !WalkerManager.isAllowed(walker,DataSource.REFERENCE) )
+            throw new ArgumentException(String.format("Walker %s does not allow a reference but one was provided.  If this is incorrect, alter the walker's @Allows annotation",walkerName));
+
+        // Check to make sure that all required metadata is present.
+        List<RMD> allRequired = WalkerManager.getRequiredMetaData(walker);
+        for( RMD required: allRequired ) {
+            boolean found = false;
+            for( ReferenceOrderedData<? extends ReferenceOrderedDatum> rod: rods ) {
+                if( rod.matches(required.name(),required.type()) )
+                    found = true;
+            }
+            if( !found )
+                throw new ArgumentException(String.format("Unable to find reference metadata (%s,%s)",required.name(),required.type()));
+        }
+
+        // Check to see that no forbidden rods are present.
+        for( ReferenceOrderedData<? extends ReferenceOrderedDatum> rod: rods ) {
+            if( !WalkerManager.isAllowed(walker,rod) )
+                throw new ArgumentException(String.format("Walker does not allow access to metadata: %s.  If this is correct, change the @Allows metadata",rod.getName()));
+        }
     }
 
     /**
