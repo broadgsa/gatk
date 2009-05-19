@@ -455,15 +455,6 @@ public class ParsingEngine {
 }
 
 /**
- * Generic class for handling misc parsing exceptions.
- */
-class ParseException extends StingException {
-    public ParseException( String message ) {
-        super( message );
-    }
-}
-
-/**
  * An exception indicating that some required arguments are missing.
  */
 class MissingArgumentException extends ParseException {
