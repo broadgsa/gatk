@@ -13,7 +13,7 @@ bam_ext = '.bam'
 if __name__ == "__main__":
     usage = "usage: %prog [options]"
     parser = OptionParser(usage=usage)
-    parser.add_option("-q", "--farm", dest="farm_sub",
+    parser.add_option("-q", "--farm", dest="farmQueue",
                         type="string", default=None,
                         help="Farm queue to send processing jobs to")
     parser.add_option("-d", "--dir", dest="output_dir",
@@ -47,8 +47,8 @@ if __name__ == "__main__":
             if OPTIONS.ignoreExistingFiles or not os.path.exists(output_filename):
                 cmd = 'java -Xmx4096m -jar ' + MERGE_BIN + ' AS=true SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(sources))
                 print cmd
-                farm_commands.cmd(cmd, OPTIONS.farm_sub, output)
+                farm_commands.cmd(cmd, OPTIONS.farmQueue, output)
 
             if OPTIONS.ignoreExistingFiles or not os.path.exists(output_index):
-                ValidateGATK.indexBAM(output_filename)
+                ValidateGATK.indexBAM(output_filename, OPTIONS.farmQueue)
 

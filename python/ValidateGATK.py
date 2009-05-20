@@ -6,9 +6,9 @@ import string
 
 defaultCommands = ['CountReads', 'Pileup']
 
-def indexBAM(reads):
+def indexBAM(reads, queue=None):
     cmd = "samtools index " + reads
-    farm_commands.cmd(cmd, None, None)    
+    farm_commands.cmd(cmd, queue, None)    
 
 def readIntervalFile(file):
     def notHeaderP(line):
