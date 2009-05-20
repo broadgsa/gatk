@@ -38,8 +38,6 @@ public class FourBaseRecaller extends CommandLineProgram {
     public Boolean RAW = false;
     @Argument(fullName="old",         shortName="1", doc="Old Bustard 1.1 mode?", required=false)
     public Boolean OLD = false;
-    @Argument(fullName="context",     shortName="X", doc="Correct for context?", required=false)
-    public Boolean CONTEXT = false;
 
     public static void main(String[] argv) {
         Instance = new FourBaseRecaller();
@@ -70,7 +68,7 @@ public class FourBaseRecaller extends CommandLineProgram {
         fread = ffp.next();
 
         int cycle_offset = (END <= 1) ? 0 : bread.getIntensities().length/2;
-        BasecallingReadModel model = new BasecallingReadModel(bread.getFirstReadSequence().length(), CONTEXT);
+        BasecallingReadModel model = new BasecallingReadModel(bread.getFirstReadSequence().length());
         int queryid;
 
         // learn mean parameters
