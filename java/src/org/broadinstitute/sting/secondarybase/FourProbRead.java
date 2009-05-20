@@ -19,6 +19,23 @@ public class FourProbRead extends ArrayList<FourProb> {
     }
 
     /**
+     * Returns a subset of the FourProbRead.
+     *
+     * @param cycleStart  the starting cycle (0-based, inclusive)
+     * @param cycleStop   the ending cycle (0-based, inclusive)
+     * @return
+     */
+    public FourProbRead getSubset(int cycleStart, int cycleStop) {
+        FourProbRead subset = new FourProbRead(cycleStop - cycleStart + 1);
+
+        for (int cycle = cycleStart, offset = 0; cycle <= cycleStop; cycle++, offset++) {
+            subset.add(offset, this.get(cycle));
+        }
+
+        return subset;
+    }
+
+    /**
      * Get the read sequence at a specified rank
      *
      * @param rank  the rank of the sequence to return (0=best, 1=second-best, 2=third-best, 3=fourth-best)

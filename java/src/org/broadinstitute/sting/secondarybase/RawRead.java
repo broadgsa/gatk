@@ -29,12 +29,12 @@ public class RawRead {
         x = Short.valueOf(pastedReadString[0][2]);
         y = Short.valueOf(pastedReadString[0][3]);
 
-        sequence = pastedReadString[1][4].substring(cycleBegin, cycleEnd).getBytes();
+        sequence = pastedReadString[1][4].substring(cycleBegin, cycleEnd + 1).getBytes();
 
         quals = new byte[sequence.length];
         intensities = new short[sequence.length][4];
 
-        for (int cycle = 0; cycle < sequence.length; cycle++) {
+        for (int cycle = cycleBegin, offset = 0; cycle <= cycleEnd; cycle++, offset++) {
             byte maxQual = -50;
 
             for (int fullReadIndex = 4*cycle; fullReadIndex < 4*cycle + 4; fullReadIndex++) {
@@ -43,13 +43,13 @@ public class RawRead {
                 if (qual > maxQual) { maxQual = qual; }
             }
 
-            quals[cycle] = maxQual >= 0 ? maxQual : 0;
+            quals[offset] = maxQual >= 0 ? maxQual : 0;
 
             for (int fullReadIndex = 4*cycle + 4, channel = 0; fullReadIndex < 4*cycle + 8; fullReadIndex++, channel++) {
                 double doubleChannelIntensity = Double.valueOf(pastedReadString[0][fullReadIndex]);
                 short shortChannelIntensity = (short) doubleChannelIntensity;
 
-                intensities[cycle][channel] = shortChannelIntensity;
+                intensities[offset][channel] = shortChannelIntensity;
             }
         }
     }

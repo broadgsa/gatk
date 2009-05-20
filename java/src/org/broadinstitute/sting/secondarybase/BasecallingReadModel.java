@@ -18,43 +18,37 @@ import java.util.ArrayList;
  */
 public class BasecallingReadModel {
     private BasecallingBaseModel[] basemodels = null;
-    private boolean correctForContext = false;
+    private boolean correctForContext = true;
 
-    /**
-     * Constructor for BasecallingReadModel.
-     *
-     * @param readLength    the length of the read that this model will support
-     */
-    public BasecallingReadModel(int readLength, boolean correctForContext) {
-        this.correctForContext = correctForContext;
-        
+    public BasecallingReadModel(int readLength) {
+        initialize(readLength);
+    }
+
+    public BasecallingReadModel(ArrayList<RawRead> trainingData) {
+        initialize(trainingData.get(0).getReadLength());
+
+        train(trainingData);
+    }
+
+    public void initialize(int readLength) {
         basemodels = new BasecallingBaseModel[readLength];
 
         for (int cycle = 0; cycle < readLength; cycle++) {
-            basemodels[cycle] = new BasecallingBaseModel(cycle == 0 ? false : correctForContext);
+            basemodels[cycle] = new BasecallingBaseModel(cycle != 0 && correctForContext);
         }
     }
 
-    public void train(BasecallingTrainingSet trainingSet) {
-        ArrayList<RawRead> trainingData = trainingSet.getTrainingData();
-
-        for (int readIndex = 0; readIndex < trainingData.size(); readIndex++) {
-            RawRead read = trainingData.get(readIndex);
+    public void train(ArrayList<RawRead> trainingData) {
+        //for (int readIndex = 0; readIndex < trainingData.size(); readIndex++) {
+        for ( RawRead read : trainingData ) {
             addMeanPoints(read);
         }
 
-        for (int readIndex = 0; readIndex < trainingData.size(); readIndex++) {
-            RawRead read = trainingData.get(readIndex);
+        for ( RawRead read : trainingData ) {
             addCovariancePoints(read);
         }
     }
 
-    /**
-     * Add a single training point to the model means.
-     *
-     * @param cycle         the cycle for which this point should be added
-     * @param fourintensity the four intensities of the current base
-     */
     public void addMeanPoint(int cycle, double[][] probMatrix, double[] fourintensity) {
         basemodels[cycle].addMeanPoint(probMatrix, fourintensity);
     }
@@ -80,12 +74,6 @@ public class BasecallingReadModel {
         }
     }
 
-    /**
-     * Add a single training point to the model covariances.
-     *
-     * @param cycle         the cycle for which this point should be added
-     * @param fourintensity the four intensities of the current base
-     */
     public void addCovariancePoint(int cycle, double[][] probMatrix, double[] fourintensity) {
         basemodels[cycle].addCovariancePoint(probMatrix, fourintensity);
     }
@@ -111,25 +99,10 @@ public class BasecallingReadModel {
         }
     }
 
-    /**
-     * Compute the likelihood matrix for a given cycle.
-     *
-     * @param cycle         the cycle number for the current base
-     * @param fourintensity the four intensities for the current cycle's base
-     * @return 4x4 matrix of likelihoods
-     */
     public double[][] computeLikelihoods(int cycle, double[] fourintensity) {
         return basemodels[cycle].computeLikelihoods(cycle, fourintensity);
     }
 
-    /**
-     * Compute the probability distribution for the base at a given cycle.
-     *
-     * @param cycle         the cycle number for the current base
-     * @param fourintensity the four intensities for the current cycle's base
-     * @return an instance of FourProb, which encodes a base hypothesis, its probability,
-     *         and the ranking among the other hypotheses
-     */
     public FourProb computeProbabilities(int cycle, char basePrev, byte qualPrev, double[] fourintensity) {
         double[][] likes = computeLikelihoods(cycle, fourintensity);
 
@@ -157,9 +130,7 @@ public class BasecallingReadModel {
             }
         }
 
-        FourProb fp = new FourProb(likes);
-
-        return fp;
+        return new FourProb(likes);
     }
 
     public FourProbRead call(RawRead read) {
@@ -174,7 +145,6 @@ public class BasecallingReadModel {
                 fourIntensity[channel] = (double) read.getIntensities()[cycle][channel];
             }
 
-            //fps[cycle] = computeProbabilities(cycle, basePrev, qualPrev, fourIntensity);
             fpr.add(cycle, computeProbabilities(cycle, basePrev, qualPrev, fourIntensity));
 
         }
@@ -182,15 +152,6 @@ public class BasecallingReadModel {
         return fpr;
     }
 
-    /**
-     * Returns the base probability matrix
-     *
-     * @param cycle        the cycle of the base
-     * @param basePrev     the previous base
-     * @param baseCur      the current base
-     * @param probCur      the probability of the current base
-     * @return the base probability matrix (1x4 if no contextual correction, 4x4 otherwise)
-     */
     public double[][] getBaseProbabilityMatrix(int cycle, char basePrev, char baseCur, double probCur) {
         double[][] dist = new double[(correctForContext && cycle > 0) ? 4 : 1][4];
 
@@ -208,11 +169,6 @@ public class BasecallingReadModel {
         return dist;
     }
 
-    /**
-     * Writes model parameters to a file per cycle.
-     *
-     * @param dir  the directory where the parameters should be written
-     */
     public void write(File dir) {
         for (int cycle = 0; cycle < basemodels.length; cycle++) {
             File outparam = new File(dir.getPath() + "/param." + cycle + ".r");

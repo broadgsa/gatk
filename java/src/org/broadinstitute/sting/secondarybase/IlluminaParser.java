@@ -13,12 +13,10 @@ import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class IlluminaParser implements Iterator<RawRead>, Iterable<RawRead>, Closeable {
+public class IlluminaParser implements Closeable {
     private File bustardDir;
     private File firecrestDir;
     private int lane;
-    private int cycleBegin;
-    private int cycleEnd;
 
     private File[] intfiles;
     private File[] seqfiles;
@@ -26,26 +24,21 @@ public class IlluminaParser implements Iterator<RawRead>, Iterable<RawRead>, Clo
 
     private int currentTileIndex;
     private PasteParser currentTileParser;
+    private String[][] currentParseResult;
 
-    private boolean iterating = false;
-
-    public IlluminaParser(File bustardDir, int lane, int cycleBegin, int cycleEnd) {
+    public IlluminaParser(File bustardDir, int lane) {
         this.bustardDir = bustardDir;
         this.firecrestDir = bustardDir.getParentFile();
         this.lane = lane;
-        this.cycleBegin = cycleBegin;
-        this.cycleEnd = cycleEnd;
 
         initializeParser();
     }
 
-    public IlluminaParser(File bustardDir, File firecrestDir, int lane, int cycleBegin, int cycleEnd) {
+    public IlluminaParser(File bustardDir, File firecrestDir, int lane) {
         this.bustardDir = bustardDir;
         this.firecrestDir = firecrestDir;
         this.lane = lane;
-        this.cycleBegin = cycleBegin;
-        this.cycleEnd = cycleEnd;
-        
+
         initializeParser();
     }
 
@@ -67,10 +60,9 @@ public class IlluminaParser implements Iterator<RawRead>, Iterable<RawRead>, Clo
         Arrays.sort(seqfiles, getTileSortingComparator());
         Arrays.sort(prbfiles, getTileSortingComparator());
 
-        iterator();
+        seekToTile(1);
 
         // Todo: put some more consistency checks here
-
     }
 
     private FilenameFilter getFilenameFilter(final String suffix) {
@@ -129,30 +121,33 @@ public class IlluminaParser implements Iterator<RawRead>, Iterable<RawRead>, Clo
         return (currentTileParser.hasNext() || seekToTile(currentTileIndex + 1));
     }
 
-    public RawRead next() {
+    public boolean next() {
         if (hasNext()) {
-            return new RawRead(currentTileParser.next(), cycleBegin, cycleEnd);
+            currentParseResult = currentTileParser.next();
+
+            return true;
         }
 
-        return null;
+        return false;
+    }
+
+    public String[][] getCurrentParseResult() {
+        return currentParseResult;
     }
 
     public void remove() {
         throw new UnsupportedOperationException("IlluminaParser.remove() method is not supported.");
     }
 
-    public Iterator<RawRead> iterator() {
-        if (iterating) {
-            throw new IllegalStateException("IlluminaParser.iterator() method can only be called once, before the first call to IlluminaParser.hasNext()");
-        }
-
-        seekToTile(1);
-        iterating = true;
-        
-        return this;
-    }
-
     public void close() {
         currentTileParser.close();
+    }
+
+    public RawRead getRawRead() {
+        return getSubset(0, currentParseResult[1][4].length() - 1);
+    }
+
+    public RawRead getSubset(int cycleStart, int cycleStop) {
+        return new RawRead(currentParseResult, cycleStart, cycleStop);
     }
 }
