@@ -106,6 +106,32 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
     }
 
+    private static int numMismatches(SAMRecord r, String refSeq, int refIdx) {
+        int readIdx = 0;
+        int mismatches = 0;
+        String readSeq = r.getReadString();
+        Cigar c = r.getCigar();
+        for (int i = 0 ; i < c.numCigarElements() ; i++) {
+            CigarElement ce = c.getCigarElement(i);
+            switch ( ce.getOperator() ) {
+                case M:
+                    for (int j = 0 ; j < ce.getLength() ; j++, refIdx++, readIdx++ ) {
+                        if ( Character.toUpperCase(readSeq.charAt(readIdx)) != Character.toUpperCase(refSeq.charAt(refIdx)) )
+                            mismatches++;
+                    }
+                    break;
+                case I:
+                    readIdx += ce.getLength();
+                    break;
+                case D:
+                    refIdx += ce.getLength();
+                    break;
+            }
+
+        }
+        return mismatches;
+    }
+
     private static int mismatchQualitySum(AlignedRead aRead, String ref, int refIndex) {
         String read = aRead.getReadString();
         String quals = aRead.getBaseQualityString();
@@ -224,7 +250,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             }
         }
 
-        // if the best alternate consensus has a smaller sum of quality score mismatches, then clean!
+        // if the best alternate consensus has a smaller sum of quality score mismatches (more than the LOD threshold), then clean!
         if ( bestConsensus != null && ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0 >= LOD_THRESHOLD ) {
             logger.info("CLEAN: " + bestConsensus.str );
             if ( indelOutput != null && bestConsensus.cigar.numCigarElements() > 1 ) {
@@ -239,9 +265,20 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 } catch (Exception e) {}
             }
 
+            // We need to update the mapping quality score of the cleaned reads;
+            // however we don't have enough info to use the proper MAQ scoring system.
+            // For now, we'll use a heuristic:
+            // the mapping quality score is improved by the LOD difference in mismatching
+            // bases between the reference and alternate consensus
+            int improvement = (totalMismatchSum - bestConsensus.mismatchSum) / 10;
+
             // clean the appropriate reads
-            for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes )
-                updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.getSecond(), altReads.get(indexPair.getFirst()), (int)leftmostIndex);
+            for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes ) {
+                AlignedRead aRead = altReads.get(indexPair.getFirst());
+                updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.getSecond(), aRead, (int)leftmostIndex);
+                aRead.getRead().setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + improvement, 255));
+                aRead.getRead().setAttribute("NM", numMismatches(aRead.getRead(), reference, aRead.getRead().getAlignmentStart()-(int)leftmostIndex));
+            }
         }
 
         // write them out
