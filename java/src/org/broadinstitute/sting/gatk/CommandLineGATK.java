@@ -7,6 +7,7 @@ import org.broadinstitute.sting.utils.xReadLines;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 
 import java.io.FileNotFoundException;
 import java.io.File;
@@ -93,7 +94,12 @@ public class CommandLineGATK extends CommandLineProgram {
         this.argCollection.analysisName = this.analysisName;
         try {
             GATKEngine = new GenomeAnalysisEngine(argCollection, mWalker);
-        } catch (StingException exp) {
+        }
+        catch (ArgumentException ex) {
+            // Rethrow argument exceptions.  Let the command-line argument do what it's designed to do.
+            throw ex;            
+        }
+        catch (StingException exp) {
             System.err.println("Caught StingException. It's message is " + exp.getMessage());
             exp.printStackTrace();
             return -1;
