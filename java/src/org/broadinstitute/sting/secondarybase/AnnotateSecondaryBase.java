@@ -180,6 +180,7 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
         SAMRecord sr = new SAMRecord(sfh);
 
         sr.setReadName(runBarcode + ":" + rr.getReadKey() + "#0");
+        sr.setMateUnmappedFlag(true);
         sr.setReadUmappedFlag(true);
         sr.setReadString(rr.getSequenceAsString());
         sr.setBaseQualities(rr.getQuals());
