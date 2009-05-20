@@ -546,53 +546,6 @@ public abstract class TraversalEngine {
         throw new UnsupportedOperationException( "This method is a required override for new traversal engines.  Please port your traversal engine to the new style." );
     }
 
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // traversal by loci functions
-    //
-    // --------------------------------------------------------------------------------------------------------------
-
-    /**
-     * Class to filter out un-handle-able reads from the stream.  We currently are skipping
-     * unmapped reads, non-primary reads, unaligned reads, and duplicate reads.
-     */
-    public static class locusStreamFilterFunc implements SamRecordFilter {
-        SAMRecord lastRead = null;
-        public boolean filterOut(SAMRecord rec) {
-            boolean result = false;
-            String why = "";
-            if (rec.getReadUnmappedFlag()) {
-                TraversalStatistics.nUnmappedReads++;
-                result = true;
-                why = "Unmapped";
-            } else if (rec.getNotPrimaryAlignmentFlag()) {
-                TraversalStatistics.nNotPrimary++;
-                result = true;
-                why = "Not Primary";
-            } else if (rec.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START) {
-                TraversalStatistics.nBadAlignments++;
-                result = true;
-                why = "No alignment start";
-            } else if (rec.getDuplicateReadFlag()) {
-                TraversalStatistics.nDuplicates++;
-                result = true;
-                why = "Duplicate reads";
-            }
-            else {
-                result = false;
-            }
-
-            if (result) {
-                TraversalStatistics.nSkippedReads++;
-                //System.out.printf("  [filter] %s => %b %s", rec.getReadName(), result, why);
-            } else {
-                TraversalStatistics.nReads++;
-            }
-            return result;
-        }
-    }
-
     public void verifySortOrder(final boolean requiresSortedOrder) {
         if (beSafeP && !SORT_ON_FLY && samReader.getFileHeader().getSortOrder() != SAMFileHeader.SortOrder.coordinate) {
             final String msg = "SAM file is not sorted in coordinate order (according to header) Walker type with given arguments requires a sorted file for correct processing";

@@ -5,13 +5,14 @@ import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.LocusContextIteratorByHanger;
 import org.broadinstitute.sting.gatk.iterators.LocusContextIterator;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
+import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import net.sf.samtools.SAMRecord;
 
 import java.util.Iterator;
 
 import edu.mit.broad.picard.filter.FilteringIterator;
+import edu.mit.broad.picard.filter.SamRecordFilter;
 /**
  * User: hanna
  * Date: May 13, 2009
@@ -36,7 +37,7 @@ public abstract class LocusContextQueue {
     private LocusContextIterator loci;    
 
     public LocusContextQueue(ShardDataProvider provider) {
-        Iterator<SAMRecord> reads = new FilteringIterator(provider.getReadIterator(), new TraversalEngine.locusStreamFilterFunc());
+        Iterator<SAMRecord> reads = new FilteringIterator(provider.getReadIterator(), new LocusStreamFilterFunc());
         this.loci = new LocusContextIteratorByHanger(reads);
         this.sourceInfo = provider.getReadIterator().getSourceInfo();
         this.shard = provider.getShard();
@@ -75,4 +76,43 @@ public abstract class LocusContextQueue {
         return loci.hasNext();
     }
 
+    /**
+     * Class to filter out un-handle-able reads from the stream.  We currently are skipping
+     * unmapped reads, non-primary reads, unaligned reads, and duplicate reads.
+     */
+    private static class LocusStreamFilterFunc implements SamRecordFilter {
+        SAMRecord lastRead = null;
+        public boolean filterOut(SAMRecord rec) {
+            boolean result = false;
+            String why = "";
+            if (rec.getReadUnmappedFlag()) {
+                TraversalStatistics.nUnmappedReads++;
+                result = true;
+                why = "Unmapped";
+            } else if (rec.getNotPrimaryAlignmentFlag()) {
+                TraversalStatistics.nNotPrimary++;
+                result = true;
+                why = "Not Primary";
+            } else if (rec.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START) {
+                TraversalStatistics.nBadAlignments++;
+                result = true;
+                why = "No alignment start";
+            } else if (rec.getDuplicateReadFlag()) {
+                TraversalStatistics.nDuplicates++;
+                result = true;
+                why = "Duplicate reads";
+            }
+            else {
+                result = false;
+            }
+
+            if (result) {
+                TraversalStatistics.nSkippedReads++;
+                //System.out.printf("  [filter] %s => %b %s", rec.getReadName(), result, why);
+            } else {
+                TraversalStatistics.nReads++;
+            }
+            return result;
+        }
+    }
 }
