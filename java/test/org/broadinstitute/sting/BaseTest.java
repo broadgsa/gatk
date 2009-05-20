@@ -43,15 +43,14 @@ public abstract class BaseTest {
     protected static String seqLocation = "/seq";
     protected static String oneKGLocation = "/broad/1KG";
     protected static String testDir = "testdata/";
-    
     protected static boolean alreadySetup = false;
-    private static long startTime;
+    
 
     /** before the class starts up */
     @BeforeClass
     public static void baseStartup() {
         if (!alreadySetup) {
-          
+
             alreadySetup = true;
             // setup a basic log configuration
             BasicConfigurator.configure();
@@ -78,7 +77,7 @@ public abstract class BaseTest {
             }
         }
     }
-
+    
     public static void findFileLocations() throws IOException {
         // if either doesn't exist
         if (!fileExist(seqLocation) || !fileExist(oneKGLocation)) {
@@ -132,29 +131,4 @@ public abstract class BaseTest {
         return temp.exists();
 
     }
-
-
-    /**
-     * this test is here so that we can always pass when this test is run
-     */
-    @Test
-    public void basicTest() {
-
-    }
-
-    /** after the class runs */
-    @AfterClass
-    public static void baseShutdown() {
-
-    }
-
-    // pass through to the junit 3 calls, which are not annotated
-    @Before
-    public void baseSetup() throws Exception {
-    }
-
-    @After
-    public void baseTearDown() throws Exception {
-    }
-
 }
