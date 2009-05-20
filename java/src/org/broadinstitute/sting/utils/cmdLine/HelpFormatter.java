@@ -1,17 +1,12 @@
 package org.broadinstitute.sting.utils.cmdLine;
 
-import org.broadinstitute.sting.utils.StingException;
-
 import java.util.Formatter;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.Comparator;
-import java.util.TreeSet;
-import java.util.SortedSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 /**
@@ -43,80 +38,36 @@ public class HelpFormatter {
      * @param argumentDefinitions Argument definitions for which help should be printed.
      */
     public void printHelp( String runningInstructions, ArgumentDefinitions argumentDefinitions ) {
-        SortedSet<ArgumentDefinition> mainArguments = getMainArguments( argumentDefinitions );
-        Map<String,SortedSet<ArgumentDefinition>> pluginsByGroup = getPluginArguments( argumentDefinitions );
-
-        System.out.printf("%s%s%n",
-                getSynopsis(runningInstructions,mainArguments,pluginsByGroup),
-                getDetailed(mainArguments,pluginsByGroup) );
-    }
-
-    /**
-     * Retrieve a sorted set of the command-line arguments for the main application from the ArgumentDefinitions object.
-     * @param argumentDefinitions Predefined argument definitions.
-     * @return A list of argument definitions.
-     */
-    private SortedSet<ArgumentDefinition> getMainArguments( ArgumentDefinitions argumentDefinitions ) {
-        for( ArgumentDefinitionGroup argumentGroup: argumentDefinitions.getArgumentDefinitionGroups() ) {
-            // A null groupName is the signal that these are the application's main arguments.
-            if( argumentGroup.groupName == null ){
-                SortedSet<ArgumentDefinition> sortedDefinitions = new TreeSet<ArgumentDefinition>( new ArgumentDefinitionComparator() );
-                sortedDefinitions.addAll( argumentGroup.argumentDefinitions );
-                return sortedDefinitions;
-            }
-        }
-        throw new StingException( "Unable to retrieve main command-line arguments." );
-    }
-
-    /**
-     * Retrieve a sorted set of the command-line arguments for application plugin objects.
-     * @param argumentDefinitions Predefined argument definitions.
-     * @return A map of argument group name -> a list of argument definitions.
-     */
-    private Map<String,SortedSet<ArgumentDefinition>> getPluginArguments( ArgumentDefinitions argumentDefinitions ) {
-        Map<String,SortedSet<ArgumentDefinition>> pluginsByGroup = new HashMap<String,SortedSet<ArgumentDefinition>>();
-        for( ArgumentDefinitionGroup argumentGroup: argumentDefinitions.getArgumentDefinitionGroups() ) {
-            // A null groupName is the signal that these are the application's main arguments.
-            if( argumentGroup.groupName == null )
-                continue;
-            SortedSet<ArgumentDefinition> sortedDefinitions = new TreeSet<ArgumentDefinition>( new ArgumentDefinitionComparator() );
-            sortedDefinitions.addAll( argumentGroup.argumentDefinitions );
-            pluginsByGroup.put( argumentGroup.groupName, sortedDefinitions );
-        }
-        return pluginsByGroup;
+        List<ArgumentDefinitionGroup> argumentGroups = prepareArgumentGroups( argumentDefinitions );
+        System.out.printf("%s%s%n",getSynopsis(runningInstructions,argumentGroups),getDetailed(argumentGroups) );
     }
 
     /**
      * Gets the synopsis: the actual command to run.
-     * @param mainArguments Main program arguments.
      * @param runningInstructions Instructions on how to run hte application.
-     * @param pluginArgumentGroups Groups of plugin arguments
+     * @param argumentGroups Program arguments sorted in order of definition group displays.
      * @return A synopsis line.
      */
     private String getSynopsis( String runningInstructions,
-                                SortedSet<ArgumentDefinition> mainArguments,
-                                Map<String,SortedSet<ArgumentDefinition>> pluginArgumentGroups ) {
+                                List<ArgumentDefinitionGroup> argumentGroups ) {
         // Build out the synopsis all as one long line.        
         StringBuilder lineBuilder = new StringBuilder();
         Formatter lineFormatter = new Formatter( lineBuilder );
 
         lineFormatter.format("java %s", runningInstructions);
 
-        List<ArgumentDefinition> argumentDefinitions = new ArrayList<ArgumentDefinition>();
-        argumentDefinitions.addAll( mainArguments );
-        for( SortedSet pluginArguments: pluginArgumentGroups.values() )
-            argumentDefinitions.addAll( pluginArguments );
-
-        for( ArgumentDefinition argumentDefinition: argumentDefinitions ) {
-            lineFormatter.format(" ");
-            if( !argumentDefinition.required ) lineFormatter.format("[");
-            if( argumentDefinition.shortName != null )
-                lineFormatter.format("-%s", argumentDefinition.shortName);
-            else
-                lineFormatter.format("--%s", argumentDefinition.fullName);
-            if( !argumentDefinition.isFlag() )
-                lineFormatter.format(" <%s>", argumentDefinition.fullName);
-            if( !argumentDefinition.required ) lineFormatter.format("]");
+        for( ArgumentDefinitionGroup argumentGroup: argumentGroups ) {
+            for( ArgumentDefinition argumentDefinition: argumentGroup.argumentDefinitions ) {
+                lineFormatter.format(" ");
+                if( !argumentDefinition.required ) lineFormatter.format("[");
+                if( argumentDefinition.shortName != null )
+                    lineFormatter.format("-%s", argumentDefinition.shortName);
+                else
+                    lineFormatter.format("--%s", argumentDefinition.fullName);
+                if( !argumentDefinition.isFlag() )
+                    lineFormatter.format(" <%s>", argumentDefinition.fullName);
+                if( !argumentDefinition.required ) lineFormatter.format("]");
+            }
         }
 
         // Word wrap the synopsis.
@@ -137,23 +88,27 @@ public class HelpFormatter {
 
     /**
      * Gets detailed output about each argument type.
-     * @param mainArguments Main program arguments.
-     * @param pluginArgumentGroups Groups of plugin arguments
+     * @param argumentGroups Collection of program arguments sorted according to how they should be shown. 
      * @return Detailed text about all arguments.
      */
-    private String getDetailed( SortedSet<ArgumentDefinition> mainArguments, Map<String,SortedSet<ArgumentDefinition>> pluginArgumentGroups ) {
+    private String getDetailed( List<ArgumentDefinitionGroup> argumentGroups ) {
         StringBuilder builder = new StringBuilder();
 
-        builder.append( getDetailForGroup( mainArguments ) );
-
-        for( String groupName: pluginArgumentGroups.keySet() ) {
-            builder.append( String.format("Arguments for %s:%n", groupName ) );
-            builder.append( getDetailForGroup( pluginArgumentGroups.get(groupName) ) );
+        for( ArgumentDefinitionGroup argumentGroup: argumentGroups ) {
+            if( argumentGroup.groupName != null && argumentGroup.argumentDefinitions.size() != 0 )
+                builder.append( String.format("%nArguments for %s:%n", argumentGroup.groupName ) );
+            builder.append( getDetailForGroup( argumentGroup.argumentDefinitions ) );
         }
+
         return builder.toString();
     }
 
-    private String getDetailForGroup( SortedSet<ArgumentDefinition> argumentDefinitions ) {
+    /**
+     * Gets a detailed description for a given argument group.
+     * @param argumentDefinitions The argument definitions contained withina group.
+     * @return A string giving detailed info about the contents of this group.
+     */
+    private String getDetailForGroup( List<ArgumentDefinition> argumentDefinitions ) {
         StringBuilder builder = new StringBuilder();
         Formatter formatter = new Formatter( builder );
 
@@ -237,21 +192,43 @@ public class HelpFormatter {
     }
 
     /**
-     * A comparator to reorder arguments in alphabetical order.
+     * Extract the argument definition groups from the argument definitions and arrange them appropriately.
+     * For help, we want the arguments sorted as they are declared in the class.  However, required arguments
+     * should appear before optional arguments.
+     * @param argumentDefinitions Argument definitions from which to extract argument groups.
+     * @return A list of argument groups sorted in display order.
      */
-    private class ArgumentDefinitionComparator implements Comparator<ArgumentDefinition> {
-        public int compare( ArgumentDefinition lhs, ArgumentDefinition rhs ) {
-            if( lhs.shortName == null && rhs.shortName == null )
-                return lhs.fullName.compareTo( rhs.fullName );
-            // short names always come before long names.
-            else if ( lhs.shortName == null )
-                return -1;
-            else if ( rhs.shortName == null )
-                return 1;
-            else if ( lhs.shortName.equals(rhs.shortName) )
-                return lhs.fullName.compareTo( rhs.fullName );
-            else
-                return lhs.shortName.compareTo( rhs.shortName );
+    private List<ArgumentDefinitionGroup> prepareArgumentGroups( ArgumentDefinitions argumentDefinitions ) {
+        // Sort the list of argument definitions according to how they should be shown.
+        // Put the sorted results into a new cloned data structure.
+        Comparator definitionComparator = new Comparator<ArgumentDefinition>() {
+            public int compare( ArgumentDefinition lhs, ArgumentDefinition rhs ) {
+                if( lhs.required && rhs.required ) return 0;
+                if( lhs.required ) return -1;
+                if( rhs.required ) return 1;
+                return 0;
+            }
+        };
+
+        List<ArgumentDefinitionGroup> argumentGroups = new ArrayList();        
+        for( ArgumentDefinitionGroup argumentGroup: argumentDefinitions.getArgumentDefinitionGroups() ) {
+            List<ArgumentDefinition> sortedDefinitions = new ArrayList( argumentGroup.argumentDefinitions );
+            Collections.sort( sortedDefinitions, definitionComparator );
+            argumentGroups.add( new ArgumentDefinitionGroup(argumentGroup.groupName,sortedDefinitions) );
         }
+
+        // Sort the argument groups themselves with main arguments first, followed by plugins sorted in name order.
+        Comparator groupComparator = new Comparator<ArgumentDefinitionGroup>() {
+            public int compare( ArgumentDefinitionGroup lhs, ArgumentDefinitionGroup rhs ) {
+                if( lhs.groupName == null && rhs.groupName == null ) return 0;
+                if( lhs.groupName == null ) return -1;
+                if( rhs.groupName == null ) return 1;
+                return lhs.groupName.compareTo(rhs.groupName);
+            }
+        };
+        Collections.sort( argumentGroups, groupComparator );
+
+
+        return argumentGroups;
     }
 }

@@ -50,29 +50,28 @@ public class GATKArgumentCollection {
     public GATKArgumentCollection() {
     }
 
+    @Element(required=false)
+    public String analysisName = null;
+
+    @ElementMap(entry = "analysis_argument", key = "key", attribute = true, inline = true, required=false)
+    public Map<String, String> walkerArgs = new HashMap<String, String>();    
+
     // parameters and their defaults
     @ElementList
     @Argument(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
     public List<File> samFiles = new ArrayList<File>();
 
     @Element(required=false)
-    @Argument(fullName = "maximum_reads", shortName = "M", doc = "Maximum number of reads to process before exiting", required = false)
-    public String maximumReads = "-1";
-
-    @Element(required=false)
-    @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation (LENIENT|SILENT|STRICT)", required = false)
-    public String strictnessLevel = "strict";
+    @Argument(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.", required = false)
+    public String intervals = null;    
 
     @Element(required=false)
     @Argument(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
 
-    @Element(required=false)
-    public String analysisName = null;
-
-    // parameters and their defaults
-    @ElementMap(entry = "analysis_argument", key = "key", attribute = true, inline = true, required=false)
-    public Map<String, String> walkerArgs = new HashMap<String, String>();
+    @ElementList(required=false)
+    @Argument(fullName = "rodBind", shortName = "B", doc = "Bindings for reference-ordered data, in the form <name>,<type>,<file>", required = false)
+    public ArrayList<String> RODBindings = new ArrayList<String>();
 
     @Element(required=false)
     @Argument(fullName = "DBSNP", shortName = "D", doc = "DBSNP file", required = false)
@@ -85,38 +84,6 @@ public class GATKArgumentCollection {
     @Element(required=false)
     @Argument(fullName = "hapmap_chip", shortName = "hc", doc = "Hapmap chip file", required = false)
     public String HAPMAPChipFile = null;
-
-    @Element(required=false)
-    @Argument(fullName = "threaded_IO", shortName = "P", doc = "If set, enables threaded I/O operations", required = false)
-    public Boolean enabledThreadedIO = false;
-
-    @Element(required=false)
-    @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations, nothing will be checked at runtime.", required = false)
-    public Boolean unsafe = false;
-
-    @Element(required=false)
-    @Argument(fullName = "sort_on_the_fly", shortName = "sort", doc = "Maximum number of reads to sort on the fly", required = false)
-    public Integer maximumReadSorts = null;
-
-    @Element(required=false)
-    @Argument(fullName = "downsample_to_fraction", shortName = "dfrac", doc = "Fraction [0.0-1.0] of reads to downsample to", required = false)
-    public Double downsampleFraction = null;
-
-    @Element(required=false)
-    @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to", required = false)
-    public Integer downsampleCoverage = null;
-
-    @Element(required=false)
-    @Argument(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.", required = false)
-    public String intervals = null;
-
-    @Element(required=false)
-    @Argument(fullName = "all_loci", shortName = "A", doc = "Should we process all loci, not just those covered by reads", required = false)
-    public Boolean walkAllLoci = false;
-
-    @Element(required=false)
-    @Argument(fullName = "disablethreading", shortName = "dt", doc = "Disable experimental threading support.", required = false)
-    public Boolean disableThreading = false;
 
     /** An output file presented to the walker. */
     @Element(required=false)
@@ -133,14 +100,46 @@ public class GATKArgumentCollection {
     @Argument(fullName = "outerr", shortName = "oe", doc = "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", required = false)
     public String outErrFileName = null;
 
+    @Element(required=false)
+    @Argument(fullName = "all_loci", shortName = "A", doc = "Should we process all loci, not just those covered by reads", required = false)
+    public Boolean walkAllLoci = false;    
+
+    @Element(required=false)
+    @Argument(fullName = "maximum_reads", shortName = "M", doc = "Maximum number of reads to process before exiting", required = false)
+    public String maximumReads = "-1";
+
+    @Element(required=false)
+    @Argument(fullName = "sort_on_the_fly", shortName = "sort", doc = "Maximum number of reads to sort on the fly", required = false)
+    public Integer maximumReadSorts = null;
+
+    @Element(required=false)
+    @Argument(fullName = "downsample_to_fraction", shortName = "dfrac", doc = "Fraction [0.0-1.0] of reads to downsample to", required = false)
+    public Double downsampleFraction = null;
+
+    @Element(required=false)
+    @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to", required = false)
+    public Integer downsampleCoverage = null;    
+
+    @Element(required=false)
+    @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation (LENIENT|SILENT|STRICT)", required = false)
+    public String strictnessLevel = "strict";
+
+    @Element(required=false)
+    @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations, nothing will be checked at runtime.", required = false)
+    public Boolean unsafe = false;    
+
+    @Element(required=false)
+    @Argument(fullName = "threaded_IO", shortName = "P", doc = "If set, enables threaded I/O operations", required = false)
+    public Boolean enabledThreadedIO = false;
+
+    @Element(required=false)
+    @Argument(fullName = "disablethreading", shortName = "dt", doc = "Disable experimental threading support.", required = false)
+    public Boolean disableThreading = false;
+
     /** How many threads should be allocated to this analysis. */
     @Element(required=false)
     @Argument(fullName = "numthreads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
     public int numberOfThreads = 1;
-
-    @ElementList(required=false)
-    @Argument(fullName = "rodBind", shortName = "B", doc = "", required = false)
-    public ArrayList<String> RODBindings = new ArrayList<String>();
 
     /**
      * marshal the data out to a object

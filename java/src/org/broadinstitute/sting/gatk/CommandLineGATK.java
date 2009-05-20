@@ -118,8 +118,8 @@ public class CommandLineGATK extends CommandLineProgram {
      */
     @Override
     protected Class[] getArgumentSources() {
-        if (analysisName == null)
-            throw new IllegalArgumentException("Must provide analysis name");
+        // No walker info?  No plugins.
+        if (analysisName == null) return new Class[] {};
 
         walkerManager = new WalkerManager(pluginPathName);
 

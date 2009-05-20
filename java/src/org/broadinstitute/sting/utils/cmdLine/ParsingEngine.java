@@ -79,7 +79,7 @@ public class ParsingEngine {
      * @param source     An argument source from which to extract command-line arguments.
      */
     public void addArgumentSource( String sourceName, Class source ) {
-        Collection<ArgumentDefinition> argumentsFromSource = new ArrayList<ArgumentDefinition>();
+        List<ArgumentDefinition> argumentsFromSource = new ArrayList<ArgumentDefinition>();
         while( source != null ) {
             Field[] fields = source.getDeclaredFields();
             for( Field field: fields ) {

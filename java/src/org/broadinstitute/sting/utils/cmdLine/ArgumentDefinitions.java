@@ -62,7 +62,7 @@ class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
         while( definitionGroupIterator.hasNext() ) {
             ArgumentDefinitionGroup candidate = definitionGroupIterator.next();            
             if( candidate.groupNameMatches(argumentDefinitionGroup) ) {
-                argumentDefinitionGroup = argumentDefinitionGroup.mergeInto(candidate);
+                argumentDefinitionGroup = candidate.merge(argumentDefinitionGroup);
                 definitionGroupIterator.remove();
             }
         }
@@ -184,11 +184,11 @@ class ArgumentDefinitionGroup implements Iterable<ArgumentDefinition> {
     /**
      * The argument definitions associated with this group.
      */
-    public final Collection<ArgumentDefinition> argumentDefinitions;
+    public final List<ArgumentDefinition> argumentDefinitions;
 
-    public ArgumentDefinitionGroup( String groupName, Collection<ArgumentDefinition> argumentDefinitions ) {
+    public ArgumentDefinitionGroup( String groupName, List<ArgumentDefinition> argumentDefinitions ) {
         this.groupName = groupName;
-        this.argumentDefinitions = Collections.unmodifiableCollection( argumentDefinitions );
+        this.argumentDefinitions = Collections.unmodifiableList( argumentDefinitions );
     }
 
     /**
@@ -207,12 +207,12 @@ class ArgumentDefinitionGroup implements Iterable<ArgumentDefinition> {
      * group since argument groups are supposed to be immutable. Asserts that
      * both argument groups have the same name.
      */
-    public ArgumentDefinitionGroup mergeInto( ArgumentDefinitionGroup other ) {
+    public ArgumentDefinitionGroup merge( ArgumentDefinitionGroup other ) {
         if( !groupNameMatches(other) )
             throw new StingException("Unable to merge two argument groups with differing names.");
 
         // Create a merged definition group.
-        Collection<ArgumentDefinition> mergedDefinitions = new ArrayList<ArgumentDefinition>();
+        List<ArgumentDefinition> mergedDefinitions = new ArrayList<ArgumentDefinition>();
         mergedDefinitions.addAll(this.argumentDefinitions);
         mergedDefinitions.addAll(other.argumentDefinitions);
 
