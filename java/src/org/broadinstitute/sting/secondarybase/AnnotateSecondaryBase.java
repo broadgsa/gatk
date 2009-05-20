@@ -1,13 +1,19 @@
 package org.broadinstitute.sting.secondarybase;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.utils.BaseUtils;
+import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 /**
  * AnnotateSecondaryBase computes the second best base for every base in an Illumina lane.
@@ -31,9 +37,8 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
     @Argument(fullName="sam_in", shortName="SI", doc="The file to use for training and annotation", required=false) public File SAM_IN;
     @Argument(fullName="sam_out", shortName="SO", doc="Output path for sam file") public File SAM_OUT;
     @Argument(fullName="reference", shortName="R", doc="Reference sequence to which sam_in is aligned (in fasta format)") public File REFERENCE;
-    @Argument(fullName="cycle_begin", shortName="CB", doc="On what cycle does the read begin? (0-based inclusive)") public int CYCLE_BEGIN;
-    @Argument(fullName="cycle_end", shortName="CE", doc="On what cycle does the read end? (0-based inclusive)") public int CYCLE_END;
-    @Argument(fullName="tlim", shortName="T", doc="Number of reads to use for parameter initialization", required=false) public int TRAINING_LIMIT = 250000;
+    @Argument(fullName="cycle_ranges", shortName="CR", doc="Cycle ranges for single-end or paired reads (i.e. '0-50,56-106') (0-based inclusive)") public String CYCLE_RANGES;
+    @Argument(fullName="tlim", shortName="T", doc="Number of reads to use for parameter initialization", required=false) public int TRAINING_LIMIT = 100000;
     @Argument(fullName="clim", shortName="C", doc="Number of reads to basecall", required=false) public int CALLING_LIMIT = Integer.MAX_VALUE;
     @Argument(fullName="runbarcode", shortName="B", doc="Run barcode (embedded as part of the read name") public String RUN_BARCODE;
 
@@ -43,99 +48,111 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
     }
 
     protected int execute() {
-        BasecallingTrainingSet trainingSet = new BasecallingTrainingSet(BUSTARD_DIR, LANE, CYCLE_BEGIN, CYCLE_END, TRAINING_LIMIT);
+        ArrayList<Pair<Integer, Integer>> cycleRanges = getCycleRanges(CYCLE_RANGES);
 
-        // Iterate through raw Firecrest data and store the first N reads up to TRAINING_LIMIT
+        BasecallingTrainer trainer = new BasecallingTrainer(BUSTARD_DIR, LANE, TRAINING_LIMIT);
+
+        // Iterate through raw Firecrest data and the first N reads up to TRAINING_LIMIT
         System.out.println("Loading training set from the first " + TRAINING_LIMIT + " unambiguous reads in the raw data...");
-        trainingSet.loadFirstNUnambiguousReadsTrainingSet();
+        trainer.loadFirstNUnambiguousReadsTrainingSet();
 
         // Iterate through the stored training data and add the info to the BasecallingReadModel
         System.out.println("Applying training set...");
-        BasecallingReadModel model = new BasecallingReadModel(CYCLE_END - CYCLE_BEGIN + 1, true);
-        model.train(trainingSet);
+        BasecallingReadModel model = new BasecallingReadModel(trainer.getTrainingData());
 
         // Call bases and write results
+        System.out.println("Calling bases...");
+
         SAMFileHeader sfh = new SAMFileHeader();
+        sfh.setSortOrder(SAMFileHeader.SortOrder.queryname);
         SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, SAM_OUT);
 
+        IlluminaParser iparser = new IlluminaParser(BUSTARD_DIR, LANE);
+
         BasecallingStats bstats = new BasecallingStats();
-        IlluminaParser iparser = new IlluminaParser(BUSTARD_DIR, LANE, CYCLE_BEGIN, CYCLE_END);
 
-        HashMap<String, byte[]> sqhash = null;
-        if (canAnnotate(SAM_IN)) {
-            System.out.println("Loading read names from aligned SAM file...");
-            
-            sqhash = new HashMap<String, byte[]>(10000000);
+        while (bstats.getReadsTotal() < CALLING_LIMIT && iparser.next()) {
+            RawRead rr = iparser.getRawRead();
+            FourProbRead fpr = model.call(rr);
 
-            SAMFileReader samIn = new SAMFileReader(SAM_IN);
+            for (int cycleRangeIndex = 0; cycleRangeIndex < cycleRanges.size(); cycleRangeIndex++) {
+                Pair<Integer, Integer> cycleRange = cycleRanges.get(cycleRangeIndex);
 
-            for (SAMRecord sr : samIn) {
-                sqhash.put(sr.getReadName(), null);
-            }
+                RawRead rrEnd = iparser.getSubset(cycleRange.getFirst(), cycleRange.getSecond());
+                FourProbRead fprEnd = fpr.getSubset(cycleRange.getFirst(), cycleRange.getSecond());
 
-            samIn.close();
-        }
+                sfw.addAlignment(constructSAMRecord(rrEnd, fprEnd, sfh, RUN_BARCODE, cycleRanges.size() == 2, cycleRangeIndex == 1));
 
-        System.out.println("Calling bases...");
-        RawRead rr;
-        while (bstats.getReadsTotal() < CALLING_LIMIT && (rr = iparser.next()) != null) {
-            if (canAnnotate(SAM_IN)) {
-                String readname = String.format("%s:%s#0", RUN_BARCODE, rr.getReadKey());
-
-                if (sqhash.containsKey(readname)) {
-                    FourProbRead fpr = model.call(rr);
-
-                    byte[] sqtag = fpr.getSQTag(rr);
-
-                    sqhash.put(readname, sqtag);
-
-                    bstats.update(rr, fpr);
-                    bstats.notifyOnInterval(10000);
+                if (cycleRangeIndex == 0) {
+                    bstats.update(rrEnd, fprEnd);
+                    bstats.notifyOnInterval(5000);
                 }
-            } else {
-                FourProbRead fpr = model.call(rr);
-
-                sfw.addAlignment(constructSAMRecord(rr, fpr, sfh, RUN_BARCODE));
-
-                bstats.update(rr, fpr);
-                bstats.notifyOnInterval(10000);
             }
         }
-
-        iparser.close();
 
         bstats.notifyNow();
 
-        if (canAnnotate(SAM_IN)) {
-            // Correlate SQ tags with aligned SAM records:
-            System.out.println("Merge unaligned and aligned SAM files...");
-
-            SAMFileReader samIn = new SAMFileReader(SAM_IN);
-
-            for (SAMRecord sr : samIn) {
-                if (sqhash.containsKey(sr.getReadName())) {
-                    byte[] sqtag = sqhash.get(sr.getReadName());
-
-                    if (sqtag != null) {
-                        if (sr.getReadNegativeStrandFlag()) {
-                            QualityUtils.reverseComplementCompressedQualityArray(sqtag);
-                        }
-
-                        sr.setAttribute("SQ", sqtag);
-                    }
-                }
-                
-                sfw.addAlignment(sr);
-            }
-
-            samIn.close();
-        }
-        
+        iparser.close();
         sfw.close();
+
+        if (canAnnotate(SAM_IN)) {
+            // If we're in annotation mode, annotate the aligned BAM file with the SQ tag
+            System.out.println("Annotating aligned BAM file...");
+            
+            try {
+                File sortedSam = File.createTempFile("sorted", ".sam", SAM_OUT.getParentFile());
+                //System.out.println("  sorted file: " + sortedSam.getAbsolutePath());
+                
+                sortBAMByReadName(SAM_IN, sortedSam);
+
+                File mergedSam = File.createTempFile("merged", ".sam", SAM_OUT.getParentFile());
+                //System.out.println("  merged file: " + mergedSam.getAbsolutePath());
+
+                mergeUnalignedAndAlignedBams(SAM_OUT, sortedSam, mergedSam);
+            } catch (IOException e) {
+                throw new StingException("There was a problem in trying to merge the unaligned and aligned BAM files.");
+            }
+        }
 
         System.out.println("Done.");
 
         return 0;
+    }
+
+    /**
+     * Parse the cycle_ranges string that defines the cycle where a read starts and stops.
+     * Comma-separated ranges are interpreted to be the first and second end of a pair.
+     *
+     * @param cycleRangesString  the 0-based, inclusive, comma-separated ranges (i.e. '0-50,51-100')
+     * @return an ArrayList of cycle ranges
+     */
+    private ArrayList< Pair<Integer, Integer> > getCycleRanges(String cycleRangesString) {
+        ArrayList< Pair<Integer, Integer> > cycleRanges = new ArrayList< Pair<Integer, Integer> >();
+
+        String[] pieces = cycleRangesString.split(",");
+        
+        Pattern p = Pattern.compile("(\\d+)-(\\d+)");
+
+        for (int pieceIndex = 0; pieceIndex < pieces.length; pieceIndex++) {
+            Matcher m = p.matcher(pieces[pieceIndex]);
+
+            if (m.find()) {
+                Integer cycleStart = new Integer(m.group(1));
+                Integer cycleStop = new Integer(m.group(2));
+
+                cycleRanges.add(new Pair<Integer, Integer>(cycleStart, cycleStop));
+            }
+        }
+
+        if (cycleRanges.size() == 0) {
+            throw new StingException("At least one cycle range must be specified.");
+        }
+
+        if (cycleRanges.size() > 2) {
+            throw new StingException(cycleRanges.size() + " specified, but we're unable to handle more than 2.");
+        }
+
+        return cycleRanges;
     }
 
     /**
@@ -159,15 +176,99 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
      *
      * @return a fully-constructed SAM record
      */
-    private SAMRecord constructSAMRecord(RawRead rr, FourProbRead fpr, SAMFileHeader sfh, String runBarcode) {
+    private SAMRecord constructSAMRecord(RawRead rr, FourProbRead fpr, SAMFileHeader sfh, String runBarcode, boolean isPaired, boolean secondEndOfPair) {
         SAMRecord sr = new SAMRecord(sfh);
 
         sr.setReadName(runBarcode + ":" + rr.getReadKey() + "#0");
         sr.setReadUmappedFlag(true);
         sr.setReadString(rr.getSequenceAsString());
         sr.setBaseQualities(rr.getQuals());
+
+        sr.setReadPairedFlag(isPaired);
+        if (isPaired) {
+            sr.setFirstOfPairFlag(!secondEndOfPair);
+        }
+        
         sr.setAttribute("SQ", fpr.getSQTag(rr));
 
         return sr;
+    }
+
+    /**
+     * Resorts a SAM file to queryname order.
+     *
+     * @param samFile        the input SAM file
+     * @param sortedSamFile  the sorted SAM output file
+     */
+    private void sortBAMByReadName(File samFile, File sortedSamFile) {
+        SAMFileReader samIn = new SAMFileReader(samFile);
+
+        SAMFileHeader sfh = samIn.getFileHeader();
+        sfh.setSortOrder(SAMFileHeader.SortOrder.queryname);
+
+        SAMFileWriter samOut = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, sortedSamFile);
+
+        for (SAMRecord sr : samIn) {
+            samOut.addAlignment(sr);
+        }
+
+        samIn.close();
+        samOut.close();
+    }
+
+    /**
+     * Merges two SAM files that have been sorted in queryname order
+     * 
+     * @param queryNameSortedUnalignedSam
+     * @param queryNameSortedAlignedSam
+     * @param mergedSam
+     */
+    private void mergeUnalignedAndAlignedBams(File queryNameSortedUnalignedSam, File queryNameSortedAlignedSam, File mergedSam) {
+        SAMFileReader usam = new SAMFileReader(queryNameSortedUnalignedSam);
+        SAMFileReader asam = new SAMFileReader(queryNameSortedAlignedSam);
+
+        SAMFileHeader sfh = asam.getFileHeader();
+        sfh.setSortOrder(SAMFileHeader.SortOrder.coordinate);
+
+        SAMFileWriter samOut = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, mergedSam);
+
+        CloseableIterator<SAMRecord> usamIt = usam.iterator();
+        CloseableIterator<SAMRecord> asamIt = asam.iterator();
+
+        SAMRecord usr = usamIt.next();
+        SAMRecord asr = asamIt.next();
+
+        do {
+            while (usamIt.hasNext() && asamIt.hasNext() && !usr.getReadName().matches(asr.getReadName()) && usr.getReadNegativeStrandFlag() == asr.getReadNegativeStrandFlag()) {
+                int comp = usr.getReadName().compareTo(asr.getReadName());
+
+                if (comp < 0) {
+                    usr = usamIt.next();
+                } else if (comp > 0) {
+                    asr = asamIt.next();
+                }
+            }
+
+            if (usr.getReadName().matches(asr.getReadName()) && usr.getReadNegativeStrandFlag() == asr.getReadNegativeStrandFlag()) {
+                byte[] sqtag = (byte[]) usr.getAttribute("SQ");
+
+                if (sqtag != null) {
+                    if (asr.getReadNegativeStrandFlag()) {
+                        QualityUtils.reverseComplementCompressedQualityArray(sqtag);
+
+                        asr.setAttribute("SQ", sqtag);
+                    }
+                }
+
+                samOut.addAlignment(asr);
+
+                usr = usamIt.next();
+                asr = asamIt.next();
+            }
+        } while (usamIt.hasNext() && asamIt.hasNext());
+
+        usam.close();
+        asam.close();
+        samOut.close();
     }
 }
