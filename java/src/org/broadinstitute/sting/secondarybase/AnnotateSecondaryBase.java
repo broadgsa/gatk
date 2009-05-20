@@ -40,7 +40,7 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
     @Argument(fullName="cycle_ranges", shortName="CR", doc="Cycle ranges for single-end or paired reads (i.e. '0-50,56-106') (0-based inclusive)") public String CYCLE_RANGES;
     @Argument(fullName="tlim", shortName="T", doc="Number of reads to use for parameter initialization", required=false) public int TRAINING_LIMIT = 100000;
     @Argument(fullName="clim", shortName="C", doc="Number of reads to basecall", required=false) public int CALLING_LIMIT = Integer.MAX_VALUE;
-    @Argument(fullName="runbarcode", shortName="B", doc="Run barcode (embedded as part of the read name") public String RUN_BARCODE;
+    @Argument(fullName="runbarcode", shortName="B", doc="Run barcode (embedded as part of the read name)") public String RUN_BARCODE;
 
     public static void main(String[] argv) {
         Instance = new AnnotateSecondaryBase();
