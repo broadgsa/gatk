@@ -19,11 +19,9 @@ import java.util.regex.Pattern;
  *
  * @author Kiran Garimella
  */
-public class BasecallingTrainingSet {
+public class BasecallingTrainer {
     private File bustardDir;
     private int lane;
-    private int cycleBegin;
-    private int cycleEnd;
     private int trainingLimit;
 
     private ArrayList<RawRead> trainingData;
@@ -33,15 +31,11 @@ public class BasecallingTrainingSet {
      *
      * @param bustardDir     the Bustard directory for the sample
      * @param lane           the lane for the sample
-     * @param cycleBegin     the start cycle for the beginning of the read (0-based, inclusive)
-     * @param cycleEnd       the stop cycle for the end of the read (0-based, inclusive)
      * @param trainingLimit  the number of training reads to accept
      */
-    public BasecallingTrainingSet(File bustardDir, int lane, int cycleBegin, int cycleEnd, int trainingLimit) {
+    public BasecallingTrainer(File bustardDir, int lane, int trainingLimit) {
         this.bustardDir = bustardDir;
         this.lane = lane;
-        this.cycleBegin = cycleBegin;
-        this.cycleEnd = cycleEnd;
         this.trainingLimit = trainingLimit;
     }
 
@@ -69,12 +63,14 @@ public class BasecallingTrainingSet {
     public void loadFirstNUnambiguousReadsTrainingSet() {
         this.trainingData = new ArrayList<RawRead>(trainingLimit);
 
-        IlluminaParser iparser = new IlluminaParser(bustardDir, lane, cycleBegin, cycleEnd);
+        IlluminaParser iparser = new IlluminaParser(bustardDir, lane);
 
         RawRead rawread;
         int numreads = 0;
 
-        while (numreads < trainingLimit && (rawread = iparser.next()) != null) {
+        while (numreads < trainingLimit && iparser.next()) {
+            rawread = iparser.getRawRead();
+
             int numAmbiguous = 0;
             byte[] sequence = rawread.getSequence();
             
@@ -171,16 +167,10 @@ public class BasecallingTrainingSet {
         return trainingReads;
     }
 
-    /**
-     * Correlate the perfect reads with their raw intensities.  Sloooooooow.
-     *
-     * @param trainingReads  the perfect reads, grouped by tile
-     * @return a training set of raw sequence, intensities, and quality scores (all set to 40 for these perfect bases)
-     */
     private ArrayList<RawRead> correlateReadsAndIntensities(Vector<HashMap<String, SAMRecord>> trainingReads) {
         ArrayList<RawRead> newTrainingData = new ArrayList<RawRead>(trainingLimit);
 
-        IlluminaParser iparser = new IlluminaParser(bustardDir, lane, cycleBegin, cycleEnd);
+        IlluminaParser iparser = new IlluminaParser(bustardDir, lane);
 
         int totalReadCount = 0;
 
@@ -190,7 +180,8 @@ public class BasecallingTrainingSet {
             int tileReadCount = 0;
 
             RawRead iread;
-            while (trainingReads.get(tile) != null && tileReadCount < trainingReads.get(tile).size() && (iread = iparser.next()) != null) {
+            while (trainingReads.get(tile) != null && tileReadCount < trainingReads.get(tile).size() && iparser.next()) {
+                iread = iparser.getRawRead();
                 String readKey = iread.getReadKey();
 
                 if (trainingReads.get(tile).containsKey(readKey)) {
