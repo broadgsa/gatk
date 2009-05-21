@@ -147,7 +147,7 @@ public class AlleleFrequencyEstimate {
         return s;
     }
 
-    public String asTabularStringHeader() 
+    public static String asTabularStringHeader() 
 	{
 		return "location sample_name ref alt genotype qhat qstar lodVsRef lodVsNextBest depth bases";
 	}

@@ -15,6 +15,7 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.*;
+import java.util.zip.*;
 import java.io.*;
 
 // Draft iterative pooled caller
@@ -45,7 +46,8 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 		try
 		{
 			discovery_output_file = new PrintStream(DISCOVERY_OUTPUT);
-			individual_output_file = new PrintStream(INDIVIDUAL_OUTPUT);
+			individual_output_file = new PrintStream(new GZIPOutputStream(new FileOutputStream(INDIVIDUAL_OUTPUT)));
+			individual_output_file.println(AlleleFrequencyEstimate.asTabularStringHeader());
 		} 
 		catch (Exception e)
 		{
@@ -324,6 +326,7 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 
     public String reduceInit() 
     { 
+		discovery_output_file.printf("loc ref alt EM_alt_freq discovery_posterior discovery_null discovery_lod\n");
 		for (int i = 0; i < callers.size(); i++)
 		{
 			callers.get(i).reduceInit(); 
@@ -333,8 +336,14 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 
     public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
     {
+		if (calls == null) { return ""; }
 		for (int i = 0; i < callers.size(); i++)
 		{
+			if (calls == null) { System.err.printf("calls == null\n"); }
+			if (calls[i] == null) { System.err.printf("calls[%d] == null\n", i); }
+			if (caller_sums == null) { System.err.printf("caller_sums == null\n"); }
+			if (callers.get(i) == null) { System.err.printf("callers[%d] == null\n", i); }
+			if (caller_sums.get(i) == null) { System.err.printf("caller_sums[%d] == null\n", i); }
 			caller_sums.set(i, callers.get(i).reduce(calls[i], caller_sums.get(i))); 
 		}
         return "";

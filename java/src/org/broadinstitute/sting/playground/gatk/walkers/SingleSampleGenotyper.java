@@ -49,7 +49,11 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 		{
 			sample_name = null; 
 			if (metricsFileName != null) { metrics    = new AlleleMetrics(metricsFileName, lodThreshold); }
-			if (callsFileName != null)   { calls_file = new PrintStream(callsFileName); }
+			if (callsFileName != null)   
+			{ 
+				calls_file = new PrintStream(callsFileName);  
+				calls_file.println(AlleleFrequencyEstimate.asTabularStringHeader());
+			}
 		}
 		catch (Exception e)
 		{
