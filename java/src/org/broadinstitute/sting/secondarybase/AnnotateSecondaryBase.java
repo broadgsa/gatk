@@ -2,10 +2,7 @@ package org.broadinstitute.sting.secondarybase;
 
 import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 
@@ -135,7 +132,11 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
     private File getTempSAMFile(String prefix) {
         try {
             File tempFile = File.createTempFile(prefix, ".sam", SAM_OUT.getParentFile());
-            tempFile.deleteOnExit();
+            //tempFile.deleteOnExit();
+
+            // Ensure that the volumes we're about to use are ready.
+            PathUtils.refreshVolume(tempFile);
+            PathUtils.refreshVolume(new File(System.getProperty("java.io.tmpdir")));
 
             return tempFile;
         } catch (IOException e) {
