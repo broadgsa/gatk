@@ -89,4 +89,31 @@ public class PathUtils {
         }
     }
 
+    /**
+     * Refreshes the volume associated with a given file or directory by attempting to access it
+     * a few times before giving up.  The file need not exist, though the parent directory must.
+     * This method is particularly useful when your job has been dispatched to LSF and you need to
+     * ensure an NSF-mounted volume is actually accessible (many times it isn't for a few seconds,
+     * just enough to cause your program to come crashing down).
+     *
+     * @param file  the file or directory that resides in the volume to be refreshed.
+     */
+    public static void refreshVolume(File file) {
+        File dir = file.isDirectory() ? file : file.getParentFile();
+
+        int sleepCount = 0;
+        while (sleepCount < 3 && dir.listFiles() == null) {
+            try {
+                Thread.sleep((sleepCount + 1)*3000);
+            } catch (InterruptedException e) {
+            }
+
+            sleepCount++;
+        }
+
+        if (dir.listFiles() == null) {
+            throw new StingException("The volume '" + dir.getAbsolutePath() + "' could not be accessed.");
+        }
+    }
+
 }
