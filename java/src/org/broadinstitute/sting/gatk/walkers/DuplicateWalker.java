@@ -17,20 +17,23 @@ import net.sf.samtools.SAMRecord;
 @Requires({DataSource.READS,DataSource.REFERENCE})
 public abstract class DuplicateWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
-    public boolean filter(GenomeLoc loc, byte[] refBases, LocusContext context, List<SAMRecord> duplicateReads) {
+    public boolean filter(GenomeLoc loc, byte[] refBases, LocusContext context,
+                          List<SAMRecord> uniqueReads,
+                          List<SAMRecord> duplicateReads) {
         return true;    // We are keeping all the reads
     }
 
     /**
      * Called by the traversal engine to decide whether to send non-duplicates as lists of
      * singleton reads to the map function.  By default it's false.
-     * 
+     *
      * @return true if you want to see non duplicates during the traversal
      */
     public boolean mapUniqueReadsTooP() { return false; }
 
-    // Map over the org.broadinstitute.sting.gatk.LocusContext
-    public abstract MapType map(GenomeLoc loc, byte[] refBases, LocusContext context, List<SAMRecord> duplicateReads);
+    public abstract MapType map(GenomeLoc loc, byte[] refBases, LocusContext context,
+                                List<SAMRecord> uniqueReads,
+                                List<SAMRecord> duplicateReads);
 
     // Given result of map function
     public abstract ReduceType reduceInit();

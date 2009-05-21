@@ -176,12 +176,12 @@ public class TraverseDuplicates extends TraversalEngine {
                 // Send each unique read to the map function
                 for ( SAMRecord unique : uniqueReads ) {
                     List<SAMRecord> l = Arrays.asList(unique);
-                    sum = mapOne(dupWalker, l, site, refBases, locus, sum);
+                    sum = mapOne(dupWalker, uniqueReads, l, site, refBases, locus, sum);
                 }
             }
 
             if ( duplicateReads.size() > 0 )
-                sum = mapOne(dupWalker, duplicateReads, site, refBases, locus, sum);
+                sum = mapOne(dupWalker, uniqueReads, duplicateReads, site, refBases, locus, sum);
 
             printProgress("dups", site);
 
@@ -231,14 +231,15 @@ public class TraverseDuplicates extends TraversalEngine {
     }
 
     public <M, T> T mapOne(DuplicateWalker<M, T> dupWalker,
-                           List<SAMRecord> readSet,
+                           List<SAMRecord> uniqueReads,
+                           List<SAMRecord> duplicateReads,
                            GenomeLoc site,
                            byte[] refBases,
                            LocusContext locus,
                            T sum) {
-        final boolean keepMeP = dupWalker.filter(site, refBases, locus, readSet);
+        final boolean keepMeP = dupWalker.filter(site, refBases, locus, uniqueReads, duplicateReads);
         if (keepMeP) {
-            M x = dupWalker.map(site, refBases, locus, readSet);
+            M x = dupWalker.map(site, refBases, locus, uniqueReads, duplicateReads);
             sum = dupWalker.reduce(x, sum);
         }
         return sum;

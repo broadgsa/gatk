@@ -48,9 +48,9 @@ public class CombineDuplicatesWalker extends DuplicateWalker<SAMRecord, SAMFileW
     }
 
     public SAMFileWriter reduceInit() {
-        if ( outputFilename != null ) { // ! outputBamFile.equals("") ) {
+        if ( outputFilename != null ) {
             SAMFileWriterFactory fact = new SAMFileWriterFactory();
-            SAMFileHeader header = this.getToolkit().getSamReader().getFileHeader();
+            SAMFileHeader header = this.getToolkit().getEngine().getSAMHeader();
             return fact.makeBAMWriter(header, true, new File(outputFilename));
         }
         else {
@@ -83,8 +83,11 @@ public class CombineDuplicatesWalker extends DuplicateWalker<SAMRecord, SAMFileW
      * @param duplicateReads
      * @return
      */
-    public SAMRecord map(GenomeLoc loc, byte[] refBases, LocusContext context, List<SAMRecord> duplicateReads) {
-        //logger.info(String.format("%s has %d duplicates%n", loc, duplicateReads.size()));
+    public SAMRecord map(GenomeLoc loc, byte[] refBases, LocusContext context,
+                         List<SAMRecord> uniqueReads,
+                         List<SAMRecord> duplicateReads) {
+        //logger.info(String.format("%s has %d duplicates and %d non-duplicates", loc, duplicateReads.size(), uniqueReads.size()));
+
         SAMRecord combinedRead = null;
 
         if ( duplicateReads.size() == 1 && ! duplicateReads.get(0).getDuplicateReadFlag() ) {
