@@ -23,6 +23,10 @@ public class QualityUtils {
         return 1.0 - qualToErrorProb(qual);
     }
 
+    static public double qualToProb(int qual) {
+        return 1.0 - Math.pow(10.0, ((double) qual)/-10.0);
+    }
+
     /**
      * Convert a quality score to a probability of error.  This is the Phred-style
      * conversion, *not* the Illumina-style conversion (though asymptotically, they're the same).

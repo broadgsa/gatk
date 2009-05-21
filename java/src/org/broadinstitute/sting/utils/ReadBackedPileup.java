@@ -62,6 +62,10 @@ public class ReadBackedPileup extends BasicPileup {
         return Utils.join(",", mappingQualPileup(reads));
     }
 
+    public String getMappingQuals() {
+        return mappingQualPileupAsString(reads);
+    }
+
     public String getSecondaryBasePileup() {
         return secondaryBasePileupAsString(reads, offsets);
     }
@@ -76,6 +80,15 @@ public class ReadBackedPileup extends BasicPileup {
 
     public String getPileupString()
     {
-        return String.format("%s: %s %s %s", getLocation(), getRef(), getBases(), getQuals());
+        // In the pileup format, each line represents a genomic position, consisting of chromosome name,
+        // coordinate, reference base, read bases, read qualities and alignment mapping qualities.
+
+        //return String.format("%s %s %s %s", getLocation(), getRef(), getBases(), getQuals());
+        return String.format("%s %s %s %s %s %s",
+                getLocation().getContig(), getLocation().getStart(),    // chromosome name and coordinate
+                getRef(),                                               // reference base
+                getBases(),
+                getQuals(),
+                getMappingQuals());
     }
 }

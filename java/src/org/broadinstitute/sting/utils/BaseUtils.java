@@ -8,7 +8,12 @@ package org.broadinstitute.sting.utils;
 public class BaseUtils {
     /** Private constructor.  No instantiating this class! */
     private BaseUtils() {}
-    
+
+    static public boolean basesAreEqual(byte base1, byte base2) {
+        return simpleBaseToBaseIndex((char)base1) == simpleBaseToBaseIndex((char)base2);
+    }
+
+
     /**
      * Converts a simple base to a base index
      *

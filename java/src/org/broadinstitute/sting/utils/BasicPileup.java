@@ -68,15 +68,23 @@ abstract public class BasicPileup implements Pileup {
         return quals;
     }
 
-    public static String qualPileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
-        StringBuilder quals = new StringBuilder();
-        for ( int qual : qualPileup(reads, offsets)) {
+    public static String mappingQualPileupAsString( List<SAMRecord> reads) {
+        return quals2String(mappingQualPileup(reads));
+    }
+
+    public static String quals2String( List<Byte> quals ) {
+        StringBuilder qualStr = new StringBuilder();
+        for ( int qual : quals ) {
             qual = Math.min(qual, 63);              // todo: fixme, this isn't a good idea
             char qualChar = (char) (33 + qual);     // todo: warning, this is illegal for qual > 63
-            quals.append(qualChar);
+            qualStr.append(qualChar);
         }
 
-        return quals.toString();
+        return qualStr.toString();
+    }
+
+    public static String qualPileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
+        return quals2String(qualPileup(reads, offsets));
     }
 
     public static ArrayList<Byte> secondaryBasePileup( List<SAMRecord> reads, List<Integer> offsets ) {
@@ -153,17 +161,18 @@ abstract public class BasicPileup implements Pileup {
         return (hasAtLeastOneSQField ? quals2 : null);
     }
 
-    public static String secondaryQualPileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
+    public static String secondaryQualPileupAsString( List<SAMRecord> reads, List<Integer> offsets) {
         StringBuilder quals2 = new StringBuilder();
         ArrayList<Byte> sqquals = secondaryQualPileup(reads, offsets);
 
-        if (sqquals == null) { return null; }
-
-        for (byte qual2 : secondaryQualPileup(reads, offsets)) {
-            quals2.append(qual2);
+        if (sqquals == null) {
+            return null;
+        } else {
+            for (byte qual2 : secondaryQualPileup(reads, offsets)) {
+                quals2.append(qual2);
+            }
+            return quals2.toString();
         }
-
-        return quals2.toString();
     }
 
     public static double[][] probDistPileup( List<SAMRecord> reads, List<Integer> offsets ) {
