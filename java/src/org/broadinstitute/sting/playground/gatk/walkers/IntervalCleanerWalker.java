@@ -65,7 +65,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         List<SAMRecord> reads = context.getReads();
         ArrayList<SAMRecord> goodReads = new ArrayList<SAMRecord>();
         for ( SAMRecord read : reads ) {
-            if ( read.getReadLength() <= maxReadLength &&
+            if ( (maxReadLength < 0 || read.getReadLength() <= maxReadLength) &&
                  !read.getReadUnmappedFlag() &&
                  !read.getNotPrimaryAlignmentFlag() &&
                  !read.getDuplicateReadFlag() &&
@@ -259,7 +259,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 int position = bestConsensus.positionOnReference + bestConsensus.cigar.getCigarElement(0).getLength();
                 str.append(":" + (leftmostIndex + position));
                 CigarElement ce = bestConsensus.cigar.getCigarElement(1);
-                str.append(" " + ce.getLength() + ce.getOperator() + "\n");
+                str.append("\t" + ce.getLength() + ce.getOperator());
+                str.append("\t" + (((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0) + "\n");
                 try {
                     indelOutput.write(str.toString());
                 } catch (Exception e) {}
