@@ -381,6 +381,12 @@ public class Utils {
     public static double percentage(int x, int base) { return (base> 0 ? ((double)x/(double)base)*100.0 : 0); }
     public static double percentage(long x, long base) { return (base> 0 ? ((double)x/(double)base)*100.0 : 0); }
 
+    public static String dupString( char c, int nCopies ) {
+        char[] chars = new char[nCopies];
+        for ( int i = 0; i < nCopies; i++ ) chars[i] = c;
+        //System.out.printf("chars is %s%n", new String(chars));
+        return new String(chars);
+    }
 
     public static int countOccurances(char c, String s) {
         int count = 0;
