@@ -304,6 +304,16 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         }
 
         /**
+         * Returns the current position of this iterator.
+         * @return Current position of the iterator, or null if no position exists.
+         */
+        public GenomeLoc position() {
+            if( prev != null )
+                return prev.getLocation();
+            return null;
+        }
+
+        /**
          * Seeks forward in the file until we reach (or cross) a record at contig / pos
          * If we don't find anything and cross beyond contig / pos, we return null
          * Otherwise we return the first object who's start is at pos

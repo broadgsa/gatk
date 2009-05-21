@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.traversals.TraverseReads;
@@ -24,6 +25,9 @@ import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
 
 /**
  * Created by IntelliJ IDEA.
@@ -45,6 +49,7 @@ public abstract class MicroScheduler {
     protected final IndexedFastaSequenceFile reference;
 
     private final SAMDataSource reads;
+    private final List<ReferenceOrderedDataSource> rods;
 
     /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
@@ -78,6 +83,7 @@ public abstract class MicroScheduler {
 
         this.reads = getReadsDataSource( reads );
         this.reference = openReferenceSequenceFile( refFile );
+        this.rods = getReferenceOrderedDataSources( rods );
     }
 
     /**
@@ -141,7 +147,7 @@ public abstract class MicroScheduler {
      * @return An accessor for all the data in this shard.
      */
     protected ShardDataProvider getShardDataProvider( Shard shard ) {
-        return new ShardDataProvider( shard, reads, reference );
+        return new ShardDataProvider( shard, reads, reference, rods );
     }
 
     /**
@@ -161,6 +167,17 @@ public abstract class MicroScheduler {
         traversalEngine.setSAMHeader(dataSource.getHeader());
 
         return dataSource;
+    }
+
+    /**
+     * Open the reference-ordered data sources.
+     * @return A list of reference-ordered data sources.
+     */
+    private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources( List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+        List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
+        for( ReferenceOrderedData<? extends ReferenceOrderedDatum> rod: rods )
+            dataSources.add( new ReferenceOrderedDataSource(rod) );
+        return dataSources;
     }
 
     /**

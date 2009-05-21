@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.dataSources.providers.SeekableLocusContextQueue;
 import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextQueue;
 import org.broadinstitute.sting.gatk.dataSources.providers.IterableLocusContextQueue;
+import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceOrderedView;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -27,8 +28,6 @@ import java.io.File;
  * A simple, short-term solution to iterating over all reference positions over a series of
  * genomic locations. Simply overloads the superclass traverse function to go over the entire
  * interval's reference positions.
- * mhanna - Added better data source integration.
- * TODO: Gain confidence in this implementation and remove the original.
  */
 public class TraverseLoci extends TraversalEngine {
 
@@ -62,6 +61,7 @@ public class TraverseLoci extends TraversalEngine {
 
         LocusIterator locusIterator = null;
         LocusContextQueue locusContextQueue = null;
+        ReferenceOrderedView referenceOrderedDataView = new ReferenceOrderedView( dataProvider );
 
         DataSource dataSource = WalkerManager.getWalkerDataSource(walker);
         switch( dataSource ) {
@@ -85,7 +85,7 @@ public class TraverseLoci extends TraversalEngine {
             TraversalStatistics.nRecords++;
 
             // Iterate forward to get all reference ordered data covering this locus
-            final RefMetaDataTracker tracker = getReferenceOrderedDataAtLocus( site );
+            final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(site);
 
             LocusContext locus = locusContextQueue.seek( site ).peek();
             char refBase = dataProvider.getReferenceBase( site );

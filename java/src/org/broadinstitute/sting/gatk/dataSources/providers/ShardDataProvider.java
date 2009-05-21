@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -11,6 +12,7 @@ import net.sf.samtools.SAMRecord;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 /**
  * User: hanna
  * Date: May 8, 2009
@@ -30,6 +32,11 @@ import java.util.ArrayList;
  */
 public class ShardDataProvider {
     /**
+     * An ArrayList of all the views that are examining this data.
+     */
+    private List<View> registeredViews = new ArrayList<View>();
+
+    /**
      * The shard over which we're providing data.
      */
     private final Shard shard;
@@ -43,6 +50,11 @@ public class ShardDataProvider {
      * Provider of reference data for this particular shard.
      */
     private final ReferenceProvider referenceProvider;
+
+    /**
+     * Sources of reference-ordered data.
+     */
+    private final List<ReferenceOrderedDataSource> referenceOrderedData;
 
     /**
      * Retrieves the shard associated with this data provider.
@@ -78,6 +90,15 @@ public class ShardDataProvider {
     }
 
     /**
+     * Gets a window into the reference-ordered data.  Package protected so that only
+     * views can access it.
+     * @return List of reference-ordered data sources.
+     */
+    List<ReferenceOrderedDataSource> getReferenceOrderedData() {
+        return referenceOrderedData;        
+    }
+
+    /**
      * Gets the reference base associated with this particular point on the genome.
      * @param genomeLoc Region for which to retrieve the base.  GenomeLoc must represent a 1-base region.
      * @return The base at the position represented by this genomeLoc.
@@ -101,11 +122,12 @@ public class ShardDataProvider {
      * @param reads A window into the reads for a given region.                                                
      * @param reference A getter for a section of the reference.
      */
-    public ShardDataProvider( Shard shard, SAMDataSource reads, IndexedFastaSequenceFile reference ) {
+    public ShardDataProvider( Shard shard, SAMDataSource reads, IndexedFastaSequenceFile reference, List<ReferenceOrderedDataSource> rods) {
         this.shard = shard;
         // Provide basic reads information.
         this.reads = (reads != null) ? reads.seek( shard ) : new NullSAMIterator(new Reads(new ArrayList<File>()));
         this.referenceProvider = (reference != null) ? new ReferenceProvider(reference,shard) : null;
+        this.referenceOrderedData = rods;
     }
 
     /**
@@ -117,12 +139,19 @@ public class ShardDataProvider {
         this.shard = shard;
         this.reads = reads;
         this.referenceProvider = null;
+        this.referenceOrderedData = null;
+    }
+
+    void register( View view ) {
+        this.registeredViews.add(view);
     }
 
     /**
      * Retire this shard.
      */
     public void close() {
+        for( View view: registeredViews )
+            view.close();
         reads.close();
     }
 }
