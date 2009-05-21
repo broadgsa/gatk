@@ -55,93 +55,93 @@ public class RawRead {
     }
 
     /**
-     * Get lane number of read
+     * Get lane number of read.
      *
      * @return lane number of read
      */
     public byte getLane() { return lane; }
 
     /**
-     * Get tile number of read
+     * Get tile number of read.
      *
      * @return tile number of read
      */
     public int getTile() { return tile; }
 
     /**
-     * Get x-coordinate of read
+     * Get x-coordinate of read.
      *
      * @return x-coordinate of read
      */
     public int getXCoordinate() { return x; }
 
     /**
-     * Get y-coordinate of read
+     * Get y-coordinate of read.
      *
      * @return y-coordinate of read
      */
     public int getYCoordinate() { return y; }
 
     /**
-     * Get read key (lane:tile:x:y)
+     * Get read key (lane:tile:x:y).
      *
      * @return read key (lane:tile:x:y)
      */
     public String getReadKey() { return String.format("%d:%d:%d:%d", lane, tile, x, y); }
 
     /**
-     * Get the read sequence between the cycles specified in the constructor as a byte array
+     * Get the read sequence between the cycles specified in the constructor as a byte array.
      *
      * @return read sequence
      */
     public byte[] getSequence() { return sequence; }
 
     /**
-     * Set the read sequence from a byte array
+     * Set the read sequence from a byte array.
      *
      * @param sequence  the read sequence in byte array form
      */
     public void setSequence(byte[] sequence) { this.sequence = sequence; }
 
     /**
-     * Get the read sequence as a string
+     * Get the read sequence as a String.
      *
-     * @return  the read sequence in string form
+     * @return  the read sequence in String form
      */
     public String getSequenceAsString() {
         return new String(getSequence());
     }
 
     /**
-     * Get the quals
+     * Get the quals.
      *
      * @return a byte array of quals
      */
     public byte[] getQuals() { return quals; }
 
     /**
-     * Set the quals
+     * Set the quals.
      *
      * @param quals  a byte array of quals
      */
     public void setQuals(byte[] quals) { this.quals = quals; }
 
     /**
-     * Get the raw read intensities
+     * Get the raw read intensities.
      *
      * @return the (readLength)x(numChannels) array of raw intensities
      */
     public short[][] getIntensities() { return intensities; }
 
     /**
-     * Set the raw intensities
+     * Set the raw intensities.
      *
      * @param intensities  the (readLength)x(numChannels) array of raw intensities
      */
     public void setIntensities(short[][] intensities) { this.intensities = intensities; }
 
     /**
-     * Get the read length
+     * Get the read length.
      *
      * @return the read length
      */

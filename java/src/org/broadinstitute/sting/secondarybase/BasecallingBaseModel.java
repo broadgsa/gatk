@@ -39,7 +39,9 @@ public class BasecallingBaseModel {
     private boolean readyToCall = false;
 
     /**
-     * Constructor for BasecallingBaseModel
+     * Constructor for BasecallingBaseModel.
+     *
+     * @param correctForContext  should we attempt to correct for contextual sequence effects?
      */
     public BasecallingBaseModel(boolean correctForContext) {
         this.correctForContext = correctForContext;
@@ -67,8 +69,12 @@ public class BasecallingBaseModel {
         alg = new Algebra();
     }
 
+
     /**
      * Add a single training point to the model to estimate the means.
+     *
+     * @param probMatrix     the matrix of probabilities for the base
+     * @param fourIntensity  the four raw intensities for the base
      */
     public void addMeanPoint(double[][] probMatrix, double[] fourIntensity) {
         for (int basePrevIndex = 0; basePrevIndex < numTheories; basePrevIndex++) {
@@ -88,6 +94,9 @@ public class BasecallingBaseModel {
 
     /**
      * Add a single training point to the model to estimate the covariances.
+     *
+     * @param probMatrix     the matrix of probabilities for the base
+     * @param fourIntensity  the four raw intensities for the base
      */
     public void addCovariancePoint(double[][] probMatrix, double[] fourIntensity) {
         for (int basePrevIndex = 0; basePrevIndex < numTheories; basePrevIndex++) {
@@ -133,7 +142,7 @@ public class BasecallingBaseModel {
     }
 
     /**
-     * Compute the likelihood matrix for a base
+     * Compute the likelihood matrix for a base.
      *
      * @param cycle         the cycle we're calling right now
      * @param fourintensity the four intensities of the current cycle's base
@@ -163,6 +172,11 @@ public class BasecallingBaseModel {
         return likedist;
     }
 
+    /**
+     * Write the model parameters to disk.
+     *
+     * @param outparam  the file in which the output parameters should be stored
+     */
     public void write(File outparam) {
         try {
             PrintWriter writer = new PrintWriter(outparam);

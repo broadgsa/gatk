@@ -78,7 +78,7 @@ public class BasecallingStats {
     }
 
     /**
-     * Returns basecalling stats info in a nicely formatted string
+     * Returns basecalling stats info in a nicely formatted string.
      *
      * @return nicely formatted string containing basecalling stats
      */
@@ -87,7 +87,7 @@ public class BasecallingStats {
     }
 
     /**
-     * Periodically print a line containing basecalling stats
+     * Periodically print a line containing basecalling stats.
      *
      * @param interval  the periodicity of the messages given in number of bases observed
      */
@@ -98,7 +98,7 @@ public class BasecallingStats {
     }
 
     /**
-     * Immediately print a line containing basecalling stats
+     * Immediately print a line containing basecalling stats.
      */
     public void notifyNow() {
         System.out.printf("%s\n", toString());

@@ -2,18 +2,18 @@ package org.broadinstitute.sting.secondarybase;
 
 import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.ArrayList;
-import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * AnnotateSecondaryBase computes the second best base for every base in an Illumina lane.
@@ -23,24 +23,35 @@ import java.util.regex.Matcher;
  * base observation.
  *
  * Approximately 95% of the time, this method and Illumina's basecalling package, "Bustard",
- * agree on the identity of the best base.  In these cases, we simply annotate the
- * second-best base.  In cases where this method and Bustard disagree, we annotate the
- * secondary base as this method's primary base.
+ * agree on the identity of the best base.  In these cases, we simply annotate our estimate
+ * of the second-best base.  In cases where this method and Bustard disagree, we annotate
+ * the secondary base as this method's primary base.
  *
  * @author Kiran Garimella
  */
+
+/*
+ An example invocation:
+   java -Xmx2048m -Djava.io.tmpdir=/broad/hptmp/ -jar /path/to/AnnotateSecondaryBase.jar \
+    -D /seq/solexaproc2/SL-XAX/analyzed/090217_SL-XAX_0003_FC30R47AAXX/Data/C1-152_Firecrest1.3.2_25-02-2009_prodinfo/Bustard1.3.2_25-02-2009_prodinfo/ \
+    -L 5 \
+    -B 30R47AAXX090217
+    -CR '0-75,76-151' \
+    -SO ~/test.sam \
+    -SI /seq/picard/30R47AAXX/C1-152_2009-02-17_2009-04-02/5/Solexa-10265/30R47AAXX.5.aligned.bam \
+ */
+    
 public class AnnotateSecondaryBase extends CommandLineProgram {
     public static AnnotateSecondaryBase Instance = null;
 
-    @Argument(fullName="dir", shortName="D", doc="Illumina Bustard directory") public File BUSTARD_DIR;
+    @Argument(fullName="bustard_dir", shortName="D", doc="Illumina Bustard directory") public File BUSTARD_DIR;
     @Argument(fullName="lane", shortName="L", doc="Illumina flowcell lane") public int LANE;
-    @Argument(fullName="sam_in", shortName="SI", doc="The file to use for training and annotation", required=false) public File SAM_IN;
+    @Argument(fullName="run_barcode", shortName="B", doc="Run barcode (embedded as part of the read name; i.e. 30R47AAXX090217)") public String RUN_BARCODE;
+    @Argument(fullName="cycle_ranges", shortName="CR", doc="Cycle ranges for single-end or paired reads (i.e. '0-50,56-106') (0-based, inclusive)") public String CYCLE_RANGES;
     @Argument(fullName="sam_out", shortName="SO", doc="Output path for sam file") public File SAM_OUT;
-    @Argument(fullName="reference", shortName="R", doc="Reference sequence to which sam_in is aligned (in fasta format)") public File REFERENCE;
-    @Argument(fullName="cycle_ranges", shortName="CR", doc="Cycle ranges for single-end or paired reads (i.e. '0-50,56-106') (0-based inclusive)") public String CYCLE_RANGES;
-    @Argument(fullName="tlim", shortName="T", doc="Number of reads to use for parameter initialization", required=false) public int TRAINING_LIMIT = 100000;
-    @Argument(fullName="clim", shortName="C", doc="Number of reads to basecall", required=false) public int CALLING_LIMIT = Integer.MAX_VALUE;
-    @Argument(fullName="runbarcode", shortName="B", doc="Run barcode (embedded as part of the read name)") public String RUN_BARCODE;
+    @Argument(fullName="sam_in", shortName="SI", doc="The file to use for training and annotation", required=false) public File SAM_IN;
+    @Argument(fullName="training_limit", shortName="T", doc="Number of reads to use for parameter initialization", required=false) public int TRAINING_LIMIT = 100000;
+    @Argument(fullName="calling_limit", shortName="C", doc="Number of reads to basecall", required=false) public int CALLING_LIMIT = Integer.MAX_VALUE;
 
     public static void main(String[] argv) {
         Instance = new AnnotateSecondaryBase();
@@ -52,7 +63,7 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
 
         BasecallingTrainer trainer = new BasecallingTrainer(BUSTARD_DIR, LANE, TRAINING_LIMIT);
 
-        // Iterate through raw Firecrest data and the first N reads up to TRAINING_LIMIT
+        // Iterate through raw Firecrest data and store the first unambiguous N reads up to TRAINING_LIMIT
         System.out.println("Loading training set from the first " + TRAINING_LIMIT + " unambiguous reads in the raw data...");
         trainer.loadFirstNUnambiguousReadsTrainingSet();
 
@@ -65,7 +76,9 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
 
         SAMFileHeader sfh = new SAMFileHeader();
         sfh.setSortOrder(SAMFileHeader.SortOrder.queryname);
-        SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, SAM_OUT);
+        
+        File unalignedSam = (canAnnotate(SAM_IN)) ? getTempSAMFile("unaligned") : SAM_OUT;
+        SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, unalignedSam);
 
         IlluminaParser iparser = new IlluminaParser(BUSTARD_DIR, LANE);
 
@@ -97,26 +110,37 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
 
         if (canAnnotate(SAM_IN)) {
             // If we're in annotation mode, annotate the aligned BAM file with the SQ tag
-            System.out.println("Annotating aligned BAM file...");
+            System.out.println("Annotating aligned SAM file...");
             
-            try {
-                File sortedSam = File.createTempFile("sorted", ".sam", SAM_OUT.getParentFile());
-                //System.out.println("  sorted file: " + sortedSam.getAbsolutePath());
-                
-                sortBAMByReadName(SAM_IN, sortedSam);
+            System.out.println("  sorting aligned SAM file by read name...");
+            File alignedSam = getTempSAMFile("aligned");
+            sortBAMByReadName(SAM_IN, alignedSam);
 
-                File mergedSam = File.createTempFile("merged", ".sam", SAM_OUT.getParentFile());
-                //System.out.println("  merged file: " + mergedSam.getAbsolutePath());
-
-                mergeUnalignedAndAlignedBams(SAM_OUT, sortedSam, mergedSam);
-            } catch (IOException e) {
-                throw new StingException("There was a problem in trying to merge the unaligned and aligned BAM files.");
-            }
+            System.out.println("  merging unaligned and aligned SAM files...");
+            File mergedSam = SAM_OUT;
+            mergeUnalignedAndAlignedBams(unalignedSam, alignedSam, mergedSam);
         }
 
         System.out.println("Done.");
 
         return 0;
+    }
+
+    /**
+     * Return a tempfile.  This is a laziness method so that I don't have to litter my code with try/catch blocks for IOExceptions.
+     *
+     * @param prefix  the prefix for the temp file
+     * @return  the temp file
+     */
+    private File getTempSAMFile(String prefix) {
+        try {
+            File tempFile = File.createTempFile(prefix, ".sam", SAM_OUT.getParentFile());
+            tempFile.deleteOnExit();
+
+            return tempFile;
+        } catch (IOException e) {
+            throw new StingException("Unable to create tempfile in directory " + SAM_OUT.getParent());
+        }
     }
 
     /**
@@ -133,8 +157,8 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
         
         Pattern p = Pattern.compile("(\\d+)-(\\d+)");
 
-        for (int pieceIndex = 0; pieceIndex < pieces.length; pieceIndex++) {
-            Matcher m = p.matcher(pieces[pieceIndex]);
+        for (String piece : pieces) {
+            Matcher m = p.matcher(piece);
 
             if (m.find()) {
                 Integer cycleStart = new Integer(m.group(1));
@@ -169,25 +193,27 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
      * Construct a SAMRecord object with the specified information.  The secondary bases
      * will be annotated suchthat they will not conflict with the primary base.
      *
-     * @param rr          the raw Illumina read
-     * @param fpr         the four-base distributions for every base in the read
-     * @param sfh         the SAM header
-     * @param runBarcode  the run barcode of the lane (used to prefix the reads)
+     * @param rr                 the raw Illumina read
+     * @param fpr                the four-base distributions for every base in the read
+     * @param sfh                the SAM header
+     * @param runBarcode         the run barcode of the lane (used to prefix the reads)
+     * @param isPaired           is this a paired-end lane?
+     * @param isSecondEndOfPair  is this the second end of the pair?
      *
      * @return a fully-constructed SAM record
      */
-    private SAMRecord constructSAMRecord(RawRead rr, FourProbRead fpr, SAMFileHeader sfh, String runBarcode, boolean isPaired, boolean secondEndOfPair) {
+    private SAMRecord constructSAMRecord(RawRead rr, FourProbRead fpr, SAMFileHeader sfh, String runBarcode, boolean isPaired, boolean isSecondEndOfPair) {
         SAMRecord sr = new SAMRecord(sfh);
 
         sr.setReadName(runBarcode + ":" + rr.getReadKey() + "#0");
-        sr.setMateUnmappedFlag(true);
         sr.setReadUmappedFlag(true);
         sr.setReadString(rr.getSequenceAsString());
         sr.setBaseQualities(rr.getQuals());
 
         sr.setReadPairedFlag(isPaired);
         if (isPaired) {
-            sr.setFirstOfPairFlag(!secondEndOfPair);
+            sr.setMateUnmappedFlag(true);
+            sr.setFirstOfPairFlag(!isSecondEndOfPair);
         }
         
         sr.setAttribute("SQ", fpr.getSQTag(rr));
@@ -220,9 +246,9 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
     /**
      * Merges two SAM files that have been sorted in queryname order
      * 
-     * @param queryNameSortedUnalignedSam
-     * @param queryNameSortedAlignedSam
-     * @param mergedSam
+     * @param queryNameSortedUnalignedSam  the sorted unaligned SAM file
+     * @param queryNameSortedAlignedSam    the sorted aligned SAM file
+     * @param mergedSam the output file where the merged results should be stored
      */
     private void mergeUnalignedAndAlignedBams(File queryNameSortedUnalignedSam, File queryNameSortedAlignedSam, File mergedSam) {
         SAMFileReader usam = new SAMFileReader(queryNameSortedUnalignedSam);
@@ -240,36 +266,54 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
         SAMRecord asr = asamIt.next();
 
         do {
-            while (usamIt.hasNext() && asamIt.hasNext() && !usr.getReadName().matches(asr.getReadName()) && usr.getReadNegativeStrandFlag() == asr.getReadNegativeStrandFlag()) {
-                int comp = usr.getReadName().compareTo(asr.getReadName());
-
-                if (comp < 0) {
-                    usr = usamIt.next();
-                } else if (comp > 0) {
-                    asr = asamIt.next();
-                }
-            }
-
-            if (usr.getReadName().matches(asr.getReadName()) && usr.getReadNegativeStrandFlag() == asr.getReadNegativeStrandFlag()) {
+            // Pull a record from the unaligned file and advance the aligned file until we find the matching record.  We
+            // don't have to advance the unaligned file until we find our record because we assume every record we generate
+            // will be in the aligned file (which also contains unaligned reads).
+            //
+            // If Picard ever stops storing the unaligned reads, this logic will need to be rewritten.
+            
+            if (usr.getReadName().equals(asr.getReadName()) && usr.getFirstOfPairFlag() == asr.getFirstOfPairFlag()) {
                 byte[] sqtag = (byte[]) usr.getAttribute("SQ");
+                String usrread = usr.getReadString();
+                String asrread = asr.getReadString();
 
-                if (sqtag != null) {
-                    if (asr.getReadNegativeStrandFlag()) {
-                        QualityUtils.reverseComplementCompressedQualityArray(sqtag);
-
-                        asr.setAttribute("SQ", sqtag);
-                    }
+                if (asr.getReadNegativeStrandFlag()) {
+                    sqtag = QualityUtils.reverseComplementCompressedQualityArray(sqtag);
+                    asrread = BaseUtils.simpleReverseComplement(asrread);
                 }
 
-                samOut.addAlignment(asr);
+                if (usrread != null && asrread != null && !usrread.equals(asrread)) {
+                    throw new StingException(
+                        String.format("Purportedly identical unaligned and aligned reads have different read sequences.  Perhaps this lane was reanalyzed by the Illumina software but not the production pipeline?\n '%s:%b:%s'\n '%s:%b:%s'",
+                                      usr.getReadName(), usr.getFirstOfPairFlag(), usrread,
+                                      asr.getReadName(), asr.getFirstOfPairFlag(), asrread));
+                }
+
+                asr.setAttribute("SQ", sqtag);
 
                 usr = usamIt.next();
+            } else {
                 asr = asamIt.next();
             }
+
+            samOut.addAlignment(asr);
         } while (usamIt.hasNext() && asamIt.hasNext());
 
         usam.close();
         asam.close();
         samOut.close();
+    }
+
+    /**
+     * For debugging purposes.  Spits out relevant information for two SAMRecords.
+     * 
+     * @param sra  first SAMRecord
+     * @param srb  second SAMRecord
+     */
+    private void printRecords(SAMRecord sra, SAMRecord srb) {
+        System.out.println("a: " + sra.getReadName() + " " + sra.getFirstOfPairFlag());
+        System.out.println("b: " + srb.getReadName() + " " + srb.getFirstOfPairFlag());
+        System.out.println();
+
     }
 }

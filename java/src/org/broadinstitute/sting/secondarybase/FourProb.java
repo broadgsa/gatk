@@ -50,6 +50,7 @@ public class FourProb {
 
     /**
      * Returns the base label of the base at the specified rank.
+     *
      * @param rank (0 = best, 3 = worst) the rank of the base whose index should be returned
      * @return the base label (A, C, G, T).
      */
@@ -57,6 +58,7 @@ public class FourProb {
 
     /**
      * Returns the probability of the base at the specified rank.
+     *
      * @param rank (0 = best, 3 = worst) the rank of the base whose index should be returned
      * @return the probability of the base (0.0-1.0)
      */
@@ -64,6 +66,7 @@ public class FourProb {
 
     /**
      * Returns the quality score of the base at the specified rank.
+     *
      * @param rank (0 = best, 3 = worst) the rank of the base whose index should be returned
      * @return the quality score of the base (0-40)
      */
@@ -71,6 +74,7 @@ public class FourProb {
 
     /**
      * A utility method to convert a base index into a base label.
+     *
      * @param baseIndex the index of the base (0, 1, 2, 3).
      * @return A, C, G, T, or '.' if the base index can't be understood.
      */

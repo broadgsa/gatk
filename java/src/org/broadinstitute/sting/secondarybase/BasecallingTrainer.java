@@ -40,7 +40,7 @@ public class BasecallingTrainer {
     }
 
     /**
-     * Get the training data array list
+     * Get the training data array list.
      *
      * @return  the arraylist of raw training reads
      */
@@ -49,7 +49,7 @@ public class BasecallingTrainer {
     }
 
     /**
-     * Set the training data array list
+     * Set the training data array list.
      *
      * @param trainingData  the arraylist of raw training reads
      */
@@ -88,7 +88,7 @@ public class BasecallingTrainer {
     }
 
     /**
-     * Load a training set from perfect reads in an already-aligned bam file
+     * Load a training set from perfect reads in an already-aligned bam file.
      *
      * @param samIn      the SAM/BAM file to load the reads from
      * @param reference  the reference to which the reads should be compared
@@ -167,6 +167,12 @@ public class BasecallingTrainer {
         return trainingReads;
     }
 
+    /**
+     * Correlate the perfect reads with their intensities (at least, theoretically).  This doesn't work right now...
+     *
+     * @param trainingReads  the set of training reads, hashed by tile
+     * @return the final training set with intensities added in
+     */
     private ArrayList<RawRead> correlateReadsAndIntensities(Vector<HashMap<String, SAMRecord>> trainingReads) {
         ArrayList<RawRead> newTrainingData = new ArrayList<RawRead>(trainingLimit);
 

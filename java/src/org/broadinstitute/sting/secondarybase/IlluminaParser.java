@@ -9,10 +9,20 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * IlluminaParser parses raw Illumina data (raw intensities, basecalled read sequences and quality scores)
+ * and presents it to the developer in an easy-to-use form.  It also permits random tile jumping.
+ *
+ * WARNING: This parser does not understand newer GAPipeline data formats, and instead relies on the older
+ * data formats that may have been generated with older Illumina tools.  As a result, this may return
+ * suboptimal data.  This parser only exists temporarily until the Picard team writes a much more sensible
+ * version.  Proceed with caution.
+ *
+ * @author Kiran Garimella
+ */
 public class IlluminaParser implements Closeable {
     private File bustardDir;
     private File firecrestDir;
@@ -26,6 +36,12 @@ public class IlluminaParser implements Closeable {
     private PasteParser currentTileParser;
     private String[][] currentParseResult;
 
+    /**
+     * Construct an IlluminaParser given the Bustard directory and lane.  Infer the Firecrest directory.
+     *
+     * @param bustardDir  the Illumina Bustard directory
+     * @param lane        the Illumina lane
+     */
     public IlluminaParser(File bustardDir, int lane) {
         this.bustardDir = bustardDir;
         this.firecrestDir = bustardDir.getParentFile();
@@ -34,6 +50,13 @@ public class IlluminaParser implements Closeable {
         initializeParser();
     }
 
+    /**
+     * Construct an IlluminaParser given the Bustard directory, Firecrest directory and lane.
+     *
+     * @param bustardDir    the Illumina Bustard directory
+     * @param firecrestDir  the Illumina Firecrest directory
+     * @param lane          the Illumina lane
+     */
     public IlluminaParser(File bustardDir, File firecrestDir, int lane) {
         this.bustardDir = bustardDir;
         this.firecrestDir = firecrestDir;
@@ -42,6 +65,9 @@ public class IlluminaParser implements Closeable {
         initializeParser();
     }
 
+    /**
+     * Initialize the parser and seek to the first tile.
+     */
     private void initializeParser() {
         intfiles = firecrestDir.listFiles(getFilenameFilter("int"));
         seqfiles = bustardDir.listFiles(getFilenameFilter("seq"));
@@ -65,6 +91,12 @@ public class IlluminaParser implements Closeable {
         // Todo: put some more consistency checks here
     }
 
+    /**
+     * Get the filename filter for files of a given type.
+     *
+     * @param suffix  the type (i.e. 'int', 'seq', 'prb').
+     * @return the filename filter
+     */
     private FilenameFilter getFilenameFilter(final String suffix) {
         return new FilenameFilter() {
             public boolean accept(File file, String s) {
@@ -76,6 +108,11 @@ public class IlluminaParser implements Closeable {
         };
     }
 
+    /**
+     * Get a comparator that sorts by tile.
+     *
+     * @return the comparator that sorts by tile.
+     */
     private Comparator<File> getTileSortingComparator() {
         return new Comparator<File>() {
             public int compare(File file1, File file2) {
@@ -99,8 +136,19 @@ public class IlluminaParser implements Closeable {
         };
     }
 
+    /**
+     * Return the number of tiles.
+     *
+     * @return  the number of tiles.
+     */
     public int numTiles() { return intfiles.length; }
 
+    /**
+     * Seek to a specified tile.
+     *
+     * @param tile  the tile to which we should seek
+     * @return true if we were able to seek to the tile, false if otherwise
+     */
     public boolean seekToTile(int tile) {
         if (tile < intfiles.length - 1) {
             currentTileIndex = tile - 1;
@@ -117,10 +165,20 @@ public class IlluminaParser implements Closeable {
         return false;
     }
 
+    /**
+     * Returns whether the parser has any more data to go through.
+     *
+     * @return  true if there's data left, false if otherwise
+     */
     public boolean hasNext() {
         return (currentTileParser.hasNext() || seekToTile(currentTileIndex + 1));
     }
 
+    /**
+     * Advance the parser to the next read.
+     *
+     * @return true if successful, false if otherwise
+     */
     public boolean next() {
         if (hasNext()) {
             currentParseResult = currentTileParser.next();
@@ -131,22 +189,45 @@ public class IlluminaParser implements Closeable {
         return false;
     }
 
+    /**
+     * Returns the result from the current parse as an matrix of Strings.
+     *
+     * @return the matrix of Strings containing the current parse result
+     */
     public String[][] getCurrentParseResult() {
         return currentParseResult;
     }
 
+    /**
+     * Removes, um, something, but in reality, does nothing.
+     */
     public void remove() {
         throw new UnsupportedOperationException("IlluminaParser.remove() method is not supported.");
     }
 
+    /**
+     * Close the current tile.
+     */
     public void close() {
         currentTileParser.close();
     }
 
+    /**
+     * Returns a raw read containing the raw intensities, read sequence, and quality scores.
+     *
+     * @return the raw read
+     */
     public RawRead getRawRead() {
         return getSubset(0, currentParseResult[1][4].length() - 1);
     }
 
+    /**
+     * Returns a subset of the current parse result as a raw read.
+     *
+     * @param cycleStart  the starting cycle for the desired subset
+     * @param cycleStop   the ending cycle for the desired subset
+     * @return the subset of the current parse result as a raw read
+     */
     public RawRead getSubset(int cycleStart, int cycleStop) {
         return new RawRead(currentParseResult, cycleStart, cycleStop);
     }
