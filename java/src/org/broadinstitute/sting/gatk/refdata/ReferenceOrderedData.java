@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.util.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -150,8 +151,25 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     }
 
     public RODIterator iterator() {
-        return new RODIterator(new SimpleRODIterator());
-    }
+    	Iterator<ROD> it;
+        try {
+            Method m = type.getDeclaredMethod("createIterator", String.class,java.io.File.class);
+            it = (Iterator<ROD>) m.invoke(null, name, file);
+        } catch ( java.lang.NoSuchMethodException e ) {
+            it = new SimpleRODIterator();
+        } catch ( java.lang.NullPointerException e ) {
+            throw new RuntimeException(e);
+        } catch ( java.lang.SecurityException e ) {
+            throw new RuntimeException(e);
+        }  catch ( java.lang.IllegalAccessException e ) {
+        	throw new RuntimeException(e);
+        }  catch ( java.lang.IllegalArgumentException e ) {
+        	throw new RuntimeException(e);
+        }  catch ( java.lang.reflect.InvocationTargetException e ) {
+        	throw new RuntimeException(e);
+        }        
+        return new RODIterator(it); 	
+   }
 
     // ----------------------------------------------------------------------
     //
@@ -275,7 +293,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         private PushbackIterator<ROD> it;
         private ROD prev = null;
         
-        public RODIterator(SimpleRODIterator it) {
+        public RODIterator(Iterator<ROD> it) {
             this.it = new PushbackIterator<ROD>(it);
         }
 
