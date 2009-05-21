@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,14 +20,14 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="MAX_READ_LENGTH", shortName="mrl", doc="max read length", required=false)
     public int MAX_READ_LENGTH = 101;
 
-    @Argument(fullName="MAX_QUAL_SCORE", shortName="mqs", doc="max quality score", required=false)
+    @Argument(fullName="MAX_QUAL_SCORE", shortName="mqs"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        , doc="max quality score", required=false)
     public int MAX_QUAL_SCORE = 63;
 
     @Argument(fullName="OUTPUT_FILEROOT", shortName="outroot", required=false, doc="Filename root for the outputted logistic regression training files")
     public String OUTPUT_FILEROOT = "output";
 
     @Argument(fullName="CREATE_TRAINING_DATA", shortName="trainingdata", required=false, doc="Create training data files for logistic regression")
-    public boolean CREATE_TRAINING_DATA = false;
+    public boolean CREATE_TRAINING_DATA = true;
 
     @Argument(fullName="DOWNSAMPLE_FRACTION", shortName="sample", required=false, doc="Fraction of bases to randomly sample")
     public float DOWNSAMPLE_FRACTION=1.0f;
@@ -40,10 +41,13 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     int NDINUCS = 16;
     RecalData[][][] data = new RecalData[MAX_READ_LENGTH+1][MAX_QUAL_SCORE+1][NDINUCS];
     //RecalData[][][] data = new RecalData;
-    ArrayList<RecalData> flattenData = new ArrayList();
+    ArrayList<RecalData> flattenData = new ArrayList<RecalData>();
 
     static int nuc2num[];
     static char num2nuc[];
+
+    long counted_sites = 0; // number of sites used to count covariates
+    long skipped_sites = 0; // number of sites skipped because of a dbSNP entry
 
     String dinuc_root = "dinuc";
     ArrayList<PrintStream> dinuc_outs = new ArrayList<PrintStream>();
@@ -100,6 +104,16 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
                 }
             }
         }
+
+        try {
+            ByQualFile = new PrintStream(OUTPUT_FILEROOT+".empirical_v_reported_quality.csv");
+            ByCycleFile = new PrintStream(OUTPUT_FILEROOT+".quality_difference_v_cycle.csv");
+            ByDinucFile = new PrintStream(OUTPUT_FILEROOT+".quality_difference_v_dinucleotide.csv");
+        } catch (FileNotFoundException e){
+            System.out.println("Could not open output files based on OUTPUT_FILEROOT option: " + OUTPUT_FILEROOT);
+            System.exit(1);
+        }
+
     }
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
@@ -110,7 +124,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             for (int i =0; i < reads.size(); i++ ) {
                 SAMRecord read = reads.get(i);
 
-
                 if ((READ_GROUP.equals("none") || read.getAttribute("RG") != null && read.getAttribute("RG").equals(READ_GROUP)) &&
                     (read.getMappingQuality() >= MIN_MAPPING_QUALITY) &&
                     (DOWNSAMPLE_FRACTION == 1.0 || random_genrator.nextFloat() < DOWNSAMPLE_FRACTION)) {
@@ -118,13 +131,15 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
                     int offset = offsets.get(i);
                     int numBases = read.getReadLength();
                     if ( offset > 0 && offset < (numBases-1) ) { // skip first and last bases because they suck and they don't have a dinuc count
-                        char base = (char)read.getReadBases()[offset];
                         int qual = (int)read.getBaseQualities()[offset];
-                        //out.printf("%d %d %d\n", offset, qual, bases2dinucIndex(prevBase,base));
-                        // previous base is the next base in terms of machine chemistry if this is a negative strand
-                        char prevBase = (char)read.getReadBases()[offset + (read.getReadNegativeStrandFlag() ? 1 : -1)];
-                        int dinuc_index = bases2dinucIndex(prevBase,base);
                         if (qual > 0 && qual <= MAX_QUAL_SCORE) {
+                            // previous base is the next base in terms of machine chemistry if this is a negative strand
+                            char base = (char)read.getReadBases()[offset];
+                            char prevBase = (char)read.getReadBases()[offset + (read.getReadNegativeStrandFlag() ? 1 : -1)];
+                            int dinuc_index = bases2dinucIndex(prevBase, base, read.getReadNegativeStrandFlag());
+                            //char prevBase = (char)read.getReadBases()[offset + (read.getReadNegativeStrandFlag() ? 1 : -1)];
+                            //int dinuc_index = bases2dinucIndex(prevBase, base, read.getReadNegativeStrandFlag());
+
                             // Convert offset into cycle position which means reversing the position of reads on the negative strand
                             int cycle = read.getReadNegativeStrandFlag() ? numBases - offset - 1 : offset;
                             data[cycle][qual][dinuc_index].inc(base,ref);
@@ -132,6 +147,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
                     }
                 }
             }
+            counted_sites += 1;
+        }else{
+            skipped_sites += 1;
         }
         return 1;
     }
@@ -147,23 +165,32 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         qualityDiffVsCycle();
         qualityDiffVsDinucleotide();
 
+        out.printf("Counted sites: %d%n", counted_sites);
+        out.printf("Skipped sites: %d%n", skipped_sites);
+        out.printf("Fraction skipped: 1/%.0f%n", (double)counted_sites / skipped_sites);
+
         // Close dinuc filehandles
         if (CREATE_TRAINING_DATA) writeTrainingData();
+        /*if (CREATE_TRAINING_DATA)
+            for ( PrintStream dinuc_stream : this.dinuc_outs)
+                dinuc_stream.close();*/
 
     }
 
     void writeTrainingData() {
-        for ( int i=0; i<NDINUCS; i++) {
+        for ( int dinuc_index=0; dinuc_index<NDINUCS; dinuc_index++) {
             PrintStream dinuc_out = null;
             try {
-                dinuc_out = new PrintStream( dinuc_root+"."+dinucIndex2bases(i)+".csv");
+                dinuc_out = new PrintStream( dinuc_root+"."+dinucIndex2bases(dinuc_index)+".csv");
                 dinuc_out.println("logitQ,pos,indicator,count");
 
                 for ( RecalData datum: flattenData ) {
-                    if ((datum.N - datum.B) > 0)
-                        dinuc_out.format("%d,%d,%d,%d\n", datum.qual, datum.pos, 0, datum.N - datum.B);
-                    if (datum.B > 0)
-                        dinuc_out.format("%d,%d,%d,%d\n", datum.qual, datum.pos, 0, datum.B);
+                    if (string2dinucIndex(datum.dinuc) == dinuc_index) {
+                        if ((datum.N - datum.B) > 0)
+                            dinuc_out.format("%d,%d,%d,%d\n", datum.qual, datum.pos, 0, datum.N - datum.B);
+                        if (datum.B > 0)
+                            dinuc_out.format("%d,%d,%d,%d\n", datum.qual, datum.pos, 1, datum.B);
+                    }
                 }
             } catch (FileNotFoundException e) {
                 System.err.println("FileNotFoundException: " + e.getMessage());
@@ -177,14 +204,18 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     class MeanReportedQuality {
         double Qn = 0;
         long n = 0;
+        double sumErrors = 0; // Count of estimated number of errors
 
         void inc(double Q, long n) {
             this.n += n;
-            Qn += Q * n;
+            //Qn += Q * n; // wrong calculation that worked did not account for Qs being in log space
+            sumErrors += QualityUtils.qualToErrorProb((byte)Q) * n;
         }
 
         double result() {
-            return Qn / n;
+            //return Qn / n;
+            return -10 * Math.log10(sumErrors / n);
+            //return QualityUtils.probToQual(1.0 - (sumErrors / n));
         }
     }
 
@@ -192,6 +223,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         ArrayList<RecalData> ByCycle = new ArrayList<RecalData>();
         ArrayList<MeanReportedQuality> ByCycleReportedQ = new ArrayList<MeanReportedQuality>();
         ByCycleFile.printf("cycle,Qemp-obs,Qemp,Qobs,B,N%n");
+        RecalData All = new RecalData(0,0,"");
+        MeanReportedQuality AllReported = new MeanReportedQuality();
         for (int c=0; c < MAX_READ_LENGTH+1; c++)  {
             ByCycle.add(new RecalData(c, -1, "-"));
             ByCycleReportedQ.add(new MeanReportedQuality());
@@ -200,6 +233,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         for ( RecalData datum: flattenData ) {
             ByCycle.get(datum.pos).inc(datum.N, datum.B);
             ByCycleReportedQ.get(datum.pos).inc(datum.qual, datum.N);
+            All.inc(datum.N, datum.B);
+            AllReported.inc(datum.qual, datum.N);
         }
 
         for (int c=0; c < MAX_READ_LENGTH+1; c++) {
@@ -207,21 +242,27 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             double reportedQual = ByCycleReportedQ.get(c).result();
             ByCycleFile.printf("%d, %f, %f, %f, %d, %d%n", c, empiricalQual-reportedQual, empiricalQual, reportedQual, ByCycle.get(c).B, ByCycle.get(c).N);
         }
+        System.out.printf("Cycle: N=%d, B=%d, Qemp=%.1f, ", All.N, All.B, -10 * Math.log10((double)All.B/All.N));
+        System.out.printf("Qrep=%.1f%n", AllReported.result());
     }
 
     public void qualityDiffVsDinucleotide() {
         ArrayList<RecalData> ByCycle = new ArrayList<RecalData>();
         ArrayList<MeanReportedQuality> ByCycleReportedQ = new ArrayList<MeanReportedQuality>();
         ByDinucFile.printf("dinuc,Qemp-obs,Qemp,Qobs,B,N%n");
+        RecalData All = new RecalData(0,0,"");
+        MeanReportedQuality AllReported = new MeanReportedQuality();
         for (int c=0; c < NDINUCS; c++) {
             ByCycle.add(new RecalData(-1, -1, dinucIndex2bases(c)));
             ByCycleReportedQ.add(new MeanReportedQuality());
         }
 
         for ( RecalData datum: flattenData ) {
-            int dinucIndex = bases2dinucIndex(datum.dinuc.charAt(0), datum.dinuc.charAt(1));
+            int dinucIndex = string2dinucIndex(datum.dinuc); //bases2dinucIndex(datum.dinuc.charAt(0), datum.dinuc.charAt(1), false);
             ByCycle.get(dinucIndex).inc(datum.N, datum.B);
             ByCycleReportedQ.get(dinucIndex).inc(datum.qual, datum.N);
+            All.inc(datum.N, datum.B);
+            AllReported.inc(datum.qual, datum.N);
         }
 
         for (int c=0; c < NDINUCS; c++) {
@@ -229,24 +270,37 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             double reportedQual = ByCycleReportedQ.get(c).result();
             ByDinucFile.printf("%s, %f, %f, %f, %d, %d%n", ByCycle.get(c).dinuc, empiricalQual-reportedQual, empiricalQual, reportedQual, ByCycle.get(c).B, ByCycle.get(c).N);
         }
+        System.out.printf("Dinuc: N=%d, B=%d, Qemp=%.1f, ", All.N, All.B, -10 * Math.log10((double)All.B/All.N));
+        System.out.printf("Qrep=%.1f%n", AllReported.result());
     }
 
     public void qualityEmpiricalObserved() {
 
         ArrayList<RecalData> ByQ = new ArrayList<RecalData>();
-        ByQualFile.printf("Qrep,Qemp,B,N%n");
-        for (int q=0; q<MAX_QUAL_SCORE+1; q++)
+        ArrayList<MeanReportedQuality> ByQReportedQ = new ArrayList<MeanReportedQuality>();
+        ByQualFile.printf("Qrep,Qemp,Qrep_avg,B,N%n");
+        RecalData All = new RecalData(0,0,"");
+        MeanReportedQuality AllReported = new MeanReportedQuality();
+        for (int q=0; q<MAX_QUAL_SCORE+1; q++) {
             ByQ.add(new RecalData(-1,q,"-"));
+            ByQReportedQ.add(new MeanReportedQuality());
+        }
 
         for ( RecalData datum: flattenData ){
             ByQ.get(datum.qual).inc(datum.N, datum.B);
+            ByQReportedQ.get(datum.qual).inc(datum.qual, datum.N);
+            All.inc(datum.N, datum.B);
+            AllReported.inc(datum.qual, datum.N);
+            //out.printf("%2d%6d%3d %2d %s%n", datum.qual, datum.N, datum.pos, datum.qual, datum.dinuc);
         }
 
         for (int q=0; q<MAX_QUAL_SCORE; q++) {
             double empiricalQual = -10 * Math.log10((double)ByQ.get(q).B / ByQ.get(q).N);
-            ByQualFile.printf("%d, %f, %d, %d%n", q, empiricalQual, ByQ.get(q).B, ByQ.get(q).N);
-            //out.printf("%3d,%s,%3d,%5.1f,%5.1f,%6d,%6d", pos, dinuc, qual, empiricalQual, qual-empiricalQual, N, B);
+            ByQualFile.printf("%d, %f, %.0f, %d, %d%n", q, empiricalQual, ByQReportedQ.get(q).result(), ByQ.get(q).B, ByQ.get(q).N);
+            //out.printf("%3d,%s,%3d,%5.1f,%5.1f,%6d,%6d", pos, dinuc, qual, empiricalQual, qual-empiricalQual, N, B);                                                                                      n
         }
+        System.out.printf("Emp-Obs: N=%d, B=%d, Qemp=%.1f, ", All.N, All.B, -10 * Math.log10((double)All.B/All.N));
+        System.out.printf("Qrep=%.1f%n", AllReported.result());
     }
 
     public Integer reduceInit() {
@@ -257,13 +311,21 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         return 0;
     }
 
-    public int bases2dinucIndex(char prevBase, char base) {
-        return nuc2num[prevBase] * 4 + nuc2num[base];
+    public int bases2dinucIndex(char prevBase, char base, boolean Complement) {
+        if (!Complement) {
+            return nuc2num[prevBase] * 4 + nuc2num[base];
+        }else{
+            return (3 - nuc2num[prevBase]) * 4 + (3 - nuc2num[base]);
+        }
     }
 
     public String dinucIndex2bases(int index) {
         char data[] = {num2nuc[index / 4], num2nuc[index % 4]};
         return new String( data );
+    }
+
+    public int string2dinucIndex(String s) {
+        return bases2dinucIndex(s.charAt(0), s.charAt(1), false);
     }
 
     static {
@@ -286,9 +348,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     Random random_genrator;
     // Print out data for regression
     public CovariateCounterWalker()  throws FileNotFoundException {
-        ByQualFile = new PrintStream(OUTPUT_FILEROOT+".empirical_v_reported_quality.csv");
-        ByCycleFile = new PrintStream(OUTPUT_FILEROOT+".quality_difference_v_cycle.csv");
-        ByDinucFile = new PrintStream(OUTPUT_FILEROOT+".quality_difference_v_dinucleotide.csv");
+        /*if (CREATE_TRAINING_DATA)
+            for ( int i=0; i<NDINUCS; i++) {
+                PrintStream next_dinuc = new PrintStream( dinuc_root+"."+dinucIndex2bases(i)+".csv");
+                next_dinuc.println("logitQ,pos,indicator");
+                dinuc_outs.add(next_dinuc);
+            } */
         random_genrator = new Random(123454321); // keep same random seed while debugging
     }
 }

@@ -125,4 +125,19 @@ public class BaseUtils {
 
         return rcbases;
     }
+
+    /**
+     * Reverse a byte array of bases
+     * @param bases  the byte array of bases
+     * @return the reverse of the base byte array
+     */
+    static public byte[] reverse(byte[] bases) {
+        byte[] rcbases = new byte[bases.length];
+
+        for (int i = 0; i < bases.length; i++) {
+            rcbases[i] = bases[bases.length - 1];
+        }
+
+        return rcbases;
+    }
 }

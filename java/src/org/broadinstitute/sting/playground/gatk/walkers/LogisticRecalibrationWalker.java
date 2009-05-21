@@ -92,15 +92,20 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
         byte[] quals = read.getBaseQualities();
         byte[] recalQuals = new byte[quals.length];
 
+        // Since we want machine direction reads not corrected positive strand reads, rev comp any negative strand reads
+        if (read.getReadNegativeStrandFlag()) {
+            bases = BaseUtils.simpleReverseComplement(bases);
+            quals = BaseUtils.reverse(quals);
+        }
+
         int numBases = read.getReadLength();
         recalQuals[0] = quals[0];   // can't change the first -- no dinuc
-        recalQuals[numBases-1] = quals[numBases-1]; // can't change last -- no dinuc
-        for ( int i = 1; i < numBases-1; i++ ) { // skip first and last base, qual already set because no dinuc
+        //recalQuals[numBases-1] = quals[numBases-1]; // can't change last -- no dinuc
+        for ( int cycle = 1; cycle < numBases; cycle++ ) { // skip first and last base, qual already set because no dinuc
             // Take into account that previous base is the next base in terms of machine chemistry if this is a negative strand
-            int cycle = read.getReadNegativeStrandFlag() ? numBases - i - 1 : i;
-            String dinuc = String.format("%c%c", bases[i  + (read.getReadNegativeStrandFlag() ? 1 : -1)], bases[i]);
-            byte qual = quals[i];
-            //System.out.printf("dinuc %c %c%n", bases[i-1], bases[i]);
+            //int cycle = i; //read.getReadNegativeStrandFlag() ? numBases - i - 1 : i;
+            String dinuc = String.format("%c%c", bases[cycle - 1], bases[cycle]);
+            byte qual = quals[cycle];
             LogisticRegressor regressor = regressors.get(dinuc);
             byte newQual;
 
@@ -120,9 +125,11 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
                 newQual = qual;
             }
 
-            recalQuals[i] = newQual;
+            recalQuals[cycle] = newQual;
         }
 
+        if (read.getReadNegativeStrandFlag())
+            recalQuals = BaseUtils.reverse(quals);
         //System.out.printf("OLD: %s%n", read.format());
         read.setBaseQualities(recalQuals);
         //System.out.printf("NEW: %s%n", read.format());

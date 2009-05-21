@@ -20,7 +20,18 @@ public class QualityUtils {
      * @return a probability (0.0-1.0)
      */
     static public double qualToProb(byte qual) {
-        return 1.0 - Math.pow(10.0, ((double) qual)/-10.0);
+        return 1.0 - qualToErrorProb(qual);
+    }
+
+    /**
+     * Convert a quality score to a probability of error.  This is the Phred-style
+     * conversion, *not* the Illumina-style conversion (though asymptotically, they're the same).
+     *
+     * @param qual a quality score (0-40)
+     * @return a probability (0.0-1.0)
+     */
+    static public double qualToErrorProb(byte qual) {
+        return Math.pow(10.0, ((double) qual)/-10.0);
     }
 
     /**
