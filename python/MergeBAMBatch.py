@@ -22,6 +22,9 @@ if __name__ == "__main__":
     parser.add_option("-i", "--ignoreExistingFiles", dest="ignoreExistingFiles",
                         action='store_true', default=False,
                         help="Ignores already written files, if present")
+    parser.add_option("-m", "--mergeBin", dest="mergeBin",
+                        type="string", default=MERGE_BIN,
+                        help="Path to merge binary")
 
     (OPTIONS, args) = parser.parse_args()
     if len(args) != 1:
@@ -45,7 +48,7 @@ if __name__ == "__main__":
             sources = reduce( operator.__add__, map( glob.glob, s[1:] ), [] )
             
             if OPTIONS.ignoreExistingFiles or not os.path.exists(output_filename):
-                cmd = 'java -Xmx4096m -jar ' + MERGE_BIN + ' AS=true SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(sources))
+                cmd = 'java -Xmx4096m -jar ' + OPTIONS.mergeBin + ' MSD=true AS=true SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(sources))
                 print cmd
                 farm_commands.cmd(cmd, OPTIONS.farmQueue, output)
 

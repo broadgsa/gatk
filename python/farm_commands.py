@@ -3,7 +3,7 @@
 import os
 #justPrintCommands = False
 
-def cmd(cmd_str, farm_queue=False, output_head=None, just_print_commands=False, outputFile = None):
+def cmd(cmd_str_from_user, farm_queue=False, output_head=None, just_print_commands=False, outputFile = None):
     # if farm_queue is non-False, submits to queue, other
 
     if farm_queue:
@@ -14,12 +14,14 @@ def cmd(cmd_str, farm_queue=False, output_head=None, just_print_commands=False, 
         else:
             farm_stdout = None
             
-        cmd_str = "bsub -q "+farm_queue+" "+cmd_str 
+        cmd_str = "bsub -q "+farm_queue 
         if farm_stdout <> None:
             cmd_str += " -o " + farm_stdout
+        cmd_str += " "+cmd_str_from_user
         
         print ">>> Farming via "+cmd_str
     else:
+        cmd_str = cmd_str_from_user
         print ">>> Executing "+cmd_str
 
     if just_print_commands or (globals().has_key("justPrintCommands") and globals().justPrintCommands):
