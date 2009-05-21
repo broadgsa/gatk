@@ -160,4 +160,31 @@ public class BaseUtils {
 
         return rcbases;
     }
+
+    /**
+     * For the most frequent base in the sequence, return the percentage of the read it constitutes.
+     *
+     * @param sequence  the read sequence
+     * @return  the percentage of the read that's made up of the most frequent base
+     */
+    static public double mostFrequentBaseFraction(byte[] sequence) {
+        int[] baseCounts = new int[4];
+
+        for ( byte base : sequence ) {
+            int baseIndex = simpleBaseToBaseIndex((char) base);
+
+            if (baseIndex >= 0) {
+                baseCounts[baseIndex]++;
+            }
+        }
+
+        int mostFrequentBaseIndex = 0;
+        for (int baseIndex = 1; baseIndex < 4; baseIndex++) {
+            if (baseCounts[baseIndex] > baseCounts[mostFrequentBaseIndex]) {
+                mostFrequentBaseIndex = baseIndex;
+            }
+        }
+
+        return ((double) baseCounts[mostFrequentBaseIndex])/((double) sequence.length);
+    }
 }
