@@ -112,7 +112,8 @@ public class BaseUtils {
     }
 
     /**
-     * Reverse complement a byte array of bases
+     * Reverse complement a byte array of bases (that is, chars casted to bytes, *not* base indices in byte form)
+     *
      * @param bases  the byte array of bases
      * @return the reverse complement of the base byte array
      */
@@ -124,6 +125,25 @@ public class BaseUtils {
         }
 
         return rcbases;
+    }
+
+    /**
+     * Reverse complement a String of bases.  Preserves ambiguous bases.
+     *
+     * @param bases  the String of bases
+     * @return the reverse complement of the String
+     */
+    static public String simpleReverseComplement(String bases) {
+        char[] rcbases = new char[bases.length()];
+
+        for (int i = 0; i < bases.length(); i++) {
+            char base = bases.charAt(bases.length() - 1);
+            char rcbase = (base == 'N' || base == '.') ? base : (char) simpleComplement(base);
+
+            rcbases[i] = rcbase;
+        }
+
+        return new String(rcbases);
     }
 
     /**
