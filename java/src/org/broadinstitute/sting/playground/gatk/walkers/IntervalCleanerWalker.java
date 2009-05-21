@@ -106,7 +106,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
     }
 
-    private static int numMismatches(SAMRecord r, String refSeq, int refIdx) {
+    private static int numMismatches(SAMRecord r, String refSeq, int refIndex) {
         int readIdx = 0;
         int mismatches = 0;
         String readSeq = r.getReadString();
@@ -115,8 +115,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             CigarElement ce = c.getCigarElement(i);
             switch ( ce.getOperator() ) {
                 case M:
-                    for (int j = 0 ; j < ce.getLength() ; j++, refIdx++, readIdx++ ) {
-                        if ( Character.toUpperCase(readSeq.charAt(readIdx)) != Character.toUpperCase(refSeq.charAt(refIdx)) )
+                    for (int j = 0 ; j < ce.getLength() ; j++, refIndex++, readIdx++ ) {
+                        if ( Character.toUpperCase(readSeq.charAt(readIdx)) != Character.toUpperCase(refSeq.charAt(refIndex)) )
                             mismatches++;
                     }
                     break;
@@ -124,7 +124,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                     readIdx += ce.getLength();
                     break;
                 case D:
-                    refIdx += ce.getLength();
+                    refIndex += ce.getLength();
                     break;
             }
 
@@ -132,16 +132,31 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         return mismatches;
     }
 
-    private static int mismatchQualitySum(AlignedRead aRead, String ref, int refIndex) {
-        String read = aRead.getReadString();
+    private static int mismatchQualitySum(AlignedRead aRead, String refSeq, int refIndex) {
+        String readSeq = aRead.getReadString();
         String quals = aRead.getBaseQualityString();
-
+        int readIndex = 0;
         int sum = 0;
-        for ( int readIndex = 0 ; readIndex < read.length() ; readIndex++, refIndex++ ) {
-            if ( refIndex >= ref.length() )
-                sum += MAX_QUAL;
-            else if ( Character.toUpperCase(read.charAt(readIndex)) != Character.toUpperCase(ref.charAt(refIndex)) )
-                sum += (int)quals.charAt(readIndex) - 33;
+        Cigar c = aRead.getCigar();
+        for (int i = 0 ; i < c.numCigarElements() ; i++) {
+            CigarElement ce = c.getCigarElement(i);
+            switch ( ce.getOperator() ) {
+                case M:
+                    for (int j = 0 ; j < ce.getLength() ; j++, refIndex++, readIndex++ ) {
+                        if ( refIndex >= refSeq.length() )
+                            sum += MAX_QUAL;
+                        else if ( Character.toUpperCase(readSeq.charAt(readIndex)) != Character.toUpperCase(refSeq.charAt(refIndex)) )
+                            sum += (int)quals.charAt(readIndex) - 33;
+                    }
+                    break;
+                case I:
+                    readIndex += ce.getLength();
+                    break;
+                case D:
+                    refIndex += ce.getLength();
+                    break;
+            }
+
         }
         return sum;
     }
@@ -188,7 +203,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 StringBuffer sb = new StringBuffer();
                 sb.append(reference.substring(0, refIdx));
                 Cigar c = swConsensus.getCigar();
-                logger.info("CIGAR = " + cigarToString(c));
+                logger.debug("CIGAR = " + cigarToString(c));
 
                 int indelCount = 0;
                 int altIdx = 0;
@@ -236,23 +251,23 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                     else
                         consensus.readIndexes.add(new Pair<Integer, Integer>(j, altAlignment.getFirst()));
 
-                    logger.info(aRead.getReadString() +  " vs. " + toTest.getReadString() + " => " + myScore + " - " + altAlignment.getFirst());
+                    logger.debug(aRead.getReadString() +  " vs. " + toTest.getReadString() + " => " + myScore + " - " + altAlignment.getFirst());
                     consensus.mismatchSum += myScore;
                     if ( myScore == 0 )
                         // we already know that this is its consensus, so don't bother testing it later
                         altAlignmentsToTest.set(j, false);
                 }
-                logger.info(aRead.getReadString() +  " " + consensus.mismatchSum);
+                logger.debug(aRead.getReadString() +  " " + consensus.mismatchSum);
                 if ( bestConsensus == null || bestConsensus.mismatchSum > consensus.mismatchSum) {
                     bestConsensus = consensus;
-                    logger.info(aRead.getReadString() +  " " + consensus.mismatchSum);
+                    logger.debug(aRead.getReadString() +  " " + consensus.mismatchSum);
                 }
             }
         }
 
         // if the best alternate consensus has a smaller sum of quality score mismatches (more than the LOD threshold), then clean!
         if ( bestConsensus != null && ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0 >= LOD_THRESHOLD ) {
-            logger.info("CLEAN: " + bestConsensus.str );
+            logger.debug("CLEAN: " + bestConsensus.str );
             if ( indelOutput != null && bestConsensus.cigar.numCigarElements() > 1 ) {
                 StringBuffer str = new StringBuffer();
                 str.append(reads.get(0).getReferenceName());
@@ -263,6 +278,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 str.append("\t" + (((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0) + "\n");
                 try {
                     indelOutput.write(str.toString());
+                    indelOutput.flush();
                 } catch (Exception e) {}
             }
 
@@ -615,7 +631,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                     }
                     if ( bestConsensus == null || bestConsensus.mismatchSum > consensus.mismatchSum) {
                         bestConsensus = consensus;
-                        logger.info(altConsensus +  " " + consensus.mismatchSum);
+                        logger.debug(altConsensus +  " " + consensus.mismatchSum);
                     }
                 }
             }
@@ -623,7 +639,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         // if the best alternate consensus has a smaller sum of quality score mismatches, then clean!
         if ( bestConsensus != null && ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0 >= LOD_THRESHOLD ) {
-            logger.info("CLEAN: " + bestConsensus.str);
+            logger.debug("CLEAN: " + bestConsensus.str);
 
             // clean the appropriate reads
             for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes )
