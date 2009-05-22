@@ -18,9 +18,9 @@ public class GenotypingCallStats {
 	// this  number does not have to be equal to 'ref' ( total number of ref calls in this individual - we migh be unable to assess
 	// the consistency for all of them!); same applies to (in)consistent_variant.
 	public int consistent_variant = 0; // variants that are consistent in any (application-specific) sense, e.g. variant matches variants in other members of the family trio
-	public int consistent_ref = 0; // reference calls that are consistent in any (app-specific) sense, e.g. consistent with other members of the family trio
+	public long consistent_ref = 0; // reference calls that are consistent in any (app-specific) sense, e.g. consistent with other members of the family trio
 	public int inconsistent_variant = 0; // variants that are inconsistent in any (application-specific) sense, e.g. variant does not match variants in other members of the family trio
-	public int inconsistent_ref = 0; // reference calls that are inconsistent in any (app-specific) sense, e.g. inconsistent with other members of the family trio
+	public long inconsistent_ref = 0; // reference calls that are inconsistent in any (app-specific) sense, e.g. inconsistent with other members of the family trio
 	public int non_biallelic_variant = 0; // number of variant calls that are not biallelic
 	
 	public GenotypingCallStats add(GenotypingCallStats other) {
@@ -30,13 +30,16 @@ public class GenotypingCallStats {
 		this.variant += other.variant;
 		this.consistent_variant += other.consistent_variant;
 		this.consistent_ref += other.consistent_ref;
-		this.inconsistent_variant += other.consistent_variant;
-		this.inconsistent_ref += other.consistent_ref;
+		this.inconsistent_variant += other.inconsistent_variant;
+		this.inconsistent_ref += other.inconsistent_ref;
 		this.non_biallelic_variant += other.non_biallelic_variant;
 		return this;
 	}
 	
 //	public int totalVariants() { return consistent_variant + inconsistent_variant + non_biallelic_variant; }
+	
+	public long assessedForConsistencyRef() { return consistent_ref + inconsistent_ref; }
+	public int assessedForConsistencyVariant() { return consistent_variant + inconsistent_variant; }
 	
 	public String toString() {
 		StringBuilder b = new StringBuilder();
@@ -50,27 +53,27 @@ public class GenotypingCallStats {
 				ref, Utils.percentage(ref,assessed))
 			);
 
-		int z = consistent_ref+inconsistent_ref;
+		long zr = assessedForConsistencyRef();
 		b.append( String.format("            ref assessed for consistency: %d (%3.2f%% ref)%n", 
-				z, Utils.percentage(z, ref) )
+				zr, Utils.percentage(zr, ref) )
 			);
 		b.append( String.format("               consistent ref: %d (%3.2f%% consistency-assessed ref)%n", 
-				consistent_ref, Utils.percentage(consistent_ref,z) )
+				consistent_ref, Utils.percentage(consistent_ref,zr) )
 			);
 
-		b.append( String.format("         variants: %d (%3.2f%% assessed)%n", 
-				variant, Utils.percentage(variant,assessed))
+		b.append( String.format("         variants: %d (%3.2f%% assessed, or 1 per %3.2f kB)%n", 
+				variant, Utils.percentage(variant,assessed), ((double)assessed/variant)/1000.0 )
 			);
 		b.append( String.format("            multiallelic: %d (%3.2f%% variants)%n", 
 				non_biallelic_variant, Utils.percentage(non_biallelic_variant, variant))
 			);
 		
-		z = consistent_variant+inconsistent_variant;
+		int zv = assessedForConsistencyVariant();
 		b.append( String.format("            variants assessed for consistency: %d (%3.2f%% variants)%n", 
-				z, Utils.percentage(z, variant) )
+				zv, Utils.percentage(zv, variant) )
 			);
 		b.append( String.format("               consistent variants: %d (%3.2f%% consistency-assessed variants)%n", 
-				consistent_ref, Utils.percentage(consistent_variant,z) )
+				consistent_variant, Utils.percentage(consistent_variant,zv) )
 			);
 		return b.toString();
 	}
