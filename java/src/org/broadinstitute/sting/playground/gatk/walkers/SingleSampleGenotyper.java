@@ -65,6 +65,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         String rodString = getRodString(tracker);
 
+		ref = Character.toUpperCase(ref);
 		if (ref == 'N') { return null; }
 
 		if (context.getReads().size() != 0)
@@ -252,6 +253,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
         return bestAltBaseIndex;
     }
+
     private int[] getSecondaryBaseCounts(double[][] probs) {
         int[] secondaryBaseCounts = new int[4];
 
@@ -374,6 +376,15 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 		calls_file.println(alleleFreq.asTabularString());
 		return "";
 	}
+
+	public void onTraversalDone()
+	{
+		if (callsFileName != null)   
+		{ 
+			calls_file.close();
+		}
+	}
+
 
 	/*
     public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 

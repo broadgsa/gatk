@@ -315,12 +315,20 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
         return contexts;
     }
 
-    public void onTraversalDone() 
+    public void onTraversalDone(String result) 
     {
-		discovery_output_file.flush();
-		discovery_output_file.close();
-		individual_output_file.flush();
-		individual_output_file.close();
+		System.out.printf("OTD\n");
+		try 
+		{
+			discovery_output_file.flush();
+			discovery_output_file.close();
+			individual_output_file.flush();
+			individual_output_file.close();
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace(); 
+		}
 		return;
     }
 
