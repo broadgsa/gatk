@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.executive;
 
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.traversals.TraverseLoci;
+import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.OutputTracker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -25,12 +25,12 @@ import java.util.concurrent.Callable;
  */
 public class ShardTraverser implements Callable {
     private Walker walker;
-    private TraverseLoci traversalEngine;
+    private TraversalEngine traversalEngine;
     private Shard shard;
     private ShardDataProvider dataProvider;
     private OutputMerger output;
 
-    public ShardTraverser( TraverseLoci traversalEngine,
+    public ShardTraverser( TraversalEngine traversalEngine,
                            Walker walker,
                            Shard shard,
                            ShardDataProvider dataProvider,

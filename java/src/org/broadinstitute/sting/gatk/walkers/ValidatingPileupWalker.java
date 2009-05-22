@@ -8,6 +8,7 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Pileup;
 import org.broadinstitute.sting.utils.BasicPileup;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
+import org.broadinstitute.sting.utils.StingException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -17,14 +18,14 @@ import org.broadinstitute.sting.utils.ReadBackedPileup;
  * To change this template use File | Settings | File Templates.
  */
 @Requires(value={DataSource.READS,DataSource.REFERENCE},referenceMetaData=@RMD(name="pileup",type=rodSAMPileup.class))
-public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats> {
+public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats>  implements TreeReducible<ValidationStats> {
     @Argument(fullName="continue_after_error",doc="Continue after an error",required=false)
     public boolean CONTINUE_AFTER_AN_ERROR = false;
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         Pileup pileup = new ReadBackedPileup(ref, context);
         Pileup truePileup = (Pileup)tracker.lookup("pileup", null);
-        
+
         if ( truePileup == null ) {
             System.out.printf("No truth pileup data available at %s%n", pileup.getPileupString());
             if ( ! CONTINUE_AFTER_AN_ERROR ) {
@@ -50,6 +51,13 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
         sum.nLoci++;
         sum.nBases += value;
         return sum;
+    }
+
+    public ValidationStats treeReduce( ValidationStats lhs, ValidationStats rhs ) {
+        ValidationStats combined = new ValidationStats();
+        combined.nLoci = lhs.nLoci + rhs.nLoci;
+        combined.nBases = lhs.nBases + rhs.nBases;
+        return combined;
     }
 }
 
