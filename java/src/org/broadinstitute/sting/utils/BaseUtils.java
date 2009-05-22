@@ -129,10 +129,10 @@ public class BaseUtils {
     }
 
     /**
-     * Return the complement of a base.
+     * Return the complement of a base, or the specified base if it can't be complemented (i.e. an ambiguous base).
      *
      * @param base  the base [AaCcGgTt]
-     * @return the complementary base
+     * @return the complementary base, or the input base if it's not one of the understood ones
      */
     static public byte simpleComplement(char base) {
         switch (base) {
@@ -144,7 +144,7 @@ public class BaseUtils {
             case 'g': return 'C';
             case 'T':
             case 't': return 'A';
-            default: return '.';
+            default: return (byte) base;
         }
     }
 
@@ -158,7 +158,7 @@ public class BaseUtils {
         byte[] rcbases = new byte[bases.length];
 
         for (int i = 0; i < bases.length; i++) {
-            rcbases[i] = simpleComplement((char) bases[bases.length - 1]);
+            rcbases[i] = simpleComplement((char) bases[bases.length - 1 - i]);
         }
 
         return rcbases;
@@ -171,20 +171,12 @@ public class BaseUtils {
      * @return the reverse complement of the String
      */
     static public String simpleReverseComplement(String bases) {
-        char[] rcbases = new char[bases.length()];
-
-        for (int i = 0; i < bases.length(); i++) {
-            char base = bases.charAt(bases.length() - 1);
-            char rcbase = (base == 'N' || base == '.') ? base : (char) simpleComplement(base);
-
-            rcbases[i] = rcbase;
-        }
-
-        return new String(rcbases);
+        return new String(simpleReverseComplement(bases.getBytes()));
     }
 
     /**
      * Reverse a byte array of bases
+     * 
      * @param bases  the byte array of bases
      * @return the reverse of the base byte array
      */
