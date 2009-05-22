@@ -58,9 +58,10 @@ public class BasecallingTrainer {
     }
 
     /**
-     * Take the first N reads that have no ambiguous bases and add them to the training set.
+     * Take the first N reads that have no ambiguous bases, an average quality score greater
+     * than or equal to 15, and are not largely homopolymers and add them to the training set.
      */
-    public void loadFirstNUnambiguousReadsTrainingSet() {
+    public void loadFirstNReasonableReadsTrainingSet() {
         this.trainingData = new ArrayList<RawRead>(trainingLimit);
 
         IlluminaParser iparser = new IlluminaParser(bustardDir, lane);
@@ -80,11 +81,27 @@ public class BasecallingTrainer {
                 }
             }
 
-            if (numAmbiguous == 0) {
+            if (numAmbiguous == 0 && getAverageQualityScore(rawread) >= 15 && BaseUtils.mostFrequentBaseFraction(rawread.getSequence()) < 0.4) {
                 trainingData.add(rawread);
                 numreads++;
             }
         }
+    }
+
+    /**
+     * Return the average quality score of a raw read.
+     *
+     * @param read  the raw read
+     * @return  the average quality score
+     */
+    private double getAverageQualityScore(RawRead read) {
+        double averageQual = 0;
+
+        for ( byte qual : read.getQuals() ) {
+            averageQual += qual;
+        }
+
+        return averageQual / ((double) read.getReadLength());
     }
 
     /**
