@@ -19,7 +19,9 @@ import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.playground.utils.GenotypingCallStats;
 import org.broadinstitute.sting.playground.utils.TrioConcordanceRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenotypeUtils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenotypeUtils.VariantType;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 //@Requires(value=DataSource.REFERENCE,referenceMetaData={@RMD(name="mother",type=rodSAMPileup.class),
@@ -34,18 +36,16 @@ public class MendelianInheritanceWalker  extends RefWalker<TrioConcordanceRecord
 	@Argument(fullName="log_concordant", shortName="LC",doc="If set, all trio-concordant sites will be logged at level INFO") public boolean LOG_CONCORDANT; 
 	@Argument(fullName="log_discordant", shortName="LD",doc="If set, all trio-discordant sites will be logged at level INFO") public boolean LOG_DISCORDANT; 
 	@Argument(fullName="default_reference_calls",shortName="DRC",
-			doc="If set to INDEL or POINT,  any position where the specified genotype is NOT explicitly specified, while the other (point or indel, respectively) is provided, is considered to be a confident 'reference' (no-indel or no-snp) call") 
-			public String defCalls;
+			doc="If set,  any position where the specified genotype is NOT explicitly specified, while the other is provided, is considered to be an implicit confident 'reference' (no-indel or no-snp) call") 
+			public boolean defCalls;
 	@Argument(fullName="variant_type",
 					      shortName="VT",
 					      doc="Assess concordance for the variants of the specified type, INDEL or POINT. If genotype track(s) provide both types, the requested one will be selected",
 					      required=true) 
-					      public String VARIANT_TYPE; 
+					      public GenotypeUtils.VariantType VARIANT_TYPE; 
 	
 	private static Logger logger = Logger.getLogger(MendelianInheritanceWalker.class);	
 	private final static String star = new String("*");
-	private int variant_type = 1; //0 - point, 1 - indel
-	private int default_calls = 0; // 0 - none, 1 - indels, 2 - point, 3 - both
 	
 	@Override
 	public TrioConcordanceRecord map(RefMetaDataTracker rodData, char ref, LocusContext context) {
@@ -56,54 +56,25 @@ public class MendelianInheritanceWalker  extends RefWalker<TrioConcordanceRecord
 		ReferenceOrderedDatum rodDad = rodData.lookup("father", null);
 		ReferenceOrderedDatum rodKid = rodData.lookup("daughter", null);
 		
-		Genotype mom = extractGenotype(rodMom,variant_type);
-		Genotype dad = extractGenotype(rodDad,variant_type);
-		Genotype kid = extractGenotype(rodKid,variant_type);
+		Genotype mom = GenotypeUtils.extractGenotype(rodMom,VARIANT_TYPE,defCalls);
+		Genotype dad = GenotypeUtils.extractGenotype(rodDad,VARIANT_TYPE,defCalls);
+		Genotype kid = GenotypeUtils.extractGenotype(rodKid,VARIANT_TYPE,defCalls);
 
 		return assessGenotypesInTrio(mom, dad, kid);
 	}
 	
-	@Override
+/*
+ * 	@Override(non-Javadoc)
+ * @see org.broadinstitute.sting.gatk.walkers.Walker#initialize()
+ 
 	public void initialize() {
 		super.initialize();
-		VARIANT_TYPE = VARIANT_TYPE.toUpperCase();
-		if ( VARIANT_TYPE.equals("POINT")) variant_type = 0;
-		else if ( VARIANT_TYPE.equals("INDEL")) variant_type = 1;
-		else throw new StingException("Unknown value specified for VARIANT_TYPE. Allowed: POINT, INDEL; passed: "+VARIANT_TYPE);
 		if ( defCalls == null ) return;
 		defCalls = defCalls.toUpperCase();
 		if ( defCalls.equals("INDEL")) default_calls = 1;
 		else throw new StingException("POINT or BOTH default calls are not implemented yet");
 	};
-	
-	private Genotype extractGenotype(ReferenceOrderedDatum gl, int variant_type) {
-		
-		if ( gl == null ) return null;
-
-		if ( gl instanceof GenotypeList ) {
-
-			if ( variant_type == 0 ) return ((GenotypeList)gl).getPointGenotype();
-			else if ( variant_type == 1 ) {
-				if ( ((GenotypeList)gl).hasIndelGenotype() ) return ((GenotypeList)gl).getIndelGenotype();
-				else {
-					if ( ( default_calls == 1|| default_calls == 3 ) && ((GenotypeList)gl).hasPointGenotype() ) return new DefaultIndelGenotype(gl.getLocation());
-				}
-			}
-		}	else if ( gl instanceof Genotype ) {
-			switch ( variant_type ) {
-			case 0:
-				if ( ((Genotype)gl).isIndelGenotype() ) return null;
-				else return (Genotype)gl;
-			case 1: 
-				if ( ((Genotype)gl).isPointGenotype() ) return null;
-				else return (Genotype)gl;
-			default: throw new StingException("Unknown variant type specified");
-			} 
-			
-		}
-		else throw new StingException("track "+gl.getName()+" is not a Genotype or GenotypeList");
-		return null;
-	}
+*/	
 
 	/** Takes a single genotype object and returns properly filled new assessment object (covered/assessed/ref/variant set to 0/1 
 	 * according to what the genotype says)  
@@ -254,100 +225,6 @@ public class MendelianInheritanceWalker  extends RefWalker<TrioConcordanceRecord
 		
 	}
 	
-	private static class DefaultIndelGenotype implements Genotype {
-		private GenomeLoc location;
-		private static final List<String> alleles = Arrays.asList("","") ;
-
-		DefaultIndelGenotype(GenomeLoc l) {
-			location = l;
-		}
-		
-		@Override
-		public double getConsensusConfidence() {
-			return 1000;
-		}
-
-		@Override
-		public List<String> getFWDAlleles() {
-			return alleles;
-		}
-
-		@Override
-		public String getFWDRefBases() {
-			return alleles.get(0);
-		}
-
-		@Override
-		public GenomeLoc getLocation() {
-			return location;
-		}
-
-		@Override
-		public char getRef() {
-			return '*';
-		}
-
-		@Override
-		public double getVariantConfidence() {
-			return 0.0;
-		}
-
-		@Override
-		public boolean isBiallelic() {
-			return false;
-		}
-
-		@Override
-		public boolean isDeletion() {
-			return false;
-		}
-
-		@Override
-		public boolean isHet() {
-			return false;
-		}
-
-		@Override
-		public boolean isHom() {
-			return true;
-		}
-
-		@Override
-		public boolean isIndel() {
-			return false;
-		}
-
-		@Override
-		public boolean isIndelGenotype() {
-			return true;
-		}
-
-		@Override
-		public boolean isInsertion() {
-			return false;
-		}
-
-		@Override
-		public boolean isPointGenotype() {
-			return false;
-		}
-
-		@Override
-		public boolean isReference() {
-			return true;
-		}
-
-		@Override
-		public boolean isSNP() {
-			return false;
-		}
-
-		@Override
-		public int compareTo(ReferenceOrderedDatum o) {
-			return location.compareTo(o.getLocation());
-		}
-		
-	}
 	
 	/*
 	protected String shortLine(Genotype av) {
