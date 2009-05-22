@@ -26,10 +26,9 @@ public interface Genotype extends Comparable<ReferenceOrderedDatum> {
     GenomeLoc getLocation();
 
     /** Returns actual observed alleles on the fwd strand. Allowed to return more than two alleles (@see #getPloidy()). 
-     * For SNPs, the alleles are observed bases. For indels, the contract is that a no-event allele is represented by an empty string, 
-     * while the event allele is represented by '+' (insertion) or '-' (deletion) followed by actual inserted or deleted bases. It
-     * is currently not specified how genotypes that report themselves as 'isReference()' should present their alleles: implementations
-     * can present reference bases (SNP-like) or empty strings (indel-like). 
+     * For point genotypes (those that report themselves as isPointGenotype()), the alleles are observed bases. For indels
+     * (i.e. if isIndelGenotype() is true), a no-event allele is represented by an empty string, 
+     * while the event allele is represented by '+' (insertion) or '-' (deletion) followed by actual inserted or deleted bases. 
      * @return list of alleles
      */
     List<String> getFWDAlleles() ;
@@ -46,35 +45,51 @@ public interface Genotype extends Comparable<ReferenceOrderedDatum> {
     String getFWDRefBases();
     
     /** Returns reference base (regardless of whether the reference allele was actually observed. This method 
-     * is similar to getFWDRefBases() except it returns a single char. For non-single letter (non-SNP) variants, behavior
+     * is similar to getFWDRefBases() except it returns a single char. For non-point variants (i.e. indels), behavior
      * of this method is not specified and can be defined by implementing classes.
      * @return
      */
     char getRef() ;
 
-    /** Is this variant a SNP?
+    /** Returns true if the object represents a point genotype (e.g. reference base vs. a SNP),
+     * regardless of what the actual observation is (see isReference() and isSNP()).
+     * @return
+     */
+    boolean isPointGenotype() ;
+    
+    /** Returns true if the object represents an extended (indel) genotype (e.g. insertion/deletion event vs. no event),
+     * regardless of what the actual observation is (see isReference(), isIndel(), isInsertion(), isDeletion()).
+     * @return
+     */
+    boolean isIndelGenotype() ;
+
+    
+    /** Is this variant a SNP? Returns true only if this is point genotype AND a non-reference base was observed, false otherwise.
     *
     * @return true or false
     */
    boolean isSNP();
 
-   /** Returns true if all observed alleles are reference ones. All is<Variant> methods (where Variant=SNP,Insertion, etc) should
+   /** Returns true if all observed alleles are reference ones (only reference base was observed if this is a point genotype,
+    * or no indel events were observed if this is an indel genotype). All is"Variant" methods (where Variant=SNP,Insertion, etc) should
     * return false at a site where isReference() is true to ensure consistency. 
     * @return
     */
    boolean isReference();
 
    
-   /** Is this variant an insertion? The contract requires isIndel() to return true
-    * if this method returns true.
+   /** Is this variant an insertion? Returns true if this is indel genotype AND only insertion event(s) was observed,
+    * false otherwise. The contract requires isIndel() to return true
+    * whenever isInsertion() method returns true.
     *
     * @return true or false
     */
    boolean isInsertion();
 
    
-   /** Is this variant a deletion? The contract requires isIndel() to return true
-    * if isDeletion() returns true.
+   /** Is this variant a deletion? Returns true if this is indel genotype AND only deletion event(s) was observed,
+    * false otherwise. The contract requires isIndel() to return true
+    * whenever isDeletion() method returns true.
     *
     * @return true or false
     */
@@ -83,8 +98,9 @@ public interface Genotype extends Comparable<ReferenceOrderedDatum> {
   
    /** Is this variant an insertion or a deletion? The contract requires
     * this to be true if either isInsertion() or isDeletion() returns true. However,
-    * this method is currently allowed to return true even if neither of isInsertion()
-    * and isDeletion() does.
+    * this method is also allowed to return true even if neither isInsertion()
+    * nor isDeletion() do (e.g. a het genotype with one insertion and one deletion). Always returns
+    * false if the object does not represent indel genotype. 
     * @return
     */
    boolean isIndel();
@@ -96,7 +112,7 @@ public interface Genotype extends Comparable<ReferenceOrderedDatum> {
    */
   double getVariantConfidence();
 
-  /** Returns phred-scaled confidence in called genotype (e.g. MAQ's consensus confidence, or AlleleCaller's
+  /** Returns phred-mapped confidence in called genotype (e.g. MAQ's consensus confidence, or AlleleCaller's
    * best vs next-best.
    * @return
    */
