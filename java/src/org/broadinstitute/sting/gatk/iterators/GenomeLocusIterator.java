@@ -1,6 +1,5 @@
-package org.broadinstitute.sting.gatk.dataSources.providers;
+package org.broadinstitute.sting.gatk.iterators;
 
-import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -21,7 +20,7 @@ import java.util.NoSuchElementException;
 /**
  * Iterates through all of the loci provided in the reference.
  */
-public class ReferenceLocusIterator implements LocusIterator {
+public class GenomeLocusIterator implements LocusIterator {
     /**
      * The entire region over which we're iterating.
      */
@@ -38,11 +37,9 @@ public class ReferenceLocusIterator implements LocusIterator {
      * @param provider Data provider to use as a backing source.
      *                 Provider must have a reference (hasReference() == true).
      */
-    public ReferenceLocusIterator( ShardDataProvider provider ) {
-        if( !provider.hasReference() )
-            throw new StingException("Trying to iterate through reference, but no reference has been provided.");
-        completeLocus = provider.getShard().getGenomeLoc();
-        currentLocus = new GenomeLoc(completeLocus.getContig(),completeLocus.getStart());
+    public GenomeLocusIterator( GenomeLoc completeLocus ) {
+        this.completeLocus = completeLocus;
+        this.currentLocus = new GenomeLoc(completeLocus.getContig(),completeLocus.getStart());
     }
 
     /**

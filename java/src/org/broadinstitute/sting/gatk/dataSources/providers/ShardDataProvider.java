@@ -3,16 +3,16 @@ package org.broadinstitute.sting.gatk.dataSources.providers;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.StingException;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collection;
+import java.io.File;
 /**
  * User: hanna
  * Date: May 8, 2009
@@ -49,7 +49,7 @@ public class ShardDataProvider {
     /**
      * Provider of reference data for this particular shard.
      */
-    private final ReferenceProvider referenceProvider;
+    private final IndexedFastaSequenceFile reference;
 
     /**
      * Sources of reference-ordered data.
@@ -77,16 +77,23 @@ public class ShardDataProvider {
      * @return True if possible, false otherwise.
      */
     public boolean hasReference() {
-        return referenceProvider != null;
+        return reference != null;
     }
 
     /**
      * Gets an iterator over all the reads bound by this shard.
-     * WARNING: Right now, this cannot be concurrently accessed with getLocusContext().
      * @return An iterator over all reads in this shard.
      */
-    public StingSAMIterator getReadIterator() {
+    StingSAMIterator getReadIterator() {
         return reads;
+    }
+
+    /**
+     * Gets a pointer into the given indexed fasta sequence file.
+     * @return The indexed fasta sequence file.
+     */
+    IndexedFastaSequenceFile getReference() {
+        return reference;        
     }
 
     /**
@@ -99,34 +106,16 @@ public class ShardDataProvider {
     }
 
     /**
-     * Gets the reference base associated with this particular point on the genome.
-     * @param genomeLoc Region for which to retrieve the base.  GenomeLoc must represent a 1-base region.
-     * @return The base at the position represented by this genomeLoc.
-     */
-    public char getReferenceBase( GenomeLoc genomeLoc ) {
-        return referenceProvider.getReferenceBase(genomeLoc);        
-    }
-
-    /**
-     * Gets the reference sequence, as a char[], for the provided read.
-     * @param read the read to fetch the reference sequence for
-     * @return a char string of bases representing the reference sequence mapped to passed in read
-     */
-    public char[] getReferenceForRead( SAMRecord read ) {
-        return referenceProvider.getReferenceBases(read);
-    }
-
-    /**
      * Create a data provider for the shard given the reads and reference.
      * @param shard The chunk of data over which traversals happen.
-     * @param reads A window into the reads for a given region.                                                
+     * @param reads A window into the reads for a given region.
      * @param reference A getter for a section of the reference.
      */
     public ShardDataProvider( Shard shard, SAMDataSource reads, IndexedFastaSequenceFile reference, List<ReferenceOrderedDataSource> rods) {
         this.shard = shard;
         // Provide basic reads information.
         this.reads = (reads != null) ? reads.seek( shard ) : new NullSAMIterator(new Reads(new ArrayList<File>()));
-        this.referenceProvider = (reference != null) ? new ReferenceProvider(reference,shard) : null;
+        this.reference = reference;
         this.referenceOrderedData = rods;
     }
 
@@ -138,11 +127,36 @@ public class ShardDataProvider {
     ShardDataProvider( Shard shard, StingSAMIterator reads ) {
         this.shard = shard;
         this.reads = reads;
-        this.referenceProvider = null;
+        this.reference = null;
         this.referenceOrderedData = null;
     }
 
+    /**
+     * Register this view with the shard provider, and make sure it has no conflicts with any other views.
+     * @param view The new view.
+     */
     void register( View view ) {
+        // Check all registered classes to see whether a conflict exists.
+        for( View registeredView: registeredViews ) {
+            Collection<Class<? extends View>> conflicts = registeredView.getConflictingViews();
+            for( Class<? extends View> conflict: conflicts ) {
+                if( conflict.isInstance(view) )
+                    throw new StingException(String.format("Tried to registered two conflicting views: %s and %s",
+                                                           registeredView.getClass().getSimpleName(),
+                                                           view.getClass().getSimpleName()));
+            }
+        }
+
+        // Check whether this class has any objection to any other classes.
+        for( Class<? extends View> conflict: view.getConflictingViews() ) {
+            for( View registeredView: registeredViews ) {
+                if( conflict.isInstance(registeredView) )
+                    throw new StingException(String.format("Tried to registered two conflicting views: %s and %s",
+                                                           registeredView.getClass().getSimpleName(),
+                                                           view.getClass().getSimpleName()));
+            }
+        }
+
         this.registeredViews.add(view);
     }
 

@@ -40,10 +40,10 @@ import net.sf.samtools.CigarOperator;
  */
 
 /**
- * Base support for testing variants of the LocusContextQueue family of classes.
+ * Base support for testing variants of the LocusView family of classes.
  */
 
-public abstract class LocusContextQueueTemplate extends BaseTest {
+public abstract class LocusViewTemplate extends BaseTest {
     protected static ReferenceSequenceFile sequenceSourceFile = null;
 
     @BeforeClass
@@ -60,9 +60,9 @@ public abstract class LocusContextQueueTemplate extends BaseTest {
         Shard shard = new LocusShard(shardBounds);
         ShardDataProvider dataProvider = new ShardDataProvider( shard, iterator );
 
-        LocusContextQueue queue = createQueue( dataProvider );
+        LocusView view = createView( dataProvider );
 
-        testReadsInContext( queue, shard.getGenomeLoc(), Collections.<SAMRecord>emptyList() );
+        testReadsInContext( view, shard.getGenomeLoc(), Collections.<SAMRecord>emptyList() );
     }
 
     @Test
@@ -74,9 +74,9 @@ public abstract class LocusContextQueueTemplate extends BaseTest {
         Shard shard = new LocusShard(shardBounds);
         ShardDataProvider dataProvider = new ShardDataProvider( shard, iterator );
 
-        LocusContextQueue queue = createQueue( dataProvider );
+        LocusView view = createView( dataProvider );
 
-        testReadsInContext( queue, shard.getGenomeLoc(), Collections.singletonList(read) );
+        testReadsInContext( view, shard.getGenomeLoc(), Collections.singletonList(read) );
     }
 
     @Test
@@ -86,9 +86,9 @@ public abstract class LocusContextQueueTemplate extends BaseTest {
 
         Shard shard = new LocusShard(new GenomeLoc("chr1",1,10));
         ShardDataProvider dataProvider = new ShardDataProvider( shard, iterator );
-        LocusContextQueue queue = createQueue( dataProvider );
+        LocusView view = createView( dataProvider );
 
-        testReadsInContext( queue, shard.getGenomeLoc(), Collections.singletonList(read) );
+        testReadsInContext( view, shard.getGenomeLoc(), Collections.singletonList(read) );
     }
 
     @Test
@@ -98,9 +98,9 @@ public abstract class LocusContextQueueTemplate extends BaseTest {
 
         Shard shard = new LocusShard(new GenomeLoc("chr1",1,10));
         ShardDataProvider dataProvider = new ShardDataProvider( shard, iterator );
-        LocusContextQueue queue = createQueue( dataProvider );
+        LocusView view = createView( dataProvider );
 
-        testReadsInContext( queue, shard.getGenomeLoc(), Collections.singletonList(read) );
+        testReadsInContext( view, shard.getGenomeLoc(), Collections.singletonList(read) );
     }
 
     @Test
@@ -110,9 +110,9 @@ public abstract class LocusContextQueueTemplate extends BaseTest {
 
         Shard shard = new LocusShard(new GenomeLoc("chr1",1,10));
         ShardDataProvider dataProvider = new ShardDataProvider( shard, iterator );
-        LocusContextQueue queue = createQueue( dataProvider );
+        LocusView view = createView( dataProvider );
 
-        testReadsInContext( queue, shard.getGenomeLoc(), Collections.singletonList(read) );
+        testReadsInContext( view, shard.getGenomeLoc(), Collections.singletonList(read) );
     }
 
     @Test
@@ -122,9 +122,9 @@ public abstract class LocusContextQueueTemplate extends BaseTest {
 
         Shard shard = new LocusShard(new GenomeLoc("chr1",6,15));
         ShardDataProvider dataProvider = new ShardDataProvider( shard, iterator );
-        LocusContextQueue queue = createQueue( dataProvider );
+        LocusView view = createView( dataProvider );
 
-        testReadsInContext( queue, shard.getGenomeLoc(), Collections.singletonList(read) );
+        testReadsInContext( view, shard.getGenomeLoc(), Collections.singletonList(read) );
     }
 
     @Test
@@ -134,9 +134,9 @@ public abstract class LocusContextQueueTemplate extends BaseTest {
 
         Shard shard = new LocusShard(new GenomeLoc("chr1",1,10));
         ShardDataProvider dataProvider = new ShardDataProvider( shard, iterator );
-        LocusContextQueue queue = createQueue( dataProvider );
+        LocusView view = createView( dataProvider );
 
-        testReadsInContext( queue, shard.getGenomeLoc(), Collections.singletonList(read) );
+        testReadsInContext( view, shard.getGenomeLoc(), Collections.singletonList(read) );
     }
 
     @Test
@@ -147,11 +147,11 @@ public abstract class LocusContextQueueTemplate extends BaseTest {
 
         Shard shard = new LocusShard(new GenomeLoc("chr1",1,10));
         ShardDataProvider dataProvider = new ShardDataProvider( shard, iterator );
-        LocusContextQueue queue = createQueue( dataProvider );
+        LocusView view = createView( dataProvider );
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
         Collections.addAll(expectedReads,read1,read2);
-        testReadsInContext( queue, shard.getGenomeLoc(), expectedReads );
+        testReadsInContext( view, shard.getGenomeLoc(), expectedReads );
     }
 
     @Test
@@ -164,11 +164,11 @@ public abstract class LocusContextQueueTemplate extends BaseTest {
 
         Shard shard = new LocusShard(new GenomeLoc("chr1",1,10));
         ShardDataProvider dataProvider = new ShardDataProvider( shard, iterator );
-        LocusContextQueue queue = createQueue( dataProvider );
+        LocusView view = createView( dataProvider );
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
         Collections.addAll(expectedReads,read1,read2,read3,read4);
-        testReadsInContext( queue, shard.getGenomeLoc(), expectedReads );
+        testReadsInContext( view, shard.getGenomeLoc(), expectedReads );
     }
 
     @Test
@@ -181,11 +181,11 @@ public abstract class LocusContextQueueTemplate extends BaseTest {
 
         Shard shard = new LocusShard(new GenomeLoc("chr1",1,10));
         ShardDataProvider dataProvider = new ShardDataProvider( shard, iterator );
-        LocusContextQueue queue = createQueue( dataProvider );
+        LocusView view = createView( dataProvider );
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
         Collections.addAll(expectedReads,read1,read2,read3,read4);
-        testReadsInContext( queue, shard.getGenomeLoc(), expectedReads );
+        testReadsInContext( view, shard.getGenomeLoc(), expectedReads );
     }
 
     @Test
@@ -200,11 +200,11 @@ public abstract class LocusContextQueueTemplate extends BaseTest {
 
         Shard shard = new LocusShard(new GenomeLoc("chr1",1,10));
         ShardDataProvider dataProvider = new ShardDataProvider( shard, iterator );
-        LocusContextQueue queue = createQueue( dataProvider );
+        LocusView view = createView( dataProvider );
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
         Collections.addAll(expectedReads,read1,read2,read3,read4,read5,read6);
-        testReadsInContext( queue, shard.getGenomeLoc(), expectedReads );
+        testReadsInContext( view, shard.getGenomeLoc(), expectedReads );
     }
 
     @Test
@@ -226,27 +226,27 @@ public abstract class LocusContextQueueTemplate extends BaseTest {
 
         Shard shard = new LocusShard(new GenomeLoc("chr1",6,15));
         ShardDataProvider dataProvider = new ShardDataProvider( shard, iterator );
-        LocusContextQueue queue = createQueue( dataProvider );
+        LocusView view = createView( dataProvider );
 
         List<SAMRecord> expectedReads = new ArrayList<SAMRecord>();
         Collections.addAll(expectedReads,read01,read02,read03,read04,read05,read06,
                                          read07,read08,read09,read10,read11,read12);
-        testReadsInContext( queue, shard.getGenomeLoc(), expectedReads );
+        testReadsInContext( view, shard.getGenomeLoc(), expectedReads );
     }    
 
     /**
-     * Creates a queue of the type required for testing.
-     * @return The correct queue to test.
+     * Creates a view of the type required for testing.
+     * @return The correct view to test.
      */
-    protected abstract LocusContextQueue createQueue( ShardDataProvider provider );
+    protected abstract LocusView createView( ShardDataProvider provider );
 
     /**
      * Test the reads according to an independently derived context.
-     * @param queue
+     * @param view
      * @param bounds
      * @param reads
      */
-    protected abstract void testReadsInContext( LocusContextQueue queue, GenomeLoc bounds, List<SAMRecord> reads );
+    protected abstract void testReadsInContext( LocusView view, GenomeLoc bounds, List<SAMRecord> reads );
 
     /**
      * Fake a reference sequence file.  Essentially, seek a header with a bunch of dummy data.

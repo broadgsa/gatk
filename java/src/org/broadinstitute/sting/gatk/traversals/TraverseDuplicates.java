@@ -4,6 +4,7 @@ import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.dataSources.providers.ReadView;
 import org.broadinstitute.sting.gatk.dataSources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
@@ -311,7 +312,7 @@ public class TraverseDuplicates extends TraversalEngine {
         //   -> those with the same mate pair position, for paired reads
         //   -> those flagged as unpaired and duplicated but having the same start and end and
 
-        FilteringIterator filterIter = new FilteringIterator(dataProvider.getReadIterator(), new duplicateStreamFilterFunc());
+        FilteringIterator filterIter = new FilteringIterator(new ReadView(dataProvider).iterator(), new duplicateStreamFilterFunc());
         PushbackIterator<SAMRecord> iter = new PushbackIterator<SAMRecord>(filterIter);
         return actuallyTraverse(dupWalker, iter, sum);
     }

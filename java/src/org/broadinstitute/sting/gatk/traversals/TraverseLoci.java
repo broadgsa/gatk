@@ -6,16 +6,16 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceLocusIterator;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.dataSources.providers.SeekableLocusContextQueue;
-import org.broadinstitute.sting.gatk.dataSources.providers.LocusContextQueue;
-import org.broadinstitute.sting.gatk.dataSources.providers.IterableLocusContextQueue;
+import org.broadinstitute.sting.gatk.dataSources.providers.AllLocusView;
+import org.broadinstitute.sting.gatk.dataSources.providers.CoveredLocusView;
+import org.broadinstitute.sting.gatk.dataSources.providers.LocusView;
 import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceOrderedView;
+import org.broadinstitute.sting.gatk.dataSources.providers.ReferenceView;
+import org.broadinstitute.sting.gatk.dataSources.providers.LocusReferenceView;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.apache.log4j.Logger;
@@ -25,9 +25,7 @@ import java.util.ArrayList;
 import java.io.File;
 
 /**
- * A simple, short-term solution to iterating over all reference positions over a series of
- * genomic locations. Simply overloads the superclass traverse function to go over the entire
- * interval's reference positions.
+ * A simple solution to iterating over all reference positions over a series of genomic locations.
  */
 public class TraverseLoci extends TraversalEngine {
 
@@ -59,36 +57,20 @@ public class TraverseLoci extends TraversalEngine {
 
         LocusWalker<M, T> locusWalker = (LocusWalker<M, T>)walker;
 
-        LocusIterator locusIterator = null;
-        LocusContextQueue locusContextQueue = null;
+        LocusView locusView = getLocusView( walker, dataProvider );
+        LocusReferenceView referenceView = new LocusReferenceView( dataProvider );
         ReferenceOrderedView referenceOrderedDataView = new ReferenceOrderedView( dataProvider );
 
-        DataSource dataSource = WalkerManager.getWalkerDataSource(walker);
-        switch( dataSource ) {
-            case REFERENCE:
-                locusIterator = new ReferenceLocusIterator( dataProvider );
-                locusContextQueue = new SeekableLocusContextQueue( dataProvider );
-                break;
-            case READS:
-                IterableLocusContextQueue iterableQueue = new IterableLocusContextQueue( dataProvider );
-                locusIterator = iterableQueue;
-                locusContextQueue = iterableQueue;
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported traversal type: " + dataSource);
-        }
-
         // We keep processing while the next reference location is within the interval
-        while( locusIterator.hasNext() ) {
-            GenomeLoc site = locusIterator.next();
+        while( locusView.hasNext() ) {
+            LocusContext locus = locusView.next();
 
             TraversalStatistics.nRecords++;
 
             // Iterate forward to get all reference ordered data covering this locus
-            final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(site);
+            final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation());
 
-            LocusContext locus = locusContextQueue.seek( site ).peek();
-            char refBase = dataProvider.getReferenceBase( site );
+            char refBase = referenceView.getReferenceBase(locus.getLocation());
 
             final boolean keepMeP = locusWalker.filter(tracker, refBase, locus);
             if (keepMeP) {
@@ -115,5 +97,20 @@ public class TraverseLoci extends TraversalEngine {
      */
     public <T> void printOnTraversalDone( T sum ) {
         printOnTraversalDone( "loci", sum );
+    }
+
+    /**
+     * Gets the best view of loci for this walker given the available data.
+     * @param walker walker to interrogate.
+     * @param dataProvider Data which which to drive the locus view.
+     */
+    private LocusView getLocusView( Walker walker, ShardDataProvider dataProvider ) {
+        DataSource dataSource = WalkerManager.getWalkerDataSource(walker);
+        if( dataSource == DataSource.READS )
+            return new CoveredLocusView(dataProvider);
+        else if( dataSource == DataSource.REFERENCE )
+            return new AllLocusView(dataProvider);
+        else
+            throw new UnsupportedOperationException("Unsupported traversal type: " + dataSource);
     }
 }

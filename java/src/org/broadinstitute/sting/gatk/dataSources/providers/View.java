@@ -1,4 +1,7 @@
 package org.broadinstitute.sting.gatk.dataSources.providers;
+
+import java.util.List;
+import java.util.Collection;
 /**
  * User: hanna
  * Date: May 21, 2009
@@ -16,6 +19,11 @@ package org.broadinstitute.sting.gatk.dataSources.providers;
  * Represents a view into given data.
  */
 public interface View {
+    /**
+     * Gets a list of all types of views which can conflict with this view.
+     */
+    public Collection<Class<? extends View>> getConflictingViews();
+
     /**
      * Inform this view that the data provided to it no longer exists.
      */

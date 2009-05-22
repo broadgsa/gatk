@@ -7,6 +7,8 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 /**
  * User: hanna
  * Date: May 21, 2009
@@ -43,8 +45,10 @@ public class ReferenceOrderedView implements View {
         for( ReferenceOrderedDataSource dataSource: provider.getReferenceOrderedData() )
             states.add( new ReferenceOrderedDataState( dataSource, (ReferenceOrderedData.RODIterator)dataSource.seek(provider.getShard()) ) );
 
-        provider.register(this);        
+        provider.register(this);
     }
+
+    public Collection<Class<? extends View>> getConflictingViews() { return Collections.emptyList(); }
 
     /**
      * Gets an object which can track the reference-ordered data at every locus.

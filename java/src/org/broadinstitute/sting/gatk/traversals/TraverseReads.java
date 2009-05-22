@@ -4,6 +4,8 @@ import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.dataSources.providers.ReadView;
+import org.broadinstitute.sting.gatk.dataSources.providers.ReadReferenceView;
 import org.broadinstitute.sting.gatk.dataSources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
@@ -87,8 +89,11 @@ public class TraverseReads extends TraversalEngine {
 
         ReadWalker<M, T> readWalker = (ReadWalker<M, T>) walker;
 
+        ReadView reads = new ReadView(dataProvider);
+        ReadReferenceView reference = new ReadReferenceView(dataProvider);
+
         // while we still have more reads
-        for (SAMRecord read : dataProvider.getReadIterator()) {
+        for (SAMRecord read : reads) {
 
             // our locus context
             LocusContext locus = null;
@@ -105,7 +110,7 @@ public class TraverseReads extends TraversalEngine {
 
                 // get the array of characters for the reference sequence, since we're a mapped read
                 if( dataProvider.hasReference() )
-                    refSeq = dataProvider.getReferenceForRead( read );
+                    refSeq = reference.getReferenceBases( read );
             }
 
             // update the number of reads we've seen
