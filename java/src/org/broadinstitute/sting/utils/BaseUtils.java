@@ -6,6 +6,38 @@ package org.broadinstitute.sting.utils;
  * @author Kiran Garimella
  */
 public class BaseUtils {
+
+    /// In genetics, a transition is a mutation changing a purine to another purine nucleotide (A <-> G) or
+    // a pyrimidine to another pyrimidine nucleotide (C <-> T).
+    // Approximately two out of every three single nucleotide polymorphisms (SNPs) are transitions.
+    public enum BaseSubstitutionType {
+        TRANSITION,         // A <-> G or C <-> T
+        TRANSVERSION
+    }
+
+    /**
+     * Returns the base substitution type of the 2 state SNP
+     * @param base1
+     * @param base2
+     * @return
+     */
+    public static BaseSubstitutionType SNPSubstitutionType( char base1, char base2 ) {
+        BaseSubstitutionType t = isTransition(base1, base2) ? BaseSubstitutionType.TRANSITION : BaseSubstitutionType.TRANSVERSION;
+        //System.out.printf("SNPSubstitutionType( char %c, char %c ) => %s%n", base1, base2, t);
+        return t;
+    }
+
+    public static boolean isTransition( char base1, char base2 ) {
+        int b1 = simpleBaseToBaseIndex(base1);
+        int b2 = simpleBaseToBaseIndex(base2);
+        return b1 == 0 && b2 == 2 || b1 == 2 && b2 == 0 ||
+               b1 == 1 && b2 == 3 || b1 == 3 && b2 == 1;
+    }
+
+    public static boolean isTransversion( char base1, char base2 ) {
+        return ! isTransition(base1, base2);
+    }
+
     /** Private constructor.  No instantiating this class! */
     private BaseUtils() {}
 

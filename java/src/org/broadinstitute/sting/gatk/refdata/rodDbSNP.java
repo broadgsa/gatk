@@ -73,11 +73,12 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
      *
      * @return reference allele, forward strand
      */
- public String getRefBasesFWD() {
-        if ( onFwdStrand() )
-            return refBases;
-        else
-            return SequenceUtil.reverseComplement(refBases);
+    public String getRefBasesFWD() {
+        return getAllelesFWD().get(0);
+        //if ( onFwdStrand() )
+        //    return refBases;
+        //else
+        //    return SequenceUtil.reverseComplement(refBases);
     }
 
     /**
@@ -87,9 +88,11 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
      * @return reference base on the forward strand
      */
     public char getRefSnpFWD() throws IllegalStateException {
+        //System.out.printf("refbases is %s but %s%n", refBases, toString());
         if ( isIndel() ) throw new IllegalStateException("Variant is not a SNP");
-        if ( onFwdStrand() ) return refBases.charAt(0);
-        else return SequenceUtil.reverseComplement(refBases).charAt(0);
+        return getAllelesFWD().get(0).charAt(0);
+        // if ( onFwdStrand() ) return refBases.charAt(0);
+       // else return SequenceUtil.reverseComplement(refBases).charAt(0);
     }
 
     public List<String> getAllelesFWD() {
@@ -187,8 +190,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
 
 	@Override
 	public char getAltSnpFWD() throws IllegalStateException {
-		// TODO Auto-generated method stub
-		return 0;
+        return getAllelesFWD().get(1).charAt(0);
 	}
 
 	@Override
@@ -205,8 +207,8 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
 
 	@Override
 	public double getMAF() {
-		// TODO Auto-generated method stub
-		return 0;
+		// Fixme: update to actually get MAF 
+		return avHet;
 	}
 
 	@Override
@@ -218,7 +220,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
 	@Override
 	public double getVariationConfidence() {
 		// TODO Auto-generated method stub
-		return 0;
+		return 100;
 	}
 
 	@Override
