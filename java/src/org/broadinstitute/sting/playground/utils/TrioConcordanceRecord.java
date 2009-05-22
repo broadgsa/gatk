@@ -10,89 +10,123 @@ import org.broadinstitute.sting.utils.Utils;
  *
  */
 public class TrioConcordanceRecord {
-	public long assessed_loci = 0; // number of loci with all 3 genotypes available at or above the specified cutoff
-	public long consistent_ref = 0; // number of assessed loci, where all 3 people have homogeneous reference allele
-	public int consistent_snp = 0; // number of assessed loci where a SNP is observed in at least one individual and genotyping calls are consistent between the trio members
-	public int inconsistent_snp = 0; // number of assessed loci where a SNP is observed in at least one individual and genotyping calls are inconsistent
-	public int missing_snp_in_parents = 0; // number of inconsistent snps (see above), where parent(s) have a snp but the kid does not while she should
-	public int missing_snp_in_kid = 0; // number of inconsistent snps (see above), where kid has a snp but the parents do not while they should
-	public int consistent_indels = 0; // *_indels are same as *_snps, see above
-	public int consistent_indels_in_mother = 0; // *_indels are same as *_snps, see above
-	public int consistent_indels_in_father = 0; // *_indels are same as *_snps, see above
-	public int inconsistent_indels  = 0 ;
-	public int missing_indels_in_parents  = 0 ;
-	public int missing_indels_in_kid  = 0 ;
-	public int non_biallelic_snp = 0; // number of variant calls that are not biallelic
-	public int non_biallelic_indel = 0; // number of variant calls that are not biallelic
-	public long mom_assessed = 0; // number of assessed loci for mother (i.e. passing confidence threshold filter)
-	public long dad_assessed = 0;
-	public long kid_assessed = 0;
-	public long mom_ref = 0; // number of reference calls (out of total assessed)
-	public long dad_ref = 0;
-	public long kid_ref = 0;
-	public long mom_snp = 0; // number of snp calls (out of total assessed)
-	public long dad_snp = 0;
-	public long kid_snp = 0;
-	public long mom_indel = 0; // number of snp calls (out of total assessed)
-	public long dad_indel = 0;
-	public long kid_indel = 0;
-	public long unclassified_events = 0;
+	
+	public GenotypingCallStats mom;
+	public GenotypingCallStats dad;
+	public GenotypingCallStats kid;
+	
+	public GenotypingCallStats trio;
+
+//	public long mom_assessed_ref; // number of ref calls in mother on positions assessed *in all 3 individuals*
+//	public long dad_assessed_ref; // ditto
+//	public long kid_assessed_ref; 
+//	public int mom_assessed_variant; // number of variant calls in mother on  positions assessed *in all 3 individuals*
+//	public int dad_assessed_variant; // ditto
+//	public int kid_assessed_variant; 
+	public int missing_variant_in_kid;
+	public int nonmatching_variant_in_kid;
+	public int missing_variant_in_parents;
+	public int mom_passed_variant;
+	public int dad_passed_variant;
+
+	//	public long consistent_ref = 0; // number of assessed loci, where all 3 people have homogeneous reference allele
+//	public int consistent_variant = 0; // number of assessed loci where a variant is observed in at least one individual and genotyping calls are consistent between the trio members
+//	public int inconsistent_variant = 0; // number of assessed loci where a variant is observed in at least one individual and genotyping calls are inconsistent
+//	public int missing_variant_in_parents = 0; // number of inconsistent variants (see above), where parent(s) have a variant but the kid does not while she should
+//	public int missing_variant_in_kid = 0; // number of inconsistent variants (see above), where kid has a snp but the parents do not while they should
+//	public int consistent_variant_passed = 0; // variants that are consistent and *passed* (i.e. present in kid and one of the parents)
+//	public int non_biallelic_variant = 0; // number of variant calls that are not biallelic
+//	public long unclassified_events = 0;
+	
+	public TrioConcordanceRecord() {
+		mom = new GenotypingCallStats();
+		dad = new GenotypingCallStats();
+		kid = new GenotypingCallStats();
+		trio = new GenotypingCallStats();
+	}
 	
 	public TrioConcordanceRecord add(TrioConcordanceRecord other) {
-		this.assessed_loci += other.assessed_loci;
-		this.consistent_ref += other.consistent_ref;
-		this.consistent_snp += other.consistent_snp;
-		this.inconsistent_snp += other.inconsistent_snp;
-		this.missing_snp_in_parents += other.missing_snp_in_parents;
-		this.missing_snp_in_kid += other.missing_snp_in_kid;
-		this.consistent_indels += other.consistent_indels;
-		this.consistent_indels_in_mother += other.consistent_indels_in_mother;
-		this.consistent_indels_in_father += other.consistent_indels_in_father;
-		this.inconsistent_indels += other.inconsistent_indels;
-		this.missing_indels_in_parents += other.missing_indels_in_parents;
-		this.missing_indels_in_kid += other.missing_indels_in_kid;
-		this.non_biallelic_snp += other.non_biallelic_snp;
-		this.non_biallelic_indel += other.non_biallelic_indel;
-		this.mom_assessed += other.mom_assessed;
-		this.dad_assessed += other.dad_assessed;
-		this.kid_assessed += other.kid_assessed;
-		this.mom_ref += other.mom_ref;
-		this.dad_ref += other.dad_ref;
-		this.kid_ref += other.kid_ref;
-		this.mom_snp += other.mom_snp;
-		this.dad_snp += other.dad_snp;
-		this.kid_snp += other.kid_snp;
-		this.mom_indel += other.mom_indel;
-		this.dad_indel += other.dad_indel;
-		this.kid_indel += other.kid_indel;
-		this.unclassified_events += other.unclassified_events;
+		
+		this.mom.add(other.mom);
+		this.dad.add(other.dad);
+		this.kid.add(other.kid);
+
+		this.trio.add(other.trio);
+
+//		this.mom_assessed_ref += other.mom_assessed_ref;
+//		this.dad_assessed_ref += other.dad_assessed_ref;
+//		this.kid_assessed_ref += other.kid_assessed_ref;
+//		this.mom_assessed_variant += other.mom_assessed_variant;
+//		this.dad_assessed_variant += other.dad_assessed_ref;
+//		this.kid_assessed_variant += other.kid_assessed_variant;
+		this.missing_variant_in_kid += other.missing_variant_in_kid ;
+		this.nonmatching_variant_in_kid += other.nonmatching_variant_in_kid ;
+		this.missing_variant_in_parents += other.missing_variant_in_parents ;
+		this.mom_passed_variant += other.mom_passed_variant;
+		this.dad_passed_variant += other.dad_passed_variant;
+
+		//		this.consistent_ref += other.consistent_ref;
+//		this.consistent_variant += other.consistent_variant;
+//		this.inconsistent_variant += other.inconsistent_variant;
+//		this.missing_variant_in_parents += other.missing_variant_in_parents;
+//		this.missing_variant_in_kid += other.missing_variant_in_kid;
+//		this.consistent_variant_passed += other.consistent_variant_passed;
+//		this.non_biallelic_variant += other.non_biallelic_variant;
+//		this.unclassified_events += other.unclassified_events;
 		return this;
 	}
 	
-	public int totalSNP() { return consistent_snp + inconsistent_snp + non_biallelic_snp; }
-	public int totalIndels() { return consistent_indels + inconsistent_indels + non_biallelic_indel; }
+	public int totalVariants() { return trio.consistent_variant + trio.inconsistent_variant + trio.non_biallelic_variant; }
 	
 	public String toString() {
 		StringBuilder b = new StringBuilder();
 		
-		b.append(String.format("%ntotal assessed in trio: %d%n   reference: %d (%3.2f%%)%n", assessed_loci, consistent_ref, Utils.percentage(consistent_ref,assessed_loci )) );
-		b.append(String.format("   total snp sites: %d%n      consistent snp: %d (%3.2f%%)%n      multiallelic snp: %d (%3.2f%%)%n      inconsistent snp: %d (%3.2f%%)%n", 
-				totalSNP(), consistent_snp, Utils.percentage(consistent_snp,totalSNP() ), non_biallelic_snp, Utils.percentage(non_biallelic_snp,totalSNP()), 
-				inconsistent_snp, Utils.percentage(inconsistent_snp, totalSNP())  ) );
-		
-		b.append(String.format("   total indel sites: %d%n      consistent indel: %d (%3.2f%%)%n      multiallelic indel: %d (%3.2f%%)%n      inconsistent indels: %d (%3.2f%%)%n         missing from daughter: %d (%3.2f%%)%n         missing from both parents: %d (%3.2f%%)%n", 
-				totalIndels(), consistent_indels, Utils.percentage(consistent_indels,totalIndels()), 
-				non_biallelic_indel, Utils.percentage(non_biallelic_indel, totalIndels()),
-				inconsistent_indels, Utils.percentage(inconsistent_indels, totalIndels()),
-				missing_indels_in_kid, Utils.percentage(missing_indels_in_kid, inconsistent_indels),
-				missing_indels_in_parents, Utils.percentage(missing_indels_in_parents, inconsistent_indels)
-				));
+		b.append(String.format("%ncovered in trio: %d%n", trio.covered ) );
 
-		b.append(String.format("   unclassified (snp+indel): %d%n", unclassified_events));
+		b.append(String.format("assessed in trio: %d (%3.2f%% covered)%n", 
+				trio.assessed, Utils.percentage(trio.assessed,trio.covered )) );
 		
-		b.append( String.format("per trio individual:%n   mother:%n      assessed: %d%n      ref: %d%n      snps: %d%n      indels: %d%n", mom_assessed, mom_ref, mom_snp,mom_indel) );
-		b.append( String.format("   father:%n      assessed: %d%n      ref: %d%n      snps: %d%n      indels: %d%n", dad_assessed, dad_ref, dad_snp,dad_indel) );
-		b.append( String.format("   daughter:%n      assessed: %d%n      ref: %d%n      snps: %d%n      indels: %d%n", kid_assessed, kid_ref, kid_snp,kid_indel) );
+		b.append(String.format("   reference in all samples: %d (%3.2f%% assessed)%n", 
+				trio.ref, Utils.percentage(trio.ref,trio.assessed )) );
+		
+		b.append(String.format("   variant sites: %d (%3.2f%% assessed, or 1 per %3.2f kB)%n", 
+				totalVariants(), Utils.percentage(totalVariants(), trio.assessed), ((double)trio.assessed/totalVariants())/1000.0 
+		));
+		
+		b.append(String.format("      consistent variants: %d (%3.2f%% variants)%n", 
+				trio.consistent_variant, Utils.percentage(trio.consistent_variant,totalVariants()) 
+		));
+
+//		b.append(String.format("         passed (in daughter and parent(s)): %d%n         lost (in parent(s) but not in daughter): %d%n",
+//    		   consistent_variant_passed, consistent_variant - consistent_variant_passed));
+       
+       b.append(String.format("      multiallelic variant: %d (%3.2f%% variants)%n",
+				trio.non_biallelic_variant, Utils.percentage(trio.non_biallelic_variant, totalVariants())
+       ));
+
+       b.append(String.format("      inconsistent variant: %d (%3.2f%% variants)%n",
+				trio.inconsistent_variant, Utils.percentage(trio.inconsistent_variant, totalVariants())
+      ));
+
+       b.append(String.format("         missing from daughter: %d (%3.2f%% inconsistent variants)%n",
+				missing_variant_in_kid, Utils.percentage(missing_variant_in_kid, trio.inconsistent_variant)
+      ));
+
+       b.append(String.format("         missing from both parents: %d (%3.2f%% inconsistent variants)%n",
+				missing_variant_in_parents, Utils.percentage(missing_variant_in_parents, trio.inconsistent_variant)		
+       ));
+
+       b.append(String.format("         non-matching in daughter: %d (%3.2f%% inconsistent variants)%n",
+				nonmatching_variant_in_kid, Utils.percentage(nonmatching_variant_in_kid, trio.inconsistent_variant)		
+       ));
+       
+		b.append("per trio individual:\n");
+		b.append("   mother:\n");
+		b.append(mom.toString());
+		b.append("   father:\n");
+		b.append(dad.toString());
+		b.append("   daughter:\n");
+		b.append(kid.toString());
 		
 		return b.toString();
 	}
