@@ -112,7 +112,7 @@ public class IndelInspectorMain extends CommandLineProgram {
         
         for ( SAMRecord r : samReader ) {
 
-            if ( r.getReadUnmappedFlag() ) continue; 
+            if ( r.getReadUnmappedFlag() ) {  continue; }  
             if ( r.getReferenceName() != cur_contig) {
                 cur_contig = r.getReferenceName();
                 System.out.println("Contig "+cur_contig);
