@@ -37,11 +37,11 @@ import java.util.Iterator;
  * partial interval of a region in the collection it will remove the region from
  * that element.
  */
-public class GenomeLocSet extends AbstractSet<GenomeLoc> {
+public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     // our private storage for the GenomeLoc's
     private final ArrayList<GenomeLoc> mArray = new ArrayList<GenomeLoc>();
 
-    public GenomeLocSet() {}
+    public GenomeLocSortedSet() {}
 
     /**
      * get an iterator over this collection
@@ -102,6 +102,9 @@ public class GenomeLocSet extends AbstractSet<GenomeLoc> {
         if (e == null) {
             return false;
         }
+        // have we added it to the collection?
+        boolean haveAdded = false;
+
         /**
          * check if the specified element overlaps any current locations, if so
          * we should merge the two.
@@ -110,9 +113,9 @@ public class GenomeLocSet extends AbstractSet<GenomeLoc> {
             if (g.contiguousP(e)) {
                 GenomeLoc c = g.merge(e);
                 mArray.set(mArray.indexOf(g),c);
-                return true;
+                haveAdded = true;
             } else if ((g.getContigIndex() == e.getContigIndex()) &&
-                    (g.getStart() > e.getStart())) {
+                    (e.getStart() < g.getStart()) && !haveAdded) {
                 mArray.add(mArray.indexOf(g), e);
                 return true;
             }
@@ -120,7 +123,9 @@ public class GenomeLocSet extends AbstractSet<GenomeLoc> {
         /** we're at the end and we haven't found locations that should fall after it,
          * so we'll put it at the end
          */
-        mArray.add(e);
+        if (!haveAdded) {
+            mArray.add(e);
+        }
         return true;
     }
 
@@ -210,11 +215,11 @@ public class GenomeLocSet extends AbstractSet<GenomeLoc> {
      * @param dict the sequence dictionary to create a collection from
      * @return the GenomeLocSet of all references sequences as GenomeLoc's
      */
-    public static GenomeLocSet createSetFromSequenceDictionary(SAMSequenceDictionary dict) {
-        GenomeLocSet returnSet = new GenomeLocSet();
+    public static GenomeLocSortedSet createSetFromSequenceDictionary(SAMSequenceDictionary dict) {
+        GenomeLocSortedSet returnSortedSet = new GenomeLocSortedSet();
         for (SAMSequenceRecord record : dict.getSequences()) {
-            returnSet.add(new GenomeLoc(record.getSequenceIndex(),1,record.getSequenceLength()));
+            returnSortedSet.add(new GenomeLoc(record.getSequenceIndex(),1,record.getSequenceLength()));
         }
-        return returnSet;
+        return returnSortedSet;
     }
 }
