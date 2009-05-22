@@ -49,6 +49,8 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
     @Argument(fullName="sam_in", shortName="SI", doc="The file to use for training and annotation", required=false) public File SAM_IN;
     @Argument(fullName="training_limit", shortName="T", doc="Number of reads to use for parameter initialization", required=false) public int TRAINING_LIMIT = 100000;
     @Argument(fullName="calling_limit", shortName="C", doc="Number of reads to basecall", required=false) public int CALLING_LIMIT = Integer.MAX_VALUE;
+    @Argument(fullName="unaligned_sam", shortName="US", doc="Unaligned sam file, so we can skip making it", required=false) public File USAM;
+    @Argument(fullName="aligned_sam", shortName="AS", doc="Aligned, queryname-sorted sam file, so we can skip resorting it", required=false) public File ASAM;
 
     public static void main(String[] argv) {
         Instance = new AnnotateSecondaryBase();
@@ -57,61 +59,71 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
 
     protected int execute() {
         ArrayList<Pair<Integer, Integer>> cycleRanges = getCycleRanges(CYCLE_RANGES);
+        File unalignedSam;
 
-        BasecallingTrainer trainer = new BasecallingTrainer(BUSTARD_DIR, LANE, TRAINING_LIMIT);
+        if (USAM == null || !USAM.exists()) {
+            BasecallingTrainer trainer = new BasecallingTrainer(BUSTARD_DIR, LANE, TRAINING_LIMIT);
 
-        // Iterate through raw Firecrest data and store the first unambiguous N reads up to TRAINING_LIMIT
-        System.out.println("Loading training set from the first " + TRAINING_LIMIT + " unambiguous reads in the raw data...");
-        trainer.loadFirstNUnambiguousReadsTrainingSet();
+            // Iterate through raw Firecrest data and store the first N reasonable reads up to TRAINING_LIMIT
+            System.out.println("Loading training set from the first " + TRAINING_LIMIT + " reasonable reads in the raw data...");
+            trainer.loadFirstNReasonableReadsTrainingSet();
 
-        // Iterate through the stored training data and add the info to the BasecallingReadModel
-        System.out.println("Applying training set...");
-        BasecallingReadModel model = new BasecallingReadModel(trainer.getTrainingData());
+            // Iterate through the stored training data and add the info to the BasecallingReadModel
+            System.out.println("Applying training set...");
+            BasecallingReadModel model = new BasecallingReadModel(trainer.getTrainingData());
 
-        // Call bases and write results
-        System.out.println("Calling bases...");
+            // Call bases and write results
+            System.out.println("Calling bases...");
 
-        SAMFileHeader sfh = new SAMFileHeader();
-        sfh.setSortOrder(SAMFileHeader.SortOrder.queryname);
-        
-        File unalignedSam = (canAnnotate(SAM_IN)) ? getTempSAMFile("unaligned") : SAM_OUT;
-        SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, unalignedSam);
+            SAMFileHeader sfh = new SAMFileHeader();
+            sfh.setSortOrder(SAMFileHeader.SortOrder.queryname);
 
-        IlluminaParser iparser = new IlluminaParser(BUSTARD_DIR, LANE);
+            unalignedSam = (canAnnotate(SAM_IN)) ? getTempSAMFile("unaligned") : SAM_OUT;
+            SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, unalignedSam);
 
-        BasecallingStats bstats = new BasecallingStats();
+            IlluminaParser iparser = new IlluminaParser(BUSTARD_DIR, LANE);
+    
+            BasecallingStats bstats = new BasecallingStats();
 
-        while (bstats.getReadsTotal() < CALLING_LIMIT && iparser.next()) {
-            RawRead rr = iparser.getRawRead();
-            FourProbRead fpr = model.call(rr);
+            while (bstats.getReadsTotal() < CALLING_LIMIT && iparser.next()) {
+                RawRead rr = iparser.getRawRead();
+                FourProbRead fpr = model.call(rr);
 
-            for (int cycleRangeIndex = 0; cycleRangeIndex < cycleRanges.size(); cycleRangeIndex++) {
-                Pair<Integer, Integer> cycleRange = cycleRanges.get(cycleRangeIndex);
+                for (int cycleRangeIndex = 0; cycleRangeIndex < cycleRanges.size(); cycleRangeIndex++) {
+                    Pair<Integer, Integer> cycleRange = cycleRanges.get(cycleRangeIndex);
 
-                RawRead rrEnd = iparser.getSubset(cycleRange.getFirst(), cycleRange.getSecond());
-                FourProbRead fprEnd = fpr.getSubset(cycleRange.getFirst(), cycleRange.getSecond());
+                    RawRead rrEnd = iparser.getSubset(cycleRange.getFirst(), cycleRange.getSecond());
+                    FourProbRead fprEnd = fpr.getSubset(cycleRange.getFirst(), cycleRange.getSecond());
 
-                sfw.addAlignment(constructSAMRecord(rrEnd, fprEnd, sfh, RUN_BARCODE, cycleRanges.size() == 2, cycleRangeIndex == 1));
+                    sfw.addAlignment(constructSAMRecord(rrEnd, fprEnd, sfh, RUN_BARCODE, cycleRanges.size() == 2, cycleRangeIndex == 1));
 
-                if (cycleRangeIndex == 0) {
-                    bstats.update(rrEnd, fprEnd);
-                    bstats.notifyOnInterval(5000);
+                    if (cycleRangeIndex == 0) {
+                        bstats.update(rrEnd, fprEnd);
+                        bstats.notifyOnInterval(5000);
+                    }
                 }
             }
+
+            bstats.notifyNow();
+
+            iparser.close();
+            sfw.close();
+        } else {
+            unalignedSam = USAM;
         }
-
-        bstats.notifyNow();
-
-        iparser.close();
-        sfw.close();
 
         if (canAnnotate(SAM_IN)) {
             // If we're in annotation mode, annotate the aligned BAM file with the SQ tag
             System.out.println("Annotating aligned SAM file...");
-            
-            System.out.println("  sorting aligned SAM file by read name...");
-            File alignedSam = getTempSAMFile("aligned");
-            sortBAMByReadName(SAM_IN, alignedSam);
+
+            File alignedSam;
+            if (ASAM == null || !ASAM.exists()) {
+                System.out.println("  sorting aligned SAM file by read name...");
+                alignedSam = getTempSAMFile("aligned");
+                sortBAMByReadName(SAM_IN, alignedSam);
+            } else {
+                alignedSam = ASAM;
+            }
 
             System.out.println("  merging unaligned and aligned SAM files...");
             File mergedSam = SAM_OUT;
@@ -266,21 +278,30 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
         SAMRecord usr = usamIt.next();
         SAMRecord asr = asamIt.next();
 
+        int annotatedRecords = 0;
+
         do {
             // Pull a record from the unaligned file and advance the aligned file until we find the matching record.  We
             // don't have to advance the unaligned file until we find our record because we assume every record we generate
             // will be in the aligned file (which also contains unaligned reads).
             //
             // If Picard ever stops storing the unaligned reads, this logic will need to be rewritten.
+            System.out.println(asr.getReadString());
+            System.out.println(BaseUtils.simpleReverseComplement(asr.getReadString()));
+            System.out.println();
             
             if (usr.getReadName().equals(asr.getReadName()) && usr.getFirstOfPairFlag() == asr.getFirstOfPairFlag()) {
                 byte[] sqtag = (byte[]) usr.getAttribute("SQ");
                 String usrread = usr.getReadString();
                 String asrread = asr.getReadString();
 
+                System.out.println(asrread);
+
                 if (asr.getReadNegativeStrandFlag()) {
                     sqtag = QualityUtils.reverseComplementCompressedQualityArray(sqtag);
                     asrread = BaseUtils.simpleReverseComplement(asrread);
+
+                    System.out.println(asrread);
                 }
 
                 if (usrread != null && asrread != null && !usrread.equals(asrread)) {
@@ -291,6 +312,9 @@ public class AnnotateSecondaryBase extends CommandLineProgram {
                 }
 
                 asr.setAttribute("SQ", sqtag);
+                annotatedRecords++;
+
+                System.out.println("Annotated " + annotatedRecords + " records.");
 
                 usr = usamIt.next();
             } else {
