@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.gatk.executive;
 
-import org.broadinstitute.sting.gatk.traversals.TraverseLoci;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
@@ -168,7 +166,10 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
      * @return True if this output is ready to be merged.  False otherwise.
      */
     protected boolean isOutputMergeReady() {
-        return outputMergeTasks.peek().isComplete();
+        if( outputMergeTasks.size() > 0 )
+            return outputMergeTasks.peek().isComplete();
+        else
+            return false;
     }
 
     /**
