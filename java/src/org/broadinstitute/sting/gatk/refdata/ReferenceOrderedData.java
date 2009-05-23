@@ -140,14 +140,15 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     public String getName() { return name; }
 
     /**
-     * Special equals override to see if this ROD is of type name, type.
-     * Implemented to preserve data hiding whenever possible.
+     * Special equals override to see if this ROD is compatible with the given
+     * name and type.  'Compatible' means that this ROD has the name that's passed
+     * in and its data can fit into the container specified by type.
      * @param name Name to check.
      * @param type Type to check.
      * @return True if these parameters imply this rod.  False otherwise.
      */
     public boolean matches( String name, Class<? extends ReferenceOrderedDatum> type ) {
-        return this.name.equals(name) && this.type.equals(type);
+        return this.name.equals(name) && type.isAssignableFrom(this.type);
     }
 
     public RODIterator iterator() {

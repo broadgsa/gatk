@@ -24,7 +24,7 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         Pileup pileup = new ReadBackedPileup(ref, context);
-        Pileup truePileup = (Pileup)tracker.lookup("pileup", null);
+        Pileup truePileup = getTruePileup( tracker );
 
         if ( truePileup == null ) {
             System.out.printf("No truth pileup data available at %s%n", pileup.getPileupString());
@@ -58,6 +58,22 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
         combined.nLoci = lhs.nLoci + rhs.nLoci;
         combined.nBases = lhs.nBases + rhs.nBases;
         return combined;
+    }
+
+    /**
+     * Extracts the true pileup data from the given rodSAMPileup.  Note that this implementation
+     * assumes that the genotype will only be point or indel.
+     * @param tracker ROD tracker from which to extract pileup data.
+     * @return True pileup data.
+     */
+    private Pileup getTruePileup( RefMetaDataTracker tracker ) {
+        rodSAMPileup pileup = (rodSAMPileup)tracker.lookup("pileup", null);
+        if( pileup.hasPointGenotype() )
+            return (Pileup)pileup.getPointGenotype();
+        else if( pileup.hasIndelGenotype() )
+            return (Pileup)pileup.getIndelGenotype();
+        else
+            throw new StingException("Unsupported pileup type: " + pileup);
     }
 }
 
