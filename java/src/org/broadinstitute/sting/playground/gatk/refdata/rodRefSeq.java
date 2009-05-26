@@ -22,7 +22,7 @@ public class rodRefSeq extends BasicReferenceOrderedDatum {
 	
 	public rodRefSeq(String name) {
 		super(name);
-		location = new GenomeLoc(0,0,-1);
+//		location = new GenomeLoc(0,0,-1);
 	}
 
 	public rodRefSeq(String name, GenomeLoc location, List<RefSeqRecord> records) {
@@ -41,6 +41,26 @@ public class rodRefSeq extends BasicReferenceOrderedDatum {
 		return false; // this rod has its own iterator
 	}
 
+	
+	public boolean isCoding() {
+		if ( records == null ) return false;
+		for ( RefSeqRecord r : records) {
+			if (location.getStart() >= r.getCodingLocation().getStart() && location.getStart() <= r.getCodingLocation().getStop() ) return true;
+		}
+		return false;
+	}
+	
+
+	public boolean isExon() {
+		if ( records == null ) return false;
+		for ( RefSeqRecord r : records) {
+			for ( GenomeLoc e : r.getExons() ) {
+				if (location.getStart() >= e.getStart() && location.getStart() <= e.getStop() ) return true;
+			}
+		}
+		return false;
+	}
+
 	@Override
 	public String repl() {
 		throw new StingException("repl() is not implemented yet");
@@ -48,17 +68,23 @@ public class rodRefSeq extends BasicReferenceOrderedDatum {
 
 	@Override
 	public String toSimpleString() {
-		// TODO Auto-generated method stub
-		return null;
+		if ( records == null ) return new String(getName()+": <NULL>");
+		StringBuilder b = new StringBuilder();
+		b.append(getName());
+		b.append(":");
+		for ( RefSeqRecord r : records ) { 
+				b.append(' ');
+				b.append(r.getTranscriptId());
+		}
+		return b.toString();
 	}
 
 	@Override
 	public String toString() {
-		// TODO Auto-generated method stub
-		return null;
+		return toSimpleString();
 	}
 
-	public static Iterator<rodRefSeq> createIterator(File f, String trackName) throws IOException, DataFormatException {
+	public static Iterator<rodRefSeq> createIterator(String trackName, File f) throws IOException, DataFormatException {
 		return new refSeqIterator(f, trackName);
 	}
 	
@@ -201,6 +227,7 @@ class RefSeqRecord {
 		if ( n >= exons.size() || n < 0 ) throw new StingException("Index out-of-bounds. Transcript has " + exons.size() +" exons; requested: "+n);
 		return exons.get(n);
 	}
+	public List<GenomeLoc> getExons() { return exons; }
 	
 	public void parseLine(String line) {
 		String[] fields = line.split("\t");
