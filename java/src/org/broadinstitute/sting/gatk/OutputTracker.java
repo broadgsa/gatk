@@ -118,7 +118,7 @@ public class OutputTracker {
     /**
      * Remove pointers to alternate, local output streams.
      */
-    public void removeLocalStreams() {
+    public void cleanup() {
         localOut.remove();
         localErr.remove();
     }

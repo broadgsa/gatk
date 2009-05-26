@@ -53,7 +53,7 @@ public class ShardTraverser implements Callable {
         finally {
             dataProvider.close();
             output.complete();
-            outputTracker.removeLocalStreams();            
+            outputTracker.cleanup();            
         }
 
         return accumulator;

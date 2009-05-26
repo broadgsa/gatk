@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.io.LazyFileOutputStream;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -33,39 +33,39 @@ import java.nio.channels.WritableByteChannel;
  */
 public class OutputMerger {
     /**
-     * Create a unique identifier
-     */
-    private static int id = 0;
-
-    /**
      * Is writing to these streams complete?
      */
     private boolean complete = false;
 
     /**
-     * File objects that the output and error data went into.
-     */
-    private File outFile;
-    private File errFile;
-
-    /**
      * The printstreams which should be written to.
      */
-    private FileOutputStream out = null;
-    private FileOutputStream err = null;
+    private LazyFileOutputStream out = null;
+    private LazyFileOutputStream err = null;
 
     public OutputMerger() {
-        try {
-            outFile = File.createTempFile("gatkout_" + id, null);
-            errFile = File.createTempFile("gatkerr_" + id, null);
-
-            out = new FileOutputStream( outFile );
-            err = new FileOutputStream( errFile );
-        }
-        catch( IOException ex ) {
-            throw new StingException("Unable to open temporary file for GATK output",ex);   
-        }
+        out = new LazyFileOutputStream( outStreamFactory );
+        err = new LazyFileOutputStream( errStreamFactory );
     }
+
+    /**
+     * Creates a generic output stream for temporary data.
+     */
+    private static class TempFileFactory implements LazyFileOutputStream.FileFactory {
+        private final String prefix;
+        public TempFileFactory( String prefix ) { this.prefix = prefix; }
+        public File create() throws IOException { return File.createTempFile(prefix,null); }
+    }
+
+    /**
+     * Creates a stream for temporary out (not err) data.
+     */
+    private static final TempFileFactory outStreamFactory = new TempFileFactory("gatkout_");
+
+    /**
+     * Creates a stream for temporary err data.
+     */
+    private static final TempFileFactory errStreamFactory = new TempFileFactory("gatkerr_");
 
     /**
      * Waits for any the given OutputMerger to be ready for merging.
@@ -95,17 +95,18 @@ public class OutputMerger {
             throw new IllegalStateException("Tried to complete an output merge twice.");
 
         try {
-            out.flush();
-            err.flush();
-            out.close();
-            err.close();
+            if( out.isCreated() ) {
+                out.flush();
+                out.close();
+            }
+            if( err.isCreated() ) {
+                err.flush();
+                err.close();
+            }
         }
         catch( IOException ex ) {
             throw new StingException( "Unable to close sharding output files", ex );
         }
-
-        out = null;
-        err = null;
 
         this.complete = true;
 
@@ -119,8 +120,8 @@ public class OutputMerger {
                 throw new StingException("Tried to merge incomplete stream into output");
         }
 
-        transferContentsToTarget( outFile, globalOut );
-        transferContentsToTarget( errFile, globalErr );
+        if( out.isCreated() ) transferContentsToTarget( out.getBackingFile(), globalOut );
+        if( err.isCreated() ) transferContentsToTarget( err.getBackingFile(), globalErr );
     }
 
     /**
