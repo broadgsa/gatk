@@ -127,7 +127,10 @@ class refSeqIterator implements Iterator<rodRefSeq> {
 			Iterator<RefSeqRecord> i = records.iterator();
 			while ( i.hasNext() ) {
 				RefSeqRecord r = i.next();
-				if ( r.getLocation().getStop() < curr_position ) i.remove(); // we moved past the end of transcript r, purge it forever
+				if ( r.getLocation().getStop() < curr_position ) {
+					System.out.println("Throwing away: " + r.toString());
+					i.remove(); // we moved past the end of transcript r, purge it forever
+				}
 			}
 		} else {
 			// ooops, we are past the end of all loaded transcripts - kill them all, 
@@ -151,6 +154,7 @@ class refSeqIterator implements Iterator<rodRefSeq> {
 			if ( ci1 > ci2 ) throw new StingException("RefSeq track seems to be not contig-ordered");
 			if ( ci1 < ci2 ) break; // next transcript is on the next contig, we do not need it yet...
 			if ( r.getLocation().getStart() > curr_position ) break; // next transcript is on the same contig but starts after the current position; we are done
+			r = reader.next(); // we need next record, time to load it for real
 			long stop = r.getLocation().getStop();
 			if ( stop < curr_position ) throw new StingException("DEBUG: encuntered contig that should have been loaded earlier");
 			if ( stop > max_position ) max_position = stop;
