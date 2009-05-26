@@ -32,7 +32,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public static final int MAX_QUAL = 99;
 
     private SAMFileWriter writer;
-    private FileWriter indelOutput = null;
+    private FileWriter indelOutput = null;               
 
     // we need to sort the reads ourselves because SAM headers get messed up and claim to be "unsorted" sometimes
     private TreeSet<ComparableSAMRecord> readsToWrite;
@@ -69,6 +69,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                  !read.getReadUnmappedFlag() &&
                  !read.getNotPrimaryAlignmentFlag() &&
                  !read.getDuplicateReadFlag() &&
+                 read.getMappingQuality() != 0 &&           
                  read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START )
                 goodReads.add(read);
             else
@@ -271,7 +272,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             if ( indelOutput != null && bestConsensus.cigar.numCigarElements() > 1 ) {
                 StringBuffer str = new StringBuffer();
                 str.append(reads.get(0).getReferenceName());
-                int position = bestConsensus.positionOnReference + bestConsensus.cigar.getCigarElement(0).getLength();
+                int position = bestConsensus.positionOnReference + bestConsensus.cigar.getCigarElement(0).getLength() - 1;
                 str.append(":" + (leftmostIndex + position));
                 CigarElement ce = bestConsensus.cigar.getCigarElement(1);
                 str.append("\t" + ce.getLength() + ce.getOperator());
@@ -462,7 +463,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         String reference = "AAAAAACCCCCCAAAAAA";
         // the alternate reference is: "AAAAAACCCTTCCCAAAAAA";
         ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
-        SAMFileHeader header = getToolkit().getSamReader().getFileHeader();
+        SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
         SAMRecord r1 = new SAMRecord(header);
         r1.setReadName("1");
         r1.setReadString("AACCCCCC");
@@ -512,7 +513,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         String reference = "AAAAAACCCTTCCCAAAAAA";
         // the alternate reference is: "AAAAAACCCCCCAAAAAA";
         ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
-        SAMFileHeader header = getToolkit().getSamReader().getFileHeader();
+        SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
         SAMRecord r1 = new SAMRecord(header);
         r1.setReadName("1");
         r1.setReadString("ACCCTTCC");
