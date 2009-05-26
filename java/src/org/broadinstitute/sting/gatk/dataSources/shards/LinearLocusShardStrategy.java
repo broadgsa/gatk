@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
 import java.util.List;
 
@@ -63,7 +64,7 @@ class LinearLocusShardStrategy extends LocusShardStrategy {
      * @param startSize the starting size of the shard
      * @param lst locations to iterate from
      */
-    LinearLocusShardStrategy(SAMSequenceDictionary dic, long startSize, List<GenomeLoc> lst) {
+    LinearLocusShardStrategy(SAMSequenceDictionary dic, long startSize, GenomeLocSortedSet lst) {
         super(dic, lst);
         this.nextShardSize = startSize;
     }

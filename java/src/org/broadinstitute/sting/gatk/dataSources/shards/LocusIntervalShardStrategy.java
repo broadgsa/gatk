@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
 import java.util.List;
 
@@ -29,17 +30,17 @@ import java.util.List;
  * <p/>
  * Class LocusWindowShardStrategy
  * <p/>
- * This function knows how to shard on a genome loc boundry.  It guarantee's
- * a one-to-one mapping between a GenomeLoc and hte 
+ * This function knows how to shard on a genome loc boundry.  It guarantees
+ * a one-to-one mapping between a GenomeLoc and shard. 
  */
-public class IntervalShardStrategy extends LocusShardStrategy {
+public class LocusIntervalShardStrategy extends LocusShardStrategy {
     /**
      * the constructor, taking a seq dictionary to parse out contigs
      *
      * @param dic       the seq dictionary
      * @param intervals file
      */
-    IntervalShardStrategy(SAMSequenceDictionary dic, List<GenomeLoc> intervals) {
+    LocusIntervalShardStrategy(SAMSequenceDictionary dic, GenomeLocSortedSet intervals) {
         super(dic, intervals);
     }
 

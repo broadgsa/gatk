@@ -479,7 +479,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
      * @return A GenomeLoc with the same contents as the current loc.
      */
     @Override
-    public Object clone() {
+    public GenomeLoc clone() {
         return new GenomeLoc(this);
     }
 

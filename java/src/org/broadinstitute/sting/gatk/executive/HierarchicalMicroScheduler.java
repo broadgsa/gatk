@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import java.io.File;
@@ -61,7 +62,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
     }
 
-    public Object execute( Walker walker, List<GenomeLoc> intervals ) {
+    public Object execute( Walker walker, GenomeLocSortedSet intervals ) {
         // Fast fail for walkers not supporting TreeReducible interface.
         if( !(walker instanceof TreeReducible) )
             throw new IllegalArgumentException("Hierarchical microscheduler only works with TreeReducible walkers");

@@ -75,7 +75,7 @@ public class SAMByReadsTest extends BaseTest {
 
         final int targetReadCount = 5000;
         
-        ShardStrategy shardStrategy = ShardStrategyFactory.shatterByReadCount(seq.getSequenceDictionary(),targetReadCount);
+        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS,seq.getSequenceDictionary(),targetReadCount);
         
         try {
             SAMDataSource data = new SAMDataSource(reads);

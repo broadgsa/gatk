@@ -6,10 +6,6 @@ import java.util.Iterator;
 
 /**
  *
- * User: aaron
- * Date: Apr 14, 2009
- * Time: 1:34:28 PM
- *
  * The Broad Institute
  * SOFTWARE COPYRIGHT NOTICE AGREEMENT 
  * This software and its documentation are copyright 2009 by the
@@ -28,7 +24,8 @@ import java.util.Iterator;
  * <p/>
  * Class ReadShardStrategy
  * <p/>
- * A descriptions should go here. Blame aaron if it's missing.
+ * The sharding strategy for reads using a simple counting mechanism.  Each read shard
+ * has a specific number of reads (default to 100K) which is configured in the constructor.
  */
 public class ReadShardStrategy implements ShardStrategy {
 
@@ -46,7 +43,7 @@ public class ReadShardStrategy implements ShardStrategy {
 
     /**
      * the default constructor
-     * @param dic the dictionary
+     * @param dic the sequence dictionary to use
      * @param size the read count to iterate over
      */
     ReadShardStrategy(SAMSequenceDictionary dic, long size) {
@@ -63,7 +60,7 @@ public class ReadShardStrategy implements ShardStrategy {
     }
 
     public Shard next() {
-        return new ReadShard((int)readCount, this);  
+        return new ReadShard((int)readCount, this);                                                                                                                      
     }
 
     public void remove() {

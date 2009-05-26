@@ -6,6 +6,7 @@ import net.sf.samtools.SAMSequenceRecord;
 import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  *
@@ -26,22 +27,22 @@ import java.util.Iterator;
 
 /**
  * @author aaron
- * @version 1.0
- * @date May 22, 2009
- * <p/>
- * Class GenomeLocCollection
- * <p/>
- * a set of genome locations. This collection is self sorting,
- * and will merge genome locations that are overlapping. The remove function
- * will also remove a region from the list, if the region to remove is a
- * partial interval of a region in the collection it will remove the region from
- * that element.
+ *         <p/>
+ *         Class GenomeLocCollection
+ *         <p/>
+ *         a set of genome locations. This collection is self sorting,
+ *         and will merge genome locations that are overlapping. The remove function
+ *         will also remove a region from the list, if the region to remove is a
+ *         partial interval of a region in the collection it will remove the region from
+ *         that element.
  */
 public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     // our private storage for the GenomeLoc's
     private final ArrayList<GenomeLoc> mArray = new ArrayList<GenomeLoc>();
 
-    public GenomeLocSortedSet() {}
+    /** default constructor */
+    public GenomeLocSortedSet() {
+    }
 
     /**
      * get an iterator over this collection
@@ -72,7 +73,9 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
 
     /**
      * add a genomeLoc to the collection, simply inserting in order into the set
+     *
      * @param e the GenomeLoc to add
+     *
      * @return true
      */
     public boolean add(GenomeLoc e) {
@@ -82,7 +85,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         int index = 0;
         while (index < mArray.size()) {
             if (!e.isPast(mArray.get(index))) {
-                mArray.add(index,e);
+                mArray.add(index, e);
                 return true;
             }
             ++index;
@@ -96,6 +99,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      * If it's not overlapping then we add it in sorted order.
      *
      * @param e the GenomeLoc to add to the collection
+     *
      * @return true, if the GenomeLoc could be added to the collection
      */
     public boolean addRegion(GenomeLoc e) {
@@ -112,7 +116,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         for (GenomeLoc g : mArray) {
             if (g.contiguousP(e)) {
                 GenomeLoc c = g.merge(e);
-                mArray.set(mArray.indexOf(g),c);
+                mArray.set(mArray.indexOf(g), c);
                 haveAdded = true;
             } else if ((g.getContigIndex() == e.getContigIndex()) &&
                     (e.getStart() < g.getStart()) && !haveAdded) {
@@ -132,7 +136,9 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     /**
      * remove an element from the set.  Given a specific genome location, this function will
      * remove all regions in the element set that overlap the specified region.
+     *
      * @param e the genomic range to remove
+     *
      * @return true if a removal action was performed, false if the collection was unchanged.
      */
     public boolean removeRegion(GenomeLoc e) {
@@ -148,7 +154,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
          */
         for (GenomeLoc g : mArray) {
             if (g.overlapsP(e)) {
-                if (g.compareTo(e) == 0) {
+                if (g.equals(e)) {
                     mArray.remove(mArray.indexOf(g));
                     return true;
                 } else if (g.containsP(e)) {
@@ -162,11 +168,15 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
                      * |------|  + |--------|
                      *
                      */
-                    GenomeLoc before = new GenomeLoc(g.getContigIndex(), g.getStart(), e.getStart()-1);
+                    GenomeLoc before = new GenomeLoc(g.getContigIndex(), g.getStart(), e.getStart() - 1);
                     GenomeLoc after = new GenomeLoc(g.getContigIndex(), e.getStop() + 1, g.getStop());
                     int index = mArray.indexOf(g);
-                    mArray.add(index, after);
-                    mArray.add(index, before);
+                    if (after.getStop() - after.getStart() > 0) {
+                        mArray.add(index, after);
+                    }
+                    if (before.getStop() - before.getStart() > 0) {
+                        mArray.add(index, before);
+                    }
                     mArray.remove(mArray.indexOf(g));
                     return true;
                 } else if (e.containsP(g)) {
@@ -194,12 +204,12 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
                      *       |------------- g ----------|
                      * |------------ e -----------|
                      *
-                      */
+                     */
 
                     if (e.getStart() < g.getStart()) {
-                        l = new GenomeLoc(g.getContigIndex(), e.getStop()+1, g.getStop());
+                        l = new GenomeLoc(g.getContigIndex(), e.getStop() + 1, g.getStop());
                     } else {
-                        l = new GenomeLoc(g.getContigIndex(), g.getStart(), e.getStart()-1);
+                        l = new GenomeLoc(g.getContigIndex(), g.getStart(), e.getStart() - 1);
                     }
                     // replace g with the new region
                     mArray.set(mArray.indexOf(g), l);
@@ -212,14 +222,45 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
 
     /**
      * create a list of genomic locations, given a reference sequence
+     *
      * @param dict the sequence dictionary to create a collection from
+     *
      * @return the GenomeLocSet of all references sequences as GenomeLoc's
      */
     public static GenomeLocSortedSet createSetFromSequenceDictionary(SAMSequenceDictionary dict) {
         GenomeLocSortedSet returnSortedSet = new GenomeLocSortedSet();
         for (SAMSequenceRecord record : dict.getSequences()) {
-            returnSortedSet.add(new GenomeLoc(record.getSequenceIndex(),1,record.getSequenceLength()));
+            returnSortedSet.add(new GenomeLoc(record.getSequenceIndex(), 1, record.getSequenceLength()));
         }
         return returnSortedSet;
     }
+
+    /**
+     * Create a sorted genome location set from a list of GenomeLocs.
+     * @param locs the list<GenomeLoc>
+     * @return the sorted genome loc list
+     */
+    public static GenomeLocSortedSet createSetFromList(List<GenomeLoc> locs) {
+        GenomeLocSortedSet set = new GenomeLocSortedSet();
+        for (GenomeLoc l: locs) {
+            set.add(l);
+        }
+        return set;
+    }
+
+
+    /**
+     * return a deep copy of this collection.
+     *
+     * @return a new GenomeLocSortedSet, indentical to the current GenomeLocSortedSet.
+     */
+    public GenomeLocSortedSet clone() {
+        GenomeLocSortedSet ret = new GenomeLocSortedSet();
+        for (GenomeLoc loc : this.mArray) {
+            // ensure a deep copy
+            ret.mArray.add(new GenomeLoc(loc.getContigIndex(), loc.getStart(), loc.getStop()));
+        }
+        return ret;
+    }
+
 }

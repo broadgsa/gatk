@@ -26,7 +26,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
  * <p/>
  * Class Shard
  * <p/>
- * This is the base class for shards.  Right now it does little more then
+ * This is the base class for locus shards.  Right now it does little more then
  * wrap GenomeLoc (actually nothing more), but it's good to have the class
  * in place so it's easier to change guts later.
  */

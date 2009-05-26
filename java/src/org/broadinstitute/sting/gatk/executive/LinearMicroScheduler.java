@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
 import java.io.File;
 import java.util.List;
@@ -31,7 +32,7 @@ public class LinearMicroScheduler extends MicroScheduler {
      * @param walker    Computation to perform over dataset.
      * @param locations Subset of the dataset over which to walk.
      */
-    public Object execute(Walker walker, List<GenomeLoc> locations) {
+    public Object execute(Walker walker, GenomeLocSortedSet locations) {
         ShardStrategy shardStrategy = getShardStrategy(walker, reference, locations);
 
         walker.initialize();

@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 
 import java.util.ArrayList;
@@ -110,7 +111,10 @@ public class GenomeAnalysisEngine {
         genericEngineSetup(strictness);
 
         // parse out any genomic location they've provided
-        List<GenomeLoc> locs = setupIntervalRegion();
+        List<GenomeLoc> locationsList = setupIntervalRegion();
+        GenomeLocSortedSet locs = null;
+        if (locationsList != null)
+            locs = GenomeLocSortedSet.createSetFromList(locationsList);
 
         // excute the microscheduler
         microScheduler.execute(my_walker, locs);
@@ -192,7 +196,7 @@ public class GenomeAnalysisEngine {
 
         engine.setMaxReads(Integer.parseInt(argCollection.maximumReads));
 
-        // we default interval files over the genome region strin
+        // we default interval files over the genome region string
         if (argCollection.intervals != null) {
             engine.setLocation(setupIntervalRegion());
         }

@@ -35,9 +35,7 @@ import java.util.List;
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
 public class SAMDataSource implements SimpleDataSource {
-    /**
-     * Backing support for reads.
-     */
+    /** Backing support for reads. */
     private Reads reads = null;
 
     /** our SAM data files */
@@ -52,9 +50,7 @@ public class SAMDataSource implements SimpleDataSource {
     // our list of readers
     private final List<File> samFileList = new ArrayList<File>();
 
-    /**
-     * SAM header file.
-     */
+    /** SAM header file. */
     private final SAMFileHeader header;
 
     // used for the reads case, the last count of reads retrieved
@@ -90,14 +86,14 @@ public class SAMDataSource implements SimpleDataSource {
 
         }
 
-        header  = createHeaderMerger().getMergedHeader();
+        header = createHeaderMerger().getMergedHeader();
     }
 
     /**
-     * Load up a sam file.
+     * Load a SAM/BAM, given an input file.
      *
      * @param samFile the file name
-     * @return a SAMFileReader for the file
+     * @return a SAMFileReader for the file, null if we're attempting to read a list
      */
     private SAMFileReader initializeSAMFile(final File samFile) {
         if (samFile.toString().endsWith(".list")) {
@@ -115,7 +111,7 @@ public class SAMDataSource implements SimpleDataSource {
 
     /**
      * <p>
-     * seek
+     * seekLocus
      * </p>
      *
      * @param location the genome location to extract data for
@@ -123,17 +119,16 @@ public class SAMDataSource implements SimpleDataSource {
      */
     public StingSAMIterator seekLocus(GenomeLoc location) throws SimpleDataSourceLoadException {
 
-        // right now this is pretty damn heavy, it copies the file list into a reader list every time
+        // right now this is very heavy, it copies the file list into a reader list every time
         SamFileHeaderMerger headerMerger = createHeaderMerger();
 
         // make a merging iterator for this record
         MergingSamRecordIterator2 iter = new MergingSamRecordIterator2(headerMerger);
 
-        // we do different things for locus and read modes
         iter.queryOverlapping(location.getContig(), (int) location.getStart(), (int) location.getStop() + 1);
 
         // return the iterator
-        return StingSAMIteratorAdapter.adapt( reads, iter );
+        return StingSAMIteratorAdapter.adapt(reads, iter);
     }
 
     /**
@@ -149,17 +144,17 @@ public class SAMDataSource implements SimpleDataSource {
         if (shard.getShardType() == Shard.ShardType.READ) {
             iterator = seekRead((ReadShard) shard);
             iterator = TraversalEngine.applyDecoratingIterators(true,
-                                                                iterator,
-                                                                reads.getDownsamplingFraction(),
-                                                                reads.getMaxOnTheFlySorts(),
-                                                                reads.getSafetyChecking());
+                    iterator,
+                    reads.getDownsamplingFraction(),
+                    reads.getMaxOnTheFlySorts(),
+                    reads.getSafetyChecking());
         } else if (shard.getShardType() == Shard.ShardType.LOCUS) {
             iterator = seekLocus(shard.getGenomeLoc());
             iterator = TraversalEngine.applyDecoratingIterators(false,
-                                                                iterator,
-                                                                reads.getDownsamplingFraction(),
-                                                                reads.getMaxOnTheFlySorts(),
-                                                                reads.getSafetyChecking());
+                    iterator,
+                    reads.getDownsamplingFraction(),
+                    reads.getMaxOnTheFlySorts(),
+                    reads.getSafetyChecking());
         } else {
             throw new StingException("seek: Unknown shard type");
         }
@@ -169,24 +164,24 @@ public class SAMDataSource implements SimpleDataSource {
 
 
     /**
-     * If we're in by-read mode, this indicates if we want
-     * to see unmapped reads too.  Only seeing mapped reads
-     * is much faster, but most BAM files have significant
-     * unmapped read counts.
-     *
-     * @param seeUnMappedReads true to see unmapped reads, false otherwise
-     */
-    public void viewUnmappedReads(boolean seeUnMappedReads) {
-        includeUnmappedReads = seeUnMappedReads;
-    }
-
-    /**
      * Gets the (potentially merged) SAM file header.
+     *
      * @return SAM file header.
      */
     public SAMFileHeader getHeader() {
-        return header; 
+        return header;
     }
+
+    /**
+     * create the merging header.
+     *
+     * @return a SamFileHeaderMerger that includes the set of SAM files we were created with
+     */
+    private SamFileHeaderMerger createHeaderMerger() {
+        List<SAMFileReader> lst = GetReaderList();
+        return new SamFileHeaderMerger(lst, SORT_ORDER);
+    }
+
 
     /**
      * <p>
@@ -203,10 +198,8 @@ public class SAMDataSource implements SimpleDataSource {
         MergingSamRecordIterator2 iter = null;
 
         if (!intoUnmappedReads) {
-            // make a merging iterator for this record
             iter = new MergingSamRecordIterator2(headerMerger);
-
-           bound = fastMappedReadSeek(shard.getSize(), iter);
+            bound = fastMappedReadSeek(shard.getSize(), iter);
         }
         if ((bound == null || intoUnmappedReads) && includeUnmappedReads) {
             if (iter != null) {
@@ -218,18 +211,21 @@ public class SAMDataSource implements SimpleDataSource {
 
         if (bound == null) {
             shard.signalDone();
-            bound = new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads,iter), 0);
+            bound = new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads, iter), 0);
         }
         return bound;
     }
 
-    private SamFileHeaderMerger createHeaderMerger() {
-        // TODO: make extremely less horrible
-        List<SAMFileReader> lst = GetReaderList();
-
-        // now merge the headers
-        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(lst, SORT_ORDER);
-        return headerMerger;
+    /**
+     * If we're in by-read mode, this indicates if we want
+     * to see unmapped reads too.  Only seeing mapped reads
+     * is much faster, but most BAM files have significant
+     * unmapped read counts.
+     *
+     * @param seeUnMappedReads true to see unmapped reads, false otherwise
+     */
+    public void viewUnmappedReads(boolean seeUnMappedReads) {
+        includeUnmappedReads = seeUnMappedReads;
     }
 
     /**
@@ -242,7 +238,6 @@ public class SAMDataSource implements SimpleDataSource {
      * @throws SimpleDataSourceLoadException
      */
     private BoundedReadIterator toUnmappedReads(long readCount, MergingSamRecordIterator2 iter) throws SimpleDataSourceLoadException {
-        BoundedReadIterator bound;// is this the first time we're doing this?
         int count = 0;
         SAMRecord d = null;
         while (iter.hasNext()) {
@@ -270,15 +265,15 @@ public class SAMDataSource implements SimpleDataSource {
             return null;
         }
 
-        // we're good, increment our read cout
+        // we're not out of unmapped reads, so increment our read cout
         this.readsTaken += readCount;
-        return new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads,iter), readCount);
+        return new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads, iter), readCount);
 
     }
 
 
     /**
-     * unmapped reads.
+     * A seek function for unmapped reads.
      *
      * @param readCount how many reads to retrieve
      * @param iter      the iterator to use
@@ -286,16 +281,10 @@ public class SAMDataSource implements SimpleDataSource {
      * @throws SimpleDataSourceLoadException
      */
     private BoundedReadIterator fastMappedReadSeek(long readCount, MergingSamRecordIterator2 iter) throws SimpleDataSourceLoadException {
-        BoundedReadIterator bound;// is this the first time we're doing this?
         if (lastReadPos == null) {
-            lastReadPos = new GenomeLoc(iter.getHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, 0);
-            iter.queryContained(lastReadPos.getContig(), 1, -1);
-            bound = new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads,iter), readCount);
-            this.readsTaken = readCount;
-        }
-        // we're not at the beginning, not at the end, so we move forward with our ghastly plan...
-        else {
-
+            return InitialReadIterator(readCount, iter);
+        } else {
+            BoundedReadIterator bound;
             iter.queryContained(lastReadPos.getContig(), (int) lastReadPos.getStop(), -1);
 
             // move the number of reads we read from the last pos
@@ -338,7 +327,7 @@ public class SAMDataSource implements SimpleDataSource {
                         SamFileHeaderMerger mg = createHeaderMerger();
                         iter = new MergingSamRecordIterator2(mg);
                         iter.queryContained(lastReadPos.getContig(), 1, Integer.MAX_VALUE);
-                        return new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads,iter),readCount);
+                        return new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads, iter), readCount);
                     }
                 }
             }
@@ -363,11 +352,28 @@ public class SAMDataSource implements SimpleDataSource {
                 throw new StingException("Danger: weve run out reads in fastMappedReadSeek");
                 //return null;
             }
-            bound = new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads,iter), readCount);
+            bound = new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads, iter), readCount);
+
+            // return the iterator
+            return bound;
         }
 
 
-        // return the iterator
+    }
+
+    /**
+     * set the initial iterator
+     *
+     * @param readCount the number of reads
+     * @param iter      the merging iterator
+     * @return a bounded read iterator at the first read position in the file.
+     */
+    private BoundedReadIterator InitialReadIterator(long readCount, MergingSamRecordIterator2 iter) {
+        BoundedReadIterator bound;
+        lastReadPos = new GenomeLoc(iter.getHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, 0);
+        iter.queryContained(lastReadPos.getContig(), 1, -1);
+        bound = new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads, iter), readCount);
+        this.readsTaken = readCount;
         return bound;
     }
 

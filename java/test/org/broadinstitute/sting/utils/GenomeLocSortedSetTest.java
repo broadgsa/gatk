@@ -29,7 +29,6 @@ import java.util.Iterator;
 /**
  * @author aaron
  * @version 1.0
- * @date May 22, 2009
  * <p/>
  * Class GenomeLocSetTest
  * <p/>
@@ -140,6 +139,32 @@ public class GenomeLocSortedSetTest extends BaseTest {
         assertTrue(loc.getStart() == 76);
         assertTrue(loc.getStop() == 100);
         assertTrue(loc.getContigIndex() == 1);
+    }
+
+    @Test
+    public void deleteAllByRegion() {
+        GenomeLoc e = new GenomeLoc(1, 1, 100);
+        mSortedSet.add(e);
+        for (int x = 1; x < 101; x++) {
+            GenomeLoc del = new GenomeLoc(1,x,x);
+            mSortedSet.removeRegion(del);
+        }
+        assertTrue(mSortedSet.isEmpty());
+    }
+    @Test
+    public void deleteSomeByRegion() {
+        GenomeLoc e = new GenomeLoc(1, 1, 100);
+        mSortedSet.add(e);
+        for (int x = 1; x < 50; x++) {
+            GenomeLoc del = new GenomeLoc(1,x,x);
+            mSortedSet.removeRegion(del);
+        }
+        assertTrue(!mSortedSet.isEmpty());
+        assertTrue(mSortedSet.size() == 1);
+        GenomeLoc loc = mSortedSet.iterator().next();        
+        assertTrue(loc.getStop() == 100);
+        assertTrue(loc.getStart() == 50);
+
     }
 
     @Test

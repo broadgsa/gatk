@@ -20,6 +20,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
@@ -101,7 +102,7 @@ public abstract class MicroScheduler {
      * @param intervals A list of intervals over which to walk.  Null for whole dataset.
      * @return the return type of the walker
      */
-    public abstract Object execute( Walker walker, List<GenomeLoc> intervals);
+    public abstract Object execute( Walker walker, GenomeLocSortedSet intervals);
 
     /**
      * Get the sharding strategy given a driving data source.
@@ -110,7 +111,7 @@ public abstract class MicroScheduler {
      * @param intervals Intervals to use when limiting sharding.
      * @return Sharding strategy for this driving data source.
      */
-    protected ShardStrategy getShardStrategy( Walker walker, ReferenceSequenceFile drivingDataSource, List<GenomeLoc> intervals ) {
+    protected ShardStrategy getShardStrategy( Walker walker, ReferenceSequenceFile drivingDataSource, GenomeLocSortedSet intervals ) {
         ShardStrategy shardStrategy = null;
 
         if( walker instanceof LocusWalker ) {

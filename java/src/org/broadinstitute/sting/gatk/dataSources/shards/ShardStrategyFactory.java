@@ -4,6 +4,7 @@ import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
 import java.util.List;
 
@@ -65,25 +66,6 @@ public class ShardStrategyFactory {
 
     }
 
-    /**
-     * convert between types
-     *
-     * @param strat       the strategy
-     * @param convertFrom convert from this strategy
-     * @return
-     */
-    static public ShardStrategy transitionToShardStrategy(SHATTER_STRATEGY strat, LocusShardStrategy convertFrom) {
-        switch (strat) {
-            case LINEAR:
-                return new LinearLocusShardStrategy(convertFrom);
-            case EXPONENTIAL:
-                return new ExpGrowthLocusShardStrategy(convertFrom);
-            default:
-                throw new StingException("Strategy: " + strat + " isn't implemented");
-
-        }
-    }
-
 
     /**
      * get a new shatter strategy
@@ -93,31 +75,20 @@ public class ShardStrategyFactory {
      * @param startingSize the starting size
      * @return
      */
-    static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, List<GenomeLoc> lst) {
+    static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst) {
         switch (strat) {
             case LINEAR:
                 return new LinearLocusShardStrategy(dic, startingSize, lst);
             case EXPONENTIAL:
                 return new ExpGrowthLocusShardStrategy(dic, startingSize, lst);
             case READS:
-                // return new ReadShardStrategy(dic, startingSize);
-                throw new StingException("Strategy: " + strat + " isn't implemented for intervals");
+                return new ReadIntervalShardStrategy(dic, startingSize, lst);
             case INTERVAL:
-                return new IntervalShardStrategy(dic, lst);
+                return new LocusIntervalShardStrategy(dic, lst);
             default:
                 throw new StingException("Strategy: " + strat + " isn't implemented");
         }
 
-    }
-
-    /**
-     * setup a reads shattering strategy
-     *
-     * @param readCount the number of reads to include in each shard
-     * @return
-     */
-    static public ShardStrategy shatterByReadCount(SAMSequenceDictionary dic, long readCount) {
-        return new ReadShardStrategy(dic, readCount);
     }
 
 }
