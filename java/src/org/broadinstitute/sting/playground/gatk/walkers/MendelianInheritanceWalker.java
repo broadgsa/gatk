@@ -42,10 +42,11 @@ public class MendelianInheritanceWalker  extends RefWalker<TrioConcordanceRecord
 					      shortName="VT",
 					      doc="Assess concordance for the variants of the specified type, INDEL or POINT. If genotype track(s) provide both types, the requested one will be selected",
 					      required=true) 
-					      public GenotypeUtils.VariantType VARIANT_TYPE; 
+					      public String VTYPE_STR; 
 	
 	private static Logger logger = Logger.getLogger(MendelianInheritanceWalker.class);	
 	private final static String star = new String("*");
+	private GenotypeUtils.VariantType VARIANT_TYPE;
 	
 	@Override
 	public TrioConcordanceRecord map(RefMetaDataTracker rodData, char ref, LocusContext context) {
@@ -63,18 +64,16 @@ public class MendelianInheritanceWalker  extends RefWalker<TrioConcordanceRecord
 		return assessGenotypesInTrio(mom, dad, kid);
 	}
 	
-/*
- * 	@Override(non-Javadoc)
+
+/**	
+ * 	@Override
  * @see org.broadinstitute.sting.gatk.walkers.Walker#initialize()
- 
+ */
 	public void initialize() {
 		super.initialize();
-		if ( defCalls == null ) return;
-		defCalls = defCalls.toUpperCase();
-		if ( defCalls.equals("INDEL")) default_calls = 1;
-		else throw new StingException("POINT or BOTH default calls are not implemented yet");
+		VARIANT_TYPE = GenotypeUtils.VariantType.valueOf(VTYPE_STR.toUpperCase());
 	};
-*/	
+
 
 	/** Takes a single genotype object and returns properly filled new assessment object (covered/assessed/ref/variant set to 0/1 
 	 * according to what the genotype says)  
