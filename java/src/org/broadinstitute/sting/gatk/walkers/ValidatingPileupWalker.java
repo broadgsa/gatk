@@ -27,7 +27,7 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
         Pileup truePileup = getTruePileup( tracker );
 
         if ( truePileup == null ) {
-            System.out.printf("No truth pileup data available at %s%n", pileup.getPileupString());
+            out.printf("No truth pileup data available at %s%n", pileup.getPileupString());
             if ( ! CONTINUE_AFTER_AN_ERROR ) {
                 Utils.scareUser(String.format("No pileup data available at %s given GATK's output of %s -- this walker requires samtools pileup data over all bases",
                                 context.getLocation(), pileup.getBases()));
@@ -68,6 +68,10 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
      */
     private Pileup getTruePileup( RefMetaDataTracker tracker ) {
         rodSAMPileup pileup = (rodSAMPileup)tracker.lookup("pileup", null);
+
+        if( pileup == null )
+            return null;
+
         if( pileup.hasPointGenotype() )
             return (Pileup)pileup.getPointGenotype();
         else if( pileup.hasIndelGenotype() )
