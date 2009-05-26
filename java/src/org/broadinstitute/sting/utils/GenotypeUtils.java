@@ -16,7 +16,7 @@ public class GenotypeUtils {
 	
 	public static enum VariantType {
 		POINT, INDEL;
-		VariantType() {}
+//		VariantType() {}
 	}
 
 	/** This method accepts rods that implement either Genotype or GenotypeList interface (all others will result in an exception). Variant 
@@ -75,6 +75,7 @@ public class GenotypeUtils {
 		}
 		else throw new StingException("track "+rod.getName()+" is not a Genotype or GenotypeList");
 	}
+
 
 	
 	/** This class represents a "default" indel-type genotype with homozygous reference (i.e. confidently no indel)
