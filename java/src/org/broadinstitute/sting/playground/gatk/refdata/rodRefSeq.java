@@ -52,9 +52,10 @@ public class rodRefSeq extends BasicReferenceOrderedDatum {
 	
 
 	public boolean isExon() {
-		if ( records == null ) return false;
+		if ( records == null ) return false; 
 		for ( RefSeqRecord r : records) {
 			for ( GenomeLoc e : r.getExons() ) {
+//				System.err.println("EXON: "+e);
 				if (location.getStart() >= e.getStart() && location.getStart() <= e.getStop() ) return true;
 			}
 		}
@@ -75,6 +76,8 @@ public class rodRefSeq extends BasicReferenceOrderedDatum {
 		for ( RefSeqRecord r : records ) { 
 				b.append(' ');
 				b.append(r.getTranscriptId());
+				b.append("; "+ r.getNumExons() + " exons: ");
+				for ( GenomeLoc e : r.getExons() ) b.append(" " + e);
 		}
 		return b.toString();
 	}
@@ -247,11 +250,11 @@ class RefSeqRecord {
 		assert exon_starts.length == exon_stops.length : "Data format error: numbers of exon start and stop positions differ";
 		assert exon_starts.length == eframes.length : "Data format error: numbers of exons and exon frameshifts differ";
 		
-		exons = new ArrayList<GenomeLoc>(exon_starts.length-1);
-		exon_frames = new ArrayList<Integer>(eframes.length - 1);
+		exons = new ArrayList<GenomeLoc>(exon_starts.length);
+		exon_frames = new ArrayList<Integer>(eframes.length);
 		
-		for ( int i = 0 ; i < exon_starts.length - 1 ; i++ ) {
-			exons.add(new GenomeLoc(contig_name, Integer.parseInt(exon_starts[i]+1), Integer.parseInt(exon_stops[i]) ) );
+		for ( int i = 0 ; i < exon_starts.length  ; i++ ) {
+			exons.add(new GenomeLoc(contig_name, Integer.parseInt(exon_starts[i])+1, Integer.parseInt(exon_stops[i]) ) );
 			exon_frames.add(Integer.decode(eframes[i]));
 		}
 	}
