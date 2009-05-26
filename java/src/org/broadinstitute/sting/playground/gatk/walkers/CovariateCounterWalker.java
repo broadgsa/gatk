@@ -20,7 +20,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="MAX_READ_LENGTH", shortName="mrl", doc="max read length", required=false)
     public int MAX_READ_LENGTH = 101;
 
-    @Argument(fullName="MAX_QUAL_SCORE", shortName="mqs"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        , doc="max quality score", required=false)
+    @Argument(fullName="MAX_QUAL_SCORE", shortName="mqs", doc="max quality score", required=false)
     public int MAX_QUAL_SCORE = 63;
 
     @Argument(fullName="OUTPUT_FILEROOT", shortName="outroot", required=false, doc="Filename root for the outputted logistic regression training files")
@@ -51,7 +51,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
     String dinuc_root = "dinuc";
     ArrayList<PrintStream> dinuc_outs = new ArrayList<PrintStream>();
-    PrintStream covars_out = new PrintStream("covars.out");
     PrintStream ByQualFile; // = new PrintStream("quality_empirical_vs_observed.csv");
     PrintStream ByCycleFile;
     PrintStream ByDinucFile;
@@ -155,10 +154,16 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     }
 
     public void onTraversalDone(Integer result) {
-        if (flattenData.size() > 0)
-            covars_out.println(flattenData.get(0).headerString());
-        for ( RecalData datum : flattenData ) {
-            covars_out.println(datum);
+        PrintStream covars_out;
+        try {
+            covars_out = new PrintStream(OUTPUT_FILEROOT+".covars.out");
+            if (flattenData.size() > 0)
+                covars_out.println(flattenData.get(0).headerString());
+            for ( RecalData datum : flattenData ) {
+                covars_out.println(datum);
+            }
+        } catch (FileNotFoundException e) {
+            System.err.println("FileNotFoundException: " + e.getMessage());
         }
 
         qualityEmpiricalObserved();
