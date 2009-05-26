@@ -10,6 +10,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
+import org.broadinstitute.sting.playground.gatk.refdata.rodRefSeq;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.xReadLines;
 import org.broadinstitute.sting.utils.Utils;
@@ -61,6 +62,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         addModule("dbSNP", rodDbSNP.class);
         addModule("HapMapAlleleFrequencies", HapMapAlleleFrequenciesROD.class);
         addModule("SAMPileup", rodSAMPileup.class);
+        addModule("RefSeq", rodRefSeq.class);
         addModule("Table", TabularROD.class);
     }
 
