@@ -76,8 +76,8 @@ public class rodRefSeq extends BasicReferenceOrderedDatum {
 		for ( RefSeqRecord r : records ) { 
 				b.append(' ');
 				b.append(r.getTranscriptId());
-				b.append("; "+ r.getNumExons() + " exons: ");
-				for ( GenomeLoc e : r.getExons() ) b.append(" " + e);
+//				b.append("; "+ r.getNumExons() + " exons: ");
+//				for ( GenomeLoc e : r.getExons() ) b.append(" " + e);
 		}
 		return b.toString();
 	}
