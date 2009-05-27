@@ -141,7 +141,7 @@ public class ShardDataProvider {
             Collection<Class<? extends View>> conflicts = registeredView.getConflictingViews();
             for( Class<? extends View> conflict: conflicts ) {
                 if( conflict.isInstance(view) )
-                    throw new StingException(String.format("Tried to registered two conflicting views: %s and %s",
+                    throw new StingException(String.format("Tried to register two conflicting views: %s and %s",
                                                            registeredView.getClass().getSimpleName(),
                                                            view.getClass().getSimpleName()));
             }
@@ -151,7 +151,7 @@ public class ShardDataProvider {
         for( Class<? extends View> conflict: view.getConflictingViews() ) {
             for( View registeredView: registeredViews ) {
                 if( conflict.isInstance(registeredView) )
-                    throw new StingException(String.format("Tried to registered two conflicting views: %s and %s",
+                    throw new StingException(String.format("Tried to register two conflicting views: %s and %s",
                                                            registeredView.getClass().getSimpleName(),
                                                            view.getClass().getSimpleName()));
             }
