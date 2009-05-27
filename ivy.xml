@@ -9,8 +9,5 @@
     <dependency org="colt" name="colt" rev="1.2.0" />
     <dependency org="jboss" name="javassist" rev="3.7.ga" />
     <dependency org="org.simpleframework" name="simple-xml" rev="2.0.4" />
-      
-    <!-- The following are all castor dependencies. Remove when transitive dependencies are working -->
-    <dependency org="commons-logging" name="commons-logging" rev="latest.integration" />
   </dependencies>
 </ivy-module>
