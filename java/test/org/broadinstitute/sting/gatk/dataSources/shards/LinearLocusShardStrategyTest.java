@@ -8,6 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMSequenceDictionary;
 
 
 /*
@@ -38,42 +39,65 @@ import net.sf.samtools.SAMFileHeader;
 /**
  * @author aaron
  *         <p/>
- *         Class LocusIntervalShardStrategyTest
+ *         Class LocusShardStrategyTest
  *         <p/>
- *         Tests the LocusIntervalShardStrategy class.
+ *         Test for the Locus Shard Strategy
  */
-public class LocusIntervalShardStrategyTest extends BaseTest {
+public class LinearLocusShardStrategyTest extends BaseTest {
+
     private GenomeLocSortedSet mSortedSet = null;
     private SAMFileHeader header = ArtificialSamUtils.createArtificialSamHeader(NUMBER_OF_CHROMOSOMES, STARTING_CHROMOSOME, CHROMOSOME_SIZE);
     private static final int NUMBER_OF_CHROMOSOMES = 5;
     private static final int STARTING_CHROMOSOME = 1;
     private static final int CHROMOSOME_SIZE = 1000;
-    private LocusIntervalShardStrategy strat = null;
 
     @Before
     public void setup() {
         GenomeLoc.setupRefContigOrdering(header.getSequenceDictionary());
-        mSortedSet = new GenomeLocSortedSet();
     }
 
     @Test
-    public void testOneToOneness() {
-        for (int x = 0; x < 100; x++) {
-            GenomeLoc loc = new GenomeLoc(0,(x*10)+1, (x*10)+8);
-            mSortedSet.add(loc);
-        }
-        strat = new LocusIntervalShardStrategy(header.getSequenceDictionary(),mSortedSet);
+    public void testSetup() {
+        LinearLocusShardStrategy strat = new LinearLocusShardStrategy(header.getSequenceDictionary(), 500);
         int counter = 0;
-        while (strat.hasNext()) {
+        while(strat.hasNext()) {
+            Shard d = strat.next();
+            assertTrue(d instanceof LocusShard);
+            assertTrue(d.getGenomeLoc().getStop() - d.getGenomeLoc().getStart() == 499);
             ++counter;
-            GenomeLoc loc = strat.next().getGenomeLoc();
-            long stop = loc.getStop();
-            long start = loc.getStart();
-            long length =  stop - start;
-            assertTrue(length == 7);
         }
-        assertTrue(counter == 100);
-
+        assertTrue(counter == 10);
     }
 
+    @Test
+    public void testAdjustSize() {
+        LinearLocusShardStrategy strat = new LinearLocusShardStrategy(header.getSequenceDictionary(), 500);
+        strat.adjustNextShardSize(1000);
+        int counter = 0;
+        while(strat.hasNext()) {
+            Shard d = strat.next();
+            assertTrue(d instanceof LocusShard);
+            assertTrue(d.getGenomeLoc().getStop() - d.getGenomeLoc().getStart() == 999);
+            ++counter;
+        }
+        assertTrue(counter == 5);
+    }
+
+
+    @Test
+    public void testUnevenSplit() {
+        LinearLocusShardStrategy strat = new LinearLocusShardStrategy(header.getSequenceDictionary(), 600);
+        int counter = 0;
+        while(strat.hasNext()) {
+            Shard d = strat.next();
+            assertTrue(d instanceof LocusShard);
+            if (counter % 2 == 0) {
+                assertTrue(d.getGenomeLoc().getStop() - d.getGenomeLoc().getStart() == 599);
+            } else {
+                assertTrue(d.getGenomeLoc().getStop() - d.getGenomeLoc().getStart() == 399);
+            }
+            ++counter;
+        }
+        assertTrue(counter == 10);
+    }
 }

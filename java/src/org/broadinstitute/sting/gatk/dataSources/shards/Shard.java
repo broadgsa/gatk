@@ -30,7 +30,7 @@ import java.io.Serializable;
  */
 public interface Shard extends Serializable {
     enum ShardType {
-        READ, LOCUS
+        READ, LOCUS, INTERVAL
     }
 
     /** @return the genome location represented by this shard */

@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.dataSources.providers.ReadView;
 import org.broadinstitute.sting.gatk.dataSources.providers.ReadReferenceView;
 import org.broadinstitute.sting.gatk.dataSources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
+import org.broadinstitute.sting.gatk.dataSources.shards.IntervalShard;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -79,7 +80,12 @@ public class TraverseReads extends TraversalEngine {
                              ShardDataProvider dataProvider,
                              T sum) {
 
-        logger.debug(String.format("TraverseReads.traverse Genomic interval is %s", ((ReadShard) shard).getSize()));
+        if (shard instanceof ReadShard) {
+            logger.debug(String.format("TraverseReads.traverse Genomic interval is %s", ((ReadShard) shard).getSize()));
+        } else if (shard instanceof IntervalShard) {
+            logger.debug(String.format("TraverseReads.traverse Genomic interval is %s", ((IntervalShard) shard).getGenomeLoc()));
+        }
+
 
         if (!(walker instanceof ReadWalker))
             throw new IllegalArgumentException("Walker isn't a read walker!");

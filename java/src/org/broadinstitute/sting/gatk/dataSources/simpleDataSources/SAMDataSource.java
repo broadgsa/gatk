@@ -148,14 +148,16 @@ public class SAMDataSource implements SimpleDataSource {
                     reads.getDownsamplingFraction(),
                     reads.getMaxOnTheFlySorts(),
                     reads.getSafetyChecking());
-        } else if (shard.getShardType() == Shard.ShardType.LOCUS) {
+        } else if (shard.getShardType() == Shard.ShardType.LOCUS ||
+                   shard.getShardType() == Shard.ShardType.INTERVAL) {
             iterator = seekLocus(shard.getGenomeLoc());
             iterator = TraversalEngine.applyDecoratingIterators(false,
                     iterator,
                     reads.getDownsamplingFraction(),
                     reads.getMaxOnTheFlySorts(),
                     reads.getSafetyChecking());
-        } else {
+        }
+        else {
             throw new StingException("seek: Unknown shard type");
         }
 

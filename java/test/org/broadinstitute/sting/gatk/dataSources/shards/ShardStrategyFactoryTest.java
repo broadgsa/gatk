@@ -2,19 +2,13 @@ package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.fail;
-import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.sam.ArtificialSamUtils;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import org.junit.*;
 import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.util.ArrayList;
 
 /**
  *
@@ -63,7 +57,7 @@ public class ShardStrategyFactoryTest extends BaseTest {
         GenomeLoc l = new GenomeLoc(0,1,100);
         set.add(l);
         ShardStrategy st = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS,header.getSequenceDictionary(),100,set);
-        assertTrue(st instanceof ReadIntervalShardStrategy);
+        assertTrue(st instanceof IntervalShardStrategy);
     }
 
     @Test

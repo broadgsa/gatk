@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.dataSources.shards;
 
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 
@@ -31,17 +30,18 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 
 /**
  * @author aaron
- *         <p/>
- *         Class IntervalReadShard
- *         <p/>
- *         This is the read shard that knowns about genomic intervals
+ * <p/>
+ * Class IntervalShard
+ * <p/>
+ * the base interval shard.  All interval shards are generally the same,
+ * but must return their ShardType individually.  
  */
-public class IntervalReadShard implements Shard {
+public class IntervalShard implements Shard {
 
     /** a collection of genomic locations to interate over */
     private GenomeLoc mSet;
 
-    IntervalReadShard(GenomeLoc myLocation) {
+    IntervalShard(GenomeLoc myLocation) {
         mSet = myLocation.clone();
     }
 
@@ -55,7 +55,7 @@ public class IntervalReadShard implements Shard {
      *
      * @return READ, indicating the shard type
      */
-    public ShardType getShardType() {
-        return Shard.ShardType.READ;
+    public Shard.ShardType getShardType() {
+        return ShardType.INTERVAL;
     }
 }

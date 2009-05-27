@@ -2,11 +2,8 @@ package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-
-import java.util.List;
 
 /**
  *
@@ -81,10 +78,9 @@ public class ShardStrategyFactory {
                 return new LinearLocusShardStrategy(dic, startingSize, lst);
             case EXPONENTIAL:
                 return new ExpGrowthLocusShardStrategy(dic, startingSize, lst);
-            case READS:
-                return new ReadIntervalShardStrategy(dic, startingSize, lst);
             case INTERVAL:
-                return new LocusIntervalShardStrategy(dic, lst);
+            case READS:
+                return new IntervalShardStrategy(startingSize, lst);
             default:
                 throw new StingException("Strategy: " + strat + " isn't implemented");
         }

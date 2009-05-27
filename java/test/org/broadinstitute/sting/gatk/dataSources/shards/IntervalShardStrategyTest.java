@@ -44,7 +44,7 @@ import net.sf.samtools.SAMFileHeader;
  *         <p/>
  *         Tests the ReadIntervalShardStrategy class
  */
-public class ReadIntervalShardStrategyTest extends BaseTest {
+public class IntervalShardStrategyTest extends BaseTest {
 
     private GenomeLocSortedSet mSortedSet = null;
     private SAMFileHeader header = ArtificialSamUtils.createArtificialSamHeader(NUMBER_OF_CHROMOSOMES, STARTING_CHROMOSOME, CHROMOSOME_SIZE);
@@ -60,19 +60,21 @@ public class ReadIntervalShardStrategyTest extends BaseTest {
 
     @Test(expected = StingException.class)
     public void testExceptionOnEmpty() {
-        ReadIntervalShardStrategy strat = new ReadIntervalShardStrategy(header.getSequenceDictionary(), 100, mSortedSet);
+        IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet);
     }
 
     @Test
     public void testSingleChromosomeFunctionality() {
         GenomeLoc loc = new GenomeLoc(1, 1, 1000);
         mSortedSet.add(loc);
-        ReadIntervalShardStrategy strat = new ReadIntervalShardStrategy(header.getSequenceDictionary(), 100, mSortedSet);
+        IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet);
         int counter = 0;
+        Shard d = null;
         while (strat.hasNext()) {
-            Shard d = strat.next();
+            d = strat.next();
             counter++;
         }
+        assertTrue(d instanceof IntervalShard);
         assertEquals(10, counter);
     }
 
@@ -82,12 +84,14 @@ public class ReadIntervalShardStrategyTest extends BaseTest {
             GenomeLoc loc = new GenomeLoc(x, 1, 1000);
             mSortedSet.add(loc);
         }
-        ReadIntervalShardStrategy strat = new ReadIntervalShardStrategy(header.getSequenceDictionary(), 100, mSortedSet);
+        IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet);
         int counter = 0;
+        Shard d = null;
         while (strat.hasNext()) {
-            Shard d = strat.next();
+            d = strat.next();
             counter++;
         }
+        assertTrue(d instanceof IntervalShard);
         assertEquals(50, counter);
     }
 
@@ -97,7 +101,7 @@ public class ReadIntervalShardStrategyTest extends BaseTest {
             GenomeLoc loc = new GenomeLoc(x, 1, 1000);
             mSortedSet.add(loc);
         }
-        ReadIntervalShardStrategy strat = new ReadIntervalShardStrategy(header.getSequenceDictionary(), 789, mSortedSet);
+        IntervalShardStrategy strat = new IntervalShardStrategy(789, mSortedSet);
         int counter = 0;
         while (strat.hasNext()) {
             Shard d = strat.next();
@@ -113,11 +117,28 @@ public class ReadIntervalShardStrategyTest extends BaseTest {
         assertEquals(10, counter);
     }
 
+
+    @Test
+    public void testInfiniteShardSize() {
+        for (int x = 0; x < 5; x++) {
+            GenomeLoc loc = new GenomeLoc(x, 1, 1000);
+            mSortedSet.add(loc);
+        }
+        IntervalShardStrategy strat = new IntervalShardStrategy(Long.MAX_VALUE, mSortedSet);
+        int counter = 0;
+        while (strat.hasNext()) {
+            Shard d = strat.next();
+            assertEquals(1000, d.getGenomeLoc().getStop());
+            counter++;
+        }
+        assertEquals(5, counter);
+    }
+
     @Test(expected = UnsupportedOperationException.class)
     public void testRemove() {
         GenomeLoc loc = new GenomeLoc(1, 1, 1000);
         mSortedSet.add(loc);
-        ReadIntervalShardStrategy strat = new ReadIntervalShardStrategy(header.getSequenceDictionary(), 100, mSortedSet);
+        IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet);
         strat.remove();
     }
 

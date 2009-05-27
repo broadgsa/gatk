@@ -7,7 +7,6 @@ import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.Iterator;
-import java.util.List;
 /**
  *
  * User: aaron
@@ -159,11 +158,11 @@ public abstract class LocusShardStrategy implements ShardStrategy {
 
         if (loc.getStop() - loc.getStart() <= proposedSize) {
             intervals.removeRegion(loc);
-            return new IntervalReadShard(loc);
+            return new IntervalShard(loc);
         } else {
             GenomeLoc subLoc = new GenomeLoc(loc.getContigIndex(), loc.getStart(), loc.getStart() + proposedSize - 1);
             intervals.removeRegion(subLoc);
-            return new IntervalReadShard(subLoc);
+            return new IntervalShard(subLoc);
         }
     }
 

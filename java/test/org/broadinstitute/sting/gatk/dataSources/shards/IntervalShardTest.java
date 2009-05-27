@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.dataSources.shards;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.sam.ArtificialSamUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,9 +41,9 @@ import net.sf.samtools.SAMFileHeader;
  *         <p/>
  *         Tests for the IntervalReadShard class.
  */
-public class IntervalReadShardTest extends BaseTest {
+public class IntervalShardTest extends BaseTest {
 
-    private IntervalReadShard shard = null;
+    private IntervalShard intervalShard = null;
     private SAMFileHeader header = ArtificialSamUtils.createArtificialSamHeader(NUMBER_OF_CHROMOSOMES, STARTING_CHROMOSOME, CHROMOSOME_SIZE);
     private static final int NUMBER_OF_CHROMOSOMES = 5;
     private static final int STARTING_CHROMOSOME = 1;
@@ -59,15 +58,15 @@ public class IntervalReadShardTest extends BaseTest {
     @Test
     public void simpleReturn() {
         GenomeLoc loc = new GenomeLoc(1, 1, 100);
-        shard = new IntervalReadShard(loc);
-        assertTrue(shard.getGenomeLoc().equals(loc));
+        intervalShard = new IntervalShard(loc);
+        assertTrue(intervalShard.getGenomeLoc().equals(loc));
     }
 
     @Test
     public void ensureNotReference() {
         GenomeLoc loc = new GenomeLoc(1, 1, 100);
-        shard = new IntervalReadShard(loc);
-        assertTrue(shard.getGenomeLoc() != loc && shard.getGenomeLoc().equals(loc));
+        intervalShard = new IntervalShard(loc);
+        assertTrue(intervalShard.getGenomeLoc() != loc && intervalShard.getGenomeLoc().equals(loc));
     }
 
 }
