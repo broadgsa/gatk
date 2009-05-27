@@ -64,6 +64,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         addModule("SAMPileup", rodSAMPileup.class);
         addModule("RefSeq", rodRefSeq.class);
         addModule("Table", TabularROD.class);
+        addModule("PooledEM", PooledEMSNPROD.class);
     }
 
 
@@ -80,24 +81,28 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     public static void parseBindings(Logger logger, ArrayList<String> bindings, List<ReferenceOrderedData<? extends ReferenceOrderedDatum> > rods)
     {
         // Loop over triplets
-        for( String binding: bindings ) {
-            String[] bindingTokens = binding.split(",");
-            logger.info("Processing ROD bindings: " + bindings.size() + " -> " + Utils.join(" : ", bindingTokens));                                
-            if( bindingTokens.length != 3 )
+        System.out.printf("Binding is %s%n", Utils.join(" XXX ", bindings));
+        for( String bindingSets: bindings ) {
+            String[] bindingTokens = bindingSets.split(",");
+            if( bindingTokens.length % 3 != 0 )
                 Utils.scareUser(String.format("Invalid ROD specification: requires triplets of <name>,<type>,<file> but got %s", Utils.join(",", bindings)));
 
-            final String name = bindingTokens[0];
-            final String typeName = bindingTokens[1];
-            final String fileName = bindingTokens[2];
+            for ( int bindingSet = 0; bindingSet < bindingTokens.length; bindingSet += 3 ) {
+                logger.info("Processing ROD bindings: " + bindings.size() + " -> " + Utils.join(" : ", bindingTokens));
 
-            ReferenceOrderedData<?> rod = parse1Binding(logger, name, typeName, fileName);
+                final String name = bindingTokens[bindingSet];
+                final String typeName = bindingTokens[bindingSet + 1];
+                final String fileName = bindingTokens[bindingSet + 2];
 
-            // check that we're not generating duplicate bindings
-            for ( ReferenceOrderedData rod2 : rods )
-                if ( rod2.getName().equals(rod.getName()) )
-                    Utils.scareUser(String.format("Found duplicate rod bindings", rod.getName()));
+                ReferenceOrderedData<?> rod = parse1Binding(logger, name, typeName, fileName);
 
-            rods.add(rod);            
+                // check that we're not generating duplicate bindings
+                for ( ReferenceOrderedData rod2 : rods )
+                    if ( rod2.getName().equals(rod.getName()) )
+                        Utils.scareUser(String.format("Found duplicate rod bindings", rod.getName()));
+
+                rods.add(rod);
+            }
         }
     }
 

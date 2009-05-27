@@ -175,6 +175,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
             func = parts[15];
             locType = parts[16];
             weight = Integer.parseInt(parts[17]);
+            //System.out.printf("Parsed %s%n", toString());
             return true;
         } catch ( RuntimeException e ) {
             System.out.printf("  Exception caught during parsing GFFLine %s%n", Utils.join(" <=> ", parts));
@@ -196,7 +197,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
 	@Override
 	public double getConsensusConfidence() {
 		// TODO Auto-generated method stub
-		return 0;
+		return Double.MAX_VALUE;
 	}
 
 	@Override
@@ -205,11 +206,15 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
 		return null;
 	}
 
-	@Override
 	public double getMAF() {
 		// Fixme: update to actually get MAF 
-		return avHet;
+		//return avHet;
+        return -1;
 	}
+
+    public double getHeterozygosity() {
+        return avHet;
+    }
 
 	@Override
 	public int getPloidy() throws IllegalStateException {
@@ -220,7 +225,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
 	@Override
 	public double getVariationConfidence() {
 		// TODO Auto-generated method stub
-		return 100;
+		return Double.MAX_VALUE;
 	}
 
 	@Override

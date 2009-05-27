@@ -95,6 +95,12 @@ public interface AllelicVariant extends Comparable<ReferenceOrderedDatum> {
      */
     double getMAF() ;
 
+    /** Returns heterozygosity, a more accessible general feature of a variant.
+     *
+     * @return
+     */
+    double getHeterozygosity() ;
+    
     /** Is this variant an actual genotype (such as individual call from sequencing, HapMap chip etc), or
      * population allelic variant (call from pooled sequencing, dbSNP site etc). Only if variant is a genotype, there
      * is a meaningful question of, e.g., whether it is a het, or homogeneous non-ref.

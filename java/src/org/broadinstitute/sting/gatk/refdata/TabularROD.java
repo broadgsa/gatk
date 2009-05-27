@@ -52,7 +52,7 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
     public static String DELIMITER_REGEX = DEFAULT_DELIMITER_REGEX;
 
     private static int MAX_LINES_TO_LOOK_FOR_HEADER = 1000;
-    private static Pattern HEADER_PATTERN = Pattern.compile("^\\s*HEADER.*");
+    private static Pattern HEADER_PATTERN = Pattern.compile("^\\s*((HEADER)|(loc)).*");
     private static Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
 
     /**
