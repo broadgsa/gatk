@@ -270,12 +270,18 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         if ( bestConsensus != null && ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0 >= LOD_THRESHOLD ) {
             logger.debug("CLEAN: " + bestConsensus.str );
             if ( indelOutput != null && bestConsensus.cigar.numCigarElements() > 1 ) {
+                // NOTE: indels are printed out in the format specified for the low-coverage pilot1
+                //  indel calls (tab-delimited): chr position size type sequence
                 StringBuffer str = new StringBuffer();
                 str.append(reads.get(0).getReferenceName());
-                int position = bestConsensus.positionOnReference + bestConsensus.cigar.getCigarElement(0).getLength() - 1;
-                str.append(":" + (leftmostIndex + position));
+                int position = bestConsensus.positionOnReference + bestConsensus.cigar.getCigarElement(0).getLength();
+                str.append("\t" + (leftmostIndex + position - 1));
                 CigarElement ce = bestConsensus.cigar.getCigarElement(1);
-                str.append("\t" + ce.getLength() + ce.getOperator());
+                str.append("\t" + ce.getLength() + "\t" + ce.getOperator() + "\t");
+                if ( ce.getOperator() == CigarOperator.D )
+                    str.append(reference.substring(position, position+ce.getLength()));
+                else
+                    str.append(bestConsensus.str.substring(position, position+ce.getLength()));
                 str.append("\t" + (((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0) + "\n");
                 try {
                     indelOutput.write(str.toString());
