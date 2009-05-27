@@ -9,7 +9,7 @@ import org.broadinstitute.sting.utils.StingException;
 /** Holds a single transcript annotation: refseq id, gene name, genomic locations of the locus, of the coding region 
  * and of all the exons. 
  */
-class Transcript {
+public class Transcript {
 		private String transcript_id;
 		private int strand;
 		private GenomeLoc transcript_interval;
