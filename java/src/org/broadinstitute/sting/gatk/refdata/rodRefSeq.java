@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.refdata;
+package org.broadinstitute.sting.gatk.refdata;
 
 import java.io.File;
 import java.io.IOException;

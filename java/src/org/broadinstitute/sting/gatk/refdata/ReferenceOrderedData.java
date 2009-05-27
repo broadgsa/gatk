@@ -10,7 +10,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
-import org.broadinstitute.sting.playground.gatk.refdata.rodRefSeq;
+import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.xReadLines;
 import org.broadinstitute.sting.utils.Utils;
