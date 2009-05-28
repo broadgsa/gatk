@@ -171,6 +171,10 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         // decide which reads potentially need to be cleaned
         for ( SAMRecord read : reads ) {
+            // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
+            if ( read.getAlignmentBlocks().size() == 2 )
+                indelRealignment(read, reference, read.getAlignmentStart()-(int)leftmostIndex);
+
             AlignedRead aRead = new AlignedRead(read);
             int mismatchScore = mismatchQualitySum(aRead, reference, read.getAlignmentStart()-(int)leftmostIndex);
 
@@ -405,6 +409,45 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         if ( readRemaining > 0 )
             readCigar.add(new CigarElement(readRemaining, CigarOperator.M));
         aRead.getRead().setCigar(readCigar);
+    }
+
+    private void indelRealignment(SAMRecord read, String refSeq, int refIndex) {
+        Cigar cigar = read.getCigar();
+        CigarElement ce1 = cigar.getCigarElement(0);
+        CigarElement ce2 = cigar.getCigarElement(1);
+        int difference = 0;
+
+        if ( ce2.getOperator() == CigarOperator.D ) {
+            int indelIndex = refIndex + ce1.getLength();
+            String indelString = refSeq.substring(indelIndex, indelIndex+ce2.getLength());
+            int newIndex = indelIndex;
+            while ( newIndex > 0 ) {
+                String newIndelString = refSeq.substring(newIndex-1, newIndex+ce2.getLength()-1);
+                if ( !indelString.equals(newIndelString) )
+                    break;
+                newIndex--;
+            }
+            difference = indelIndex - newIndex;
+        } else if ( ce2.getOperator() == CigarOperator.I ) {
+            int indelIndex = ce1.getLength();
+            String indelString = read.getReadString().substring(indelIndex, indelIndex+ce2.getLength());
+            int newIndex = indelIndex;
+            while ( newIndex > 0 ) {
+                String newIndelString = read.getReadString().substring(newIndex-1, newIndex+ce2.getLength()-1);
+                if ( !indelString.equals(newIndelString) )
+                    break;
+                newIndex--;
+            }
+            difference = indelIndex - newIndex;
+        }
+
+        if ( difference > 0 ) {
+            Cigar newCigar = new Cigar();
+            newCigar.add(new CigarElement(ce1.getLength()-difference, CigarOperator.M));
+            newCigar.add(ce2);
+            newCigar.add(new CigarElement(cigar.getCigarElement(2).getLength()+difference, CigarOperator.M));
+            read.setCigar(newCigar);
+        }
     }
 
     private class AlignedRead {
