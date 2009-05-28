@@ -17,8 +17,8 @@ import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import edu.mit.broad.picard.reference.ReferenceSequenceFile;
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMRecord;

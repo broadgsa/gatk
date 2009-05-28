@@ -6,7 +6,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.SAMRecord;
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequence;
 
 import java.util.Random;
 

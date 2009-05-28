@@ -9,8 +9,8 @@ import org.broadinstitute.sting.BaseTest;
 import java.io.File;
 import java.io.FileNotFoundException;
 
-import edu.mit.broad.picard.reference.ReferenceSequence;
-import edu.mit.broad.picard.PicardException;
+import net.sf.picard.reference.ReferenceSequence;
+import net.sf.picard.PicardException;
 import net.sf.samtools.util.StringUtil;
 
 /**

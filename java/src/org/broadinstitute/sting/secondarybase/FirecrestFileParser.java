@@ -9,9 +9,9 @@
 */
 package org.broadinstitute.sting.secondarybase;
 
-import edu.mit.broad.picard.PicardException;
+import net.sf.picard.PicardException;
 import edu.mit.broad.picard.util.BasicTextFileParser;
-import edu.mit.broad.picard.util.FormatUtil;
+import net.sf.picard.util.FormatUtil;
 
 import java.io.File;
 

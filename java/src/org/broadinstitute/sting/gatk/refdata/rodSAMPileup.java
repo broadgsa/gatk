@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
-import edu.mit.broad.picard.reference.ReferenceSequenceFileWalker;
+import net.sf.picard.reference.ReferenceSequenceFileWalker;
 
 /**
  *  This class wraps Maq/samtools allele calls from pileup format and presents them as a ROD.<br>

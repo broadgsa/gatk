@@ -5,7 +5,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.Utils;
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequence;
 
 import java.util.ArrayList;
 import java.util.Arrays;

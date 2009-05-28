@@ -6,7 +6,7 @@ import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.Iterator;
 
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
 
 /**

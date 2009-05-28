@@ -39,6 +39,15 @@ public class FourBaseRecaller extends CommandLineProgram {
     @Argument(fullName="old",         shortName="1", doc="Old Bustard 1.1 mode?", required=false)
     public Boolean OLD = false;
 
+    @Argument(fullName="parse_sig2", shortName="P", doc="Parse sig2 files for Bustard pre-1.1 files (pre-1.1 only)")
+    public Boolean PARSE_SIG2_FILES = false;
+    @Argument(fullName="barcode", shortName="BCODE", doc="Only process reads that match this barcode (pre-1.1 only)")
+    public String BARCODE = null;
+    @Argument(fullName="barcode_cycle", shortName="BCYCLE", doc="1-based cycle number where barcode starts (pre-1.1 only)")
+    public Integer BARCODE_CYCLE = null;
+    @Argument(fullName="first_read_length", shortName="F", doc="First read length (v1.1 only)")
+    public Integer FIRST_READ_LENGTH;
+
     public static void main(String[] argv) {
         Instance = new FourBaseRecaller();
         start(Instance, argv);
@@ -62,7 +71,7 @@ public class FourBaseRecaller extends CommandLineProgram {
         FirecrestFileParser ffp;
         FirecrestReadData fread;
 
-        bfp = OLD ? new BustardFileParser_1_1(DIR, LANE, isPaired, RUN_BARCODE) : new BustardFileParser(DIR, LANE, isPaired, RUN_BARCODE);
+        bfp = OLD ? new BustardFileParser_1_1(DIR, LANE, isPaired, RUN_BARCODE, FIRST_READ_LENGTH) : new BustardFileParser(DIR, LANE, isPaired, RUN_BARCODE, PARSE_SIG2_FILES, BARCODE, BARCODE_CYCLE);
         bread = bfp.next();
         ffp = new FirecrestFileParser(DIR.getParentFile(), LANE);
         fread = ffp.next();
@@ -103,7 +112,7 @@ public class FourBaseRecaller extends CommandLineProgram {
         // learn covariance parameters
         System.err.println("Computing covariance parameters...");
 
-        bfp = OLD ? new BustardFileParser_1_1(DIR, LANE, isPaired, RUN_BARCODE) : new BustardFileParser(DIR, LANE, isPaired, RUN_BARCODE);
+        bfp = OLD ? new BustardFileParser_1_1(DIR, LANE, isPaired, RUN_BARCODE, FIRST_READ_LENGTH) : new BustardFileParser(DIR, LANE, isPaired, RUN_BARCODE, PARSE_SIG2_FILES, BARCODE, BARCODE_CYCLE);
         bread = bfp.next();
         ffp = new FirecrestFileParser(DIR.getParentFile(), LANE);
         fread = ffp.next();
@@ -141,7 +150,7 @@ public class FourBaseRecaller extends CommandLineProgram {
         SAMFileHeader sfh = new SAMFileHeader();
         SAMFileWriter sfw = new SAMFileWriterFactory().makeSAMOrBAMWriter(sfh, false, OUT);
         
-        bfp = OLD ? new BustardFileParser_1_1(DIR, LANE, isPaired, RUN_BARCODE) : new BustardFileParser(DIR, LANE, isPaired, RUN_BARCODE);
+        bfp = OLD ? new BustardFileParser_1_1(DIR, LANE, isPaired, RUN_BARCODE, FIRST_READ_LENGTH) : new BustardFileParser(DIR, LANE, isPaired, RUN_BARCODE, PARSE_SIG2_FILES, BARCODE, BARCODE_CYCLE);
         bread = bfp.next();
         ffp = new FirecrestFileParser(DIR.getParentFile(), LANE);
         fread = ffp.next();

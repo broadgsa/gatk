@@ -18,8 +18,8 @@ import org.broadinstitute.sting.utils.Pair;
 import java.io.File;
 import java.util.*;
 
-import edu.mit.broad.picard.filter.FilteringIterator;
-import edu.mit.broad.picard.filter.SamRecordFilter;
+import net.sf.picard.filter.FilteringIterator;
+import net.sf.picard.filter.SamRecordFilter;
 
 /**
  *

@@ -11,7 +11,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.playground.indels.*;
 import net.sf.samtools.*;
 
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequence;
 
 // Investigates indels called in the alignment data
 

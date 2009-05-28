@@ -9,7 +9,7 @@ import java.util.TreeSet;
 import java.util.Random;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequence;
 
 /**
  * Useful class for forwarding on locusContext data from this iterator

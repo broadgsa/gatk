@@ -15,8 +15,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Arrays;
 
-import edu.mit.broad.picard.filter.FilteringIterator;
-import edu.mit.broad.picard.filter.SamRecordFilter;
+import net.sf.picard.filter.FilteringIterator;
+import net.sf.picard.filter.SamRecordFilter;
 /**
  * User: hanna
  * Date: May 13, 2009

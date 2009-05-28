@@ -10,10 +10,10 @@
 */
 package org.broadinstitute.sting.gatk.iterators;
 
-import edu.mit.broad.picard.PicardException;
-import edu.mit.broad.picard.sam.ReservedTagConstants;
-import edu.mit.broad.picard.sam.SamFileHeaderMerger;
-import edu.mit.broad.picard.util.PeekableIterator;
+import net.sf.picard.PicardException;
+import net.sf.picard.sam.ReservedTagConstants;
+import net.sf.picard.sam.SamFileHeaderMerger;
+import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;

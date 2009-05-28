@@ -6,7 +6,7 @@ import org.broadinstitute.sting.utils.Utils;
 import java.util.List;
 import java.util.Arrays;
 
-import edu.mit.broad.picard.util.SequenceUtil;
+import net.sf.picard.util.SequenceUtil;
 
 /**
  * ReferenceOrderedDatum class to hold HapMap AlleleFrequency Data

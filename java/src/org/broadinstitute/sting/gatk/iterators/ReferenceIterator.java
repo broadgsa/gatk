@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.iterators;
 
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.RuntimeIOException;
 import net.sf.samtools.util.StringUtil;
 import org.apache.log4j.Logger;

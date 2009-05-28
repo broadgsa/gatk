@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.executive;
 
-import edu.mit.broad.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.ReferenceSequenceFile;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;

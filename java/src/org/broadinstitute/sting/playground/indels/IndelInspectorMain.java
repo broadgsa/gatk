@@ -8,11 +8,11 @@ import java.util.HashMap;
 
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import edu.mit.broad.picard.cmdline.CommandLineProgram;
-import edu.mit.broad.picard.cmdline.Option;
-import edu.mit.broad.picard.cmdline.Usage;
-import edu.mit.broad.picard.reference.ReferenceSequenceFileWalker;
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.picard.cmdline.CommandLineProgram;
+import net.sf.picard.cmdline.Option;
+import net.sf.picard.cmdline.Usage;
+import net.sf.picard.reference.ReferenceSequenceFileWalker;
+import net.sf.picard.reference.ReferenceSequence;
 
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.GenomeLoc;

@@ -8,7 +8,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMFileHeader;
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequence;
 
 import java.util.ArrayList;
 import java.util.Random;

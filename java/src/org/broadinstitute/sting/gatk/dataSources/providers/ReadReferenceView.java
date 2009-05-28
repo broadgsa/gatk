@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.dataSources.providers;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.StringUtil;
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequence;
 /**
  * User: hanna
  * Date: May 22, 2009

@@ -13,8 +13,8 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Pileup;
 import org.broadinstitute.sting.utils.xReadLines;
 
-import edu.mit.broad.picard.reference.ReferenceSequenceFile;
-import edu.mit.broad.picard.reference.ReferenceSequenceFileWalker;
+import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.ReferenceSequenceFileWalker;
 
 /**
  *  This class wraps Maq/samtools allele calls from pileup format and presents them as a ROD.<br>

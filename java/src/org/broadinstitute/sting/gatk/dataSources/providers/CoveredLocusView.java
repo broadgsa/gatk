@@ -13,7 +13,7 @@ import net.sf.samtools.SAMRecord;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import edu.mit.broad.picard.filter.FilteringIterator;
+import net.sf.picard.filter.FilteringIterator;
 /**
  * User: hanna
  * Date: May 12, 2009

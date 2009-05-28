@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils.fasta;
 
-import edu.mit.broad.picard.PicardException;
+import net.sf.picard.PicardException;
 import org.broadinstitute.sting.BaseTest;
 import org.junit.Assert;
 import org.junit.Before;

@@ -2,11 +2,11 @@ package org.broadinstitute.sting.playground.indels;
 
 import java.io.File;
 
-import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
-import edu.mit.broad.picard.reference.ReferenceSequenceFileWalker;
-import edu.mit.broad.picard.cmdline.CommandLineProgram;
-import edu.mit.broad.picard.cmdline.Option;
-import edu.mit.broad.picard.cmdline.Usage;
+import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.picard.reference.ReferenceSequenceFileWalker;
+import net.sf.picard.cmdline.CommandLineProgram;
+import net.sf.picard.cmdline.Option;
+import net.sf.picard.cmdline.Usage;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMFileReader;

@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.refdata;
 
-import edu.mit.broad.picard.util.SequenceUtil;
+import net.sf.picard.util.SequenceUtil;
 
 import java.util.*;
 

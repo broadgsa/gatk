@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.dataSources.providers;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
 /**
  * User: hanna

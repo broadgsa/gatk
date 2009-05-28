@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk;
 
-import edu.mit.broad.picard.reference.ReferenceSequenceFile;
-import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
 import org.apache.log4j.Logger;

@@ -17,7 +17,7 @@ import java.util.Formatter;
 import static java.lang.Math.log10;
 
 import edu.mit.broad.picard.genotype.DiploidGenotype;
-import edu.mit.broad.picard.PicardException;
+import net.sf.picard.PicardException;
 
 public class SomaticCoverageWalker extends LocusWalker<Integer, Integer> {
 

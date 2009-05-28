@@ -2,7 +2,8 @@
   <info organisation="org.broadinstitute" module="Sting"/>
   <dependencies>
     <dependency org="net.sf" name="sam" rev="latest.integration" />
-    <dependency org="edu.mit.broad" name="picard" rev="latest.integration" />
+    <dependency org="net.sf" name="picard" rev="latest.integration" />
+    <dependency org="edu.mit.broad" name="picard-private" rev="latest.integration" />
     <dependency org="junit" name="junit" rev="4.4" />
     <dependency org="log4j" name="log4j" rev="1.2.15" />
     <dependency org="colt" name="colt" rev="1.2.0" />

@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.shards.LocusShard;
 import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
 
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
 /**
  * User: hanna

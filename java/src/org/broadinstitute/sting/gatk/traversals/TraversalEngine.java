@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.gatk.traversals;
 
-import edu.mit.broad.picard.filter.SamRecordFilter;
-import edu.mit.broad.picard.reference.ReferenceSequence;
-import edu.mit.broad.picard.sam.SamFileHeaderMerger;
+import net.sf.picard.filter.SamRecordFilter;
+import net.sf.picard.reference.ReferenceSequence;
+import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;

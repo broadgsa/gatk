@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.utils.fasta;
 
-import edu.mit.broad.picard.reference.ReferenceSequenceFile;
-import edu.mit.broad.picard.reference.ReferenceSequence;
-import edu.mit.broad.picard.PicardException;
-import edu.mit.broad.picard.io.IoUtil;
+import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.ReferenceSequence;
+import net.sf.picard.PicardException;
+import net.sf.picard.io.IoUtil;
 
 import java.io.File;
 import java.io.FileInputStream;

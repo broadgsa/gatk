@@ -3,9 +3,9 @@ package org.broadinstitute.sting.playground;
 import net.sf.samtools.*;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.util.CloseableIterator;
-import edu.mit.broad.picard.cmdline.CommandLineProgram;
-import edu.mit.broad.picard.cmdline.Usage;
-import edu.mit.broad.picard.cmdline.Option;
+import net.sf.picard.cmdline.CommandLineProgram;
+import net.sf.picard.cmdline.Usage;
+import net.sf.picard.cmdline.Option;
 
 import java.io.*;
 

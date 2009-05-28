@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.utils.fasta;
 
-import edu.mit.broad.picard.PicardException;
-import edu.mit.broad.picard.io.IoUtil;
+import net.sf.picard.PicardException;
+import net.sf.picard.io.IoUtil;
 
 import java.util.Scanner;
 import java.util.Map;

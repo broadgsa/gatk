@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils.fasta;
 
-import edu.mit.broad.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.BaseTest;
 import org.junit.*;

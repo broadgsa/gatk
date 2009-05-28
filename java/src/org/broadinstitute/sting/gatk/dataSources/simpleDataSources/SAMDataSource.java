@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
-import edu.mit.broad.picard.sam.SamFileHeaderMerger;
+import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMReadGroupRecord;

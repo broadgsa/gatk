@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.playground.gatk;
 
 import net.sf.samtools.SAMSequenceRecord;
-import edu.mit.broad.picard.cmdline.CommandLineProgram;
-import edu.mit.broad.picard.cmdline.Usage;
-import edu.mit.broad.picard.cmdline.Option;
-import edu.mit.broad.picard.reference.ReferenceSequenceFileFactory;
-import edu.mit.broad.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.cmdline.CommandLineProgram;
+import net.sf.picard.cmdline.Usage;
+import net.sf.picard.cmdline.Option;
+import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.picard.reference.ReferenceSequenceFile;
 
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.refdata.*;

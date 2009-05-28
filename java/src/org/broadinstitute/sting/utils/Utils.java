@@ -4,7 +4,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.util.StringUtil;
-import edu.mit.broad.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.ReferenceSequenceFile;
 
 import java.util.*;
 import java.io.File;
