@@ -181,7 +181,7 @@ public class SAMDataSource implements SimpleDataSource {
      */
     private SamFileHeaderMerger createHeaderMerger() {
         List<SAMFileReader> lst = GetReaderList();
-        return new SamFileHeaderMerger(lst, SORT_ORDER);
+        return new SamFileHeaderMerger(lst, SORT_ORDER, true);
     }
 
 
