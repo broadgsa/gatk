@@ -84,14 +84,28 @@ public class LikelihoodObject {
     }
 
     /**
-     * return a byte array representation of the likelihood object, in GLFv3 specified order
+     * find the minimum likelihood value stored in the set
+     * @return
+     */
+    public int getMinimumValue() {
+        int minimum = Integer.MAX_VALUE;
+        for (int i : likelihood.values()) {
+            if (i < minimum) { minimum = i;}
+        }
+        return minimum;
+    }
+
+    /**
+     * return a byte array representation of the likelihood object, in GLFv3 specified order.
+     * The return type is short[] instead of byte[], since signed bytes only store -127 to 127,
+     * not the 255 range we need.
      * @return a byte array of the genotype values
      */
-    public int[] toByteArray() {
-        int ret[] = new int[GENOTYPE.values().length];
+    public short[] toByteArray() {
+        short ret[] = new short[GENOTYPE.values().length];
         int index = 0;
         for (GENOTYPE type : GENOTYPE.values()) {
-            ret[index] = likelihood.get(type);
+            ret[index] = (short)likelihood.get(type).intValue();
             ++index;
         }
         return ret;

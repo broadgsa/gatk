@@ -80,7 +80,7 @@ public class LikelihoodObjectTest extends BaseTest {
         assertTrue(mLO.likelihood.size() == LikelihoodObject.GENOTYPE.values().length);
 
         int index = 0;
-        int[] ret = mLO.toByteArray();
+        short[] ret = mLO.toByteArray();
         for (index = 0; index < ret.length; index++) {
             assertTrue(ray[index] == ret[index]);
         }
@@ -95,7 +95,7 @@ public class LikelihoodObjectTest extends BaseTest {
         assertTrue(mLO.likelihood.size() == LikelihoodObject.GENOTYPE.values().length);
 
         int index = 0;
-        int[] ret = mLO.toByteArray();
+        short[] ret = mLO.toByteArray();
         for (index = 0; index < ret.length; index++) {
             assertTrue(ret[index] == 128);
         }

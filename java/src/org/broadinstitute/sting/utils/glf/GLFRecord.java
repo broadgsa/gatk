@@ -40,14 +40,43 @@ public class GLFRecord {
     private String referenceSequenceName = "";
     private long referenceSequenceLength = 0;
 
+    private int currentOffset = -1;
     /**
      * The public constructor for creating a GLF object
      * @param headerText the header text (currently unclear what the contents are)
      * @param referenceSequenceName the reference sequence name
      */
-    public GLFRecord(String headerText, String referenceSequenceName) {
+    public GLFRecord(String headerText, String referenceSequenceName, int referenceSequenceLength) {
         this.headerText = headerText;
         this.referenceSequenceName = referenceSequenceName;
+        this.referenceSequenceLength = referenceSequenceLength;
+    }
+
+    public void addSNPCall(int genomicLoc, long read_depth, int rmsMapQ, LikelihoodObject lhValues) {
+        if (currentOffset >= genomicLoc) {
+            throw new IllegalArgumentException("The location supplied is less then a previous location");
+        }
+
+        // make sure the read depth isn't too large
+        if (read_depth < 0 || read_depth > 0x00FFFFFF) {
+            throw new IllegalArgumentException("The read depth is too large; must lie in the range 0 to 0x00ffffff");
+        }
+
+        // check that the rmsSquare is greater then 0, and will fit in a uint8
+        if (rmsMapQ > 0x000000FF || rmsMapQ < 0) {
+            throw new IllegalArgumentException("rms of mapping quality is too large; must lie in the range 0 to 0x000000ff");
+        }
+
+        if (lhValues == null) {
+            throw new IllegalArgumentException("likelihood object cannot be null");
+        }
+
+        SinglePointCall call = new SinglePointCall(genomicLoc - currentOffset,
+                                                   read_depth,
+                                                   rmsMapQ,
+                                                   lhValues.toByteArray(),
+                                                   (short)lhValues.getMinimumValue());
+
     }
 
     /**
@@ -84,22 +113,35 @@ interface RecordType {
         }
     };
 
+    /**
+     * write the record out to a binary codec
+     * @param out
+     */
     public void write(BinaryCodec out);
 
+    /**
+     * get the record type
+     * @return the record type
+     */
     public RECORD_TYPE getRecordType();
 
+    /**
+     * 
+     * @return
+     */
+    public int getByteSize();
 }
 
 // the second record type
-class VariableLengthGenotype implements RecordType {
-    public int offset;
-    public int min_depth;
-    public byte rmsMapQ;
-    public byte lkHom1;
-    public byte lkHom2;
-    public byte lkHet;
-    public short indelLen1;
-    public short indelLen2;
+class VariableLengthCall implements RecordType {
+    public int offset = 0;
+    public int min_depth = 0;
+    public byte rmsMapQ = 0;
+    public byte lkHom1 = 0;
+    public byte lkHom2 = 0;
+    public byte lkHet = 0;
+    public short indelLen1 = 0;
+    public short indelLen2 = 0;
     public final byte indelSeq1[];
     public final byte indelSeq2[];
 
@@ -111,7 +153,7 @@ class VariableLengthGenotype implements RecordType {
      *
      * @param in the binary codec to get data from
      */
-    VariableLengthGenotype(BinaryCodec in) {
+    VariableLengthCall(BinaryCodec in) {
         offset = in.readInt();
         min_depth = in.readInt();
         rmsMapQ = in.readByte();
@@ -146,19 +188,25 @@ class VariableLengthGenotype implements RecordType {
     public RECORD_TYPE getRecordType() {
         return RECORD_TYPE.VARIABLE;
     }
+
+    /** @return  */
+    public int getByteSize() {
+        return size;
+    }
 }
 
 
 // the first record type
-class SinglePointGenotype implements RecordType {
+class SinglePointCall implements RecordType {
     // our likelyhood array size
     public static final int LIKELYHOOD_SIZE = 10;
 
     // class fields
-    public int offset;
-    public int min_depth;
-    public byte rmsMapQ;
-    public final byte lk[] = new byte[LIKELYHOOD_SIZE];
+    public int offset = 0;
+    public Long min_depth = 0L;
+    public int rmsMapQ = 0;
+    public final short lk[] = new short[LIKELYHOOD_SIZE];
+    public short minimumLikelihood = 0;
 
     // our size, we're immutable (the size at least)
     private final int byteSize; // in bytes
@@ -171,13 +219,14 @@ class SinglePointGenotype implements RecordType {
      * @param rmsMapQ
      * @param lk
      */
-    SinglePointGenotype(int offset, int min_depth, byte rmsMapQ, byte[] lk) {
+    SinglePointCall(int offset, long min_depth, int rmsMapQ, short[] lk, short minimumLikelihood) {
         if (lk.length != LIKELYHOOD_SIZE) {
-            throw new IllegalArgumentException("SinglePointGenotype: passed in likelyhood array size != LIKELYHOOD_SIZE");
+            throw new IllegalArgumentException("SinglePointCall: passed in likelyhood array size != LIKELYHOOD_SIZE");
         }
         this.offset = offset;
         this.min_depth = min_depth;
         this.rmsMapQ = rmsMapQ;
+        this.minimumLikelihood = minimumLikelihood;
         System.arraycopy(lk, 0, this.lk, 0, LIKELYHOOD_SIZE);
         byteSize = 9 + lk.length;
     }
@@ -187,11 +236,13 @@ class SinglePointGenotype implements RecordType {
      *
      * @param in the binary codec to get data from
      */
-    SinglePointGenotype(BinaryCodec in) {
+    SinglePointCall(BinaryCodec in) {
         offset = in.readInt();
-        min_depth = in.readInt();
+        min_depth = Long.valueOf(in.readInt());
         rmsMapQ = in.readByte();
-        in.readBytes(lk);
+        for (int x = 0; x < LIKELYHOOD_SIZE; x++) {
+            lk[x] = in.readUByte();
+        }
         byteSize = 9 + lk.length;
     }
 
@@ -202,13 +253,20 @@ class SinglePointGenotype implements RecordType {
      */
     public void write(BinaryCodec out) {
         out.writeInt(offset);
-        out.writeInt(min_depth);
+        out.writeInt(min_depth.intValue());
         out.writeByte(rmsMapQ);
-        out.writeBytes(lk);
+        for (int x = 0; x < LIKELYHOOD_SIZE; x++) {
+             out.writeUByte(lk[x]);
+        }
     }
 
     public RECORD_TYPE getRecordType() {
         return RECORD_TYPE.SINGLE;
+    }
+
+    /** @return  */
+    public int getByteSize() {
+        return byteSize;
     }
 
 }

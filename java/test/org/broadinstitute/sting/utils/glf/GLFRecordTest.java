@@ -1,6 +1,10 @@
 package org.broadinstitute.sting.utils.glf;
 
 import org.junit.Test;
+import org.junit.Before;
+import net.sf.samtools.util.BinaryCodec;
+
+import java.io.File;
 
 
 /*
@@ -37,9 +41,37 @@ import org.junit.Test;
  */
 public class GLFRecordTest {
 
+    /** some made up values that we use to generate the GLF */
+    private final String header = "header";
+    private final String referenceSequenceName = "refSeq";
+    private final int refLength = 1000;
+
+    private GLFRecord rec;
+
+    @Before
+    public void before() {
+         rec = new GLFRecord(header, referenceSequenceName, refLength);
+        
+    }
+
+    /**
+     * make a fake snp
+     * @param genotype the genotype, 0-15 (AA, AT, AA, ... GG)
+     */
+    private void addFakeSNP(int genotype, int location) {
+        LikelihoodObject obj = new LikelihoodObject();
+        obj.setLikelihood(LikelihoodObject.GENOTYPE.values()[genotype],0.5f);
+        rec.addSNPCall(location,10,10,obj);
+    }
+
+
     @Test
     public void basicWrite() {
-        
+        File writeTo = new File("testGLF.glf");
+        BinaryCodec codec = new BinaryCodec(writeTo, true);
+        for (int x = 0; x < 100; x++) {
+            addFakeSNP(0,x);
+        }
     }
 
 }
