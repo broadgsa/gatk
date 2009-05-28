@@ -101,20 +101,15 @@ public class JVMUtils {
     }
 
     /**
-     * A functor returning true for classes which extend from baseClass.
+     * Is the specified class a concrete implementation of baseClass?
+     * @param clazz Class to check.
+     * @param baseClass Base class to check against.
+     * @return True if clazz implements baseClass and is not abstract / an interface.  False otherwise.
      */
-    public static class ClassFilter {
-        private Class baseClass;
-
-        public ClassFilter(Class baseClass) {
-            this.baseClass = baseClass;
-        }
-
-        public Boolean filter(Class clazz) {
-            return baseClass.isAssignableFrom(clazz) &&
-                    !Modifier.isAbstract(clazz.getModifiers()) &&
-                    !Modifier.isInterface(clazz.getModifiers());
-        }
+    public static boolean isConcreteImplementationOf( Class clazz, Class baseClass ) {
+        return baseClass.isAssignableFrom(clazz) &&
+                !Modifier.isAbstract(clazz.getModifiers()) &&
+                !Modifier.isInterface(clazz.getModifiers());
     }
 
     /**

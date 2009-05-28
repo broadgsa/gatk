@@ -3,12 +3,6 @@ package org.broadinstitute.sting.utils;
 import edu.mit.broad.picard.directed.IntervalList;
 import edu.mit.broad.picard.reference.ReferenceSequenceFile;
 import edu.mit.broad.picard.util.Interval;
-import net.sf.functionalj.Function1;
-import net.sf.functionalj.FunctionN;
-import net.sf.functionalj.Functions;
-import net.sf.functionalj.reflect.JdkStdReflect;
-import net.sf.functionalj.reflect.StdReflect;
-import net.sf.functionalj.util.Operators;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
@@ -203,23 +197,21 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
      * @param str String representation of genome locs.  Null string corresponds to no filter.
      * @return Array of GenomeLoc objects corresponding to the locations in the string, sorted by coordinate order
      */
-    public static ArrayList<GenomeLoc> parseGenomeLocs(final String str) {
+    public static List<GenomeLoc> parseGenomeLocs(final String str) {
         // Null string means no filter.
         if( str == null ) return null;
 
         // Of the form: loc1;loc2;...
         // Where each locN can be:
         // 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
-        StdReflect reflect = new JdkStdReflect();
-        FunctionN<GenomeLoc> parseOne = reflect.staticFunction(GenomeLoc.class, "parseGenomeLoc", String.class);
-        Function1<GenomeLoc, String> f1 = parseOne.f1();
         try {
-            Collection<GenomeLoc> result = Functions.map(f1, Arrays.asList(str.split(";")));
-            ArrayList<GenomeLoc> locs = new ArrayList(result);
+            List<GenomeLoc> locs = new ArrayList<GenomeLoc>();
+            for( String loc: str.split(";") )
+                locs.add( parseGenomeLoc(loc.trim()) );
             Collections.sort(locs);
             //logger.info(String.format("Going to process %d locations", locs.length));
             locs = mergeOverlappingLocations(locs);
-            logger.info("Locations are:" + Utils.join(", ", Functions.map(Operators.toString, locs)));
+            logger.info("Locations are:" + Utils.join(", ", locs));
             return locs;
         } catch (Exception e) {
             e.printStackTrace();
@@ -228,8 +220,8 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
         }
     }
 
-    public static ArrayList<GenomeLoc> mergeOverlappingLocations(final ArrayList<GenomeLoc> raw) {
-        logger.debug("  Raw locations are:\n" + Utils.join("\n", Functions.map(Operators.toString, raw)));        
+    public static List<GenomeLoc> mergeOverlappingLocations(final List<GenomeLoc> raw) {
+        logger.debug("  Raw locations are:\n" + Utils.join("\n", raw));        
         if ( raw.size() <= 1 )
             return raw;
         else {
@@ -561,11 +553,11 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
      *
      * @param file_name
      */
-    public static ArrayList<GenomeLoc> IntervalFileToList(final String file_name) {
+    public static List<GenomeLoc> IntervalFileToList(final String file_name) {
 // first try to read it as an interval file since that's well structured
         // we'll fail quickly if it's not a valid file.  Then try to parse it as
         // a location string file
-        ArrayList<GenomeLoc> ret = null;
+        List<GenomeLoc> ret = null;
         try {
             IntervalList il = IntervalList.fromFile(new File(file_name));
 

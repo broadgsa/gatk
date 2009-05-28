@@ -1,10 +1,5 @@
 package org.broadinstitute.sting.gatk;
 
-import net.sf.functionalj.reflect.StdReflect;
-import net.sf.functionalj.reflect.JdkStdReflect;
-import net.sf.functionalj.FunctionN;
-import net.sf.functionalj.Functions;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,7 +36,7 @@ public class WalkerManager {
      */
     private static Logger logger = Logger.getLogger(WalkerManager.class);
 
-    private Map<String, Class> walkers;
+    private Map<String, Class<? extends Walker>> walkersByName;
 
     public WalkerManager(String pluginDirectory) {
         try {
@@ -67,12 +62,12 @@ public class WalkerManager {
                 }
             }
 
-            walkerCandidates = filterWalkers(walkerCandidates);
+            List<Class<? extends Walker>> walkers = filterWalkers(walkerCandidates);
 
             if (walkerCandidates.isEmpty())
                 throw new RuntimeException("No walkers were found.");
 
-            walkers = createWalkerDatabase(walkerCandidates);
+            walkersByName = createWalkerDatabase(walkers);
         }
         // IOExceptions here are suspect; they indicate that the WalkerManager can't open its containing jar.
         // Wrap in a RuntimeException.
@@ -88,7 +83,7 @@ public class WalkerManager {
      * @return True if the walker exists, false otherwise.
      */
     public boolean doesWalkerExist(String walkerName) {
-        return walkers.containsKey(walkerName);
+        return walkersByName.containsKey(walkerName);
     }
 
     /**
@@ -99,8 +94,8 @@ public class WalkerManager {
      */
     public Walker createWalkerByName(String walkerName)
             throws InstantiationException, IllegalAccessException {
-        Class walker = walkers.get(walkerName);
-        return (Walker) walker.newInstance();
+        Class<? extends Walker> walker = walkersByName.get(walkerName);
+        return walker.newInstance();
     }
 
     /**
@@ -109,7 +104,7 @@ public class WalkerManager {
      * @return Class representing the walker.
      */
     public Class getWalkerClassByName(String walkerName) {
-        return walkers.get(walkerName);
+        return walkersByName.get(walkerName);
     }
 
     /**
@@ -213,10 +208,13 @@ public class WalkerManager {
      * @param classes Arbitrary list of classes.
      * @return List of classes extending from Walker.
      */
-    private List<Class> filterWalkers(List<Class> classes) {
-        StdReflect reflect = new JdkStdReflect();
-        FunctionN<Boolean> filterFunc = reflect.instanceFunction(new JVMUtils.ClassFilter(Walker.class), "filter", Class.class);
-        return Functions.findAll(filterFunc.f1(), classes);
+    private List<Class<? extends Walker>> filterWalkers(List<Class> classes) {
+        List<Class<? extends Walker>> walkerClasses = new ArrayList<Class<? extends Walker>>();
+        for( Class clazz: classes ) {
+            if( JVMUtils.isConcreteImplementationOf(clazz,Walker.class) )
+                walkerClasses.add( (Class<? extends Walker>)clazz );
+        }
+        return walkerClasses;
     }
 
     /**
@@ -225,10 +223,10 @@ public class WalkerManager {
      * @param walkerClasses Classes to instantiate.
      * @return map of walker name to walker.
      */
-    private Map<String, Class> createWalkerDatabase(List<Class> walkerClasses) {
-        Map<String, Class> walkers = new HashMap<String, Class>();
+    private Map<String, Class<? extends Walker>> createWalkerDatabase(List<Class<? extends Walker>> walkerClasses) {
+        Map<String, Class<? extends Walker>> walkers = new HashMap<String, Class<? extends Walker>>();
 
-        for (Class<Walker> walkerClass : walkerClasses) {
+        for (Class<? extends Walker> walkerClass : walkerClasses) {
             String walkerName = getWalkerName(walkerClass);
             logger.info(String.format("* Adding module %s", walkerName));
             walkers.put(walkerName, walkerClass);
