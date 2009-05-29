@@ -406,6 +406,35 @@ public class Utils {
     }
 
 
+    /** Returns indices of all occurrences of the specified symbol in the string */
+    public static int[] indexOfAll(String s, int ch) {
+    	int[] pos = new int[64];
+    	int z = 0;
+    	
+    	for ( int i = 0 ; i < s.length() ; i++ ) {
+    		if ( s.charAt(i) == ch ) pos[z++] = i; 
+    	}
+    	return reallocate(pos,z);
+    }
+    
+    /** Returns new (reallocated) integer array of the specified size, with content
+     * of the original array <code>orig</code> copied into it. If <code>newSize</code> is
+     * less than the size of the original array, only first <code>newSize</code> elements will be copied.
+     * If new size is greater than the size of the original array, the content of the original array will be padded
+     * with zeros up to the new size. Finally, if new size is the same as original size, no memory reallocation 
+     * will be performed and the original array will be returned instead. 
+     * @param orig
+     * @param newSize
+     * @return
+     */
+    public static int[] reallocate(int[] orig, int newSize) {
+    	if ( orig.length == newSize ) return orig;
+    	int[] new_array = new int[newSize];
+    	int L = ( newSize > orig.length ? orig.length : newSize );
+    	for ( int i = 0 ; i < L ; i++ ) new_array[i] = orig[i];
+    	return new_array;
+    }
+    
     /* TEST ME
     public static void main(String[] argv) {
         List<Integer> l1 = new LinkedList<Integer>();
