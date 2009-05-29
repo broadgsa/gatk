@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import net.sf.picard.filter.SamRecordFilter;
+import net.sf.picard.filter.FilteringIterator;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.SAMFileHeader;
@@ -75,7 +76,7 @@ public abstract class TraversalEngine {
     protected long N_RECORDS_TO_PRINT = 100000;
     protected boolean THREADED_IO = false;
     protected int THREADED_IO_BUFFER_SIZE = 10000;
-
+    protected boolean filterZeroMappingQualityReads = false;
 
 
     // the stored header
@@ -122,6 +123,10 @@ public abstract class TraversalEngine {
 
     public void setMaxReads(final int maxReads) {
         this.maxReads = maxReads;
+    }
+
+    public void setFilterZeroMappingQualityReads(final boolean filterZeroMappingQualityReads) {
+        this.filterZeroMappingQualityReads = filterZeroMappingQualityReads;
     }
 
     public void setThreadedIO(final boolean threadedIO) {
@@ -387,6 +392,7 @@ public abstract class TraversalEngine {
                                         wrappedIterator,
                                         DOWNSAMPLE_BY_FRACTION ? downsamplingFraction : null,
                                         SORT_ON_FLY ? maxOnFlySorts : null,
+                                        filterZeroMappingQualityReads,
                                         beSafeP);
     }
 
@@ -398,6 +404,7 @@ public abstract class TraversalEngine {
                                                             StingSAMIterator wrappedIterator,
                                                             Double downsamplingFraction,
                                                             Integer maxOnFlySorts,
+                                                            Boolean filterZeroMappingQualityReads, 
                                                             Boolean beSafeP) {
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away
@@ -409,7 +416,23 @@ public abstract class TraversalEngine {
 
         if (beSafeP != null && beSafeP && enableVerification)
             wrappedIterator = new VerifyingSamIterator(wrappedIterator);
+
+        if ( filterZeroMappingQualityReads )
+            wrappedIterator = StingSAMIteratorAdapter.adapt(wrappedIterator.getSourceInfo(),
+                                                            new FilteringIterator(wrappedIterator, new ZeroMappingQualityReadFilterFunc()));
+
         return wrappedIterator;
+    }
+
+    private static class ZeroMappingQualityReadFilterFunc implements SamRecordFilter {
+        public boolean filterOut(SAMRecord rec) {
+            if (rec.getMappingQuality() == 0) {
+                //System.out.printf("Filtering 0 mapping quality read %s%n", rec.format());
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 
     protected SAMFileReader initializeSAMFile(File samFile) {

@@ -22,6 +22,10 @@ import java.util.EnumMap;
 public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     @Argument(shortName="minDiscoveryQ", doc="Phred-scaled minimum LOD to consider an evaluation SNP a variant", required=false)
     public int minDiscoveryQ = -1;
+
+    @Argument(shortName="printVariants", doc="If true, prints the variants in all of the variant tracks that are examined", required=false)
+    public boolean printVariants = false;
+
     int nBasesCovered = 0;
     VariantDBCoverage dbSNPStats = new VariantDBCoverage("dbSNP");
 
@@ -51,8 +55,16 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         AllelicVariant dbsnp = (AllelicVariant)tracker.lookup("dbSNP", null);
         AllelicVariant eval = (AllelicVariant)tracker.lookup("eval", null);
 
-        //if ( eval != null || dbsnp != null )
-        //    System.out.printf("%s has: %nDBSNP: %s%nEVAL:%s%n", context.getLocation(), dbsnp, eval);
+        if ( printVariants && ( eval != null || dbsnp != null ) ) {
+            String matchFlag = "    ";
+            if ( eval != null && dbsnp != null ) matchFlag = "*** ";
+            if ( eval == null && dbsnp != null ) matchFlag = ">>> ";
+            if ( eval != null && dbsnp == null ) matchFlag = "<<< ";
+
+            System.out.printf("%sDBSNP: %s%n%sEVAL:%s%n",
+                    matchFlag, dbsnp,
+                    matchFlag, eval);
+        }
 
         if ( eval != null && eval.isSNP() && eval.getVariationConfidence() >= minDiscoveryQ ) {
             //System.out.printf("%s has: %nDBSNP: %s%nEVAL:%s%n", context.getLocation(), dbsnp, eval);

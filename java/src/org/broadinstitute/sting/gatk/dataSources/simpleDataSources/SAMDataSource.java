@@ -147,6 +147,7 @@ public class SAMDataSource implements SimpleDataSource {
                     iterator,
                     reads.getDownsamplingFraction(),
                     reads.getMaxOnTheFlySorts(),
+                    reads.getFilterZeroMappingQualityReads(),
                     reads.getSafetyChecking());
         } else if (shard.getShardType() == Shard.ShardType.LOCUS ||
                    shard.getShardType() == Shard.ShardType.INTERVAL) {
@@ -155,6 +156,7 @@ public class SAMDataSource implements SimpleDataSource {
                     iterator,
                     reads.getDownsamplingFraction(),
                     reads.getMaxOnTheFlySorts(),
+                    reads.getFilterZeroMappingQualityReads(),
                     reads.getSafetyChecking());
         }
         else {

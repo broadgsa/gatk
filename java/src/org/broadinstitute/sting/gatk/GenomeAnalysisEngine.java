@@ -195,6 +195,7 @@ public class GenomeAnalysisEngine {
         engine.setStrictness(strictness);
 
         engine.setMaxReads(Integer.parseInt(argCollection.maximumReads));
+        engine.setFilterZeroMappingQualityReads(argCollection.filterZeroMappingQualityReads);
 
         // we default interval files over the genome region string
         if (argCollection.intervals != null) {

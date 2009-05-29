@@ -30,6 +30,7 @@ public class Reads {
     private Integer downsampleToCoverage = null;
     private Integer maxOnFlySorts = null;
     private Boolean beSafe = null;
+    private Boolean filterZeroMappingQualityReads = null;
 
     /**
      * Gets a list of the files acting as sources of reads.
@@ -71,6 +72,10 @@ public class Reads {
         return beSafe;
     }
 
+    public Boolean getFilterZeroMappingQualityReads() {
+        return filterZeroMappingQualityReads;
+    }
+
     /**
      * Simple constructor for unit testing.
      * @param readsFiles List of reads files to open.
@@ -90,6 +95,7 @@ public class Reads {
         if (arguments.downsampleFraction != null) downsamplingFraction = arguments.downsampleFraction;
         if (arguments.downsampleCoverage != null) downsampleToCoverage = arguments.downsampleCoverage;
         if (arguments.maximumReadSorts != null) maxOnFlySorts = arguments.maximumReadSorts;
+        if (arguments.filterZeroMappingQualityReads != null) filterZeroMappingQualityReads = arguments.filterZeroMappingQualityReads;
         beSafe = !arguments.unsafe;
     }
 }
