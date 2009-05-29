@@ -103,6 +103,7 @@ public class rodRefSeq extends BasicReferenceOrderedDatum {
 	}
 
 	public static Iterator<rodRefSeq> createIterator(String trackName, File f) throws IOException {
+//		System.out.println("REFSEQ ITERATOR CREATED");
 		return new refSeqIterator(trackName,f);
 	}
 	
@@ -116,11 +117,14 @@ class refSeqIterator implements Iterator<rodRefSeq> {
 	private List<Transcript> records; // will keep the list of all transcripts overlapping with the current position
 	private PushbackIterator<Transcript> reader;
 	private String name = null;
+//	private long z = 0; // counter, for debugging only
+//	private long t = 0; // for debug timer only
 	
 	public refSeqIterator(String trackName, File f) throws IOException {
 		reader = new PushbackIterator<Transcript>( new refSeqRecordIterator(f) );
 		records = new LinkedList<Transcript>();
 		name = trackName;
+//		System.out.println("REFSEQ ITERATOR CONSTRUCTOR");
 	}
 
 	@Override
@@ -135,6 +139,7 @@ class refSeqIterator implements Iterator<rodRefSeq> {
 
 	@Override
 	public rodRefSeq next() {
+//		if ( z == 0 ) t = System.currentTimeMillis();
 		curr_position++;
 		if ( curr_position <= max_position ) { 
 			// we still have bases covered by at least one currently loaded transcript;
@@ -178,6 +183,10 @@ class refSeqIterator implements Iterator<rodRefSeq> {
 		// 'records' and current position are fully updated. We can now create new rod and return it (NOTE: this iterator will break if the list
 		// of pre-loaded records is meddled with by the clients between iterations, so we return them as unmodifiable list)
 		rodRefSeq rod = new rodRefSeq(name,new GenomeLoc(curr_contig_name,curr_position, curr_position),Collections.unmodifiableList(records));
+//		if ( (++z) % 1000000 == 0 ) {
+//			System.out.println(rod.getLocation()+": holding "+records.size()+ "; time per 1M ref positions: "+((double)(System.currentTimeMillis()-t)/1000.0)+" s");
+//			z = 0;
+//		}
 		return rod;
 	}
 
