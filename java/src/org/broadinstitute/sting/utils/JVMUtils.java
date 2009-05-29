@@ -40,6 +40,9 @@ public class JVMUtils {
             // a URISyntaxException here must be an IO error; wrap as such.
             throw new IOException(ex);
         }
+        catch ( NullPointerException ne ) {
+        	throw new IOException("Can not extract code source location for "+clazz.getName());
+        }
     }
 
     /**
