@@ -1,5 +1,5 @@
 
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.ComparableSAMRecord;

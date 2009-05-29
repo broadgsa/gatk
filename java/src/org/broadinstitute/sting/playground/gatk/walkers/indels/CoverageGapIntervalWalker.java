@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.refdata.*;
@@ -6,7 +6,6 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.*;
 

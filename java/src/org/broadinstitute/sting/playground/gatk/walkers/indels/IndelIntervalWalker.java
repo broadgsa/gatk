@@ -1,6 +1,5 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
-import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.cmdLine.Argument;

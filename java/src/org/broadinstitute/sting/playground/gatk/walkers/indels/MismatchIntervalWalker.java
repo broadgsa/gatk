@@ -1,5 +1,5 @@
 
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.refdata.*;
