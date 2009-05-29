@@ -9,11 +9,13 @@ import org.broadinstitute.sting.gatk.OutputTracker;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.JMException;
 import java.io.File;
 import java.util.List;
 import java.util.Queue;
@@ -22,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+import java.lang.management.ManagementFactory;
 
 /**
  * Created by IntelliJ IDEA.
@@ -35,7 +38,7 @@ import java.util.concurrent.FutureTask;
  * A microscheduler that schedules shards according to a tree-like structure.
  * Requires a special walker tagged with a 'TreeReducible' interface.
  */
-public class HierarchicalMicroScheduler extends MicroScheduler implements ReduceTree.TreeReduceNotifier {
+public class HierarchicalMicroScheduler extends MicroScheduler implements HierarchicalMicroSchedulerMBean, ReduceTree.TreeReduceNotifier {
     /**
      * How many outstanding output merges are allowed before the scheduler stops
      * allowing new processes and starts merging flat-out.
@@ -52,6 +55,36 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
     private Queue<OutputMerger> outputMergeTasks = new LinkedList<OutputMerger>();
 
     /**
+     * How many total tasks were in the queue at the start of run.
+     */
+    private int totalTraversals = 0;    
+
+    /**
+     * How many shard traversals have run to date?
+     */
+    private int totalCompletedTraversals = 0;
+
+    /**
+     * What is the total time spent traversing shards?
+     */
+    private long totalShardTraverseTime = 0;
+
+    /**
+     * What is the total time spent tree reducing shard output?
+     */
+    private long totalTreeReduceTime = 0;
+
+    /**
+     * How many tree reduces have been completed?
+     */
+    private long totalCompletedTreeReduces = 0;
+
+    /**
+     * What is the total time spent merging output?
+     */
+    private long totalOutputMergeTime = 0;
+
+    /**
      * Create a new hierarchical microscheduler to process the given reads and reference.
      * @param reads Reads file(s) to process.
      * @param refFile Reference for driving the traversal.
@@ -60,6 +93,15 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
     protected HierarchicalMicroScheduler( Walker walker, Reads reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods, int nThreadsToUse ) {
         super( walker, reads, refFile, rods );
         this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
+
+        try {
+            MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+            ObjectName name = new ObjectName("org.broadinstitute.sting.gatk.executive:type=HierarchicalMicroScheduler");
+            mbs.registerMBean(this,name);
+        }
+        catch( JMException ex ) {
+            throw new StingException("Unable to register microscheduler with JMX", ex);
+        }
     }
 
     public Object execute( Walker walker, GenomeLocSortedSet intervals ) {
@@ -74,6 +116,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         
         for(Shard shard: shardStrategy)
             traverseTasks.add(shard);
+        totalTraversals = traverseTasks.size();
 
         while( isShardTraversePending() || isTreeReducePending() ) {
             // Too many files sitting around taking up space?  Merge them.
@@ -178,15 +221,23 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
      * the final data streams.
      */
     protected void mergeExistingOutput() {
+        long startTime = System.currentTimeMillis();
+
         OutputTracker outputTracker = GenomeAnalysisEngine.instance.getOutputTracker();
         while( isOutputMergeReady() )
             outputMergeTasks.remove().mergeInto( outputTracker.getGlobalOutStream(), outputTracker.getGlobalErrStream() );
+
+        long endTime = System.currentTimeMillis();
+
+        totalOutputMergeTime += (endTime - startTime);
     }
 
     /**
      * Merge any output that hasn't yet been taken care of by the blocking thread.
      */
     protected void mergeRemainingOutput() {
+        long startTime = System.currentTimeMillis();
+
         OutputTracker outputTracker = GenomeAnalysisEngine.instance.getOutputTracker();
         while( outputMergeTasks.size() > 0 ) {
             OutputMerger outputMerger = outputMergeTasks.remove();
@@ -196,6 +247,10 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
             }
             outputMerger.mergeInto( outputTracker.getGlobalOutStream(), outputTracker.getGlobalErrStream() );            
         }
+
+        long endTime = System.currentTimeMillis();
+
+        totalOutputMergeTime += (endTime - startTime);
     }
 
     /**
@@ -210,7 +265,8 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         Shard shard = traverseTasks.remove();
         OutputMerger outputMerger = new OutputMerger();
 
-        ShardTraverser traverser = new ShardTraverser( getTraversalEngine(),
+        ShardTraverser traverser = new ShardTraverser( this,
+                                                       getTraversalEngine(),
                                                        walker,
                                                        shard,
                                                        getShardDataProvider(shard),
@@ -258,7 +314,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
      * @return A new, composite future of the result of this reduce.
      */
     public Future notifyReduce( Future lhs, Future rhs ) {
-        TreeReduceTask reducer = new TreeReduceTask( new TreeReducer( lhs, rhs ) );
+        TreeReduceTask reducer = new TreeReduceTask( new TreeReducer( this, lhs, rhs ) );
         reduceTasks.add(reducer);
         return reducer; 
     }
@@ -284,5 +340,89 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         }
     }
 
+    /**
+     * Used by the ShardTraverser to report time consumed traversing a given shard.
+     * @param shardTraversalTime Elapsed time traversing a given shard.
+     */
+    synchronized void reportShardTraverseTime( long shardTraversalTime ) {
+        totalShardTraverseTime += shardTraversalTime;
+        totalCompletedTraversals++;
+    }
 
+    /**
+     * Used by the TreeReducer to report time consumed reducing two shards.
+     * @param treeReduceTime Elapsed time reducing two shards.
+     */
+    synchronized void reportTreeReduceTime( long treeReduceTime ) {
+        totalTreeReduceTime += treeReduceTime;
+        totalCompletedTreeReduces++;
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int getTotalNumberOfShards() {
+        return totalTraversals;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int getRemainingNumberOfShards() {
+        return traverseTasks.size();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int getNumberOfTasksInReduceQueue() {
+        return reduceTasks.size();        
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int getNumberOfTasksInIOQueue() {
+        return outputMergeTasks.size();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public long getTotalShardTraverseTimeMillis() {
+        return totalShardTraverseTime;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public long getAvgShardTraverseTimeMillis() {
+        if( totalCompletedTraversals == 0 )
+            return 0;
+        return totalShardTraverseTime / totalCompletedTraversals;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public long getTotalTreeReduceTimeMillis() {
+        return totalTreeReduceTime;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public long getAvgTreeReduceTimeMillis() {
+        if( totalCompletedTreeReduces == 0 )
+            return 0;
+        return totalTreeReduceTime / totalCompletedTreeReduces;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public long getTotalOutputMergeTimeMillis() {
+        return totalOutputMergeTime;
+    }
 }

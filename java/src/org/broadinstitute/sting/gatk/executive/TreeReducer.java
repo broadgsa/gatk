@@ -24,24 +24,28 @@ import java.util.concurrent.ExecutionException;
  * interface to force the reduce.
  */
 public class TreeReducer implements Callable {
+    private HierarchicalMicroScheduler microScheduler;
     private TreeReducible walker;
     private final Future lhs;
     private final Future rhs;
 
     /**
      * Create a one-sided reduce.  Result will be a simple pass-through of the result.
+     * @param microScheduler The parent hierarchical microscheduler for this reducer.
      * @param lhs The one side of the reduce.
      */
-    public TreeReducer( Future lhs ) {
-        this( lhs, null );
+    public TreeReducer( HierarchicalMicroScheduler microScheduler, Future lhs ) {
+        this( microScheduler, lhs, null );
     }
 
     /**
      * Create a full tree reduce.  Combine this two results using an unspecified walker at some point in the future.
+     * @param microScheduler The parent hierarchical microscheduler for this reducer.
      * @param lhs Left-hand side of the reduce.
      * @param rhs Right-hand side of the reduce.
      */
-    public TreeReducer( Future lhs, Future rhs ) {
+    public TreeReducer( HierarchicalMicroScheduler microScheduler, Future lhs, Future rhs ) {
+        this.microScheduler = microScheduler;
         this.lhs = lhs;
         this.rhs = rhs;
     }
@@ -73,11 +77,15 @@ public class TreeReducer implements Callable {
      * @return Result of the reduce.
      */
     public Object call() {
+        Object result = null;
+
+        long startTime = System.currentTimeMillis();
+
         try {
             if( lhs == null )
-                return lhs.get();
+                result = lhs.get();
             else
-                return walker.treeReduce( lhs.get(), rhs.get() );
+                result = walker.treeReduce( lhs.get(), rhs.get() );
         }
         catch( InterruptedException ex ) {
             throw new RuntimeException("Hierarchical reduce interrupted", ex);
@@ -85,6 +93,12 @@ public class TreeReducer implements Callable {
         catch( ExecutionException ex ) {
             throw new RuntimeException("Hierarchical reduce failed", ex);
         }
+
+        long endTime = System.currentTimeMillis();
+
+        microScheduler.reportTreeReduceTime( endTime - startTime );
+
+        return result;
     }
 }
 

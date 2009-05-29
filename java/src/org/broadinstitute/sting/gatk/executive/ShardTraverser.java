@@ -24,17 +24,20 @@ import java.util.concurrent.Callable;
  * Carries the walker over a given shard, in a callable interface.
  */
 public class ShardTraverser implements Callable {
+    private HierarchicalMicroScheduler microScheduler;
     private Walker walker;
     private TraversalEngine traversalEngine;
     private Shard shard;
     private ShardDataProvider dataProvider;
     private OutputMerger output;
 
-    public ShardTraverser( TraversalEngine traversalEngine,
+    public ShardTraverser( HierarchicalMicroScheduler microScheduler,
+                           TraversalEngine traversalEngine,
                            Walker walker,
                            Shard shard,
                            ShardDataProvider dataProvider,
                            OutputMerger output ) {
+        this.microScheduler = microScheduler;
         this.walker = walker;
         this.traversalEngine = traversalEngine;
         this.shard = shard;
@@ -43,6 +46,8 @@ public class ShardTraverser implements Callable {
     }
 
     public Object call() {
+        long startTime = System.currentTimeMillis(); 
+
         Object accumulator = walker.reduceInit();
         OutputTracker outputTracker = GenomeAnalysisEngine.instance.getOutputTracker();
         outputTracker.setLocalStreams( output.getOutStream(), output.getErrStream() );
@@ -55,6 +60,10 @@ public class ShardTraverser implements Callable {
             output.complete();
             outputTracker.cleanup();            
         }
+
+        long endTime = System.currentTimeMillis();
+
+        microScheduler.reportShardTraverseTime(endTime-startTime);
 
         return accumulator;
     }
