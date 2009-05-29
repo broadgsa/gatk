@@ -6,14 +6,11 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
-import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
-import org.broadinstitute.sting.secondarybase.BasecallingReadModel;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Pileup;
 import org.broadinstitute.sting.utils.xReadLines;
 
-import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileWalker;
 
 /**
@@ -68,6 +65,7 @@ class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
     protected double consensusScore = 0;
     protected double variantScore = 0;
 
+    private char fldDelim = '\t'; 
     private String name = emptyStr;
     // ----------------------------------------------------------------------
     //
@@ -78,6 +76,76 @@ class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
     	this.name = name; // keeps track name
    }
 
+   public boolean parseLine(final String line) {
+//       0          1             2         3                  4         5            6         7
+//*     chrX     466           T         Y                170      170       88      32 ... (piles of read bases  and quals follow)
+//*    chrX    141444     *     +CA/+CA       32       468     255     25     +CA     *       5       2       12      6
+	   try {
+	
+		   int[] pos = Utils.indexOfAll(line, fldDelim );
+		   String contig = line.substring(0,pos[0] ); // field 0
+		   long start = Long.parseLong(line.substring(pos[0]+1, pos[1])) ; // field 1 
+
+		   refBaseChar = Character.toUpperCase(line.charAt(pos[1]+1)); // field 2 ( single char)
+
+		   observedString = line.substring(pos[2]+1, pos[3]).toUpperCase(); // field 3
+		   observedAlleles = new ArrayList<String>(2);
+
+		   consensusScore = Double.parseDouble(line.substring(pos[3]+1,pos[4]));
+		   variantScore = Double.parseDouble(line.substring(pos[4]+1, pos[5]));
+
+		   if ( refBaseChar == '*' ) {
+ 	
+			   parseIndels(observedString) ;
+			   if ( varType == DELETION_VARIANT ) loc = new GenomeLoc(contig, start, start+eventLength-1);
+			   else loc = new GenomeLoc(contig, start, start-1); // if it's not a deletion and we are biallelic, this got to be an insertion; otherwise the state is inconsistent!!!!
+		   } else {
+			   parseBasesAndQuals(line,pos[7]+1,pos[8], pos[8]+1, ( pos.length > 9 ? pos[9] : line.length()) );
+//			   parseBasesAndQuals(line.substring(pos[7]+1,pos[8]), line.substring(pos[8]+1, ( pos.length > 9 ? pos[9] : line.length()) ) );
+			   // if the variant is a SNP or a reference base (i.e. no variant at all)
+			   if ( observedString.length() != 1 ) throw new RuntimeException( "point mutation genotype is expected to be represented by a single letter");
+     
+			   refBases = line.substring(pos[1]+1, pos[2]).toUpperCase();
+			   eventLength = 1;
+			   //loc = new GenomeLoc(contig, start, start+1);
+			   loc = new GenomeLoc(contig, start, start);
+
+			   char ch = observedString.charAt(0);
+
+			   switch ( ch ) {
+			   case 'A': observedAlleles.add(baseA); observedAlleles.add(baseA); break;
+			   case 'C': observedAlleles.add(baseC); observedAlleles.add(baseC); break;
+			   case 'G': observedAlleles.add(baseG); observedAlleles.add(baseG); break;
+			   case 'T': observedAlleles.add(baseT); observedAlleles.add(baseT); break;
+			   case 'M': observedAlleles.add(baseA); observedAlleles.add(baseC); break;
+			   case 'R': observedAlleles.add(baseA); observedAlleles.add(baseG); break;
+			   case 'W': observedAlleles.add(baseA); observedAlleles.add(baseT); break;
+			   case 'S': observedAlleles.add(baseC); observedAlleles.add(baseG); break;
+			   case 'Y': observedAlleles.add(baseC); observedAlleles.add(baseT); break;
+			   case 'K': observedAlleles.add(baseG); observedAlleles.add(baseT); break;
+			   }
+			   if ( observedAlleles.get(0).charAt(0) == refBaseChar && observedAlleles.get(1).charAt(0) == refBaseChar ) varType = NO_VARIANT;
+			   else {
+				   // 	we know that at least one allele is non-ref;
+				   // if one is ref and the other is non-ref, or if both are non ref but they are the same (i.e.
+				   // homozygous non-ref), we still have 2 allelic variants at the site (e.g. one ref and one nonref)
+				   varType = SNP_VARIANT;
+				   if ( observedAlleles.get(0).charAt(0) == refBaseChar ||
+						   observedAlleles.get(1).charAt(0) == refBaseChar ||
+						   observedAlleles.get(0) == observedAlleles.get(1)
+				   ) nNonref = 1;
+				   else nNonref = 2; // if both observations differ from ref and they are not equal to one another, then we get multiallelic site...
+			   }
+		   }
+	   } catch ( RuntimeException e ) {
+		   System.out.printf("  Exception caught during parsing BasicPileup line: %s%n", line);
+		   throw e;
+	   }
+	   return true;
+	   //      	if ( nNonref > 1 ) System.out.println("SAM pileup: WARNING: multi-allelic variant :  ("+refBaseChar+") -->"+toMediumString());
+   }
+
+   
     /** Parses a line from SAM pileup file into this SAMPileupRecord object.. 
      * @param parts line from SAM pileup file, split on delimiter character (tab)
      */
@@ -257,6 +325,62 @@ class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
         pileupQuals = qualBuilder.toString();
     }
 
+    private void parseBasesAndQuals(final String line, int basesStart, int basesStop, int qualsStart, int qualsStop)
+    {
+        //System.out.printf("%s%n%s%n", bases, quals);
+
+        // needs to convert the base string with it's . and , to the ref base
+        StringBuilder baseBuilder = new StringBuilder();
+        StringBuilder qualBuilder = new StringBuilder();
+        boolean done = false;
+        for ( int i = basesStart, j = qualsStart; i < basesStop && ! done; i++ ) {
+            //System.out.printf("%d %d%n", i, j);
+            char c = (char)line.charAt(i);
+
+            switch ( c ) {
+                case '.':   // matches reference
+                case ',':   // matches reference
+                    baseBuilder.append(refBaseChar);
+                    qualBuilder.append((char)line.charAt(j++));
+                    break;
+                case '$':   // end of read
+                    break;
+                case '*':   // end of indel?
+                    j++;
+                    break;
+                case '^':   // mapping quality
+                    i++;
+                    break;
+                case '+':   // start of indel
+                case '-':   // start of indel
+                    final Pattern regex = Pattern.compile("([0-9]+).*");             // matches case 1
+                    final String rest = line.substring(i+1,basesStop);
+                    //System.out.printf("sub is %s%n", rest);
+                    Matcher match = regex.matcher(rest);
+                    if ( ! match.matches() ) {
+                        if ( refBaseChar != '*' )
+                            throw new RuntimeException("Bad pileup format: " + line.substring(basesStart, basesStop) + " at position " + (i-basesStart));
+                        done = true;
+                    }
+                    else {
+                        String g = match.group(1);
+                        //System.out.printf("group is %d, match is %s%n", match.groupCount(), g);
+                        int l = Integer.parseInt(g);
+                        i += l + g.length();    // length of number + that many bases + +/- at the start (included in the next i++)
+                        //System.out.printf("remaining is %d => %s%n", l, bases.substring(i+1));
+                    }
+                    break;
+                default:   // non reference base
+                    baseBuilder.append(c);
+                    qualBuilder.append((char)line.charAt(j++));
+            }
+        }
+        
+        pileupBases = baseBuilder.toString();
+        pileupQuals = qualBuilder.toString();
+    }
+
+    
     public GenomeLoc getLocation()  { return loc; }
     public String getQuals()        { return pileupQuals; }
     
@@ -432,10 +556,13 @@ class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
 	}
 
 	protected static class pileupFileIterator implements Iterator<SAMPileupRecord> {
-		private String fieldDelimiter = new String("\t");
+//		private String fieldDelimiter = new String("\t");
 		private String rodName = null;
 		private xReadLines parser = null;
 		private String lastProcessedLine = null;
+		
+//		private long z = 0;
+//		private long t = 0;
 		
 		pileupFileIterator(String name, java.io.File f) {
 			try {
@@ -453,12 +580,15 @@ class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
 
 		@Override
 		public SAMPileupRecord next() {
+//			 if ( z == 0 ) t = System.currentTimeMillis();
 	          lastProcessedLine = parser.next();
-	           //System.out.printf("Line is %s%n", line);
-	          String parts[] = lastProcessedLine.split(fieldDelimiter);
 	          SAMPileupRecord n = new SAMPileupRecord(rodName);
-	          n.parseLine(parts);
+	           //System.out.printf("Line is %s%n", line);
+//	          String parts[] = lastProcessedLine.split(fieldDelimiter);
+//	          n.parseLine(parts);
 
+	          n.parseLine(lastProcessedLine);
+//	          if ( ++z == 1000000 ) { System.out.println(rodName + ": 1,000,000 records read in "+((double)(System.currentTimeMillis()-t)/1000.0) +" s");  z = 0; }
 	          return n ;
 		}
 

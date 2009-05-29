@@ -100,6 +100,7 @@ public class rodSAMPileup extends BasicReferenceOrderedDatum implements Genotype
 		//private xReadLines parser = null;
 		private String rodName = null;
 		private PushbackIterator<SAMPileupRecord> parser = null;
+		private long line = 0;
 		
 		rodSAMPileupIterator(String name, java.io.File f) {
 			parser = new PushbackIterator<SAMPileupRecord>(SAMPileupRecord.createIterator(name,f));
@@ -117,7 +118,8 @@ public class rodSAMPileup extends BasicReferenceOrderedDatum implements Genotype
 			rodSAMPileup result = new rodSAMPileup(rodName);
 			
 			SAMPileupRecord r = parser.next();
-			//System.out.printf("Line is %s%n", line);
+			
+	//		if ( (++line)%10000 == 0 ) System.out.printf("%s: record is %d (%s)%n", rodName, line,r.getLocation().toString());
 
 			if ( r.isPointGenotype() ) result.pointGenotype = r;
 			else result.indelGenotype = r;
