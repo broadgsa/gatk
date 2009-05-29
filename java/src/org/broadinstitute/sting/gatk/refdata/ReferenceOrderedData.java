@@ -299,7 +299,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
 
     public class RODIterator implements Iterator<ROD> {
         private PushbackIterator<ROD> it;
-        private ROD prev = null;
+        private GenomeLoc position = null;
         
         public RODIterator(Iterator<ROD> it) {
             this.it = new PushbackIterator<ROD>(it);
@@ -307,8 +307,9 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
 
         public boolean hasNext() { return it.hasNext(); }
         public ROD next() {
-            prev = it.next();
-            return prev; 
+            ROD next = it.next();
+            position = next.getLocation().clone();
+            return next; 
         }
 
         /**
@@ -316,9 +317,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
          * @return Current position of the iterator, or null if no position exists.
          */
         public GenomeLoc position() {
-            if( prev != null )
-                return prev.getLocation();
-            return null;
+            return position;
         }
 
         /**
@@ -334,7 +333,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         
             ROD result = null;
             
-            if ( DEBUG ) System.out.printf("  *** starting seek to %s %d %s%n", loc.getContig(), loc.getStart(), prev);
+            if ( DEBUG ) System.out.printf("  *** starting seek to %s %d%n", loc.getContig(), loc.getStart());
             while ( hasNext() ) {
                 ROD current = next();
                 //System.out.printf("    -> Seeking to %s %d AT %s %d%n", contigName, pos, current.getContig(), current.getStart());
@@ -357,7 +356,9 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
                 if ( result != null )
                     System.out.printf("    ### Found %s%n", result.getLocation());
             }
-            
+
+            // make a note that the iterator last seeked to the specified position
+            position = loc.clone();            
 
              // we ran out of elements or found something
             return result;
