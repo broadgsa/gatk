@@ -152,7 +152,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Reduce
         // If any of the first MAX_OUTSTANDING merges aren't ready, the merge limit
         // has not been exceeded.
         OutputMerger[] outputMergers = outputMergeTasks.toArray( new OutputMerger[0] );
-        for( int i = 0; i < outputMergers.length; i++ ) {
+        for( int i = 0; i < MAX_OUTSTANDING_OUTPUT_MERGES; i++ ) {
             if( !outputMergers[i].isComplete() )
                 return false;
         }
