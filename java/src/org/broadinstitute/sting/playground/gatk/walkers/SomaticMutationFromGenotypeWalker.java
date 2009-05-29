@@ -1,11 +1,10 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 
-import java.io.BufferedOutputStream;
 import java.io.FileWriter;
-import java.io.OutputStream;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
@@ -14,10 +13,13 @@ import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RMD;
+import org.broadinstitute.sting.gatk.refdata.rodRefSeq; 
 import org.broadinstitute.sting.playground.utils.GenotypingCallStats;
 import org.broadinstitute.sting.utils.GenotypeUtils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 
 
 //@Requires(value=DataSource.REFERENCE,referenceMetaData={@RMD(name="mother",type=rodSAMPileup.class),
@@ -38,11 +40,20 @@ public class SomaticMutationFromGenotypeWalker  extends RefWalker<SomaticMutatio
 		      required=true) 
 		      public String VTYPE_STR; 
 	@Argument(fullName="bed_out", shortName="BED", doc="Write somatic variants into the specified file in BED format",required=false) public java.io.File BED_OUT;
+	@Argument(fullName="filter", shortName="F",
+			doc="Report/write variants only inside intervals annotated as: TRANSCRIPT (including UTRs and introns), EXON (including UTRs), or CODING_EXON. If specified, refseq track must be bound. By default, all variants are reported",
+			required=false) public String FILTER_ARG; 
 	
 	private java.io.Writer bed_stream = null;
 	private static Logger logger = Logger.getLogger(MendelianInheritanceWalker.class);	
 	private final static String star = new String("*");
 	private GenotypeUtils.VariantType VARIANT_TYPE; 
+	
+	private static enum FilterType {
+		NONE,TRANSCRIPT, EXON, CODING_EXON
+	}
+	
+	private FilterType filter;
 	
 	@Override
 	public SomaticMutationRecord map(RefMetaDataTracker rodData, char ref, LocusContext context) {
@@ -51,23 +62,27 @@ public class SomaticMutationFromGenotypeWalker  extends RefWalker<SomaticMutatio
 		
 		ReferenceOrderedDatum rodNormal = rodData.lookup("normal", null);
 		ReferenceOrderedDatum rodTumor = rodData.lookup("tumor", null);
-		ReferenceOrderedDatum rodRefseq = rodData.lookup("refseq", null);
+		rodRefSeq rodRefseq = (rodRefSeq)rodData.lookup("refseq", null);
+		
 		
 		Genotype normal = GenotypeUtils.extractGenotype(rodNormal,VARIANT_TYPE, defCalls);
 		Genotype tumor = GenotypeUtils.extractGenotype(rodTumor,VARIANT_TYPE,defCalls);
 
 		SomaticMutationRecord r = new SomaticMutationRecord();
-		if ( rodRefseq == null ) return r;
-		out.println(context.getLocation() + " " + rodRefseq.toString() );
-		if ( true ) return r;
+
+		if ( filter != FilterType.NONE ) {
+			// if we request filtering and current position is not annotated, then we have to skip:
+			if ( rodRefseq == null ) return r;
+	
+			if ( filter != FilterType.TRANSCRIPT ) {
+				if ( ! rodRefseq.isExon() ) return r; // if anything but 'transcript' was requested, we must be in an exon
+				if ( filter == FilterType.CODING_EXON && ! rodRefseq.isCoding() ) return r; // if coding_exon was requested we must also be inside coding seq
+			}
 			
+		}
 
-		
 		assessGenotype(normal,r.normal);
-		assessGenotype(tumor, r.tumor);
-
-		
-		
+		assessGenotype(tumor, r.tumor);		
 		
 		if ( r.normal.covered == 1 && r.tumor.covered == 1 ) r.mut.covered = 1;
 		if ( r.normal.assessed == 1 && r.tumor.assessed == 1 ) r.mut.assessed = 1;
@@ -141,7 +156,7 @@ public class SomaticMutationFromGenotypeWalker  extends RefWalker<SomaticMutatio
 	protected GenotypingCallStats assessGenotype(Genotype g, GenotypingCallStats stats) {
 		
 		if ( g != null ) stats.covered = 1;
-		
+//		if ( g!= null ) System.out.println(g.getLocation()+" is covered");
 		if ( hasCall(g)) {
 			stats.assessed = 1;
 			if ( g.isReference() ) stats.ref = 1;
@@ -179,6 +194,21 @@ public class SomaticMutationFromGenotypeWalker  extends RefWalker<SomaticMutatio
 			}
 		}
 		VARIANT_TYPE = GenotypeUtils.VariantType.valueOf(VTYPE_STR.toUpperCase());
+		
+		if ( FILTER_ARG == null ) filter = FilterType.valueOf("NONE");
+		else {	
+			filter = FilterType.valueOf(FILTER_ARG);
+			GATKArgumentCollection args = getToolkit().getArguments();
+			boolean found = false;
+			for ( String s : args.RODBindings ) {
+				if ( s.toUpperCase().startsWith("REFSEQ,REFSEQ") ) {
+					found = true;
+					break;
+				}
+			}
+			if ( ! found ) throw new ArgumentException("Reference ordered data track 'refseq' of type 'refseq' must be present when --filter is used"); 
+
+		}
 
 	}
 
@@ -248,6 +278,45 @@ class SomaticMutationRecord {
 		lost_variant += other.lost_variant;
 		
 		return this; 
+	}
+	
+	public String toString() {
+		StringBuilder b = new StringBuilder();
+		
+		b.append("TUMOR-NORMAL PAIR:\n");
+		b.append( String.format("      covered: %d%n      assessed: %d (%3.2f%% covered)%n", 
+				mut.covered, mut.assessed, Utils.percentage(mut.assessed, mut.covered) )
+			);
+		
+		b.append( String.format("         ref: %d (%3.2f%% assessed)%n", 
+				mut.ref, Utils.percentage(mut.ref,mut.assessed))
+			);
+
+		b.append( String.format("         somatic variants: %d (%3.2f%% assessed, or 1 per %3.2f kB)%n", 
+				mut.variant, Utils.percentage(mut.variant,mut.assessed), ((double)mut.assessed/mut.variant)/1000.0 )
+			);
+		b.append( String.format("         germline variants: %d (%3.2f%% assessed, or 1 per %3.2f kB)%n", 
+				germline, Utils.percentage(germline,mut.assessed), ((double)mut.assessed/germline)/1000.0 )
+			);
+		b.append( String.format("         lost variants: %d (%3.2f%% assessed, or 1 per %3.2f kB)%n", 
+				lost_variant, Utils.percentage(lost_variant,mut.assessed), ((double)mut.assessed/lost_variant)/1000.0 )
+			);
+		b.append( String.format("            non-matching germline variants: %d (%3.2f%% germline variants)%n", 
+				non_matching_germline, Utils.percentage(non_matching_germline,germline) )
+			);
+		b.append( String.format("         variants in tumor with unknown normal status: %d (%d no coverage, %d no confidence)%n", 
+				tumor_variant_without_confident_normal+tumor_variant_without_normal, tumor_variant_without_normal, tumor_variant_without_confident_normal  )
+			);
+		b.append( String.format("         variants in normal with unknown tumor status: %d (%d no coverage, %d no confidence)%n", 
+				normal_variant_without_confident_tumor+normal_variant_without_tumor, normal_variant_without_tumor, normal_variant_without_confident_tumor  )
+			);
+		b.append("PER SAMPLE:\n");
+		b.append("   NORMAL:\n");
+		b.append(normal.toString());
+		b.append("   TUMOR:\n");
+		b.append(tumor.toString());
+		
+		return b.toString();
 	}
 }
 
