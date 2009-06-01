@@ -31,7 +31,7 @@ public class FastaSequenceIndex implements Iterable {
      */
     public FastaSequenceIndex( File indexFile ) throws FileNotFoundException {
         if(!indexFile.exists())
-            throw new FileNotFoundException("Index file is missing");
+            throw new FileNotFoundException(String.format("Fasta index file is missing",indexFile.getAbsolutePath()));
 
         IoUtil.assertFileIsReadable(indexFile);
         parseIndexFile(indexFile);

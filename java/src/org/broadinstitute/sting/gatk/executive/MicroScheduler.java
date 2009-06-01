@@ -196,7 +196,7 @@ public abstract class MicroScheduler {
             ref = new IndexedFastaSequenceFile(refFile);
         }
         catch (FileNotFoundException ex) {
-            throw new RuntimeException("File not found opening fasta file; please do this check before MicroManaging", ex);
+            throw new StingException("I/O error while opening fasta file: " + ex.getMessage(), ex);
         }
         GenomeLoc.setupRefContigOrdering(ref);
         return ref;

@@ -90,6 +90,9 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
      */
     private void loadIndex( File fastaFile ) throws FileNotFoundException {
         File indexFile = new File(fastaFile.getAbsolutePath() + ".fai");
+        if (!indexFile.exists())
+            throw new PicardException(String.format("Unable to load fasta index file %s.  "+
+                                                    "Please create it using 'samtools faidx'.",indexFile.getAbsolutePath()));
         index = new FastaSequenceIndex(indexFile);
         indexIterator = index.iterator();
     }
