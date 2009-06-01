@@ -417,7 +417,7 @@ public abstract class TraversalEngine {
         if (beSafeP != null && beSafeP && enableVerification)
             wrappedIterator = new VerifyingSamIterator(wrappedIterator);
 
-        if ( filterZeroMappingQualityReads )
+        if ( filterZeroMappingQualityReads != null && filterZeroMappingQualityReads )
             wrappedIterator = StingSAMIteratorAdapter.adapt(wrappedIterator.getSourceInfo(),
                                                             new FilteringIterator(wrappedIterator, new ZeroMappingQualityReadFilterFunc()));
 
