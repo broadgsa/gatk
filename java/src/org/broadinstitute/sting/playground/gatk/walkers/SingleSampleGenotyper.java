@@ -36,6 +36,18 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     @Argument(fullName="qHomNonRef",   shortName="qHomNonRef",   doc="qHomNonRef",   required=false)      public Double qHomNonRef = 0.97;
     @Argument(fullName="sample_name_regex", shortName="sample_name_regex", required=false, doc="sample_name_regex") public String SAMPLE_NAME_REGEX = null;
 
+    @Argument(fullName="geli", shortName="geli", required=false, doc="If true, output will be in Geli/Picard format")
+    public boolean GeliOutputFormat = false;
+
+    // todo: enable argument after fixing all of the hard-codings in GenotypeLikelihoods and other places
+
+    //@Argument(fullName="refPrior", shortName="refPrior", required=false, doc="Prior likelihood of the reference theory")
+    public double REF_PRIOR = 0.999;
+    //@Argument(fullName="hetVarPrior", shortName="hetVarPrior", required=false, doc="Prior likelihood of a heterozygous variant theory")
+    public double HETVAR_PRIOR = 1e-3;
+    //@Argument(fullName="homVarPrior", shortName="homVarPrior", required=false, doc="Prior likelihood of the homozygous variant theory")
+    public double HOMVAR_PRIOR = 1e-5;
+    
     public AlleleMetrics metrics;
 	public PrintStream   calls_file;
 
@@ -51,8 +63,9 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 			if (metricsFileName != null) { metrics    = new AlleleMetrics(metricsFileName, lodThreshold); }
 			if (callsFileName != null)   
 			{ 
-				calls_file = new PrintStream(callsFileName);  
-				calls_file.println(AlleleFrequencyEstimate.asTabularStringHeader());
+				calls_file = new PrintStream(callsFileName);
+                String header = GeliOutputFormat ? AlleleFrequencyEstimate.geliHeaderString() : AlleleFrequencyEstimate.asTabularStringHeader();
+				calls_file.println(header);
 			}
 		}
 		catch (Exception e)
@@ -104,7 +117,8 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         if (refBaseIndex >= 0 && altBaseIndex >= 0) {
             // Set the priors for the hom-ref, het, and non-hom ref (we don't evaluate the
             // possibility of a non-ref het).
-            double[] genotypePriors = { 0.999, 1e-3, 1e-5 };
+            //double[] genotypePriors = { 0.999, 1e-3, 1e-5 };
+            double[] genotypePriors = { REF_PRIOR, HETVAR_PRIOR, HOMVAR_PRIOR };
 
             // I'm not sure what the difference between qhat and qstar is in AlleleMetrics, but
             // to make my life simpler, I evaluate the non-ref balances in genotypeBalances and
@@ -373,8 +387,11 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
     public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
 	{
-		calls_file.println(alleleFreq.asTabularString());
-		return "";
+        if ( alleleFreq.lodVsRef >= lodThreshold ) {
+            String line = GeliOutputFormat ? alleleFreq.asGeliString() : alleleFreq.asTabularString();
+		    calls_file.println(line);
+        }
+        return "";
 	}
 
 	public void onTraversalDone()

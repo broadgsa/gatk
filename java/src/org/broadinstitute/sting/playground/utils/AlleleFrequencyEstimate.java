@@ -152,6 +152,27 @@ public class AlleleFrequencyEstimate {
 		return "location sample_name ref alt genotype qhat qstar lodVsRef lodVsNextBest depth bases";
 	}
 
+    public static String geliHeaderString() {
+        return "#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod dbSNP   AA      AC      AG      AT      CC      CG      CT      GG      GT      TT";
+    }
+
+    public String asGeliString() 
+	{
+        // #Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod dbSNP   AA      AC      AG      AT      CC      CG      CT      GG      GT      TT
+        // chr1    7764136 A       48      99      CC      83.650421       9.18159         -92.83638       -18.367548      -96.91729       -96.614204      -9.185958       -23.33643       -23.033337      -101.282059     -101.583092     -101.279999
+
+        // chr pos ref Nreads maxMapQ genotype BtrLod BtnbLod dbSNP AA      AC      AG      AT      CC      CG      CT      GG      GT      TT
+        return String.format("%s    %16d  %c  %8d  %d  %s %.6f %.6f    0.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0",
+	                                        location.getContig(),
+                                            location.getStart(),
+											ref,
+                                            depth,
+                                            -1,
+	                                        genotype(),
+	                                        lodVsRef,
+	                                        lodVsNextBest);
+    }
+
     public String asTabularString() 
 	{
         return String.format("%s %s %c %c %s %f %f %f %f %d %s",
