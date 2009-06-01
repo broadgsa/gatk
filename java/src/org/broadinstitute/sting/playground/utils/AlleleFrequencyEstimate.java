@@ -35,6 +35,9 @@ public class AlleleFrequencyEstimate {
     public double[][] quals;
     public double[] posteriors;
 	public String sample_name;
+	public int n_ref;
+	public int n_het;
+	public int n_hom;
 
     GenomeLoc l;
 
@@ -42,11 +45,11 @@ public class AlleleFrequencyEstimate {
     public AlleleFrequencyEstimate(GenomeLoc location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, double pBest, double pRef, int depth, String bases, double[][] quals, double[] posteriors, String sample_name)
     {
         if( Double.isNaN(lodVsRef)) { System.out.printf("%s: lodVsRef is NaN\n", location.toString()); }
-        if( Double.isNaN(lodVsNextBest)) { System.out.printf("lodVsNextBest is NaN\n"); }
-        if( Double.isNaN(qhat)) { System.out.printf("qhat is NaN\n"); }
-        if( Double.isNaN(qstar)) { System.out.printf("qstar is NaN\n"); }
-        if( Double.isNaN(pBest)) { System.out.printf("pBest is NaN\n"); }
-        if( Double.isNaN(pRef)) { System.out.printf("pRef is NaN (%c %s)\n", ref, bases); }
+        if( Double.isNaN(lodVsNextBest)) { System.out.printf("%s lodVsNextBest is NaN\n", location.toString()); }
+        if( Double.isNaN(qhat)) { System.out.printf("%s qhat is NaN\n", location.toString()); }
+        if( Double.isNaN(qstar)) { System.out.printf("%s qstar is NaN\n", location.toString()); }
+        if( Double.isNaN(pBest)) { System.out.printf("%s pBest is NaN\n", location.toString()); }
+        if( Double.isNaN(pRef)) { System.out.printf("%s pRef is NaN (%c %s)\n", location.toString(), ref, bases); }
 
         if( Double.isInfinite(lodVsRef)) 
         { 
@@ -205,6 +208,23 @@ public class AlleleFrequencyEstimate {
             return AlleleFrequencyWalker.repeat(alt, numNonrefBases) + AlleleFrequencyWalker.repeat(ref, numRefBases);
         }
     }
+
+	public String asPoolTabularString()
+	{
+		return String.format("%s %c %c %f %f %f %s %f %d %d %d %d", 
+								location,
+								ref, 
+								alt, 
+								qstar, 
+								pBest, 
+								pRef, 
+								"NA", 
+								lodVsRef, 
+								N, 
+								n_ref, 
+								n_het, 
+								n_hom);
+	}
 
 
     public double posterior()

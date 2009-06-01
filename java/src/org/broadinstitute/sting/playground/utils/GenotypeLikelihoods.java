@@ -81,8 +81,10 @@ public class GenotypeLikelihoods {
         offNextBestBasePriors.put("TT", 0.505);
     }
 
-    public void add(char ref, char read, byte qual) {
-        for (int i = 0; i < genotypes.length; i++) {
+    public void add(char ref, char read, byte qual) 
+	{ 
+        for (int i = 0; i < genotypes.length; i++) 
+		{
             likelihoods[i] += calculateAlleleLikelihood(ref, read, genotypes[i], qual);
         }
     }
@@ -96,14 +98,19 @@ public class GenotypeLikelihoods {
 
         double p_base;
 
-        if ((h1 == h2) && (h1 == read)) {
-            p_base = getOneMinusQual(qual); //Math.log10(1 - p_error);
-        } else if ((h1 != h2) && (h1 == read) || (h2 == read)) {
-            p_base = getOneHalfMinusQual(qual); // )Math.log10(0.5 - (p_error / 2.0));
-        } else {
-            // the real math would be
-            //     likelihood += log10(pow(10,(qual/-10.0)));
-            // but it simplifies to
+        if ((h1 == h2) && (h1 == read))
+		{
+			// hom
+            p_base = getOneMinusQual(qual); 
+        } 
+		else if ((h1 != h2) && ((h1 == read) || (h2 == read)))
+		{
+			// het 
+            p_base = getOneHalfMinusQual(qual); 
+        } 
+		else 
+		{
+			// error
             p_base = qual/-10.0;
         }
 

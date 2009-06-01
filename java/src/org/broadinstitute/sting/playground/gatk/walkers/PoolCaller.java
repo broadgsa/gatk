@@ -101,8 +101,35 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
     public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) 
     {
 		if (ref == 'N') { return null; }
+		ref = Character.toUpperCase(ref);
 
-        // 1. seperate each context.
+        // seperate each context.
+        LocusContext forward  = filterLocusContextByStrand(context, "+");
+        LocusContext backward = filterLocusContextByStrand(context, "-");
+
+		if (forward.getReads().size() == 0) { return null; }
+		if (backward.getReads().size() == 0) { return null; }
+
+		AlleleFrequencyEstimate estimate_both     = EM(tracker, ref, context);
+		AlleleFrequencyEstimate estimate_forward  = EM(tracker, ref, forward);
+		AlleleFrequencyEstimate estimate_backward = EM(tracker, ref, backward);
+
+		discovery_output_file.printf("%s %c %f %c %f\n",
+				estimate_both.asPoolTabularString(),
+				estimate_forward.alt,
+				estimate_forward.lodVsRef,
+				estimate_backward.alt,
+				estimate_backward.lodVsRef);
+		//discovery_output_file.printf("%s\n", estimate_forward.asPoolTabularString());
+		//discovery_output_file.printf("%s\n", estimate_backward.asPoolTabularString());
+		//discovery_output_file.printf("\n");
+
+		return null;
+	}
+
+	private AlleleFrequencyEstimate EM(RefMetaDataTracker tracker, char ref, LocusContext context)
+	{
+		if (context.getReads().size() == 0) { return null; }
         LocusContext[] contexts = filterLocusContext(context, sample_names, 0);
 
         // EM Loop:
@@ -160,6 +187,8 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 	                calls[i] = callers.get(i).map(tracker, ref, contexts[i]);
 	                String genotype = calls[i].genotype();
 
+					if (calls[i].depth == 0) { continue; }
+
                     likelihood += calls[i].pBest;
 	
                     if (! FRACTIONAL_COUNTS)
@@ -200,33 +229,61 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
         }
 
         // 7. Output some statistics.
-		double discovery_posterior = 0;
+		double discovery_likelihood = 0;
 		double discovery_null = 0;
+		double discovery_prior = 0;
+		double discovery_null_prior = 0;
+		int n_ref = 0;
+		int n_het = 0;
+		int n_hom = 0;
+		for (int i = 1; i < EM_N-1; i++)
+		{
+			//discovery_prior += 1e-3/(double)i;
+		}
+		//discovery_prior = Math.log10(discovery_prior);
+		//discovery_null_prior = Math.log10(1.0 - discovery_prior);
 		for (int i = 0; i < sample_names.size(); i++)
 		{
-			discovery_posterior += calls[i].pBest;
-			discovery_null      += calls[i].pRef;
-			//System.out.printf("DBG %f %f %c %s\n", calls[i].pBest, calls[i].pRef, ref, calls[i].bases);
-		}
-		double discovery_lod = discovery_posterior - discovery_null;
-		if (discovery_lod == 0) { alt = 'N'; }
-		discovery_output_file.printf("%s %c %c %f %f %f %f\n", context.getLocation(), ref, alt, EM_alt_freq, discovery_posterior, discovery_null, discovery_lod);
+			if (calls[i].depth == 0) { continue; }
 
-        for (int i = 0; i < sample_names.size(); i++)
-        {
-            ReadBackedPileup pileup = new ReadBackedPileup(ref, contexts[i]);  
-            if (calls[i].depth == 0) { continue; }
-			//if (calls[i].lodVsRef < lodThreshold) { continue; }
-            //discovery_output_file.printf("%s %s %c %f %s %f %f %f %f %f %s\n", context.getLocation(), sample_names.get(i), ref, EM_alt_freq, calls[i].genotype(), calls[i].lodVsRef, calls[i].lodVsNextBest, calls[i].pBest, calls[i].pRef, discovery_lod, pileup.getBases());
-        }
-                                
+			discovery_likelihood += calls[i].pBest;
+			discovery_null       += calls[i].pRef;
+			//System.out.printf("DBG %f %f %c %s\n", calls[i].pBest, calls[i].pRef, ref, calls[i].bases);
+		
+			if (calls[i].qhat == 0.0) { n_ref += 1; }	
+			if (calls[i].qhat == 0.5) { n_het += 1; }	
+			if (calls[i].qhat == 1.0) { n_hom += 1; }	
+		}
+		double discovery_lod = (discovery_likelihood + discovery_prior) - (discovery_null + discovery_null_prior);
+		if (discovery_lod <= 0) { alt = 'N'; }
+		//discovery_output_file.printf("%s %c %c %f %f %f %f %f %f %d %d %d\n", context.getLocation(), ref, alt, EM_alt_freq, discovery_likelihood, discovery_null, discovery_prior, discovery_lod, EM_N, n_ref, n_het, n_hom);
+
+		AlleleFrequencyEstimate estimate = new AlleleFrequencyEstimate(context.getLocation(), 
+																			ref, 
+																			alt, 
+																			(int)EM_N, 
+																			EM_alt_freq, 
+																			EM_alt_freq, 
+																			discovery_lod,
+																			0.0,
+																			discovery_likelihood + discovery_prior,
+																			discovery_null + discovery_prior,
+																			context.getReads().size(),
+																			(String)null,
+																			(double[][])null,
+																			(double[])null,
+																			(String)null);
+		estimate.n_ref = n_ref; // HACK
+		estimate.n_het = n_het; // HACK
+		estimate.n_hom = n_hom; // HACK
+		return estimate;
+
+
         //for (int i = 0; i < likelihood_trajectory.length; i++)
         //{
         //    System.out.printf("TRAJECTORY %f %f\n", trajectory[i], likelihood_trajectory[i]);
         //}
         //System.out.print("\n\n");
-
-        return null;
     }
 
     private LocusContext poolLocusContext(LocusContext[] contexts)
@@ -248,6 +305,25 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 
         return new LocusContext(location, reads, offsets);
     }
+
+	private LocusContext filterLocusContextByStrand(LocusContext context, String strand)
+	{
+		ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
+		ArrayList<Integer> offsets = new ArrayList<Integer>();
+
+		for (int i = 0; i < context.getReads().size(); i++)
+		{
+			SAMRecord read = context.getReads().get(i);
+            Integer offset = context.getOffsets().get(i);
+
+			// Filter for strandedness
+			if ((!strand.contains("+")) && (read.getReadNegativeStrandFlag() == false)) { continue; }
+			if ((!strand.contains("-")) && (read.getReadNegativeStrandFlag() == true))  { continue; }
+			reads.add(read);
+			offsets.add(offset);
+		}
+		return new LocusContext(context.getLocation(), reads, offsets);
+	}
 
     private LocusContext[] filterLocusContext(LocusContext context, List<String> sample_names, int downsample)
     {
@@ -315,9 +391,15 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
         return contexts;
     }
 
+    private void CollectStrandInformation(char ref, LocusContext context)
+	{
+		List<SAMRecord> reads   = context.getReads();
+		List<Integer>   offsets = context.getOffsets();
+
+	}
+
     public void onTraversalDone(String result) 
     {
-		System.out.printf("OTD\n");
 		try 
 		{
 			discovery_output_file.flush();
@@ -334,7 +416,7 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 
     public String reduceInit() 
     { 
-		discovery_output_file.printf("loc ref alt EM_alt_freq discovery_posterior discovery_null discovery_lod\n");
+		discovery_output_file.printf("loc ref alt EM_alt_freq discovery_likelihood discovery_null discovery_prior discovery_lod EM_N n_ref n_het n_hom fw_alt fw_lod bw_alt bw_lod\n");
 		for (int i = 0; i < callers.size(); i++)
 		{
 			callers.get(i).reduceInit(); 
