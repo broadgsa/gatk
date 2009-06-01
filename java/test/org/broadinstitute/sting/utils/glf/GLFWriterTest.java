@@ -2,9 +2,13 @@ package org.broadinstitute.sting.utils.glf;
 
 import org.junit.Test;
 import org.junit.Before;
+import org.broadinstitute.sting.BaseTest;
 import net.sf.samtools.util.BinaryCodec;
+import net.sf.samtools.util.BlockCompressedOutputStream;
 
 import java.io.File;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
 
 /*
@@ -39,39 +43,57 @@ import java.io.File;
  *         <p/>
  *         Tests for the GLFRecord class
  */
-public class GLFRecordTest {
+public class GLFWriterTest extends BaseTest {
 
     /** some made up values that we use to generate the GLF */
-    private final String header = "header";
-    private final String referenceSequenceName = "refSeq";
+    private final String header = "";
+    private final String referenceSequenceName = "chr1";
     private final int refLength = 1000;
+    File writeTo = new File("testGLF.glf");
 
-    private GLFRecord rec;
+    private GLFWriter rec;
 
     @Before
     public void before() {
-         rec = new GLFRecord(header, referenceSequenceName, refLength);
-        
+
     }
 
     /**
      * make a fake snp
+     *
      * @param genotype the genotype, 0-15 (AA, AT, AA, ... GG)
      */
-    private void addFakeSNP(int genotype, int location) {
+    private void addFakeSNP( int genotype, int location ) {
         LikelihoodObject obj = new LikelihoodObject();
-        obj.setLikelihood(LikelihoodObject.GENOTYPE.values()[genotype],0.5f);
-        rec.addSNPCall(location,10,10,obj);
+        obj.setLikelihood(LikelihoodObject.GENOTYPE.values()[genotype], 128);
+        int ran = (int) Math.floor(Math.random() * 4.0);
+        char let = 'A';
+        switch (ran) {
+            case 0:
+                let = 'T';
+                break;
+            case 1:
+                let = 'C';
+                break;
+            case 2:
+                let = 'G';
+                break;
+        }
+    try {
+        rec.addPointCall(let, location, 10, (short) 10, obj);
+    } catch (IllegalArgumentException e) {
+        e.printStackTrace();
+    }
     }
 
 
     @Test
     public void basicWrite() {
-        File writeTo = new File("testGLF.glf");
-        BinaryCodec codec = new BinaryCodec(writeTo, true);
+        rec = new GLFWriter(header, referenceSequenceName, refLength, writeTo);
         for (int x = 0; x < 100; x++) {
-            addFakeSNP(0,x);
+            addFakeSNP((int) Math.round(Math.random() * 9), 1);
         }
+        rec.close();
     }
 
 }

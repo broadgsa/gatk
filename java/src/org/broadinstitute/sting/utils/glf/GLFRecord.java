@@ -2,271 +2,207 @@ package org.broadinstitute.sting.utils.glf;
 
 import net.sf.samtools.util.BinaryCodec;
 
-import java.util.ArrayList;
-import java.util.List;
 
-/**
+/*
+ * Copyright (c) 2009 The Broad Institute
  *
- * User: aaron
- * Date: May 13, 2009
- * Time: 3:36:18 PM
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
  *
- * The Broad Institute
- * SOFTWARE COPYRIGHT NOTICE AGREEMENT 
- * This software and its documentation are copyright 2009 by the
- * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
  *
- * This software is supplied without any warranty or guaranteed support whatsoever. Neither
- * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
- *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
-
 
 /**
  * @author aaron
- * @version 1.0
- * @date May 13, 2009
- * <p/>
- * Class GLFRecord
- * <p/>
- * The base record that's stored in the GLF format.
+ *         <p/>
+ *         Class RecordType
+ *         <p/>
+ *         The base record type for all GLF entries. Each record has a number of fields
+ *         common to the record set.  This is also the source of the REF_BASE enumeration,
+ *         which represents the accepted FASTA nucleotide symbols and their assocated GLF
+ *         field values.
  */
-public class GLFRecord {
-    // our record list
-    private final List<RecordType> records = new ArrayList<RecordType>();
+abstract class GLFRecord {
 
-    public static final byte[] glfMagic = {'G','L','F','\3'};
-    private String headerText = "";
-    private String referenceSequenceName = "";
-    private long referenceSequenceLength = 0;
+    // fields common to all records
+    protected REF_BASE refBase;
+    protected long offset = 1;
+    protected short minimumLikelihood = 0;
+    protected int readDepth = 0;
+    protected short rmsMapQ = 0;
 
-    private int currentOffset = -1;
-    /**
-     * The public constructor for creating a GLF object
-     * @param headerText the header text (currently unclear what the contents are)
-     * @param referenceSequenceName the reference sequence name
-     */
-    public GLFRecord(String headerText, String referenceSequenceName, int referenceSequenceLength) {
-        this.headerText = headerText;
-        this.referenceSequenceName = referenceSequenceName;
-        this.referenceSequenceLength = referenceSequenceLength;
-    }
+    // the size of this base structure
+    protected final int baseSize = 10;
 
-    public void addSNPCall(int genomicLoc, long read_depth, int rmsMapQ, LikelihoodObject lhValues) {
-        if (currentOffset >= genomicLoc) {
-            throw new IllegalArgumentException("The location supplied is less then a previous location");
-        }
+    /** the reference base enumeration, with their short (type) values for GLF */
+    public enum REF_BASE {
+        X((short) 0x00),
+        A((short) 0x01),
+        C((short) 0x02),
+        M((short) 0x03),
+        G((short) 0x04),
+        R((short) 0x05),
+        S((short) 0x06),
+        V((short) 0x07),
+        T((short) 0x08),
+        W((short) 0x09),
+        Y((short) 0x0A),
+        H((short) 0x0B),
+        K((short) 0x0C),
+        D((short) 0x0D),
+        B((short) 0x0E),
+        N((short) 0x0F);
 
-        // make sure the read depth isn't too large
-        if (read_depth < 0 || read_depth > 0x00FFFFFF) {
-            throw new IllegalArgumentException("The read depth is too large; must lie in the range 0 to 0x00ffffff");
-        }
-
-        // check that the rmsSquare is greater then 0, and will fit in a uint8
-        if (rmsMapQ > 0x000000FF || rmsMapQ < 0) {
-            throw new IllegalArgumentException("rms of mapping quality is too large; must lie in the range 0 to 0x000000ff");
-        }
-
-        if (lhValues == null) {
-            throw new IllegalArgumentException("likelihood object cannot be null");
-        }
-
-        SinglePointCall call = new SinglePointCall(genomicLoc - currentOffset,
-                                                   read_depth,
-                                                   rmsMapQ,
-                                                   lhValues.toByteArray(),
-                                                   (short)lhValues.getMinimumValue());
-
-    }
-
-    /**
-     * Write out the record to a binary codec object
-     *
-     * @param out
-     */
-    public void write(BinaryCodec out) {
-        out.writeBytes(glfMagic);
-        out.writeString(headerText,true,true);
-        out.writeString(referenceSequenceName,true,true);
-        out.writeUInt(referenceSequenceLength);
-        for (RecordType rec: records) {
-            out.writeUByte(rec.getRecordType().getFieldValue());
-            rec.write(out);
-        }
-        out.writeByte((byte)0);
-    }
-
-}
-
-
-interface RecordType {
-    
-    enum RECORD_TYPE {
-        VARIABLE((short)2),
-        SINGLE((short)1);
         private final short fieldValue;   // in kilograms
-        RECORD_TYPE(short value) {
+
+        /**
+         * private constructor, used by the enum class to makes each enum value
+         * @param value the short values specified in the enum listing
+         */
+        REF_BASE( short value ) {
             fieldValue = value;
         }
-        public short getFieldValue() {
+
+        /**
+         * static method from returning a REF_BASE given the character representation
+         *
+         * @param value the character representation of a REF_BASE
+         *
+         * @return the corresponding REF_BASE
+         * @throws IllegalArgumentException if the value passed can't be converted
+         */
+        public static REF_BASE toBase( char value ) {
+            String str = String.valueOf(value).toUpperCase();
+            for (int x = 0; x < REF_BASE.values().length; x++) {
+                if (REF_BASE.values()[x].toString().equals(str)) {
+                    return REF_BASE.values()[x];
+                }
+            }
+            throw new IllegalArgumentException("Counldn't find matching reference base for " + str);
+        }
+
+        /** @return the hex value of the given REF_BASE */
+        public short getBaseHexValue() {
             return fieldValue;
         }
-    };
+    }
+
+    /** the record type enum, which enumerates the different records we can have in a GLF */
+    enum RECORD_TYPE {
+        SINGLE((short) 1),
+        VARIABLE((short) 2);
+
+        private final short fieldValue;   // in kilograms
+
+        RECORD_TYPE( short value ) {
+            fieldValue = value;
+        }
+
+        public short getReadTypeValue() {
+            return fieldValue;
+        }
+    }
+
 
     /**
-     * write the record out to a binary codec
-     * @param out
+     * Constructor, given the base a character reference base
+     *
+     * @param base              the reference base in the reference
+     * @param offset            the offset from the beginning of the reference seq
+     * @param minimumLikelihood it's minimum likelihood
+     * @param readDepth         the read depth at this position
+     * @param rmsMapQ           the root mean square of the mapping quality
      */
-    public void write(BinaryCodec out);
+    public GLFRecord( char base, long offset, short minimumLikelihood, int readDepth, short rmsMapQ ) {
+        REF_BASE newBase = REF_BASE.toBase(base);
+        validateInput(newBase, offset, minimumLikelihood, readDepth, rmsMapQ);
+    }
+
+    /**
+     * Constructor, given the base a REF_BASE
+     *
+     * @param base              the reference base in the reference
+     * @param offset            the offset from the beginning of the reference seq
+     * @param minimumLikelihood it's minimum likelihood
+     * @param readDepth         the read depth at this position
+     * @param rmsMapQ           the root mean square of the mapping quality
+     */
+    GLFRecord( REF_BASE base, long offset, short minimumLikelihood, int readDepth, short rmsMapQ ) {
+        validateInput(base, offset, minimumLikelihood, readDepth, rmsMapQ);
+    }
+
+    /**
+     * validate the input during construction, and store valid values
+     *
+     * @param base              the reference base in the reference, as a REF_BASE
+     * @param offset            the offset from the beginning of the reference seq
+     * @param minimumLikelihood it's minimum likelihood
+     * @param readDepth         the read depth at this position
+     * @param rmsMapQ           the root mean square of the mapping quality
+     */
+    private void validateInput( REF_BASE base, long offset, short minimumLikelihood, int readDepth, short rmsMapQ ) {
+        this.refBase = base;
+        if (offset > 4294967295L || offset < 0) {
+            throw new IllegalArgumentException("Offset is out of bounds (0 to 0xffffffff) value passed = " + offset);
+        }
+        this.offset = offset;
+
+        if (minimumLikelihood > 255 || minimumLikelihood < 0) {
+            throw new IllegalArgumentException("minimumLikelihood is out of bounds (0 to 0xffffffff) value passed = " + minimumLikelihood);
+        }
+        this.minimumLikelihood = minimumLikelihood;
+
+        if (readDepth > 16777215 || readDepth < 0) {
+            throw new IllegalArgumentException("readDepth is out of bounds (0 to 0xffffff) value passed = " + readDepth);
+        }
+        this.readDepth = readDepth;
+
+        if (rmsMapQ > 255 || rmsMapQ < 0) {
+            throw new IllegalArgumentException("rmsMapQ is out of bounds (0 to 0xff) value passed = " + rmsMapQ);
+        }
+        this.rmsMapQ = rmsMapQ;
+    }
+
+    /**
+     * write the this record to a binary codec output.
+     *
+     * @param out the binary codec to write to
+     */
+    public void write( BinaryCodec out ) {
+        out.writeUByte((short) ( this.getRecordType().getReadTypeValue() << 4 | ( refBase.getBaseHexValue() & 0x0f ) ));
+        out.writeUInt(( (Long) offset ).intValue());
+        out.writeUInt((new Long(readDepth).intValue()));
+        out.writeUByte((short) rmsMapQ);
+    }
 
     /**
      * get the record type
-     * @return the record type
+     *
+     * @return the record type enumeration
      */
-    public RECORD_TYPE getRecordType();
+    public abstract RECORD_TYPE getRecordType();
 
     /**
-     * 
-     * @return
+     * Return the size of this record in bytes.
+     *
+     * @return the size of this record type, in bytes
      */
-    public int getByteSize();
+    public abstract int getByteSize();
 }
 
-// the second record type
-class VariableLengthCall implements RecordType {
-    public int offset = 0;
-    public int min_depth = 0;
-    public byte rmsMapQ = 0;
-    public byte lkHom1 = 0;
-    public byte lkHom2 = 0;
-    public byte lkHet = 0;
-    public short indelLen1 = 0;
-    public short indelLen2 = 0;
-    public final byte indelSeq1[];
-    public final byte indelSeq2[];
-
-    // our size, we're immutable (at least the size is)
-    private final int size; // in bytes
-
-    /**
-     * the BinaryCodec constructor
-     *
-     * @param in the binary codec to get data from
-     */
-    VariableLengthCall(BinaryCodec in) {
-        offset = in.readInt();
-        min_depth = in.readInt();
-        rmsMapQ = in.readByte();
-        lkHom1 = in.readByte();
-        lkHom2 = in.readByte();
-        lkHet = in.readByte();
-        indelLen1 = in.readShort();
-        indelLen2 = in.readShort();
-        indelSeq1 = new byte[indelLen1];
-        indelSeq2 = new byte[indelLen2];
-        this.size = 16 + indelLen1 + indelLen2; 
-    }
-
-    /**
-     * Write out the record to a binary codec
-     *
-     * @param out
-     */
-    public void write(BinaryCodec out) {
-        out.writeInt(offset);
-        out.writeInt(min_depth);
-        out.writeByte(rmsMapQ);
-        out.writeByte(lkHom1);
-        out.writeByte(lkHom2);
-        out.writeByte(lkHet);
-        out.writeShort(indelLen1);
-        out.writeShort(indelLen2);
-        out.writeBytes(indelSeq1);
-        out.writeBytes(indelSeq2);
-    }
-
-    public RECORD_TYPE getRecordType() {
-        return RECORD_TYPE.VARIABLE;
-    }
-
-    /** @return  */
-    public int getByteSize() {
-        return size;
-    }
-}
-
-
-// the first record type
-class SinglePointCall implements RecordType {
-    // our likelyhood array size
-    public static final int LIKELYHOOD_SIZE = 10;
-
-    // class fields
-    public int offset = 0;
-    public Long min_depth = 0L;
-    public int rmsMapQ = 0;
-    public final short lk[] = new short[LIKELYHOOD_SIZE];
-    public short minimumLikelihood = 0;
-
-    // our size, we're immutable (the size at least)
-    private final int byteSize; // in bytes
-
-    /**
-     * The parameter constructor
-     *
-     * @param offset
-     * @param min_depth
-     * @param rmsMapQ
-     * @param lk
-     */
-    SinglePointCall(int offset, long min_depth, int rmsMapQ, short[] lk, short minimumLikelihood) {
-        if (lk.length != LIKELYHOOD_SIZE) {
-            throw new IllegalArgumentException("SinglePointCall: passed in likelyhood array size != LIKELYHOOD_SIZE");
-        }
-        this.offset = offset;
-        this.min_depth = min_depth;
-        this.rmsMapQ = rmsMapQ;
-        this.minimumLikelihood = minimumLikelihood;
-        System.arraycopy(lk, 0, this.lk, 0, LIKELYHOOD_SIZE);
-        byteSize = 9 + lk.length;
-    }
-
-    /**
-     * the BinaryCodec constructor
-     *
-     * @param in the binary codec to get data from
-     */
-    SinglePointCall(BinaryCodec in) {
-        offset = in.readInt();
-        min_depth = Long.valueOf(in.readInt());
-        rmsMapQ = in.readByte();
-        for (int x = 0; x < LIKELYHOOD_SIZE; x++) {
-            lk[x] = in.readUByte();
-        }
-        byteSize = 9 + lk.length;
-    }
-
-    /**
-     * Write out the record to a binary codec
-     *
-     * @param out
-     */
-    public void write(BinaryCodec out) {
-        out.writeInt(offset);
-        out.writeInt(min_depth.intValue());
-        out.writeByte(rmsMapQ);
-        for (int x = 0; x < LIKELYHOOD_SIZE; x++) {
-             out.writeUByte(lk[x]);
-        }
-    }
-
-    public RECORD_TYPE getRecordType() {
-        return RECORD_TYPE.SINGLE;
-    }
-
-    /** @return  */
-    public int getByteSize() {
-        return byteSize;
-    }
-
-}

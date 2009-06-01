@@ -46,19 +46,23 @@ public class LikelihoodObject {
         AA, AT, AC, AG, CC, CT, CG, GG, GT, TT
     }
 
-    // the associated probabilities for each genotype
+    // the associated negitive log likelihoods for each genotype
     final protected HashMap<GENOTYPE, Integer> likelihood = new HashMap<GENOTYPE, Integer>();
 
     /** create a blank likelihood object */
     public LikelihoodObject() {
         for (GENOTYPE type : GENOTYPE.values()) {
-            likelihood.put(type, 0);
+            likelihood.put(type, 255);
         }
     }
 
+    // since the default case it to start with all infinity, we can choose any random base
+    GENOTYPE greatest = GENOTYPE.AA;
+
+
     /**
      * create a likelyhood object, given an array of genotype scores in GLFv3 ordering
-     * @param values
+     * @param values an array of int's from 0 to 255, representing the negitive log likelihoods.
      */
     public LikelihoodObject(int[] values) {
         if (values.length != GENOTYPE.values().length) {
@@ -77,22 +81,25 @@ public class LikelihoodObject {
     /**
      * set the likelihood, given it's probability and the genotype
      * @param type the genotype
-     * @param likelyhood the likelihood as a float between 0 and 1, which is converted to a byte
+     * @param lh the likelihood as a double between 0 and 1, which is converted to a byte
      */
-    public void setLikelihood(GENOTYPE type, float likelyhood) {
-        likelihood.put(type,(int)Math.round(likelyhood*255.0));
+    public void setLikelihood(GENOTYPE type, int lh) {
+        if (lh < 0 || lh > 255) {
+            throw new IllegalArgumentException("supplied likelihood must be between 0 and 255");
+        }
+        likelihood.put(type,lh);
+        if (lh < likelihood.get(this.greatest)) {
+            this.greatest = type;
+        }
     }
 
     /**
-     * find the minimum likelihood value stored in the set
+     * find the minimum likelihood value stored in the set.  This represents the most likely genotype,
+     * since genotypes are represented as negitive log likeihoods
      * @return
      */
     public int getMinimumValue() {
-        int minimum = Integer.MAX_VALUE;
-        for (int i : likelihood.values()) {
-            if (i < minimum) { minimum = i;}
-        }
-        return minimum;
+        return likelihood.get(this.greatest);
     }
 
     /**

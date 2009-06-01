@@ -90,7 +90,7 @@ public class LikelihoodObjectTest extends BaseTest {
     public void testSetLikelihood() {
         mLO = new LikelihoodObject();
         for (LikelihoodObject.GENOTYPE t : LikelihoodObject.GENOTYPE.values()) {
-            mLO.setLikelihood(t,0.5f);
+            mLO.setLikelihood(t,128);
         }
         assertTrue(mLO.likelihood.size() == LikelihoodObject.GENOTYPE.values().length);
 
