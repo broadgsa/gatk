@@ -28,12 +28,20 @@ import java.io.DataOutputStream;
 /**
  * @author aaron
  * @version 1.0
+ *
+ * This class writes GLF files. You can either specify GLFRecords, or programaticly generate
+ * single and variable length genotype calls using the provided functions.  When you've finished
+ * generating GLF records, make sure you close the file.
+ *
  */
 public class GLFWriter {
     // our output codec
     private final BinaryCodec outputBinaryCodec;
 
+    // the glf magic number, which identifies a properly formatted GLF file
     public static final short[] glfMagic = {'G', 'L', 'F', '\3'};
+
+    // our header text, reference sequence name (i.e. chr1), and it's length
     private String headerText = "";
     private String referenceSequenceName = "";
     private long referenceSequenceLength = 0;
@@ -42,7 +50,7 @@ public class GLFWriter {
      * The public constructor for creating a GLF object
      *
      * @param headerText            the header text (currently unclear what the contents are)
-     * @param referenceSequenceName the reference sequence name
+     * @param referenceSequenceName the reference sequence name, i.e. "chr1", "chr2", etc
      */
     public GLFWriter( String headerText, String referenceSequenceName, int referenceSequenceLength, File writeTo ) {
         this.headerText = headerText;
@@ -71,7 +79,6 @@ public class GLFWriter {
         SinglePointCall call = new SinglePointCall(refBase, genomicLoc,
                 readDepth,
                 rmsMapQ,
-                lhValues.toByteArray(),
                 lhValues);
         call.write(this.outputBinaryCodec);
     }
@@ -84,9 +91,9 @@ public class GLFWriter {
      * @param readDepth the read depth at the specified postion
      * @param rmsMapQ the root mean square of the mapping quality
      * @param minimumLikelihood the minimum likelihood value
-     * @param homozygProb1 the probability of the first homozygous indel allele
-     * @param homozygProb2 the probability of the second homozygous indel allele
-     * @param heterozygProb the probability of the heterozygote
+     * @param homozygProb1 the negitive log likelihood of the first homozygous indel allele, from 0 to 255
+     * @param homozygProb2 the negitive log likelihood of the second homozygous indel allele, from 0 to 255
+     * @param heterozygProb the negitive log likelihood of the heterozygote,  from 0 to 255
      * @param indelLength1 the length of the first indel allele
      * @param indelLength2 the length of the second indel allele
      * @param indelSeq1 the sequence for the first indel allele
@@ -140,7 +147,10 @@ public class GLFWriter {
     }
 
     /**
-     * Write out the header information for the GLF file
+     * Write out the header information for the GLF file.  The header contains
+     * the magic number, the length of the header text, the text itself, the reference
+     * sequence (null terminated) preceeded by it's length, and the the genomic
+     * length of the reference sequence.
      *
      */
     private void writeHeader() {
@@ -157,7 +167,8 @@ public class GLFWriter {
     }
 
     /**
-     * close the file
+     * close the file.  You must close the file to ensure any remaining data gets
+     * written out.
      *
      */
     public void close() {

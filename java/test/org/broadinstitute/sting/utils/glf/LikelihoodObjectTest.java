@@ -87,6 +87,34 @@ public class LikelihoodObjectTest extends BaseTest {
     }
 
     @Test
+    public void testDefaultArrayValues() {
+        mLO = new LikelihoodObject();
+        short[] ret = mLO.toByteArray();
+        for (int index = 0; index < ret.length; index++) {
+            assertTrue(ret[index] == 255);
+        }
+    }
+
+    @Test
+    public void testGetMinimum() {
+        int[] ray = new int[10];
+        for (int x = 0; x < 10; x++) {
+            ray[x] = ( 240 );
+        }
+        ray [5] = 0;
+        mLO = new LikelihoodObject(ray);
+        assertTrue(mLO.likelihood.size() == LikelihoodObject.GENOTYPE.values().length);
+        short smallest = (short)mLO.getMinimumValue();
+        assertTrue(smallest == 0);
+        int index = 0;
+        short[] ret = mLO.toByteArray();
+        for (index = 0; index < ret.length; index++) {
+            assertTrue(smallest <= ret[index]);
+        }
+    }
+
+
+    @Test
     public void testSetLikelihood() {
         mLO = new LikelihoodObject();
         for (LikelihoodObject.GENOTYPE t : LikelihoodObject.GENOTYPE.values()) {

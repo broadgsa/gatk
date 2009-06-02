@@ -184,7 +184,7 @@ abstract class GLFRecord {
      *
      * @param out the binary codec to write to
      */
-    public void write( BinaryCodec out ) {
+     void write( BinaryCodec out ) {
         out.writeUByte((short) ( this.getRecordType().getReadTypeValue() << 4 | ( refBase.getBaseHexValue() & 0x0f ) ));
         out.writeUInt(( (Long) offset ).intValue());
         out.writeUInt((new Long(readDepth).intValue()));
@@ -203,6 +203,8 @@ abstract class GLFRecord {
      *
      * @return the size of this record type, in bytes
      */
-    public abstract int getByteSize();
+    public int getByteSize() {
+        return 10; // the record type field (1), offset (4), the min depth field (4), and the rms mapping (1)
+    }
 }
 

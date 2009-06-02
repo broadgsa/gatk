@@ -46,6 +46,9 @@ public class LikelihoodObject {
         AA, AT, AC, AG, CC, CT, CG, GG, GT, TT
     }
 
+    // how many genotypes we're storing
+    public static final int genoTypeCount = GENOTYPE.values().length;
+
     // the associated negitive log likelihoods for each genotype
     final protected HashMap<GENOTYPE, Integer> likelihood = new HashMap<GENOTYPE, Integer>();
 
@@ -57,7 +60,7 @@ public class LikelihoodObject {
     }
 
     // since the default case it to start with all infinity, we can choose any random base
-    GENOTYPE greatest = GENOTYPE.AA;
+    protected GENOTYPE greatest = GENOTYPE.AA;
 
 
     /**
@@ -69,11 +72,16 @@ public class LikelihoodObject {
             throw new IllegalArgumentException("invalid array passed to LikelihoodObject, should be size " + GENOTYPE.values().length);
         }
         int index = 0;
+        int lowestScore = 256;
         for (GENOTYPE type : GENOTYPE.values()) {
             if (values[index] < 0 || values[index] > 255) {
                 throw new IllegalArgumentException("likelihood values must be greater or equal 0, and less then 256, value given: " + values[index]);
             }
             likelihood.put(type, values[index]);
+            if (values[index] < lowestScore) {
+                lowestScore = values[index];
+                greatest = type;
+            }
             ++index;
         }
     }

@@ -29,37 +29,33 @@ import net.sf.samtools.util.BinaryCodec;
  */
 
 /**
- * 
- * @author aaron 
- * 
- * Class SinglePointCall
- *
- * This class represents a single point geneotype call in GLF vernacular
- **/
+ * @author aaron
+ *         <p/>
+ *         Class SinglePointCall
+ *         <p/>
+ *         This class represents a single point geneotype call in GLF vernacular
+ */
 class SinglePointCall extends GLFRecord {
-
-    // our likelyhood array size
-    public static final int LIKELYHOOD_SIZE = 10;
 
     // our record type
     private final RECORD_TYPE type = RECORD_TYPE.SINGLE;
 
-    // our array of likelihoods
-    public final short lk[] = new short[LIKELYHOOD_SIZE];
+    // our likelihood object
+    private LikelihoodObject likelihoods;
 
-    // our size, we're immutable (the size at least).  In bytes.
-    private final int byteSize;
+    /**
+     * create a single
+     *
+     * @param refBase   the reference base, as a char
+     * @param offset    the location, as an offset from the previous glf record
+     * @param readDepth the read depth at the specified postion
+     * @param rmsMapQ   the root mean square of the mapping quality
+     * @param lhValues  the LikelihoodObject, representing the genotype likelyhoods
+     */
+    SinglePointCall( char refBase, int offset, int readDepth, short rmsMapQ, LikelihoodObject lhValues ) {
+        super(refBase, offset, (short) lhValues.getMinimumValue(), readDepth, rmsMapQ);
 
-
-    SinglePointCall(char refBase, int offset, int readDepth, short rmsMapQ, short[] lk, LikelihoodObject minimumLikelihood ) {
-        super(refBase,offset,(short)minimumLikelihood.getMinimumValue(),readDepth,rmsMapQ);
-
-        if (lk.length != LIKELYHOOD_SIZE) {
-            throw new IllegalArgumentException("SinglePointCall: passed in likelyhood array size != LIKELYHOOD_SIZE");
-        }
-
-        System.arraycopy(lk, 0, this.lk, 0, LIKELYHOOD_SIZE);
-        byteSize = 9 + lk.length;
+        likelihoods = lhValues;
     }
 
 
@@ -68,15 +64,17 @@ class SinglePointCall extends GLFRecord {
      *
      * @param out
      */
-    public void write( BinaryCodec out ) {
+    void write( BinaryCodec out ) {
         super.write(out);
-        for (int x = 0; x < LIKELYHOOD_SIZE; x++) {
-            out.writeUByte(lk[x]);
+        short array[] = likelihoods.toByteArray();
+        for (int x = 0; x < array.length; x++) {
+            out.writeUByte(array[x]);
         }
     }
 
     /**
      * return the record type we represent, in this case SINGLE
+     *
      * @return RECORD_TYPE.SINGLE
      */
     public RECORD_TYPE getRecordType() {
@@ -85,10 +83,11 @@ class SinglePointCall extends GLFRecord {
 
     /**
      * return our size in bytes
+     *
      * @return number of bytes we represent
      */
     public int getByteSize() {
-        return byteSize;
+        return likelihoods.genoTypeCount + super.getByteSize();
     }
 
 }

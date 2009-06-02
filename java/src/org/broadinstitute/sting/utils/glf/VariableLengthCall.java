@@ -30,12 +30,12 @@ import net.sf.samtools.util.BinaryCodec;
 
 /**
  * @author aaron
- * <p/>
- * Class VariableLengthCall
- * <p/>
- * This class represents variable length genotype calls in the GLF format.
- * Currently a lot of parameters need to be provided, but we may be able to thin
- * those down as we understand what we have to specify and what we can infer.
+ *         <p/>
+ *         Class VariableLengthCall
+ *         <p/>
+ *         This class represents variable length genotype calls in the GLF format.
+ *         Currently a lot of parameters need to be provided, but we may be able to thin
+ *         those down as we understand what we have to specify and what we can infer.
  */
 class VariableLengthCall extends GLFRecord {
     // our fields, corresponding to the glf spec
@@ -51,7 +51,22 @@ class VariableLengthCall extends GLFRecord {
     private final int size;
 
 
-    /** the default constructor */
+    /**
+     * the default constructor
+     *
+     * @param refBase           the reference base
+     * @param offset            the location, as an offset from the previous glf record
+     * @param readDepth         the read depth at the specified postion
+     * @param rmsMapQ           the root mean square of the mapping quality
+     * @param minimumLikelihood the minimum likelihood value
+     * @param lkHom1            the negitive log likelihood of the first homozygous indel allele, from 0 to 255
+     * @param lkHom2            the negitive log likelihood of the second homozygous indel allele, from 0 to 255
+     * @param lkHet             the negitive log likelihood of the heterozygote,  from 0 to 255
+     * @param indelLen1         the length of the first indel allele
+     * @param indelLen2         the length of the second indel allele
+     * @param indelSeq1         the sequence for the first indel allele
+     * @param indelSeq2         the sequence for the second indel allele
+     */
     VariableLengthCall( char refBase,
                         long offset,
                         int readDepth,
@@ -81,7 +96,7 @@ class VariableLengthCall extends GLFRecord {
      *
      * @param out the binary codec to write to
      */
-    public void write( BinaryCodec out ) {
+    void write( BinaryCodec out ) {
         super.write(out);
         out.writeByte(lkHom1);
         out.writeByte(lkHom2);
@@ -101,8 +116,8 @@ class VariableLengthCall extends GLFRecord {
         return RECORD_TYPE.VARIABLE;
     }
 
-    /** @return  */
+    /** @return  the size of the record, which is the size of our fields plus the generic records fields */
     public int getByteSize() {
-        return size;
+        return size + super.getByteSize();
     }
 }
