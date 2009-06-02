@@ -65,6 +65,20 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName = "normal_sample_name", shortName = "s2", required = true, doc="Name of the normal sample")
     public String normalSampleName;
 
+    @Argument(fullName = "tumor_lod", required = false, doc = "LOD threshold for calling tumor variant")
+    public float TUMOR_LOD_THRESHOLD = 6.3f;
+
+    @Argument(fullName = "normal_lod", required = false, doc = "LOD threshold for calling normal non-variant")
+    public float NORMAL_LOD_THRESHOLD = 2.3f;
+
+    @Argument(fullName = "min_mutant_sum", required = false, doc = "threshold for sum of mutant allele quality scores")
+    public int MIN_MUTANT_SUM = 100;
+
+
+    @Argument(fullName = "output_failures", required = false, doc="produce output for failed sites")
+    public boolean OUTPUT_FAILURES = false;
+
+
     public boolean bedOutput = true;
 
     public void initialize() {
@@ -79,18 +93,9 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
 
     public static int MAX_INSERT_SIZE = 10000;
     public static int MIN_MUTANT_SUM_PRETEST = 60;
-    public static int MIN_MUTANT_SUM = 100;
 
     public static int MIN_QSCORE = 13;
 
-//    public static double TUMOR_LOD = 6.3d;
-    public static double TUMOR_LOD = 4.0d;
-    public static double NORMAL_LOD = 2.3d;
-
-    private String cachedContigName;
-    private byte[] cachedContig;
-
-    private boolean outputFailures = true;
 
     private static class LocusReadPile {
         private char refBase;
@@ -257,7 +262,7 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             int mutantSum = tumorReadPile.qualitySums.get(altAllele);
             int refSum = tumorReadPile.qualitySums.get(ref);
 
-            if (tumorReadPile.getAltVsRef(altAllele) >= TUMOR_LOD
+            if (tumorReadPile.getAltVsRef(altAllele) >= TUMOR_LOD_THRESHOLD
 //                    ||
 //                (mutantSum >= MIN_MUTANT_SUM && (float)mutantSum / (float) refSum >= 0.05f)
                 ) {
@@ -299,8 +304,8 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             //     at least 100 or the LOD score for mutant:ref + mutant:mutant vs ref:ref must
             //     be at least 6.3;
             double tumorLod = t2.getAltVsRef(altAllele);
-            if (t2.qualitySums.get(altAllele) < MIN_MUTANT_SUM && tumorLod < TUMOR_LOD) {
-                if (outputFailures) {
+            if (t2.qualitySums.get(altAllele) < MIN_MUTANT_SUM && tumorLod < TUMOR_LOD_THRESHOLD) {
+                if (OUTPUT_FAILURES) {
                     System.out.println("FAILED " + context.getContig() + ":" + context.getPosition() + " due to MAX MM QSCORE TEST." +
                             " LOD was " + tumorReadPile.getAltVsRef(altAllele) +
                             " LOD is now " + t2.getAltVsRef(altAllele) +
@@ -316,7 +321,7 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
                     disaligner(context.getPosition(), tumorReadPile, StringUtil.bytesToString(refSeq.getBases()), refStart);
 
             if (shouldDisalign) {
-                if (outputFailures) {
+                if (OUTPUT_FAILURES) {
                     System.out.println("FAILED " + context.getContig() + ":" + context.getPosition() + " due to DISALIGNMENT TEST.");
                 }
                 continue;
@@ -330,7 +335,7 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             // (ii) the quality score sum for the mutant base in the normal must be < 50 and the
             //      LOD score for ref:ref vs mutant:ref + mutant:mutant must be at least 2.3.
             double normalLod = normalReadPile.getRefVsAlt(altAllele);
-            if ( normalReadPile.qualitySums.get(altAllele) > 50 || normalLod < NORMAL_LOD ) {
+            if ( normalReadPile.qualitySums.get(altAllele) > 50 || normalLod < NORMAL_LOD_THRESHOLD) {
                 continue;
             }
 
