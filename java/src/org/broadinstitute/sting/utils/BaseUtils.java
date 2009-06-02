@@ -184,7 +184,7 @@ public class BaseUtils {
         byte[] rcbases = new byte[bases.length];
 
         for (int i = 0; i < bases.length; i++) {
-            rcbases[i] = bases[bases.length - 1];
+            rcbases[i] = bases[bases.length - i - 1];
         }
 
         return rcbases;

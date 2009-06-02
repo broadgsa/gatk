@@ -17,7 +17,7 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
     public String logisticParamsFile;
 
     @Argument(shortName="outputBAM", doc="output BAM file", required=false)
-    public String outputBamFile = "";
+    public String outputBamFile = null;
 
     HashMap<String, LogisticRegressor> regressors = new HashMap<String, LogisticRegressor>();
     private static Logger logger = Logger.getLogger(LogisticRecalibrationWalker.class);
@@ -120,7 +120,7 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
                 //newQual = QualityUtils.probToQual(P);
 
                 //newQual = (byte)Math.min(Math.round(-10*logPOver1minusP),63);
-                //System.out.printf("Recal %s %d %d => %f => %f leads to %d%n", dinuc, cycle, qual, logPOver1minusP, P, newQual);
+                //System.out.printf("Recal %s %d %d %d%n", dinuc, cycle, qual, newQual);
             }else{
                 newQual = qual;
             }
