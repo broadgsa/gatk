@@ -49,12 +49,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     long counted_sites = 0; // number of sites used to count covariates
     long skipped_sites = 0; // number of sites skipped because of a dbSNP entry
 
-    String dinuc_root = "dinuc";
-    ArrayList<PrintStream> dinuc_outs = new ArrayList<PrintStream>();
-    PrintStream ByQualFile; // = new PrintStream("quality_empirical_vs_observed.csv");
-    PrintStream ByCycleFile;
-    PrintStream ByDinucFile;
-
     private class RecalData {
         long N;
         long B;
@@ -104,15 +98,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             }
         }
 
-        try {
-            ByQualFile = new PrintStream(OUTPUT_FILEROOT+".empirical_v_reported_quality.csv");
-            ByCycleFile = new PrintStream(OUTPUT_FILEROOT+".quality_difference_v_cycle.csv");
-            ByDinucFile = new PrintStream(OUTPUT_FILEROOT+".quality_difference_v_dinucleotide.csv");
-        } catch (FileNotFoundException e){
-            System.out.println("Could not open output files based on OUTPUT_FILEROOT option: " + OUTPUT_FILEROOT);
-            System.exit(1);
-        }
-
+        
     }
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
@@ -123,7 +109,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             for (int i =0; i < reads.size(); i++ ) {
                 SAMRecord read = reads.get(i);
 
-                if ((READ_GROUP.equals("none") || read.getAttribute("RG") != null && read.getAttribute("RG").equals(READ_GROUP)) &&
+                if (//read.getHeader().getReadGroup((String)read.getAttribute("RG")).getAttribute("PL") == "ILLUMINA" &&
+                    !read.getReadNegativeStrandFlag() &&
+                    (READ_GROUP.equals("none") || read.getAttribute("RG") != null && read.getAttribute("RG").equals(READ_GROUP)) &&
                     (read.getMappingQuality() >= MIN_MAPPING_QUALITY) &&
                     (DOWNSAMPLE_FRACTION == 1.0 || random_genrator.nextFloat() < DOWNSAMPLE_FRACTION)) {
                     //(random_genrator.nextFloat() <= DOWNSAMPLE_FRACTION)
@@ -134,14 +122,15 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
                         if (qual > 0 && qual <= MAX_QUAL_SCORE) {
                             // previous base is the next base in terms of machine chemistry if this is a negative strand
                             char base = (char)read.getReadBases()[offset];
-                            char prevBase = (char)read.getReadBases()[offset + (read.getReadNegativeStrandFlag() ? 1 : -1)];
-                            int dinuc_index = bases2dinucIndex(prevBase, base, read.getReadNegativeStrandFlag());
+                            char prevBase = (char)read.getReadBases()[offset -1];
+                            int dinuc_index = bases2dinucIndex(prevBase, base, false);
                             //char prevBase = (char)read.getReadBases()[offset + (read.getReadNegativeStrandFlag() ? 1 : -1)];
                             //int dinuc_index = bases2dinucIndex(prevBase, base, read.getReadNegativeStrandFlag());
 
                             // Convert offset into cycle position which means reversing the position of reads on the negative strand
-                            int cycle = read.getReadNegativeStrandFlag() ? numBases - offset - 1 : offset;
-                            data[cycle][qual][dinuc_index].inc(base,ref);
+                            //int cycle = read.getReadNegativeStrandFlag() ? numBases - offset - 1 : offset;
+                            //data[cycle][qual][dinuc_index].inc(base,ref);
+                            data[offset][qual][dinuc_index].inc(base,ref);
                         }
                     }
                 }
@@ -149,6 +138,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             counted_sites += 1;
         }else{
             skipped_sites += 1;
+            //System.out.println(dbsnp.toSimpleString()+" "+new ReadBackedPileup(ref, context).getPileupString());
         }
         return 1;
     }
@@ -174,19 +164,14 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         out.printf("Skipped sites: %d%n", skipped_sites);
         out.printf("Fraction skipped: 1/%.0f%n", (double)counted_sites / skipped_sites);
 
-        // Close dinuc filehandles
         if (CREATE_TRAINING_DATA) writeTrainingData();
-        /*if (CREATE_TRAINING_DATA)
-            for ( PrintStream dinuc_stream : this.dinuc_outs)
-                dinuc_stream.close();*/
-
     }
 
     void writeTrainingData() {
         for ( int dinuc_index=0; dinuc_index<NDINUCS; dinuc_index++) {
             PrintStream dinuc_out = null;
             try {
-                dinuc_out = new PrintStream( dinuc_root+"."+dinucIndex2bases(dinuc_index)+".csv");
+                dinuc_out = new PrintStream( OUTPUT_FILEROOT+".covariate_counts."+dinucIndex2bases(dinuc_index)+".csv");
                 dinuc_out.println("logitQ,pos,indicator,count");
 
                 for ( RecalData datum: flattenData ) {
@@ -225,6 +210,13 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     }
 
     public void qualityDiffVsCycle() {
+        PrintStream ByCycleFile = null;
+        try {
+            ByCycleFile = new PrintStream(OUTPUT_FILEROOT+".quality_difference_v_cycle.csv");
+        } catch (FileNotFoundException e){
+            System.out.println("Could not open output files based on OUTPUT_FILEROOT option: " + OUTPUT_FILEROOT);
+            System.exit(1);
+        }
         ArrayList<RecalData> ByCycle = new ArrayList<RecalData>();
         ArrayList<MeanReportedQuality> ByCycleReportedQ = new ArrayList<MeanReportedQuality>();
         ByCycleFile.printf("cycle,Qemp-obs,Qemp,Qobs,B,N%n");
@@ -252,6 +244,13 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     }
 
     public void qualityDiffVsDinucleotide() {
+        PrintStream ByDinucFile = null;
+        try {
+            ByDinucFile = new PrintStream(OUTPUT_FILEROOT+".quality_difference_v_dinucleotide.csv");
+        } catch (FileNotFoundException e){
+            System.out.println("Could not open output files based on OUTPUT_FILEROOT option: " + OUTPUT_FILEROOT);
+            System.exit(1);
+        }
         ArrayList<RecalData> ByCycle = new ArrayList<RecalData>();
         ArrayList<MeanReportedQuality> ByCycleReportedQ = new ArrayList<MeanReportedQuality>();
         ByDinucFile.printf("dinuc,Qemp-obs,Qemp,Qobs,B,N%n");
@@ -280,7 +279,13 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     }
 
     public void qualityEmpiricalObserved() {
-
+        PrintStream ByQualFile  = null;
+        try {
+            ByQualFile = new PrintStream(OUTPUT_FILEROOT+".empirical_v_reported_quality.csv");
+        } catch (FileNotFoundException e){
+            System.out.println("Could not open output files based on OUTPUT_FILEROOT option: " + OUTPUT_FILEROOT);
+            System.exit(1);
+        }
         ArrayList<RecalData> ByQ = new ArrayList<RecalData>();
         ArrayList<MeanReportedQuality> ByQReportedQ = new ArrayList<MeanReportedQuality>();
         ByQualFile.printf("Qrep,Qemp,Qrep_avg,B,N%n");
@@ -353,12 +358,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     Random random_genrator;
     // Print out data for regression
     public CovariateCounterWalker()  throws FileNotFoundException {
-        /*if (CREATE_TRAINING_DATA)
-            for ( int i=0; i<NDINUCS; i++) {
-                PrintStream next_dinuc = new PrintStream( dinuc_root+"."+dinucIndex2bases(i)+".csv");
-                next_dinuc.println("logitQ,pos,indicator");
-                dinuc_outs.add(next_dinuc);
-            } */
         random_genrator = new Random(123454321); // keep same random seed while debugging
     }
 }

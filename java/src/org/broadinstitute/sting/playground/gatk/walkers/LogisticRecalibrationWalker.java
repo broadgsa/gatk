@@ -62,7 +62,7 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
         ArrayList<Pair<Integer, Integer>> mapping = new ArrayList<Pair<Integer, Integer>>();
 
         String[] elts = headerLine.split("\\s+");
-        if ( ! elts[0].toLowerCase().equals("dinuc") )
+        if ( ! elts[0].toLowerCase().startsWith("dinuc") ) // checking only start of first field because dinuc will be followed by a version number to be checekde later
             Utils.scareUser("Badly formatted Logistic regression header, upper left keyword must be dinuc: " + elts[0] + " line: " + headerLine);
 
         for ( int k = 1; k < elts.length; k++ ) {
