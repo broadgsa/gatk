@@ -75,8 +75,8 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
     public int MIN_MUTANT_SUM = 100;
 
 
-    @Argument(fullName = "output_failures", required = false, doc="produce output for failed sites")
-    public boolean OUTPUT_FAILURES = false;
+//    @Argument(fullName = "output_failures", required = false, doc="produce output for failed sites")
+    public boolean OUTPUT_FAILURES = true;
 
 
     public boolean bedOutput = true;
