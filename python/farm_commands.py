@@ -46,5 +46,5 @@ def cmd(cmd_str_from_user, farm_queue=False, output_head=None, just_print_comman
         status = os.system(cmd_str)
         if not farm_queue:
             print "<<< Exit code:", status,"\n"
-        return status
+        return int(status)
         

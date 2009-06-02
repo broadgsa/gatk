@@ -10,7 +10,22 @@ import itertools
 
 gatkPath = "~/dev/GenomeAnalysisTK/trunk/dist/GenomeAnalysisTK.jar"
 ref = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"
-analysis = "CombineDuplicates"
+   
+def geli2dbsnpFile(geli):
+    root, flowcellDotlane, ext = picard_utils.splitPath(geli)
+    return os.path.join(root, flowcellDotlane) + '.dbsnp_matches'
+
+   
+def bams2geli(bams):
+    def call1(bam):
+        geli = os.path.splitext(bam)[0] + '.geli'
+        jobid = 0
+        if not os.path.exists(geli):
+            cmd = picard_utils.callGenotypesCmd( bam, geli, options = picard_utils.hybridSelectionExtraArgsForCalling())
+            jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue )
+        return geli, jobid
+    calls = map(call1, bams)
+    return map(lambda x: x[0], calls), map(lambda x: x[1], calls)        
    
 def main():    
     global OPTIONS, ROOT
@@ -25,7 +40,7 @@ def main():
                         help="minimum lod for calling a variant")
     parser.add_option("-k", "--column", dest="column",
                         type="int", default=1,
-                        help="Column in the file with the geli file path")
+                        help="Column in the file with the bam or geli file path")
     parser.add_option("-o", "--output", dest="output",
                         type="string", default='/dev/stdout',
                         help="x")
@@ -35,17 +50,36 @@ def main():
         parser.error("incorrect number of arguments")
     lines = [line.split() for line in open(args[0])]
     nIndividuals = int(args[1])
-    gelis = map( lambda x: x[OPTIONS.column-1], lines )
-    variantsOut = map( lambda geli: os.path.split(geli)[1] + '.calls', gelis)
-
+    
+    data = map( lambda x: x[OPTIONS.column-1], lines )
+    if os.path.splitext(data[0])[1] == '.bam':
+        gelis, jobids = bams2geli(data)
+        if filter(lambda x: x <> 0, jobids) <> []:
+            # there's still work to do
+            sys.exit('Stopping.  Please rerun this program when the farm jobs are complete: ' + str(jobids))
+        print 'gelis', gelis
+        print 'jobids', jobids
+    else:
+        gelis = map( lambda x: x[OPTIONS.column-1], lines )
+        jobids = [None] * len(gelis)
+    
+    print 'Geli files'
     print gelis
-    print variantsOut
 
+    for geli, jobid in zip(gelis, jobids):
+        dbsnpFile = geli2dbsnpFile(geli)
+        if not os.path.exists(dbsnpFile):
+            dbsnpCmd = picard_utils.CollectDbSnpMatchesCmd(geli, dbsnpFile, OPTIONS.lod)
+            farm_commands.cmd(dbsnpCmd, OPTIONS.farmQueue, waitID = jobid)
+
+    # read in the dbSNP tracks
     nTotalSnps = 0
     nNovelSnps = 0
     for geli in gelis:
         root, flowcellDotlane, ext = picard_utils.splitPath(geli)
-        dbsnp_matches = os.path.join(root, flowcellDotlane) + '.dbsnp_matches'
+        #dbsnp_matches = os.path.join(root, flowcellDotlane) + '.dbsnp_matches'
+        dbsnp_matches = geli2dbsnpFile(geli)
+        print dbsnp_matches
         if os.path.exists(dbsnp_matches):
             TOTAL_SNPS, NOVEL_SNPS, PCT_DBSNP, NUM_IN_DB_SNP = picard_utils.read_dbsnp(dbsnp_matches)
             nTotalSnps += int(TOTAL_SNPS)
@@ -55,7 +89,9 @@ def main():
     print 'DATA:    NOVEL SNP CALLS SUMMED ACROSS LANES, NOT ACCOUNT FOR IDENTITY ', nNovelSnps
     print 'DATA:    AVERAGE DBSNP RATE ACROSS LANES ', float(nTotalSnps - nNovelSnps) / nTotalSnps
 
+    # convert the geli's to text
     jobid = None
+    variantsOut = map( lambda geli: os.path.split(geli)[1] + '.calls', gelis)
     for geli, variantOut in zip(gelis, variantsOut):
         if not os.path.exists(variantOut):
             cmd = ("GeliToText.jar I=%s | awk '$7 > %f' > %s" % ( geli, OPTIONS.lod, variantOut) )

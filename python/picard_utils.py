@@ -21,6 +21,9 @@ analysis = "CombineDuplicates"
 MERGE_BIN = '/seq/software/picard/current/bin/MergeSamFiles.jar'
 CALL_GENOTYPES_BIN = '/seq/software/picard/current/bin/CallGenotypes.jar'
 
+def CollectDbSnpMatchesCmd(inputGeli, outputFile, lod): 
+    return 'CollectDbSnpMatches.jar INPUT=%s OUTPUT=%s DBSNP=/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.dbsnp MINIMUM_LOD=%f' % (inputGeli, outputFile, lod)
+
 def unique(l):
     return list(set(l))
 
@@ -140,10 +143,14 @@ def aggregateGeliCalls( sortedGeliCalls ):
     #return [[loc, list(sharedCallsGroup)] for (loc, sharedCallsGroup) in itertools.groupby(sortedGeliCalls, call2loc)]
     return [[loc, list(sharedCallsGroup)] for (loc, sharedCallsGroup) in itertools.groupby(sortedGeliCalls, call2loc)]
 
-def mergeBAMCmd( output_filename, inputFiles, mergeBin = MERGE_BIN ):
+def mergeBAMCmd( output_filename, inputFiles, mergeBin = MERGE_BIN, MSD = True ):
     if type(inputFiles) <> list:
         inputFiles = list(inputFiles)
-    return 'java -Xmx4096m -jar ' + mergeBin + ' MSD=true AS=true SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
+
+    MSDStr = ''
+    if MSD: MSDStr = 'MSD=true'
+
+    return 'java -Xmx4096m -jar ' + mergeBin + ' ' + MSDStr + ' AS=true SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
     #return 'java -Xmx4096m -jar ' + mergeBin + ' AS=true SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
 
 def getPicardPath(lane, picardRoot = '/seq/picard/'):
@@ -165,8 +172,11 @@ def getReferenceGenotypeFileFromConcordanceFile(concordFile):
             return match.group(1)
     return None
 
+def hybridSelectionExtraArgsForCalling():
+    return "TARGET_INTERVALS=/seq/references/HybSelOligos/thousand_genomes_alpha_redesign/thousand_genomes_alpha_redesign.targets.interval_list CALL_ZERO_COVERAGE_LOCI=true"
+
 def callGenotypesCmd( inputBam, outputFilename, callGenotypesBin = CALL_GENOTYPES_BIN, options = ''):
-    return "java -jar %s INPUT=%s OUTPUT=%s CALLER_ALGORITHM=QUALITY_SCORE PRIOR_MODEL=SNP_FREQUENCY %s" % ( callGenotypesBin, inputBam, outputFilename, options)
+    return "java -jar %s INPUT=%s OUTPUT=%s REFERENCE_SEQUENCE=%s CALLER_ALGORITHM=QUALITY_SCORE PRIOR_MODEL=SNP_FREQUENCY %s" % ( callGenotypesBin, inputBam, outputFilename, ref, options)
 
 def concord(options, geli, output, genotypeFile):
     return ("java -jar /seq/software/picard/current/bin/CollectGenotypeConcordanceStatistics.jar OPTIONS_FILE=%s INPUT=%s OUTPUT=%s REFERENCE_GENOTYPES=%s MINIMUM_LOD=5.0" % ( options, geli, output, genotypeFile ) )

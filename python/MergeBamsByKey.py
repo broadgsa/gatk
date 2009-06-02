@@ -34,6 +34,9 @@ by key and spawn merge and index jobs to merge all of the files sharing the same
     parser.add_option("-m", "--mergeBin", dest="mergeBin",
                         type="string", default=None,
                         help="Path to merge binary")
+    parser.add_option("", "--MSD", dest="MSD",
+                        action='store_true', default=False,
+                        help="Merge sequence dictionaries?")
     parser.add_option("", "--keyCol", dest="keyCol",
                         type=int, default=1,
                         help="Column in the list file holding the key")
@@ -69,7 +72,7 @@ by key and spawn merge and index jobs to merge all of the files sharing the same
             if len(spec.sources()) == 1 and OPTIONS.link:
                 cmd = 'ln -s ' + spec.sources()[0] + ' ' + spec.getMergedBAM()
             else:
-                cmd = spec.mergeCmd(OPTIONS.mergeBin)
+                cmd = spec.mergeCmd(OPTIONS.mergeBin, MSD = OPTIONS.MSD)
             print cmd
             jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, output, just_print_commands = OPTIONS.dry)
 
