@@ -87,7 +87,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
     public GenomeLoc( int contigIndex, final long start, final long stop ) {
         if(contigInfo == null) {  throw new StingException("Contig info has not been setup in the GenomeLoc context yet."); }
 
-        if (contigIndex < 0 || contigIndex >= contigInfo.size()) {
+        if (!isSequenceIndexValid(contigIndex)) {
             throw new StingException("Contig info has not been setup in the GenomeLoc context yet.");
         }
         if (start < 0) { throw new StingException("Bad start position " + start);}
@@ -126,6 +126,19 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
     private static long parsePosition( final String pos ) {
         String x = pos.replaceAll(",", "");
         return Long.parseLong(x);
+    }
+
+    /**
+     * Use this static constructor when the input data is under limited control (i.e. parsing user data).
+     * @param contig Contig to parse.
+     * @param start Starting point.
+     * @param stop Stop point.
+     * @return The genome location, or a MalformedGenomeLocException if unparseable.
+     */
+    public static GenomeLoc parseGenomeLoc( final String contig, long start, long stop ) {
+        if( !isContigValid(contig) )
+            throw new MalformedGenomeLocException("Contig " + contig + " is not within installed in the GATK sequence dictionary derived from the reference.");
+        return new GenomeLoc(contig,start,stop);
     }
 
     public static GenomeLoc parseGenomeLoc( final String str ) {
@@ -184,7 +197,10 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
             stop = getContigInfo(contig).getSequenceLength();
         }
 
-        GenomeLoc loc = new GenomeLoc(contig, start, stop);
+        if( !isContigValid(contig) )
+            throw new MalformedGenomeLocException("Contig " + contig + " is not within installed in the GATK sequence dictionary derived from the reference.");
+
+        GenomeLoc loc = parseGenomeLoc(contig,start,stop);
  //       System.out.printf("  => Parsed location '%s' into %s%n", str, loc);
 
         return loc;
@@ -582,5 +598,25 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
                 throw new StingException("Unable to parse out interval file in either format", e);
             }
         }
+    }
+
+    /**
+     * Determines whether the given contig is valid with respect to the sequence dictionary
+     * already installed in the GenomeLoc.
+     * @return True if the contig is valid.  False otherwise.
+     */
+    private static boolean isContigValid( String contig ) {
+        int contigIndex = contigInfo.getSequenceIndex(contig);
+        return isSequenceIndexValid(contigIndex);
+    }
+
+    /**
+     * Determines whether the given sequence index is valid with respect to the sequence dictionary.
+     * @param sequenceIndex sequence index
+     * @return True if the sequence index is valid, false otherwise.
+     */
+    private static boolean isSequenceIndexValid( int sequenceIndex ) {
+        return sequenceIndex >= 0 && sequenceIndex < contigInfo.size();
+
     }
 }

@@ -21,7 +21,7 @@ public class rodRefSeq extends BasicReferenceOrderedDatum {
 	
 	public rodRefSeq(String name) {
 		super(name);
-//		location = new GenomeLoc(0,0,-1);
+//		location = GenomeLoc.parseGenomeLoc(0,0,-1);
 	}
 
 	/** Despite this constructor is public, it is meant primarily for the internal use; RefSeq iterator will
@@ -182,7 +182,7 @@ class refSeqIterator implements Iterator<rodRefSeq> {
 		
 		// 'records' and current position are fully updated. We can now create new rod and return it (NOTE: this iterator will break if the list
 		// of pre-loaded records is meddled with by the clients between iterations, so we return them as unmodifiable list)
-		rodRefSeq rod = new rodRefSeq(name,new GenomeLoc(curr_contig_name,curr_position, curr_position),Collections.unmodifiableList(records));
+		rodRefSeq rod = new rodRefSeq(name,GenomeLoc.parseGenomeLoc(curr_contig_name,curr_position, curr_position),Collections.unmodifiableList(records));
 //		if ( (++z) % 1000000 == 0 ) {
 //			System.out.println(rod.getLocation()+": holding "+records.size()+ "; time per 1M ref positions: "+((double)(System.currentTimeMillis()-t)/1000.0)+" s");
 //			z = 0;

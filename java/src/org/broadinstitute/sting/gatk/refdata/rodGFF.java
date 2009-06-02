@@ -73,7 +73,7 @@ public class rodGFF extends BasicReferenceOrderedDatum {
     }
 
     public GenomeLoc getLocation() {
-        return new GenomeLoc(contig, start, stop);
+        return GenomeLoc.parseGenomeLoc(contig, start, stop);
     }
 
     public String getAttribute(final String key) {

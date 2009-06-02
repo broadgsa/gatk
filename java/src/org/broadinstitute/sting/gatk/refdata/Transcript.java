@@ -75,8 +75,8 @@ public class Transcript {
 			else throw new StingException("Expected strand symbol (+/-), found: "+fields[3]);
 			
 			String contig_name = fields[2];
-			transcript_interval = new GenomeLoc(contig_name, Integer.parseInt(fields[4])+1, Integer.parseInt(fields[5]));
-			transcript_coding_interval = new GenomeLoc(contig_name, Integer.parseInt(fields[6])+1, Integer.parseInt(fields[7]));
+			transcript_interval = GenomeLoc.parseGenomeLoc(contig_name, Integer.parseInt(fields[4])+1, Integer.parseInt(fields[5]));
+			transcript_coding_interval = GenomeLoc.parseGenomeLoc(contig_name, Integer.parseInt(fields[6])+1, Integer.parseInt(fields[7]));
 			gene_name = fields[12];
 			String[] exon_starts = fields[9].split(",");
 			String[] exon_stops = fields[10].split(",");
@@ -89,7 +89,7 @@ public class Transcript {
 			exon_frames = new ArrayList<Integer>(eframes.length);
 			
 			for ( int i = 0 ; i < exon_starts.length  ; i++ ) {
-				exons.add(new GenomeLoc(contig_name, Integer.parseInt(exon_starts[i])+1, Integer.parseInt(exon_stops[i]) ) );
+				exons.add(GenomeLoc.parseGenomeLoc(contig_name, Integer.parseInt(exon_starts[i])+1, Integer.parseInt(exon_stops[i]) ) );
 				exon_frames.add(Integer.decode(eframes[i]));
 			}
 		}

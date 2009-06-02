@@ -35,7 +35,7 @@ import org.apache.log4j.Logger;
  * ArrayList<String> header = new ArrayList<String>(Arrays.asList("HEADER", "col1", "col2", "col3"));
  * assertTrue(TabularROD.headerString(header).equals("HEADER\tcol1\tcol2\tcol3"));
  * String rowData = String.format("%d %d %d", 1, 2, 3);
- * TabularROD row = new TabularROD("myName", header, new GenomeLoc("chrM", 1), rowData.split(" "));
+ * TabularROD row = new TabularROD("myName", header, GenomeLoc.parseGenomeLoc("chrM", 1), rowData.split(" "));
  * assertTrue(row.toString().equals("chrM:1\t1\t2\t3"));
  */
 public class TabularROD extends BasicReferenceOrderedDatum implements Map<String, String> {

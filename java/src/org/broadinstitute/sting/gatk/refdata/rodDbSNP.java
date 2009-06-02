@@ -7,6 +7,7 @@ import java.util.*;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.MalformedGenomeLocException;
 import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 
 /**
@@ -161,7 +162,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
             String contig = parts[1];
             long start = Long.parseLong(parts[2]) + 1; // The final is 0 based
             long stop = Long.parseLong(parts[3]) + 1;  // The final is 0 based
-            loc = new GenomeLoc(contig, start, stop);
+            loc = GenomeLoc.parseGenomeLoc(contig, start, stop);
 
             name = parts[4];
             refBases = parts[5];
@@ -177,8 +178,11 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
             weight = Integer.parseInt(parts[17]);
             //System.out.printf("Parsed %s%n", toString());
             return true;
+        } catch( MalformedGenomeLocException ex ) {
+            // Just rethrow malformed genome locs; the ROD system itself will deal with these.
+            throw ex;
         } catch ( RuntimeException e ) {
-            System.out.printf("  Exception caught during parsing GFFLine %s%n", Utils.join(" <=> ", parts));
+            System.out.printf("  Exception caught during parsing DBSNP line %s%n", Utils.join(" <=> ", parts));
             throw e;
         }
     }

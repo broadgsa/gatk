@@ -14,6 +14,7 @@ import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.xReadLines;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.MalformedGenomeLocException;
 import org.apache.log4j.Logger;
 
 /**
@@ -263,11 +264,36 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         }
 
         public ROD next() {
-            final String line = parser.next();
-            //System.out.printf("Line is %s%n", line);
-            String parts[] = line.split(fieldDelimiter);
-            ROD n = parseLine(parts);
-            return n != null ? n : next();
+            ROD n = null;
+            boolean success = false;
+            boolean firstFailure = true;
+
+            do {
+                final String line = parser.next();
+                //System.out.printf("Line is %s%n", line);
+                String parts[] = line.split(fieldDelimiter);
+                
+                try {
+                    n = parseLine(parts);
+                    // Two failure conditions:
+                    // 1) parseLine throws an exception.
+                    // 2) parseLine returns null.
+                    // 3) parseLine throws a RuntimeException.
+                    // TODO: Clean this up so that all errors are handled in one spot.
+                    success = (n != null);
+                }
+                catch( MalformedGenomeLocException ex ) {
+                    if( firstFailure ) {
+                        Utils.warnUser("Failed to parse contig on line '" + line + "'.  Skipping ahead to the next recognized GenomeLoc.");
+                        firstFailure = false;
+                    }
+                    if( !parser.hasNext() )
+                        Utils.warnUser("Unable to find more valid reference-ordered data.  Giving up.");
+                }
+
+            } while (!success && parser.hasNext());
+
+            return n;
         }
  
         public void remove() {
@@ -308,7 +334,8 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         public boolean hasNext() { return it.hasNext(); }
         public ROD next() {
             ROD next = it.next();
-            position = next.getLocation().clone();
+            if( next != null )
+                position = next.getLocation().clone();
             return next; 
         }
 
@@ -336,6 +363,8 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
             if ( DEBUG ) System.out.printf("  *** starting seek to %s %d%n", loc.getContig(), loc.getStart());
             while ( hasNext() ) {
                 ROD current = next();
+                if( current == null )
+                    continue;
                 //System.out.printf("    -> Seeking to %s %d AT %s %d%n", contigName, pos, current.getContig(), current.getStart());
                 int cmp = current.getLocation().compareTo(loc);
                 if ( cmp < 0 ) {

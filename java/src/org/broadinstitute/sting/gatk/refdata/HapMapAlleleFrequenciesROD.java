@@ -79,7 +79,7 @@ public class HapMapAlleleFrequenciesROD extends BasicReferenceOrderedDatum {
             varFreq = Double.parseDouble(parts[11]); // CEU_var_freq
             totalCounts = Integer.parseInt(parts[12]); // CEU_var
 
-            loc = new GenomeLoc(contig, start, stop);
+            loc = GenomeLoc.parseGenomeLoc(contig, start, stop);
 
         } catch ( RuntimeException e ) {
             System.out.printf("  Exception caught during parsing HapMap Allele Freq %s%n", Utils.join(" <=> ", parts));
