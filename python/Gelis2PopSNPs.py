@@ -46,10 +46,11 @@ def main():
     for geli in gelis:
         root, flowcellDotlane, ext = picard_utils.splitPath(geli)
         dbsnp_matches = os.path.join(root, flowcellDotlane) + '.dbsnp_matches'
-        TOTAL_SNPS, NOVEL_SNPS, PCT_DBSNP, NUM_IN_DB_SNP = picard_utils.read_dbsnp(dbsnp_matches)
-        nTotalSnps += int(TOTAL_SNPS)
-        nNovelSnps += int(NOVEL_SNPS)
-        print 'DATA:    ', flowcellDotlane, TOTAL_SNPS, NOVEL_SNPS, PCT_DBSNP, NUM_IN_DB_SNP, dbsnp_matches
+        if os.path.exists(dbsnp_matches):
+            TOTAL_SNPS, NOVEL_SNPS, PCT_DBSNP, NUM_IN_DB_SNP = picard_utils.read_dbsnp(dbsnp_matches)
+            nTotalSnps += int(TOTAL_SNPS)
+            nNovelSnps += int(NOVEL_SNPS)
+            print 'DATA:    ', flowcellDotlane, TOTAL_SNPS, NOVEL_SNPS, PCT_DBSNP, NUM_IN_DB_SNP, dbsnp_matches
     print 'DATA:    TOTAL SNP CALLS SUMMED ACROSS LANES, NOT ACCOUNT FOR IDENTITY', nTotalSnps
     print 'DATA:    NOVEL SNP CALLS SUMMED ACROSS LANES, NOT ACCOUNT FOR IDENTITY ', nNovelSnps
     print 'DATA:    AVERAGE DBSNP RATE ACROSS LANES ', float(nTotalSnps - nNovelSnps) / nTotalSnps
@@ -57,8 +58,8 @@ def main():
     jobid = None
     for geli, variantOut in zip(gelis, variantsOut):
         if not os.path.exists(variantOut):
-            cmd = ("GeliToText.jar I=%s | awk '$7 > %f' > %s" % ( geli, OPTIONS.lod, variantsOut) )
-            #jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands=False)
+            cmd = ("GeliToText.jar I=%s | awk '$7 > %f' > %s" % ( geli, OPTIONS.lod, variantOut) )
+            jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands=False)
 
     cmd = ("cat %s | awk '$1 !~ \"@\" && $1 !~ \"#Sequence\" && $0 !~ \"GeliToText\"' | sort -k 1 -k 2 -n > tmp.calls" % ( ' '.join(variantsOut) ) )
     jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands=False, waitID = jobid)
