@@ -425,14 +425,30 @@ public class ParsingEngine {
             }
             Boolean bool = new Boolean(b);
             return bool;
+        } else if (type == Byte.TYPE) {
+            Byte b = Byte.valueOf(str);
+            return b;
+        } else if (type == Short.TYPE) {
+            Short s = Short.valueOf(str);
+            return s;
         } else if (type == Integer.TYPE) {
             Integer in = Integer.valueOf(str);
             return in;
+        } else if (type == Long.TYPE) {
+            Long l = Long.valueOf(str);
+            return l;
         } else if (type == Float.TYPE) {
             Float fl = Float.valueOf(str);
             return fl;
-        }
-        else {
+        } else if (type == Double.TYPE) {
+            Double db = Double.valueOf(str);
+            return db;
+        } else if (type == Character.TYPE) {
+            if( str.trim().length() != 1 )
+                throw new StingException("Unable to parse argument '" + str + "' into a character.");
+            Character c = str.trim().charAt(0);
+            return c;
+        } else {
             Constructor ctor = null;
             try {
                 ctor = type.getConstructor(String.class);
