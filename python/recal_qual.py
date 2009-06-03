@@ -90,7 +90,7 @@ if plot:
     cmd("~andrewk/covariates/plot_q_emp_stated_hst.R "+central_fileroot+".empirical_v_reported_quality.csv")
     cmd("~andrewk/covariates/plot_qual_diff_v_cycle_dinuc.R "+central_fileroot)
     
-#cmd("python ~andrewk/dev/Sting/trunk/python/LogRegression.py "+central_fileroot)
+cmd("python ~andrewk/dev/Sting/trunk/python/LogRegression.py "+central_fileroot)
 
 if recal_only: # Stop if we are only making recalibration tables
     sys.exit()
