@@ -112,7 +112,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             for (int i =0; i < reads.size(); i++ ) {
                 SAMRecord read = reads.get(i);
                 SAMReadGroupRecord readGroup = read.getHeader().getReadGroup((String)read.getAttribute("RG"));
-                if ( readGroup.getAttribute("PL") == "ILLUMINA" &&
+                if ( "ILLUMINA".equalsIgnoreCase(readGroup.getAttribute("PL").toString()) &&
                     !read.getReadNegativeStrandFlag() &&
                     (READ_GROUP.equals("none") || read.getAttribute("RG") != null && read.getAttribute("RG").equals(READ_GROUP)) &&
                     (read.getMappingQuality() >= MIN_MAPPING_QUALITY) &&
@@ -171,30 +171,32 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     }
 
     void writeTrainingData() {
-
-        for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
-            for ( int dinuc_index=0; dinuc_index<NDINUCS; dinuc_index++) {
-                PrintStream dinuc_out = null;
-                try {
-                    dinuc_out = new PrintStream( OUTPUT_FILEROOT+".covariate_counts.RG_"+readGroup.getReadGroupId()+"."+dinucIndex2bases(dinuc_index)+".csv");
-                    dinuc_out.println("logitQ,pos,indicator,count");
-
+        PrintStream dinuc_out = null;
+        try {
+            dinuc_out = new PrintStream( OUTPUT_FILEROOT+".covariate_counts.csv");
+            dinuc_out.println("rg,dn,logitQ,pos,indicator,count");            
+            for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
+                for ( int dinuc_index=0; dinuc_index<NDINUCS; dinuc_index++) {
                     for ( RecalData datum: flattenData ) {
                         if (string2dinucIndex(datum.dinuc) == dinuc_index) {
                             if ((datum.N - datum.B) > 0)
-                                dinuc_out.format("%d,%d,%d,%d\n", datum.qual, datum.pos, 0, datum.N - datum.B);
+                                dinuc_out.format("%s,%s,%d,%d,%d,%d%n", readGroup.getReadGroupId(), dinucIndex2bases(dinuc_index), datum.qual, datum.pos, 0, datum.N - datum.B);
                             if (datum.B > 0)
-                                dinuc_out.format("%d,%d,%d,%d\n", datum.qual, datum.pos, 1, datum.B);
+                                dinuc_out.format("%s,%s,%d,%d,%d,%d%n", readGroup.getReadGroupId(), dinucIndex2bases(dinuc_index), datum.qual, datum.pos, 1, datum.B);
                         }
                     }
-                } catch (FileNotFoundException e) {
-                    System.err.println("FileNotFoundException: " + e.getMessage());
-                } finally {
-                    if (dinuc_out != null)
-                        dinuc_out.close();
                 }
             }
         }
+        catch (FileNotFoundException e) {
+            System.err.println("FileNotFoundException: " + e.getMessage());
+            return;
+        }
+        finally {
+            if (dinuc_out != null)
+                dinuc_out.close();
+        }
+
     }
 
     class MeanReportedQuality {
