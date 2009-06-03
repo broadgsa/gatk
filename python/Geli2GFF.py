@@ -29,8 +29,9 @@ if __name__ == "__main__":
     for line in pipe:
         if line[0] not in ('@', '#'):
             fields = line.split("\t")
+            #print fields
             try:
-                contig = Index2AffyChr[int(fields[0])]
+                contig = fields[0] #Index2AffyChr[int(fields[0])]
             except KeyError, ValueError:
                 print "skipping "+fields[0]
                 continue # Skip entries not in chr 0 through 24
