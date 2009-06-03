@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
@@ -12,6 +13,7 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.HashMap;
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
 
@@ -39,9 +41,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     public String READ_GROUP = "none";
 
     int NDINUCS = 16;
-    RecalData[][][] data = new RecalData[MAX_READ_LENGTH+1][MAX_QUAL_SCORE+1][NDINUCS];
-    //RecalData[][][] data = new RecalData;
     ArrayList<RecalData> flattenData = new ArrayList<RecalData>();
+    HashMap<String, RecalData[][][]> data = new HashMap<String, RecalData[][][]>();
+    //RecalData[][][] data;
 
     static int nuc2num[];
     static char num2nuc[];
@@ -87,18 +89,19 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     }
 
     public void initialize() {
-        for ( int i = 0; i < MAX_READ_LENGTH+1; i++) {
-            for ( int j = 0; j < MAX_QUAL_SCORE+1; j++) {
-                for ( int k = 0; k < NDINUCS; k++) {
-                    String dinuc = dinucIndex2bases(k);
-                    RecalData datum = new RecalData(i, j, dinuc);
-                    data[i][j][k] = datum;
-                    flattenData.add(datum);
+        for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
+            data.put(readGroup.getReadGroupId(), new RecalData[MAX_READ_LENGTH+1][MAX_QUAL_SCORE+1][NDINUCS]);
+            for ( int i = 0; i < MAX_READ_LENGTH+1; i++) {
+                for ( int j = 0; j < MAX_QUAL_SCORE+1; j++) {
+                    for ( int k = 0; k < NDINUCS; k++) {
+                        String dinuc = dinucIndex2bases(k);
+                        RecalData datum = new RecalData(i, j, dinuc);
+                        data.get(readGroup.getReadGroupId())[i][j][k] = datum;
+                        flattenData.add(datum);
+                    }
                 }
             }
         }
-
-        
     }
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
@@ -108,8 +111,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             List<Integer> offsets = context.getOffsets();
             for (int i =0; i < reads.size(); i++ ) {
                 SAMRecord read = reads.get(i);
-
-                if (//read.getHeader().getReadGroup((String)read.getAttribute("RG")).getAttribute("PL") == "ILLUMINA" &&
+                SAMReadGroupRecord readGroup = read.getHeader().getReadGroup((String)read.getAttribute("RG"));
+                if ( readGroup.getAttribute("PL") == "ILLUMINA" &&
                     !read.getReadNegativeStrandFlag() &&
                     (READ_GROUP.equals("none") || read.getAttribute("RG") != null && read.getAttribute("RG").equals(READ_GROUP)) &&
                     (read.getMappingQuality() >= MIN_MAPPING_QUALITY) &&
@@ -130,7 +133,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
                             // Convert offset into cycle position which means reversing the position of reads on the negative strand
                             //int cycle = read.getReadNegativeStrandFlag() ? numBases - offset - 1 : offset;
                             //data[cycle][qual][dinuc_index].inc(base,ref);
-                            data[offset][qual][dinuc_index].inc(base,ref);
+                            data.get(readGroup.getReadGroupId())[offset][qual][dinuc_index].inc(base,ref);
                         }
                     }
                 }
@@ -168,25 +171,28 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     }
 
     void writeTrainingData() {
-        for ( int dinuc_index=0; dinuc_index<NDINUCS; dinuc_index++) {
-            PrintStream dinuc_out = null;
-            try {
-                dinuc_out = new PrintStream( OUTPUT_FILEROOT+".covariate_counts."+dinucIndex2bases(dinuc_index)+".csv");
-                dinuc_out.println("logitQ,pos,indicator,count");
 
-                for ( RecalData datum: flattenData ) {
-                    if (string2dinucIndex(datum.dinuc) == dinuc_index) {
-                        if ((datum.N - datum.B) > 0)
-                            dinuc_out.format("%d,%d,%d,%d\n", datum.qual, datum.pos, 0, datum.N - datum.B);
-                        if (datum.B > 0)
-                            dinuc_out.format("%d,%d,%d,%d\n", datum.qual, datum.pos, 1, datum.B);
+        for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
+            for ( int dinuc_index=0; dinuc_index<NDINUCS; dinuc_index++) {
+                PrintStream dinuc_out = null;
+                try {
+                    dinuc_out = new PrintStream( OUTPUT_FILEROOT+".covariate_counts.RG_"+readGroup.getReadGroupId()+"."+dinucIndex2bases(dinuc_index)+".csv");
+                    dinuc_out.println("logitQ,pos,indicator,count");
+
+                    for ( RecalData datum: flattenData ) {
+                        if (string2dinucIndex(datum.dinuc) == dinuc_index) {
+                            if ((datum.N - datum.B) > 0)
+                                dinuc_out.format("%d,%d,%d,%d\n", datum.qual, datum.pos, 0, datum.N - datum.B);
+                            if (datum.B > 0)
+                                dinuc_out.format("%d,%d,%d,%d\n", datum.qual, datum.pos, 1, datum.B);
+                        }
                     }
+                } catch (FileNotFoundException e) {
+                    System.err.println("FileNotFoundException: " + e.getMessage());
+                } finally {
+                    if (dinuc_out != null)
+                        dinuc_out.close();
                 }
-            } catch (FileNotFoundException e) {
-                System.err.println("FileNotFoundException: " + e.getMessage());
-            } finally {
-                if (dinuc_out != null)
-                    dinuc_out.close();
             }
         }
     }
@@ -210,107 +216,113 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     }
 
     public void qualityDiffVsCycle() {
-        PrintStream ByCycleFile = null;
-        try {
-            ByCycleFile = new PrintStream(OUTPUT_FILEROOT+".quality_difference_v_cycle.csv");
-        } catch (FileNotFoundException e){
-            System.out.println("Could not open output files based on OUTPUT_FILEROOT option: " + OUTPUT_FILEROOT);
-            System.exit(1);
-        }
-        ArrayList<RecalData> ByCycle = new ArrayList<RecalData>();
-        ArrayList<MeanReportedQuality> ByCycleReportedQ = new ArrayList<MeanReportedQuality>();
-        ByCycleFile.printf("cycle,Qemp-obs,Qemp,Qobs,B,N%n");
-        RecalData All = new RecalData(0,0,"");
-        MeanReportedQuality AllReported = new MeanReportedQuality();
-        for (int c=0; c < MAX_READ_LENGTH+1; c++)  {
-            ByCycle.add(new RecalData(c, -1, "-"));
-            ByCycleReportedQ.add(new MeanReportedQuality());
-        }
+        for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
+            PrintStream ByCycleFile = null;
+            try {
+                ByCycleFile = new PrintStream(OUTPUT_FILEROOT+".RG_"+readGroup.getReadGroupId()+".quality_difference_v_cycle.csv");
+            } catch (FileNotFoundException e){
+                System.out.println("Could not open output files based on OUTPUT_FILEROOT option: " + OUTPUT_FILEROOT);
+                System.exit(1);
+            }
+            ArrayList<RecalData> ByCycle = new ArrayList<RecalData>();
+            ArrayList<MeanReportedQuality> ByCycleReportedQ = new ArrayList<MeanReportedQuality>();
+            ByCycleFile.printf("cycle,Qemp-obs,Qemp,Qobs,B,N%n");
+            RecalData All = new RecalData(0,0,"");
+            MeanReportedQuality AllReported = new MeanReportedQuality();
+            for (int c=0; c < MAX_READ_LENGTH+1; c++)  {
+                ByCycle.add(new RecalData(c, -1, "-"));
+                ByCycleReportedQ.add(new MeanReportedQuality());
+            }
 
-        for ( RecalData datum: flattenData ) {
-            ByCycle.get(datum.pos).inc(datum.N, datum.B);
-            ByCycleReportedQ.get(datum.pos).inc(datum.qual, datum.N);
-            All.inc(datum.N, datum.B);
-            AllReported.inc(datum.qual, datum.N);
-        }
+            for ( RecalData datum: flattenData ) {
+                ByCycle.get(datum.pos).inc(datum.N, datum.B);
+                ByCycleReportedQ.get(datum.pos).inc(datum.qual, datum.N);
+                All.inc(datum.N, datum.B);
+                AllReported.inc(datum.qual, datum.N);
+            }
 
-        for (int c=0; c < MAX_READ_LENGTH+1; c++) {
-            double empiricalQual = -10 * Math.log10((double)ByCycle.get(c).B / ByCycle.get(c).N);
-            double reportedQual = ByCycleReportedQ.get(c).result();
-            ByCycleFile.printf("%d, %f, %f, %f, %d, %d%n", c, empiricalQual-reportedQual, empiricalQual, reportedQual, ByCycle.get(c).B, ByCycle.get(c).N);
+            for (int c=0; c < MAX_READ_LENGTH+1; c++) {
+                double empiricalQual = -10 * Math.log10((double)ByCycle.get(c).B / ByCycle.get(c).N);
+                double reportedQual = ByCycleReportedQ.get(c).result();
+                ByCycleFile.printf("%d, %f, %f, %f, %d, %d%n", c, empiricalQual-reportedQual, empiricalQual, reportedQual, ByCycle.get(c).B, ByCycle.get(c).N);
+            }
         }
-        System.out.printf("Cycle: N=%d, B=%d, Qemp=%.1f, ", All.N, All.B, -10 * Math.log10((double)All.B/All.N));
-        System.out.printf("Qrep=%.1f%n", AllReported.result());
+        //System.out.printf("Cycle: N=%d, B=%d, Qemp=%.1f, ", All.N, All.B, -10 * Math.log10((double)All.B/All.N));
+        //System.out.printf("Qrep=%.1f%n", AllReported.result());
     }
 
     public void qualityDiffVsDinucleotide() {
-        PrintStream ByDinucFile = null;
-        try {
-            ByDinucFile = new PrintStream(OUTPUT_FILEROOT+".quality_difference_v_dinucleotide.csv");
-        } catch (FileNotFoundException e){
-            System.out.println("Could not open output files based on OUTPUT_FILEROOT option: " + OUTPUT_FILEROOT);
-            System.exit(1);
-        }
-        ArrayList<RecalData> ByCycle = new ArrayList<RecalData>();
-        ArrayList<MeanReportedQuality> ByCycleReportedQ = new ArrayList<MeanReportedQuality>();
-        ByDinucFile.printf("dinuc,Qemp-obs,Qemp,Qobs,B,N%n");
-        RecalData All = new RecalData(0,0,"");
-        MeanReportedQuality AllReported = new MeanReportedQuality();
-        for (int c=0; c < NDINUCS; c++) {
-            ByCycle.add(new RecalData(-1, -1, dinucIndex2bases(c)));
-            ByCycleReportedQ.add(new MeanReportedQuality());
-        }
+        for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
+            PrintStream ByDinucFile = null;
+            try {
+                ByDinucFile = new PrintStream(OUTPUT_FILEROOT+".RG_"+readGroup.getReadGroupId()+".quality_difference_v_dinucleotide.csv");
+            } catch (FileNotFoundException e){
+                System.out.println("Could not open output files based on OUTPUT_FILEROOT option: " + OUTPUT_FILEROOT);
+                System.exit(1);
+            }
+            ArrayList<RecalData> ByCycle = new ArrayList<RecalData>();
+            ArrayList<MeanReportedQuality> ByCycleReportedQ = new ArrayList<MeanReportedQuality>();
+            ByDinucFile.printf("dinuc,Qemp-obs,Qemp,Qobs,B,N%n");
+            RecalData All = new RecalData(0,0,"");
+            MeanReportedQuality AllReported = new MeanReportedQuality();
+            for (int c=0; c < NDINUCS; c++) {
+                ByCycle.add(new RecalData(-1, -1, dinucIndex2bases(c)));
+                ByCycleReportedQ.add(new MeanReportedQuality());
+            }
 
-        for ( RecalData datum: flattenData ) {
-            int dinucIndex = string2dinucIndex(datum.dinuc); //bases2dinucIndex(datum.dinuc.charAt(0), datum.dinuc.charAt(1), false);
-            ByCycle.get(dinucIndex).inc(datum.N, datum.B);
-            ByCycleReportedQ.get(dinucIndex).inc(datum.qual, datum.N);
-            All.inc(datum.N, datum.B);
-            AllReported.inc(datum.qual, datum.N);
-        }
+            for ( RecalData datum: flattenData ) {
+                int dinucIndex = string2dinucIndex(datum.dinuc); //bases2dinucIndex(datum.dinuc.charAt(0), datum.dinuc.charAt(1), false);
+                ByCycle.get(dinucIndex).inc(datum.N, datum.B);
+                ByCycleReportedQ.get(dinucIndex).inc(datum.qual, datum.N);
+                All.inc(datum.N, datum.B);
+                AllReported.inc(datum.qual, datum.N);
+            }
 
-        for (int c=0; c < NDINUCS; c++) {
-            double empiricalQual = -10 * Math.log10((double)ByCycle.get(c).B / ByCycle.get(c).N);
-            double reportedQual = ByCycleReportedQ.get(c).result();
-            ByDinucFile.printf("%s, %f, %f, %f, %d, %d%n", ByCycle.get(c).dinuc, empiricalQual-reportedQual, empiricalQual, reportedQual, ByCycle.get(c).B, ByCycle.get(c).N);
+            for (int c=0; c < NDINUCS; c++) {
+                double empiricalQual = -10 * Math.log10((double)ByCycle.get(c).B / ByCycle.get(c).N);
+                double reportedQual = ByCycleReportedQ.get(c).result();
+                ByDinucFile.printf("%s, %f, %f, %f, %d, %d%n", ByCycle.get(c).dinuc, empiricalQual-reportedQual, empiricalQual, reportedQual, ByCycle.get(c).B, ByCycle.get(c).N);
+            }
         }
-        System.out.printf("Dinuc: N=%d, B=%d, Qemp=%.1f, ", All.N, All.B, -10 * Math.log10((double)All.B/All.N));
-        System.out.printf("Qrep=%.1f%n", AllReported.result());
+        //System.out.printf("Dinuc: N=%d, B=%d, Qemp=%.1f, ", All.N, All.B, -10 * Math.log10((double)All.B/All.N));
+        //System.out.printf("Qrep=%.1f%n", AllReported.result());
     }
 
     public void qualityEmpiricalObserved() {
-        PrintStream ByQualFile  = null;
-        try {
-            ByQualFile = new PrintStream(OUTPUT_FILEROOT+".empirical_v_reported_quality.csv");
-        } catch (FileNotFoundException e){
-            System.out.println("Could not open output files based on OUTPUT_FILEROOT option: " + OUTPUT_FILEROOT);
-            System.exit(1);
-        }
-        ArrayList<RecalData> ByQ = new ArrayList<RecalData>();
-        ArrayList<MeanReportedQuality> ByQReportedQ = new ArrayList<MeanReportedQuality>();
-        ByQualFile.printf("Qrep,Qemp,Qrep_avg,B,N%n");
-        RecalData All = new RecalData(0,0,"");
-        MeanReportedQuality AllReported = new MeanReportedQuality();
-        for (int q=0; q<MAX_QUAL_SCORE+1; q++) {
-            ByQ.add(new RecalData(-1,q,"-"));
-            ByQReportedQ.add(new MeanReportedQuality());
-        }
+        for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
+            PrintStream ByQualFile  = null;
+            try {
+                ByQualFile = new PrintStream(OUTPUT_FILEROOT+".RG_"+readGroup.getReadGroupId()+".empirical_v_reported_quality.csv");
+            } catch (FileNotFoundException e){
+                System.out.println("Could not open output files based on OUTPUT_FILEROOT option: " + OUTPUT_FILEROOT);
+                System.exit(1);
+            }
+            ArrayList<RecalData> ByQ = new ArrayList<RecalData>();
+            ArrayList<MeanReportedQuality> ByQReportedQ = new ArrayList<MeanReportedQuality>();
+            ByQualFile.printf("Qrep,Qemp,Qrep_avg,B,N%n");
+            RecalData All = new RecalData(0,0,"");
+            MeanReportedQuality AllReported = new MeanReportedQuality();
+            for (int q=0; q<MAX_QUAL_SCORE+1; q++) {
+                ByQ.add(new RecalData(-1,q,"-"));
+                ByQReportedQ.add(new MeanReportedQuality());
+            }
 
-        for ( RecalData datum: flattenData ){
-            ByQ.get(datum.qual).inc(datum.N, datum.B);
-            ByQReportedQ.get(datum.qual).inc(datum.qual, datum.N);
-            All.inc(datum.N, datum.B);
-            AllReported.inc(datum.qual, datum.N);
-            //out.printf("%2d%6d%3d %2d %s%n", datum.qual, datum.N, datum.pos, datum.qual, datum.dinuc);
-        }
+            for ( RecalData datum: flattenData ){
+                ByQ.get(datum.qual).inc(datum.N, datum.B);
+                ByQReportedQ.get(datum.qual).inc(datum.qual, datum.N);
+                All.inc(datum.N, datum.B);
+                AllReported.inc(datum.qual, datum.N);
+                //out.printf("%2d%6d%3d %2d %s%n", datum.qual, datum.N, datum.pos, datum.qual, datum.dinuc);
+            }
 
-        for (int q=0; q<MAX_QUAL_SCORE; q++) {
-            double empiricalQual = -10 * Math.log10((double)ByQ.get(q).B / ByQ.get(q).N);
-            ByQualFile.printf("%d, %f, %.0f, %d, %d%n", q, empiricalQual, ByQReportedQ.get(q).result(), ByQ.get(q).B, ByQ.get(q).N);
-            //out.printf("%3d,%s,%3d,%5.1f,%5.1f,%6d,%6d", pos, dinuc, qual, empiricalQual, qual-empiricalQual, N, B);                                                                                      n
+            for (int q=0; q<MAX_QUAL_SCORE; q++) {
+                double empiricalQual = -10 * Math.log10((double)ByQ.get(q).B / ByQ.get(q).N);
+                ByQualFile.printf("%d, %f, %.0f, %d, %d%n", q, empiricalQual, ByQReportedQ.get(q).result(), ByQ.get(q).B, ByQ.get(q).N);
+                //out.printf("%3d,%s,%3d,%5.1f,%5.1f,%6d,%6d", pos, dinuc, qual, empiricalQual, qual-empiricalQual, N, B);                                                                                      n
+            }
         }
-        System.out.printf("Emp-Obs: N=%d, B=%d, Qemp=%.1f, ", All.N, All.B, -10 * Math.log10((double)All.B/All.N));
-        System.out.printf("Qrep=%.1f%n", AllReported.result());
+        //System.out.printf("Emp-Obs: N=%d, B=%d, Qemp=%.1f, ", All.N, All.B, -10 * Math.log10((double)All.B/All.N));
+        //System.out.printf("Qrep=%.1f%n", AllReported.result());
     }
 
     public Integer reduceInit() {
