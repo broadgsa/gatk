@@ -1,8 +1,7 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.ComparableSAMRecord;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
@@ -26,18 +25,24 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public String OUT_INDELS = null;
     @Argument(fullName="OutputAllReads", shortName="all", doc="print out all reads (otherwise, just those within the intervals)", required=false)
     public boolean printAllReads = false;
+    @Argument(fullName="statisticsFile", shortName="stats", doc="print out statistics (what does or doesn't get cleaned)", required=false)
+    public String OUT_STATS = null;
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
     public double LOD_THRESHOLD = 5.0;
 
     public static final int MAX_QUAL = 99;
 
     private SAMFileWriter writer;
-    private FileWriter indelOutput = null;               
+    private FileWriter indelOutput = null;
+    private FileWriter statsOutput = null;
 
     // we need to sort the reads ourselves because SAM headers get messed up and claim to be "unsorted" sometimes
     private TreeSet<ComparableSAMRecord> readsToWrite;
 
     public void initialize() {
+        if ( LOD_THRESHOLD < 0.0 )
+            throw new RuntimeException("LOD threshold cannot be a negative number");
+
         SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
         writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(header, false, new File(OUT));
         if ( OUT_INDELS != null ) {
@@ -46,6 +51,14 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             } catch (Exception e) {
                 err.println(e.getMessage());
                 indelOutput = null;
+            }
+        }
+        if ( OUT_STATS != null ) {
+            try {
+                statsOutput = new FileWriter(new File(OUT_STATS));
+            } catch (Exception e) {
+                err.println(e.getMessage());
+                statsOutput = null;
             }
         }
         readsToWrite = new TreeSet<ComparableSAMRecord>();
@@ -75,7 +88,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             else
                 readsToWrite.add(new ComparableSAMRecord(read));
         }
-        clean(goodReads, ref, context.getLocation().getStart());
+        clean(goodReads, ref, context.getLocation());
         //bruteForceClean(goodReads, ref, context.getLocation().getStart());
         //testCleanWithDeletion();
         //testCleanWithInsertion();
@@ -101,9 +114,12 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         if ( OUT_INDELS != null ) {
             try {
                 indelOutput.close();
-            } catch (Exception e) {
-                err.println(e.getMessage());
-            }
+            } catch (Exception e) {}
+        }
+        if ( OUT_STATS != null ) {
+            try {
+                statsOutput.close();
+            } catch (Exception e) {}
         }
     }
 
@@ -162,8 +178,9 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         return sum;
     }
 
-    private void clean(List<SAMRecord> reads, String reference, long leftmostIndex) {
+    private void clean(List<SAMRecord> reads, String reference, GenomeLoc interval) {
 
+        long leftmostIndex = interval.getStart();
         ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();
         ArrayList<AlignedRead> altReads = new ArrayList<AlignedRead>();
         ArrayList<Boolean> altAlignmentsToTest = new ArrayList<Boolean>();
@@ -271,7 +288,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
 
         // if the best alternate consensus has a smaller sum of quality score mismatches (more than the LOD threshold), then clean!
-        if ( bestConsensus != null && ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0 >= LOD_THRESHOLD ) {
+        double improvement = (bestConsensus == null ? -1 : ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0);
+        if ( improvement >= LOD_THRESHOLD ) {
             logger.debug("CLEAN: " + bestConsensus.str );
             if ( indelOutput != null && bestConsensus.cigar.numCigarElements() > 1 ) {
                 // NOTE: indels are printed out in the format specified for the low-coverage pilot1
@@ -292,21 +310,40 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                     indelOutput.flush();
                 } catch (Exception e) {}
             }
+            if ( statsOutput != null ) {
+                try {
+                    statsOutput.write(interval.toString());
+                    statsOutput.write("\tCLEAN");
+                    if ( bestConsensus.cigar.numCigarElements() > 1 )
+                        statsOutput.write(" (found indel)");
+                    statsOutput.write("\t");
+                    statsOutput.write(Double.toString(improvement));
+                    statsOutput.write("\n");
+                    statsOutput.flush();
+                } catch (Exception e) {}
+            }
 
             // We need to update the mapping quality score of the cleaned reads;
             // however we don't have enough info to use the proper MAQ scoring system.
             // For now, we'll use a heuristic:
             // the mapping quality score is improved by the LOD difference in mismatching
             // bases between the reference and alternate consensus
-            int improvement = (totalMismatchSum - bestConsensus.mismatchSum) / 10;
 
             // clean the appropriate reads
             for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes ) {
                 AlignedRead aRead = altReads.get(indexPair.getFirst());
                 updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.getSecond(), aRead, (int)leftmostIndex);
-                aRead.getRead().setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + improvement, 255));
+                aRead.getRead().setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + (int)improvement, 255));
                 aRead.getRead().setAttribute("NM", numMismatches(aRead.getRead(), reference, aRead.getRead().getAlignmentStart()-(int)leftmostIndex));
             }
+        } else if ( statsOutput != null ) {
+            try {
+                statsOutput.write(interval.toString());
+                statsOutput.write("\tFAIL\t");
+                statsOutput.write(Double.toString(improvement));
+                statsOutput.write("\n");
+                statsOutput.flush();
+            } catch (Exception e) {}
         }
 
         // write them out
@@ -442,6 +479,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
 
         if ( difference > 0 ) {
+            logger.debug("Realigning indel in " + read.getReadName());
             Cigar newCigar = new Cigar();
             newCigar.add(new CigarElement(ce1.getLength()-difference, CigarOperator.M));
             newCigar.add(ce2);
@@ -555,7 +593,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         reads.add(r5);
         reads.add(r6);
         reads.add(r7);
-        clean(reads, reference, 0);
+        clean(reads, reference, new GenomeLoc(0,0));
     }
 
     private void testCleanWithDeletion() {
@@ -611,7 +649,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         reads.add(r6);
         reads.add(r7);
         reads.add(r8);
-        clean(reads, reference, 0);
+        clean(reads, reference, new GenomeLoc(0,0));
     }
 
     private void bruteForceClean(List<SAMRecord> reads, String reference, long leftmostIndex) {
