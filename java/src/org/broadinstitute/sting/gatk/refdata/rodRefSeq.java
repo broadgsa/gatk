@@ -52,7 +52,8 @@ public class rodRefSeq extends BasicReferenceOrderedDatum {
 	/** Returns true if the current position this ROD is associated with is within the coding interval for at least
 	 * one of the annotated transcripts. NOTE: "coding" interval is defined as a single genomic interval, so it
 	 * does not include the UTRs of the outermost exons, but it includes introns between exons spliced into a 
-	 * transcript, or internal exons that are not spliced into a given transcript. @see isExon().
+	 * transcript, or internal exons that are not spliced into a given transcript. To check that a position is
+	 * indeed within an exon but not in UTR, use isExon() && isCoding(). @see isExon().
 	 * @return
 	 */
 	public boolean isCoding() {
@@ -76,6 +77,15 @@ public class rodRefSeq extends BasicReferenceOrderedDatum {
 		return false;
 	}
 
+	/** Returns all annotated transcripts overlapping with the current position as an immutable list.
+	 * "Overlap" is defined as position being within genomic interval corresponding to the whole 
+	 * transcript start/transcript stop coordinates, thus the position can be still in a UTR, in intron, or
+	 * in an internal exon that is actually not spliced into the specific transcript. Use isExon(), isCoding() of
+	 * this ROD class, or query individual Transcript objects returned by this method to get more details. 
+	 * @return
+	 */
+	public List<Transcript> getTranscripts() { return Collections.unmodifiableList(records) ; }
+	
 	@Override
 	public String repl() {
 		throw new StingException("repl() is not implemented yet");
