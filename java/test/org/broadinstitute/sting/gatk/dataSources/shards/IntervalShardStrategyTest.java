@@ -43,6 +43,12 @@ import net.sf.samtools.SAMFileHeader;
  *         Class ReadIntervalShardStrategyTest
  *         <p/>
  *         Tests the ReadIntervalShardStrategy class
+ *
+ *
+ * TODO: this test has been changed, since we now force interval shards to not subdivide if they're large,
+ * so you should always get one shard back, reguardless of the specified length.  If this behavior changes
+ * back in the future, the expected number of shards should change from 1 to > 1.
+ *
  */
 public class IntervalShardStrategyTest extends BaseTest {
 
@@ -75,7 +81,7 @@ public class IntervalShardStrategyTest extends BaseTest {
             counter++;
         }
         assertTrue(d instanceof IntervalShard);
-        assertEquals(10, counter);
+        assertEquals(1, counter);
     }
 
     @Test
@@ -92,7 +98,7 @@ public class IntervalShardStrategyTest extends BaseTest {
             counter++;
         }
         assertTrue(d instanceof IntervalShard);
-        assertEquals(50, counter);
+        assertEquals(5, counter);
     }
 
     @Test
@@ -105,16 +111,11 @@ public class IntervalShardStrategyTest extends BaseTest {
         int counter = 0;
         while (strat.hasNext()) {
             Shard d = strat.next();
-            if (counter % 2 == 0) {
                 assertEquals(1, d.getGenomeLoc().getStart());
-                assertEquals(789, d.getGenomeLoc().getStop());
-            } else {
-                assertEquals(790, d.getGenomeLoc().getStart());
                 assertEquals(1000, d.getGenomeLoc().getStop());
-            }
             counter++;
         }
-        assertEquals(10, counter);
+        assertEquals(5, counter);
     }
 
 

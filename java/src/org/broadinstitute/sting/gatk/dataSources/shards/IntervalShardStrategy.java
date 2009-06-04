@@ -56,16 +56,17 @@ public class IntervalShardStrategy implements ShardStrategy {
      *
      * @param size the next recommended shard size.
      */
-    public void adjustNextShardSize(long size) {
+    public void adjustNextShardSize( long size ) {
         this.size = size;
     }
 
     /**
      * construct the shard strategy from a seq dictionary, a shard size, and and genomeLocs
+     *
      * @param size
      * @param locations
      */
-    IntervalShardStrategy(long size, GenomeLocSortedSet locations) {
+    IntervalShardStrategy( long size, GenomeLocSortedSet locations ) {
         if (locations == null || locations.isEmpty()) {
             throw new StingException("IntervalShardStrategy: genomic regions list is empty.");
         }
@@ -73,12 +74,12 @@ public class IntervalShardStrategy implements ShardStrategy {
         this.size = size;
     }
 
-     /**
+    /**
      * the default constructor
      *
-     * @param dict  the sequence dictionary to use
+     * @param dict the sequence dictionary to use
      */
-    IntervalShardStrategy(SAMSequenceDictionary dict, GenomeLocSortedSet locations) {
+    IntervalShardStrategy( SAMSequenceDictionary dict, GenomeLocSortedSet locations ) {
         if (locations == null || locations.isEmpty()) {
             throw new StingException("IntervalShardStrategy: genomic regions list is empty.");
         }
@@ -88,44 +89,39 @@ public class IntervalShardStrategy implements ShardStrategy {
 
     /**
      * returns true if there are additional shards
+     *
      * @return false if we're done processing shards
      */
     public boolean hasNext() {
-        return (!regions.isEmpty());
+        return ( !regions.isEmpty() );
     }
 
     /**
      * gets the next Shard
+     *
      * @return the next shard
      */
     public Shard next() {
-        if ((this.regions == null) || (regions.isEmpty())) {
+        if (( this.regions == null ) || ( regions.isEmpty() )) {
             throw new StingException("IntervalShardStrategy: genomic regions list is empty in next() function.");
         }
 
         // get the first region in the list
         GenomeLoc loc = regions.iterator().next();
 
-        if (loc.getStop() - loc.getStart() <= this.size) {
-            regions.removeRegion(loc);
-            return new IntervalShard(loc);
-        } else {
-            GenomeLoc subLoc = new GenomeLoc(loc.getContigIndex(),loc.getStart(),loc.getStart()+size-1);
-            regions.removeRegion(subLoc);
-            return new IntervalShard(subLoc);
-        }
-        
+        regions.removeRegion(loc);
+        return new IntervalShard(loc);
+
     }
 
-    /**
-     * we don't support the remove command
-     */
+    /** we don't support the remove command */
     public void remove() {
         throw new UnsupportedOperationException("ShardStrategies don't support remove()");
     }
 
     /**
      * makes the ReadIntervalShard iterable, i.e. usable in a for loop.
+     *
      * @return
      */
     public Iterator<Shard> iterator() {

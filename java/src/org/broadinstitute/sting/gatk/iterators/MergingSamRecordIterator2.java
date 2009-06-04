@@ -31,7 +31,7 @@ import java.util.PriorityQueue;
  * iterable stream. The underlying iterators/files must all have the same sort order unless
  * the requested output format is unsorted, in which case any combination is valid.
  */
-public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, Iterable<SAMRecord> {
+public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, Iterable<SAMRecord>, PeekingStingIterator {
     protected PriorityQueue<ComparableSamRecordIterator> pq = null;
     protected final SamFileHeaderMerger samHeaderMerger;
     protected final SAMFileHeader.SortOrder sortOrder;
@@ -43,7 +43,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
      * Constructs a new merging iterator with the same set of readers and sort order as
      * provided by the header merger parameter.
      */
-    public MergingSamRecordIterator2(final SamFileHeaderMerger headerMerger) {
+    public MergingSamRecordIterator2(final SamFileHeaderMerger headerMerger, Reads reads) {
         this.samHeaderMerger = headerMerger;
         this.sortOrder = headerMerger.getMergedHeader().getSortOrder();
         this.pq = new PriorityQueue<ComparableSamRecordIterator>(samHeaderMerger.getReaders().size());
@@ -274,6 +274,16 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
      */
     public Iterator<SAMRecord> iterator() {
         return this;
+    }
+
+    /**
+     * Gets source information for the reads.  Contains information about the original reads
+     * files, plus information about downsampling, etc.
+     *
+     * @return
+     */
+    public Reads getSourceInfo() {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 }
 

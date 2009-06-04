@@ -337,34 +337,7 @@ public abstract class TraversalEngine {
         return true;
     }
 
-    protected Iterator<SAMRecord> initializeReads() {
-        if( readsFiles.size() == 1 )
-            samReader = initializeSAMFile(readsFiles.get(0));
-        else
-            samReader = null;
-        return wrapReadsIterator(getReadsIterator(samReader), true);
-    }
-
-    protected Iterator<SAMRecord> getReadsIterator(final SAMFileReader samReader) {
-        // If the file has an index, querying functions are available.  Use them if possible...
-        if ( samReader == null && readsFiles.size() > 0 ) {
-            SAMFileHeader.SortOrder SORT_ORDER = SAMFileHeader.SortOrder.coordinate;
-
-            List<SAMFileReader> readers = new ArrayList<SAMFileReader>();
-
-            for ( File readsFile: readsFiles ) {
-                SAMFileReader reader = initializeSAMFile(readsFile);
-                readers.add(reader);
-            }
-
-            SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers, SORT_ORDER);
-            return new MergingSamRecordIterator2(headerMerger);
-        }
-        else {
-            return samReader.iterator();
-        }
-    }
-
+   
     @Deprecated
     protected StingSAMIterator wrapReadsIterator( final Iterator<SAMRecord> rawIterator, final boolean enableVerification ) {
         // Reads sourceInfo is gone by this point in the traversal engine.  Stub in a null and rely on the iterator to

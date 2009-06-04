@@ -246,39 +246,7 @@ public class TraverseDuplicates extends TraversalEngine {
         return sum;
     }
 
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // old style interface to the system
-    //
-    // --------------------------------------------------------------------------------------------------------------
-    @Override
-    public <M,T> T traverse(Walker<M,T> walker, List<GenomeLoc> locations) {
-        if ( walker instanceof DuplicateWalker) {
-            Walker x = walker;
-            DuplicateWalker<?, ?> dupWalker = (DuplicateWalker<?, ?>)x;
-            return (T)this.traverseByRead(dupWalker, locations);
-        } else {
-            throw new IllegalArgumentException("Walker isn't a duplicate walker!");
-        }
-    }
 
-    /**
-     * Should we deleted at the soonist possible opportunity
-     */
-    public <M, T> Object traverseByRead(DuplicateWalker<M, T> walker, List<GenomeLoc> locations) {
-        samReadIter = initializeReads();
-
-        // Initialize the walker
-        walker.initialize();
-
-        // Initialize the sum
-        FilteringIterator filterIter = new FilteringIterator(samReadIter, new duplicateStreamFilterFunc());
-        T sum = actuallyTraverse(walker, filterIter, walker.reduceInit());
-
-        //printOnTraversalDone("reads", sum);
-        walker.onTraversalDone(sum);
-        return sum;
-    }
 
     // --------------------------------------------------------------------------------------------------------------
     //

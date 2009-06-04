@@ -75,11 +75,13 @@ public abstract class MicroScheduler {
     protected MicroScheduler(Walker walker, Reads reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         if (walker instanceof ReadWalker) {
             traversalEngine = new TraverseReads(reads.getReadsFiles(), refFile, rods);
+            this.reads = getReadsDataSource(reads,true);
         } else {
             traversalEngine = new TraverseLoci(reads.getReadsFiles(), refFile, rods);
+            this.reads = getReadsDataSource(reads,false);
         }
 
-        this.reads = getReadsDataSource(reads);
+
         this.reference = openReferenceSequenceFile(refFile);
         this.rods = getReferenceOrderedDataSources(rods);
     }
@@ -159,12 +161,12 @@ public abstract class MicroScheduler {
      * Gets a data source for the given set of reads.
      * @return A data source for the given set of reads.
      */
-    private SAMDataSource getReadsDataSource(Reads reads) {
+    private SAMDataSource getReadsDataSource(Reads reads, boolean byReads) {
         // By reference traversals are happy with no reads.  Make sure that case is handled.
         if (reads.getReadsFiles().size() == 0)
             return null;
 
-        SAMDataSource dataSource = new SAMDataSource(reads);
+        SAMDataSource dataSource = new SAMDataSource(reads, byReads);
 
         // Side effect: initialize the traversal engine with reads data.
         // TODO: Give users a dedicated way of getting the header so that the MicroScheduler
