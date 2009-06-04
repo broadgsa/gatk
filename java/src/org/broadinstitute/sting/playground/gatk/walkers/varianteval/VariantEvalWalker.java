@@ -5,9 +5,12 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.EnumMap;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Created by IntelliJ IDEA.
@@ -27,11 +30,20 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     public boolean printVariants = false;
 
     int nBasesCovered = 0;
+    int nSNPs = 0;
     VariantDBCoverage dbSNPStats = new VariantDBCoverage("dbSNP");
 
-    int N_TRANSITION_TRANVERSION_BINS = 20;
+    int N_TRANSITION_TRANVERSION_BINS = 100;
     Histogram<Integer> transitions;
     Histogram<Integer> transversions;
+
+    @Argument(shortName="outputFilenameBase", doc="", required=false)
+    String outputFilenameBase = null;
+
+    ArrayList<Long> pairWiseDistances;
+    int[] pairWiseBoundries = {1, 10, 100, 1000, 10000, 1000000000};
+    AllelicVariant lastVariant = null;
+
     //EnumMap<BaseUtils.BaseSubstitutionType, Integer> transition_transversion_counts[];
 
     public void initialize() {
@@ -39,6 +51,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         //transversions = new Histogram<Integer>(N_TRANSITION_TRANVERSION_BINS, Math.log10(1e-10), 0.0, 0);
         transitions   = new Histogram<Integer>(N_TRANSITION_TRANVERSION_BINS, 0.0, 1.0, 0);
         transversions = new Histogram<Integer>(N_TRANSITION_TRANVERSION_BINS, 0.0, 1.0, 0);
+        pairWiseDistances = new ArrayList<Long>();
     }
 
     //private int transition_transversion_bin(double het) {
@@ -66,16 +79,35 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
                     matchFlag, eval);
         }
 
+        if ( eval != null ) {
+            //System.out.printf("GREP ME%n");
+            if ( ! eval.isSNP() || eval.getVariationConfidence() < minDiscoveryQ )
+                System.out.printf("We have a problem at %s: %b %f%n", eval, eval.isSNP(), eval.getVariationConfidence());
+        }
+
         if ( eval != null && eval.isSNP() && eval.getVariationConfidence() >= minDiscoveryQ ) {
             //System.out.printf("%s has: %nDBSNP: %s%nEVAL:%s%n", context.getLocation(), dbsnp, eval);
+            //System.out.printf("N snps %d = %s%n", ++nSNPs, eval.getLocation());
 
             updateTransitionTransversion(eval, ref, context);
 
+            if (lastVariant != null) updatePairwiseDistances(eval, lastVariant);
+            lastVariant = eval;
             //updateHapMapRate(dbsnp, eval, ref, context);
         }
         updateVariantDBCoverage(dbsnp, eval, ref, context);
 
         return 1;
+    }
+
+    private void updatePairwiseDistances(AllelicVariant eval, AllelicVariant lastVariant) {
+        GenomeLoc eL = eval.getLocation();
+        GenomeLoc lvL = lastVariant.getLocation();
+        if (eL.getContigIndex() == lvL.getContigIndex()) {
+            long d = eL.distance(lvL);
+            pairWiseDistances.add(d);
+            out.printf("# Pairwise-distance %d %s %s%n", d, eL, lvL);
+        }
     }
 
     private void updateTransitionTransversion(AllelicVariant dbsnp, char ref, LocusContext context) {
@@ -127,12 +159,10 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
             double ratio = (float)sit/ver;
             s.append(String.format("%.2f %d %d %f%n", avHet, sit, ver, ratio));
         }
-        long nSites = nTransitions + nTransversions;
-
         out.printf("# n bases covered: %d%n", nBasesCovered);
-        out.printf("# sites: %d%n", nSites);
-        out.printf("# variant rate: %.5f confident variants per base%n", nSites / (1.0 * nBasesCovered));
-        out.printf("# variant rate: 1 / %d confident variants per base%n", nBasesCovered / nSites);
+        out.printf("# sites: %d%n", nSNPs);
+        out.printf("# variant rate: %.5f confident variants per base%n", nSNPs / (1.0 * nBasesCovered));
+        out.printf("# variant rate: 1 / %d confident variants per base%n", nBasesCovered / nSNPs);
         out.printf("# transitions: %d%n", nTransitions);
         out.printf("# transversions: %d%n", nTransversions);
         out.printf("# ratio: %.2f%n", nTransitions / (1.0 * nTransversions));
@@ -140,7 +170,27 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         // dbSNP stats
         out.println(dbSNPStats.toSingleLineString("#"));
         out.print(dbSNPStats.toMultiLineString("#"));
-                
+
+        int[] pairCounts = new int[pairWiseBoundries.length];
+        Arrays.fill(pairCounts, 0);
+        for ( long dist : pairWiseDistances ) {
+            boolean done = false;
+            for ( int i = 0; i < pairWiseBoundries.length && ! done ; i++ ) {
+                int maxDist = pairWiseBoundries[i];
+                if ( dist < maxDist ) {
+                    pairCounts[i]++;
+                    done = true;
+                }
+            }
+        }
+
+        out.printf("# snps counted for pairwise distance: %d%n", pairWiseDistances.size());
+        for ( int i = 0; i < pairWiseBoundries.length; i++ ) {
+            int maxDist = pairWiseBoundries[i];
+            int count = pairCounts[i];
+            out.printf("# snps within %d bp: %d%n", maxDist, count);
+        }
+
         out.print(s);
     }
 }

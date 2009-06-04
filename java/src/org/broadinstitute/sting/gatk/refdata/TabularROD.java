@@ -55,6 +55,9 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
     private static Pattern HEADER_PATTERN = Pattern.compile("^\\s*((HEADER)|(loc)).*");
     private static Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
 
+    private static int parsedRecords = 0;
+    final static boolean printRecordsParsed = false;
+
     /**
      * Set the global tabular ROD delimiter and the regex to split the delimiter.
      *
@@ -284,7 +287,7 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
             put(header.get(i), parts[i]);
         }
 
-        //System.out.printf("Parsed %s%n", this);
+        if ( printRecordsParsed ) System.out.printf("Parsed %d records %s%n", ++parsedRecords, this);
 
         return true;
     }
