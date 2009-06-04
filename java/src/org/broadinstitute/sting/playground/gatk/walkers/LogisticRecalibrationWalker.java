@@ -19,7 +19,7 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
     @Argument(shortName="outputBAM", doc="output BAM file", required=false)
     public String outputBamFile = null;
 
-    HashMap<String, LogisticRegressor> regressors = new HashMap<String, LogisticRegressor>();
+    Map<Pair<String,String>, LogisticRegressor> regressors = new HashMap<Pair<String,String>, LogisticRegressor>();
     private static Logger logger = Logger.getLogger(LogisticRecalibrationWalker.class);
 
     public void initialize() {
@@ -29,26 +29,28 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
             for ( String line : lines.subList(1,lines.size()) ) {
                 // dinuc coeff1 coeff2 ... coeff25
                 String[] vals = line.split("\\s+");
-                String dinuc = vals[0];
+                String readGroup = vals[0];
+                String dinuc = vals[1];
                 LogisticRegressor regressor = new LogisticRegressor(2, 4);
-                regressors.put(dinuc, regressor);
+                regressors.put(new Pair<String,String>(readGroup,dinuc), regressor);
                 System.out.printf("Vals = %s%n", Utils.join(",", vals));
-                for ( int i = 1; i < vals.length; i++ ) {
+                for ( int i = 2; i <= (vals.length-2); i++ ) {
                     Pair<Integer, Integer> ij = mapping.get(i-1);
                     try {
                         double c = Double.parseDouble(vals[i]);
                         regressor.setCoefficient(ij.first, ij.second, c);
-                        System.out.printf("Setting coefficient %s => %s = %f%n", dinuc, ij, c);
+                        System.out.printf("Setting coefficient %s,%s => %s = %f%n", readGroup, dinuc, ij, c);
                     } catch ( NumberFormatException e ) {
                         Utils.scareUser("Badly formed logistic regression header at " + vals[i] + " line: " + line );
                     }                        
                 }
             }
 
-            for ( Map.Entry<String, LogisticRegressor> e : regressors.entrySet() ) {
-                String dinuc = e.getKey();
+            for ( Map.Entry<Pair<String,String>, LogisticRegressor> e : regressors.entrySet() ) {
+                String readGroup = e.getKey().first;
+                String dinuc = e.getKey().second;
                 LogisticRegressor regressor = e.getValue();
-                logger.debug(String.format("Regressor: %s => %s", dinuc, regressor));
+                logger.debug(String.format("Regressor: %s,%s => %s", readGroup, dinuc, regressor));
             }
 
             //System.exit(1);
@@ -62,10 +64,12 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
         ArrayList<Pair<Integer, Integer>> mapping = new ArrayList<Pair<Integer, Integer>>();
 
         String[] elts = headerLine.split("\\s+");
-        if ( ! elts[0].toLowerCase().startsWith("dinuc") ) // checking only start of first field because dinuc will be followed by a version number to be checekde later
-            Utils.scareUser("Badly formatted Logistic regression header, upper left keyword must be dinuc: " + elts[0] + " line: " + headerLine);
+        if ( ! "rg".equalsIgnoreCase(elts[0]) )
+            Utils.scareUser("Badly formatted Logistic regression header, upper left keyword must be rg: " + elts[0] + " line: " + headerLine);        
+        if ( ! elts[1].toLowerCase().startsWith("dinuc") ) // checking only start of first field because dinuc will be followed by a version number to be checekde later
+            Utils.scareUser("Badly formatted Logistic regression header, second left keyword must be dinuc: " + elts[1] + " line: " + headerLine);
 
-        for ( int k = 1; k < elts.length; k++ ) {
+        for ( int k = 2; k < elts.length; k++ ) {
             String paramStr = elts[k];
             String[] ij = paramStr.split(",");
             if ( ij.length != 2 ) {
@@ -87,6 +91,7 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
 
 
     public SAMRecord map(char[] ref, SAMRecord read) {
+        System.out.println(String.format("Reading: %s (%s:%d-%d)",read.getReadName(),read.getReferenceName(),read.getAlignmentStart(),read.getAlignmentEnd()));              
         SAMRecord recalRead = read;
         byte[] bases = read.getReadBases();
         byte[] quals = read.getBaseQualities();
@@ -98,6 +103,7 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
             quals = BaseUtils.reverse(quals);
         }
 
+        String readGroup = read.getAttribute("RG").toString(); 
         int numBases = read.getReadLength();
         recalQuals[0] = quals[0];   // can't change the first -- no dinuc
         //recalQuals[numBases-1] = quals[numBases-1]; // can't change last -- no dinuc
@@ -106,7 +112,7 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
             //int cycle = i; //read.getReadNegativeStrandFlag() ? numBases - i - 1 : i;
             String dinuc = String.format("%c%c", bases[cycle - 1], bases[cycle]);
             byte qual = quals[cycle];
-            LogisticRegressor regressor = regressors.get(dinuc);
+            LogisticRegressor regressor = regressors.get(new Pair<String,String>(readGroup,dinuc));
             byte newQual;
 
             if ( regressor != null ) { // no N or some other unexpected bp in the stream

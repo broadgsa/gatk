@@ -56,11 +56,13 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         long B;
         int pos;
         int qual;
+        String readGroup;
         String dinuc;
 
-        public RecalData(int pos, int qual, String dinuc ) {
+        public RecalData(int pos, int qual, String readGroup, String dinuc ) {
             this.pos = pos;
             this.qual = qual;
+            this.readGroup = readGroup;
             this.dinuc = dinuc;
         }
 
@@ -95,7 +97,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
                 for ( int j = 0; j < MAX_QUAL_SCORE+1; j++) {
                     for ( int k = 0; k < NDINUCS; k++) {
                         String dinuc = dinucIndex2bases(k);
-                        RecalData datum = new RecalData(i, j, dinuc);
+                        RecalData datum = new RecalData(i, j, readGroup.getReadGroupId(), dinuc);
                         data.get(readGroup.getReadGroupId())[i][j][k] = datum;
                         flattenData.add(datum);
                     }
@@ -115,8 +117,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
                 if ( "ILLUMINA".equalsIgnoreCase(readGroup.getAttribute("PL").toString()) &&
                     !read.getReadNegativeStrandFlag() &&
                     (READ_GROUP.equals("none") || read.getAttribute("RG") != null && read.getAttribute("RG").equals(READ_GROUP)) &&
-                    (read.getMappingQuality() >= MIN_MAPPING_QUALITY) &&
-                    (DOWNSAMPLE_FRACTION == 1.0 || random_genrator.nextFloat() < DOWNSAMPLE_FRACTION)) {
+                    (read.getMappingQuality() >= MIN_MAPPING_QUALITY)) {
                     //(random_genrator.nextFloat() <= DOWNSAMPLE_FRACTION)
                     int offset = offsets.get(i);
                     int numBases = read.getReadLength();
@@ -178,7 +179,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
                 for ( int dinuc_index=0; dinuc_index<NDINUCS; dinuc_index++) {
                     for ( RecalData datum: flattenData ) {
-                        if (string2dinucIndex(datum.dinuc) == dinuc_index) {
+                        if (datum.readGroup.equals(readGroup.getReadGroupId()) && string2dinucIndex(datum.dinuc) == dinuc_index) {
                             if ((datum.N - datum.B) > 0)
                                 dinuc_out.format("%s,%s,%d,%d,%d,%d%n", readGroup.getReadGroupId(), dinucIndex2bases(dinuc_index), datum.qual, datum.pos, 0, datum.N - datum.B);
                             if (datum.B > 0)
@@ -229,10 +230,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             ArrayList<RecalData> ByCycle = new ArrayList<RecalData>();
             ArrayList<MeanReportedQuality> ByCycleReportedQ = new ArrayList<MeanReportedQuality>();
             ByCycleFile.printf("cycle,Qemp-obs,Qemp,Qobs,B,N%n");
-            RecalData All = new RecalData(0,0,"");
+            RecalData All = new RecalData(0,0,readGroup.getReadGroupId(),"");
             MeanReportedQuality AllReported = new MeanReportedQuality();
             for (int c=0; c < MAX_READ_LENGTH+1; c++)  {
-                ByCycle.add(new RecalData(c, -1, "-"));
+                ByCycle.add(new RecalData(c, -1,readGroup.getReadGroupId(),"-"));
                 ByCycleReportedQ.add(new MeanReportedQuality());
             }
 
@@ -265,10 +266,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             ArrayList<RecalData> ByCycle = new ArrayList<RecalData>();
             ArrayList<MeanReportedQuality> ByCycleReportedQ = new ArrayList<MeanReportedQuality>();
             ByDinucFile.printf("dinuc,Qemp-obs,Qemp,Qobs,B,N%n");
-            RecalData All = new RecalData(0,0,"");
+            RecalData All = new RecalData(0,0,readGroup.getReadGroupId(),"");
             MeanReportedQuality AllReported = new MeanReportedQuality();
             for (int c=0; c < NDINUCS; c++) {
-                ByCycle.add(new RecalData(-1, -1, dinucIndex2bases(c)));
+                ByCycle.add(new RecalData(-1, -1,readGroup.getReadGroupId(),dinucIndex2bases(c)));
                 ByCycleReportedQ.add(new MeanReportedQuality());
             }
 
@@ -302,10 +303,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             ArrayList<RecalData> ByQ = new ArrayList<RecalData>();
             ArrayList<MeanReportedQuality> ByQReportedQ = new ArrayList<MeanReportedQuality>();
             ByQualFile.printf("Qrep,Qemp,Qrep_avg,B,N%n");
-            RecalData All = new RecalData(0,0,"");
+            RecalData All = new RecalData(0,0,readGroup.getReadGroupId(),"");
             MeanReportedQuality AllReported = new MeanReportedQuality();
             for (int q=0; q<MAX_QUAL_SCORE+1; q++) {
-                ByQ.add(new RecalData(-1,q,"-"));
+                ByQ.add(new RecalData(-1,q,readGroup.getReadGroupId(),"-"));
                 ByQReportedQ.add(new MeanReportedQuality());
             }
 
