@@ -594,6 +594,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
                 ret = parseGenomeLocs(locStr);
                 return ret;
             } catch (Exception e2) {
+            	logger.error("Attempt to parse interval file in GATK format failed: "+e2.getMessage());
                 e2.printStackTrace();
                 throw new StingException("Unable to parse out interval file in either format", e);
             }
