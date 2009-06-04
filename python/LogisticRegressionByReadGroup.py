@@ -56,13 +56,6 @@ def process_file(source_file,read_group,dinuc,target_file):
     target_file.write('\t'.join([read_group,dinuc]+parameters)+'\n')
     os.remove('.'.join((base,dinuc,'csv')))
     os.remove('.'.join((base,dinuc,'parameters')))
-
-class LogisticRegressionRunner:
-    def __init__(self,source_filename,read_group,dinuc):
-        __base = source_file.name[:source_file.name.rfind('.csv')]
-        __read_group = read_group
-        __dinuc = dinuc
-        
     
 if len(sys.argv) < 3:
     exit("Usage: logistic_regression <covariate count input csv> <parameters csv>",1)

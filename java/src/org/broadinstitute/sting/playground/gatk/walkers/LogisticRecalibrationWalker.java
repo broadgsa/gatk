@@ -91,7 +91,6 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
 
 
     public SAMRecord map(char[] ref, SAMRecord read) {
-        System.out.println(String.format("Reading: %s (%s:%d-%d)",read.getReadName(),read.getReferenceName(),read.getAlignmentStart(),read.getAlignmentEnd()));              
         SAMRecord recalRead = read;
         byte[] bases = read.getReadBases();
         byte[] quals = read.getBaseQualities();
