@@ -22,7 +22,7 @@ def bams2geli(bams):
         jobid = 0
         if not os.path.exists(geli):
             cmd = picard_utils.callGenotypesCmd( bam, geli, options = picard_utils.hybridSelectionExtraArgsForCalling())
-            jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue )
+            jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands = OPTIONS.dry )
         return geli, jobid
     calls = map(call1, bams)
     return map(lambda x: x[0], calls), map(lambda x: x[1], calls)        
@@ -41,6 +41,9 @@ def main():
     parser.add_option("-k", "--column", dest="column",
                         type="int", default=1,
                         help="Column in the file with the bam or geli file path")
+    parser.add_option("", "--dry", dest="dry",
+                        action='store_true', default=False,
+                        help="If provided, nothing actually gets run, just a dry run")
     parser.add_option("-o", "--output", dest="output",
                         type="string", default='/dev/stdout',
                         help="x")
@@ -50,6 +53,9 @@ def main():
         parser.error("incorrect number of arguments")
     lines = [line.split() for line in open(args[0])]
     nIndividuals = int(args[1])
+    
+    outputFile = open(OPTIONS.output, 'w')
+    print >> outputFile, '#', ' '.join(sys.argv)
     
     data = map( lambda x: x[OPTIONS.column-1], lines )
     if os.path.splitext(data[0])[1] == '.bam':
@@ -70,7 +76,7 @@ def main():
         dbsnpFile = geli2dbsnpFile(geli)
         if not os.path.exists(dbsnpFile):
             dbsnpCmd = picard_utils.CollectDbSnpMatchesCmd(geli, dbsnpFile, OPTIONS.lod)
-            farm_commands.cmd(dbsnpCmd, OPTIONS.farmQueue, waitID = jobid)
+            farm_commands.cmd(dbsnpCmd, OPTIONS.farmQueue, just_print_commands = OPTIONS.dry, waitID = jobid)
 
     # read in the dbSNP tracks
     nTotalSnps = 0
@@ -84,10 +90,10 @@ def main():
             TOTAL_SNPS, NOVEL_SNPS, PCT_DBSNP, NUM_IN_DB_SNP = picard_utils.read_dbsnp(dbsnp_matches)
             nTotalSnps += int(TOTAL_SNPS)
             nNovelSnps += int(NOVEL_SNPS)
-            print 'DATA:    ', flowcellDotlane, TOTAL_SNPS, NOVEL_SNPS, PCT_DBSNP, NUM_IN_DB_SNP, dbsnp_matches
-    print 'DATA:    TOTAL SNP CALLS SUMMED ACROSS LANES, NOT ACCOUNT FOR IDENTITY', nTotalSnps
-    print 'DATA:    NOVEL SNP CALLS SUMMED ACROSS LANES, NOT ACCOUNT FOR IDENTITY ', nNovelSnps
-    print 'DATA:    AVERAGE DBSNP RATE ACROSS LANES ', float(nTotalSnps - nNovelSnps) / nTotalSnps
+            print >> outputFile, '# DATA:    ', flowcellDotlane, TOTAL_SNPS, NOVEL_SNPS, PCT_DBSNP, NUM_IN_DB_SNP, dbsnp_matches
+    print  >> outputFile, '# DATA:    TOTAL SNP CALLS SUMMED ACROSS LANES, NOT ACCOUNT FOR IDENTITY', nTotalSnps
+    print  >> outputFile, '# DATA:    NOVEL SNP CALLS SUMMED ACROSS LANES, NOT ACCOUNT FOR IDENTITY ', nNovelSnps
+    print  >> outputFile, '# DATA:    AVERAGE DBSNP RATE ACROSS LANES %.2f' % (100.0 * float(nTotalSnps - nNovelSnps) / (max(nTotalSnps, 1)))
 
     # convert the geli's to text
     jobid = None
@@ -95,19 +101,18 @@ def main():
     for geli, variantOut in zip(gelis, variantsOut):
         if not os.path.exists(variantOut):
             cmd = ("GeliToText.jar I=%s | awk '$7 > %f' > %s" % ( geli, OPTIONS.lod, variantOut) )
-            jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands=False)
+            jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands = OPTIONS.dry)
 
     cmd = ("cat %s | awk '$1 !~ \"@\" && $1 !~ \"#Sequence\" && $0 !~ \"GeliToText\"' | sort -k 1 -k 2 -n > tmp.calls" % ( ' '.join(variantsOut) ) )
-    jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands=False, waitID = jobid)
+    jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands = OPTIONS.dry, waitID = jobid)
 
     sortedCallFile = 'all.sorted.calls'
     cmd = ("~/dev/GenomeAnalysisTK/trunk/perl/sortByRef.pl -k 1 tmp.calls ~/work/humanref/Homo_sapiens_assembly18.fasta.fai > %s"  % ( sortedCallFile ) )    
-    jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands=False, waitID = jobid)
+    jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands = OPTIONS.dry, waitID = jobid)
      
     sortedCalls = [line.split() for line in open(sortedCallFile)]
     aggregratedCalls = picard_utils.aggregateGeliCalls(sortedCalls)
     
-    outputFile = open(OPTIONS.output, 'w')
     print >> outputFile, 'loc ref alt EM_alt_freq discovery_likelihood discovery_null discovery_prior discovery_lod EM_N n_ref n_het n_hom'
 
     for snp in map( lambda x: picard_utils.aggregatedGeliCalls2SNP(x, nIndividuals), aggregratedCalls ):
