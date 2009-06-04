@@ -86,7 +86,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
             rodString = "[ROD: " + rodString + "]";
 
         //if ( context.getLocation().getStart() % 1 == 0 ) {
-        System.out.printf("quals as ints %b%n", qualsAsInts);
+        //System.out.printf("quals as ints %b%n", qualsAsInts);
         out.printf("%s%s %s%n", pileup.getPileupString(qualsAsInts), extras, rodString);
         //}
 

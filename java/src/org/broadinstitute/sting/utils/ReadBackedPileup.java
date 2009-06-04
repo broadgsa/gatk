@@ -84,7 +84,6 @@ public class ReadBackedPileup extends BasicPileup {
         // In the pileup format, each line represents a genomic position, consisting of chromosome name,
         // coordinate, reference base, read bases, read qualities and alignment mapping qualities.
 
-        System.out.printf("qualsAsInts %b%n", qualsAsInts);
         //return String.format("%s %s %s %s", getLocation(), getRef(), getBases(), getQuals());
         return String.format("%s %s %s %s %s %s",
                 getLocation().getContig(), getLocation().getStart(),    // chromosome name and coordinate
