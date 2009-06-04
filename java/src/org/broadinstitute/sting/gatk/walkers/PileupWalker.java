@@ -35,6 +35,8 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     @Argument(fullName="showSecondBaseQuals",doc="If true, prints out second base qualities in the pileup",required=false)
     public boolean showSecondBaseQuals = false;
 
+    @Argument(fullName="qualsAsInts",doc="If true, prints out qualities in the pileup as comma-separated integers",required=false)
+    public boolean qualsAsInts = false;
 
     @Argument(fullName="extended",shortName="ext",doc="extended",required=false)
     public boolean EXTENDED = false;
@@ -84,7 +86,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
             rodString = "[ROD: " + rodString + "]";
 
         //if ( context.getLocation().getStart() % 1 == 0 ) {
-        out.printf("%s%s %s%n", pileup.getPileupString(), extras, rodString);
+        out.printf("%s%s %s%n", pileup.getPileupString(qualsAsInts), extras, rodString);
         //}
 
         if ( EXTENDED ) {
