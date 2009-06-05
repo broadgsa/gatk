@@ -32,12 +32,12 @@ public class MismatchIntervalWalker extends LocusWalker<Pair<GenomeLoc, Boolean>
         int goodReads = 0, mismatchQualities = 0, totalQualities = 0;
         for (int i = 0; i < reads.size(); i++) {
             SAMRecord read = reads.get(i);
-            if ( read.getMappingQuality() == 0 )
+            if ( read.getMappingQuality() == 0 || read.getAlignmentBlocks().size() > 1 )
                  continue;
 
             goodReads++;
             int offset = offsets.get(i);
-            int quality = read.getBaseQualityString().charAt(offset) - 33;
+            int quality = (int)read.getBaseQualityString().charAt(offset) - 33;
             totalQualities += quality;
 
             char base = Character.toUpperCase((char)read.getReadBases()[offset]);
