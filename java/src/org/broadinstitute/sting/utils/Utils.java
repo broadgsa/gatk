@@ -23,7 +23,7 @@ public class Utils {
     /**
      * our log, which we want to capture anything from this class
      */
-    private static Logger logger = Logger.getLogger(FileProgressTracker.class);
+    private static Logger logger = Logger.getLogger(Utils.class);
 
     public static void warnUser(final String msg) {
         logger.warn(String.format("********************************************************************************"));
