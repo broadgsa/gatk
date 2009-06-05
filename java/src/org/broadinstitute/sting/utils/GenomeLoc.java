@@ -137,7 +137,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
      */
     public static GenomeLoc parseGenomeLoc( final String contig, long start, long stop ) {
         if( !isContigValid(contig) )
-            throw new MalformedGenomeLocException("Contig " + contig + " is not within installed in the GATK sequence dictionary derived from the reference.");
+            throw new MalformedGenomeLocException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference.");
         return new GenomeLoc(contig,start,stop);
     }
 
@@ -198,7 +198,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
         }
 
         if( !isContigValid(contig) )
-            throw new MalformedGenomeLocException("Contig " + contig + " is not within installed in the GATK sequence dictionary derived from the reference.");
+            throw new MalformedGenomeLocException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference.");
 
         GenomeLoc loc = parseGenomeLoc(contig,start,stop);
  //       System.out.printf("  => Parsed location '%s' into %s%n", str, loc);

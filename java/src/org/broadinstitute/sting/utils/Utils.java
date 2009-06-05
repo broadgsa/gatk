@@ -29,7 +29,7 @@ public class Utils {
         logger.warn(String.format("********************************************************************************"));
         logger.warn(String.format("* WARNING:"));
         logger.warn(String.format("*"));
-        logger.warn(String.format("* %s", msg));
+        prettyPrintWarningMessage(msg);
         logger.warn(String.format("********************************************************************************"));
     }
 
@@ -42,6 +42,22 @@ public class Utils {
         logger.fatal(msg);
         throw new RuntimeException(msg);
     }
+
+    /**
+     * pretty print the warning message supplied
+     * @param message the message
+     */
+    private static void prettyPrintWarningMessage(String message) {
+        StringBuilder builder = new StringBuilder(message);
+        while (builder.length() > 70) {
+            int space = builder.lastIndexOf(" ", 70);
+            if (space <= 0) space = 70;
+            logger.warn(String.format("* %s", builder.substring(0,space)));
+            builder.delete(0,space + 1);
+        }
+        logger.warn(String.format("* %s", builder));
+    }
+
 
     public static SAMFileWriter createSAMFileWriterWithCompression(SAMFileHeader header, boolean presorted, String file, int compression) {
         if (file.endsWith(".bam"))

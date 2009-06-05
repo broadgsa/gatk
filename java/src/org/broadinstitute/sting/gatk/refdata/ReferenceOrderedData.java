@@ -284,7 +284,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
                 }
                 catch( MalformedGenomeLocException ex ) {
                     if( firstFailure ) {
-                        Utils.warnUser("Failed to parse contig on line '" + line + "'.  Skipping ahead to the next recognized GenomeLoc.");
+                        Utils.warnUser("Failed to parse contig on line '" + line + "'.  The reason given was: " + ex.getMessage() + " Skipping ahead to the next recognized GenomeLoc. ");
                         firstFailure = false;
                     }
                     if( !parser.hasNext() )
