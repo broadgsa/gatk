@@ -34,12 +34,12 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
                 LogisticRegressor regressor = new LogisticRegressor(2, 4);
                 regressors.put(new Pair<String,String>(readGroup,dinuc), regressor);
                 System.out.printf("Vals = %s%n", Utils.join(",", vals));
-                for ( int i = 2; i <= (vals.length-2); i++ ) {
-                    Pair<Integer, Integer> ij = mapping.get(i-1);
+                for ( int i = 2; i < vals.length; i++ ) {
+                    Pair<Integer, Integer> ij = mapping.get(i-2);
                     try {
                         double c = Double.parseDouble(vals[i]);
                         regressor.setCoefficient(ij.first, ij.second, c);
-                        System.out.printf("Setting coefficient %s,%s => %s = %f%n", readGroup, dinuc, ij, c);
+                        System.out.printf("Setting coefficient %s,%s => %s = %1.12f%n", readGroup, dinuc, ij, c);
                     } catch ( NumberFormatException e ) {
                         Utils.scareUser("Badly formed logistic regression header at " + vals[i] + " line: " + line );
                     }                        
