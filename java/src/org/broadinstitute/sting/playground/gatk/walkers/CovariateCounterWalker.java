@@ -93,6 +93,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
     public void initialize() {
         for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
+            if( readGroup.getAttribute("PL") == null )
+                Utils.warnUser(String.format("PL attribute for read group %s is unset; assuming all reads are illumina",readGroup.getReadGroupId()));
             data.put(readGroup.getReadGroupId(), new RecalData[MAX_READ_LENGTH+1][MAX_QUAL_SCORE+1][NDINUCS]);
             for ( int i = 0; i < MAX_READ_LENGTH+1; i++) {
                 for ( int j = 0; j < MAX_QUAL_SCORE+1; j++) {
@@ -108,12 +110,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     }
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        // No PL attribute?  Warn the user and keep going.
-        for(SAMReadGroupRecord readGroup: getToolkit().getEngine().getSAMHeader().getReadGroups()) {
-            if( readGroup.getAttribute("PL") == null )
-                Utils.warnUser(String.format("PL attribute for read group %s is unset; assuming all reads are illumina",readGroup.getReadGroupId()));
-        }
-
         rodDbSNP dbsnp = (rodDbSNP)tracker.lookup("dbSNP", null);
         if ( dbsnp == null || !dbsnp.isSNP() ) {
             List<SAMRecord> reads = context.getReads();
