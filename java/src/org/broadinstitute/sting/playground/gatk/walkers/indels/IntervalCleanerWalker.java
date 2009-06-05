@@ -13,7 +13,10 @@ import net.sf.samtools.*;
 
 import java.util.*;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.OutputStream;
 
 @WalkerName("IntervalCleaner")
 public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> {
@@ -37,6 +40,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     private FileWriter indelOutput = null;
     private FileWriter statsOutput = null;
 
+    
     // we need to sort the reads ourselves because SAM headers get messed up and claim to be "unsorted" sometimes
     private TreeSet<ComparableSAMRecord> readsToWrite;
 
@@ -46,6 +50,10 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
         writer = Utils.createSAMFileWriterWithCompression(header, false, OUT, getToolkit().getBAMCompression());
+
+        logger.info("Writing into output BAM file at compression level " + getToolkit().getBAMCompression());
+        logger.info("Temporary space used: "+System.getProperty("java.io.tmpdir"));
+
         if ( OUT_INDELS != null ) {
             try {
                 indelOutput = new FileWriter(new File(OUT_INDELS));
@@ -72,8 +80,14 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
     // What do we do with the reads that are not part of our intervals?
     public void nonIntervalReadAction(SAMRecord read) {
-        writer.addAlignment(read);
-    }
+    	try {    		
+    		writer.addAlignment(read);
+    	} catch (Exception e ) {
+    		logger.error("Failed to write read "+read.getReadName()+" "+read.getReferenceName() +":"+read.getAlignmentStart());
+    		e.printStackTrace(out);
+    		throw new StingException(e.getMessage());
+    	}
+     }
 
     public Integer map(RefMetaDataTracker tracker, String ref, LocusContext context) {
         List<SAMRecord> reads = context.getReads();
@@ -305,7 +319,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 if ( statsOutput != null ) {
                     try {
                         statsOutput.write(interval.toString());
-                        statsOutput.write("\tFAIL (bad indel)\t");
+                        statsOutput.write("\tFAIL (bad indel)\t"); // if improvement > LOD_THRESHOLD *BUT* entropy is not reduced (???)
                         statsOutput.write(Double.toString(improvement));
                         statsOutput.write("\n");
                         statsOutput.flush();
@@ -335,7 +349,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 if ( statsOutput != null ) {
                     try {
                         statsOutput.write(interval.toString());
-                        statsOutput.write("\tCLEAN");
+                        statsOutput.write("\tCLEAN"); // if improvement > LOD_THRESHOLD *AND* entropy is reduced
                         if ( bestConsensus.cigar.numCigarElements() > 1 )
                             statsOutput.write(" (found indel)");
                         statsOutput.write("\t");
@@ -362,7 +376,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         } else if ( statsOutput != null ) {
             try {
                 statsOutput.write(interval.toString());
-                statsOutput.write("\tFAIL\t");
+                statsOutput.write("\tFAIL\t"); // if improvement < LOD_THRESHOLD
                 statsOutput.write(Double.toString(improvement));
                 statsOutput.write("\n");
                 statsOutput.flush();
@@ -551,8 +565,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             }
             difference = indelIndex - newIndex;
         } else if ( ce2.getOperator() == CigarOperator.I ) {
-            int indelIndex = refIndex + ce1.getLength();
-            String indelString = readSeq.substring(indelIndex, indelIndex+ce2.getLength());
+            int indelIndex = ce1.getLength(); // this is the position of inserted bases ON THE READ
+            String indelString = readSeq.substring(indelIndex, indelIndex+ce2.getLength()); // get the inserted bases
             int newIndex = indelIndex;
             while ( newIndex > 0 ) {
                 String newIndelString = readSeq.substring(newIndex-1, newIndex+ce2.getLength()-1);
