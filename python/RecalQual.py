@@ -67,7 +67,7 @@ if not os.path.isdir('output'):
     os.mkdir('output')
 
 # assemble the required program arguments
-gatk_base_cmdline = ' '.join((java_exe,'-ea','-jar',gatk,'-R',reference,'--DBSNP',dbsnp,'-l INFO','-L chrM'))
+gatk_base_cmdline = ' '.join((java_exe,'-ea','-jar',gatk,'-R',reference,'--DBSNP',dbsnp,'-l INFO'))
 generate_covariates         = ' '.join((gatk_base_cmdline,'-T CountCovariates','-I',bam,'-mqs 40','--OUTPUT_FILEROOT output/initial','--CREATE_TRAINING_DATA','--MIN_MAPPING_QUALITY 1'))
 apply_logistic_regression   = ' '.join((gatk_base_cmdline,'-T LogisticRecalibration','-I',bam,'-logisticParams output/linear_regression_results.out','-outputBAM',calibrated_bam))
 index_calibrated_bamfile    = ' '.join((samtools_exe,'index',calibrated_bam))

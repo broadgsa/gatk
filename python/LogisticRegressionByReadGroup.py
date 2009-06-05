@@ -44,8 +44,9 @@ def process_file(source_file,read_group,dinuc,target_file,R_exe,logistic_regress
     "Process the contents of an intermediate file.  An intermediate file is the specific data arranged per read group, per dinuc."
     base = source_file.name[:source_file.name.rfind('.csv')] + '.' + read_group
     regression_command = ' '.join((R_exe,logistic_regression_script,base,base,dinuc))
-    print "Running " + regression_command
-    os.system(regression_command)
+    result = os.system(regression_command)
+    if result != 0:
+        exit('Unable to run linear regression; command was %s, error code was %d' % (regression_command, result),1)
     parameters_filename = '.'.join((base,dinuc,'parameters'))
     if not os.access(parameters_filename,os.R_OK):
         exit("Unable to read output of R from file " + parameters_filename)
