@@ -16,7 +16,7 @@ public class MismatchIntervalWalker extends LocusWalker<Pair<GenomeLoc, Boolean>
     @Argument(fullName="windowSize", shortName="window", doc="window size for calculating entropy", required=false)
     public int windowSize = 10;
     @Argument(fullName="mismatchFraction", shortName="mismatch", doc="fraction of mismatching base qualities threshold", required=false)
-    public double mismatchThreshold = 0.20;
+    public double mismatchThreshold = 0.15;
 
     private final int minReadsAtInterval = 4;
 

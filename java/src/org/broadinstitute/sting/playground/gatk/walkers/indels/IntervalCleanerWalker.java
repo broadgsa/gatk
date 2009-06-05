@@ -529,7 +529,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
                 
         logger.debug("Original mismatch columns = " + originalMismatchColumns + "; cleaned mismatch columns = " + cleanedMismatchColumns);
-        //out.println("Original mismatch columns = " + originalMismatchColumns + "; cleaned mismatch columns = " + cleanedMismatchColumns);
+        //out.println("**** Original mismatch columns = " + originalMismatchColumns + "; cleaned mismatch columns = " + cleanedMismatchColumns);
 
         return (originalMismatchColumns == 0 || cleanedMismatchColumns < originalMismatchColumns);
     }
@@ -551,7 +551,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             }
             difference = indelIndex - newIndex;
         } else if ( ce2.getOperator() == CigarOperator.I ) {
-            int indelIndex = ce1.getLength();
+            int indelIndex = refIndex + ce1.getLength();
             String indelString = readSeq.substring(indelIndex, indelIndex+ce2.getLength());
             int newIndex = indelIndex;
             while ( newIndex > 0 ) {
