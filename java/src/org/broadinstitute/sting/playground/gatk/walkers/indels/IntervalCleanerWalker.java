@@ -31,7 +31,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public double LOD_THRESHOLD = 5.0;
 
     public static final int MAX_QUAL = 99;
-    private static final double MISMATCH_THRESHOLD = 0.30;
+    private static final double MISMATCH_THRESHOLD = 0.25;
 
     private SAMFileWriter writer;
     private FileWriter indelOutput = null;
@@ -191,7 +191,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         for ( SAMRecord read : reads ) {
             // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
             if ( read.getAlignmentBlocks().size() == 2 )
-                indelRealignment(read, reference, read.getAlignmentStart()-(int)leftmostIndex);
+                read.setCigar(indelRealignment(read.getCigar(), reference, read.getReadString(), read.getAlignmentStart()-(int)leftmostIndex));
 
             AlignedRead aRead = new AlignedRead(read);
             int mismatchScore = mismatchQualitySum(aRead, reference, read.getAlignmentStart()-(int)leftmostIndex);
@@ -293,12 +293,15 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         double improvement = (bestConsensus == null ? -1 : ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0);
         if ( improvement >= LOD_THRESHOLD ) {
 
+            bestConsensus.cigar = indelRealignment(bestConsensus.cigar, reference, bestConsensus.str, bestConsensus.positionOnReference);
+            logger.debug("Realigned CIGAR = " + cigarToString(bestConsensus.cigar));
+
            // clean the appropriate reads
             for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes ) {
                 AlignedRead aRead = altReads.get(indexPair.first);
                 updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.second, aRead, (int)leftmostIndex);
             }
-            if( !alternateReducesEntropy(altReads, bestConsensus, reference, leftmostIndex) ) {
+            if( !alternateReducesEntropy(altReads, reference, leftmostIndex) ) {
                 if ( statsOutput != null ) {
                     try {
                         statsOutput.write(interval.toString());
@@ -468,7 +471,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         aRead.setCigar(readCigar);
     }
 
-    private boolean alternateReducesEntropy(List<AlignedRead> reads, Consensus bestConsensus, String reference, long leftmostIndex) {
+    private boolean alternateReducesEntropy(List<AlignedRead> reads, String reference, long leftmostIndex) {
         int[] originalMismatchBases = new int[reference.length()];
         int[] cleanedMismatchBases = new int[reference.length()];
         int[] totalBases = new int[reference.length()];
@@ -531,8 +534,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         return (originalMismatchColumns == 0 || cleanedMismatchColumns < originalMismatchColumns);
     }
 
-    private void indelRealignment(SAMRecord read, String refSeq, int refIndex) {
-        Cigar cigar = read.getCigar();
+    private Cigar indelRealignment(Cigar cigar, String refSeq, String readSeq, int refIndex) {
         CigarElement ce1 = cigar.getCigarElement(0);
         CigarElement ce2 = cigar.getCigarElement(1);
         int difference = 0;
@@ -550,10 +552,10 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             difference = indelIndex - newIndex;
         } else if ( ce2.getOperator() == CigarOperator.I ) {
             int indelIndex = ce1.getLength();
-            String indelString = read.getReadString().substring(indelIndex, indelIndex+ce2.getLength());
+            String indelString = readSeq.substring(indelIndex, indelIndex+ce2.getLength());
             int newIndex = indelIndex;
             while ( newIndex > 0 ) {
-                String newIndelString = read.getReadString().substring(newIndex-1, newIndex+ce2.getLength()-1);
+                String newIndelString = readSeq.substring(newIndex-1, newIndex+ce2.getLength()-1);
                 if ( !indelString.equals(newIndelString) )
                     break;
                 newIndex--;
@@ -562,13 +564,14 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
 
         if ( difference > 0 ) {
-            logger.debug("Realigning indel in " + read.getReadName());
+            logger.debug("Realigning indel");
             Cigar newCigar = new Cigar();
             newCigar.add(new CigarElement(ce1.getLength()-difference, CigarOperator.M));
             newCigar.add(ce2);
             newCigar.add(new CigarElement(cigar.getCigarElement(2).getLength()+difference, CigarOperator.M));
-            read.setCigar(newCigar);
+            return newCigar;
         }
+        return cigar;
     }
 
     private class AlignedRead {

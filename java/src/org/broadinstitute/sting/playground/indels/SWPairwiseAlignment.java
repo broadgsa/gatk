@@ -659,8 +659,8 @@ public void align3(String a, String b) {
 
     private void print(double[][] s, String a, String b) {
 
-        System.out.print("            ");
-        for ( int j = 1 ; j < s[0].length ; j++) System.out.printf(" %8c",b.charAt(j-1)) ;
+        System.out.print("");
+        for ( int j = 1 ; j < s[0].length ; j++) System.out.printf(" %4c",b.charAt(j-1)) ;
         System.out.println();
 
         for ( int i = 0 ; i < s.length ; i++) {
@@ -668,7 +668,7 @@ public void align3(String a, String b) {
             else System.out.print(' ');
             System.out.print("  ");
             for ( int j = 0; j < s[i].length ; j++ ) {
-                System.out.printf(" %8.4f",s[i][j]);
+                System.out.printf(" %2.1f",s[i][j]);
             }
             System.out.println();
         }
