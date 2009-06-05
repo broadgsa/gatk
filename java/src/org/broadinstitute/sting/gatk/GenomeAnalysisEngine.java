@@ -8,12 +8,11 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RODIterator;
+import org.broadinstitute.sting.gatk.refdata.IntervalRodIterator;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 
 import java.util.ArrayList;
@@ -77,6 +76,8 @@ public class GenomeAnalysisEngine {
             bindConvenienceRods("hapmap", "HapMapAlleleFrequencies", argCollection.HAPMAPFile);
         if (argCollection.HAPMAPChipFile != null)
             bindConvenienceRods("hapmap-chip", "GFF", argCollection.HAPMAPChipFile);
+        if ( argCollection.intervals != null )
+            bindConvenienceRods("interval", "Intervals", argCollection.intervals);
 
         // parse out the rod bindings
         ReferenceOrderedData.parseBindings(logger, argCollection.RODBindings, rods);
@@ -114,7 +115,8 @@ public class GenomeAnalysisEngine {
         genericEngineSetup(strictness);
 
         // parse out any genomic location they've provided
-        List<GenomeLoc> locationsList = setupIntervalRegion();
+        //List<GenomeLoc> locationsList = setupIntervalRegion();
+        List<GenomeLoc> locationsList = engine.getLocations();        
         GenomeLocSortedSet locs = null;
         if (locationsList != null)
             locs = GenomeLocSortedSet.createSetFromList(locationsList);
@@ -202,7 +204,7 @@ public class GenomeAnalysisEngine {
 
         // we default interval files over the genome region string
         if (argCollection.intervals != null) {
-            engine.setLocation(setupIntervalRegion());
+            engine.setLocation(parseIntervalRegion(argCollection.intervals, false));
         }
 
         engine.setReadFilters(new Reads(argCollection));
@@ -217,15 +219,15 @@ public class GenomeAnalysisEngine {
      *
      * @return a list of genomeLoc representing the interval file
      */
-    private List<GenomeLoc> setupIntervalRegion() {
+    public static List<GenomeLoc> parseIntervalRegion(final String intervalsString, boolean quiet ) {
         List<GenomeLoc> locs = null;
-        if (argCollection.intervals != null) {
-            if (new File(argCollection.intervals).exists()) {
-                logger.info("Intervals argument specifies a file.  Loading intervals from file.");
-                locs = GenomeLoc.IntervalFileToList(argCollection.intervals);
+        if ( intervalsString != null) {
+            if (new File(intervalsString).exists()) {
+                if (! quiet) logger.info("Intervals argument specifies a file.  Loading intervals from file.");
+                locs = GenomeLoc.IntervalFileToList(intervalsString);
             } else {
-                logger.info("Intervals argument does not specify a file.  Trying to parse it as a simple string.");
-                locs = GenomeLoc.parseGenomeLocs(argCollection.intervals);
+                if (! quiet) logger.info("Intervals argument does not specify a file.  Trying to parse it as a simple string.");
+                locs = GenomeLoc.parseGenomeLocs(intervalsString);
             }
         }
         return locs;

@@ -24,7 +24,7 @@ def cmd(cmd_str_from_user, farm_queue=False, output_head=None, just_print_comman
         if waitID <> None:
             cmd_str += " -w \"done(%s)\"" % (str(waitID))
 
-        cmd_str += " "+cmd_str_from_user
+        cmd_str += " \""+cmd_str_from_user + "\""
         
         print ">>> Farming via "+cmd_str
         

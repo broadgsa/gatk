@@ -11,9 +11,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.iterators.*;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
@@ -22,7 +20,6 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.*;
 
 public abstract class TraversalEngine {
@@ -30,7 +27,7 @@ public abstract class TraversalEngine {
     protected List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods = null;
 
     // Iterator over rods
-    List<Pair<String, ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator>> rodIters;
+    List<Pair<String, RODIterator<? extends ReferenceOrderedDatum>>> rodIters;
 
     // How strict should we be with SAM/BAM parsing?
     protected ValidationStringency strictness = ValidationStringency.STRICT;
@@ -225,6 +222,10 @@ public abstract class TraversalEngine {
 
     public boolean hasLocations() {
         return this.locs != null && !this.locs.isEmpty();
+    }
+
+    public List<GenomeLoc> getLocations() {
+        return this.locs;
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -446,9 +447,9 @@ public abstract class TraversalEngine {
      */
     protected void initializeRODs() {
         // set up reference ordered data
-        rodIters = new ArrayList<Pair<String, ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator>>();
+        rodIters = new ArrayList<Pair<String, RODIterator<? extends ReferenceOrderedDatum>>>();
         for (ReferenceOrderedData<? extends ReferenceOrderedDatum> data : rods) {
-            rodIters.add(new Pair<String, ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator>(data.getName(), data.iterator()));
+            rodIters.add(new Pair<String, RODIterator<? extends ReferenceOrderedDatum>>(data.getName(), data.iterator()));
         }
     }
 
@@ -492,10 +493,11 @@ public abstract class TraversalEngine {
      */
     protected RefMetaDataTracker getReferenceOrderedDataAtLocus(final GenomeLoc loc) {
         RefMetaDataTracker tracks = new RefMetaDataTracker();
-        for (Pair<String, ReferenceOrderedData<? extends ReferenceOrderedDatum>.RODIterator> pair : rodIters) {
+        for (Pair<String, RODIterator<? extends ReferenceOrderedDatum>> pair : rodIters) {
             String name = pair.getFirst();
             tracks.bind(name, pair.getSecond().seekForward(loc));
         }
+
         return tracks;
     }
 

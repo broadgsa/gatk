@@ -66,6 +66,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         addModule("RefSeq", rodRefSeq.class);
         addModule("Table", TabularROD.class);
         addModule("PooledEM", PooledEMSNPROD.class);
+        addModule("Intervals", IntervalRod.class);
     }
 
 
@@ -159,7 +160,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         return this.name.equals(name) && type.isAssignableFrom(this.type);
     }
 
-    public RODIterator iterator() {
+    public RODIterator<ROD> iterator() {
     	Iterator<ROD> it;
         try {
             Method m = type.getDeclaredMethod("createIterator", String.class,java.io.File.class);
@@ -177,7 +178,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         }  catch ( java.lang.reflect.InvocationTargetException e ) {
         	throw new RuntimeException(e);
         }        
-        return new RODIterator(it); 	
+        return new RODIterator<ROD>(it);
    }
 
     // ----------------------------------------------------------------------
@@ -296,103 +297,6 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
             return n;
         }
  
-        public void remove() {
-            throw new UnsupportedOperationException();
-        }
-    }
-
-//    private class SimpleRODIterator implements Iterator<ROD> {
-//        //private WhitespaceTextFileParser parser = null;
-//        private TabbedTextFileParser parser = null;
-//
-//        public SimpleRODIterator() {
-//            parser = new TabbedTextFileParser(true, file);
-//        }
-//
-//        public boolean hasNext() {
-//            return parser.hasNext();
-//        }
-//
-//        public ROD next() {
-//            String parts[] = parser.next();
-//            return parseLine(parts);
-//        }
-//
-//        public void remove() {
-//            throw new UnsupportedOperationException();
-//        }
-//    }
-
-    public class RODIterator implements Iterator<ROD> {
-        private PushbackIterator<ROD> it;
-        private GenomeLoc position = null;
-        
-        public RODIterator(Iterator<ROD> it) {
-            this.it = new PushbackIterator<ROD>(it);
-        }
-
-        public boolean hasNext() { return it.hasNext(); }
-        public ROD next() {
-            ROD next = it.next();
-            if( next != null )
-                position = next.getLocation().clone();
-            return next; 
-        }
-
-        /**
-         * Returns the current position of this iterator.
-         * @return Current position of the iterator, or null if no position exists.
-         */
-        public GenomeLoc position() {
-            return position;
-        }
-
-        /**
-         * Seeks forward in the file until we reach (or cross) a record at contig / pos
-         * If we don't find anything and cross beyond contig / pos, we return null
-         * Otherwise we return the first object who's start is at pos
-         *
-         * @param loc
-         * @return
-         */
-        public ROD seekForward(final GenomeLoc loc) {
-            final boolean DEBUG = false;
-        
-            ROD result = null;
-            
-            if ( DEBUG ) System.out.printf("  *** starting seek to %s %d%n", loc.getContig(), loc.getStart());
-            while ( hasNext() ) {
-                ROD current = next();
-                if( current == null )
-                    continue;
-                //System.out.printf("    -> Seeking to %s %d AT %s %d%n", contigName, pos, current.getContig(), current.getStart());
-                int cmp = current.getLocation().compareTo(loc);
-                if ( cmp < 0 ) {
-                    // current occurs before loc, continue searching
-                    continue;
-                }
-                else if ( cmp == 0 ) {
-                    result = current;
-                    break;
-                } else {
-                    // current is after loc
-                    it.pushback(current);
-                    break;
-                }
-            }
-
-            if ( DEBUG ) {
-                if ( result != null )
-                    System.out.printf("    ### Found %s%n", result.getLocation());
-            }
-
-            // make a note that the iterator last seeked to the specified position
-            position = loc.clone();            
-
-             // we ran out of elements or found something
-            return result;
-        }
-
         public void remove() {
             throw new UnsupportedOperationException();
         }

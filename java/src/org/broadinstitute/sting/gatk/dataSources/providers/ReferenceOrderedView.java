@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.dataSources.providers;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RODIterator;
 import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -43,7 +44,7 @@ public class ReferenceOrderedView implements View {
     public ReferenceOrderedView( ShardDataProvider provider ) {
         this.provider = provider;
         for( ReferenceOrderedDataSource dataSource: provider.getReferenceOrderedData() )
-            states.add( new ReferenceOrderedDataState( dataSource, (ReferenceOrderedData.RODIterator)dataSource.seek(provider.getShard()) ) );
+            states.add( new ReferenceOrderedDataState( dataSource, (RODIterator)dataSource.seek(provider.getShard()) ) );
 
         provider.register(this);
     }
@@ -78,9 +79,9 @@ public class ReferenceOrderedView implements View {
      */
     private class ReferenceOrderedDataState {
         public final ReferenceOrderedDataSource dataSource;
-        public final ReferenceOrderedData.RODIterator iterator;
+        public final RODIterator iterator;
 
-        public ReferenceOrderedDataState( ReferenceOrderedDataSource dataSource, ReferenceOrderedData.RODIterator iterator ) {
+        public ReferenceOrderedDataState( ReferenceOrderedDataSource dataSource, RODIterator iterator ) {
             this.dataSource = dataSource;
             this.iterator = iterator;
         }

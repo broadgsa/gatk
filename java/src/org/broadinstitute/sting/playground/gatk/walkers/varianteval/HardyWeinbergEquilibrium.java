@@ -1,0 +1,85 @@
+package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
+
+import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.SNPCallFromGenotypes;
+import org.broadinstitute.sting.gatk.refdata.PooledEMSNPROD;
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.MathUtils;
+
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import cern.jet.math.Arithmetic;
+
+/**
+ * Created by IntelliJ IDEA.
+ * User: depristo
+ * Date: Jun 4, 2009
+ * Time: 4:38:00 PM
+ * To change this template use File | Settings | File Templates.
+ */
+public class HardyWeinbergEquilibrium extends BasicVariantAnalysis {
+    private double threshold;
+    int nSites = 0;
+    int nViolations = 0;
+
+    HardyWeinbergEquilibrium(double threshold) {
+        super("hwe");
+        this.threshold = threshold;
+    }
+
+    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
+        String r = null;
+
+        if ( eval != null &&
+             eval instanceof SNPCallFromGenotypes ) {
+            nSites++;
+            SNPCallFromGenotypes call = (SNPCallFromGenotypes)eval;
+
+            int nAA = call.nHomRefGenotypes();
+            int nAa = call.nHetGenotypes();
+            int naa = call.nHomVarGenotypes();
+            int nA  = 2 * nAA + nAa;
+            int n   = nAA + nAa + naa;
+
+            //
+            // from Emigh 1980
+            //
+            // P = pr[nAa | nA] = multinomial[n over nAA, nAa, naa] / binomial[2n over nA] * 2^nAa
+            //
+            // where nAA, nAa, naa are the observed numbers of the three genotypes, AA, Aa, and aa,
+            // respectively, and nA is the number of A alleles, where nA = 2nAA + nAa, and n is the number of alleles
+            //
+            int[] mXs = { nAA, nAa, naa };                      // counts of each genotype as vector
+            double m = MathUtils.multinomial(mXs);
+            double b = Arithmetic.binomial(2 * n, nA);
+            double tosses = Math.pow(2, nAa);
+            double p = (m / b) * tosses;
+
+            if ( false ) {
+                System.out.printf("HWE-violation at %s %f < %f %1.2f %5d %5d %5d %5d %5d %.2e %.2e %.2e => %.6e [%s]%n",
+                        call.getLocation(), p, threshold, call.getMAF(), nAA, nAa, naa, nA, n, m, b, tosses, p, eval);
+                System.out.printf("(factorial(%d) / (factorial(%d) * factorial(%d) * factorial(%d))) / choose(%d, %d) * 2^%d - %f < 1e-3%n",
+                                    nAA + nAa + naa, nAA, nAa, naa, 2 * n, nA, nAa, p);
+            }
+
+            if ( p < threshold ) {
+                r = String.format("HWE-violation %f < %f at %s", p, threshold, eval);
+                nViolations++;
+            }
+        }
+        
+        return r;
+    }
+
+    public List<String> done() {
+        List<String> s = new ArrayList<String>();
+        s.add(String.format("n_calls              %d", nSites));
+        s.add(String.format("n_violations         %d", nViolations));
+        s.add(String.format("violations_rate      %.2f", (100.0*nSites) / nViolations));
+        return s;
+    }
+}

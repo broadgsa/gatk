@@ -63,6 +63,7 @@ def main():
         if filter(lambda x: x <> 0, jobids) <> []:
             # there's still work to do
             sys.exit('Stopping.  Please rerun this program when the farm jobs are complete: ' + str(jobids))
+            # TODO: Should add a wait here for all farm jobs to finish...
         print 'gelis', gelis
         print 'jobids', jobids
     else:
@@ -76,7 +77,10 @@ def main():
         dbsnpFile = geli2dbsnpFile(geli)
         if not os.path.exists(dbsnpFile):
             dbsnpCmd = picard_utils.CollectDbSnpMatchesCmd(geli, dbsnpFile, OPTIONS.lod)
+            if jobid == 0: jobid = None
             farm_commands.cmd(dbsnpCmd, OPTIONS.farmQueue, just_print_commands = OPTIONS.dry, waitID = jobid)
+
+    # TODO: Should add a wait here for all farm jobs to finish...
 
     # read in the dbSNP tracks
     nTotalSnps = 0
@@ -99,11 +103,12 @@ def main():
     jobid = None
     variantsOut = map( lambda geli: os.path.split(geli)[1] + '.calls', gelis)
     for geli, variantOut in zip(gelis, variantsOut):
+        name = os.path.split(geli)[1]
         if not os.path.exists(variantOut):
-            cmd = ("GeliToText.jar I=%s | awk '$7 > %f' > %s" % ( geli, OPTIONS.lod, variantOut) )
+            cmd = ("GeliToText.jar I=%s | awk '$1 !~ \"@\" && $1 !~ \"#Sequence\" && $0 !~ \"GeliToText\"' | awk '$7 > %f {print \"%s\" $0}' > %s" % ( geli, OPTIONS.lod, name, variantOut) )
             jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands = OPTIONS.dry)
 
-    cmd = ("cat %s | awk '$1 !~ \"@\" && $1 !~ \"#Sequence\" && $0 !~ \"GeliToText\"' | sort -k 1 -k 2 -n > tmp.calls" % ( ' '.join(variantsOut) ) )
+    cmd = ("cat %s | sort -k 1 -k 2 -n > tmp.calls" % ( ' '.join(variantsOut) ) )
     jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands = OPTIONS.dry, waitID = jobid)
 
     sortedCallFile = 'all.sorted.calls'
@@ -113,14 +118,14 @@ def main():
     sortedCalls = [line.split() for line in open(sortedCallFile)]
     aggregratedCalls = picard_utils.aggregateGeliCalls(sortedCalls)
     
-    print >> outputFile, 'loc ref alt EM_alt_freq discovery_likelihood discovery_null discovery_prior discovery_lod EM_N n_ref n_het n_hom'
+    print >> outputFile, 'loc ref alt EM_alt_freq discovery_likelihood discovery_null discovery_prior discovery_lod EM_N n_ref n_het n_hom individuals'
 
     for snp in map( lambda x: picard_utils.aggregatedGeliCalls2SNP(x, nIndividuals), aggregratedCalls ):
         if snp == None: continue    # ignore bad calls
         #print snp
         #sharedCalls = list(sharedCallsGroup)
         #genotype = list(sharedCalls[0][5])
-        print >> outputFile, '%s   %s %s %.6f -420.0 -420.0 0.000000 100.0 %d %d %d %d' % (snp.loc, snp.ref, snp.alt(), snp.q(), nIndividuals, snp.nRefGenotypes(), snp.nHetGenotypes(), snp.nHomVarGenotypes())
+        print >> outputFile, '%s   %s %s %.6f -420.0 -420.0 0.000000 100.0 %d %d %d %d NA' % (snp.loc, snp.ref, snp.alt(), snp.q(), nIndividuals, snp.nRefGenotypes(), snp.nHetGenotypes(), snp.nHomVarGenotypes())
     outputFile.close()
     
                 

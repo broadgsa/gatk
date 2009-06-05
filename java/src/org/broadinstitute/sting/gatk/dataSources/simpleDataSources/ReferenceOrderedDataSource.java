@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.RODIterator;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
@@ -59,7 +60,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * @return Iterator through the data.
      */
     public Iterator seek( Shard shard ) {
-        ReferenceOrderedData.RODIterator iterator = iteratorPool.iterator(shard.getGenomeLoc());
+        RODIterator iterator = iteratorPool.iterator(shard.getGenomeLoc());
         return iterator;
     }
 
@@ -67,7 +68,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * Close the specified iterator, returning it to the pool.
      * @param iterator Iterator to close.
      */
-    public void close( ReferenceOrderedData.RODIterator iterator ) {
+    public void close( RODIterator iterator ) {
         this.iteratorPool.close(iterator);        
     }
 }

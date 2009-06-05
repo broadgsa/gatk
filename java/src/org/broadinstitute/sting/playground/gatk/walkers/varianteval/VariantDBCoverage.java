@@ -1,12 +1,22 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-public class VariantDBCoverage {
+import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.LocusContext;
+
+import java.io.PrintStream;
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
+
+public class VariantDBCoverage extends BasicVariantAnalysis {
     private String dbName;
     private int nDBObs = 0;
     private int nEvalObs = 0;
     private int nOverlapping = 0;
 
     public VariantDBCoverage(final String name) {
+        super("db_coverage");
         dbName = name;
     }
 
@@ -37,6 +47,13 @@ public class VariantDBCoverage {
         return nOverlappingSites() / (1.0 * nEvalSites());
     }
 
+    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
+        // There are four cases here:
+        AllelicVariant dbsnp = (AllelicVariant)tracker.lookup(dbName, null);
+        inc(dbsnp != null, eval != null);
+        return dbsnp == null && eval != null ? "Novel " + eval : null;
+    }
+
     /**
      * What fraction of the DB sites were discovered in the evalution calls?
      *
@@ -46,18 +63,15 @@ public class VariantDBCoverage {
         return nOverlappingSites() / (1.0 * nDBSites());
     }
 
-    public String toSingleLineString(final String prefix) {
-        return String.format("%s %d\t%d\t%d\t%.2f\t%.2f", prefix, nDBSites(), nEvalSites(), nOverlappingSites(), fractionEvalSitesCoveredByDB(), fractionDBSitesDiscoveredInEval());
-    }
-
-    public String toMultiLineString(final String prefix) {
-        StringBuilder s = new StringBuilder();
-        s.append(String.format("%s name                 %s%n", prefix, dbName));
-        s.append(String.format("%s n_db_sites           %d%n", prefix, nDBSites()));
-        s.append(String.format("%s n_eval_sites         %d%n", prefix, nEvalSites()));
-        s.append(String.format("%s n_overlapping_sites  %d%n", prefix, nOverlappingSites()));
-        s.append(String.format("%s per_eval_sites_in_db %.2f%n", prefix, 100*fractionEvalSitesCoveredByDB()));
-        s.append(String.format("%s per_db_sites_in_eval %.2f%n", prefix, 100*fractionDBSitesDiscoveredInEval()));
-        return s.toString();
+    public List<String> done() {
+        List<String> s = new ArrayList<String>();
+        s.add(String.format("%d\t%d\t%d\t%.2f\t%.2f", nDBSites(), nEvalSites(), nOverlappingSites(), fractionEvalSitesCoveredByDB(), fractionDBSitesDiscoveredInEval()));
+        s.add(String.format("name                 %s", dbName));
+        s.add(String.format("n_db_sites           %d", nDBSites()));
+        s.add(String.format("n_eval_sites         %d", nEvalSites()));
+        s.add(String.format("n_overlapping_sites  %d", nOverlappingSites()));
+        s.add(String.format("per_eval_sites_in_db %.2f", 100*fractionEvalSitesCoveredByDB()));
+        s.add(String.format("per_db_sites_in_eval %.2f", 100*fractionDBSitesDiscoveredInEval()));
+        return s;
     }
 }

@@ -94,7 +94,7 @@ public class RefMetaDataTracker {
      * @param rod
      */
     public void bind(final String name, ReferenceOrderedDatum rod) {
-        logger.debug(String.format("Binding %s to %s%n", name, rod));
+        //logger.debug(String.format("Binding %s to %s", name, rod));
         map.put(canonicalName(name), rod);
     }
 }

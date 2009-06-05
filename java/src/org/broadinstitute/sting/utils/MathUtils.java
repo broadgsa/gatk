@@ -85,6 +85,35 @@ public class MathUtils {
     }
 
     /**
+     * Computes a multinomial.  This is computed using the formula
+     *
+     *   M(x1,x2,...,xk; n) = [ n! / (x1! x2! ... xk!) ]
+     *
+     * where xi represents the number of times outcome i was observed, n is the number of total observations.
+     * In this implementation, the value of n is inferred as the sum over i of xi.
+     *
+     * @param x  an int[] of counts, where each element represents the number of times a certain outcome was observed
+     * @return   the multinomial of the specified configuration.
+     */
+    public static double multinomial(int[] x) {
+        // In order to avoid overflow in computing large factorials in the multinomial
+        // coefficient, we split the calculation up into the product of a bunch of
+        // binomial coefficients.
+
+        double multinomialCoefficient = 1.0;
+
+        for (int i = 0; i < x.length; i++) {
+            int n = 0;
+            for (int j = 0; j <= i; j++) { n += x[j]; }
+
+            double multinomialTerm = Arithmetic.binomial(n, x[i]);
+            multinomialCoefficient *= multinomialTerm;
+        }
+
+        return multinomialCoefficient;
+    }
+
+    /**
      * Computes a multinomial probability.  This is computed using the formula
      *
      *   M(x1,x2,...,xk; n; p1,p2,...,pk) = [ n! / (x1! x2! ... xk!) ] (p1^x1)(p2^x2)(...)(pk^xk)
@@ -101,16 +130,7 @@ public class MathUtils {
         // In order to avoid overflow in computing large factorials in the multinomial
         // coefficient, we split the calculation up into the product of a bunch of
         // binomial coefficients.
-        
-        double multinomialCoefficient = 1.0;
-
-        for (int i = 0; i < x.length; i++) {
-            int n = 0;
-            for (int j = 0; j <= i; j++) { n += x[j]; }
-
-            double multinomialTerm = Arithmetic.binomial(n, x[i]);
-            multinomialCoefficient *= multinomialTerm;
-        }
+        double multinomialCoefficient = multinomial(x);
 
         double probs = 1.0, totalprob = 0.0;
         for (int obsCountsIndex = 0; obsCountsIndex < x.length; obsCountsIndex++) {

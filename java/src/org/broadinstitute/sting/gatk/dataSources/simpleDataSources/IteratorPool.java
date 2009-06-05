@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.RODIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
@@ -30,12 +31,12 @@ class IteratorPool {
     /**
      * All iterators of this reference-ordered data.
      */
-    private List<ReferenceOrderedData.RODIterator> allIterators = new ArrayList<ReferenceOrderedData.RODIterator>();
+    private List<RODIterator> allIterators = new ArrayList<RODIterator>();
 
     /**
      * All iterators that are not currently in service.
      */
-    private List<ReferenceOrderedData.RODIterator> availableIterators = new ArrayList<ReferenceOrderedData.RODIterator>();
+    private List<RODIterator> availableIterators = new ArrayList<RODIterator>();
 
     /**
      * Create a new iterator pool given the current ROD.
@@ -50,10 +51,10 @@ class IteratorPool {
      * @param position Target position for the iterator.
      * @return
      */
-    public ReferenceOrderedData.RODIterator iterator( GenomeLoc position ) {
+    public RODIterator iterator( GenomeLoc position ) {
         // Grab the first iterator in the list whose position is before the requested position.
-        ReferenceOrderedData.RODIterator selectedIterator = null;
-        for( ReferenceOrderedData.RODIterator iterator: availableIterators ) {
+        RODIterator selectedIterator = null;
+        for( RODIterator iterator: availableIterators ) {
             if( (iterator.position() == null && iterator.hasNext()) ||
                 (iterator.position() != null && iterator.position().isBefore(position)) ) {
                 selectedIterator = iterator;
@@ -79,7 +80,7 @@ class IteratorPool {
      * Close the given iterator, returning it to the pool.
      * @param iterator Iterator to return to the pool.
      */
-    public void close( ReferenceOrderedData.RODIterator iterator ) {
+    public void close( RODIterator iterator ) {
         if( !allIterators.contains(iterator) )
             throw new StingException("Iterator does not belong to the given pool.");
         availableIterators.add(iterator);

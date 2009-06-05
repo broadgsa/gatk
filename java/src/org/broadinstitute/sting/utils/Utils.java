@@ -43,6 +43,13 @@ public class Utils {
         throw new RuntimeException(msg);
     }
 
+    public static <T> List<T> cons(final T elt, final List<T> l) {
+        List<T> l2 = new ArrayList<T>();
+        l2.add(elt);
+        if ( l != null ) l2.addAll(l);
+        return l2;
+    }
+
     /**
      * pretty print the warning message supplied
      * @param message the message

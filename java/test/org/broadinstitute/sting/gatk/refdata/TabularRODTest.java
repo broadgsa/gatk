@@ -26,7 +26,7 @@ import java.util.ArrayList;
 public class TabularRODTest extends BaseTest {
     private static FastaSequenceFile2 seq;
     private ReferenceOrderedData ROD;
-    private ReferenceOrderedData.RODIterator iter;
+    private RODIterator iter;
 
 
     @BeforeClass
@@ -113,7 +113,7 @@ public class TabularRODTest extends BaseTest {
     public void testDelim1() {
         File file2 = new File(testDir + "TabularDataTest2.dat");        
         ReferenceOrderedData ROD_commas = new ReferenceOrderedData("tableTest", file2, TabularROD.class);
-        ReferenceOrderedData.RODIterator iter_commas = ROD_commas.iterator();
+        RODIterator iter_commas = ROD_commas.iterator();
 
         logger.warn("Executing testDelim1");
         TabularROD one2 = (TabularROD)iter_commas.next();
@@ -130,7 +130,7 @@ public class TabularRODTest extends BaseTest {
         TabularROD.setDelimiter(",",",");
         File file2 = new File(testDir + "TabularDataTest2.dat");
         ReferenceOrderedData ROD_commas = new ReferenceOrderedData("tableTest", file2, TabularROD.class);
-        ReferenceOrderedData.RODIterator iter_commas = ROD_commas.iterator();
+        RODIterator iter_commas = ROD_commas.iterator();
 
         logger.warn("Executing testDelim1");
         TabularROD one2 = (TabularROD)iter_commas.next();
@@ -173,7 +173,7 @@ public class TabularRODTest extends BaseTest {
         out.println(row.toString());
 
         ReferenceOrderedData ROD_commas = new ReferenceOrderedData("tableTest", outputFile, TabularROD.class);
-        ReferenceOrderedData.RODIterator iter_commas = ROD_commas.iterator();
+        RODIterator iter_commas = ROD_commas.iterator();
 
         TabularROD one = (TabularROD)iter_commas.next();
         assertTrue(one.size() == 3);

@@ -1,24 +1,16 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.util.EnumMap;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
+import java.io.*;
 
-/**
- * Created by IntelliJ IDEA.
- * User: mdepristo
- * Date: Feb 22, 2009
- * Time: 2:52:28 PM
- * To change this template use File | Settings | File Templates.
- */
 @By(DataSource.REFERENCE)
 @Requires(DataSource.REFERENCE)
 @Allows(DataSource.REFERENCE)
@@ -29,108 +21,112 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     @Argument(shortName="printVariants", doc="If true, prints the variants in all of the variant tracks that are examined", required=false)
     public boolean printVariants = false;
 
-    int nBasesCovered = 0;
-    int nSNPs = 0;
-    VariantDBCoverage dbSNPStats = new VariantDBCoverage("dbSNP");
+    @Argument(shortName="badHWEThreshold", doc="XXX", required=false)
+    public double badHWEThreshold = 0.001;
 
-    int N_TRANSITION_TRANVERSION_BINS = 100;
-    Histogram<Integer> transitions;
-    Histogram<Integer> transversions;
+    String analysisFilenameBase = null;
 
-    @Argument(shortName="outputFilenameBase", doc="", required=false)
-    String outputFilenameBase = null;
+    String COMMENT_STRING = "";
 
-    ArrayList<Long> pairWiseDistances;
-    int[] pairWiseBoundries = {1, 10, 100, 1000, 10000, 1000000000};
-    AllelicVariant lastVariant = null;
+    HashMap<String, ArrayList<VariantAnalysis>> analysisSets;
 
-    //EnumMap<BaseUtils.BaseSubstitutionType, Integer> transition_transversion_counts[];
+    final String ALL_SNPS = "all";
+    final String SINGLETON_SNPS = "singletons";
+    final String TWOHIT_SNPS = "2plus_hit";
+    final String[] ALL_ANALYSIS_NAMES = { ALL_SNPS, SINGLETON_SNPS, TWOHIT_SNPS };
 
     public void initialize() {
-        //transitions   = new Histogram<Integer>(N_TRANSITION_TRANVERSION_BINS, Math.log10(1e-10), 0.0, 0);
-        //transversions = new Histogram<Integer>(N_TRANSITION_TRANVERSION_BINS, Math.log10(1e-10), 0.0, 0);
-        transitions   = new Histogram<Integer>(N_TRANSITION_TRANVERSION_BINS, 0.0, 1.0, 0);
-        transversions = new Histogram<Integer>(N_TRANSITION_TRANVERSION_BINS, 0.0, 1.0, 0);
-        pairWiseDistances = new ArrayList<Long>();
+        // setup the path to the analysis
+        if ( this.getToolkit().getArguments().outFileName != null ) {
+            analysisFilenameBase = this.getToolkit().getArguments().outFileName + ".analysis.";
+        }
+
+        analysisSets = new HashMap<String, ArrayList<VariantAnalysis>>();
+        for ( String setName : ALL_ANALYSIS_NAMES ) {
+            analysisSets.put(setName, initializeAnalysisSet(setName));
+        }
     }
 
-    //private int transition_transversion_bin(double het) {
-    //    return (int)Math.floor(het * N_TRANSITION_TRANVERSION_BINS);
-    //}
+    private ArrayList<VariantAnalysis> getAnalysisSet(final String name) {
+        return analysisSets.get(name);
+    }
 
-    //private double transition_transversion_bin2het(int bin) {
-    //    return (bin + 0.5) / N_TRANSITION_TRANVERSION_BINS;
-    //}
+    private ArrayList<VariantAnalysis> initializeAnalysisSet(final String setName) {
+        ArrayList<VariantAnalysis> analyses = new ArrayList<VariantAnalysis>();
+
+        //
+        // Add new analyzes here!
+        //
+        analyses.add(new VariantCounter());
+        analyses.add(new VariantDBCoverage("dbSNP"));
+        analyses.add(new TransitionTranversionAnalysis());
+        analyses.add(new PairwiseDistanceAnalysis());
+        analyses.add(new HardyWeinbergEquilibrium(badHWEThreshold));
+
+
+        if ( printVariants ) analyses.add(new VariantMatcher("dbSNP"));
+
+        for ( VariantAnalysis analysis : analyses ) {
+            analysis.initialize(this, openAnalysisOutputStream(setName, analysis));
+        }
+
+        return analyses;
+    }
+
+    /**
+     * Returns the filename of the analysis output file where output for an analysis with
+     * @param name
+     * @param params
+     * @return
+     */
+    public String getAnalysisFilename(final String name, final List<String> params) {
+        if ( analysisFilenameBase == null )
+            return null;
+        else
+            return analysisFilenameBase + Utils.join(".", Utils.cons(name, params));
+    }
+
+    public PrintStream openAnalysisOutputStream(final String setName, VariantAnalysis analysis) {
+        final String filename = getAnalysisFilename(setName + "." + analysis.getName(), analysis.getParams());
+        if ( filename == null )
+            return out;
+        else {
+            File file = new File(filename);
+            try {
+                return new PrintStream(new FileOutputStream(file));
+            } catch (FileNotFoundException e) {
+                throw new StingException("Couldn't open analysis output file " + filename, e);
+            }
+        }
+    }
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        nBasesCovered++;
-        
-        AllelicVariant dbsnp = (AllelicVariant)tracker.lookup("dbSNP", null);
+        // Iterate over each analysis, and update it
         AllelicVariant eval = (AllelicVariant)tracker.lookup("eval", null);
+        if ( eval != null && eval.getVariationConfidence() < minDiscoveryQ )
+            eval = null;
 
-        if ( printVariants && ( eval != null || dbsnp != null ) ) {
-            String matchFlag = "    ";
-            if ( eval != null && dbsnp != null ) matchFlag = "*** ";
-            if ( eval == null && dbsnp != null ) matchFlag = ">>> ";
-            if ( eval != null && dbsnp == null ) matchFlag = "<<< ";
+        updateAnalysisSet(ALL_SNPS, eval, tracker, ref, context);
 
-            System.out.printf("%sDBSNP: %s%n%sEVAL:%s%n",
-                    matchFlag, dbsnp,
-                    matchFlag, eval);
+        if ( eval instanceof SNPCallFromGenotypes ) {
+            SNPCallFromGenotypes call = (PooledEMSNPROD)eval;
+            int nVarGenotypes = call.nHetGenotypes() + call.nHomVarGenotypes();
+            //System.out.printf("%d variant genotypes at %s%n", nVarGenotypes, calls);
+            final String s = nVarGenotypes == 1 ? SINGLETON_SNPS : TWOHIT_SNPS;
+            updateAnalysisSet(s, eval, tracker, ref, context);
         }
-
-        if ( eval != null ) {
-            //System.out.printf("GREP ME%n");
-            if ( ! eval.isSNP() || eval.getVariationConfidence() < minDiscoveryQ )
-                System.out.printf("We have a problem at %s: %b %f%n", eval, eval.isSNP(), eval.getVariationConfidence());
-        }
-
-        if ( eval != null && eval.isSNP() && eval.getVariationConfidence() >= minDiscoveryQ ) {
-            //System.out.printf("%s has: %nDBSNP: %s%nEVAL:%s%n", context.getLocation(), dbsnp, eval);
-            //System.out.printf("N snps %d = %s%n", ++nSNPs, eval.getLocation());
-
-            updateTransitionTransversion(eval, ref, context);
-
-            if (lastVariant != null) updatePairwiseDistances(eval, lastVariant);
-            lastVariant = eval;
-            //updateHapMapRate(dbsnp, eval, ref, context);
-        }
-        updateVariantDBCoverage(dbsnp, eval, ref, context);
 
         return 1;
     }
 
-    private void updatePairwiseDistances(AllelicVariant eval, AllelicVariant lastVariant) {
-        GenomeLoc eL = eval.getLocation();
-        GenomeLoc lvL = lastVariant.getLocation();
-        if (eL.getContigIndex() == lvL.getContigIndex()) {
-            long d = eL.distance(lvL);
-            pairWiseDistances.add(d);
-            out.printf("# Pairwise-distance %d %s %s%n", d, eL, lvL);
+
+    public void updateAnalysisSet(final String analysisSetName, AllelicVariant eval,
+                                  RefMetaDataTracker tracker, char ref, LocusContext context) {
+        // Iterate over each analysis, and update it
+        for ( VariantAnalysis analysis : getAnalysisSet(analysisSetName) ) {
+            String s = analysis.update(eval, tracker, ref, context);
+            if ( s != null ) analysis.getPrintStream().println(s);
         }
-    }
-
-    private void updateTransitionTransversion(AllelicVariant dbsnp, char ref, LocusContext context) {
-        char refBase = dbsnp.getRefSnpFWD();
-        char altBase = dbsnp.getAltSnpFWD();
-        //System.out.printf("%c %c%n", refBase, altBase);
-        //int i = transition_transversion_bin(dbsnp.getHeterozygosity());
-        //System.out.printf("MAF = %f => %d%n", dbsnp.getMAF(), i);
-        //EnumMap<BaseUtils.BaseSubstitutionType, Integer> bin = transition_transversion_counts[i];
-
-        BaseUtils.BaseSubstitutionType subType = BaseUtils.SNPSubstitutionType(refBase, altBase);
-        Histogram<Integer> h = subType == BaseUtils.BaseSubstitutionType.TRANSITION ? transitions : transversions;
-        double het = dbsnp.getHeterozygosity();
-        h.setBin(het, h.getBin(het) + 1);
-        //int sit = bin.get(BaseUtils.BaseSubstitutionType.TRANSITION);
-        //int ver = bin.get(BaseUtils.BaseSubstitutionType.TRANSVERSION);
-        //System.out.printf("%s %.2f %s%n", subType, dbsnp.getHeterozygosity(), h.x2bin(logHet), dbsnp.toString());
-
-    }
-
-    private void updateVariantDBCoverage(AllelicVariant dbsnp, AllelicVariant eval, char ref, LocusContext context) {
-        // There are four cases here:
-        dbSNPStats.inc(dbsnp != null, eval != null);
     }
 
     // Given result of map function
@@ -143,54 +139,24 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     }
 
     public void onTraversalDone(Integer result) {
-        int nTransitions = 0;
-        int nTransversions = 0;
-
-        StringBuilder s = new StringBuilder();
-        for ( int i = 0; i < N_TRANSITION_TRANVERSION_BINS; i++ ) {
-            //double avHet = Math.pow(10, transitions.bin2x(i));
-            double avHet = transitions.bin2x(i);
-            if ( avHet > 0.5 ) break;
-
-            int sit = transitions.getBin(i);
-            int ver = transversions.getBin(i);
-            nTransitions += sit;
-            nTransversions += ver;
-            double ratio = (float)sit/ver;
-            s.append(String.format("%.2f %d %d %f%n", avHet, sit, ver, ratio));
+        for ( String analysisSetName : ALL_ANALYSIS_NAMES ) {
+            printAnalysisSet(analysisSetName);
         }
-        out.printf("# n bases covered: %d%n", nBasesCovered);
-        out.printf("# sites: %d%n", nSNPs);
-        out.printf("# variant rate: %.5f confident variants per base%n", nSNPs / (1.0 * nBasesCovered));
-        out.printf("# variant rate: 1 / %d confident variants per base%n", nBasesCovered / nSNPs);
-        out.printf("# transitions: %d%n", nTransitions);
-        out.printf("# transversions: %d%n", nTransversions);
-        out.printf("# ratio: %.2f%n", nTransitions / (1.0 * nTransversions));
+    }
 
-        // dbSNP stats
-        out.println(dbSNPStats.toSingleLineString("#"));
-        out.print(dbSNPStats.toMultiLineString("#"));
-
-        int[] pairCounts = new int[pairWiseBoundries.length];
-        Arrays.fill(pairCounts, 0);
-        for ( long dist : pairWiseDistances ) {
-            boolean done = false;
-            for ( int i = 0; i < pairWiseBoundries.length && ! done ; i++ ) {
-                int maxDist = pairWiseBoundries[i];
-                if ( dist < maxDist ) {
-                    pairCounts[i]++;
-                    done = true;
-                }
+    private void printAnalysisSet( final String analysisSetName ) {
+        Date now = new Date();
+        for ( VariantAnalysis analysis : getAnalysisSet(analysisSetName) ) {
+            PrintStream stream = analysis.getPrintStream(); // getAnalysisOutputStream(analysisSetName + "." + analysis.getName(), analysis.getParams());
+            stream.printf("%s%s%n", COMMENT_STRING, Utils.dupString('-', 78));
+            stream.printf("%sAnalysis set       %s%n", COMMENT_STRING, analysisSetName);
+            stream.printf("%sAnalysis name      %s%n", COMMENT_STRING, analysis.getName());
+            stream.printf("%sAnalysis params    %s%n", COMMENT_STRING, Utils.join(" ", analysis.getParams()));
+            stream.printf("%sAnalysis class     %s%n", COMMENT_STRING, analysis );
+            stream.printf("%sAnalysis time      %s%n", COMMENT_STRING, now );
+            for ( String line : analysis.done()) {
+                stream.printf("%s  %s%n", COMMENT_STRING, line);
             }
         }
-
-        out.printf("# snps counted for pairwise distance: %d%n", pairWiseDistances.size());
-        for ( int i = 0; i < pairWiseBoundries.length; i++ ) {
-            int maxDist = pairWiseBoundries[i];
-            int count = pairCounts[i];
-            out.printf("# snps within %d bp: %d%n", maxDist, count);
-        }
-
-        out.print(s);
     }
 }

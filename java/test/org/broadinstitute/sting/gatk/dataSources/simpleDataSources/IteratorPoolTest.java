@@ -11,6 +11,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.TabularROD;
+import org.broadinstitute.sting.gatk.refdata.RODIterator;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -56,7 +57,7 @@ public class IteratorPoolTest extends BaseTest {
     @Test
     public void testCreateSingleIterator() {
         IteratorPool iteratorPool = new IteratorPool(rod); 
-        ReferenceOrderedData.RODIterator iterator = (ReferenceOrderedData.RODIterator)iteratorPool.iterator( testSite1 );
+        RODIterator iterator = (RODIterator)iteratorPool.iterator( testSite1 );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -77,10 +78,10 @@ public class IteratorPoolTest extends BaseTest {
     @Test
     public void testCreateMultipleIterators() {
         IteratorPool iteratorPool = new IteratorPool(rod);
-        ReferenceOrderedData.RODIterator iterator1 = (ReferenceOrderedData.RODIterator)iteratorPool.iterator( testSite1 );
+        RODIterator iterator1 = (RODIterator)iteratorPool.iterator( testSite1 );
 
         // Create a new iterator at position 2.
-        ReferenceOrderedData.RODIterator iterator2 = iteratorPool.iterator( testSite2 );
+        RODIterator iterator2 = iteratorPool.iterator( testSite2 );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 2, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -127,7 +128,7 @@ public class IteratorPoolTest extends BaseTest {
     @Test
     public void testIteratorConservation() {
         IteratorPool iteratorPool = new IteratorPool(rod);
-        ReferenceOrderedData.RODIterator iterator = (ReferenceOrderedData.RODIterator)iteratorPool.iterator( testSite1 );
+        RODIterator iterator = (RODIterator)iteratorPool.iterator( testSite1 );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -162,7 +163,7 @@ public class IteratorPoolTest extends BaseTest {
     @Test
     public void testIteratorCreation() {
         IteratorPool iteratorPool = new IteratorPool(rod);
-        ReferenceOrderedData.RODIterator iterator = (ReferenceOrderedData.RODIterator)iteratorPool.iterator( testSite3 );
+        RODIterator iterator = (RODIterator)iteratorPool.iterator( testSite3 );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());

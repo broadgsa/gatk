@@ -55,13 +55,22 @@ def genotypes2allelefrequencies(ref, genotypes, nIndividuals = -1):
     nAltChroms = nChroms - nRefChroms
     p = float(nRefChroms) / nChroms
     q = float(nAltChroms) / nChroms
+
+    #print 'genotypes', genotypes
+    #print 'alleles', alleles
+    #print 'nChroms', nChroms
+    #print 'nCalledChroms', nCalledChroms
+    #print 'nMissingChroms', nMissingChroms
+    #print 'nRefChroms', nRefChroms
+    #print 'nAltChroms', nAltChroms
+    #print 'p, q', p, q
     
     assert p + q == 1
     
     return [p, q, n]
 
 class PicardSNP:
-    def __init__( self, loc, ref, polymorphism, heterozygosity, allelefrequencies, genotypes):
+    def __init__( self, loc, ref, polymorphism, heterozygosity, allelefrequencies, genotypes, sources):
         self.loc = loc
         self.ref = ref
         self.polymorphism = polymorphism
@@ -69,6 +78,7 @@ class PicardSNP:
         self.nIndividuals = allelefrequencies[2]
         self.allelefrequencies = allelefrequencies
         self.genotypes = genotypes
+        self.sources = sources
 
     def refGenotype(self):
         return self.ref + self.ref
@@ -92,7 +102,7 @@ class PicardSNP:
         return self.allelefrequencies[1]
         
     def countGenotype(self, genotype):
-        r = len(filter( lambda x: x == genotype, self.genotypes ))
+        r = len(filter( lambda x: sorted(x) == sorted(genotype), self.genotypes ))
         #print 'countGenotype', genotype, self.genotypes, r
         return r
 
@@ -105,7 +115,6 @@ class PicardSNP:
     def nHomVarGenotypes(self):
         return self.countGenotype(self.homVarGenotype()) 
 
-    
     def __str__(self):
         return '%s %s %s %s %s %s' % ( self.loc, self.ref, str(self.polymorphism), str(self.het()), str(self.allelefrequencies), str(self.genotypes))
         
@@ -132,7 +141,7 @@ def aggregatedGeliCalls2SNP( geliCallsAtSite, nIndividuals ):
     #print 'polymorphism', polymorphism
     genotype  = list(geliCallsAtSite[1][0][5])
     
-    return PicardSNP(loc, refBase, polymorphism, genotypes2heterozygosity(genotypes, nIndividuals), genotypes2allelefrequencies(refBase, genotypes, nIndividuals), genotypes)
+    return PicardSNP(loc, refBase, polymorphism, genotypes2heterozygosity(genotypes, nIndividuals), genotypes2allelefrequencies(refBase, genotypes, nIndividuals), genotypes, [])
 
     #return '%s   %s %s 0.002747 -411.622578 -420.661738 0.000000 9.039160 364.000000 %d 1 0' % (loc, genotype[0], genotype[1], len(geliCallsAtSite))
     

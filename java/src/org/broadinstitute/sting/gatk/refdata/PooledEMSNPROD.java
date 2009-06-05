@@ -22,7 +22,7 @@ import org.apache.log4j.Logger;
  * chr1:1104842 A N 0.000000 -84.816002 -84.816002 0.000000 0.000000 324.000000 162 0 0
  *
  */
-public class PooledEMSNPROD extends TabularROD implements AllelicVariant {
+public class PooledEMSNPROD extends TabularROD implements SNPCallFromGenotypes {
     public PooledEMSNPROD(final String name) {
         super(name);
     }
@@ -45,4 +45,11 @@ public class PooledEMSNPROD extends TabularROD implements AllelicVariant {
     public List<String> getGenotype() throws IllegalStateException { throw new IllegalStateException(); }
     public int getPloidy() throws IllegalStateException { return 2; }
     public boolean isBiallelic()   { return true; }
+
+    // SNPCallFromGenotypes interface
+    public int nIndividuals()      { return Integer.parseInt(this.get("EM_N")); }
+    public int nHomRefGenotypes()  { return Integer.parseInt(this.get("n_ref")); }
+    public int nHetGenotypes()     { return Integer.parseInt(this.get("n_het")); }
+    public int nHomVarGenotypes()  { return Integer.parseInt(this.get("n_hom")); }
+    public List<Genotype> getGenotypes() { return null; }
 }
