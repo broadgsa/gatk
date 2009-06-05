@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.Utils;
 import net.sf.samtools.*;
 import net.sf.picard.reference.ReferenceSequence;
 
@@ -108,9 +109,8 @@ public class ReplaceQuals extends ReadWalker<SAMRecord, SAMFileWriter> {
 
     public SAMFileWriter reduceInit() {
         if ( outputFilename != null ) { // ! outputBamFile.equals("") ) {
-            SAMFileWriterFactory fact = new SAMFileWriterFactory();
             SAMFileHeader header = this.getToolkit().getEngine().getSAMHeader();
-            return fact.makeBAMWriter(header, true, new File(outputFilename));
+            return Utils.createSAMFileWriterWithCompression(header, true, outputFilename, getToolkit().getBAMCompression());
         }
         else {
             return null;

@@ -149,9 +149,8 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
 
     public SAMFileWriter reduceInit() {
         if ( outputBamFile != null ) { // ! outputBamFile.equals("") ) {
-            SAMFileWriterFactory fact = new SAMFileWriterFactory();
             SAMFileHeader header = this.getToolkit().getEngine().getSAMHeader();
-            return fact.makeBAMWriter(header, true, new File(outputBamFile));
+            return Utils.createSAMFileWriterWithCompression(header, true, outputBamFile, getToolkit().getBAMCompression());
         }
         else {
             return null;

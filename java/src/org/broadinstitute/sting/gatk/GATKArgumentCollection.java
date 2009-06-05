@@ -113,6 +113,10 @@ public class GATKArgumentCollection {
     public Integer maximumReadSorts = null;
 
     @Element(required=false)
+    @Argument(fullName = "bam_compression", shortName = "compress", doc = "Compression level to use for writing BAM files", required = false)
+    public Integer BAMcompression = null;
+
+    @Element(required=false)
     @Argument(fullName = "filterZeroMappingQualityReads", shortName = "fmq0", doc = "If true, mapping quality zero reads will be filtered at the lowest GATK level.  Vastly improves performance at areas with abnormal depth due to mapping Q0 reads", required = false)
     public Boolean filterZeroMappingQualityReads = false;
 
@@ -243,6 +247,10 @@ public class GATKArgumentCollection {
         }
         if ((other.maximumReadSorts == null && this.maximumReadSorts != null) ||
             (other.maximumReadSorts != null && !other.maximumReadSorts.equals(this.maximumReadSorts))) {
+            return false;
+        }
+        if ((other.BAMcompression == null && this.BAMcompression != null) ||
+            (other.BAMcompression != null && !other.BAMcompression.equals(this.BAMcompression))) {
             return false;
         }
         if ((other.filterZeroMappingQualityReads == null && this.filterZeroMappingQualityReads != null) ||

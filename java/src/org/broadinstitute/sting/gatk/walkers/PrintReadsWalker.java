@@ -2,9 +2,9 @@ package org.broadinstitute.sting.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
@@ -22,9 +22,8 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
 
     public SAMFileWriter reduceInit() {
         if ( outputBamFile != null ) { // ! outputBamFile.equals("") ) {
-            SAMFileWriterFactory fact = new SAMFileWriterFactory();
             SAMFileHeader header = this.getToolkit().getEngine().getSAMHeader();
-            return fact.makeBAMWriter(header, true, new File(outputBamFile));
+            return Utils.createSAMFileWriterWithCompression(header, true, outputBamFile, getToolkit().getBAMCompression());
         }
         else {
             return null;

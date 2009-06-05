@@ -4,12 +4,12 @@ import java.io.File;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMRecord;
 
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.Utils;
 
 public class ReadFilterWalker extends ReadWalker<Integer,Integer> {
 	@Argument(fullName="output_file", shortName="O",doc="SAM or BAM file to write filtered reads into (will be overwritten if exists)",required=true ) public String output;
@@ -18,8 +18,8 @@ public class ReadFilterWalker extends ReadWalker<Integer,Integer> {
 	private SAMFileWriter writer = null;
 	
     public void initialize() {
-        SAMFileHeader header = getToolkit().getSamReader().getFileHeader();
-        writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(header, header.getSortOrder() != SAMFileHeader.SortOrder.unsorted, new File(output));
+        SAMFileHeader header = this.getToolkit().getEngine().getSAMHeader();
+        writer = Utils.createSAMFileWriterWithCompression(header, header.getSortOrder() != SAMFileHeader.SortOrder.unsorted, output, getToolkit().getBAMCompression());
     }
 
 	@Override

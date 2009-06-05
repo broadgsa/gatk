@@ -45,7 +45,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             throw new RuntimeException("LOD threshold cannot be a negative number");
 
         SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
-        writer = new SAMFileWriterFactory().makeSAMOrBAMWriter(header, false, new File(OUT));
+        writer = Utils.createSAMFileWriterWithCompression(header, false, OUT, getToolkit().getBAMCompression());
         if ( OUT_INDELS != null ) {
             try {
                 indelOutput = new FileWriter(new File(OUT_INDELS));

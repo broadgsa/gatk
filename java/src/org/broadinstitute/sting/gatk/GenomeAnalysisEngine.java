@@ -281,6 +281,17 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Default to 5 (based on research by Alec Wysoker)
+     *
+     * @return the BAM compression
+     */
+    public int getBAMCompression() {
+        return (argCollection.BAMcompression == null ||
+                argCollection.BAMcompression < 1     ||
+                argCollection.BAMcompression > 8) ? 5 : argCollection.BAMcompression;
+    }
+
+    /**
      * Convenience function that binds RODs using the old-style command line parser to the new style list for
      * a uniform processing.
      *

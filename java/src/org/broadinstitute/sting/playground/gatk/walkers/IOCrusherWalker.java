@@ -4,9 +4,9 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.Utils;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.picard.reference.ReferenceSequence;
 
@@ -48,11 +48,10 @@ public class IOCrusherWalker extends ReadWalker<SAMRecord, ArrayList<SAMFileWrit
      * 
      */
     public ArrayList<SAMFileWriter> reduceInit() {
-        SAMFileWriterFactory fact = new SAMFileWriterFactory();
         ArrayList<SAMFileWriter> outputs = new ArrayList<SAMFileWriter>(nWaysOut);
         for ( int i = 0; i < nWaysOut; i++ ) {
-            SAMFileHeader header = this.getToolkit().getSamReader().getFileHeader();
-            outputs.add(fact.makeBAMWriter(header, true, new File(outputBase + "." + i + ".bam")));
+            SAMFileHeader header = this.getToolkit().getEngine().getSAMHeader();
+            outputs.add(Utils.createSAMFileWriterWithCompression(header, true, outputBase + "." + i + ".bam", getToolkit().getBAMCompression()));
         }
         return outputs;
     }

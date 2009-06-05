@@ -3,6 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.duplicates.DupUtils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
@@ -11,7 +12,6 @@ import java.io.File;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMFileWriterFactory;
 import net.sf.samtools.SAMFileHeader;
 
 /**
@@ -49,9 +49,8 @@ public class CombineDuplicatesWalker extends DuplicateWalker<SAMRecord, SAMFileW
 
     public SAMFileWriter reduceInit() {
         if ( outputFilename != null ) {
-            SAMFileWriterFactory fact = new SAMFileWriterFactory();
             SAMFileHeader header = this.getToolkit().getEngine().getSAMHeader();
-            return fact.makeBAMWriter(header, true, new File(outputFilename));
+            return Utils.createSAMFileWriterWithCompression(header, true, outputFilename, getToolkit().getBAMCompression());
         }
         else {
             return null;

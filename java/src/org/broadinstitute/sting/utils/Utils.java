@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.utils;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.*;
 import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequenceFile;
 
@@ -43,6 +41,12 @@ public class Utils {
         //System.out.printf("********************************************************************************%n");
         logger.fatal(msg);
         throw new RuntimeException(msg);
+    }
+
+    public static SAMFileWriter createSAMFileWriterWithCompression(SAMFileHeader header, boolean presorted, String file, int compression) {
+        if (file.endsWith(".bam"))
+            return new SAMFileWriterFactory().makeBAMWriter(header, presorted, new File(file), compression);
+        return new SAMFileWriterFactory().makeSAMOrBAMWriter(header, presorted, new File(file));
     }
 
     /**
