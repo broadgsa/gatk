@@ -120,8 +120,14 @@ public class TraverseByLocusWindows extends TraversalEngine {
             TraversalStatistics.nRecords++;
             SAMRecord read = readIter.next();
 
-            // if there are no locations or we're past the last one or it's unmapped, then act on the read separately
-            if ( currentInterval == null || read.getReadUnmappedFlag() ) {
+            // apparently, unmapped reads can occur anywhere in the file!
+            if ( read.getReadUnmappedFlag() ) {
+                walker.nonIntervalReadAction(read);
+                continue;
+            }
+
+            // if there are no locations or we're past the last one, then act on the read separately
+            if ( currentInterval == null ) {
                 if ( nextLociToCarry.size() > 0 ) {
                     sum = carryWalkerOverInterval(walker, sum, nextLociToCarry.get(0));
                     for (int i=1; i < nextLociToCarry.size(); i++)
