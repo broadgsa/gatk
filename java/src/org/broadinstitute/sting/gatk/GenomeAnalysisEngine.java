@@ -41,6 +41,9 @@ public class GenomeAnalysisEngine {
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(GenomeAnalysisEngine.class);
 
+    /** the return value from our walker */
+    private Object walkerReturn = null;
+
     /**
      * our constructor, where all the work is done
      * <p/>
@@ -116,8 +119,8 @@ public class GenomeAnalysisEngine {
         if (locationsList != null)
             locs = GenomeLocSortedSet.createSetFromList(locationsList);
 
-        // excute the microscheduler
-        microScheduler.execute(my_walker, locs);
+        // excute the microscheduler, storing the results
+        walkerReturn = microScheduler.execute(my_walker, locs);
     }
 
 
@@ -151,8 +154,8 @@ public class GenomeAnalysisEngine {
         logger.info("Strictness is " + strictness);
         genericEngineSetup(strictness);
 
-
-        engine.traverse(my_walker);
+        // store the results of the walker run
+        walkerReturn = engine.traverse(my_walker);
 
     }
 
@@ -335,10 +338,18 @@ public class GenomeAnalysisEngine {
         return this.engine;
     }
 
-    /**
-     * Gets the collection of GATK main application arguments for enhanced walker validation.
-     */
+    /** Gets the collection of GATK main application arguments for enhanced walker validation. */
     public GATKArgumentCollection getArguments() {
         return this.argCollection;
     }
+
+    /**
+     * Get's the return value of the walker
+     *
+     * @return an Object representing the return value of the walker
+     */
+    public Object getWalkerReturn() {
+        return walkerReturn;
+    }
+
 }
