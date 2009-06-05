@@ -21,8 +21,9 @@ dbsnp = resources + 'dbsnp.rod.out'
 # Where are the application files required to run the recalibration
 gatk = resources + 'gatk/GenomeAnalysisTK.jar'
 logistic_regression_script = resources + 'logistic_regression.R'
+empirical_vs_reported_grapher = resources + 'plot_q_emp_stated_hst.R'
 
-import sys,os
+import glob,os,sys
 import LogisticRegressionByReadGroup
 
 def exit(msg,errorcode):
@@ -33,8 +34,69 @@ def check_input_file_available(filename,description):
     if not os.access(filename,os.R_OK):
         exit('Unable to access %s %s' % (description,filename),1)
 
+def graph_file(graph_script,graph_data):
+    'Graph the given data using the given script.  Leave the data in the output directory.'
+    check_input_file_available(graph_script,'%s R graphing script' % graph_script)
+    check_input_file_available(graph_data,'%s graphing data' % graph_data)
+    result = os.system(' '.join((R_exe,graph_script,graph_data)))
+    if result != 0:
+        exit('Unable to graph data: %s' % filename)    
+
+def recalibrate():
+    'Recalibrate the given bam file'
+    # generate the covariates
+    print 'generating covariates'
+    generate_covariates = ' '.join((gatk_base_cmdline,'-T CountCovariates','-I',bam,'-mqs 40','--OUTPUT_FILEROOT output/initial','--CREATE_TRAINING_DATA','--MIN_MAPPING_QUALITY 1'))
+    returncode = os.system(generate_covariates)
+    if returncode != 0:
+        exit('Unable to generate covariates',1)
+
+    # compute the logistic regression
+    print 'computing the logistic regression'
+    LogisticRegressionByReadGroup.compute_logistic_regression('output/initial.covariate_counts.csv','output/linear_regression_results.out',R_exe,logistic_regression_script)
+
+    # apply the logistic regression, writing the output data to calibrated_bam
+    print 'applying the correction to the reads'
+    apply_logistic_regression = ' '.join((gatk_base_cmdline,'-T LogisticRecalibration','-I',bam,'-logisticParams output/linear_regression_results.out','-outputBAM',calibrated_bam))
+    returncode = os.system(apply_logistic_regression)
+    if returncode != 0:
+        exit('Unable to apply logistic regression',1)
+
+    # index the calibrated bam
+    print 'indexing the calibrated bam'
+    index_calibrated_bamfile = ' '.join((samtools_exe,'index',calibrated_bam))
+    returncode = os.system(index_calibrated_bamfile)
+    if returncode != 0:
+        exit('Unable to index calibrated bamfile',1)
+
+    print 'Recalibration complete!  Calibrated bam is available here: ' + calibrated_bam    
+
+def evaluate():
+    'Evaluate recalibration results.'
+    print 'Evaluating recalibration results'
+    # regenerate the covariates
+    regenerate_covariates = ' '.join((gatk_base_cmdline,'-T CountCovariates','-I',calibrated_bam,'-mqs 40','--OUTPUT_FILEROOT output/recalibrated','--CREATE_TRAINING_DATA','--MIN_MAPPING_QUALITY 1'))
+    print 'regenerating covariates'
+    returncode = os.system(regenerate_covariates)
+    if returncode != 0:
+        exit('Unable to regenerate covariates',1)
+
+    print 'graphing initial results'
+    for filename in glob.glob('output/initial.*.empirical_v_reported_quality.csv'):
+        graph_file(empirical_vs_reported_grapher,filename)
+    print 'graphing final results'
+    for filename in glob.glob('output/recalibrated.*.empirical_v_reported_quality.csv'):
+        graph_file(empirical_vs_reported_grapher,filename)
+
 if len(sys.argv) < 3:
-    exit('Usage: python RecalQual.py <input bam file> <calibrated output bam file>',1)
+    exit('Usage: python RecalQual.py <input bam file> <calibrated output bam file> [{RECALIBRATE | EVALUATE | RECALIBRATE_AND_EVALUATE}]',1)
+
+operation = 'RECALIBRATE'
+if len(sys.argv) == 4:
+    operation = sys.argv[3]
+
+if operation not in ['RECALIBRATE','EVALUATE','RECALIBRATE_AND_EVALUATE']:
+    exit('Operation %s not recognized.  Operation must be RECALIBRATE, EVALUATE, or RECALIBRATE_AND_EVALUATE' % operation,1)
 
 # check that the input bam file exists, and that the bam is indexed.
 bam = sys.argv[1]
@@ -68,30 +130,9 @@ if not os.path.isdir('output'):
 
 # assemble the required program arguments
 gatk_base_cmdline = ' '.join((java_exe,'-ea','-jar',gatk,'-R',reference,'--DBSNP',dbsnp,'-l INFO'))
-generate_covariates         = ' '.join((gatk_base_cmdline,'-T CountCovariates','-I',bam,'-mqs 40','--OUTPUT_FILEROOT output/initial','--CREATE_TRAINING_DATA','--MIN_MAPPING_QUALITY 1'))
-apply_logistic_regression   = ' '.join((gatk_base_cmdline,'-T LogisticRecalibration','-I',bam,'-logisticParams output/linear_regression_results.out','-outputBAM',calibrated_bam))
-index_calibrated_bamfile    = ' '.join((samtools_exe,'index',calibrated_bam))
 
-# generate the covariates
-print 'generating covariates'
-returncode = os.system(generate_covariates)
-if returncode != 0:
-    exit('Unable to generate covariates',1)
+if operation.find('RECALIBRATE') != -1:
+    recalibrate()
 
-# compute the logistic regression
-print 'computing the logistic regression'
-LogisticRegressionByReadGroup.compute_logistic_regression('output/initial.covariate_counts.csv','output/linear_regression_results.out',R_exe,logistic_regression_script)
-
-# apply the logistic regression, writing the output data to calibrated_bam
-print 'applying the correction to the reads'
-returncode = os.system(apply_logistic_regression)
-if returncode != 0:
-    exit('Unable to apply logistic regression',1)
-
-# index the calibrated bam
-print 'indexing the calibrated bam'
-returncode = os.system(index_calibrated_bamfile)
-if returncode != 0:
-    exit('Unable to index calibrated bamfile',1)
-
-print 'Recalibration complete!  Calibrated bam is available here: ' + calibrated_bam
+if operation.find('EVALUATE') != -1:
+    evaluate()
