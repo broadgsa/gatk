@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -107,6 +108,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     }
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+        // No PL attribute?  Warn the user and keep going.
+        for(SAMReadGroupRecord readGroup: getToolkit().getEngine().getSAMHeader().getReadGroups()) {
+            if( readGroup.getAttribute("PL") == null )
+                Utils.warnUser(String.format("PL attribute for read group %s is unset; assuming all reads are illumina",readGroup.getReadGroupId()));
+        }
+
         rodDbSNP dbsnp = (rodDbSNP)tracker.lookup("dbSNP", null);
         if ( dbsnp == null || !dbsnp.isSNP() ) {
             List<SAMRecord> reads = context.getReads();
@@ -114,7 +121,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             for (int i =0; i < reads.size(); i++ ) {
                 SAMRecord read = reads.get(i);
                 SAMReadGroupRecord readGroup = read.getHeader().getReadGroup((String)read.getAttribute("RG"));
-                if ( "ILLUMINA".equalsIgnoreCase(readGroup.getAttribute("PL").toString()) &&
+                if ( readGroup.getAttribute("PL") == null || "ILLUMINA".equalsIgnoreCase(readGroup.getAttribute("PL").toString()) &&
                     !read.getReadNegativeStrandFlag() &&
                     (READ_GROUP.equals("none") || read.getAttribute("RG") != null && read.getAttribute("RG").equals(READ_GROUP)) &&
                     (read.getMappingQuality() >= MIN_MAPPING_QUALITY)) {
