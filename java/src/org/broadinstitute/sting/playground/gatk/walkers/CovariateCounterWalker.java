@@ -117,7 +117,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             for (int i =0; i < reads.size(); i++ ) {
                 SAMRecord read = reads.get(i);
                 SAMReadGroupRecord readGroup = read.getHeader().getReadGroup((String)read.getAttribute("RG"));
-                if ( readGroup.getAttribute("PL") == null || "ILLUMINA".equalsIgnoreCase(readGroup.getAttribute("PL").toString()) &&
+                if ( (readGroup.getAttribute("PL") == null || "ILLUMINA".equalsIgnoreCase(readGroup.getAttribute("PL").toString())) &&
                     !read.getReadNegativeStrandFlag() &&
                     (READ_GROUP.equals("none") || read.getAttribute("RG") != null && read.getAttribute("RG").equals(READ_GROUP)) &&
                     (read.getMappingQuality() >= MIN_MAPPING_QUALITY)) {
