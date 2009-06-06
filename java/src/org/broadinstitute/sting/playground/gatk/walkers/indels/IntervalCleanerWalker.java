@@ -58,6 +58,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             try {
                 indelOutput = new FileWriter(new File(OUT_INDELS));
             } catch (Exception e) {
+            	logger.warn("Failed to create output file "+ OUT_INDELS+". Indel output will be suppressed");
                 err.println(e.getMessage());
                 indelOutput = null;
             }
@@ -66,6 +67,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             try {
                 statsOutput = new FileWriter(new File(OUT_STATS));
             } catch (Exception e) {
+            	logger.warn("Failed to create output file "+ OUT_STATS+". Cleaning stats output will be suppressed");
                 err.println(e.getMessage());
                 statsOutput = null;
             }
@@ -83,7 +85,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     	try {    		
     		writer.addAlignment(read);
     	} catch (Exception e ) {
-    		logger.error("Failed to write read "+read.getReadName()+" "+read.getReferenceName() +":"+read.getAlignmentStart());
+    		logger.error("Failed to write read "+read.getReadName()+" aligned at "+read.getReferenceName() +":"+read.getAlignmentStart());
     		e.printStackTrace(out);
     		throw new StingException(e.getMessage());
     	}
@@ -129,41 +131,20 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         if ( OUT_INDELS != null ) {
             try {
                 indelOutput.close();
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            	logger.error("Failed to close "+OUT_INDELS+" gracefully. Data may be corrupt.");
+            }
         }
         if ( OUT_STATS != null ) {
             try {
                 statsOutput.close();
-            } catch (Exception e) {}
-        }
-    }
-
-    private static int numMismatches(SAMRecord r, String refSeq, int refIndex) {
-        int readIdx = 0;
-        int mismatches = 0;
-        String readSeq = r.getReadString();
-        Cigar c = r.getCigar();
-        for (int i = 0 ; i < c.numCigarElements() ; i++) {
-            CigarElement ce = c.getCigarElement(i);
-            switch ( ce.getOperator() ) {
-                case M:
-                    for (int j = 0 ; j < ce.getLength() ; j++, refIndex++, readIdx++ ) {
-                        if ( Character.toUpperCase(readSeq.charAt(readIdx)) != Character.toUpperCase(refSeq.charAt(refIndex)) )
-                            mismatches++;
-                    }
-                    break;
-                case I:
-                    readIdx += ce.getLength();
-                    break;
-                case D:
-                    refIndex += ce.getLength();
-                    break;
+            } catch (Exception e) {
+            	logger.error("Failed to close "+OUT_STATS+" gracefully. Data may be corrupt.");
             }
-
         }
-        return mismatches;
     }
 
+ 
     private static int mismatchQualitySum(AlignedRead aRead, String refSeq, int refIndex) {
         String readSeq = aRead.getReadString();
         String quals = aRead.getBaseQualityString();
@@ -370,7 +351,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                     AlignedRead aRead = altReads.get(indexPair.first);
                     aRead.finalizeUpdate();
                     aRead.getRead().setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + (int)improvement, 255));
-                    aRead.getRead().setAttribute("NM", numMismatches(aRead.getRead(), reference, aRead.getRead().getAlignmentStart()-(int)leftmostIndex));
+                    aRead.getRead().setAttribute("NM", AlignmentUtils.numMismatches(aRead.getRead(), reference, aRead.getRead().getAlignmentStart()-(int)leftmostIndex));
                 }
             }
         } else if ( statsOutput != null ) {
