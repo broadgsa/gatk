@@ -45,6 +45,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     private TreeSet<ComparableSAMRecord> readsToWrite;
 
     public void initialize() {
+    	
         if ( LOD_THRESHOLD < 0.0 )
             throw new RuntimeException("LOD threshold cannot be a negative number");
 
@@ -388,6 +389,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         return new Pair<Integer, Integer>(bestIndex, bestScore);
     }
 
+    
     private void updateRead(Cigar altCigar, int altPosOnRef, int myPosOnAlt, AlignedRead aRead, int leftmostIndex) {
         Cigar readCigar = new Cigar();
 
@@ -529,35 +531,88 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         return (originalMismatchColumns == 0 || cleanedMismatchColumns < originalMismatchColumns);
     }
 
+    /** Takes the alignment of the read sequence <code>readSeq</code> to the reference sequence <code>refSeq</code>
+     * starting at 0-based position <code>refIndex</code> on the <code>refSeq</code> and specified by its <code>cigar</code>.
+     * If the alignment has an indel, then attempts to move this indel left across a stretch of repetitive bases. For instance, if the original cigar
+     * specifies that (any) one AT  is deleted from a repeat sequence TATATATA, the output cigar will always mark the leftmost AT
+     * as deleted. If there is no indel in the original cigar, or the indel position is determined unambiguously (i.e. inserted/deleted sequence
+     * is not repeated), the original cigar is returned. 
+     * @param cigar structure of the original alignment
+     * @param refSeq reference sequence the read is aligned to
+     * @param readSeq read sequence
+     * @param refIndex 0-based alignment start position 
+     * @return a cigar, in which indel is guaranteed to be placed at the leftmost possible position across a repeat (if any) 
+     */
     private Cigar indelRealignment(Cigar cigar, String refSeq, String readSeq, int refIndex) {
+    	if ( cigar.numCigarElements() < 2 ) return cigar; // no indels, nothing to do
+    	
         CigarElement ce1 = cigar.getCigarElement(0);
         CigarElement ce2 = cigar.getCigarElement(1);
-        int difference = 0;
+  
+        int difference = 0; // we can move indel 'difference' bases left
+        final int indel_length = ce2.getLength();
 
-        if ( ce2.getOperator() == CigarOperator.D ) {
-            int indelIndex = refIndex + ce1.getLength();
-            String indelString = refSeq.substring(indelIndex, indelIndex+ce2.getLength());
-            int newIndex = indelIndex;
-            while ( newIndex > 0 ) {
-                String newIndelString = refSeq.substring(newIndex-1, newIndex+ce2.getLength()-1);
-                if ( !indelString.equals(newIndelString) )
-                    break;
-                newIndex--;
+        String indelString = null; // inserted or deleted sequence
+        int period = 0; // period of the inserted/deleted sequence
+        int indexOnRef = refIndex+ce1.getLength() ; // position of the indel on the REF (first deleted base or first base after insertion)
+        
+        if ( ce2.getOperator() == CigarOperator.D )
+            indelString = refSeq.substring(indexOnRef, indexOnRef+ce2.getLength()).toUpperCase(); // deleted bases
+        else if ( ce2.getOperator() == CigarOperator.I ) 
+            indelString = readSeq.substring(ce1.getLength(), ce1.getLength()+ce2.getLength()).toUpperCase(); // get the inserted bases
+
+        // now we have to check all WHOLE periods of the indel sequence:
+        //  for instance, if 
+        //   REF:   AGCTATATATAGCC
+        //   READ:  GCTAT***TAGCC
+        // the deleted sequence ATA does have period of 2, but deletion obviously can not be
+        // shifted left by 2 bases (length 3 does not contain whole number of periods of 2);
+        // however if 4 bases are deleted:
+        //   REF:   AGCTATATATAGCC
+        //   READ:  GCTA****TAGCC
+        // the length 4 is a multiple of the period of 2, and indeed deletion site can be moved left by 2 bases! 
+        //  We will always have to check the length of the indel sequence itself (trivial period), unless the smallest
+        // period is 1 (which means that indel sequence is a homo-nucleotide sequence so we can just step left
+        // one base at a time as long as we get a match)
+
+        // NOTE: we treat both insertions and deletions in the same way below: we always check if the indel sequence
+        // repeats itsels on the REF (never on the read!), even for insertions: if we see TA inserted and REF has, e.g., CATATA prior to the insertion
+        // position, we will move insertion left, to the position right after CA.
+
+        
+        while ( period < indel_length ) { // we will always get at least trivial period = indelStringLength
+        	
+        	period = BaseUtils.sequencePeriod(indelString, period+1);
+        	
+        	if ( indel_length % period != 0 ) continue; // period is not a multiple of indel sequence length
+
+        	int newIndex = indexOnRef;
+        	
+            while ( newIndex >= period ) { // let's see if there is a repeat, i.e. if we could also say that same bases at lower position are deleted
+            	
+            	// lets check if bases [newIndex-period,newIndex) immediately preceding the indel on the ref
+            	// are the same as the currently checked period of the inserted sequence:
+            	
+            	boolean match = true;
+            	
+            	for ( int testRefPos = newIndex - period, indelPos = 0 ; testRefPos < newIndex; testRefPos++, indelPos++) {
+            		if ( Character.toUpperCase(refSeq.charAt(testRefPos)) !=  indelString.charAt(indelPos) ) {
+            			match = false;
+            			break;
+            		}
+            	}
+            	if ( match )
+            		newIndex -= period; // yes, they are the same, we can move indel farther left by at least period bases, go check if we can do more...
+            	else break; // oops, no match, can not push indel farther left
             }
-            difference = indelIndex - newIndex;
-        } else if ( ce2.getOperator() == CigarOperator.I ) {
-            int indelIndex = ce1.getLength(); // this is the position of inserted bases ON THE READ
-            String indelString = readSeq.substring(indelIndex, indelIndex+ce2.getLength()); // get the inserted bases
-            int newIndex = indelIndex;
-            while ( newIndex > 0 ) {
-                String newIndelString = readSeq.substring(newIndex-1, newIndex+ce2.getLength()-1);
-                if ( !indelString.equals(newIndelString) )
-                    break;
-                newIndex--;
-            }
-            difference = indelIndex - newIndex;
+            
+            final int newDifference = indexOnRef - newIndex;
+            if ( newDifference > difference ) difference = newDifference; // deletion should be moved 'difference' bases left 
+            
+            if ( period == 1 ) break; // we do not have to check all periods of homonucleotide sequences, we already
+            	                                        // got maximum possible shift after checking period=1 above.
         }
-
+                        
         if ( difference > 0 ) {
             logger.debug("Realigning indel");
             Cigar newCigar = new Cigar();
