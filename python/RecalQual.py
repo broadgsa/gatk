@@ -40,7 +40,7 @@ def graph_file(graph_script,graph_data):
     check_input_file_available(graph_data,'%s graphing data' % graph_data)
     result = os.system(' '.join((R_exe,graph_script,graph_data)))
     if result != 0:
-        exit('Unable to graph data: %s' % filename)    
+        exit('Unable to graph data: %s' % graph_data,1)
 
 def recalibrate():
     'Recalibrate the given bam file'
