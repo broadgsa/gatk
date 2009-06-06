@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.playground.indels;
 
+import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
@@ -139,6 +140,26 @@ public class AlignmentUtils {
         return mismatches;
     }
 
+    /** Returns number of alignment blocks (continuous stretches of aligned bases) in the specified alignment.
+     * This method follows closely the SAMRecord::getAlignmentBlocks() implemented in samtools library, but
+     * it only counts blocks without actually allocating and filling the list of blocks themselves. Hence, this method is
+     * a much more efficient alternative to r.getAlignmentBlocks.size() in the situations when this number is all that is needed.
+     * Formally, this method simply returns the number of M elements in the cigar. 
+     * @param r alignment
+     * @return number of continuous alignment blocks (i.e. 'M' elements of the cigar; all indel and clipping elements are ignored).
+     */
+    public static int getNumAlignmentBlocks(final SAMRecord r) {
+    	int n = 0;
+        final Cigar cigar = r.getCigar();
+        if (cigar == null) return 0;
+ 
+        for (final CigarElement e : cigar.getCigarElements()) {
+        	if (e.getOperator() == CigarOperator.M ) n++;  
+        }
+
+    	return n;
+    }
+    
     
     /** Reads through the alignment cigar and returns all indels found in the alignment as a collection
      * of Indel objects.
@@ -243,8 +264,8 @@ public class AlignmentUtils {
             case D : c = 'D'; break;
             case I : c = 'I'; break;
             }
-            b.append(c);
             b.append(cig.getCigarElement(i).getLength());
+            b.append(c);
         }
         return b.toString();
     }

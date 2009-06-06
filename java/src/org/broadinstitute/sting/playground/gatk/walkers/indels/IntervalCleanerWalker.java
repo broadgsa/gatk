@@ -185,7 +185,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         // decide which reads potentially need to be cleaned
         for ( SAMRecord read : reads ) {
             // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
-            if ( read.getAlignmentBlocks().size() == 2 )
+            if ( AlignmentUtils.getNumAlignmentBlocks(read) == 2  )
                 read.setCigar(indelRealignment(read.getCigar(), reference, read.getReadString(), read.getAlignmentStart()-(int)leftmostIndex));
 
             AlignedRead aRead = new AlignedRead(read);
