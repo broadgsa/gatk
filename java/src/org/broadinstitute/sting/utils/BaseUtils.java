@@ -216,4 +216,62 @@ public class BaseUtils {
 
         return ((double) baseCounts[mostFrequentBaseIndex])/((double) sequence.length);
     }
+    
+    
+    /** Computes the smallest period >= minPeriod for the specified string. The period is defined as such p, 
+     * that for all  i = 0... seq.length-1,  seq[ i % p ] = seq[i] (or equivalently seq[i] = seq[i+p] for i=0...seq.length-1-p).
+     *  The sequence does <i>not</i> have to contain whole number of periods. For instance, "ACACACAC" has a period 
+     *  of 2 (it has a period of 4 as well), and so does
+     * "ACACA"; similarly, smallest periods of "CTCCTC", "CTCCT", and "CTCC" are all equal to 3. The "trivial" period is 
+     * the length of the string itself, and it will always be returned if no smaller period can be found in the specified period range
+     * or if specified minPeriod is greater than the sequence length.
+     *   
+     * @param seq
+     * @return
+     */
+    public static int sequencePeriod(String seq, int minPeriod) {
+    	int period = ( minPeriod > seq.length() ? seq.length() : minPeriod ); 
+    	// we assume that bases [0,period-1] repeat themselves and check this assumption
+    	// until we find correct period
+    	
+    	for ( int pos = period ; pos < seq.length() ; pos++ ) {
+    		
+    		int offset = pos % period; // we are currenlty 'offset' bases into the putative repeat of period 'period'
+    		                                                // if our current hypothesis holds, base[pos] must be the same as base[offset]
+    		
+    		if ( Character.toUpperCase( seq.charAt(pos) ) !=
+    				Character.toUpperCase( seq.charAt( offset ) )
+    			) {
+    			
+    			// period we have been trying so far does not work.
+    			// two possibilities:
+    			// A) offset = 0, i.e. current position pos must be start of the next repeat, but it is not;
+    			//      in this case only bases from start up to the current one, inclusive, may form a repeat, if at all;
+    		   //       so period is at least pos+1 (remember, pos is 0-based), then on the next loop re-entrance 
+    			//      pos will be autoincremented and we will be checking next base
+    			// B) offset != 0, i.e. the current base breaks the repeat, but maybe it starts a new one?
+    			//     hence we should first check if it matches the first base of the sequence, and to do that
+    			//     we set period to pos  (thus trying the hypothesis that bases from start up to the current one,
+    			//     non-inclusive are repeated hereafter), and decrement pos (this will re-test current base against the first base
+    			// on the next loop re-entrance after pos is autoincremented)
+    			if ( offset == 0 ) period = pos+1;
+    			else period = pos-- ;
+    		
+    		} 
+    	}
+    	return period;
+    }
+
 }
+
+/* code snippet for testing sequencePeriod():
+ * 
+ *     	String str = "CCTTG";
+    	int p = 0;
+    	System.out.print("Periods of " + str +" are:");
+    	while ( p < str.length() ) {
+    		p = sequencePeriod(str, p+1);
+        	System.out.print(" "+p);
+    	}
+    	System.out.println(); System.exit(1);
+*/
