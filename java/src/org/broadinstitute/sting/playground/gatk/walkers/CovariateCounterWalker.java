@@ -79,14 +79,14 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         }
 
         public String headerString() {
-            return ("pos, dinuc, qual, emp_qual, qual_diff, n, b");
+            return ("pos, rg, dinuc, qual, emp_qual, qual_diff, n, b");
         }
 
         public String toString() {
             double empiricalQual = -10 * Math.log10((double)B / N);
 
             if (empiricalQual > MAX_QUAL_SCORE) empiricalQual = MAX_QUAL_SCORE;
-            return String.format("%3d,%s,%3d,%5.1f,%5.1f,%6d,%6d", pos, dinuc, qual, empiricalQual, qual-empiricalQual, N, B);
+            return String.format("%3d,%s,%s,%3d,%5.1f,%5.1f,%6d,%6d", pos, readGroup, dinuc, qual, empiricalQual, qual-empiricalQual, N, B);
             //return String.format("%d\t%s\t%d\t%.1f\t%d\t%6d", pos, dinuc, qual, empiricalQual, N, B);
         }
     }
@@ -241,6 +241,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             }
 
             for ( RecalData datum: flattenData ) {
+                if( !datum.readGroup.equals(readGroup.getReadGroupId()) )
+                    continue;
                 ByCycle.get(datum.pos).inc(datum.N, datum.B);
                 ByCycleReportedQ.get(datum.pos).inc(datum.qual, datum.N);
                 All.inc(datum.N, datum.B);
@@ -277,6 +279,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             }
 
             for ( RecalData datum: flattenData ) {
+                if( !datum.readGroup.equals(readGroup.getReadGroupId()) )
+                    continue;
                 int dinucIndex = string2dinucIndex(datum.dinuc); //bases2dinucIndex(datum.dinuc.charAt(0), datum.dinuc.charAt(1), false);
                 ByCycle.get(dinucIndex).inc(datum.N, datum.B);
                 ByCycleReportedQ.get(dinucIndex).inc(datum.qual, datum.N);
@@ -314,6 +318,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             }
 
             for ( RecalData datum: flattenData ){
+                if( !datum.readGroup.equals(readGroup.getReadGroupId()) )
+                    continue;                
                 ByQ.get(datum.qual).inc(datum.N, datum.B);
                 ByQReportedQ.get(datum.qual).inc(datum.qual, datum.N);
                 All.inc(datum.N, datum.B);
