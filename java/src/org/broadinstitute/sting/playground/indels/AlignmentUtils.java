@@ -5,6 +5,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.playground.utils.CountedObject;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
 
@@ -17,15 +18,18 @@ import java.util.*;
  */
 public class AlignmentUtils {
 
-    /** Computes number of mismatches in the read alignment to the refence <code>ref</code>
-     * specified in the record <code>r</code>. Indels are completely <i>ignored</i> by this method:
-     * only base mismatches in the alignment segments where both sequences are present are counted.
-     * @param r
-     * @param refseq
-     * @return
+
+    /** Returns number of mismatches in the alignment <code>r</code> to the reference sequence
+     * <code>refSeq</code>. It is assumed that
+     * the alignment starts at (1-based) position r.getAlignmentStart() on the specified, and all single-base mismatches
+     * are counted in the alignment segments where both sequences are present. Insertions/deletions are skipped and do
+     * not contribute to the error count returned by this method. 
+     * @param r aligned read
+     * @param refSeq reference sequence
+     * @return number of single-base mismatches in the aligned segments (gaps on either of the sequences are skipped)
      */
-    public static int numMismatches(SAMRecord r, ReferenceSequence refseq) {
-        byte[] ref = refseq.getBases();
+    public static int numMismatches(SAMRecord r, ReferenceSequence refSeq) {
+        byte[] ref = refSeq.getBases();
         if ( r.getReadUnmappedFlag() ) return 1000000;
         int i_ref = r.getAlignmentStart()-1; // position on the ref
         int i_read = 0;                    // position on the read
@@ -86,31 +90,56 @@ public class AlignmentUtils {
     // IMPORTANT NOTE: ALTHOUGH THIS METHOD IS EXTREMELY SIMILAR TO THE ONE ABOVE, WE NEED
     // TWO SEPARATE IMPLEMENTATIONS IN ORDER TO PREVENT JAVA STRINGS FROM FORCING US TO
     // PERFORM EXPENSIVE ARRAY COPYING WHEN TRYING TO GET A BYTE ARRAY...
-    public static int numMismatches(SAMRecord r, String ref ) {
+    /** See {@link #numMismatches(SAMRecord, ReferenceSequence)}. This method implements same functionality
+     * for reference sequence specified as conventional java string (of bases). By default, it is assumed that
+     * the alignment starts at (1-based) position r.getAlignmentStart() on the reference <code>refSeq</code>.
+     * See {@link #numMismatches(SAMRecord, String, int)} if this is not the case.
+     */
+    public static int numMismatches(SAMRecord r, String refSeq ) {
         if ( r.getReadUnmappedFlag() ) return 1000000;
-        int i_ref = r.getAlignmentStart()-1; // position on the ref
-        int i_read = 0;                    // position on the read
-        int mm_count = 0; // number of mismatches
+        return numMismatches(r, refSeq, r.getAlignmentStart()-1);
+     }
+
+    /** Returns number of mismatches in the alignment <code>r</code> to the reference sequence
+     * <code>refSeq</code> assuming the alignment starts at (ZERO-based) position <code>refIndex</code> on the
+     * specified reference sequence; in other words, <code>refIndex</code> is used in place of alignment's own
+     * getAlignmentStart() coordinate and the latter is never used. However, the structure of the alignment <code>r</code>
+     * (i.e. it's cigar string with all the insertions/deletions it may specify) is fully respected.
+     * 
+     * @param r alignment
+     * @param refSeq chunk of reference sequence that subsumes the alignment completely (if alignment runs out of 
+     *                  the reference string, IndexOutOfBound exception will be thrown at runtime).
+     * @param refIndex zero-based position, at which the alignment starts on the specified reference string. 
+     * @return
+     */
+    public static int numMismatches(SAMRecord r, String refSeq, int refIndex) {
+        int readIdx = 0;
+        int mismatches = 0;
+        String readSeq = r.getReadString();
         Cigar c = r.getCigar();
-        for ( int k = 0 ; k < c.numCigarElements() ; k++ ) {
-            CigarElement ce = c.getCigarElement(k);
-            switch( ce.getOperator() ) {
+        for (int i = 0 ; i < c.numCigarElements() ; i++) {
+            CigarElement ce = c.getCigarElement(i);
+            switch ( ce.getOperator() ) {
                 case M:
-                    for ( int l = 0 ; l < ce.getLength() ; l++, i_ref++, i_read++ ) {
-                        if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) == 'N' ) continue; // do not count N's ?
-                        if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) !=
-                             Character.toUpperCase(ref.charAt(i_ref)) ) mm_count++;
+                    for (int j = 0 ; j < ce.getLength() ; j++, refIndex++, readIdx++ ) {
+                        if ( Character.toUpperCase(readSeq.charAt(readIdx)) != Character.toUpperCase(refSeq.charAt(refIndex)) )
+                            mismatches++;
                     }
                     break;
-                case I: i_read += ce.getLength(); break;
-                case D: i_ref += ce.getLength(); break;
-                default: throw new RuntimeException("Unrecognized cigar element");
+                case I:
+                    readIdx += ce.getLength();
+                    break;
+                case D:
+                    refIndex += ce.getLength();
+                    break;
+                default: throw new StingException("Only M,I,D cigar elements are currently supported");
             }
 
         }
-        return mm_count;
+        return mismatches;
     }
 
+    
     /** Reads through the alignment cigar and returns all indels found in the alignment as a collection
      * of Indel objects.
      * @param c
