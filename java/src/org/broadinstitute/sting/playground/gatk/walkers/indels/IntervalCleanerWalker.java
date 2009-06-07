@@ -185,7 +185,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         for ( SAMRecord read : reads ) {
             // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
             if ( AlignmentUtils.getNumAlignmentBlocks(read) == 2  )
-                read.setCigar(indelRealignment(read.getCigar(), reference, read.getReadString(), read.getAlignmentStart()-(int)leftmostIndex, false));
+                read.setCigar(indelRealignment(read.getCigar(), reference, read.getReadString(), read.getAlignmentStart()-(int)leftmostIndex, 0));
 
             AlignedRead aRead = new AlignedRead(read);
             int mismatchScore = mismatchQualitySum(aRead, reference, read.getAlignmentStart()-(int)leftmostIndex);
@@ -287,7 +287,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         double improvement = (bestConsensus == null ? -1 : ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0);
         if ( improvement >= LOD_THRESHOLD ) {
 
-            bestConsensus.cigar = indelRealignment(bestConsensus.cigar, reference, bestConsensus.str, bestConsensus.positionOnReference, true);
+            bestConsensus.cigar = indelRealignment(bestConsensus.cigar, reference, bestConsensus.str, bestConsensus.positionOnReference, bestConsensus.positionOnReference);
 
            // clean the appropriate reads
             for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes ) {
@@ -527,7 +527,13 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
     /** Takes the alignment of the read sequence <code>readSeq</code> to the reference sequence <code>refSeq</code>
      * starting at 0-based position <code>refIndex</code> on the <code>refSeq</code> and specified by its <code>cigar</code>.
-     * If the alignment has an indel, then attempts to move this indel left across a stretch of repetitive bases. For instance, if the original cigar
+     * The last argument <code>readIndex</code> specifies 0-based position on the read where the alignment described by the 
+     * <code>cigar</code> starts. Usually cigars specify alignments of the whole read to the ref, so that readIndex is normally 0.
+     * Use non-zero readIndex only when the alignment cigar represents alignment of a part of the read. The refIndex in this case
+     * should be the position where the alignment of that part of the read starts at. In other words, both refIndex and readIndex are
+     * always the positions where the cigar starts on the ref and on the read, respectively.
+     *
+     * If the alignment has an indel, then this method attempts moving this indel left across a stretch of repetitive bases. For instance, if the original cigar
      * specifies that (any) one AT  is deleted from a repeat sequence TATATATA, the output cigar will always mark the leftmost AT
      * as deleted. If there is no indel in the original cigar, or the indel position is determined unambiguously (i.e. inserted/deleted sequence
      * is not repeated), the original cigar is returned. 
@@ -537,7 +543,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
      * @param refIndex 0-based alignment start position 
      * @return a cigar, in which indel is guaranteed to be placed at the leftmost possible position across a repeat (if any) 
      */
-    private Cigar indelRealignment(Cigar cigar, String refSeq, String readSeq, int refIndex, boolean readIsConsensusSequence) {
+    private Cigar indelRealignment(Cigar cigar, String refSeq, String readSeq, int refIndex, int readIndex) {
         if ( cigar.numCigarElements() < 2 ) return cigar; // no indels, nothing to do
         
         CigarElement ce1 = cigar.getCigarElement(0);
@@ -548,13 +554,13 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         String indelString = null; // inserted or deleted sequence
         int period = 0; // period of the inserted/deleted sequence
-        int indexOnRef = refIndex+ce1.getLength() ; // position of the indel on the REF (first deleted base or first base after insertion)
-        
+        int indelIndexOnRef = refIndex+ce1.getLength() ; // position of the indel on the REF (first deleted base or first base after insertion)
+        int indelIndexOnRead = readIndex+ce1.getLength(); // position of the indel on the READ (first insterted base, of first base after deletion)
+
         if ( ce2.getOperator() == CigarOperator.D )
-            indelString = refSeq.substring(indexOnRef, indexOnRef+ce2.getLength()).toUpperCase(); // deleted bases
+            indelString = refSeq.substring(indelIndexOnRef, indelIndexOnRef+ce2.getLength()).toUpperCase(); // deleted bases
         else if ( ce2.getOperator() == CigarOperator.I ) {
-            int start = ce1.getLength() + (readIsConsensusSequence ? refIndex : 0);
-            indelString = readSeq.substring(start, start+ce2.getLength()).toUpperCase(); // get the inserted bases
+            indelString = readSeq.substring(indelIndexOnRead, indelIndexOnRead+ce2.getLength()).toUpperCase(); // get the inserted bases
         }
 
         // now we have to check all WHOLE periods of the indel sequence:
@@ -573,16 +579,17 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         // NOTE: we treat both insertions and deletions in the same way below: we always check if the indel sequence
         // repeats itsels on the REF (never on the read!), even for insertions: if we see TA inserted and REF has, e.g., CATATA prior to the insertion
-        // position, we will move insertion left, to the position right after CA.
+        // position, we will move insertion left, to the position right after CA. This way, while moving the indel across the repeat
+        // on the ref, we can theoretically move it across a non-repeat on the read if the latter has a mismtach.
 
         
         while ( period < indel_length ) { // we will always get at least trivial period = indelStringLength
                 
                 period = BaseUtils.sequencePeriod(indelString, period+1);
 
-                if ( indel_length % period != 0 ) continue; // period is not a multiple of indel sequence length
+                if ( indel_length % period != 0 ) continue; // if indel sequence length is not a multiple of the period, it's not gonna work
 
-                int newIndex = indexOnRef;
+                int newIndex = indelIndexOnRef;
                 
                 while ( newIndex >= period ) { // let's see if there is a repeat, i.e. if we could also say that same bases at lower position are deleted
                 
@@ -602,7 +609,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                     else break; // oops, no match, can not push indel farther left
                 }
             
-                final int newDifference = indexOnRef - newIndex;
+                final int newDifference = indelIndexOnRef - newIndex;
                 if ( newDifference > difference ) difference = newDifference; // deletion should be moved 'difference' bases left 
             
                 if ( period == 1 ) break; // we do not have to check all periods of homonucleotide sequences, we already
@@ -620,7 +627,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             newCigar.add(new CigarElement(cigar.getCigarElement(2).getLength()+difference, CigarOperator.M));
             //            System.out.println("  FROM:\n"+AlignmentUtils.alignmentToString(cigar,readSeq,refSeq,refIndex));
             //            if ( ce2.getLength() >=2 ) 
-            //                System.out.println("  REALIGNED TO:\n"+AlignmentUtils.alignmentToString(newCigar,readSeq,refSeq,refIndex,(readIsConsensusSequence?refIndex:0))+"\n");
+            //                System.out.println("  REALIGNED TO:\n"+AlignmentUtils.alignmentToString(newCigar,readSeq,refSeq,refIndex,readIndex)+"\n");
 
             logger.debug("Realigning indel: " + cigarToString(cigar) + " to " + cigarToString(newCigar));
             cigar = newCigar;
