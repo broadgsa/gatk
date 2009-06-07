@@ -184,7 +184,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         // decide which reads potentially need to be cleaned
         for ( SAMRecord read : reads ) {
             // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
-            if ( AlignmentUtils.getNumAlignmentBlocks(read) == 2  )
+            int numBlocks = AlignmentUtils.getNumAlignmentBlocks(read);
+            if ( numBlocks == 2 )
                 read.setCigar(indelRealignment(read.getCigar(), reference, read.getReadString(), read.getAlignmentStart()-(int)leftmostIndex, 0));
 
             AlignedRead aRead = new AlignedRead(read);
@@ -196,6 +197,12 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 altAlignmentsToTest.add(true);
                 totalMismatchSum += mismatchScore;
                 aRead.setMismatchScoreToReference(mismatchScore);
+            }
+            // otherwise, if it has an indel, let's see if that's the best consensus
+            else if ( numBlocks == 2 ) {
+                aRead.doNotRealign();
+                altReads.add(aRead);
+                altAlignmentsToTest.add(true);
             }
             // otherwise, we can emit it as is
             else {
@@ -211,19 +218,27 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
                 // do a pairwise alignment against the reference
                 AlignedRead aRead = altReads.get(index);
-                SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getReadString());
-                int refIdx = swConsensus.getAlignmentStart2wrt1();
-                if ( refIdx < 0 )
-                    continue;
+                int indexOnRef;
+                Cigar c;
+                if ( aRead.isRealignable() ) {
+                    SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getReadString());
+                    indexOnRef = swConsensus.getAlignmentStart2wrt1();
+                    c = swConsensus.getCigar();
+                } else {
+                    indexOnRef = aRead.getAlignmentStart() - (int)leftmostIndex;
+                    c = aRead.getCigar();
+                }
+                if ( indexOnRef < 0 )
+                     continue;
 
                 // create the new consensus
                 StringBuffer sb = new StringBuffer();
-                sb.append(reference.substring(0, refIdx));
-                Cigar c = swConsensus.getCigar();
+                sb.append(reference.substring(0, indexOnRef));
                 logger.debug("CIGAR = " + cigarToString(c));
 
                 int indelCount = 0;
                 int altIdx = 0;
+                int refIdx = indexOnRef;
                 boolean ok_flag = true;
                 for ( int i = 0 ; i < c.numCigarElements() ; i++ ) {
                     CigarElement ce = c.getCigarElement(i);
@@ -255,9 +270,11 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 String altConsensus =  sb.toString();
 
                 // for each imperfect match to the reference, score it against this alternative
-                Consensus consensus = new Consensus(altConsensus, c, swConsensus.getAlignmentStart2wrt1());
+                Consensus consensus = new Consensus(altConsensus, c, indexOnRef);
                 for ( int j = 0; j < altReads.size(); j++ ) {
                     AlignedRead toTest = altReads.get(j);
+                    if ( !toTest.isRealignable() )
+                        continue;
                     Pair<Integer, Integer> altAlignment = findBestOffset(altConsensus, toTest);
 
                     // the mismatch score is the min of its alignment vs. the reference and vs. the alternate
@@ -289,7 +306,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
             bestConsensus.cigar = indelRealignment(bestConsensus.cigar, reference, bestConsensus.str, bestConsensus.positionOnReference, bestConsensus.positionOnReference);
 
-           // clean the appropriate reads
+           // start cleaning the appropriate reads
             for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes ) {
                 AlignedRead aRead = altReads.get(indexPair.first);
                 updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.second, aRead, (int)leftmostIndex);
@@ -344,7 +361,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 // the mapping quality score is improved by the LOD difference in mismatching
                 // bases between the reference and alternate consensus
 
-                // clean the appropriate reads
+                // finish cleaning the appropriate reads
                 for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes ) {
                     AlignedRead aRead = altReads.get(indexPair.first);
                     aRead.finalizeUpdate();
@@ -642,9 +659,13 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         private int newStart = -1;
         private int mismatchScoreToReference;
 
+        // used for perfectly matching reads with indels which we want to try as the consensus
+        private boolean doNotRealign;
+
         public AlignedRead(SAMRecord read) {
             this.read = read;
             mismatchScoreToReference = 0;
+            doNotRealign = false;
         }
 
         public SAMRecord getRead() {
@@ -661,6 +682,14 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         public Cigar getCigar() {
             return (newCigar != null ? newCigar : read.getCigar());
+        }
+
+        public void doNotRealign() {
+            doNotRealign = true;
+        }
+
+        public boolean isRealignable() {
+            return !doNotRealign;
         }
 
         // tentatively sets the new Cigar, but it needs to be confirmed later
