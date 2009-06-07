@@ -187,7 +187,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         for ( SAMRecord read : reads ) {
             // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
             if ( AlignmentUtils.getNumAlignmentBlocks(read) == 2  )
-                read.setCigar(indelRealignment(read.getCigar(), reference, read.getReadString(), read.getAlignmentStart()-(int)leftmostIndex));
+                read.setCigar(indelRealignment(read.getCigar(), reference, read.getReadString(), read.getAlignmentStart()-(int)leftmostIndex, false));
 
             AlignedRead aRead = new AlignedRead(read);
             int mismatchScore = mismatchQualitySum(aRead, reference, read.getAlignmentStart()-(int)leftmostIndex);
@@ -289,8 +289,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         double improvement = (bestConsensus == null ? -1 : ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0);
         if ( improvement >= LOD_THRESHOLD ) {
 
-            bestConsensus.cigar = indelRealignment(bestConsensus.cigar, reference, bestConsensus.str, bestConsensus.positionOnReference);
-            logger.debug("Realigned CIGAR = " + cigarToString(bestConsensus.cigar));
+            bestConsensus.cigar = indelRealignment(bestConsensus.cigar, reference, bestConsensus.str, bestConsensus.positionOnReference, true);
 
            // clean the appropriate reads
             for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes ) {
@@ -301,14 +300,14 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 if ( statsOutput != null ) {
                     try {
                         statsOutput.write(interval.toString());
-                        statsOutput.write("\tFAIL (bad indel)\t"); // if improvement > LOD_THRESHOLD *BUT* entropy is not reduced (???)
+                        statsOutput.write("\tFAIL (bad indel)\t"); // if improvement > LOD_THRESHOLD *BUT* entropy is not reduced (SNPs still exist)
                         statsOutput.write(Double.toString(improvement));
                         statsOutput.write("\n");
                         statsOutput.flush();
                     } catch (Exception e) {}
                 }
             } else {
-                logger.debug("CLEAN: " + bestConsensus.str );
+                logger.debug("CLEAN: " + cigarToString(bestConsensus.cigar) + " " + bestConsensus.str );
                 if ( indelOutput != null && bestConsensus.cigar.numCigarElements() > 1 ) {
                     // NOTE: indels are printed out in the format specified for the low-coverage pilot1
                     //  indel calls (tab-delimited): chr position size type sequence
@@ -498,9 +497,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 switch ( ce.getOperator() ) {
                     case M:
                         for (int k = 0 ; k < ce.getLength() ; k++, refIdx++, altIdx++ ) {
-                            if ( refIdx >= reference.length() )
-                                cleanedMismatchBases[refIdx] += MAX_QUAL;
-                            else if ( Character.toUpperCase(readStr.charAt(altIdx)) != Character.toUpperCase(reference.charAt(refIdx)) )
+                            if ( Character.toUpperCase(readStr.charAt(altIdx)) != Character.toUpperCase(reference.charAt(refIdx)) )
                                 cleanedMismatchBases[refIdx] += (int)qualStr.charAt(altIdx) - 33;
                         }
                         break;
@@ -526,7 +523,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
                 
         logger.debug("Original mismatch columns = " + originalMismatchColumns + "; cleaned mismatch columns = " + cleanedMismatchColumns);
-        //out.println("**** Original mismatch columns = " + originalMismatchColumns + "; cleaned mismatch columns = " + cleanedMismatchColumns);
 
         return (originalMismatchColumns == 0 || cleanedMismatchColumns < originalMismatchColumns);
     }
@@ -543,7 +539,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
      * @param refIndex 0-based alignment start position 
      * @return a cigar, in which indel is guaranteed to be placed at the leftmost possible position across a repeat (if any) 
      */
-    private Cigar indelRealignment(Cigar cigar, String refSeq, String readSeq, int refIndex) {
+    private Cigar indelRealignment(Cigar cigar, String refSeq, String readSeq, int refIndex, boolean readIsConsensusSequence) {
     	if ( cigar.numCigarElements() < 2 ) return cigar; // no indels, nothing to do
     	
         CigarElement ce1 = cigar.getCigarElement(0);
@@ -558,9 +554,10 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         
         if ( ce2.getOperator() == CigarOperator.D )
             indelString = refSeq.substring(indexOnRef, indexOnRef+ce2.getLength()).toUpperCase(); // deleted bases
-        else if ( ce2.getOperator() == CigarOperator.I ) 
-            indelString = readSeq.substring(ce1.getLength(), ce1.getLength()+ce2.getLength()).toUpperCase(); // get the inserted bases
-
+        else if ( ce2.getOperator() == CigarOperator.I ) {
+            int start = ce1.getLength() + (readIsConsensusSequence ? refIndex : 0);
+            indelString = readSeq.substring(start, start+ce2.getLength()).toUpperCase(); // get the inserted bases
+        }
         // now we have to check all WHOLE periods of the indel sequence:
         //  for instance, if 
         //   REF:   AGCTATATATAGCC
@@ -614,12 +611,12 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
                         
         if ( difference > 0 ) {
-            logger.debug("Realigning indel");
             Cigar newCigar = new Cigar();
             newCigar.add(new CigarElement(ce1.getLength()-difference, CigarOperator.M));
             newCigar.add(ce2);
             newCigar.add(new CigarElement(cigar.getCigarElement(2).getLength()+difference, CigarOperator.M));
-            return newCigar;
+            logger.debug("Realigning indel: " + cigarToString(cigar) + " to " + cigarToString(newCigar));
+            cigar = newCigar;
         }
         return cigar;
     }
@@ -807,95 +804,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         reads.add(r7);
         reads.add(r8);
         clean(reads, reference, new GenomeLoc(0,0));
-    }
-
-    private void bruteForceClean(List<SAMRecord> reads, String reference, long leftmostIndex) {
-
-        ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();
-        ArrayList<AlignedRead> altReads = new ArrayList<AlignedRead>();
-        int totalMismatchSum = 0;
-
-        // decide which reads potentially need to be cleaned
-        for ( SAMRecord read : reads ) {
-            AlignedRead aRead = new AlignedRead(read);
-            int mismatchScore = mismatchQualitySum(aRead, reference, read.getAlignmentStart()-(int)leftmostIndex);
-
-            // if this doesn't match perfectly to the reference, let's try to clean it
-            if ( mismatchScore > 0 ) {
-                altReads.add(aRead);
-                totalMismatchSum += mismatchScore;
-                aRead.setMismatchScoreToReference(mismatchScore);
-            }
-            // otherwise, we can emit it as is
-            else {
-                refReads.add(read);
-            }
-        }
-
-        Consensus bestConsensus = null;
-
-        // for each alternative consensus to test, align it to the reference and create an alternative consensus
-        for ( int indelSize = 1; indelSize <= 5; indelSize++ ) {
-            for ( int index = 1; index < reference.length(); index++ ) {
-                for ( int inOrDel = 0; inOrDel < 2; inOrDel++ ) {
-
-                    // create the new consensus
-                    Cigar c = new Cigar();
-                    c.add(new CigarElement(index, CigarOperator.M));
-                    StringBuffer sb = new StringBuffer();
-                    sb.append(reference.substring(0, index));
-                    if ( inOrDel == 0 ) {
-                        c.add(new CigarElement(indelSize, CigarOperator.D));
-                        c.add(new CigarElement(reference.length()-index-indelSize, CigarOperator.M));
-                        if ( reference.length() > index+indelSize )
-                            sb.append(reference.substring(index+indelSize));
-                    } else {
-                        c.add(new CigarElement(indelSize, CigarOperator.I));
-                        c.add(new CigarElement(reference.length()-index+indelSize, CigarOperator.M));
-                        for ( int i = 0; i < indelSize; i++ )
-                            sb.append("A");
-                        sb.append(reference.substring(index));
-                    }
-                    String altConsensus =  sb.toString();
-
-                    // for each imperfect match to the reference, score it against this alternative
-                    Consensus consensus = new Consensus(altConsensus, c, 0);
-                    for ( int j = 0; j < altReads.size(); j++ ) {
-                        AlignedRead toTest = altReads.get(j);
-                        Pair<Integer, Integer> altAlignment = findBestOffset(altConsensus, toTest);
-
-                        // the mismatch score is the min of its alignment vs. the reference and vs. the alternate
-                        int myScore = altAlignment.second;
-                        if ( myScore >= toTest.getMismatchScoreToReference() )
-                            myScore = toTest.getMismatchScoreToReference();
-                        // keep track of reads that align better to the alternate consensus
-                        else
-                            consensus.readIndexes.add(new Pair<Integer, Integer>(j, altAlignment.first));
-
-                        consensus.mismatchSum += myScore;
-                    }
-                    if ( bestConsensus == null || bestConsensus.mismatchSum > consensus.mismatchSum) {
-                        bestConsensus = consensus;
-                        logger.debug(altConsensus +  " " + consensus.mismatchSum);
-                    }
-                }
-            }
-        }
-
-        // if the best alternate consensus has a smaller sum of quality score mismatches, then clean!
-        if ( bestConsensus != null && ((double)(totalMismatchSum - bestConsensus.mismatchSum))/10.0 >= LOD_THRESHOLD ) {
-            logger.debug("CLEAN: " + bestConsensus.str);
-
-            // clean the appropriate reads
-            for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes )
-                updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.second, altReads.get(indexPair.first), (int)leftmostIndex);
-        }
-
-        // write them out
-        for ( SAMRecord rec : refReads )
-            readsToWrite.add(new ComparableSAMRecord(rec));
-        for ( AlignedRead aRec : altReads )
-            readsToWrite.add(new ComparableSAMRecord(aRec.getRead()));
     }
 
     public static String cigarToString(Cigar cig) {
