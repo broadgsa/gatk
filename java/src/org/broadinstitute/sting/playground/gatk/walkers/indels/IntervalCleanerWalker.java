@@ -1,4 +1,3 @@
-
 package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
 import org.broadinstitute.sting.utils.*;
@@ -10,7 +9,6 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.playground.indels.*;
 
 import net.sf.samtools.*;
-
 import java.util.*;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -45,7 +43,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     private TreeSet<ComparableSAMRecord> readsToWrite;
 
     public void initialize() {
-    	
+
         if ( LOD_THRESHOLD < 0.0 )
             throw new RuntimeException("LOD threshold cannot be a negative number");
 
@@ -59,7 +57,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             try {
                 indelOutput = new FileWriter(new File(OUT_INDELS));
             } catch (Exception e) {
-            	logger.warn("Failed to create output file "+ OUT_INDELS+". Indel output will be suppressed");
+                logger.warn("Failed to create output file "+ OUT_INDELS+". Indel output will be suppressed");
                 err.println(e.getMessage());
                 indelOutput = null;
             }
@@ -68,7 +66,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             try {
                 statsOutput = new FileWriter(new File(OUT_STATS));
             } catch (Exception e) {
-            	logger.warn("Failed to create output file "+ OUT_STATS+". Cleaning stats output will be suppressed");
+                logger.warn("Failed to create output file "+ OUT_STATS+". Cleaning stats output will be suppressed");
                 err.println(e.getMessage());
                 statsOutput = null;
             }
@@ -83,13 +81,13 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
     // What do we do with the reads that are not part of our intervals?
     public void nonIntervalReadAction(SAMRecord read) {
-    	try {    		
-    		writer.addAlignment(read);
-    	} catch (Exception e ) {
-    		logger.error("Failed to write read "+read.getReadName()+" aligned at "+read.getReferenceName() +":"+read.getAlignmentStart());
-    		e.printStackTrace(out);
-    		throw new StingException(e.getMessage());
-    	}
+        try {                   
+                writer.addAlignment(read);
+        } catch (Exception e ) {
+                logger.error("Failed to write read "+read.getReadName()+" aligned at "+read.getReferenceName() +":"+read.getAlignmentStart());
+                e.printStackTrace(out);
+                throw new StingException(e.getMessage());
+        }
      }
 
     public Integer map(RefMetaDataTracker tracker, String ref, LocusContext context) {
@@ -133,14 +131,14 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             try {
                 indelOutput.close();
             } catch (Exception e) {
-            	logger.error("Failed to close "+OUT_INDELS+" gracefully. Data may be corrupt.");
+                logger.error("Failed to close "+OUT_INDELS+" gracefully. Data may be corrupt.");
             }
         }
         if ( OUT_STATS != null ) {
             try {
                 statsOutput.close();
             } catch (Exception e) {
-            	logger.error("Failed to close "+OUT_STATS+" gracefully. Data may be corrupt.");
+                logger.error("Failed to close "+OUT_STATS+" gracefully. Data may be corrupt.");
             }
         }
     }
@@ -540,8 +538,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
      * @return a cigar, in which indel is guaranteed to be placed at the leftmost possible position across a repeat (if any) 
      */
     private Cigar indelRealignment(Cigar cigar, String refSeq, String readSeq, int refIndex, boolean readIsConsensusSequence) {
-    	if ( cigar.numCigarElements() < 2 ) return cigar; // no indels, nothing to do
-    	
+        if ( cigar.numCigarElements() < 2 ) return cigar; // no indels, nothing to do
+        
         CigarElement ce1 = cigar.getCigarElement(0);
         CigarElement ce2 = cigar.getCigarElement(1);
   
@@ -558,19 +556,20 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             int start = ce1.getLength() + (readIsConsensusSequence ? refIndex : 0);
             indelString = readSeq.substring(start, start+ce2.getLength()).toUpperCase(); // get the inserted bases
         }
+
         // now we have to check all WHOLE periods of the indel sequence:
         //  for instance, if 
         //   REF:   AGCTATATATAGCC
-        //   READ:  GCTAT***TAGCC
+        //   READ:   GCTAT***TAGCC
         // the deleted sequence ATA does have period of 2, but deletion obviously can not be
         // shifted left by 2 bases (length 3 does not contain whole number of periods of 2);
         // however if 4 bases are deleted:
         //   REF:   AGCTATATATAGCC
-        //   READ:  GCTA****TAGCC
+        //   READ:   GCTA****TAGCC
         // the length 4 is a multiple of the period of 2, and indeed deletion site can be moved left by 2 bases! 
-        //  We will always have to check the length of the indel sequence itself (trivial period), unless the smallest
-        // period is 1 (which means that indel sequence is a homo-nucleotide sequence so we can just step left
-        // one base at a time as long as we get a match)
+        //  Also, we will always have to check the length of the indel sequence itself (trivial period). If the smallest
+        // period is 1 (which means that indel sequence is a homo-nucleotide sequence), we obviously do not have to check
+        // any other periods.
 
         // NOTE: we treat both insertions and deletions in the same way below: we always check if the indel sequence
         // repeats itsels on the REF (never on the read!), even for insertions: if we see TA inserted and REF has, e.g., CATATA prior to the insertion
@@ -578,45 +577,54 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         
         while ( period < indel_length ) { // we will always get at least trivial period = indelStringLength
-        	
-        	period = BaseUtils.sequencePeriod(indelString, period+1);
-        	
-        	if ( indel_length % period != 0 ) continue; // period is not a multiple of indel sequence length
+                
+                period = BaseUtils.sequencePeriod(indelString, period+1);
 
-        	int newIndex = indexOnRef;
-        	
-            while ( newIndex >= period ) { // let's see if there is a repeat, i.e. if we could also say that same bases at lower position are deleted
-            	
-            	// lets check if bases [newIndex-period,newIndex) immediately preceding the indel on the ref
-            	// are the same as the currently checked period of the inserted sequence:
-            	
-            	boolean match = true;
-            	
-            	for ( int testRefPos = newIndex - period, indelPos = 0 ; testRefPos < newIndex; testRefPos++, indelPos++) {
-            		if ( Character.toUpperCase(refSeq.charAt(testRefPos)) !=  indelString.charAt(indelPos) ) {
-            			match = false;
-            			break;
-            		}
-            	}
-            	if ( match )
-            		newIndex -= period; // yes, they are the same, we can move indel farther left by at least period bases, go check if we can do more...
-            	else break; // oops, no match, can not push indel farther left
-            }
+                if ( indel_length % period != 0 ) continue; // period is not a multiple of indel sequence length
+
+                int newIndex = indexOnRef;
+                
+                while ( newIndex >= period ) { // let's see if there is a repeat, i.e. if we could also say that same bases at lower position are deleted
+                
+                    // lets check if bases [newIndex-period,newIndex) immediately preceding the indel on the ref
+                    // are the same as the currently checked period of the inserted sequence:
+                
+                    boolean match = true;
+                
+                    for ( int testRefPos = newIndex - period, indelPos = 0 ; testRefPos < newIndex; testRefPos++, indelPos++) {
+                        if ( Character.toUpperCase(refSeq.charAt(testRefPos)) !=  indelString.charAt(indelPos) ) {
+                                match = false;
+                                break;
+                        }
+                    }
+                    if ( match )
+                        newIndex -= period; // yes, they are the same, we can move indel farther left by at least period bases, go check if we can do more...
+                    else break; // oops, no match, can not push indel farther left
+                }
             
-            final int newDifference = indexOnRef - newIndex;
-            if ( newDifference > difference ) difference = newDifference; // deletion should be moved 'difference' bases left 
+                final int newDifference = indexOnRef - newIndex;
+                if ( newDifference > difference ) difference = newDifference; // deletion should be moved 'difference' bases left 
             
-            if ( period == 1 ) break; // we do not have to check all periods of homonucleotide sequences, we already
-            	                                        // got maximum possible shift after checking period=1 above.
+                if ( period == 1 ) break; // we do not have to check all periods of homonucleotide sequences, we already
+                                          // got maximum possible shift after checking period=1 above.
         }
+        
+        //        if ( ce2.getLength() >= 2 ) 
+        //            System.out.println("-----------------------------------\n  FROM:\n"+AlignmentUtils.alignmentToString(cigar,readSeq,refSeq,refIndex, (readIsConsensusSequence?refIndex:0)));
+
                         
         if ( difference > 0 ) {
             Cigar newCigar = new Cigar();
             newCigar.add(new CigarElement(ce1.getLength()-difference, CigarOperator.M));
             newCigar.add(ce2);
             newCigar.add(new CigarElement(cigar.getCigarElement(2).getLength()+difference, CigarOperator.M));
+            //            System.out.println("  FROM:\n"+AlignmentUtils.alignmentToString(cigar,readSeq,refSeq,refIndex));
+            //            if ( ce2.getLength() >=2 ) 
+            //                System.out.println("  REALIGNED TO:\n"+AlignmentUtils.alignmentToString(newCigar,readSeq,refSeq,refIndex,(readIsConsensusSequence?refIndex:0))+"\n");
+
             logger.debug("Realigning indel: " + cigarToString(cigar) + " to " + cigarToString(newCigar));
             cigar = newCigar;
+
         }
         return cigar;
     }
