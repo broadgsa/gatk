@@ -5,6 +5,13 @@ samtools_exe='/seq/dirseq/samtools/current/samtools'
 java_exe='/broad/tools/Linux/x86_64/pkgs/jdk_1.6.0_12/bin/java'
 R_exe="/broad/tools/apps/R-2.6.0/bin/Rscript"
 
+# Any special site-specific arguments to pass the JVM.
+jvm_args='-ea -Xmx4096m'
+
+# Where to put the output created as part of recalibration.  
+# If editing, please end this variable with a trailing slash.
+output_root = './'
+
 # Location of the resource files distributed with the recalibration tool.  
 # If editing, please end this variable with a trailing slash.
 resources='resources/'
@@ -18,12 +25,12 @@ reference_fai  = reference_base + '.fasta.fai'
 # Where does DBSNP live?
 dbsnp = resources + 'dbsnp.rod.out'
 
-# Where are the application files required to run the recalibration
+# Where are the application files required to run the recalibration?
 gatk = resources + 'gatk/GenomeAnalysisTK.jar'
 logistic_regression_script = resources + 'logistic_regression.R'
 empirical_vs_reported_grapher = resources + 'plot_q_emp_stated_hst.R'
 
-import glob,os,sys
+import getopt,glob,os,sys
 import LogisticRegressionByReadGroup
 
 def exit(msg,errorcode):
@@ -46,18 +53,18 @@ def recalibrate():
     'Recalibrate the given bam file'
     # generate the covariates
     print 'generating covariates'
-    generate_covariates = ' '.join((gatk_base_cmdline,'-T CountCovariates','-I',bam,'-mqs 40','--OUTPUT_FILEROOT output/initial','--CREATE_TRAINING_DATA','--MIN_MAPPING_QUALITY 1'))
+    generate_covariates = ' '.join((gatk_base_cmdline,'-T CountCovariates','-I',bam,'-mqs 40','--OUTPUT_FILEROOT',output_dir+'initial','--CREATE_TRAINING_DATA','--MIN_MAPPING_QUALITY 1'))
     returncode = os.system(generate_covariates)
     if returncode != 0:
         exit('Unable to generate covariates',1)
 
     # compute the logistic regression
     print 'computing the logistic regression'
-    LogisticRegressionByReadGroup.compute_logistic_regression('output/initial.covariate_counts.csv','output/linear_regression_results.out',R_exe,logistic_regression_script)
+    LogisticRegressionByReadGroup.compute_logistic_regression(output_dir + 'initial.covariate_counts.csv',output_dir + 'linear_regression_results.out',R_exe,logistic_regression_script)
 
     # apply the logistic regression, writing the output data to calibrated_bam
     print 'applying the correction to the reads'
-    apply_logistic_regression = ' '.join((gatk_base_cmdline,'-T LogisticRecalibration','-I',bam,'-logisticParams output/linear_regression_results.out','-outputBAM',calibrated_bam))
+    apply_logistic_regression = ' '.join((gatk_base_cmdline,'-T LogisticRecalibration','-I',bam,'-logisticParams',output_dir+'linear_regression_results.out','-outputBAM',calibrated_bam))
     returncode = os.system(apply_logistic_regression)
     if returncode != 0:
         exit('Unable to apply logistic regression',1)
@@ -75,38 +82,55 @@ def evaluate():
     'Evaluate recalibration results.'
     print 'Evaluating recalibration results'
     # regenerate the covariates
-    regenerate_covariates = ' '.join((gatk_base_cmdline,'-T CountCovariates','-I',calibrated_bam,'-mqs 40','--OUTPUT_FILEROOT output/recalibrated','--CREATE_TRAINING_DATA','--MIN_MAPPING_QUALITY 1'))
+    regenerate_covariates = ' '.join((gatk_base_cmdline,'-T CountCovariates','-I',calibrated_bam,'-mqs 40','--OUTPUT_FILEROOT',output_dir+'recalibrated','--CREATE_TRAINING_DATA','--MIN_MAPPING_QUALITY 1'))
     print 'regenerating covariates'
     returncode = os.system(regenerate_covariates)
     if returncode != 0:
         exit('Unable to regenerate covariates',1)
 
     print 'graphing initial results'
-    for filename in glob.glob('output/initial.*.empirical_v_reported_quality.csv'):
+    for filename in glob.glob(output_dir+'initial.*.empirical_v_reported_quality.csv'):
         graph_file(empirical_vs_reported_grapher,filename)
     print 'graphing final results'
-    for filename in glob.glob('output/recalibrated.*.empirical_v_reported_quality.csv'):
+    for filename in glob.glob(output_dir+'recalibrated.*.empirical_v_reported_quality.csv'):
         graph_file(empirical_vs_reported_grapher,filename)
 
-if len(sys.argv) < 3:
-    exit('Usage: python RecalQual.py <input bam file> <calibrated output bam file> [{RECALIBRATE | EVALUATE | RECALIBRATE_AND_EVALUATE}]',1)
+def usage():
+    exit('Usage: python RecalQual.py [--recalibrate] [--evaluate] <input bam file> <calibrated output bam file>',1)
 
-operation = 'RECALIBRATE'
-if len(sys.argv) == 4:
-    operation = sys.argv[3]
+# Try to parse the given command-line arguments.
+try:
+    opts, args = getopt.gnu_getopt(sys.argv[1:],'',['recalibrate','evaluate'])
+except getopt.GetoptError, err:
+    usage()
 
-if operation not in ['RECALIBRATE','EVALUATE','RECALIBRATE_AND_EVALUATE']:
-    exit('Operation %s not recognized.  Operation must be RECALIBRATE, EVALUATE, or RECALIBRATE_AND_EVALUATE' % operation,1)
+# An input and an output file is required.  Fail if left unspecified.
+if len(args) < 2:
+    usage()
+
+# Determine whether to evaluate / recalibrate.
+recalibrate_requested = False
+evaluate_requested = False
+for opt,arg in opts:
+    if opt == '--recalibrate':
+        recalibrate_requested = True
+    if opt == '--evaluate':
+        evaluate_requested = True
+
+# Default to 'recalibrate' unless the user specified only evaluate.
+do_recalibration = not (evaluate_requested and not recalibrate_requested)
+# Only evaluate if the user specifically requested evaluation.
+do_evaluation = evaluate_requested
 
 # check that the input bam file exists, and that the bam is indexed.
-bam = sys.argv[1]
+bam = args[0]
 bam_index = bam + '.bai'
 
 check_input_file_available(bam,'reads file')
 check_input_file_available(bam_index,'reads index file')
 
 # parse the user's calibration output file requirements
-calibrated_bam = sys.argv[2]
+calibrated_bam = args[1]
 calibrated_bam_index = calibrated_bam + '.bai'
 
 # check that the fasta and supporting files are available
@@ -125,14 +149,17 @@ check_input_file_available(gatk,'Genome Analysis Toolkit')
 check_input_file_available(logistic_regression_script,'logistic regression script')
 
 # make an output directory for temporary files
-if not os.path.isdir('output'):
-    os.mkdir('output')
+output_dir=output_root+'output.' + bam[bam.rfind('/')+1:bam.rfind('.bam')] + '/'
+if not os.path.isdir(output_dir):
+    os.mkdir(output_dir)
+if not os.path.isdir(output_dir):
+    exit('Unable to create output directory ' + output_dir,1)
 
 # assemble the required program arguments
-gatk_base_cmdline = ' '.join((java_exe,'-ea','-jar',gatk,'-R',reference,'--DBSNP',dbsnp,'-l INFO'))
+gatk_base_cmdline = ' '.join((java_exe,jvm_args,'-jar',gatk,'-R',reference,'--DBSNP',dbsnp,'-l INFO'))
 
-if operation.find('RECALIBRATE') != -1:
+if do_recalibration:
     recalibrate()
 
-if operation.find('EVALUATE') != -1:
+if do_evaluation:
     evaluate()

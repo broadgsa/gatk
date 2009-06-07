@@ -95,6 +95,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
             if( readGroup.getAttribute("PL") == null )
                 Utils.warnUser(String.format("PL attribute for read group %s is unset; assuming all reads are illumina",readGroup.getReadGroupId()));
+            if( !isIlluminaReadGroup(readGroup) )
+                continue;
             data.put(readGroup.getReadGroupId(), new RecalData[MAX_READ_LENGTH+1][MAX_QUAL_SCORE+1][NDINUCS]);
             for ( int i = 0; i < MAX_READ_LENGTH+1; i++) {
                 for ( int j = 0; j < MAX_QUAL_SCORE+1; j++) {
@@ -117,7 +119,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             for (int i =0; i < reads.size(); i++ ) {
                 SAMRecord read = reads.get(i);
                 SAMReadGroupRecord readGroup = read.getHeader().getReadGroup((String)read.getAttribute("RG"));
-                if ( (readGroup.getAttribute("PL") == null || "ILLUMINA".equalsIgnoreCase(readGroup.getAttribute("PL").toString())) &&
+                if ( isIlluminaReadGroup(readGroup) &&
                     !read.getReadNegativeStrandFlag() &&
                     (READ_GROUP.equals("none") || read.getAttribute("RG") != null && read.getAttribute("RG").equals(READ_GROUP)) &&
                     (read.getMappingQuality() >= MIN_MAPPING_QUALITY)) {
@@ -383,5 +385,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     // Print out data for regression
     public CovariateCounterWalker()  throws FileNotFoundException {
         random_genrator = new Random(123454321); // keep same random seed while debugging
+    }
+
+    private boolean isIlluminaReadGroup( SAMReadGroupRecord readGroup ) {
+        return (readGroup.getAttribute("PL") == null || "ILLUMINA".equalsIgnoreCase(readGroup.getAttribute("PL").toString()));
     }
 }
