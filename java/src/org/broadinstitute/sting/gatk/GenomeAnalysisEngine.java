@@ -77,7 +77,7 @@ public class GenomeAnalysisEngine {
         if (argCollection.HAPMAPChipFile != null)
             bindConvenienceRods("hapmap-chip", "GFF", argCollection.HAPMAPChipFile);
         if ( argCollection.intervals != null )
-            bindConvenienceRods("interval", "Intervals", argCollection.intervals);
+            bindConvenienceRods("interval", "Intervals", argCollection.intervals.replaceAll(",", ""));
 
         // parse out the rod bindings
         ReferenceOrderedData.parseBindings(logger, argCollection.RODBindings, rods);

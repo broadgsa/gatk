@@ -26,8 +26,8 @@ public class VariantCounter extends BasicVariantAnalysis {
         List<String> s = new ArrayList<String>();
         s.add(String.format("n bases covered: %d", nBasesCovered));
         s.add(String.format("sites: %d", nSNPs));
-        s.add(String.format("variant rate: %.5f confident variants per base", nSNPs / (1.0 * nBasesCovered)));
-        s.add(String.format("variant rate: 1 / %d confident variants per base", nBasesCovered / nSNPs));
+        s.add(String.format("variant rate: %.5f confident variants per base", nSNPs / (1.0 * Math.max(nBasesCovered, 1))));
+        s.add(String.format("variant rate: 1 / %d confident variants per base", nBasesCovered / Math.max(nSNPs, 1)));
         return s;
     }
 }
