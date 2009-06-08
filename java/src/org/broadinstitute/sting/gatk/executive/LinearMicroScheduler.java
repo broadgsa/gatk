@@ -31,9 +31,10 @@ public class LinearMicroScheduler extends MicroScheduler {
      *
      * @param walker    Computation to perform over dataset.
      * @param locations Subset of the dataset over which to walk.
+     * @param maxIterations the maximum number of iterations we're to perform
      */
-    public Object execute(Walker walker, GenomeLocSortedSet locations) {
-        ShardStrategy shardStrategy = getShardStrategy(walker, reference, locations);
+    public Object execute(Walker walker, GenomeLocSortedSet locations, Integer maxIterations) {
+        ShardStrategy shardStrategy = getShardStrategy(walker, reference, locations, maxIterations);
 
         walker.initialize();
         Accumulator accumulator = Accumulator.create(walker);

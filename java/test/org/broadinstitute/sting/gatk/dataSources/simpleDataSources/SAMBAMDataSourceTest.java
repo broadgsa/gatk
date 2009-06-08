@@ -129,7 +129,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
 
         // setup the test files
         fl.add(new File(seqLocation + "/dirseq/analysis/cancer_exome/twoflowcell_sams/TCGA-06-0188.aligned.duplicates_marked.bam"));
-        Reads reads = new Reads(fl);
+        Reads reads = new Reads(fl);           
 
         ArrayList<Integer> readcountPerShard = new ArrayList<Integer>();
         ArrayList<Integer> readcountPerShard2 = new ArrayList<Integer>();

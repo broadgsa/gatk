@@ -58,7 +58,7 @@ public class LinearLocusShardStrategyTest extends BaseTest {
 
     @Test
     public void testSetup() {
-        LinearLocusShardStrategy strat = new LinearLocusShardStrategy(header.getSequenceDictionary(), 500);
+        LinearLocusShardStrategy strat = new LinearLocusShardStrategy(header.getSequenceDictionary(), 500, -1);
         int counter = 0;
         while(strat.hasNext()) {
             Shard d = strat.next();
@@ -71,7 +71,7 @@ public class LinearLocusShardStrategyTest extends BaseTest {
 
     @Test
     public void testAdjustSize() {
-        LinearLocusShardStrategy strat = new LinearLocusShardStrategy(header.getSequenceDictionary(), 500);
+        LinearLocusShardStrategy strat = new LinearLocusShardStrategy(header.getSequenceDictionary(), 500, -1);
         strat.adjustNextShardSize(1000);
         int counter = 0;
         while(strat.hasNext()) {
@@ -86,7 +86,7 @@ public class LinearLocusShardStrategyTest extends BaseTest {
 
     @Test
     public void testUnevenSplit() {
-        LinearLocusShardStrategy strat = new LinearLocusShardStrategy(header.getSequenceDictionary(), 600);
+        LinearLocusShardStrategy strat = new LinearLocusShardStrategy(header.getSequenceDictionary(), 600, -1);
         int counter = 0;
         while(strat.hasNext()) {
             Shard d = strat.next();
@@ -100,4 +100,19 @@ public class LinearLocusShardStrategyTest extends BaseTest {
         }
         assertTrue(counter == 10);
     }
+
+
+    @Test
+    public void testDashMOption() {
+        LinearLocusShardStrategy strat = new LinearLocusShardStrategy(header.getSequenceDictionary(), 600, 200);
+        int counter = 0;
+        while(strat.hasNext()) {
+            Shard d = strat.next();
+            assertTrue(d instanceof LocusShard);
+            assertTrue((d.getGenomeLoc().getStop() - d.getGenomeLoc().getStart()) == 199);
+            ++counter;
+        }
+        assertTrue(counter == 1);
+    }
+
 }

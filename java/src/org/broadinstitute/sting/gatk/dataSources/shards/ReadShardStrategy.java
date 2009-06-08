@@ -54,14 +54,19 @@ public class ReadShardStrategy implements ShardStrategy {
     // our hasnext flag
     boolean hasNext = true;
 
+    // our limiting factor
+    long limitedSize = -1;
+    boolean stopDueToLimitingFactor = false;
+
     /**
      * the default constructor
      * @param dic the sequence dictionary to use
      * @param size the read count to iterate over
      */
-    ReadShardStrategy(SAMSequenceDictionary dic, long size) {
+    ReadShardStrategy(SAMSequenceDictionary dic, long size, long limitedSize) {
         this.dic = dic;
-        readCount = size;    
+        readCount = size;
+        this.limitedSize = limitedSize;
     }
 
     /**
@@ -69,10 +74,24 @@ public class ReadShardStrategy implements ShardStrategy {
      * @return
      */
     public boolean hasNext() {
+        if (stopDueToLimitingFactor) {
+            return false;
+        }
         return hasNext;
     }
 
     public Shard next() {
+        if (limitedSize > 0) {
+            if (limitedSize > readCount) {
+                limitedSize = limitedSize - readCount;
+            }
+            else {
+                readCount = limitedSize;
+                limitedSize = 0;
+                stopDueToLimitingFactor = true;
+            }
+        }
+        
         return new ReadShard((int)readCount, this);
     }
 

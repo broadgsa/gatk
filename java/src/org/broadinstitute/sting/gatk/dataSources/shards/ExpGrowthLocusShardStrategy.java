@@ -52,8 +52,9 @@ public class ExpGrowthLocusShardStrategy extends LocusShardStrategy {
      *
      * @param dic the seq dictionary
      */
-    ExpGrowthLocusShardStrategy(SAMSequenceDictionary dic, long startSize) {
+    ExpGrowthLocusShardStrategy(SAMSequenceDictionary dic, long startSize, long limitByCount) {
         super(dic);
+        this.limitingFactor = limitByCount;
         this.baseSize = startSize;
         currentExp = 0;
     }
@@ -76,8 +77,9 @@ public class ExpGrowthLocusShardStrategy extends LocusShardStrategy {
      * @param startSize the starting size of the shard
      * @param lst       locations to iterate from
      */
-    ExpGrowthLocusShardStrategy(SAMSequenceDictionary dic, long startSize, GenomeLocSortedSet lst) {
+    ExpGrowthLocusShardStrategy(SAMSequenceDictionary dic, long startSize, GenomeLocSortedSet lst, long limitByCount) {
         super(dic, lst);
+        this.limitingFactor = limitByCount;
         this.baseSize = startSize;
         this.currentExp = 0;
     }

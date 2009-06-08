@@ -105,8 +105,8 @@ public class GATKArgumentCollection {
     public Boolean walkAllLoci = false;    
 
     @Element(required=false)
-    @Argument(fullName = "maximum_reads", shortName = "M", doc = "Maximum number of reads to process before exiting", required = false)
-    public String maximumReads = "-1";
+    @Argument(fullName = "maximum_reads", shortName = "M", doc = "Maximum number of iterations to process before exiting, the lower bound is zero.  Intended only for testing", required = false)
+    public Integer maximumEngineIterations = -1;
 
     @Element(required=false)
     @Argument(fullName = "sort_on_the_fly", shortName = "sort", doc = "Maximum number of reads to sort on the fly", required = false)
@@ -215,7 +215,7 @@ public class GATKArgumentCollection {
         if (!other.samFiles.equals(this.samFiles)) {
             return false;
         }
-        if (!other.maximumReads.equals(this.maximumReads)) {
+        if (!other.maximumEngineIterations.equals(this.maximumEngineIterations)) {
             return false;
         }
         if (!other.strictnessLevel.equals(this.strictnessLevel)) {

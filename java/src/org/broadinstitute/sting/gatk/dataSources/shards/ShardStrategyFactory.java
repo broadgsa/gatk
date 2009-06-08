@@ -50,13 +50,27 @@ public class ShardStrategyFactory {
      * @return
      */
     static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize) {
+        return ShardStrategyFactory.shatter(strat, dic, startingSize, -1L);    
+    }
+
+    /**
+     * get a new shatter strategy
+     *
+     * @param strat        what's our strategy - SHATTER_STRATEGY type
+     * @param dic          the seq dictionary
+     * @param startingSize the starting size
+     * @return
+     */
+    static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, long limitByCount) {
         switch (strat) {
             case LINEAR:
-                return new LinearLocusShardStrategy(dic, startingSize);
+                return new LinearLocusShardStrategy(dic, startingSize, limitByCount);
             case EXPONENTIAL:
-                return new ExpGrowthLocusShardStrategy(dic, startingSize);
+                return new ExpGrowthLocusShardStrategy(dic, startingSize, limitByCount);
             case READS:
-                return new ReadShardStrategy(dic, startingSize);
+                return new ReadShardStrategy(dic, startingSize, limitByCount);
+            case INTERVAL:
+                throw new StingException("Requested trategy: " + strat + " doesn't work with the limiting count (-M) command line option");
             default:
                 throw new StingException("Strategy: " + strat + " isn't implemented for this type of shatter request");
         }
@@ -73,11 +87,24 @@ public class ShardStrategyFactory {
      * @return
      */
     static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst) {
+        return ShardStrategyFactory.shatter(strat, dic, startingSize, lst, -1l);    
+
+    }
+
+    /**
+     * get a new shatter strategy
+     *
+     * @param strat        what's our strategy - SHATTER_STRATEGY type
+     * @param dic          the seq dictionary
+     * @param startingSize the starting size
+     * @return
+     */
+    static public ShardStrategy shatter(SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst, long limitDataCount) {
         switch (strat) {
             case LINEAR:
-                return new LinearLocusShardStrategy(dic, startingSize, lst);
+                return new LinearLocusShardStrategy(dic, startingSize, lst, limitDataCount);
             case EXPONENTIAL:
-                return new ExpGrowthLocusShardStrategy(dic, startingSize, lst);
+                return new ExpGrowthLocusShardStrategy(dic, startingSize, lst, limitDataCount);
             case INTERVAL:
             case READS:
                 return new IntervalShardStrategy(startingSize, lst);

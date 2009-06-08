@@ -73,7 +73,7 @@ public class GATKArgumentCollectionTest extends BaseTest {
         List<File> input = new ArrayList<File>();
         input.add(new File("test.file"));
         collect.samFiles = input;
-        collect.maximumReads = "-1";
+        collect.maximumEngineIterations = -1;
         collect.strictnessLevel = "strict";
         collect.referenceFile = new File("referenceFile".toLowerCase());
         collect.analysisName = "analysisName".toLowerCase();

@@ -99,9 +99,10 @@ public abstract class MicroScheduler {
      * Walks a walker over the given list of intervals.
      * @param walker Computation to perform over dataset.
      * @param intervals A list of intervals over which to walk.  Null for whole dataset.
+     * @param maxIterations the maximum number of iterations we're to perform
      * @return the return type of the walker
      */
-    public abstract Object execute(Walker walker, GenomeLocSortedSet intervals);
+    public abstract Object execute(Walker walker, GenomeLocSortedSet intervals, Integer maxIterations);
 
     /**
      * Get the sharding strategy given a driving data source.
@@ -110,7 +111,10 @@ public abstract class MicroScheduler {
      * @param intervals Intervals to use when limiting sharding.
      * @return Sharding strategy for this driving data source.
      */
-    protected ShardStrategy getShardStrategy(Walker walker, ReferenceSequenceFile drivingDataSource, GenomeLocSortedSet intervals) {
+    protected ShardStrategy getShardStrategy(Walker walker,
+                                             ReferenceSequenceFile drivingDataSource,
+                                             GenomeLocSortedSet intervals,
+                                             Integer maxIterations) {
         ShardStrategy shardStrategy = null;
         ShardStrategyFactory.SHATTER_STRATEGY shardType;
         if (walker instanceof LocusWalker) {
@@ -122,11 +126,11 @@ public abstract class MicroScheduler {
                 shardStrategy = ShardStrategyFactory.shatter(shardType,
                                                              drivingDataSource.getSequenceDictionary(),
                                                              SHARD_SIZE,
-                                                             intervals);
+                                                             intervals, maxIterations);
             } else
                 shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
                                                              drivingDataSource.getSequenceDictionary(),
-                                                             SHARD_SIZE);
+                                                             SHARD_SIZE, maxIterations);
 
         } else if (walker instanceof ReadWalker) {
 
@@ -136,11 +140,11 @@ public abstract class MicroScheduler {
                 shardStrategy = ShardStrategyFactory.shatter(shardType,
                                                              drivingDataSource.getSequenceDictionary(),
                                                              SHARD_SIZE,
-                                                             intervals);
+                                                             intervals, maxIterations);
             } else {
                 shardStrategy = ShardStrategyFactory.shatter(shardType,
                                                              drivingDataSource.getSequenceDictionary(),
-                                                             SHARD_SIZE);
+                                                             SHARD_SIZE, maxIterations);
             }
         } else
             throw new StingException("Unable to support walker of type" + walker.getClass().getName());

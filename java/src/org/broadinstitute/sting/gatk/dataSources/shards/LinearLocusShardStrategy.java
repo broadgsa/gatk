@@ -51,8 +51,9 @@ class LinearLocusShardStrategy extends LocusShardStrategy {
      *
      * @param dic the seq dictionary
      */
-    LinearLocusShardStrategy(SAMSequenceDictionary dic, long startSize) {
+    LinearLocusShardStrategy(SAMSequenceDictionary dic, long startSize, long limitByCount) {
         super(dic);
+        this.limitingFactor = limitByCount;
         this.nextShardSize = startSize;
     }
 
@@ -73,8 +74,9 @@ class LinearLocusShardStrategy extends LocusShardStrategy {
      * @param startSize the starting size of the shard
      * @param lst locations to iterate from
      */
-    LinearLocusShardStrategy(SAMSequenceDictionary dic, long startSize, GenomeLocSortedSet lst) {
+    LinearLocusShardStrategy(SAMSequenceDictionary dic, long startSize, GenomeLocSortedSet lst, long limitByCount) {
         super(dic, lst);
+        this.limitingFactor = limitByCount;
         this.nextShardSize = startSize;
     }
 

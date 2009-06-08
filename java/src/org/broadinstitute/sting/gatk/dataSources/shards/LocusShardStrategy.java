@@ -51,14 +51,18 @@ public abstract class LocusShardStrategy implements ShardStrategy {
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(LocusShardStrategy.class);
 
+    /** the number of iterations before we stop */
+    protected long limitingFactor = -1;
+    private boolean stopDueToLimitingFactor = false;
 
     /**
      * the constructor, taking a seq dictionary to parse out contigs
      *
      * @param dic the seq dictionary
      */
-    LocusShardStrategy(SAMSequenceDictionary dic) {
+    LocusShardStrategy( SAMSequenceDictionary dic ) {
         this.dic = dic;
+        limitingFactor = -1;
         mLoc = new GenomeLoc(0, 0, 0);
         if (dic.getSequences().size() > 0) {
             nextContig = true;
@@ -70,12 +74,13 @@ public abstract class LocusShardStrategy implements ShardStrategy {
      *
      * @param old the old strategy
      */
-    LocusShardStrategy(LocusShardStrategy old) {
+    LocusShardStrategy( LocusShardStrategy old ) {
         this.dic = old.dic;
         this.mLoc = old.mLoc;
         this.seqLoc = old.seqLoc;
         this.lastGenomeLocSize = old.lastGenomeLocSize;
         this.nextContig = old.nextContig;
+        this.limitingFactor = old.limitingFactor;
     }
 
 
@@ -85,7 +90,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
      * @param dic       the seq dictionary
      * @param intervals file
      */
-    LocusShardStrategy(SAMSequenceDictionary dic, GenomeLocSortedSet intervals) {
+    LocusShardStrategy( SAMSequenceDictionary dic, GenomeLocSortedSet intervals ) {
         this.dic = dic;
         this.intervals = intervals.clone();
         // set the starting point to the beginning interval
@@ -132,6 +137,15 @@ public abstract class LocusShardStrategy implements ShardStrategy {
         long proposedSize = nextShardSize();
         long nextStart = mLoc.getStop() + 1;
 
+        if (this.limitingFactor > 0) {
+            if (proposedSize < limitingFactor) {
+                limitingFactor = limitingFactor - proposedSize;
+            } else {
+                proposedSize = limitingFactor;
+                this.stopDueToLimitingFactor = true;
+            }
+        }
+
         // if we don't have an interval set, use the non interval based approach.  Simple, eh?
         if (this.intervals == null) {
             return nonIntervaledNext(length, proposedSize, nextStart);
@@ -148,8 +162,8 @@ public abstract class LocusShardStrategy implements ShardStrategy {
      *
      * @return the shard that represents this data
      */
-    private Shard intervaledNext(long proposedSize) {
-        if ((this.intervals == null) || (intervals.isEmpty())) {
+    private Shard intervaledNext( long proposedSize ) {
+        if (( this.intervals == null ) || ( intervals.isEmpty() )) {
             throw new StingException("LocusShardStrategy: genomic regions list is empty in next() function.");
         }
 
@@ -175,12 +189,12 @@ public abstract class LocusShardStrategy implements ShardStrategy {
      *
      * @return the shard to return to the user
      */
-    private Shard nonIntervaledNext(long length, long proposedSize, long nextStart) {
+    private Shard nonIntervaledNext( long length, long proposedSize, long nextStart ) {
         // can we fit it into the current seq size?
         if (nextStart + proposedSize - 1 < length) {
             lastGenomeLocSize = proposedSize;
             mLoc = new GenomeLoc(dic.getSequence(seqLoc).getSequenceIndex(), nextStart, nextStart + proposedSize - 1);
-            return LocusShard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceIndex(), nextStart, nextStart + proposedSize - 1));
+            return LocusShard.toShard(mLoc);
         }
         // else we can't make it in the current location, we have to stitch one together
         else {
@@ -207,7 +221,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
     private void jumpContig() {
         ++seqLoc;
 
-        if (!(seqLoc < dic.getSequences().size())) {
+        if (!( seqLoc < dic.getSequences().size() )) {
             nextContig = false;
             return;
         }
@@ -223,11 +237,14 @@ public abstract class LocusShardStrategy implements ShardStrategy {
      * @return
      */
     public boolean hasNext() {
+        if (this.stopDueToLimitingFactor) {
+            return false;
+        }
         // if we don't have an interval file, use the non interval based approach.
         if (this.intervals == null) {
             return nextContig;
         } else {
-            return (this.intervals.size() > 0);
+            return ( this.intervals.size() > 0 );
         }
     }
 

@@ -122,7 +122,7 @@ public class GenomeAnalysisEngine {
             locs = GenomeLocSortedSet.createSetFromList(locationsList);
 
         // excute the microscheduler, storing the results
-        walkerReturn = microScheduler.execute(my_walker, locs);
+        walkerReturn = microScheduler.execute(my_walker, locs, argCollection.maximumEngineIterations);
     }
 
 
@@ -199,7 +199,7 @@ public class GenomeAnalysisEngine {
     private void genericEngineSetup(ValidationStringency strictness) {
         engine.setStrictness(strictness);
 
-        engine.setMaxReads(Integer.parseInt(argCollection.maximumReads));
+        engine.setMaxReads(argCollection.maximumEngineIterations);
         engine.setFilterZeroMappingQualityReads(argCollection.filterZeroMappingQualityReads);
 
         // we default interval files over the genome region string
