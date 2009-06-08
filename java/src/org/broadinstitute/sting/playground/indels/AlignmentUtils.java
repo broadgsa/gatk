@@ -163,8 +163,8 @@ public class AlignmentUtils {
     
     /** Reads through the alignment cigar and returns all indels found in the alignment as a collection
      * of Indel objects.
-     * @param c
-     * @param start
+     * @param c alignment cigar
+     * @param start alignment start. NOTE: if cigar starts with clipped bases (S), alignment start position should be set after them according to SAM format specification.
      * @return
      */
     public static Collection<Indel> extractIndels(final Cigar c, final int start) {
@@ -202,17 +202,20 @@ public class AlignmentUtils {
             switch(ce.getOperator()) {
             case I:
                     curr_indel = new Indel(runninglength, ce.getLength(), Indel.IndelType.I);
-                    if ( i == 0 ) System.out.println("WARNING: Indel at start!");
-                    if ( i == c.numCigarElements() - 1) System.out.println("WARNING: Indel at end!");
+                    if ( i == 0 ) System.out.println("WARNING: Indel at start of the read");
+                    if ( i == c.numCigarElements() - 1) System.out.println("WARNING: Indel at end of the read");
                     break;
             case D: curr_indel = new Indel(runninglength, ce.getLength(), Indel.IndelType.D);
-                    if ( i == 0 ) System.out.println("WARNING: Indel at start!");
-                    if ( i == c.numCigarElements() - 1) System.out.println("WARNING: Indel at end!");
+                    if ( i == 0 ) System.out.println("WARNING: Indel at start of the read");
+                    if ( i == c.numCigarElements() - 1) System.out.println("WARNING: Indel at end of the read");
                     runninglength += ce.getLength();
                     break;
             case M: runninglength += ce.getLength(); break; // advance along the gapless block in the alignment
+            case H:
+            case S: break; // just skip hard and soft-clipped bases; according to SAM format specification, alignment start position on the reference
+            	                       // points to where the actually aligned (not clipped) bases go, so we do not need to increment reference position here
             default :
-                throw new IllegalArgumentException("Unexpected operator in cigar string");
+                throw new IllegalArgumentException("Unexpected operator in cigar string: "+ce.getOperator());
             }
 
             if ( curr_indel == null ) continue; // element was not an indel, go grab next element...
@@ -268,5 +271,54 @@ public class AlignmentUtils {
             b.append(c);
         }
         return b.toString();
+    }
+
+
+    public static String alignmentToString(final Cigar cigar,final  String seq, final String ref, final int posOnRef ) {
+        return alignmentToString( cigar, seq, ref, posOnRef, 0 );
+    }
+
+    public static String alignmentToString(final Cigar cigar,final  String seq, final String ref, final int posOnRef, final int posOnRead ) {
+        int readPos = posOnRead;
+        int refPos = posOnRef;
+        
+        StringBuilder refLine = new StringBuilder();
+        StringBuilder readLine = new StringBuilder();
+
+        for ( int i = 0 ; i < posOnRead ; i++ ) {
+            refLine.append( ref.charAt( refPos - readPos + i ) );
+            readLine.append( seq.charAt(i) ) ;
+        }
+
+        for ( int i = 0 ; i < cigar.numCigarElements() ; i++ ) {
+
+            final CigarElement ce = cigar.getCigarElement(i);
+
+            switch(ce.getOperator()) {
+            case I:
+                for ( int j = 0 ; j < ce.getLength(); j++ ) {
+                    refLine.append('+');
+                    readLine.append( seq.charAt( readPos++ ) );
+                }
+                break;
+            case D:
+                for ( int j = 0 ; j < ce.getLength(); j++ ) {
+                    readLine.append('*');
+                    refLine.append( ref.charAt( refPos++ ) );
+                }
+                break;
+            case M:
+                for ( int j = 0 ; j < ce.getLength(); j++ ) {
+                    refLine.append(ref.charAt( refPos++ ) );
+                    readLine.append( seq.charAt( readPos++ ) );
+                }
+                break;
+            default: throw new StingException("Unsupported cigar operator: "+ce.getOperator() );
+            }
+        }
+        refLine.append('\n');
+        refLine.append(readLine);
+        refLine.append('\n');
+        return refLine.toString();
     }
 }
