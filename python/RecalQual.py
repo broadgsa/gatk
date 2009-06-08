@@ -17,13 +17,13 @@ output_root = './'
 resources='resources/'
 
 # Where does the reference live?
-reference_base = resources + 'Homo_sapiens_assembly18'
+reference_base = resources + 'human_b36_both'
 reference      = reference_base + '.fasta'
 reference_dict = reference_base + '.dict'
 reference_fai  = reference_base + '.fasta.fai'
 
 # Where does DBSNP live?
-dbsnp = resources + 'dbsnp.rod.out'
+dbsnp = resources + 'dbsnp.1kg.rod.out'
 
 # Where are the application files required to run the recalibration?
 gatk = resources + 'gatk/GenomeAnalysisTK.jar'

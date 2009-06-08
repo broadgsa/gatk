@@ -1,17 +1,20 @@
 Read Quality Recalibrator
 -------------------------
-The tools in this package recalibrate quality scores 
-assigned to nucleic acids in an aligned BAM file by 
-analyzing the covariation between machine reported 
-quality scores and: 
+The tools in this package recalibrate quality scores of 
+Illumina reads in an aligned BAM file. After recalibration, 
+the quality scores in the QUAL field in each Illumina read 
+in the output BAM are accurate in that the reported quality 
+score is equal to its actual probability of mismatching.  
+This is process is accomplished by analyzing the covariation 
+between machine reported quality scores and 
 
 1) the position within the read, and 
 2) the preceding nucleotide (sequencing chemistry effect).  
 
-The aligned reads have their dbSNP sites masked out, and 
-the mismatched bases are used as a metric for the true error 
-rate of the system.  The error rate at different dinucleotides 
-and positions in the read is then fed into a logistic regression 
+The aligned reads have their dbSNP sites masked out, and the 
+mismatched bases are used as a metric for the true error rate 
+of the system.  The error rate at different dinucleotides and 
+positions in the read is then fed into a logistic regression 
 system which outputs a correction factor for each of those 
 combinations which are then use to output a recalibrated BAM 
 file. 
@@ -79,7 +82,7 @@ directory at any time.
 Known Issues
 ------------
 - The recalibrator places severe memory demands on
-  files with large numbers of read groups (> 1000).
+  files with large numbers of read groups.
 - If running in 'evaluation' mode (see the 'Running'
   section above), X11 is required to generate the 
   graphs.  If running on a machine via ssh, be certain
