@@ -25,7 +25,8 @@ public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval
 
     public boolean filter(char[] ref, SAMRecord read) {
         return ( !read.getReadUnmappedFlag() &&            // mapped
-                 read.getReadLength() <= maxReadLength &&  // not too big
+                 (maxReadLength < 0 || read.getReadLength() <= maxReadLength) &&  // not too big
+                 read.getMappingQuality() != 0 &&          // positive mapping quality
                  read.getAlignmentBlocks().size() > 1);    // indel
     }
 
