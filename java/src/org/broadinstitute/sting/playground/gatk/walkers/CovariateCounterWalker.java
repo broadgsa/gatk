@@ -41,6 +41,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="READ_GROUP", shortName="rg", required=false, doc="Only use reads with this read group (@RG)")
     public String READ_GROUP = "none";
 
+    @Argument(fullName="MAX_READ_GROUPS", shortName="mrg", required=false, doc="Abort if number of read groups in input file exceeeds this count.")
+    public int MAX_READ_GROUPS = 100;
+
     int NDINUCS = 16;
     ArrayList<RecalData> flattenData = new ArrayList<RecalData>();
     HashMap<String, RecalData[][][]> data = new HashMap<String, RecalData[][][]>();
@@ -92,6 +95,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     }
 
     public void initialize() {
+        if( getToolkit().getEngine().getSAMHeader().getReadGroups().size() > MAX_READ_GROUPS )
+            Utils.scareUser("Number of read groups in the specified file exceeds the number that can be processed in a reasonable amount of memory." +
+                            "To override this limit, use the --MAX_READ_GROUPS (-mrg) parameter");
+
         for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
             if( readGroup.getAttribute("PL") == null )
                 Utils.warnUser(String.format("PL attribute for read group %s is unset; assuming all reads are illumina",readGroup.getReadGroupId()));
