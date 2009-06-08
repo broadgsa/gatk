@@ -120,6 +120,7 @@ public class TraverseByLocusWindows extends TraversalEngine {
             TraversalStatistics.nRecords++;
             SAMRecord read = readIter.next();
 
+
             // apparently, unmapped reads can occur anywhere in the file!
             if ( read.getReadUnmappedFlag() ) {
                 walker.nonIntervalReadAction(read);
@@ -225,6 +226,8 @@ public class TraverseByLocusWindows extends TraversalEngine {
                 rightmostIndex = interval.getStop();
         while (readIter.hasNext() && !done) {
             TraversalStatistics.nRecords++;
+
+
             SAMRecord read = readIter.next();
             reads.add(read);
             if ( read.getAlignmentStart() < leftmostIndex )
