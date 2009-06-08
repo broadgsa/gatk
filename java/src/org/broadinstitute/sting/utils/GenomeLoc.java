@@ -481,6 +481,12 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
         }
         return false;
     }
+    
+    @Override
+    public int hashCode() {
+        return (int)( start << 16 + stop << 4 + contigIndex );
+    }
+
 
     /**
      * Return a new GenomeLoc at this same position.
