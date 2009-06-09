@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.HashMap;
+import java.util.Collections;
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
 
@@ -43,6 +44,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
     @Argument(fullName="MAX_READ_GROUPS", shortName="mrg", required=false, doc="Abort if number of read groups in input file exceeeds this count.")
     public int MAX_READ_GROUPS = 100;
+
+    @Argument(fullName="PLATFORM", shortName="pl", required=false, doc="Only calibrate read groups generated from the given platform (default = Illumina)")
+    public List<String> platforms = Collections.singletonList("ILLUMINA");
 
     int NDINUCS = 16;
     ArrayList<RecalData> flattenData = new ArrayList<RecalData>();
@@ -101,8 +105,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
         for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
             if( readGroup.getAttribute("PL") == null )
-                Utils.warnUser(String.format("PL attribute for read group %s is unset; assuming all reads are illumina",readGroup.getReadGroupId()));
-            if( !isIlluminaReadGroup(readGroup) )
+                Utils.warnUser(String.format("PL attribute for read group %s is unset; assuming all reads are supported",readGroup.getReadGroupId()));
+            if( !isSupportedReadGroup(readGroup) )
                 continue;
             data.put(readGroup.getReadGroupId(), new RecalData[MAX_READ_LENGTH+1][MAX_QUAL_SCORE+1][NDINUCS]);
             for ( int i = 0; i < MAX_READ_LENGTH+1; i++) {
@@ -126,7 +130,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             for (int i =0; i < reads.size(); i++ ) {
                 SAMRecord read = reads.get(i);
                 SAMReadGroupRecord readGroup = read.getHeader().getReadGroup((String)read.getAttribute("RG"));
-                if ( isIlluminaReadGroup(readGroup) &&
+                if ( isSupportedReadGroup(readGroup) &&
                     !read.getReadNegativeStrandFlag() &&
                     (READ_GROUP.equals("none") || read.getAttribute("RG") != null && read.getAttribute("RG").equals(READ_GROUP)) &&
                     (read.getMappingQuality() >= MIN_MAPPING_QUALITY)) {
@@ -394,7 +398,18 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         random_genrator = new Random(123454321); // keep same random seed while debugging
     }
 
-    private boolean isIlluminaReadGroup( SAMReadGroupRecord readGroup ) {
-        return (readGroup.getAttribute("PL") == null || "ILLUMINA".equalsIgnoreCase(readGroup.getAttribute("PL").toString()));
+    /**
+     * Check to see whether this read group should be processed.
+     * @param readGroup
+     * @return
+     */
+    private boolean isSupportedReadGroup( SAMReadGroupRecord readGroup ) {
+        for( String platform: platforms ) {
+            platform = platform.trim();
+            if( readGroup.getAttribute("PL") == null || readGroup.getAttribute("PL").toString().equalsIgnoreCase(platform) )
+                return true;
+        }
+
+        return false;
     }
 }

@@ -8,6 +8,9 @@ R_exe="/broad/tools/apps/R-2.6.0/bin/Rscript"
 # Any special site-specific arguments to pass the JVM.
 jvm_args='-ea -Xmx4096m'
 
+# Which platforms should the calibration tool be run over?
+platforms=['illumina']
+
 # Where to put the output created as part of recalibration.  
 # If editing, please end this variable with a trailing slash.
 output_root = './'
@@ -39,6 +42,9 @@ gatk = resources + 'gatk/GenomeAnalysisTK.jar'
 logistic_regression_script = resources + 'logistic_regression.R'
 empirical_vs_reported_grapher = resources + 'plot_q_emp_stated_hst.R'
 
+# Assemble the platform list into command-line arguments.
+platform_args = ' '.join(['-pl %s' % platform for platform in platforms])
+
 def exit(msg,errorcode):
     print msg
     sys.exit(errorcode)
@@ -59,7 +65,7 @@ def recalibrate():
     'Recalibrate the given bam file'
     # generate the covariates
     print 'generating covariates'
-    generate_covariates = ' '.join((gatk_base_cmdline,'-T CountCovariates','-I',bam,'-mqs 40','--OUTPUT_FILEROOT',output_dir+'initial','--CREATE_TRAINING_DATA','--MIN_MAPPING_QUALITY 1'))
+    generate_covariates = ' '.join((gatk_base_cmdline,'-T CountCovariates','-I',bam,'-mqs 40','--OUTPUT_FILEROOT',output_dir+'initial','--CREATE_TRAINING_DATA','--MIN_MAPPING_QUALITY 1',platform_args))
     returncode = os.system(generate_covariates)
     if returncode != 0:
         exit('Unable to generate covariates',1)
@@ -88,7 +94,7 @@ def evaluate():
     'Evaluate recalibration results.'
     print 'Evaluating recalibration results'
     # regenerate the covariates
-    regenerate_covariates = ' '.join((gatk_base_cmdline,'-T CountCovariates','-I',calibrated_bam,'-mqs 40','--OUTPUT_FILEROOT',output_dir+'recalibrated','--CREATE_TRAINING_DATA','--MIN_MAPPING_QUALITY 1'))
+    regenerate_covariates = ' '.join((gatk_base_cmdline,'-T CountCovariates','-I',calibrated_bam,'-mqs 40','--OUTPUT_FILEROOT',output_dir+'recalibrated','--CREATE_TRAINING_DATA','--MIN_MAPPING_QUALITY 1',platform_args))
     print 'regenerating covariates'
     returncode = os.system(regenerate_covariates)
     if returncode != 0:

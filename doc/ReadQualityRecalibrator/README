@@ -66,6 +66,15 @@ To (only) evaluate a given bam file after calibrating:
 
 python RecalQual.py --evaluate <source bam> <recalibrated bam>
 
+Platforms
+---------
+By default, the recalibrator processes only read groups
+originating from Illumina sequencers.  To enable calibration
+for other platforms, edit the 'platforms' array at the
+top of RecalQual.py.  Platforms specified here should
+case-insensitive match the "PL" attribute of the read
+group in the BAM file.
+
 Output
 ------
 The recalibration process keeps many incremental
