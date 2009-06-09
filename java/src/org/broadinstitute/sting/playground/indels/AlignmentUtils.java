@@ -123,7 +123,7 @@ public class AlignmentUtils {
             switch ( ce.getOperator() ) {
                 case M:
                     for (int j = 0 ; j < ce.getLength() ; j++, refIndex++, readIdx++ ) {
-                        if ( Character.toUpperCase(readSeq.charAt(readIdx)) != Character.toUpperCase(refSeq.charAt(refIndex)) )
+                        if ( refIndex < refSeq.length() && Character.toUpperCase(readSeq.charAt(readIdx)) != Character.toUpperCase(refSeq.charAt(refIndex)) )
                             mismatches++;
                     }
                     break;

@@ -539,7 +539,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 switch ( ce.getOperator() ) {
                     case M:
                         for (int k = 0 ; k < ce.getLength() ; k++, refIdx++, altIdx++ ) {
-                            if ( Character.toUpperCase(readStr.charAt(altIdx)) != Character.toUpperCase(reference.charAt(refIdx)) )
+                            if ( refIdx < reference.length() && Character.toUpperCase(readStr.charAt(altIdx)) != Character.toUpperCase(reference.charAt(refIdx)) )
                                 cleanedMismatchBases[refIdx] += (int)qualStr.charAt(altIdx) - 33;
                         }
                         break;
@@ -626,7 +626,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         // position, we will move insertion left, to the position right after CA. This way, while moving the indel across the repeat
         // on the ref, we can theoretically move it across a non-repeat on the read if the latter has a mismtach.
 
-        
         while ( period < indel_length ) { // we will always get at least trivial period = indelStringLength
                 
                 period = BaseUtils.sequencePeriod(indelString, period+1);
@@ -634,16 +633,16 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 if ( indel_length % period != 0 ) continue; // if indel sequence length is not a multiple of the period, it's not gonna work
 
                 int newIndex = indelIndexOnRef;
-                
+
                 while ( newIndex >= period ) { // let's see if there is a repeat, i.e. if we could also say that same bases at lower position are deleted
-                
+
                     // lets check if bases [newIndex-period,newIndex) immediately preceding the indel on the ref
                     // are the same as the currently checked period of the inserted sequence:
                 
                     boolean match = true;
                 
                     for ( int testRefPos = newIndex - period, indelPos = 0 ; testRefPos < newIndex; testRefPos++, indelPos++) {
-                        if ( Character.toUpperCase(refSeq.charAt(testRefPos)) !=  indelString.charAt(indelPos) ) {
+                        if ( Character.toUpperCase(refSeq.charAt(testRefPos)) != indelString.charAt(indelPos) || indelString.charAt(indelPos) == 'N' ) {
                                 match = false;
                                 break;
                         }
@@ -654,7 +653,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 }
             
                 final int newDifference = indelIndexOnRef - newIndex;
-                if ( newDifference > difference ) difference = newDifference; // deletion should be moved 'difference' bases left 
+                if ( newDifference > difference ) difference = newDifference; // deletion should be moved 'difference' bases left
             
                 if ( period == 1 ) break; // we do not have to check all periods of homonucleotide sequences, we already
                                           // got maximum possible shift after checking period=1 above.
