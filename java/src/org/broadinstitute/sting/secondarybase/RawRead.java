@@ -5,7 +5,7 @@ package org.broadinstitute.sting.secondarybase;
  *
  * @author Kiran Garimella
  */
-public class RawRead {
+public class RawRead implements Comparable<RawRead> {
     private byte lane;
     private short tile;
     private short x;
@@ -16,6 +16,21 @@ public class RawRead {
     private short[][] intensities;
 
     /**
+     * Blank constructor.
+     */
+    public RawRead() {}
+
+    /**
+     * Construct a raw read from the output of a PasteParser (in the order of int, seq, prb).
+     * Takes data from entire read.
+     *
+     * @param pastedReadString  the 3x(fragment length) output array from the PasteParser.
+     */
+    public RawRead(String[][] pastedReadString) {
+        loadRange(pastedReadString, 0, pastedReadString[1][4].length() - 1);
+    }
+
+    /**
      * Construct a raw read from the output of a PasteParser (in the order of int, seq, prb).
      * Takes data within specified cycle ranges.
      *
@@ -24,6 +39,17 @@ public class RawRead {
      * @param cycleEnd          the end cycle for the read (0-based, inclusive)
      */
     public RawRead(String[][] pastedReadString, int cycleBegin, int cycleEnd) {
+        loadRange(pastedReadString, cycleBegin, cycleEnd);
+    }
+
+    /**
+     * Does the actual parsing of the PasteParser output.
+     *
+     * @param pastedReadString  the 3x(fragment length) output array from the PasteParser.
+     * @param cycleBegin        the start cycle for the read (0-based, inclusive)
+     * @param cycleEnd          the end cycle for the read (0-based, inclusive)
+     */
+    private void loadRange(String pastedReadString[][], int cycleBegin, int cycleEnd) {
         lane = Byte.valueOf(pastedReadString[0][0]);
         tile = Short.valueOf(pastedReadString[0][1]);
         x = Short.valueOf(pastedReadString[0][2]);
@@ -62,11 +88,25 @@ public class RawRead {
     public byte getLane() { return lane; }
 
     /**
+     * Set lane number of read.
+     *
+     * @param lane  lane number of read
+     */
+    public void setLane(byte lane) { this.lane = lane; }
+
+    /**
      * Get tile number of read.
      *
      * @return tile number of read
      */
-    public int getTile() { return tile; }
+    public short getTile() { return tile; }
+
+    /**
+     * Set tile number of read.
+     *
+     * @param tile tile number of read
+     */
+    public void setTile(short tile) { this.tile = tile; }
 
     /**
      * Get x-coordinate of read.
@@ -76,11 +116,25 @@ public class RawRead {
     public int getXCoordinate() { return x; }
 
     /**
+     * Set x-coordinate of read.
+     *
+     * @param x  x-coordinate of read
+     */
+    public void setXCoordinate(short x) { this.x = x; }
+
+    /**
      * Get y-coordinate of read.
      *
      * @return y-coordinate of read
      */
     public int getYCoordinate() { return y; }
+
+    /**
+     * Set y-coordinate of read.
+     *
+     * @param y  y-coordinate of read
+     */
+    public void setYCoordinate(short y) { this.y = y; }
 
     /**
      * Get read key (lane:tile:x:y).
@@ -108,9 +162,7 @@ public class RawRead {
      *
      * @return  the read sequence in String form
      */
-    public String getSequenceAsString() {
-        return new String(getSequence());
-    }
+    public String getSequenceAsString() { return new String(getSequence()); }
 
     /**
      * Get the quals.
@@ -146,4 +198,59 @@ public class RawRead {
      * @return the read length
      */
     public int getReadLength() { return sequence.length; }
+
+    /**
+     * Return the sum of the quality scores for this RawRead.
+     *
+     * @return  the sum of the quality scores
+     */
+    public int getQualityScoreSum() {
+        int qualSum = 0;
+        for ( byte qual : quals ) {
+            qualSum  += (int) qual;
+        }
+
+        return qualSum;
+    }
+
+    /**
+     * Compare two RawRead objects by summing their quality scores.  The one with lower aggregate quality is the "lesser" RawRead.
+     *
+     * @param rawRead  the other RawRead
+     * @return -1, 0, or 1 if the RawRead on which this method is called is the lesser one, is equal to the comparison RawRead, or is greater than the comparison RawRead, respectively.
+     */
+    public int compareTo(RawRead rawRead) {
+        int qualSum1 = this.getQualityScoreSum();
+        int qualSum2 = rawRead.getQualityScoreSum();
+
+        if      (qualSum1 < qualSum2) { return -1; }
+        else if (qualSum1 > qualSum2) { return  1; }
+
+        return 0;
+    }
+
+    public RawRead getSubset(int cycleStart, int cycleStop) {
+        RawRead subRead = new RawRead();
+
+        subRead.setLane(lane);
+        subRead.setTile(tile);
+        subRead.setXCoordinate(x);
+        subRead.setYCoordinate(y);
+
+        byte[] newSequence = new byte[cycleStop - cycleStart + 1];
+        byte[] newQuals = new byte[cycleStop - cycleStart + 1];
+        short[][] newIntensities = new short[cycleStop - cycleStart + 1][4];
+
+        for (int cycle = cycleStart, offset = 0; cycle <= cycleStop; cycle++, offset++) {
+            newSequence[offset] = sequence[cycle];
+            newQuals[offset] = quals[cycle];
+            newIntensities[offset] = intensities[cycle];
+        }
+
+        subRead.setSequence(newSequence);
+        subRead.setQuals(newQuals);
+        subRead.setIntensities(newIntensities);
+
+        return subRead;
+    }
 }
