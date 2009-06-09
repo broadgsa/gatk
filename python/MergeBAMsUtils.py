@@ -90,11 +90,11 @@ class MergeFilesSpec:
             sizes = map(greek, sizes)
         return sizes
                 
-    def mergeCmd(self, mergeBin = None, MSD = False):
+    def mergeCmd(self, mergeBin = None, MSD = True, useSamtools = False):
         if mergeBin == None:
             mergeBin = MERGE_BIN
             
-        return picard_utils.mergeBAMCmd(self.getMergedBAM(), self.sources(), mergeBin, MSD = MSD)
+        return picard_utils.mergeBAMCmd(self.getMergedBAM(), self.sources(), mergeBin, MSD = MSD, useSamtools = useSamtools)
         
     def getIndexCmd(self):
         return "samtools index " + self.getMergedBAM()

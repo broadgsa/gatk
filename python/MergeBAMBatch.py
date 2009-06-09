@@ -28,6 +28,9 @@ if __name__ == "__main__":
     parser.add_option("-i", "--ignoreExistingFiles", dest="ignoreExistingFiles",
                         action='store_true', default=False,
                         help="Ignores already written files, if present")
+    parser.add_option("-s", "--useSamtools", dest="useSamtools",
+                        action='store_true', default=False,
+                        help="If present, uses samtools to perform the merge")
     parser.add_option("-m", "--mergeBin", dest="mergeBin",
                         type="string", default=None,
                         help="Path to merge binary")
@@ -61,8 +64,8 @@ if __name__ == "__main__":
                 jobid = None
                 if OPTIONS.ignoreExistingFiles or not os.path.exists(spec.getMergedBAM()):
                     output = spec.getMergedBase() + '.stdout'
-                    cmd = spec.mergeCmd(OPTIONS.mergeBin)
-                    print cmd
+                    cmd = spec.mergeCmd(OPTIONS.mergeBin, useSamtools = OPTIONS.useSamtools)
+                    #print cmd
                     jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, output, just_print_commands = OPTIONS.dry)
     
                 if OPTIONS.ignoreExistingFiles or not os.path.exists(spec.getMergedBAMIndex()):

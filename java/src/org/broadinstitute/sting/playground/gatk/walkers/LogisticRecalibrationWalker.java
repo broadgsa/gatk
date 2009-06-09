@@ -19,8 +19,20 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
     @Argument(shortName="outputBAM", doc="output BAM file", required=false)
     public String outputBamFile = null;
 
+    @Argument(shortName="useCache", doc="If true, uses high-performance caching of logistic regress results.  Experimental", required=false)
+    public boolean useLogisticCache = true;
+
     Map<Pair<String,String>, LogisticRegressor> regressors = new HashMap<Pair<String,String>, LogisticRegressor>();
     private static Logger logger = Logger.getLogger(LogisticRecalibrationWalker.class);
+
+    // maps from [readGroup] -> [prevBase x base -> [cycle, qual, new qual]]
+    HashMap<String, HashMap<String, byte[][]>> cache = new HashMap<String, HashMap<String, byte[][]>>();
+
+    private static byte MAX_Q_SCORE = 64;
+
+
+    @Argument(shortName="maxReadLen", doc="Maximum allowed read length to allow during recalibration, needed for recalibration table allocation", required=false)
+    public static int maxReadLen = 125;
 
     public void initialize() {
         try {
@@ -46,12 +58,19 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
                 }
             }
 
+            if ( useLogisticCache ) System.out.printf("Building recalibration cache%n");
+            
             for ( Map.Entry<Pair<String,String>, LogisticRegressor> e : regressors.entrySet() ) {
                 String readGroup = e.getKey().first;
                 String dinuc = e.getKey().second;
                 LogisticRegressor regressor = e.getValue();
                 logger.debug(String.format("Regressor: %s,%s => %s", readGroup, dinuc, regressor));
+
+                if ( useLogisticCache ) {
+                    addToLogisticCache(readGroup, dinuc, regressor);
+                }
             }
+            if ( useLogisticCache ) System.out.printf("done%n");            
 
             //System.exit(1);
         } catch ( FileNotFoundException e ) {
@@ -89,8 +108,51 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
         return mapping;
     }
 
+    private void addToLogisticCache(final String readGroup, final String dinuc, LogisticRegressor regressor) {
+        System.out.printf("%s x %s ", readGroup, dinuc);
+        byte[][] dataTable = new byte[maxReadLen][MAX_Q_SCORE];
+
+        for ( int cycle = 1; cycle < maxReadLen; cycle++ ) {
+            for ( byte qual = 0; qual < MAX_Q_SCORE; qual++ ) {
+                dataTable[cycle][qual] = regressor2newQual(regressor, cycle, qual);
+            }
+        }
+
+        HashMap<String, byte[][]> lookup1 = cache.containsKey(readGroup) ? cache.get(readGroup) : new HashMap<String, byte[][]>();
+        lookup1.put(dinuc, dataTable);
+        cache.put(readGroup, lookup1);
+    }
 
     public SAMRecord map(char[] ref, SAMRecord read) {
+        if ( useLogisticCache )
+            return mapCached(ref, read);
+        else
+            return mapOriginal(ref, read);
+    }
+
+    private byte cache2newQual(final String readGroup, HashMap<String, byte[][]> RGcache, byte prevBase, byte base, LogisticRegressor regressor, int cycle, byte qual) {
+        //System.out.printf("Lookup %s %c %c %d %d%n", readGroup, prevBase, base, cycle, qual);
+        //String dinuc = String.format("%c%c", (char)prevBase, (char)base);
+        byte[] bp = {prevBase, base};
+        String dinuc = new String(bp);
+
+        //byte newQualCalc = regressor2newQual(regressor, cycle, qual);
+        byte[][] dataTable = RGcache.get(dinuc);
+
+        byte newQualCached = dataTable != null ? dataTable[cycle][qual] : qual;
+        //if ( newQualCached != newQualCalc ) {
+        //    throw new RuntimeException(String.format("Inconsistent quals between the cache and calculation for RG=%s: %s %d %d : %d <> %d",
+        //            readGroup, dinuc, cycle, qual, newQualCalc, newQualCached));
+        //}
+
+        return newQualCached;
+    }
+
+    public SAMRecord mapCached(char[] ref, SAMRecord read) {
+        if ( read.getReadLength() > maxReadLen ) {
+            throw new RuntimeException("Expectedly long read, please increase maxium read len with maxReadLen parameter: " + read.format());
+        }
+
         SAMRecord recalRead = read;
         byte[] bases = read.getReadBases();
         byte[] quals = read.getBaseQualities();
@@ -102,34 +164,20 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
             quals = BaseUtils.reverse(quals);
         }
 
-        String readGroup = read.getAttribute("RG").toString(); 
+        String readGroup = read.getAttribute("RG").toString();
+
+        HashMap<String, byte[][]> RGcache = cache.get(readGroup);
+
         int numBases = read.getReadLength();
         recalQuals[0] = quals[0];   // can't change the first -- no dinuc
-        //recalQuals[numBases-1] = quals[numBases-1]; // can't change last -- no dinuc
+
         for ( int cycle = 1; cycle < numBases; cycle++ ) { // skip first and last base, qual already set because no dinuc
-            // Take into account that previous base is the next base in terms of machine chemistry if this is a negative strand
-            //int cycle = i; //read.getReadNegativeStrandFlag() ? numBases - i - 1 : i;
-            String dinuc = String.format("%c%c", bases[cycle - 1], bases[cycle]);
+            // Take into account that previous base is the next base in terms of machine chemistry if
+            // this is a negative strand
             byte qual = quals[cycle];
-            LogisticRegressor regressor = regressors.get(new Pair<String,String>(readGroup,dinuc));
-            byte newQual;
-
-            if ( regressor != null ) { // no N or some other unexpected bp in the stream
-                double gamma = regressor.regress((double)cycle+1, (double)qual);
-                double expGamma = Math.exp(gamma);
-                double finalP = expGamma / (1+expGamma);
-                newQual = QualityUtils.probToQual(1-finalP);
-                //newQual = -10 * Math.round(logPOver1minusP)
-                /*double POver1minusP = Math.pow(10, logPOver1minusP);
-                P = POver1minusP / (1 + POver1minusP);*/
-                //newQual = QualityUtils.probToQual(P);
-
-                //newQual = (byte)Math.min(Math.round(-10*logPOver1minusP),63);
-                //System.out.printf("Recal %s %d %d %d%n", dinuc, cycle, qual, newQual);
-            }else{
-                newQual = qual;
-            }
-
+            //LogisticRegressor regressor = getLogisticRegressor(readGroup, bases[cycle - 1], bases[cycle]);
+            LogisticRegressor regressor = null;            
+            byte newQual = cache2newQual(readGroup, RGcache, bases[cycle - 1], bases[cycle], regressor, cycle, qual);
             recalQuals[cycle] = newQual;
         }
 
@@ -140,6 +188,112 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
         //System.out.printf("NEW: %s%n", read.format());
         return recalRead;
     }
+
+    // ----------------------------------------------------------------------------------------------------
+    //
+    // Old-style, expensive recalibrator
+    //
+    // ----------------------------------------------------------------------------------------------------
+    private LogisticRegressor getLogisticRegressor(final String readGroup, byte prevBase, byte base) {
+        String dinuc = String.format("%c%c", (char)prevBase, (char)base);
+        return regressors.get(new Pair<String,String>(readGroup,dinuc));
+    }
+
+    private byte regressor2newQual(LogisticRegressor regressor, int cycle, byte qual) {
+        byte newQual = qual;
+        if ( regressor != null ) { // no N or some other unexpected bp in the stream
+            double gamma = regressor.regress((double)cycle+1, (double)qual);
+            double expGamma = Math.exp(gamma);
+            double finalP = expGamma / (1+expGamma);
+            newQual = QualityUtils.probToQual(1-finalP);
+        }
+        return newQual;
+    }
+
+    public SAMRecord mapOriginal(char[] ref, SAMRecord read) {
+        SAMRecord recalRead = read;
+        byte[] bases = read.getReadBases();
+        byte[] quals = read.getBaseQualities();
+        byte[] recalQuals = new byte[quals.length];
+
+        // Since we want machine direction reads not corrected positive strand reads, rev comp any negative strand reads
+        if (read.getReadNegativeStrandFlag()) {
+            bases = BaseUtils.simpleReverseComplement(bases);
+            quals = BaseUtils.reverse(quals);
+        }
+
+        String readGroup = read.getAttribute("RG").toString();
+        int numBases = read.getReadLength();
+        recalQuals[0] = quals[0];   // can't change the first -- no dinuc
+
+        for ( int cycle = 1; cycle < numBases; cycle++ ) { // skip first and last base, qual already set because no dinuc
+            // Take into account that previous base is the next base in terms of machine chemistry if
+            // this is a negative strand
+            byte qual = quals[cycle];
+            LogisticRegressor regressor = getLogisticRegressor(readGroup, bases[cycle - 1], bases[cycle]);
+            byte newQual = regressor2newQual(regressor, cycle, qual);
+            recalQuals[cycle] = newQual;
+        }
+
+        if (read.getReadNegativeStrandFlag())
+            recalQuals = BaseUtils.reverse(quals);
+        //System.out.printf("OLD: %s%n", read.format());
+        read.setBaseQualities(recalQuals);
+        //System.out.printf("NEW: %s%n", read.format());
+        return recalRead;
+    }
+
+//    public SAMRecord mapOriginalUnmodified(char[] ref, SAMRecord read) {
+//        SAMRecord recalRead = read;
+//        byte[] bases = read.getReadBases();
+//        byte[] quals = read.getBaseQualities();
+//        byte[] recalQuals = new byte[quals.length];
+//
+//        // Since we want machine direction reads not corrected positive strand reads, rev comp any negative strand reads
+//        if (read.getReadNegativeStrandFlag()) {
+//            bases = BaseUtils.simpleReverseComplement(bases);
+//            quals = BaseUtils.reverse(quals);
+//        }
+//
+//        String readGroup = read.getAttribute("RG").toString();
+//        int numBases = read.getReadLength();
+//        recalQuals[0] = quals[0];   // can't change the first -- no dinuc
+//        //recalQuals[numBases-1] = quals[numBases-1]; // can't change last -- no dinuc
+//        for ( int cycle = 1; cycle < numBases; cycle++ ) { // skip first and last base, qual already set because no dinuc
+//            // Take into account that previous base is the next base in terms of machine chemistry if this is a negative strand
+//            //int cycle = i; //read.getReadNegativeStrandFlag() ? numBases - i - 1 : i;
+//            String dinuc = String.format("%c%c", bases[cycle - 1], bases[cycle]);
+//            byte qual = quals[cycle];
+//            LogisticRegressor regressor = regressors.get(new Pair<String,String>(readGroup,dinuc));
+//            byte newQual;
+//
+//            if ( regressor != null ) { // no N or some other unexpected bp in the stream
+//                double gamma = regressor.regress((double)cycle+1, (double)qual);
+//                double expGamma = Math.exp(gamma);
+//                double finalP = expGamma / (1+expGamma);
+//                newQual = QualityUtils.probToQual(1-finalP);
+//                //newQual = -10 * Math.round(logPOver1minusP)
+//                /*double POver1minusP = Math.pow(10, logPOver1minusP);
+//                P = POver1minusP / (1 + POver1minusP);*/
+//                //newQual = QualityUtils.probToQual(P);
+//
+//                //newQual = (byte)Math.min(Math.round(-10*logPOver1minusP),63);
+//                //System.out.printf("Recal %s %d %d %d%n", dinuc, cycle, qual, newQual);
+//            }else{
+//                newQual = qual;
+//            }
+//
+//            recalQuals[cycle] = newQual;
+//        }
+//
+//        if (read.getReadNegativeStrandFlag())
+//            recalQuals = BaseUtils.reverse(quals);
+//        //System.out.printf("OLD: %s%n", read.format());
+//        read.setBaseQualities(recalQuals);
+//        //System.out.printf("NEW: %s%n", read.format());
+//        return recalRead;
+//    }
+
 
     public void onTraversalDone(SAMFileWriter output) {
         if ( output != null ) {

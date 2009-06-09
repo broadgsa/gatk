@@ -47,7 +47,7 @@ public class PairwiseDistanceAnalysis extends BasicVariantAnalysis {
                         //out.printf("# Excluding %d %s %s vs. %s %s%n", d, eL, interval, lvL, lastVariantInterval);
                     } else {
                         pairWiseDistances.add(d);
-                        r = String.format("Pairwise-distance %d %s %s%n", d, eL, lvL);
+                        r = String.format("Pairwise-distance %d %s %s", d, eL, lvL);
                     }
                 }
             }

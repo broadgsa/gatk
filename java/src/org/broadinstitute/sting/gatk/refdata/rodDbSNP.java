@@ -181,6 +181,9 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
         } catch( MalformedGenomeLocException ex ) {
             // Just rethrow malformed genome locs; the ROD system itself will deal with these.
             throw ex;
+        } catch( ArrayIndexOutOfBoundsException ex ) {
+            // Just rethrow malformed genome locs; the ROD system itself will deal with these.
+            throw new RuntimeException("Badly formed dbSNP line: " + ex);
         } catch ( RuntimeException e ) {
             System.out.printf("  Exception caught during parsing DBSNP line %s%n", Utils.join(" <=> ", parts));
             throw e;

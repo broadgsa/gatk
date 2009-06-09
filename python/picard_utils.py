@@ -19,6 +19,7 @@ ref = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"
 analysis = "CombineDuplicates"
 
 MERGE_BIN = '/seq/software/picard/current/bin/MergeSamFiles.jar'
+SAMTOOLS_MERGE_BIN = '/seq/dirseq/samtools/current/samtools merge'
 CALL_GENOTYPES_BIN = '/seq/software/picard/current/bin/CallGenotypes.jar'
 
 def CollectDbSnpMatchesCmd(inputGeli, outputFile, lod): 
@@ -152,15 +153,19 @@ def aggregateGeliCalls( sortedGeliCalls ):
     #return [[loc, list(sharedCallsGroup)] for (loc, sharedCallsGroup) in itertools.groupby(sortedGeliCalls, call2loc)]
     return [[loc, list(sharedCallsGroup)] for (loc, sharedCallsGroup) in itertools.groupby(sortedGeliCalls, call2loc)]
 
-def mergeBAMCmd( output_filename, inputFiles, mergeBin = MERGE_BIN, MSD = True ):
-    if type(inputFiles) <> list:
-        inputFiles = list(inputFiles)
-
-    MSDStr = ''
-    if MSD: MSDStr = 'MSD=true'
-
-    return 'java -Xmx4096m -jar ' + mergeBin + ' ' + MSDStr + ' AS=true SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
-    #return 'java -Xmx4096m -jar ' + mergeBin + ' AS=true SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
+def mergeBAMCmd( output_filename, inputFiles, mergeBin = MERGE_BIN, MSD = True, useSamtools = False ):
+    if useSamtools:
+        return SAMTOOLS_MERGE_BIN + ' ' + output_filename + ' ' + ' '.join(inputFiles)
+    else:
+        # use picard
+        if type(inputFiles) <> list:
+            inputFiles = list(inputFiles)
+    
+        MSDStr = ''
+        if MSD: MSDStr = 'MSD=true'
+    
+        return 'java -Xmx4096m -jar ' + mergeBin + ' ' + MSDStr + ' AS=true SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
+        #return 'java -Xmx4096m -jar ' + mergeBin + ' AS=true SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
 
 def getPicardPath(lane, picardRoot = '/seq/picard/'):
     flowcell, laneNo = lane.split('.')

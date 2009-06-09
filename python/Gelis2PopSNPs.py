@@ -50,7 +50,7 @@ def main():
                         
     (OPTIONS, args) = parser.parse_args()
     if len(args) != 2:
-        parser.error("incorrect number of arguments")
+        parser.error("incorrect number of arguments: " + str(args))
     lines = [line.split() for line in open(args[0])]
     nIndividuals = int(args[1])
     

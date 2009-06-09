@@ -271,7 +271,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
 
             do {
                 final String line = parser.next();
-                //System.out.printf("Line is %s%n", line);
+                //System.out.printf("Line is '%s'%n", line);
                 String parts[] = line.split(fieldDelimiter);
                 
                 try {
