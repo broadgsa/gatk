@@ -6,6 +6,7 @@ import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.linalg.Algebra;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.MathUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,6 +38,7 @@ public class BasecallingBaseModel {
     private int numTheories = 1;
 
     private boolean readyToCall = false;
+    private boolean bustedCycle = false;
 
     /**
      * Constructor for BasecallingBaseModel.
@@ -131,7 +133,16 @@ public class BasecallingBaseModel {
 
                 inverseCovariances[basePrevIndex][baseCurIndex] = unscaledCovarianceSums[basePrevIndex][baseCurIndex].copy();
                 inverseCovariances[basePrevIndex][baseCurIndex].assign(F.div(counts[basePrevIndex][baseCurIndex]));
+
+                if (MathUtils.compareDoubles(alg.det(inverseCovariances[basePrevIndex][baseCurIndex]), 0.0) == 0) {
+                    bustedCycle = true;
+                    readyToCall = true;
+
+                    return;
+                }
+                
                 DoubleMatrix2D invcov = alg.inverse(inverseCovariances[basePrevIndex][baseCurIndex]);
+
                 inverseCovariances[basePrevIndex][baseCurIndex] = invcov;
 
                 norms[basePrevIndex][baseCurIndex] = Math.pow(alg.det(invcov), 0.5)/Math.pow(2.0*Math.PI, 2.0);
@@ -155,17 +166,22 @@ public class BasecallingBaseModel {
         }
 
         double[][] likedist = new double[numTheories][4];
-        for (int basePrevIndex = 0; basePrevIndex < numTheories; basePrevIndex++) {
-            for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
-                double norm = norms[basePrevIndex][baseCurIndex];
 
-                DoubleMatrix1D sub = (DoubleFactory1D.dense).make(fourintensity);
-                sub.assign(means[basePrevIndex][baseCurIndex], F.minus);
+        if (bustedCycle) {
+            likedist[0][0] = 1.0;
+        } else {
+            for (int basePrevIndex = 0; basePrevIndex < numTheories; basePrevIndex++) {
+                for (int baseCurIndex = 0; baseCurIndex < 4; baseCurIndex++) {
+                    double norm = norms[basePrevIndex][baseCurIndex];
 
-                DoubleMatrix1D Ax = alg.mult(inverseCovariances[basePrevIndex][baseCurIndex], sub);
-                double exparg = -0.5*alg.mult(sub, Ax);
+                    DoubleMatrix1D sub = (DoubleFactory1D.dense).make(fourintensity);
+                    sub.assign(means[basePrevIndex][baseCurIndex], F.minus);
 
-                likedist[basePrevIndex][baseCurIndex] = norm*Math.exp(exparg);
+                    DoubleMatrix1D Ax = alg.mult(inverseCovariances[basePrevIndex][baseCurIndex], sub);
+                    double exparg = -0.5*alg.mult(sub, Ax);
+
+                    likedist[basePrevIndex][baseCurIndex] = norm*Math.exp(exparg);
+                }
             }
         }
 
