@@ -32,8 +32,8 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     @Argument(fullName="alwaysShowSecondBase",doc="If true, prints dummy bases for the second bases in the BAM file where they are missing",required=false)
     public boolean alwaysShowSecondBase = false;
 
-    @Argument(fullName="showSecondBaseQuals",doc="If true, prints out second base qualities in the pileup",required=false)
-    public boolean showSecondBaseQuals = false;
+    //@Argument(fullName="showSecondBaseQuals",doc="If true, prints out second base qualities in the pileup",required=false)
+    //public boolean showSecondBaseQuals = false;
 
     @Argument(fullName="qualsAsInts",doc="If true, prints out qualities in the pileup as comma-separated integers",required=false)
     public boolean qualsAsInts = false;
@@ -62,12 +62,14 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
         }
         if ( secondBasePileup != null ) extras.append(" ").append(secondBasePileup);
 
+        /*
         if ( showSecondBaseQuals ) {
             String secondQualPileup = pileup.getSecondaryQualPileup();
             if ( secondQualPileup == null )
              secondQualPileup = Utils.dupString((char)(33), bases.length());
             extras.append(" ").append(secondQualPileup);
         }
+        */
 
         String rodString = "";
         for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
