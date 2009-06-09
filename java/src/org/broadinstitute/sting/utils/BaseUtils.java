@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.utils;
 
+import java.util.Random;
+
 /**
  * BaseUtils contains some basic utilities for manipulating nucleotides.
- *
- * @author Kiran Garimella
  */
 public class BaseUtils {
 
@@ -216,6 +216,51 @@ public class BaseUtils {
 
         return ((double) baseCounts[mostFrequentBaseIndex])/((double) sequence.length);
     }
+
+    /**
+     * Return a random base index (A=0, C=1, G=2, T=3).
+     *
+     * @return a random base index (A=0, C=1, G=2, T=3)
+     */
+    static public int getRandomBaseIndex() {
+        return getRandomBaseIndex(-1);
+    }
+
+    /**
+     * Return a random base index, excluding some base index.
+     *
+     * @param excludeBaseIndex the base index to exclude
+     * @return a random base index, excluding the one specified (A=0, C=1, G=2, T=3)
+     */
+    static public int getRandomBaseIndex(int excludeBaseIndex) {
+        int randomBaseIndex = excludeBaseIndex;
+
+        Random generator = new Random();
+        while (randomBaseIndex == excludeBaseIndex) {
+            randomBaseIndex = generator.nextInt(4);
+        }
+
+        return randomBaseIndex;
+    }
+
+    /**
+     * Return a random base (A, C, G, T).
+     *
+     * @return a random base (A, C, G, T)
+     */
+    static public char getRandomBase() {
+        return getRandomBase('.');
+    }
+
+    /**
+     * Return a random base, excluding some base.
+     *
+     * @param excludeBase the base to exclude
+     * @return a random base, excluding the one specified (A, C, G, T)
+     */
+    static public char getRandomBase(char excludeBase) {
+        return BaseUtils.baseIndexToSimpleBase(getRandomBaseIndex(BaseUtils.simpleBaseToBaseIndex(excludeBase)));
+    }
     
     
     /** Computes the smallest period >= minPeriod for the specified string. The period is defined as such p, 
@@ -261,7 +306,6 @@ public class BaseUtils {
     	}
     	return period;
     }
-
 }
 
 /* code snippet for testing sequencePeriod():
