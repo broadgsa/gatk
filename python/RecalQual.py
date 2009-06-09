@@ -16,6 +16,15 @@ output_root = './'
 # If editing, please end this variable with a trailing slash.
 resources='resources/'
 
+import getopt,glob,os,sys
+import LogisticRegressionByReadGroup
+
+# if the provided resources path is relative, convert it to a path
+# relative to the calling script rather than the cwd.
+if not os.path.isabs(resources):
+    application_path = os.path.dirname(sys.argv[0])
+    resources = os.path.abspath(application_path) + '/' + resources
+
 # Where does the reference live?
 reference_base = resources + 'human_b36_both'
 reference      = reference_base + '.fasta'
@@ -29,9 +38,6 @@ dbsnp = resources + 'dbsnp.1kg.rod.out'
 gatk = resources + 'gatk/GenomeAnalysisTK.jar'
 logistic_regression_script = resources + 'logistic_regression.R'
 empirical_vs_reported_grapher = resources + 'plot_q_emp_stated_hst.R'
-
-import getopt,glob,os,sys
-import LogisticRegressionByReadGroup
 
 def exit(msg,errorcode):
     print msg
@@ -121,6 +127,8 @@ for opt,arg in opts:
 do_recalibration = not (evaluate_requested and not recalibrate_requested)
 # Only evaluate if the user specifically requested evaluation.
 do_evaluation = evaluate_requested
+
+print 'Looking for supplemental files in ' + resources
 
 # check that the input bam file exists, and that the bam is indexed.
 bam = args[0]
