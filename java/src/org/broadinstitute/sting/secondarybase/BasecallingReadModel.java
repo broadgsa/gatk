@@ -232,6 +232,9 @@ public class BasecallingReadModel {
         int actualBasePrevIndex = (correctForContext && cycle > 0) ? BaseUtils.simpleBaseToBaseIndex(basePrev) : 0;
         int actualBaseCurIndex = BaseUtils.simpleBaseToBaseIndex(baseCur);
 
+        if (actualBasePrevIndex == -1) { actualBasePrevIndex = BaseUtils.getRandomBaseIndex(); }
+        if (actualBaseCurIndex == -1) { actualBaseCurIndex = BaseUtils.getRandomBaseIndex(); }
+
         double residualTheories = (double) (dist.length*dist[0].length - 1);
 
         for (int basePrevIndex = 0; basePrevIndex < dist.length; basePrevIndex++) {
