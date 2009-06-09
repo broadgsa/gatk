@@ -18,6 +18,11 @@ public class BaseUtilsTest extends BaseTest {
         compareFrequentBaseFractionToExpected("ACCCCTTTTG", 4.0/10.0);
     }
 
+    private void compareFrequentBaseFractionToExpected(String sequence, double expected) {
+        double fraction = BaseUtils.mostFrequentBaseFraction(sequence.getBytes());
+        Assert.assertTrue(MathUtils.compareDoubles(fraction, expected) == 0);
+    }
+
     @Test
     public void testTransitionTransversion() {
         logger.warn("Executing testTransitionTransversion");
@@ -45,8 +50,18 @@ public class BaseUtilsTest extends BaseTest {
         Assert.assertTrue( BaseUtils.SNPSubstitutionType( 'a', 'c' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
     }
 
-    private void compareFrequentBaseFractionToExpected(String sequence, double expected) {
-        double fraction = BaseUtils.mostFrequentBaseFraction(sequence.getBytes());
-        Assert.assertTrue(MathUtils.compareDoubles(fraction, expected) == 0);
+    @Test
+    public void testReverseComplementString() {
+        logger.warn("Executing testReverseComplementString");
+
+        compareRCStringToExpected("ACGGT", "ACCGT");
+        compareRCStringToExpected("TCGTATATCTCGCTATATATATATAGCTCTAGTATA", "TATACTAGAGCTATATATATATAGCGAGATATACGA");
+        compareRCStringToExpected("AAAN", "NTTT");
+    }
+
+    private void compareRCStringToExpected(String fw, String rcExp) {
+        String rcObs = BaseUtils.simpleReverseComplement(fw);
+
+        Assert.assertTrue(rcObs.equals(rcExp));
     }
 }
