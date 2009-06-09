@@ -83,17 +83,17 @@ public class BasecallingStats {
      * @return nicely formatted string containing basecalling stats
      */
     public String toString() {
-        return String.format("%% bases consistent: %d/%d (%2.2f%%)", getBasesConsistent(), getBasesTotal(), getPercentConsistent());
+        return String.format("  Reads seen: %d; %% bases consistent: %d/%d (%2.2f%%)", getReadsTotal(), getBasesConsistent(), getBasesTotal(), getPercentConsistent());
     }
 
     /**
-     * Periodically print a line containing basecalling stats.
+     * Periodically print a line containing basecalling stats after having seen a certain number of reads.
      *
-     * @param interval  the periodicity of the messages given in number of bases observed
+     * @param interval  the periodicity (in number of reads) of the messages given in number of bases observed
      */
     public void notifyOnInterval(int interval) {
-        if (getBasesTotal() > 0 && getBasesTotal() % interval == 0) {
-            System.out.printf("%s\r", toString());
+        if (getReadsTotal() > 0 && getReadsTotal() % interval == 0) {
+            System.out.printf("%s\n", toString());
         }
     }
 
