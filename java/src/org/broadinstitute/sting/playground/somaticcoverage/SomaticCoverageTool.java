@@ -43,7 +43,7 @@ import java.util.ArrayList;
 public class SomaticCoverageTool extends CommandLineExecutable {
 
     // the two sam/bam files, one for cancer, one for normal
-    @Argument(fullName = "bam_files", shortName = "I", doc = "The bam files, one for the tumor one for the normal", required = true)
+    @Argument(fullName = "bam_file", shortName = "I", doc = "The bam files, one for the tumor one for the normal", required = true)
     public List<File> samFiles = new ArrayList<File>();
 
 
@@ -70,7 +70,7 @@ public class SomaticCoverageTool extends CommandLineExecutable {
     /** override any arguments we see fit. */
     protected void overrideArguments() {
         this.argCollection = GATKArgumentCollection.unmarshal("SomaticCoverage.xml");
-        this.argCollection.intervals = "CancerIntervals.interval";
+        this.argCollection.intervals = "CancerIntervals.list";
         this.argCollection.samFiles = samFiles;
     }
 }
