@@ -77,6 +77,12 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	@Override
 	public Integer map(char[] ref, SAMRecord read) {
 		
+		if ( read.getReadUnmappedFlag() && read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX &&
+				read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ) {
+			System.out.println("I think I reached unmapped reads at the end of the file(s) and I am done...");
+			return -1;
+		}
+		
 		if ( read.getReadUnmappedFlag() ||
 			 read.getDuplicateReadFlag() ||
 			 read.getNotPrimaryAlignmentFlag() ||
@@ -264,6 +270,10 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	
 	@Override
 	public Integer reduce(Integer value, Integer sum) {
+		if ( value == -1 ) {
+			onTraversalDone(sum);
+			System.exit(1);
+		}
 		sum += value;
 		return sum;
 	}
