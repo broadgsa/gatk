@@ -37,6 +37,26 @@ abstract public class BasicPileup implements Pileup {
         return bases.toString();
     }
 
+    public static String baseWithStrandPileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
+        StringBuilder bases = new StringBuilder();
+
+        for ( int i = 0; i < reads.size(); i++ ) {
+            SAMRecord read = reads.get(i);
+            int offset = offsets.get(i);
+
+            char base = (char) read.getReadBases()[offset];
+
+            base = Character.toUpperCase(base);
+            if (read.getReadNegativeStrandFlag()) {
+                base = Character.toLowerCase(base);
+            }
+
+            bases.append(base);
+        }
+
+        return bases.toString();
+    }
+
     public static ArrayList<Byte> basePileup( List<SAMRecord> reads, List<Integer> offsets ) {
         ArrayList<Byte> bases = new ArrayList(reads.size());
         for ( int i = 0; i < reads.size(); i++ ) {
@@ -97,10 +117,9 @@ abstract public class BasicPileup implements Pileup {
 
             byte[] compressedQuals = (byte[]) read.getAttribute("SQ");
             byte base2;
-            //byte qual2;
+            
             if (compressedQuals != null && compressedQuals.length == read.getReadLength()) {
                 base2 = (byte) BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(compressedQuals[offset]));
-                //qual2 = QualityUtils.probToQual(QualityUtils.compressedQualityToProb(compressedQuals[offset]));
                 hasAtLeastOneSQField = true;
             } else {
                 base2 = (byte) '.';

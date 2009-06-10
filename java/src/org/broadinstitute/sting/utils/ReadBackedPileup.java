@@ -50,6 +50,10 @@ public class ReadBackedPileup extends BasicPileup {
         return basePileupAsString(reads, offsets);
     }
 
+    public String getBasesWithStrand() {
+        return baseWithStrandPileupAsString(reads, offsets);
+    }
+
     public String getQuals() {
         return qualPileupAsString(reads, offsets);
     }
@@ -89,6 +93,15 @@ public class ReadBackedPileup extends BasicPileup {
                 getLocation().getContig(), getLocation().getStart(),    // chromosome name and coordinate
                 getRef(),                                               // reference base
                 getBases(),
+                qualsAsInts ? getQualsAsInts() : getQuals(),
+                qualsAsInts ? getMappingQualsAsInts() : getMappingQuals() );
+    }
+
+    public String getPileupWithStrandString(boolean qualsAsInts) {
+        return String.format("%s %s %s %s %s %s",
+                getLocation().getContig(), getLocation().getStart(),    // chromosome name and coordinate
+                getRef(),                                               // reference base
+                getBasesWithStrand(),
                 qualsAsInts ? getQualsAsInts() : getQuals(),
                 qualsAsInts ? getMappingQualsAsInts() : getMappingQuals() );
     }
