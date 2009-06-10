@@ -2,12 +2,15 @@ package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
+import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
@@ -52,16 +55,16 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			// this is an ugly hack: we want to be able to tell what file (tumor/normal sample) each read came from,
 			// but reads do not carry this information!
 			
-			SAMFileReader rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(0));
-			for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
-				normal_samples.add(rec.getSample());
-			}
-			rn.close();
-			rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(1));
-			for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
-				tumor_samples.add(rec.getSample());
-			}
-			rn.close();
+//			SAMFileReader rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(0));
+//			for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
+//				normal_samples.add(rec.getSample());
+//			}
+//			rn.close();
+//			rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(1));
+//			for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
+//				tumor_samples.add(rec.getSample());
+//			}
+//			rn.close();
 			
 		} else {
 			if ( nSams != 1 ) System.out.println("WARNING: multiple input files specified. \n"+
@@ -72,6 +75,36 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		} catch (IOException e) {
 			throw new StingException("Failed to open file for writing BED output");
 		}
+	}
+	
+	void assignReadGroups(final SAMFileHeader mergedHeader) {
+		
+		Set<String> normal = new HashSet<String>(); // list normal samples here
+		Set<String> tumor = new HashSet<String>(); // list tumor samples here
+		
+		SAMFileReader rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(0));
+		for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
+			normal.add(new String(rec.getSample()));
+		}
+		rn.close();
+		rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(1));
+		for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
+			tumor.add(new String(rec.getSample()));
+		}
+		rn.close();		
+
+		// now we know what samples are normal, and what are tumor; let's assign dynamic read groups we get in merged header:
+		for ( SAMReadGroupRecord mr : mergedHeader.getReadGroups() ) {
+			if ( normal.contains(mr.getSample() ) ) {
+				normal_samples.add( new String(mr.getReadGroupId()) );
+				System.out.println("Read group "+ mr.getReadGroupId() + "--> Sample "+ mr.getSample() + " (normal)");
+			} else if ( tumor.contains(mr.getSample() ) ) {
+				tumor_samples.add( new String(mr.getReadGroupId()) );
+				System.out.println("Read group "+ mr.getReadGroupId() + "--> Sample "+ mr.getSample() + " (tumor)");
+			} else throw new StingException("Unrecognized sample "+mr.getSample() +" in merged SAM stream");
+		}
+		System.out.println();
+		
 	}
 	
 	@Override
@@ -108,32 +141,41 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			throw new StingException("Read "+read.getReadName()+": out of order on the contig");
 		}
 		
-		// reads are sorted; we are not going to see any more coverage or new indels prior
-		// to current read's start position!
-		
-		if ( call_somatic ) emit_somatic( read.getAlignmentStart() );
-		else emit( read.getAlignmentStart() );
-		
 		
 		if ( read.getAlignmentEnd() > coverage.getStop()) {
-			// should never happen
-			throw new StingException("Read "+read.getReadName()+": out of coverage window bounds.\n"+
+			
+			// we don't emit anything until we reach a read that does not fit into the current window.
+			// At that point we shift the window to the start of that read and emit everything prior to 
+			// that position (reads are sorted, so we are not gonna see any more coverage at those lower positions)
+			
+			if ( call_somatic ) emit_somatic( read.getAlignmentStart() );
+			else emit( read.getAlignmentStart() );
+
+			if ( read.getAlignmentEnd() > coverage.getStop()) {
+				// ooops, looks like the read does not fit into the current window!!
+				throw new StingException("Read "+read.getReadName()+": out of coverage window bounds.Probably window is too small.\n"+
 					"Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
 					read.getAlignmentStart()+"; end="+read.getAlignmentEnd()+"; window start="+coverage.getStart()+
 					"; window end="+coverage.getStop());
+			}
 		}
 		
 		if ( call_somatic ) {
+			
+			// this is a hack. currently we can get access to the merged header only through the read,
+			// so below we figure out which of the reassigned read groups in the merged stream are normal
+			// and which are tumor, and we make sure we do it only once:
+			if ( normal_samples.size() == 0 ) assignReadGroups(read.getHeader()); 
+			
 			String rg = (String)read.getAttribute("RG");
+			if ( rg == null ) throw new StingException("Read "+read.getReadName()+" has no read group in merged stream");
 			
-			String sample = read.getHeader().getReadGroup(rg).getSample();
-			
-			if ( normal_samples.contains(sample) ) {
+			if ( normal_samples.contains(rg) ) {
 				normal_coverage.add(read,ref);
-			} else if ( tumor_samples.contains(sample) ) {
+			} else if ( tumor_samples.contains(rg) ) {
 				coverage.add(read,ref);
 			} else {
-				throw new StingException("Unrecognized sample: "+sample);
+				throw new StingException("Unrecognized read group in merged stream: "+rg);
 			}
 		} else { 
 			coverage.add(read, ref);
@@ -229,8 +271,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			
 			if ( (double)total_variant_count_tumor > 0.3*tumor_cov && (double) max_variant_count_tumor > 0.7*total_variant_count_tumor ) {
 				
-				System.out.println(refName+"\t"+(pos-1)+"\t"+(event_length_tumor > 0 ? pos-1+event_length_tumor : pos-1)+
-							"\t"+(event_length_tumor >0? "-":"+")+indelStringTumor +":"+total_variant_count_tumor+"/"+tumor_cov);
+				String message = refName+"\t"+(pos-1)+"\t"+(event_length_tumor > 0 ? pos-1+event_length_tumor : pos-1)+
+							"\t"+(event_length_tumor >0? "-":"+")+indelStringTumor +":"+total_variant_count_tumor+"/"+tumor_cov;
 				if ( normal_variants.size() == 0 ) { 		
 			
 					try {
@@ -241,10 +283,11 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 						e.printStackTrace();
 						throw new StingException("Error encountered while writing into output BED file");
 					}
-					System.out.println("INDICATION FOR SOMATIC\n---------------------------\n");
+					message += "\tSOMATIC";
 				} else {
-					System.out.println("INDICATION FOR GERMLINE\n---------------------------\n");
+					message += "\tGERMLINE";
 				}
+				logger.info(message);
 			}
 //			for ( IndelVariant var : variants ) {
 //				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
