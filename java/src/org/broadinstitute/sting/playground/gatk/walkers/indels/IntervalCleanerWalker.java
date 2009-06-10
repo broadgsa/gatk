@@ -196,7 +196,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         return sum;
     }
 
-    private boolean readIsClipped(SAMRecord read) {
+    private static boolean readIsClipped(SAMRecord read) {
         final Cigar c = read.getCigar();
         final int n = c.numCigarElements();
         if ( c.getCigarElement(n-1).getOperator() == CigarOperator.S ||
@@ -204,12 +204,26 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         return false;
     }
 
+    private static String hashIndel(AlignedRead read) {
+        final Cigar c = read.getCigar();
+        final int start = read.getAlignmentStart() + c.getCigarElement(0).getLength() - 1;
+        StringBuffer sb = new StringBuffer();
+        sb.append(start);
+        if ( c.getCigarElement(1).getOperator() == CigarOperator.D )
+            sb.append("D");
+        else
+            sb.append("I");
+        sb.append(c.getCigarElement(1).getLength());
+        return sb.toString();
+    }
+
     private void clean(List<SAMRecord> reads, String reference, GenomeLoc interval) {
 
         long leftmostIndex = interval.getStart();
-        ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();
-        ArrayList<AlignedRead> altReads = new ArrayList<AlignedRead>();
-        ArrayList<Boolean> altAlignmentsToTest = new ArrayList<Boolean>();
+        ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();           // reads that perfectly match ref
+        LinkedList<AlignedRead> altReads = new LinkedList<AlignedRead>();     // reads that don't perfectly match
+        LinkedList<Boolean> altAlignmentsToTest = new LinkedList<Boolean>();  // should we try to make an alt consensus from the corresponding read in altReads?
+        HashSet<String> priorIndelsToTest = new HashSet<String>();            // list of indels seen in the prior alignments to test (so we don't duplicate)
         int totalMismatchSum = 0;
 
         // decide which reads potentially need to be cleaned
@@ -236,11 +250,11 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 totalMismatchSum += mismatchScore;
                 aRead.setMismatchScoreToReference(mismatchScore);
             }
-            // otherwise, if it has an indel, let's see if that's the best consensus
-            else if ( numBlocks == 2 ) {
+            // otherwise, if it has an indel, let's see if that's the best consensus (one instance per indel though)
+            else if ( numBlocks == 2 && priorIndelsToTest.add(hashIndel(aRead))) {
                 aRead.doNotRealign();
-                altReads.add(aRead);
-                altAlignmentsToTest.add(true);
+                altReads.addFirst(aRead);
+                altAlignmentsToTest.addFirst(true);
             }
             // otherwise, we can emit it as is
             else {
