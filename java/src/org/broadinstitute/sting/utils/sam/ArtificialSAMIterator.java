@@ -109,7 +109,7 @@ public class ArtificialSAMIterator implements PeekingStingIterator {
         return false;
     }
 
-    private boolean createNextRead() {
+    protected boolean createNextRead() {
         if (currentRead >= rCount) {
             currentChromo++;
             currentRead = 0;
@@ -143,6 +143,10 @@ public class ArtificialSAMIterator implements PeekingStingIterator {
         throw new UnsupportedOperationException("You've tried to remove on a StingSAMIterator (unsupported), not to mention that this is a fake iterator.");
     }
 
+    /**
+     * return this iterator, for the iterable interface
+     * @return
+     */
     public Iterator<SAMRecord> iterator() {
         return this;
     }
