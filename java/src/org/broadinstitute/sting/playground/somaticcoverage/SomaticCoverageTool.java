@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.GATKArgumentCollection;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -69,8 +70,11 @@ public class SomaticCoverageTool extends CommandLineExecutable {
 
     /** override any arguments we see fit. */
     protected void overrideArguments() {
-        this.argCollection = GATKArgumentCollection.unmarshal("SomaticCoverage.xml");
-        this.argCollection.intervals = "CancerIntervals.list";
+        try {
+            this.argCollection = GATKArgumentCollection.unmarshal(this.getClass().getResource("/src/org/broadinstitute/sting/playground/somaticcoverage/SomaticCoverage.xml").openStream());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         this.argCollection.samFiles = samFiles;
     }
 }

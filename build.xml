@@ -103,11 +103,14 @@
     
         <jar jarfile="dist/SomaticCoverage.jar" whenmanifestonly="skip">
           <fileset dir="build">
-            <include name="**/*.class"/>
-            <exclude name="**/utils/**"/>
-            <exclude name="**/gatk/**"/>
+            <include name="**/somaticcoverage/*.class"/>
+            <include name="**/walkers/SomaticCoverageWalker.class"/>
+            
           </fileset>
-          <manifest>
+          <fileset dir="java">
+            <include name="**/somaticcoverage/*.xml"/>
+          </fileset>
+            <manifest>
             <attribute name="Main-Class" value="org.broadinstitute.sting.playground.somaticcoverage.SomaticCoverageTool" />
           </manifest>
         </jar>

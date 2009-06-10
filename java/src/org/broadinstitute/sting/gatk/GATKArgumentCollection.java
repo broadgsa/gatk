@@ -8,6 +8,7 @@ import org.simpleframework.xml.stream.Format;
 import org.simpleframework.xml.stream.HyphenStyle;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,11 +34,6 @@ import java.util.Map;
 /**
  * @author aaron
  * @version 1.0
- * @date May 7, 2009
- * <p/>
- * Class ArgumentObject
- * <p/>
- * Encapsolute the massively large list of possible parameters we take in the Genome Analysis tool
  */
 @Root
 public class GATKArgumentCollection {
@@ -50,102 +46,102 @@ public class GATKArgumentCollection {
     public GATKArgumentCollection() {
     }
 
-    @Element(required=false)
+    @Element(required = false)
     public String analysisName = null;
 
-    @ElementMap(entry = "analysis_argument", key = "key", attribute = true, inline = true, required=false)
-    public Map<String, String> walkerArgs = new HashMap<String, String>();    
+    @ElementMap(entry = "analysis_argument", key = "key", attribute = true, inline = true, required = false)
+    public Map<String, String> walkerArgs = new HashMap<String, String>();
 
     // parameters and their defaults
-    @ElementList(required=false)
+    @ElementList(required = false)
     @Argument(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
     public List<File> samFiles = new ArrayList<File>();
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.", required = false)
-    public String intervals = null;    
+    public String intervals = null;
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
 
-    @ElementList(required=false)
+    @ElementList(required = false)
     @Argument(fullName = "rodBind", shortName = "B", doc = "Bindings for reference-ordered data, in the form <name>,<type>,<file>", required = false)
     public ArrayList<String> RODBindings = new ArrayList<String>();
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "DBSNP", shortName = "D", doc = "DBSNP file", required = false)
     public String DBSNPFile = null;
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "hapmap", shortName = "H", doc = "Hapmap file", required = false)
     public String HAPMAPFile = null;
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "hapmap_chip", shortName = "hc", doc = "Hapmap chip file", required = false)
     public String HAPMAPChipFile = null;
 
     /** An output file presented to the walker. */
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "out", shortName = "o", doc = "An output file presented to the walker.  Will overwrite contents if file exists.", required = false)
     public String outFileName = null;
 
     /** An error output file presented to the walker. */
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "err", shortName = "e", doc = "An error output file presented to the walker.  Will overwrite contents if file exists.", required = false)
     public String errFileName = null;
 
     /** A joint file for both 'normal' and error output presented to the walker. */
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "outerr", shortName = "oe", doc = "A joint file for 'normal' and error output presented to the walker.  Will overwrite contents if file exists.", required = false)
     public String outErrFileName = null;
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "all_loci", shortName = "A", doc = "Should we process all loci, not just those covered by reads", required = false)
-    public Boolean walkAllLoci = false;    
+    public Boolean walkAllLoci = false;
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "maximum_reads", shortName = "M", doc = "Maximum number of iterations to process before exiting, the lower bound is zero.  Intended only for testing", required = false)
     public Integer maximumEngineIterations = -1;
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "sort_on_the_fly", shortName = "sort", doc = "Maximum number of reads to sort on the fly", required = false)
     public Integer maximumReadSorts = null;
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "bam_compression", shortName = "compress", doc = "Compression level to use for writing BAM files", required = false)
     public Integer BAMcompression = null;
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "filterZeroMappingQualityReads", shortName = "fmq0", doc = "If true, mapping quality zero reads will be filtered at the lowest GATK level.  Vastly improves performance at areas with abnormal depth due to mapping Q0 reads", required = false)
     public Boolean filterZeroMappingQualityReads = false;
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "downsample_to_fraction", shortName = "dfrac", doc = "Fraction [0.0-1.0] of reads to downsample to", required = false)
     public Double downsampleFraction = null;
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to", required = false)
-    public Integer downsampleCoverage = null;    
+    public Integer downsampleCoverage = null;
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation (LENIENT|SILENT|STRICT)", required = false)
     public String strictnessLevel = "silent";
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations, nothing will be checked at runtime.", required = false)
-    public Boolean unsafe = false;    
+    public Boolean unsafe = false;
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "threaded_IO", shortName = "P", doc = "If set, enables threaded I/O operations", required = false)
     public Boolean enabledThreadedIO = false;
 
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "disablethreading", shortName = "dt", doc = "Disable experimental threading support.", required = false)
     public Boolean disableThreading = false;
 
     /** How many threads should be allocated to this analysis. */
-    @Element(required=false)
+    @Element(required = false)
     @Argument(fullName = "numthreads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
     public int numberOfThreads = 1;
 
@@ -155,7 +151,7 @@ public class GATKArgumentCollection {
      * @param collection the GATKArgumentCollection to load into
      * @param outputFile the file to write to
      */
-    public static void marshal(GATKArgumentCollection collection, String outputFile) {
+    public static void marshal( GATKArgumentCollection collection, String outputFile ) {
         Serializer serializer = new Persister(new Format(new HyphenStyle()));
         File result = new File(outputFile);
         try {
@@ -170,7 +166,7 @@ public class GATKArgumentCollection {
      *
      * @param filename the filename to marshal from
      */
-    public static GATKArgumentCollection unmarshal(String filename) {
+    public static GATKArgumentCollection unmarshal( String filename ) {
         Serializer serializer = new Persister(new Format(new HyphenStyle()));
         File source = new File(filename);
         try {
@@ -182,12 +178,30 @@ public class GATKArgumentCollection {
     }
 
     /**
+     * unmashall the object from a configuration file
+     *
+     * @param file the inputstream to marshal from
+     */
+    public static GATKArgumentCollection unmarshal( InputStream file ) {
+        Serializer serializer = new Persister(new Format(new HyphenStyle()));
+        try {
+            GATKArgumentCollection example = serializer.read(GATKArgumentCollection.class, file);
+            return example;
+        } catch (Exception e) {
+            throw new StingException("Failed to marshal the data to file " + file.toString(), e);
+        }
+    }
+
+
+    /**
      * test equality between two arg collections.  This function defines the statement:
      * "not fun to write"
+     *
      * @param other the other collection
+     *
      * @return true if they're equal
      */
-    public boolean equals(GATKArgumentCollection other) {        
+    public boolean equals( GATKArgumentCollection other ) {
         if (other.samFiles.size() != samFiles.size()) {
             return false;
         }
@@ -245,24 +259,24 @@ public class GATKArgumentCollection {
         if (!other.unsafe.equals(this.unsafe)) {
             return false;
         }
-        if ((other.maximumReadSorts == null && this.maximumReadSorts != null) ||
-            (other.maximumReadSorts != null && !other.maximumReadSorts.equals(this.maximumReadSorts))) {
+        if (( other.maximumReadSorts == null && this.maximumReadSorts != null ) ||
+                ( other.maximumReadSorts != null && !other.maximumReadSorts.equals(this.maximumReadSorts) )) {
             return false;
         }
-        if ((other.BAMcompression == null && this.BAMcompression != null) ||
-            (other.BAMcompression != null && !other.BAMcompression.equals(this.BAMcompression))) {
+        if (( other.BAMcompression == null && this.BAMcompression != null ) ||
+                ( other.BAMcompression != null && !other.BAMcompression.equals(this.BAMcompression) )) {
             return false;
         }
-        if ((other.filterZeroMappingQualityReads == null && this.filterZeroMappingQualityReads != null) ||
-            (other.filterZeroMappingQualityReads != null && !other.filterZeroMappingQualityReads.equals(this.filterZeroMappingQualityReads))) {
+        if (( other.filterZeroMappingQualityReads == null && this.filterZeroMappingQualityReads != null ) ||
+                ( other.filterZeroMappingQualityReads != null && !other.filterZeroMappingQualityReads.equals(this.filterZeroMappingQualityReads) )) {
             return false;
         }
-        if ((other.downsampleFraction == null && this.downsampleFraction != null) ||
-            (other.downsampleFraction != null && !other.downsampleFraction.equals(this.downsampleFraction))) {
+        if (( other.downsampleFraction == null && this.downsampleFraction != null ) ||
+                ( other.downsampleFraction != null && !other.downsampleFraction.equals(this.downsampleFraction) )) {
             return false;
         }
-        if ((other.downsampleCoverage == null && this.downsampleCoverage != null) ||
-            (other.downsampleCoverage != null && !other.downsampleCoverage.equals(this.downsampleCoverage))) {
+        if (( other.downsampleCoverage == null && this.downsampleCoverage != null ) ||
+                ( other.downsampleCoverage != null && !other.downsampleCoverage.equals(this.downsampleCoverage) )) {
             return false;
         }
         if (!other.walkAllLoci.equals(this.walkAllLoci)) {
