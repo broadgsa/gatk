@@ -5,11 +5,9 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.RODIterator;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
 
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 /**
  * User: hanna
  * Date: May 21, 2009
@@ -30,20 +28,20 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
     /**
      * The reference-ordered data itself.
      */
-    private final ReferenceOrderedData<? extends ReferenceOrderedDatum> rod;
+    private final ReferenceOrderedData rod;
 
     /**
      * A pool of iterators for navigating through the genome.
      */
-    private IteratorPool iteratorPool = null;
+    private ReferenceOrderedDataPool iteratorPool = null;
 
     /**
      * Create a new reference-ordered data source.
      * @param rod
      */
-    public ReferenceOrderedDataSource( ReferenceOrderedData<? extends ReferenceOrderedDatum> rod) {
+    public ReferenceOrderedDataSource( ReferenceOrderedData rod) {
         this.rod = rod;
-        this.iteratorPool = new IteratorPool( rod );
+        this.iteratorPool = new ReferenceOrderedDataPool( rod );
     }
 
     /**
@@ -69,7 +67,59 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * @param iterator Iterator to close.
      */
     public void close( RODIterator iterator ) {
-        this.iteratorPool.close(iterator);        
+        this.iteratorPool.release(iterator);        
+    }
+
+}
+
+/**
+ * A pool of reference-ordered data iterators.
+ */
+class ReferenceOrderedDataPool extends ResourcePool<RODIterator,RODIterator> {
+    private final ReferenceOrderedData<? extends ReferenceOrderedDatum> rod;
+
+    public ReferenceOrderedDataPool( ReferenceOrderedData<? extends ReferenceOrderedDatum> rod ) {
+        this.rod = rod;
+    }
+
+    /**
+     * Create a new iterator from the existing reference-ordered data.  This new iterator is expected
+     * to be completely independent of any other iterator.
+     * @param position @{inheritedDoc}
+     * @return The newly created resource.
+     */
+    public RODIterator createNewResource( GenomeLoc position ) {
+        return rod.iterator();
+    }
+
+    /**
+     * Finds the best existing ROD iterator from the pool.  In this case, the best existing ROD is defined as
+     * the first one encountered that is at or before the given position.
+     * @param position @{inheritedDoc}
+     * @param resources @{inheritedDoc}
+     * @return @{inheritedDoc}
+     */
+    public RODIterator selectBestExistingResource( GenomeLoc position, List<RODIterator> resources ) {
+        for( RODIterator iterator: resources ) {
+            if( (iterator.position() == null && iterator.hasNext()) ||
+                (iterator.position() != null && iterator.position().isBefore(position)) )
+                return iterator;
+        }
+        return null;
+    }
+
+    /**
+     * In this case, the iterator is the resource.  Pass it through.
+     */
+    public RODIterator createIteratorFromResource( GenomeLoc position, RODIterator resource ) {
+        return resource;
+    }
+
+    /**
+     * Don't worry about closing the resource; let the file handles expire naturally for the moment.
+     */
+    public void closeResource(  RODIterator resource ) {
+        
     }
 }
 

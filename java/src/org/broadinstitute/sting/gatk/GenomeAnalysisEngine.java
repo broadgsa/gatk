@@ -8,8 +8,6 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.RODIterator;
-import org.broadinstitute.sting.gatk.refdata.IntervalRodIterator;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
@@ -112,7 +110,7 @@ public class GenomeAnalysisEngine {
         logger.info("Strictness is " + strictness);
 
         // perform validation steps that are common to all the engines
-        genericEngineSetup(strictness);
+        genericEngineSetup();
 
         // parse out any genomic location they've provided
         //List<GenomeLoc> locationsList = setupIntervalRegion();
@@ -154,7 +152,7 @@ public class GenomeAnalysisEngine {
         ValidationStringency strictness = getValidationStringency();
 
         logger.info("Strictness is " + strictness);
-        genericEngineSetup(strictness);
+        genericEngineSetup();
 
         // store the results of the walker run
         walkerReturn = engine.traverse(my_walker);
@@ -177,13 +175,13 @@ public class GenomeAnalysisEngine {
             // create the MicroScheduler
             if( argCollection.walkAllLoci )
                 Utils.scareUser("Argument --all_loci is deprecated.  Please annotate your walker with @By(DataSource.REFERENCE) to perform a by-reference traversal.");
-            microScheduler = MicroScheduler.create(my_walker, new Reads(argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
+            microScheduler = MicroScheduler.create(my_walker, extractSourceInfoFromArguments(argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
             engine = microScheduler.getTraversalEngine();
         }
         else if (my_walker instanceof ReadWalker) {
             if (argCollection.referenceFile == null)
                 Utils.scareUser(String.format("Locus-based traversals require a reference file but none was given"));
-            microScheduler = MicroScheduler.create(my_walker, new Reads(argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
+            microScheduler = MicroScheduler.create(my_walker, extractSourceInfoFromArguments(argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
             engine = microScheduler.getTraversalEngine();
         }
 
@@ -193,11 +191,11 @@ public class GenomeAnalysisEngine {
 
     /**
      * commands that get executed for each engine, regardless of the type
-     *
-     * @param strictness our current strictness level
      */
-    private void genericEngineSetup(ValidationStringency strictness) {
-        engine.setStrictness(strictness);
+    private void genericEngineSetup() {
+        Reads sourceInfo = extractSourceInfoFromArguments(argCollection);
+
+        engine.setStrictness(sourceInfo.getValidationStringency());
 
         engine.setMaxReads(argCollection.maximumEngineIterations);
         engine.setFilterZeroMappingQualityReads(argCollection.filterZeroMappingQualityReads);
@@ -207,7 +205,7 @@ public class GenomeAnalysisEngine {
             engine.setLocation(parseIntervalRegion(argCollection.intervals, false));
         }
 
-        engine.setReadFilters(new Reads(argCollection));
+        engine.setReadFilters(sourceInfo);
 
         engine.setThreadedIO(argCollection.enabledThreadedIO);
         engine.setWalkOverAllSites(argCollection.walkAllLoci);
@@ -231,6 +229,21 @@ public class GenomeAnalysisEngine {
             }
         }
         return locs;
+    }
+
+    /**
+     * Bundles all the source information about the reads into a unified data structure.
+     * @param argCollection The collection of arguments passed to the engine.
+     * @return The reads object providing reads source info.
+     */
+    private Reads extractSourceInfoFromArguments( GATKArgumentCollection argCollection ) {
+        return new Reads( argCollection.samFiles,
+                          getValidationStringency(),
+                          argCollection.downsampleFraction,
+                          argCollection.downsampleCoverage,
+                          argCollection.maximumReadSorts,
+                          !argCollection.unsafe,
+                          argCollection.filterZeroMappingQualityReads );
     }
 
     private void validateInputsAgainstWalker(Walker walker,
@@ -275,12 +288,12 @@ public class GenomeAnalysisEngine {
      * @return the validation stringency
      */
     private ValidationStringency getValidationStringency() {
-        ValidationStringency strictness;
+        ValidationStringency strictness = ValidationStringency.SILENT;
         try {
-            strictness = Enum.valueOf(ValidationStringency.class, argCollection.strictnessLevel);
+            strictness = Enum.valueOf(ValidationStringency.class, argCollection.strictnessLevel.toUpperCase().trim());
         }
         catch (IllegalArgumentException ex) {
-            strictness = ValidationStringency.STRICT;
+            logger.debug("Unable to parse strictness from command line.  Assuming SILENT");
         }
         return strictness;
     }

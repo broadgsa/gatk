@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
 import net.sf.picard.sam.SamFileHeaderMerger;
+import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMReadGroupRecord;
@@ -18,6 +19,7 @@ import org.broadinstitute.sting.utils.StingException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Iterator;
 
 /**
  * User: aaron
@@ -54,22 +56,8 @@ public class SAMDataSource implements SimpleDataSource {
     private boolean intoUnmappedReads = false;
     private int readsSeenAtLastPos = 0;
 
-
-    /**
-     * package protected getter and setter for the iterator generator
-     *
-     * @return
-     */
-    IteratorGenerator getIterGen() {
-        return iterGen;
-    }
-
-    void setIterGen( IteratorGenerator iterGen ) {
-        this.iterGen = iterGen;
-    }
-
-    // where we get out iterators from
-    private IteratorGenerator iterGen;
+    // A pool of SAM iterators.
+    private SAMIteratorPool iteratorPool = null;
 
     /**
      * constructor, given sam files
@@ -91,8 +79,15 @@ public class SAMDataSource implements SimpleDataSource {
                 throw new SimpleDataSourceLoadException("SAMDataSource: Unable to load file: " + smFile.getName());
             }
         }
-        iterGen = new MSR2IteratorGenerator(reads, byReads);
+        iteratorPool = new SAMIteratorPool(reads,byReads);
+    }
 
+    /**
+     * For unit testing, add a custom iterator pool.
+     * @param iteratorPool Custom mock iterator pool.
+     */
+    void setResourcePool( SAMIteratorPool iteratorPool ) {
+        this.iteratorPool = iteratorPool;
     }
 
 
@@ -105,11 +100,8 @@ public class SAMDataSource implements SimpleDataSource {
      *
      * @return an iterator for that region
      */
-    public StingSAMIterator seekLocus( GenomeLoc location ) throws SimpleDataSourceLoadException {
-       // make a merging iterator for this record
-        CloseableIterator<SAMRecord> iter = iterGen.seek(location);
-        // return the iterator
-        return StingSAMIteratorAdapter.adapt(reads, iter);
+    public StingSAMIterator seekLocus(GenomeLoc location) throws SimpleDataSourceLoadException {
+        return iteratorPool.iterator(location);
     }
 
     /**
@@ -153,7 +145,7 @@ public class SAMDataSource implements SimpleDataSource {
      * @return SAM file header.
      */
     public SAMFileHeader getHeader() {
-        return this.iterGen.getHeader();
+        return iteratorPool.getHeader();
     }
 
 
@@ -169,16 +161,16 @@ public class SAMDataSource implements SimpleDataSource {
     private BoundedReadIterator seekRead( ReadShard shard ) throws SimpleDataSourceLoadException {
 
         BoundedReadIterator bound = null;
-        CloseableIterator<SAMRecord> iter = null;
+        StingSAMIterator iter = null;
 
         if (!intoUnmappedReads) {
             if (lastReadPos == null) {
-                lastReadPos = new GenomeLoc(iterGen.getHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, Integer.MAX_VALUE);
-                iter = iterGen.seek(lastReadPos);
+                lastReadPos = new GenomeLoc(getHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, Integer.MAX_VALUE);
+                iter = iteratorPool.iterator(lastReadPos);
                 return InitialReadIterator(shard.getSize(), iter);
             } else {
                 lastReadPos.setStop(-1);
-                iter = iterGen.seek(lastReadPos);
+                iter = iteratorPool.iterator(lastReadPos);
                 bound = fastMappedReadSeek(shard.getSize(), StingSAMIteratorAdapter.adapt(reads, iter));
             }
         }
@@ -187,8 +179,8 @@ public class SAMDataSource implements SimpleDataSource {
             if (iter != null) {
                 iter.close();
             }
-            iter = iterGen.seek(null);
-            bound = toUnmappedReads(shard.getSize(), (PeekingStingIterator) iter);
+            iter = iteratorPool.iterator(null);
+            bound = toUnmappedReads(shard.getSize(), iter);
         }
         if (bound == null) {
             shard.signalDone();
@@ -219,39 +211,41 @@ public class SAMDataSource implements SimpleDataSource {
      * @return the bounded iterator that you can use to get the intervaled reads from
      * @throws SimpleDataSourceLoadException
      */
-    <U extends PeekingStingIterator> BoundedReadIterator toUnmappedReads( long readCount, U iter ) throws SimpleDataSourceLoadException {
+    BoundedReadIterator toUnmappedReads( long readCount, StingSAMIterator iter ) throws SimpleDataSourceLoadException {
+        PeekableIterator<SAMRecord> peekable = new PeekableIterator<SAMRecord>(iter);
+
         int count = 0;
         int cnt = 0;
         SAMRecord d = null;
-        while (iter.hasNext()) {
-            d = iter.peek();
+        while (peekable.hasNext()) {
+            d = peekable.peek();
             int x = d.getReferenceIndex();
             if (x < 0)
                 // we have the magic read that starts the unmapped read segment!
                 break;
             cnt++;
-            iter.next();
+            peekable.next();
         }
 
         // check to see what happened, did we run out of reads?
-        if (!iter.hasNext()) {
+        if (!peekable.hasNext()) {
             return null;
         }
 
         // now walk until we've taken the unmapped read count
-        while (iter.hasNext() && count < this.readsTaken) {
-            iter.next();
+        while (peekable.hasNext() && count < this.readsTaken) {
+            peekable.next();
             count++;
         }
 
         // check to see what happened, did we run out of reads?
-        if (!iter.hasNext()) {
+        if (!peekable.hasNext()) {
             return null;
         }
 
         // we're not out of unmapped reads, so increment our read cout
         this.readsTaken += readCount;
-        return new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads, iter), readCount);
+        return new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads, peekable), readCount);
 
     }
 
@@ -293,7 +287,7 @@ public class SAMDataSource implements SimpleDataSource {
                     readsTaken = readCount;
                     readsSeenAtLastPos = 0;
                     lastReadPos.setStop(-1);
-                    CloseableIterator<SAMRecord> ret = iterGen.seek(lastReadPos);
+                    CloseableIterator<SAMRecord> ret = iteratorPool.iterator(lastReadPos);
                     return new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads, ret), readCount);
                 }
             }
@@ -360,42 +354,81 @@ public class SAMDataSource implements SimpleDataSource {
         return bound;
     }
 
-
 }
 
+class SAMIteratorPool extends ResourcePool<SamFileHeaderMerger,StingSAMIterator> {
+    /**
+     * Source information about the reads.
+     */
+    protected Reads reads;
 
-/**
- * iterator generator
- * <p/>
- * This class generates iterators for the SAMDataSource.  This class was introduced for testing purposes,
- * since it became increasingly hard to test the SAM data source code.  The class defines two abstraact
- * methods:
- * <p/>
- * -seek( GenomeLoc ) which returns an iterator seeked to the genome loc, and if null is passed to the default
- * location (which is implementation specific).
- * <p/>
- * -getHeader(), which returns a SAMFileHeader for the specified IteratorGenerator.  I hope we can phase this
- * method out, since it doesn't seem necessary, and it would be much cleaner with out it.
- */
-abstract class IteratorGenerator {
+    /**
+     * Is this a by-reads traversal or a by-locus?
+     */
+    protected boolean byReads;
+
+    /**
+     * File header for the combined file.
+     */
+    protected SAMFileHeader header;
+
     /** our log, which we want to capture anything from this class */
-    protected static Logger logger = Logger.getLogger(SAMDataSource.class);
+    protected static Logger logger = Logger.getLogger(SAMIteratorPool.class);    
+
+    public SAMIteratorPool( Reads reads, boolean byReads ) {
+        this.reads = reads;
+        this.byReads = byReads;
+
+        SamFileHeaderMerger merger = createNewResource( null );
+        this.header = merger.getMergedHeader();
+        // Add this resource to the pool.
+        this.addNewResource( merger );
+    }
 
     /**
-     * seek to a location
-     *
-     * @param seekTo the genome loc to seek to
-     *
-     * @return StingSAMIterator
+     * Get the combined header for all files in the iterator pool.
      */
-    public abstract CloseableIterator<SAMRecord> seek( GenomeLoc seekTo );
+    public SAMFileHeader getHeader() {
+        return header;
+    }
 
-    /**
-     * get the merged header
-     *
-     * @return the merged header
-     */
-    public abstract SAMFileHeader getHeader();
+    protected SamFileHeaderMerger selectBestExistingResource( GenomeLoc position, List<SamFileHeaderMerger> mergers) {
+        if( mergers.size() == 0 )
+            return null;
+        return mergers.get(0);
+    }
+
+    protected SamFileHeaderMerger createNewResource( GenomeLoc position ) {
+        return createHeaderMerger( reads, SAMFileHeader.SortOrder.coordinate );
+    }
+
+    protected StingSAMIterator createIteratorFromResource( GenomeLoc loc, SamFileHeaderMerger headerMerger ) {
+        final MergingSamRecordIterator2 iterator = new MergingSamRecordIterator2(headerMerger, reads);
+
+        if( loc != null ) {
+            if (byReads)
+                iterator.queryContained(loc.getContig(), (int) loc.getStart(), (int) loc.getStop());
+            else
+                iterator.queryOverlapping(loc.getContig(), (int) loc.getStart(), (int) loc.getStop());
+        }
+
+        return new StingSAMIterator() {
+            public Reads getSourceInfo() { return reads; }
+            public void close() {
+                iterator.close();
+                release(this);
+            }
+            public Iterator<SAMRecord> iterator() { return this; }
+            public boolean hasNext() { return iterator.hasNext(); }
+            public SAMRecord next() { return iterator.next(); }
+            public void remove() { throw new UnsupportedOperationException("Can't remove from a StingSAMIterator"); }
+        };
+    }
+
+    protected void closeResource( SamFileHeaderMerger resource ) {
+        for( SAMFileReader reader: resource.getReaders() )
+            reader.close();
+    }
 
     /**
      * Load a SAM/BAM, given an input file.
@@ -404,7 +437,7 @@ abstract class IteratorGenerator {
      *
      * @return a SAMFileReader for the file, null if we're attempting to read a list
      */
-    protected static SAMFileReader initializeSAMFile( final File samFile, SAMFileReader.ValidationStringency strictness ) {
+    protected SAMFileReader initializeSAMFile( final File samFile, SAMFileReader.ValidationStringency strictness ) {
         if (samFile.toString().endsWith(".list")) {
             return null;
         } else {
@@ -425,11 +458,11 @@ abstract class IteratorGenerator {
      * @return a list of SAMFileReaders that represent the stored file names
      * @throws SimpleDataSourceLoadException if there's a problem loading the files
      */
-    protected static List<SAMFileReader> GetReaderList( Reads reads, SAMFileReader.ValidationStringency strictness ) throws SimpleDataSourceLoadException {
+    protected List<SAMFileReader> GetReaderList( Reads reads ) throws SimpleDataSourceLoadException {
         // right now this is pretty damn heavy, it copies the file list into a reader list every time
         List<SAMFileReader> lst = new ArrayList<SAMFileReader>();
         for (File f : reads.getReadsFiles()) {
-            SAMFileReader reader = initializeSAMFile(f, strictness);
+            SAMFileReader reader = initializeSAMFile(f, reads.getValidationStringency());
 
             if (reader.getFileHeader().getReadGroups().size() < 1) {
                 //logger.warn("Setting header in reader " + f.getName());
@@ -453,60 +486,8 @@ abstract class IteratorGenerator {
      *
      * @return a SamFileHeaderMerger that includes the set of SAM files we were created with
      */
-    protected static SamFileHeaderMerger createHeaderMerger( Reads reads, SAMFileReader.ValidationStringency strictness, SAMFileHeader.SortOrder SORT_ORDER ) {
-        List<SAMFileReader> lst = GetReaderList(reads, strictness);
+    protected SamFileHeaderMerger createHeaderMerger( Reads reads, SAMFileHeader.SortOrder SORT_ORDER ) {
+        List<SAMFileReader> lst = GetReaderList(reads);
         return new SamFileHeaderMerger(lst, SORT_ORDER, true);
     }
 }
-
-
-/**
- * MSR2IteratorGenerator
- * <p/>
- * generates a MerginsSAMIterator2, given a genomic location.  The constructor takes the reads structure,
- * and a flag indicating if we're dealing with reads or loci (to determine the correct query function).
- */
-class MSR2IteratorGenerator extends IteratorGenerator {
-    /** our read pile */
-    private Reads reads;
-
-    private SamFileHeaderMerger header;
-
-    // How strict should we be with SAM/BAM parsing?
-    protected SAMFileReader.ValidationStringency strictness = SAMFileReader.ValidationStringency.SILENT;
-
-    // are we by reads or by loci
-    protected boolean byReads = true;
-
-    /** our SAM data files */
-    private final SAMFileHeader.SortOrder sortOrder = SAMFileHeader.SortOrder.coordinate;
-
-    public MSR2IteratorGenerator( Reads reads, boolean byReads ) {
-        this.reads = reads;
-        this.header = IteratorGenerator.createHeaderMerger(reads, strictness, sortOrder);
-        this.byReads = byReads;
-    }
-
-    public CloseableIterator<SAMRecord> seek( GenomeLoc seekTo ) {
-        SamFileHeaderMerger mg = createHeaderMerger(reads, strictness, sortOrder);
-        MergingSamRecordIterator2 iter = new MergingSamRecordIterator2(mg, reads);
-        if (seekTo != null) {
-            if (byReads)
-                iter.queryContained(seekTo.getContig(), (int) seekTo.getStart(), (int) seekTo.getStop());
-            else
-                iter.queryOverlapping(seekTo.getContig(), (int) seekTo.getStart(), (int) seekTo.getStop());
-        }
-        return iter;
-    }
-
-    /**
-     * get the merged header
-     *
-     * @return the merged header
-     */
-    public SAMFileHeader getHeader() {
-        return header.getMergedHeader();
-    }
-}
-
-

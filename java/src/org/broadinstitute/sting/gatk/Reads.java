@@ -6,6 +6,8 @@ import org.broadinstitute.sting.utils.StingException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.List;
+
+import net.sf.samtools.SAMFileReader;
 /**
  * User: hanna
  * Date: May 14, 2009
@@ -25,7 +27,7 @@ import java.util.List;
  */
 public class Reads {
     private List<File> readsFiles = null;
-
+    private SAMFileReader.ValidationStringency validationStringency = SAMFileReader.ValidationStringency.STRICT;
     private Double downsamplingFraction = null;
     private Integer downsampleToCoverage = null;
     private Integer maxOnFlySorts = null;
@@ -38,6 +40,14 @@ public class Reads {
      */
     public List<File> getReadsFiles() {
         return readsFiles;
+    }
+
+    /**
+     * How strict should validation be?
+     * @return Stringency of validation.
+     */
+    public SAMFileReader.ValidationStringency getValidationStringency() {
+        return validationStringency;
     }
 
     /**
@@ -88,14 +98,27 @@ public class Reads {
      * Extract the command-line arguments having to do with reads input
      * files and store them in an easy-to-work-with package.  Constructor
      * is package protected.
-     * @param arguments GATK parsed command-line arguments.
+     * @param samFiles list of reads files.
+     * @param strictness Stringency of reads file parsing.
+     * @param downsampleFraction fraction of reads to downsample.
+     * @param downsampleCoverage downsampling per-locus.
+     * @param maxOnFlySorts how many sorts to perform on-the-fly.
+     * @param beSafe Whether to enable safety checking.
+     * @param filterZeroMappingQualityReads whether to filter zero mapping quality reads.
      */
-    Reads( GATKArgumentCollection arguments ) {
-        this.readsFiles = arguments.samFiles;
-        if (arguments.downsampleFraction != null) downsamplingFraction = arguments.downsampleFraction;
-        if (arguments.downsampleCoverage != null) downsampleToCoverage = arguments.downsampleCoverage;
-        if (arguments.maximumReadSorts != null) maxOnFlySorts = arguments.maximumReadSorts;
-        if (arguments.filterZeroMappingQualityReads != null) filterZeroMappingQualityReads = arguments.filterZeroMappingQualityReads;
-        beSafe = !arguments.unsafe;
+    Reads( List<File> samFiles,
+           SAMFileReader.ValidationStringency strictness,
+           Double downsampleFraction,
+           Integer downsampleCoverage,
+           Integer maxOnFlySorts,
+           Boolean beSafe,
+           Boolean filterZeroMappingQualityReads ) {
+        this.readsFiles = samFiles;
+        this.validationStringency = strictness;
+        this.downsamplingFraction = downsampleFraction;
+        this.downsampleToCoverage = downsampleCoverage;
+        this.maxOnFlySorts = maxOnFlySorts;
+        this.beSafe = beSafe;
+        this.filterZeroMappingQualityReads = filterZeroMappingQualityReads;
     }
 }

@@ -93,7 +93,6 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         }
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
-            //reader.close();
             Iterator<SAMRecord> recordIter = reader.query(contig, start, stop, contained);
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, recordIter, comparator);
             addIfNotEmpty(iterator);
@@ -257,13 +256,12 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
 
 
     /**
-     * closes all the file handles for the readers....DO THIS or you will run out of handles
+     * closes all open iterators....DO THIS or you will run out of handles
      * with sharding.
      */
     public void close() {
-        for (SAMFileReader reader : samHeaderMerger.getReaders()) {
-            reader.close();
-        }
+        for( ComparableSamRecordIterator iterator: pq )
+            iterator.close();
     }
 
 

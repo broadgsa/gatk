@@ -130,7 +130,7 @@ public class GATKArgumentCollection {
 
     @Element(required=false)
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation (LENIENT|SILENT|STRICT)", required = false)
-    public String strictnessLevel = "strict";
+    public String strictnessLevel = "silent";
 
     @Element(required=false)
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations, nothing will be checked at runtime.", required = false)

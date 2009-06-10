@@ -55,9 +55,6 @@ public class BoundedReadIterator implements StingSAMIterator {
     // our unmapped read flag
     private boolean doNotUseThatUnmappedReadPile = false;
 
-    // are we open
-    private boolean isOpen = false;
-
     // the next read we've buffered
     private SAMRecord record = null;
 
@@ -67,10 +64,6 @@ public class BoundedReadIterator implements StingSAMIterator {
      * @param readCount
      */
     public BoundedReadIterator(StingSAMIterator iter, long readCount) {
-        if (iter != null) {
-            isOpen = true;
-
-        }
         this.iterator = iter;
         this.readCount = readCount;
     }
@@ -103,7 +96,7 @@ public class BoundedReadIterator implements StingSAMIterator {
      * @return
      */
     public boolean hasNext() {
-        if (isOpen && iterator.hasNext() && currentCount < readCount) {
+        if (iterator.hasNext() && currentCount < readCount) {
             record = iterator.next();
             ++currentCount;
             if (record.getAlignmentStart() == 0 && doNotUseThatUnmappedReadPile) {
@@ -111,9 +104,6 @@ public class BoundedReadIterator implements StingSAMIterator {
             }
             return true;
         } else {
-            if (isOpen) {
-                close();
-            }
             return false;
         }
     }
@@ -137,7 +127,6 @@ public class BoundedReadIterator implements StingSAMIterator {
      * close the iterator
      */
     public void close() {
-        isOpen = false;
         iterator.close();
     }
 

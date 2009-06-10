@@ -22,6 +22,7 @@ import org.junit.Test;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collections;
 
 /**
  *
@@ -76,7 +77,7 @@ public class SAMByReadsTest extends BaseTest {
     /** Test out that we can shard the file and iterate over every read */
     @Test
     public void testToUnmappedReads() {
-        ArtificialIteratorGenerator gen = new ArtificialIteratorGenerator(1,10,100,1000);
+        ArtificialResourcePool gen = new ArtificialResourcePool(1,10,100,1000);
         GenomeLoc.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
         try {
             int unmappedReadsSeen = 0;
@@ -109,7 +110,7 @@ public class SAMByReadsTest extends BaseTest {
     /** Test out that we can shard the file and iterate over every read */
     @Test
     public void testShardingOfReadsSize14() {
-        ArtificialIteratorGenerator gen = new ArtificialIteratorGenerator(1,10,100,1000);
+        ArtificialResourcePool gen = new ArtificialResourcePool(1,10,100,1000);
         GenomeLoc.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
         targetReadCount = 14;
         try {
@@ -118,7 +119,7 @@ public class SAMByReadsTest extends BaseTest {
             SAMDataSource data = new SAMDataSource(reads,true);
 
 
-            data.setIterGen(gen);
+            data.setResourcePool(gen);
             shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS, gen.getHeader().getSequenceDictionary(), targetReadCount);
             while (shardStrategy.hasNext()) {
 
@@ -159,7 +160,7 @@ public class SAMByReadsTest extends BaseTest {
     /** Test out that we can shard the file and iterate over every read */
     @Test
     public void testShardingOfReadsSize25() {
-        ArtificialIteratorGenerator gen = new ArtificialIteratorGenerator(1,10,100,1000);
+        ArtificialResourcePool gen = new ArtificialResourcePool(1,10,100,1000);
         GenomeLoc.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
         targetReadCount = 25;
         try {
@@ -168,7 +169,7 @@ public class SAMByReadsTest extends BaseTest {
             SAMDataSource data = new SAMDataSource(reads,true);
 
 
-            data.setIterGen(gen);
+            data.setResourcePool(gen);
             shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS, gen.getHeader().getSequenceDictionary(), targetReadCount);
             while (shardStrategy.hasNext()) {
 
@@ -212,28 +213,25 @@ public class SAMByReadsTest extends BaseTest {
 /**
  * use this to inject into SAMDataSource for testing
  */
-class ArtificialIteratorGenerator extends IteratorGenerator {
+class ArtificialResourcePool extends SAMIteratorPool {
     // How strict should we be with SAM/BAM parsing?
     protected SAMFileReader.ValidationStringency strictness = SAMFileReader.ValidationStringency.SILENT;
 
     // the header
     private SAMFileHeader header;
-    private int endingChr;
-    private int startingChr;
-    private int readCount;
-    private int readSize;
-    /** our SAM data files */
     private final SAMFileHeader.SortOrder sortOrder = SAMFileHeader.SortOrder.coordinate;
 
-    public ArtificialIteratorGenerator( int startingChr, int endingChr, int readCount, int readSize) {
+    public ArtificialResourcePool( int startingChr, int endingChr, int readCount, int readSize) {
+        super( new Reads(Collections.<File>emptyList()),true );
         header = ArtificialSamUtils.createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + readSize);
 
     }
 
-    public CloseableIterator<SAMRecord> seek( GenomeLoc seekTo ) {
+    @Override
+    public StingSAMIterator iterator( GenomeLoc loc ) {
         ArtificialSAMQueryIterator iter = ArtificialSamUtils.queryReadIterator(1, 10, 100, 1000);
-        if (seekTo != null) {
-            iter.queryContained(seekTo.getContig(), (int)seekTo.getStart(), (int)seekTo.getStop());
+        if (loc != null) {
+            iter.queryContained(loc.getContig(), (int)loc.getStart(), (int)loc.getStop());
         }
         return iter;
     }
@@ -244,6 +242,6 @@ class ArtificialIteratorGenerator extends IteratorGenerator {
      * @return the merged header
      */
     public SAMFileHeader getHeader() {
-        return this.header;
+       return this.header;
     }
 }
