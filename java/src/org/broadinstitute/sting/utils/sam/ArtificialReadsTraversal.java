@@ -43,10 +43,8 @@ import net.sf.samtools.SAMFileHeader;
 
 /**
  * @author aaron
- *         <p/>
- *         Class ArtificialReadsTraversal
- *         <p/>
- *         A descriptions should go here. Blame aaron if it's missing.
+ *
+ * this class acts as a fake reads traversal engine for testing out reads based traversals.
  */
 public class ArtificialReadsTraversal extends TraversalEngine {
 

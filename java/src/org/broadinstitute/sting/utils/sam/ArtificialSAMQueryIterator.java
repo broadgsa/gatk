@@ -36,10 +36,10 @@ import org.broadinstitute.sting.utils.StingException;
 
 /**
  * @author aaron
- *         <p/>
- *         Class ArtificialSAMQueryIterator
- *         <p/>
- *         A descriptions should go here. Blame aaron if it's missing.
+ *
+ * allows query calls to the artificial sam iterator, which allows you
+ * to test out classes that use specific itervals.  The reads returned will
+ * all lie in order in the specified interval.
  */
 public class ArtificialSAMQueryIterator extends ArtificialSAMIterator {
 

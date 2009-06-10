@@ -31,10 +31,11 @@ import net.sf.samtools.SAMRecord;
 
 /**
  * @author aaron
- *         <p/>
- *         Class ArtificialPatternedSAMIterator
- *         <p/>
- *         A descriptions should go here. Blame aaron if it's missing.
+ *
+ *  Class ArtificialPatternedSAMIterator
+ *
+ * This class allows you to pattern the artificial sam iterator, asking for reads
+ * in order or out of order.
  */
 public class ArtificialPatternedSAMIterator extends ArtificialSAMIterator {
 
@@ -85,10 +86,10 @@ public class ArtificialPatternedSAMIterator extends ArtificialSAMIterator {
              *  up to this point there's no garauntee that the random() has made the reads out of order (though it's
              *  extremely extremely unlikely it's failed).  Let's make sure there at least out of order:
              */
-            if (this.reads[0] < this.reads[reads.length -1]) {
+            if (this.reads[0] < this.reads[reads.length - 1]) {
                 int temp = reads[0];
-                reads[0] = reads[reads.length -1];
-                reads[reads.length -1] = temp;    
+                reads[0] = reads[reads.length - 1];
+                reads[reads.length - 1] = temp;
             }
 
         }
@@ -97,6 +98,7 @@ public class ArtificialPatternedSAMIterator extends ArtificialSAMIterator {
 
     /**
      * override the default ArtificialSAMIterator createNextRead method, which creates the next read
+     *
      * @return
      */
     protected boolean createNextRead() {
@@ -126,8 +128,10 @@ public class ArtificialPatternedSAMIterator extends ArtificialSAMIterator {
 
     /**
      * get the next read, given it's index in the chromosome
+     *
      * @param read the read index in the chromosome
-     * @return a SAMRecord 
+     *
+     * @return a SAMRecord
      */
     private SAMRecord getNextRecord( int read ) {
         if (read > this.readCount) {
