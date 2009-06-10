@@ -30,9 +30,12 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public String OUT_STATS = null;
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
     public double LOD_THRESHOLD = 5.0;
+    @Argument(fullName="EntropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
+    public double MISMATCH_THRESHOLD = 0.25;
+    @Argument(fullName="GreedyThreshold", shortName="greedy", doc="coverage above which the cleaner turns on greedy mode to improve performance", required=false)
+    public int GREEDY_THRESHOLD = 500;
 
     public static final int MAX_QUAL = 99;
-    private static final double MISMATCH_THRESHOLD = 0.25;
 
     private SAMFileWriter writer;
     private FileWriter indelOutput = null;
@@ -46,6 +49,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         if ( LOD_THRESHOLD < 0.0 )
             throw new RuntimeException("LOD threshold cannot be a negative number");
+        if ( MISMATCH_THRESHOLD <= 0.0 || MISMATCH_THRESHOLD > 1.0 )
+            throw new RuntimeException("Entropy threshold must be a fraction between 0 and 1");
 
         SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
         writer = Utils.createSAMFileWriterWithCompression(header, false, OUT, getToolkit().getBAMCompression());
@@ -144,6 +149,19 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     }
 
  
+    private static int mismatchQualitySumIgnoreCigar(AlignedRead aRead, String refSeq, int refIndex) {
+        String readSeq = aRead.getReadString();
+        String quals = aRead.getBaseQualityString();
+        int sum = 0;
+        for (int readIndex = 0 ; readIndex < readSeq.length() ; refIndex++, readIndex++ ) {
+            if ( refIndex >= refSeq.length() )
+                sum += MAX_QUAL;
+            else if ( Character.toUpperCase(readSeq.charAt(readIndex)) != Character.toUpperCase(refSeq.charAt(refIndex)) )
+                sum += (int)quals.charAt(readIndex) - 33;
+        }
+        return sum;
+    }
+
     private static int mismatchQualitySum(AlignedRead aRead, String refSeq, int refIndex) {
         String readSeq = aRead.getReadString();
         String quals = aRead.getBaseQualityString();
@@ -168,8 +186,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 refIndex += ce.getLength();
                 break;
             case S: // soft clip
-                refIndex+=ce.getLength(); // (?? - do we have to??); 
-                readIndex+=ce.getLength(); 
+                refIndex+=ce.getLength(); // (?? - do we have to??);
+                readIndex+=ce.getLength();
                 break;
             default: throw new StingException("Cigar element "+ce.getOperator() +" currently can not be processed");
             }
@@ -197,7 +215,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         // decide which reads potentially need to be cleaned
         for ( SAMRecord read : reads ) {
 
-
             // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
             int numBlocks = AlignmentUtils.getNumAlignmentBlocks(read);
             if ( numBlocks == 2 )
@@ -207,7 +224,10 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             int mismatchScore = mismatchQualitySum(aRead, reference, read.getAlignmentStart()-(int)leftmostIndex);
 
             // we currently can not deal with clipped reads correctly
-            if ( readIsClipped(read) ) { refReads.add(read); continue; }
+            if ( readIsClipped(read) ) {
+                refReads.add(read);
+                continue;
+            }
 
             // if this doesn't match perfectly to the reference, let's try to clean it
             if ( mismatchScore > 0 ) {
@@ -410,13 +430,13 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
     private Pair<Integer, Integer> findBestOffset(String ref, AlignedRead read) {
         int attempts = ref.length() - read.getReadLength() + 1;
-        int bestScore = mismatchQualitySum(read, ref, 0);
+        int bestScore = mismatchQualitySumIgnoreCigar(read, ref, 0);
         int bestIndex = 0;
         for ( int i = 1; i < attempts; i++ ) {
             // we can't get better than 0!
             if ( bestScore == 0 )
                 return new Pair<Integer, Integer>(bestIndex, 0);
-            int score = mismatchQualitySum(read, ref, i);
+            int score = mismatchQualitySumIgnoreCigar(read, ref, i);
             if ( score < bestScore ) {
                 bestScore = score;
                 bestIndex = i;
@@ -584,8 +604,9 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
      * @param cigar structure of the original alignment
      * @param refSeq reference sequence the read is aligned to
      * @param readSeq read sequence
-     * @param refIndex 0-based alignment start position 
-     * @return a cigar, in which indel is guaranteed to be placed at the leftmost possible position across a repeat (if any) 
+     * @param refIndex 0-based alignment start position on ref
+     * @param readIndex 0-based alignment start position on read
+     * @return a cigar, in which indel is guaranteed to be placed at the leftmost possible position across a repeat (if any)
      */
     private Cigar indelRealignment(Cigar cigar, String refSeq, String readSeq, int refIndex, int readIndex) {
         if ( cigar.numCigarElements() < 2 ) return cigar; // no indels, nothing to do
