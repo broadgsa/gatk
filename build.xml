@@ -100,6 +100,18 @@
             <attribute name="Main-Class" value="org.broadinstitute.sting.secondarybase.FourBaseRecaller" />
           </manifest>
         </jar>
+    
+        <jar jarfile="dist/SomaticCoverage.jar" whenmanifestonly="skip">
+          <fileset dir="build">
+            <include name="**/*.class"/>
+            <exclude name="**/utils/**"/>
+            <exclude name="**/gatk/**"/>
+          </fileset>
+          <manifest>
+            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.somaticcoverage.SomaticCoverageTool" />
+          </manifest>
+        </jar>
+
 
         <jar jarfile="dist/AnnotateSecondaryBase.jar" whenmanifestonly="skip">
           <fileset dir="build">
@@ -197,6 +209,12 @@
 -->
 
         <jar jarfile="dist/Playground.jar" update="true" whenmanifestonly="skip">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}"/>
+            </manifest>
+        </jar>
+        
+        <jar jarfile="dist/SomaticCoverage.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
             </manifest>
