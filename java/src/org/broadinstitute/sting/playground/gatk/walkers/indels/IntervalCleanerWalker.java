@@ -17,8 +17,8 @@ import java.io.FileWriter;
 public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> {
     @Argument(fullName="maxReadLength", shortName="maxRead", doc="max read length", required=false)
     public int maxReadLength = -1;
-    @Argument(fullName="OutputCleaned", shortName="O", required=true, doc="Output file (sam or bam) for improved (realigned) reads")
-    public String OUT;
+    @Argument(fullName="OutputCleaned", shortName="O", required=false, doc="Output file (sam or bam) for improved (realigned) reads")
+    public String OUT = null;
     @Argument(fullName="OutputIndels", shortName="indels", required=false, doc="Output file (text) for the indels found")
     public String OUT_INDELS = null;
     @Argument(fullName="OutputAllReads", shortName="all", doc="print out all reads (otherwise, just those within the intervals)", required=false)
@@ -27,22 +27,20 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public String OUT_STATS = null;
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
     public double LOD_THRESHOLD = 5.0;
-    @Argument(fullName="maxPileSize", shortName="maxSize", doc="max number of reads in the pile; if exceeded, no attempt will be made to realign the pile", required=false)
-    public int maxPileSize = 1000000000;
     @Argument(fullName="EntropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
     public double MISMATCH_THRESHOLD = 0.25;
-    @Argument(fullName="GreedyThreshold", shortName="greedy", doc="coverage above which the cleaner turns on greedy mode to improve performance", required=false)
-    public int GREEDY_THRESHOLD = 500;
+    @Argument(fullName="GreedyThreshold", shortName="greedy", doc="coverage (of reads with mismatches only) above which the cleaner turns on greedy mode to improve performance", required=false)
+    public int GREEDY_THRESHOLD = 100;
 
     public static final int MAX_QUAL = 99;
 
-    private SAMFileWriter writer;
+    private SAMFileWriter writer = null;
     private FileWriter indelOutput = null;
     private FileWriter statsOutput = null;
 
     
     // we need to sort the reads ourselves because SAM headers get messed up and claim to be "unsorted" sometimes
-    private TreeSet<ComparableSAMRecord> readsToWrite;
+    private TreeSet<ComparableSAMRecord> readsToWrite = null;
 
     public void initialize() {
 
@@ -52,7 +50,10 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             throw new RuntimeException("Entropy threshold must be a fraction between 0 and 1");
 
         SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
-        writer = Utils.createSAMFileWriterWithCompression(header, false, OUT, getToolkit().getBAMCompression());
+        if ( OUT != null ) {
+            writer = Utils.createSAMFileWriterWithCompression(header, false, OUT, getToolkit().getBAMCompression());
+            readsToWrite = new TreeSet<ComparableSAMRecord>();
+        }
 
         logger.info("Writing into output BAM file at compression level " + getToolkit().getBAMCompression());
         logger.info("Temporary space used: "+System.getProperty("java.io.tmpdir"));
@@ -75,7 +76,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 statsOutput = null;
             }
         }
-        readsToWrite = new TreeSet<ComparableSAMRecord>();
     }
 
     // do we care about reads that are not part of our intervals?
@@ -85,12 +85,14 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
     // What do we do with the reads that are not part of our intervals?
     public void nonIntervalReadAction(SAMRecord read) {
-        try {                   
-                writer.addAlignment(read);
-        } catch (Exception e ) {
-                logger.error("Failed to write read "+read.getReadName()+" aligned at "+read.getReferenceName() +":"+read.getAlignmentStart());
-                e.printStackTrace(out);
-                throw new StingException(e.getMessage());
+        if ( writer != null ) {
+            try {
+                    writer.addAlignment(read);
+            } catch (Exception e ) {
+                    logger.error("Failed to write read "+read.getReadName()+" aligned at "+read.getReferenceName() +":"+read.getAlignmentStart());
+                    e.printStackTrace(out);
+                    throw new StingException(e.getMessage());
+            }
         }
      }
 
@@ -105,39 +107,21 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                  read.getMappingQuality() != 0 &&           
                  read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START )
                 goodReads.add(read);
-            else
+            else if ( writer != null )
                 readsToWrite.add(new ComparableSAMRecord(read));
         }
 
-        if ( goodReads.size() > maxPileSize ) {
-        	// too many reads, shy away!
-        
-        	if ( statsOutput != null ) {
-        		try {
-        			statsOutput.write(context.getLocation().toString());
-        			statsOutput.write("\tSKIPPED ("+reads.size()+" reads total, "+goodReads.size()+" for realignment)\t");
-        			statsOutput.write("-1.0");
-        			statsOutput.write("\n");
-        			statsOutput.flush();
-        		} catch (Exception e) {}
-        
-        	}
-        	// push all "good" reads into readsToWrite without cleaning, there are too many!
-        	for ( SAMRecord read : goodReads ) {
-                readsToWrite.add(new ComparableSAMRecord(read));
-        	}
-        	goodReads.clear();
-        } else {
-        	clean(goodReads, ref, context.getLocation());
-        }
+        clean(goodReads, ref, context.getLocation());
         //bruteForceClean(goodReads, ref, context.getLocation().getStart());
         //testCleanWithDeletion();
         //testCleanWithInsertion();
 
-        Iterator<ComparableSAMRecord> iter = readsToWrite.iterator();
-        while ( iter.hasNext() )
-            writer.addAlignment(iter.next().getRecord());
-        readsToWrite.clear();
+        if ( writer != null ) {
+            Iterator<ComparableSAMRecord> iter = readsToWrite.iterator();
+            while ( iter.hasNext() )
+                writer.addAlignment(iter.next().getRecord());
+            readsToWrite.clear();
+        }
         return 1;
     }
 
@@ -151,7 +135,9 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
     public void onTraversalDone(Integer result) {
         out.println("Saw " + result + " intervals");
-        writer.close();
+        if ( writer != null ) {
+            writer.close();
+        }
         if ( OUT_INDELS != null ) {
             try {
                 indelOutput.close();
@@ -280,6 +266,14 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             else {
                 refReads.add(read);
             }
+        }
+
+        // if we have too many reads with mismatches, be greedy
+        if ( altReads.size() > GREEDY_THRESHOLD) {
+            logger.debug("Downsampling from " + altReads.size() + " to " + GREEDY_THRESHOLD + " mismatching reads");
+            //sortByGreedy();
+            for ( int i = GREEDY_THRESHOLD; i < altReads.size(); i++)
+                altAlignmentsToTest.set(i, false);
         }
 
         Consensus bestConsensus = null;
@@ -456,10 +450,12 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
 
         // write them out
-        for ( SAMRecord rec : refReads )
-            readsToWrite.add(new ComparableSAMRecord(rec));
-        for ( AlignedRead aRec : altReads )
-            readsToWrite.add(new ComparableSAMRecord(aRec.getRead()));
+        if ( writer != null ) {
+            for ( SAMRecord rec : refReads )
+                readsToWrite.add(new ComparableSAMRecord(rec));
+            for ( AlignedRead aRec : altReads )
+                readsToWrite.add(new ComparableSAMRecord(aRec.getRead()));
+        }
     }
 
     private Pair<Integer, Integer> findBestOffset(String ref, AlignedRead read) {
