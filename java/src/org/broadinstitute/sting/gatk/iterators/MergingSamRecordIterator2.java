@@ -184,7 +184,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
 
         record.setHeader(samHeaderMerger.getMergedHeader());
         if (this.samHeaderMerger.hasMergedSequenceDictionary() && record.getReferenceIndex() >= 0) {
-            record.setReferenceIndex(this.samHeaderMerger.getNewSequenceMapping(iterator.getReader(),record.getReferenceIndex()));
+            record.setReferenceIndex(this.samHeaderMerger.getMergedSequenceIndex(iterator.getReader(),record.getReferenceIndex()));
         }
         
         //System.out.printf("NEXT = %s %s %d%n", record.getReadName(), record.getReferenceName(), record.getAlignmentStart());
