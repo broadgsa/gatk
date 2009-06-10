@@ -1,25 +1,77 @@
 package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.playground.utils.CircularArray;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 
 public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
-
+	@Argument(fullName="bed", shortName="bed", doc="BED output file name", required=true)
+	public java.io.File bed_file;
+	@Argument(fullName="somatic", shortName="somatic", 
+			doc="Perform somatic calls; two input alignment files must be specified", required=false)
+	public boolean call_somatic = false;
+	 
+	private static int WINDOW_SIZE = 200;
 	private RunningCoverage coverage;
+	private RunningCoverage normal_coverage; // when performing somatic calls, we will be using this one for normal, and 'coverage' for tumor
 	private int currentContigIndex = -1;
+	private String refName = null;
+	private java.io.Writer output = null;
+
+	private Set<String> normal_samples = new HashSet<String>();
+	private Set<String> tumor_samples = new HashSet<String>();
 	
 	@Override
 	public void initialize() {
-		coverage = new RunningCoverage(0,100);
+		coverage = new RunningCoverage(0,WINDOW_SIZE);
+		
+		int nSams = getToolkit().getArguments().samFiles.size(); 
+		
+		
+		if ( call_somatic ) {
+			if ( nSams != 2 ) {
+				System.out.println("In --somatic mode two input bam files must be specified (normal/tumor)");
+				System.exit(1);
+			}
+			normal_coverage = new RunningCoverage(0,WINDOW_SIZE);
+			
+			// this is an ugly hack: we want to be able to tell what file (tumor/normal sample) each read came from,
+			// but reads do not carry this information!
+			
+			SAMFileReader rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(0));
+			for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
+				normal_samples.add(rec.getSample());
+			}
+			rn.close();
+			rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(1));
+			for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
+				tumor_samples.add(rec.getSample());
+			}
+			rn.close();
+			
+		} else {
+			if ( nSams != 1 ) System.out.println("WARNING: multiple input files specified. \n"+
+					"WARNING: Without --somatic option they will be merged and processed as a single sample");
+		}
+		try {
+			output = new java.io.FileWriter(bed_file);
+		} catch (IOException e) {
+			throw new StingException("Failed to open file for writing BED output");
+		}
 	}
 	
 	@Override
@@ -30,13 +82,19 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			 read.getNotPrimaryAlignmentFlag() ||
 			 read.getMappingQuality() == 0 ) return 0; // we do not need those reads!
 		
-		if ( read.getReferenceIndex() != currentContigIndex ) {
+		
+		if ( read.getReferenceIndex() != currentContigIndex ) { 
+			// we just jumped onto a new contig
 			
 			if ( read.getReferenceIndex() < currentContigIndex ) // paranoidal 
 				throw new StingException("Read "+read.getReadName()+": contig is out of order");
 			
+			if ( call_somatic) emit_somatic(1000000000); // print remaining indels from the previous contig (if any);
+			else emit(1000000000);
 			currentContigIndex = read.getReferenceIndex();
+			refName = new String(read.getReferenceName());
 			coverage.clear(); // reset coverage window; this will also set reference position to 0
+			if ( call_somatic) normal_coverage.clear();
 		}
 		
 		if ( read.getAlignmentStart() < coverage.getStart() ) {
@@ -46,30 +104,164 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		
 		// reads are sorted; we are not going to see any more coverage or new indels prior
 		// to current read's start position!
-		for ( long pos = coverage.getStart() ; pos < Math.min(read.getAlignmentStart(),coverage.getStop()+1) ; pos++ ) {
-			List<IndelVariant> variants = coverage.indelsAt(pos);
-			if ( variants.size() == 0 ) continue;
-			System.out.print(read.getReferenceName()+"\t"+pos+"\t"+coverage.coverageAt(pos));
-			for ( IndelVariant var : variants ) {
-				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
-			}
-			System.out.println();
-		}
 		
-		coverage.shift((int)(read.getAlignmentStart() - coverage.getStart() ) );
+		if ( call_somatic ) emit_somatic( read.getAlignmentStart() );
+		else emit( read.getAlignmentStart() );
+		
 		
 		if ( read.getAlignmentEnd() > coverage.getStop()) {
 			// should never happen
-			throw new StingException("Read "+read.getReadName()+": out of coverage window bounds");
+			throw new StingException("Read "+read.getReadName()+": out of coverage window bounds.\n"+
+					"Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
+					read.getAlignmentStart()+"; end="+read.getAlignmentEnd()+"; window start="+coverage.getStart()+
+					"; window end="+coverage.getStop());
 		}
 		
-		coverage.add(read,ref);
-		
-		
+		if ( call_somatic ) {
+			String rg = (String)read.getAttribute("RG");
+			
+			String sample = read.getHeader().getReadGroup(rg).getSample();
+			
+			if ( normal_samples.contains(sample) ) {
+				normal_coverage.add(read,ref);
+			} else if ( tumor_samples.contains(sample) ) {
+				coverage.add(read,ref);
+			} else {
+				throw new StingException("Unrecognized sample: "+sample);
+			}
+		} else { 
+			coverage.add(read, ref);
+		}
 		
 		return 1;
 	}
+	
+	/** Output indel calls up to the specified position and shift the coverage array(s): after this method is executed
+	 * first elements of the coverage arrays map onto 'position'
+	 * 
+	 * @param position
+	 */
+	private void emit(long position) {
+		
+		for ( long pos = coverage.getStart() ; pos < Math.min(position,coverage.getStop()+1) ; pos++ ) {
+			
+			List<IndelVariant> variants = coverage.indelsAt(pos);
+			if ( variants.size() == 0 ) continue; // no indels
 
+			int cov = coverage.coverageAt(pos);
+			
+			if ( cov < 6 ) continue; // low coverage
+			
+			int total_variant_count = 0;
+			int max_variant_count = 0;
+			String indelString = null;
+			int event_length = 0; // length of the event on the reference
+			
+			for ( IndelVariant var : variants ) {
+				int cnt = var.getCount();
+				total_variant_count +=cnt;
+				if ( cnt > max_variant_count ) {
+					max_variant_count = cnt;
+					indelString = var.getBases();
+					event_length = var.lengthOnRef();
+				}
+			}	
+			if ( (double)total_variant_count > 0.3*cov && (double) max_variant_count > 0.7*total_variant_count ) { 		
+			
+				try {
+					output.write(refName+"\t"+(pos-1)+"\t"+(event_length > 0 ? pos-1+event_length : pos-1)+
+							"\t"+(event_length>0? "-":"+")+indelString +":"+total_variant_count+"/"+cov+"\n");
+				} catch (IOException e) {
+					System.out.println(e.getMessage());
+					e.printStackTrace();
+					throw new StingException("Error encountered while writing into output BED file");
+				}
+			}
+//			for ( IndelVariant var : variants ) {
+//				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
+//			}
+		}
+		
+		coverage.shift((int)(position - coverage.getStart() ) );
+	}
+
+	/** Output somatic indel calls up to the specified position and shift the coverage array(s): after this method is executed
+	 * first elements of the coverage arrays map onto 'position'
+	 * 
+	 * @param position
+	 */
+	private void emit_somatic(long position) {
+		
+		for ( long pos = coverage.getStart() ; pos < Math.min(position,coverage.getStop()+1) ; pos++ ) {
+			
+			List<IndelVariant> tumor_variants = coverage.indelsAt(pos);
+			List<IndelVariant> normal_variants = normal_coverage.indelsAt(pos);
+
+			if ( tumor_variants.size() == 0 ) continue; // no indels in tumor
+
+					
+			int tumor_cov = coverage.coverageAt(pos);
+			int normal_cov = normal_coverage.coverageAt(pos);
+			
+			if ( tumor_cov < 6 ) continue; // low coverage
+			if ( normal_cov < 4 ) continue; // low coverage
+			
+			int total_variant_count_tumor = 0;
+			int max_variant_count_tumor = 0;
+			String indelStringTumor = null;
+			int event_length_tumor = 0; // length of the event on the reference
+			
+			for ( IndelVariant var : tumor_variants ) {
+				int cnt = var.getCount();
+				total_variant_count_tumor +=cnt;
+				if ( cnt > max_variant_count_tumor ) {
+					max_variant_count_tumor = cnt;
+					indelStringTumor = var.getBases();
+					event_length_tumor = var.lengthOnRef();
+				}
+			}	
+			
+			if ( (double)total_variant_count_tumor > 0.3*tumor_cov && (double) max_variant_count_tumor > 0.7*total_variant_count_tumor ) {
+				
+				System.out.println(refName+"\t"+(pos-1)+"\t"+(event_length_tumor > 0 ? pos-1+event_length_tumor : pos-1)+
+							"\t"+(event_length_tumor >0? "-":"+")+indelStringTumor +":"+total_variant_count_tumor+"/"+tumor_cov);
+				if ( normal_variants.size() == 0 ) { 		
+			
+					try {
+						output.write(refName+"\t"+(pos-1)+"\t"+(event_length_tumor > 0 ? pos-1+event_length_tumor : pos-1)+
+								"\t"+(event_length_tumor >0? "-":"+")+indelStringTumor +":"+total_variant_count_tumor+"/"+tumor_cov+"\n");
+					} catch (IOException e) {
+						System.out.println(e.getMessage());
+						e.printStackTrace();
+						throw new StingException("Error encountered while writing into output BED file");
+					}
+					System.out.println("INDICATION FOR SOMATIC\n---------------------------\n");
+				} else {
+					System.out.println("INDICATION FOR GERMLINE\n---------------------------\n");
+				}
+			}
+//			for ( IndelVariant var : variants ) {
+//				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
+//			}
+		}
+		
+		coverage.shift((int)(position - coverage.getStart() ) );
+		normal_coverage.shift((int)(position - normal_coverage.getStart() ) );
+	}
+
+	
+	@Override
+	public void onTraversalDone(Integer result) {
+		emit(1000000000); // emit everything we might have left
+		try {
+			output.close();
+		} catch (IOException e) {
+			System.out.println("Failed to close output BED file gracefully, data may be lost");
+			e.printStackTrace();
+		}
+		super.onTraversalDone(result);
+	}
+	
 	@Override
 	public Integer reduce(Integer value, Integer sum) {
 		sum += value;
@@ -97,6 +289,15 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		
 		public void increment(int i) {
 			count += i;
+		}
+		
+		/** Returns length of the event on the reference (number of deleted bases
+		 * for deletions, -1 for insertions. 
+		 * @return
+		 */
+		public int lengthOnRef() { 
+			if ( type == Type.D ) return bases.length();
+			else return -1;
 		}
 		
 		public void increment() { count+=1; }
@@ -235,8 +436,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	            if ( type == null ) continue; // element was not an indel, go grab next element...
 	            
 	            // we got an indel if we are here...
-	            if ( i == 0 ) System.out.println("WARNING: Indel at the start of the read "+r.getReadName());
-	            if ( i == nCigarElems - 1) System.out.println("WARNING: Indel at the end of the read "+r.getReadName());
+	            if ( i == 0 ) logger.warn("Indel at the start of the read "+r.getReadName());
+	            if ( i == nCigarElems - 1) logger.warn("Indel at the end of the read "+r.getReadName());
 
 	            updateCount(indelPosition, type, bases);
 	        }
