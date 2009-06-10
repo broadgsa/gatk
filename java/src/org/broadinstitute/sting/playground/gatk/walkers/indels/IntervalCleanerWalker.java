@@ -11,11 +11,8 @@ import org.broadinstitute.sting.playground.indels.*;
 import net.sf.samtools.*;
 import java.util.*;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.OutputStream;
-
+ 
 @WalkerName("IntervalCleaner")
 public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> {
     @Argument(fullName="maxReadLength", shortName="maxRead", doc="max read length", required=false)
@@ -30,6 +27,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public String OUT_STATS = null;
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
     public double LOD_THRESHOLD = 5.0;
+    @Argument(fullName="maxPileSize", shortName="maxSize", doc="max number of reads in the pile; if exceeded, no attempt will be made to realign the pile", required=false)
+    public int maxPileSize = 1000000000;
     @Argument(fullName="EntropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
     public double MISMATCH_THRESHOLD = 0.25;
     @Argument(fullName="GreedyThreshold", shortName="greedy", doc="coverage above which the cleaner turns on greedy mode to improve performance", required=false)
@@ -109,7 +108,28 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             else
                 readsToWrite.add(new ComparableSAMRecord(read));
         }
-        clean(goodReads, ref, context.getLocation());
+
+        if ( goodReads.size() > maxPileSize ) {
+        	// too many reads, shy away!
+        
+        	if ( statsOutput != null ) {
+        		try {
+        			statsOutput.write(context.getLocation().toString());
+        			statsOutput.write("\tSKIPPED ("+reads.size()+" reads total, "+goodReads.size()+" for realignment)\t");
+        			statsOutput.write("-1.0");
+        			statsOutput.write("\n");
+        			statsOutput.flush();
+        		} catch (Exception e) {}
+        
+        	}
+        	// push all "good" reads into readsToWrite without cleaning, there are too many!
+        	for ( SAMRecord read : goodReads ) {
+                readsToWrite.add(new ComparableSAMRecord(read));
+        	}
+        	goodReads.clear();
+        } else {
+        	clean(goodReads, ref, context.getLocation());
+        }
         //bruteForceClean(goodReads, ref, context.getLocation().getStart());
         //testCleanWithDeletion();
         //testCleanWithInsertion();
@@ -924,6 +944,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             b.append(cig.getCigarElement(i).getLength());
             b.append(c);
         }
-        return b.toString();
+        return b.toString(); 
     }
 }
