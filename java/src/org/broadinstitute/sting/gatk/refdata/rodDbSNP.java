@@ -132,7 +132,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
     // ----------------------------------------------------------------------
     public String toString() {
         return String.format("%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\t%d",
-                getLocation().getContig(), getLocation().getStart(), getLocation().getStop(),
+                getLocation().getContig(), getLocation().getStart(), getLocation().getStop()+1,
                 name, strand, refBases, observed, molType,
                 varType, validationStatus, avHet, avHetSE, func, locType, weight );
     }
@@ -152,7 +152,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
 
     public String repl() {
         return String.format("%d\t%s\t%d\t%d\t%s\t0\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\t%d",
-                585, getLocation().getContig(), getLocation().getStart()-1, getLocation().getStop()-1,
+                585, getLocation().getContig(), getLocation().getStart()-1, getLocation().getStop(),
                 name, strand, refBases, refBases, observed, molType,
                 varType, validationStatus, avHet, avHetSE, func, locType, weight );
     }
@@ -162,7 +162,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
             String contig = parts[1];
             long start = Long.parseLong(parts[2]) + 1; // The final is 0 based
             long stop = Long.parseLong(parts[3]) + 1;  // The final is 0 based
-            loc = GenomeLoc.parseGenomeLoc(contig, start, stop);
+            loc = GenomeLoc.parseGenomeLoc(contig, start, stop-1);
 
             name = parts[4];
             refBases = parts[5];

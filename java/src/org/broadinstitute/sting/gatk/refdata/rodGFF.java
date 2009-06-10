@@ -104,7 +104,7 @@ public class rodGFF extends BasicReferenceOrderedDatum {
     //
     // ----------------------------------------------------------------------
     public String toString() {
-        return String.format("%s\t%s\t%s\t%d\t%d\t%f\t%s\t%s\t%s", contig, source, feature, start, stop, score, strand, frame, getAttributeString());
+        return String.format("%s\t%s\t%s\t%d\t%d\t%f\t%s\t%s\t%s", contig, source, feature, start, stop+1, score, strand, frame, getAttributeString());
     }
 
     public String repl() {
@@ -141,7 +141,7 @@ public class rodGFF extends BasicReferenceOrderedDatum {
         final String source = parts[1];
         final String feature = parts[2];
         final long start = Long.parseLong(parts[3]);
-        final long stop = Long.parseLong(parts[4]);
+        final long stop = Long.parseLong(parts[4])-1;
 
         double score = Double.NaN;
         if ( ! parts[5].equals(".") )
