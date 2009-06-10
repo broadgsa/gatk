@@ -98,7 +98,7 @@ abstract public class BasicPileup implements Pileup {
             byte[] compressedQuals = (byte[]) read.getAttribute("SQ");
             byte base2;
             //byte qual2;
-            if (compressedQuals != null) {
+            if (compressedQuals != null && compressedQuals.length == read.getReadLength()) {
                 base2 = (byte) BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(compressedQuals[offset]));
                 //qual2 = QualityUtils.probToQual(QualityUtils.compressedQualityToProb(compressedQuals[offset]));
                 hasAtLeastOneSQField = true;
