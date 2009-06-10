@@ -197,7 +197,7 @@ public class GenotypeLikelihoods {
         this.sort();
     }
 
-    public void applyFourBaseDistributionPrior(String primaryBases, String secondaryBases) {
+    public void applySecondBaseDistributionPrior(String primaryBases, String secondaryBases) {
         for (int genotypeIndex = 0; genotypeIndex < genotypes.length; genotypeIndex++) {
             char firstAllele = genotypes[genotypeIndex].charAt(0);
             char secondAllele = genotypes[genotypeIndex].charAt(1);
@@ -210,23 +210,32 @@ public class GenotypeLikelihoods {
 
             for (int pileupIndex = 0; pileupIndex < primaryBases.length(); pileupIndex++) {
                 char primaryBase = primaryBases.charAt(pileupIndex);
-                char secondaryBase = secondaryBases.charAt(pileupIndex);
 
-                if (primaryBase != firstAllele && primaryBase != secondAllele) {
-                    if (secondaryBase == firstAllele || secondaryBase == secondAllele) {
-                        offIsGenotypic++;
+                if (secondaryBases != null) {
+                    char secondaryBase = secondaryBases.charAt(pileupIndex);
+
+                    if (primaryBase != firstAllele && primaryBase != secondAllele) {
+                        if (secondaryBase == firstAllele || secondaryBase == secondAllele) {
+                            offIsGenotypic++;
+                        }
+                        offTotal++;
+                    } else {
+                        if (secondaryBase == firstAllele || secondaryBase == secondAllele) {
+                            onIsGenotypic++;
+                        }
+                        onTotal++;
                     }
-                    offTotal++;
-                } else {
-                    if (secondaryBase == firstAllele || secondaryBase == secondAllele) {
-                        onIsGenotypic++;
-                    }
-                    onTotal++;
                 }
             }
 
             double offPrior = MathUtils.binomialProbability(offIsGenotypic, offTotal, offNextBestBasePriors.get(genotypes[genotypeIndex]));
             double onPrior = MathUtils.binomialProbability(onIsGenotypic, onTotal, onNextBestBasePriors.get(genotypes[genotypeIndex]));
+
+            //System.out.printf("%c%c [%d %d %f %e] [%d %d %f %e]\n",
+            //                  firstAllele, secondAllele,
+            //                  offIsGenotypic, offTotal, offNextBestBasePriors.get(genotypes[genotypeIndex]), offPrior,
+            //                  onIsGenotypic, onTotal, onNextBestBasePriors.get(genotypes[genotypeIndex]), onPrior);
+            //System.out.printf("%f\n", (new cern.jet.random.Binomial(onTotal, onNextBestBasePriors.get(genotypes[genotypeIndex]), cern.jet.random.engine.RandomEngine.makeDefault())).pdf(onIsGenotypic));
 
             likelihoods[genotypeIndex] += Math.log10(offPrior) + Math.log10(onPrior);
 
