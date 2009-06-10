@@ -79,7 +79,7 @@ public class HardyWeinbergEquilibrium extends BasicVariantAnalysis {
         List<String> s = new ArrayList<String>();
         s.add(String.format("n_calls              %d", nSites));
         s.add(String.format("n_violations         %d", nViolations));
-        s.add(String.format("violations_rate      %.2f", (100.0*nSites) / nViolations));
+        s.add(String.format("violations_rate      %.2f", (100.0*nViolations) / nSites));
         return s;
     }
 }

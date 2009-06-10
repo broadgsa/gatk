@@ -103,6 +103,8 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         // Iterate over each analysis, and update it
         AllelicVariant eval = (AllelicVariant)tracker.lookup("eval", null);
+
+        //if ( eval!=null ) System.out.printf("Eval: %f %d %b%n", eval.getVariationConfidence(), minDiscoveryQ, eval.getVariationConfidence() < minDiscoveryQ);
         if ( eval != null && eval.getVariationConfidence() < minDiscoveryQ )
             eval = null;
 

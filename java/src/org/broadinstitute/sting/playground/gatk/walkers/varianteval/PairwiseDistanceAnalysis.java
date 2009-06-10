@@ -75,10 +75,12 @@ public class PairwiseDistanceAnalysis extends BasicVariantAnalysis {
 
         List<String> s = new ArrayList<String>();
         s.add(String.format("snps counted for pairwise distance: %d", pairWiseDistances.size()));
+        int cumulative = 0;
         for ( int i = 0; i < pairWiseBoundries.length; i++ ) {
             int maxDist = pairWiseBoundries[i];
             int count = pairCounts[i];
-            s.add(String.format("snps within %8d bp: %d", maxDist, count));
+            cumulative += count;
+            s.add(String.format("snps within %8d bp:    %d  %d", maxDist, count, cumulative));
         }
 
         return s;

@@ -26,17 +26,10 @@ public class VariantDBCoverage extends BasicVariantAnalysis {
         if (inDB && inEval) nOverlapping++;
     }
 
-    public int nDBSites() {
-        return nDBObs;
-    }
-
-    public int nEvalSites() {
-        return nEvalObs;
-    }
-
-    public int nOverlappingSites() {
-        return nOverlapping;
-    }
+    public int nDBSites()           { return nDBObs; }
+    public int nEvalSites()         { return nEvalObs; }
+    public int nOverlappingSites()  { return nOverlapping; }
+    public int nNovelSites()        { return Math.abs(nEvalSites() - nOverlappingSites()); }
 
     /**
      * What fraction of the evaluated site variants were also found in the db?
@@ -70,6 +63,7 @@ public class VariantDBCoverage extends BasicVariantAnalysis {
         s.add(String.format("n_db_sites           %d", nDBSites()));
         s.add(String.format("n_eval_sites         %d", nEvalSites()));
         s.add(String.format("n_overlapping_sites  %d", nOverlappingSites()));
+        s.add(String.format("n_novel_sites        %d", nNovelSites()));
         s.add(String.format("per_eval_sites_in_db %.2f", 100*fractionEvalSitesCoveredByDB()));
         s.add(String.format("per_db_sites_in_eval %.2f", 100*fractionDBSitesDiscoveredInEval()));
         return s;
