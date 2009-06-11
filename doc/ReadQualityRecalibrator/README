@@ -97,6 +97,17 @@ Known Issues
   graphs.  If running on a machine via ssh, be certain
   to enable X tunnelling.
 
+Troubleshooting
+---------------
+- The memory requirements of the recalibrator will 
+  vary based on the type of JVM running the application 
+  and the number of read groups in the input bam file.  
+  If the application reports 'java.lang.OutOfMemoryError:
+  Java heap space', increase the max heap size provided
+  to the JVM by adding ' -Xmx????m' to the jvm_args
+  variable in RecalQual.py, where '????' is the maximum
+  available memory on the processing computer.
+
 Support
 -------
 For support, please email gsadevelopers@broad.mit.edu.

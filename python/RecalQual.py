@@ -6,7 +6,7 @@ java_exe='/broad/tools/Linux/x86_64/pkgs/jdk_1.6.0_12/bin/java'
 R_exe="/broad/tools/apps/R-2.6.0/bin/Rscript"
 
 # Any special site-specific arguments to pass the JVM.
-jvm_args='-ea -Xmx4096m'
+jvm_args='-ea'
 
 # Which platforms should the calibration tool be run over?
 platforms=['illumina']
