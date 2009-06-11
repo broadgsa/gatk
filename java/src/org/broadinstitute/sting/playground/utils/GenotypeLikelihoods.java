@@ -37,6 +37,11 @@ public class GenotypeLikelihoods {
     public double[] likelihoods;
     public String[] genotypes;
 
+    // The genotype priors;
+    private double priorHomRef;
+    private double priorHet;
+    private double priorHomVar;
+
     // Store the 2nd-best base priors for on-genotype primary bases
     HashMap<String, Double> onNextBestBasePriors = new HashMap<String, Double>();
 
@@ -44,6 +49,18 @@ public class GenotypeLikelihoods {
     HashMap<String, Double> offNextBestBasePriors = new HashMap<String, Double>();
 
     public GenotypeLikelihoods() {
+        initialize(1.0 - 1e-3, 1e-3, 1e-5);
+    }
+
+    public GenotypeLikelihoods(double priorHomRef, double priorHet, double priorHomVar) {
+        initialize(priorHomRef, priorHet, priorHomVar);
+    }
+
+    private void initialize(double priorHomRef, double priorHet, double priorHomVar) {
+        this.priorHomRef = priorHomRef;
+        this.priorHet = priorHet;
+        this.priorHomVar = priorHomVar;
+
         likelihoods = new double[10];
         genotypes = new String[10];
 
@@ -153,17 +170,17 @@ public class GenotypeLikelihoods {
 	            if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) 
 				{
 	                // hom-ref
-	                likelihoods[i] += Math.log10(1.0 - 1e-3);
+	                likelihoods[i] += Math.log10(priorHomRef);
 	            } 
 				else if ((genotypes[i].charAt(0) != ref) && (genotypes[i].charAt(1) != ref)) 
 				{
 	                // hom-nonref
-	                likelihoods[i] += Math.log10(1e-5);
+	                likelihoods[i] += Math.log10(priorHomVar);
 	            } 
 				else 
 				{
 	                // het
-	                likelihoods[i] += Math.log10(1e-3);
+	                likelihoods[i] += Math.log10(priorHet);
 	            }
                 if (Double.isInfinite(likelihoods[i])) { likelihoods[i] = -1000; }
             }
@@ -231,15 +248,7 @@ public class GenotypeLikelihoods {
             double offPrior = MathUtils.binomialProbability(offIsGenotypic, offTotal, offNextBestBasePriors.get(genotypes[genotypeIndex]));
             double onPrior = MathUtils.binomialProbability(onIsGenotypic, onTotal, onNextBestBasePriors.get(genotypes[genotypeIndex]));
 
-            //System.out.printf("%c%c [%d %d %f %e] [%d %d %f %e]\n",
-            //                  firstAllele, secondAllele,
-            //                  offIsGenotypic, offTotal, offNextBestBasePriors.get(genotypes[genotypeIndex]), offPrior,
-            //                  onIsGenotypic, onTotal, onNextBestBasePriors.get(genotypes[genotypeIndex]), onPrior);
-            //System.out.printf("%f\n", (new cern.jet.random.Binomial(onTotal, onNextBestBasePriors.get(genotypes[genotypeIndex]), cern.jet.random.engine.RandomEngine.makeDefault())).pdf(onIsGenotypic));
-
             likelihoods[genotypeIndex] += Math.log10(offPrior) + Math.log10(onPrior);
-
-            //System.out.println(genotypes[genotypeIndex] + " " + offNextBestBasePriors.get(genotypes[genotypeIndex]) + " " + offIsGenotypic + " " + offTotal + " " + (((double) offIsGenotypic)/((double) offTotal)) + " " + offPrior);
         }
         this.sort();
     }
