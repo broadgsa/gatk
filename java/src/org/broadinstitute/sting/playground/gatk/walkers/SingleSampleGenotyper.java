@@ -30,11 +30,11 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     @Argument(fullName="lodThreshold", shortName="lod",          doc="lodThreshold",                required=false) public Double lodThreshold = 5.0;
     @Argument(fullName="fourBaseMode", shortName="fb",           doc="fourBaseMode",                required=false) public Boolean fourBaseMode = false;
     @Argument(fullName="call_indels",  shortName="call_indels",  doc="Call Indels",                 required=false) public Boolean call_indels = false;
-    @Argument(fullName="refPrior", shortName="refPrior", required=false, doc="Prior likelihood of the reference theory") public double REF_PRIOR = 0.999;
-    @Argument(fullName="hetVarPrior", shortName="hetVarPrior", required=false, doc="Prior likelihood of a heterozygous variant theory") public double HETVAR_PRIOR = 1e-3;
-    @Argument(fullName="homVarPrior", shortName="homVarPrior", required=false, doc="Prior likelihood of the homozygous variant theory") public double HOMVAR_PRIOR = 1e-5;
-    @Argument(fullName="geli",         shortName="geli",         doc="If true, output will be in Geli/Picard format", required=false) public boolean GeliOutputFormat = false;
     @Argument(fullName="sample_name_regex", shortName="sample_name_regex", doc="sample_name_regex", required=false) public String SAMPLE_NAME_REGEX = null;
+    @Argument(fullName="refPrior",     shortName="refPrior",     doc="Prior likelihood of the reference theory",          required=false) public double PRIOR_HOM_REF = 1.0 - 1e-3;
+    @Argument(fullName="hetVarPrior",  shortName="hetVarPrior",  doc="Prior likelihood of a heterozygous variant theory", required=false) public double PRIOR_HET = 1e-3;
+    @Argument(fullName="homVarPrior",  shortName="homVarPrior",  doc="Prior likelihood of the homozygous variant theory", required=false) public double PRIOR_HOM_VAR = 1e-5;
+    @Argument(fullName="geli",         shortName="geli",         doc="If true, output will be in Geli/Picard format",     required=false) public boolean GeliOutputFormat = false;
 
     public AlleleMetrics metrics;
 	public PrintStream calls_file;
@@ -44,34 +44,26 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
     public boolean requiresReads() { return true; }
 
-    public void initialize() 
-	{ 
-		try 
-		{
+    public void initialize()  {
+		try  {
 			sample_name = null; 
-			if (metricsFileName != null) { metrics    = new AlleleMetrics(metricsFileName, lodThreshold); }
-			if (callsFileName != null)   
-			{ 
+			if (metricsFileName != null) { metrics = new AlleleMetrics(metricsFileName, lodThreshold); }
+			if (callsFileName != null)    {
 				calls_file = new PrintStream(callsFileName);
                 String header = GeliOutputFormat ? AlleleFrequencyEstimate.geliHeaderString() : AlleleFrequencyEstimate.asTabularStringHeader();
 				calls_file.println(header);
 			}
-		}
-		catch (Exception e)
-		{
+		} catch (Exception e) {
 			e.printStackTrace(); 
 			System.exit(-1);
 		}
 	}
 
     public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        String rodString = getRodString(tracker);
-
 		ref = Character.toUpperCase(ref);
 		if (ref == 'N') { return null; }
 
-		if (context.getReads().size() != 0)
-		{
+		if (context.getReads().size() != 0) {
 			SAMRecord read = context.getReads().get(0);
 	        String RG = (String)(read.getAttribute("RG"));
 			SAMReadGroupRecord read_group_record = read.getHeader().getReadGroup(RG);
@@ -88,17 +80,20 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 			}
 		}
 
-        AlleleFrequencyEstimate freq = getAlleleFrequency(ref, context, rodString, sample_name);
+        AlleleFrequencyEstimate freq = getAlleleFrequency(ref, context, sample_name);
 
         if (printMetrics) {
-            if (freq != null) { metrics.nextPosition(freq, tracker); }
+            if (freq != null) {
+                //System.out.println(context.getContig() + ":" + context.getPosition());
+                metrics.nextPosition(freq, tracker);
+            }
             metrics.printMetricsAtLocusIntervals(metricsInterval);
         }
 
         return freq;
     }
 
-    private AlleleFrequencyEstimate getAlleleFrequency(char ref, LocusContext context, String rodString, String sample_name) {
+    private AlleleFrequencyEstimate getAlleleFrequency(char ref, LocusContext context, String sample_name) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         String bases = pileup.getBases();
 
@@ -127,7 +122,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 		}
         
 		// Handle single-base polymorphisms.
-        GenotypeLikelihoods G = new GenotypeLikelihoods();
+        GenotypeLikelihoods G = new GenotypeLikelihoods(PRIOR_HOM_REF, PRIOR_HET, PRIOR_HOM_VAR);
         for ( int i = 0; i < reads.size(); i++ )  
         {
             SAMRecord read = reads.get(i);
