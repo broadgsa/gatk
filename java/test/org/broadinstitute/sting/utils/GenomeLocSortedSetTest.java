@@ -2,7 +2,7 @@ package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.sam.ArtificialSamUtils;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,7 +37,7 @@ import java.util.Iterator;
 public class GenomeLocSortedSetTest extends BaseTest {
 
     private GenomeLocSortedSet mSortedSet = null;
-    private SAMFileHeader header = ArtificialSamUtils.createArtificialSamHeader(NUMBER_OF_CHROMOSOMES, STARTING_CHROMOSOME, CHROMOSOME_SIZE);
+    private SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(NUMBER_OF_CHROMOSOMES, STARTING_CHROMOSOME, CHROMOSOME_SIZE);
     private static final int NUMBER_OF_CHROMOSOMES = 5;
     private static final int STARTING_CHROMOSOME = 1;
     private static final int CHROMOSOME_SIZE = 1000;

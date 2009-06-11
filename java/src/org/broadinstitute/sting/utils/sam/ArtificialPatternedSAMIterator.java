@@ -113,7 +113,7 @@ public class ArtificialPatternedSAMIterator extends ArtificialSAMIterator {
                 return false;
             } else {
                 ++totalReadCount;
-                this.next = ArtificialSamUtils.createArtificialRead(this.header, String.valueOf(totalReadCount), -1, -1, 50);
+                this.next = ArtificialSAMUtils.createArtificialRead(this.header, String.valueOf(totalReadCount), -1, -1, 50);
                 --uMappedReadCount;
                 return true;
             }
@@ -135,9 +135,9 @@ public class ArtificialPatternedSAMIterator extends ArtificialSAMIterator {
      */
     private SAMRecord getNextRecord( int read ) {
         if (read > this.readCount) {
-            return ArtificialSamUtils.createArtificialRead(this.header, String.valueOf(reads[readCount - 1]), currentChromo, reads[readCount - 1], 50);
+            return ArtificialSAMUtils.createArtificialRead(this.header, String.valueOf(reads[readCount - 1]), currentChromo, reads[readCount - 1], 50);
         }
-        return ArtificialSamUtils.createArtificialRead(this.header, String.valueOf(reads[read]), currentChromo, reads[read], 50);
+        return ArtificialSAMUtils.createArtificialRead(this.header, String.valueOf(reads[read]), currentChromo, reads[read], 50);
     }
 
 }

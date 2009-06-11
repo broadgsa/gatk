@@ -1,14 +1,12 @@
-package org.broadinstitute.sting.utils.glf;
+package org.broadinstitute.sting.utils.genotype.glf;
 
 import org.junit.Test;
 import org.junit.Before;
 import org.broadinstitute.sting.BaseTest;
-import net.sf.samtools.util.BinaryCodec;
-import net.sf.samtools.util.BlockCompressedOutputStream;
+import org.broadinstitute.sting.utils.genotype.glf.GLFWriter;
+import org.broadinstitute.sting.utils.genotype.glf.LikelihoodObject;
 
 import java.io.File;
-import java.io.DataOutputStream;
-import java.io.IOException;
 
 
 /*

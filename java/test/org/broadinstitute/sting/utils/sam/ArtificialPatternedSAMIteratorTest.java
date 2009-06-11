@@ -51,12 +51,12 @@ public class ArtificialPatternedSAMIteratorTest extends BaseTest {
     private int startingChr = 1;
     private int endingChr = 2;
     private int readCount = 100;
-    private int DEFAULT_READ_LENGTH = ArtificialSamUtils.DEFAULT_READ_LENGTH;
+    private int DEFAULT_READ_LENGTH = ArtificialSAMUtils.DEFAULT_READ_LENGTH;
     SAMFileHeader header;
 
     @Before
     public void before() {
-        header = ArtificialSamUtils.createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
+        header = ArtificialSAMUtils.createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
     }
     @Test

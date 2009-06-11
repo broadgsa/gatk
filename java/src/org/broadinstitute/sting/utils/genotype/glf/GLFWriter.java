@@ -1,10 +1,8 @@
-package org.broadinstitute.sting.utils.glf;
+package org.broadinstitute.sting.utils.genotype.glf;
 
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.io.File;
 import java.io.DataOutputStream;
 

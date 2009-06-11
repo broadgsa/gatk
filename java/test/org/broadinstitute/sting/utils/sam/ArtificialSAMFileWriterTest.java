@@ -56,13 +56,13 @@ public class ArtificialSAMFileWriterTest extends BaseTest {
     @Before
     public void before() {
         writer = new ArtificialSAMFileWriter();
-        header = ArtificialSamUtils.createArtificialSamHeader(numChr, startChr, chrSize);
+        header = ArtificialSAMUtils.createArtificialSamHeader(numChr, startChr, chrSize);
     }
 
     @Test
     public void testBasicCount() {
         for (int x = 0; x < 100; x++) {
-            SAMRecord rec = ArtificialSamUtils.createArtificialRead(header, String.valueOf(x), 1, x, ArtificialSamUtils.DEFAULT_READ_LENGTH);
+            SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, String.valueOf(x), 1, x, ArtificialSAMUtils.DEFAULT_READ_LENGTH);
             writer.addAlignment(rec);
         }
         assertEquals(100, writer.getRecords().size());
@@ -75,7 +75,7 @@ public class ArtificialSAMFileWriterTest extends BaseTest {
 
         for (int x = 0; x < 100; x++) {
             names.add(String.valueOf(x));
-            SAMRecord rec = ArtificialSamUtils.createArtificialRead(header, String.valueOf(x), 1, x, ArtificialSamUtils.DEFAULT_READ_LENGTH);
+            SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, String.valueOf(x), 1, x, ArtificialSAMUtils.DEFAULT_READ_LENGTH);
             writer.addAlignment(rec);
         }
         assertEquals(100, writer.getRecords().size());

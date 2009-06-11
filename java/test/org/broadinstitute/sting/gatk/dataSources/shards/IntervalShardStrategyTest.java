@@ -7,7 +7,7 @@ import static org.junit.Assert.assertTrue;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.sam.ArtificialSamUtils;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.BaseTest;
 import net.sf.samtools.SAMFileHeader;
 
@@ -53,7 +53,7 @@ import net.sf.samtools.SAMFileHeader;
 public class IntervalShardStrategyTest extends BaseTest {
 
     private GenomeLocSortedSet mSortedSet = null;
-    private SAMFileHeader header = ArtificialSamUtils.createArtificialSamHeader(NUMBER_OF_CHROMOSOMES, STARTING_CHROMOSOME, CHROMOSOME_SIZE);
+    private SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(NUMBER_OF_CHROMOSOMES, STARTING_CHROMOSOME, CHROMOSOME_SIZE);
     private static final int NUMBER_OF_CHROMOSOMES = 5;
     private static final int STARTING_CHROMOSOME = 1;
     private static final int CHROMOSOME_SIZE = 1000;

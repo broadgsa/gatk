@@ -1,10 +1,8 @@
 package org.broadinstitute.sting.gatk.dataSources.simpleDataSources;
 
 import static junit.framework.Assert.fail;
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
@@ -12,7 +10,7 @@ import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.sam.ArtificialSamUtils;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMQueryIterator;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -85,7 +83,7 @@ public class SAMByReadsTest extends BaseTest {
             SAMDataSource data = new SAMDataSource(reads,true);
             for (int x = 0; x < 10; x++) {
                 ++iterations;
-                PeekingStingIterator iter = ArtificialSamUtils.unmappedReadIterator(1, 100, 10, 1000);
+                PeekingStingIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 10, 1000);
                 BoundedReadIterator ret = data.toUnmappedReads(100, iter);
                 // count the reads we've gotten back
                 if (ret == null) {
@@ -223,13 +221,13 @@ class ArtificialResourcePool extends SAMIteratorPool {
 
     public ArtificialResourcePool( int startingChr, int endingChr, int readCount, int readSize) {
         super( new Reads(Collections.<File>emptyList()),true );
-        header = ArtificialSamUtils.createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + readSize);
+        header = ArtificialSAMUtils.createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + readSize);
 
     }
 
     @Override
     public StingSAMIterator iterator( GenomeLoc loc ) {
-        ArtificialSAMQueryIterator iter = ArtificialSamUtils.queryReadIterator(1, 10, 100, 1000);
+        ArtificialSAMQueryIterator iter = ArtificialSAMUtils.queryReadIterator(1, 10, 100, 1000);
         if (loc != null) {
             iter.queryContained(loc.getContig(), (int)loc.getStart(), (int)loc.getStop());
         }

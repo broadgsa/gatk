@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.glf;
+package org.broadinstitute.sting.utils.genotype.glf;
 
 import java.util.HashMap;
 

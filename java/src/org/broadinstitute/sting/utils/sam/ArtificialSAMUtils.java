@@ -29,7 +29,7 @@ import org.broadinstitute.sting.gatk.Reads;
  * @author aaron
  * @version 1.0
  */
-public class ArtificialSamUtils {
+public class ArtificialSAMUtils {
     public static final int DEFAULT_READ_LENGTH = 50;
 
     /**

@@ -7,10 +7,7 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.apache.log4j.Logger;
-
-import java.util.Arrays;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
@@ -52,7 +49,7 @@ public class ArtificialReadsTraversal extends TraversalEngine {
     public int endingChr = 5;
     public int readsPerChr = 100;
     public int unMappedReads = 1000;
-    private int DEFAULT_READ_LENGTH = ArtificialSamUtils.DEFAULT_READ_LENGTH;
+    private int DEFAULT_READ_LENGTH = ArtificialSAMUtils.DEFAULT_READ_LENGTH;
     private ArtificialPatternedSAMIterator iter;
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(ArtificialReadsTraversal.class);
@@ -96,7 +93,7 @@ public class ArtificialReadsTraversal extends TraversalEngine {
             throw new IllegalArgumentException("Walker isn't a read walker!");
 
         ReadWalker<M, T> readWalker = (ReadWalker<M, T>) walker;
-        SAMFileHeader header = ArtificialSamUtils.createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readsPerChr + DEFAULT_READ_LENGTH);
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readsPerChr + DEFAULT_READ_LENGTH);
         iter = new ArtificialPatternedSAMIterator(this.startingChr,
                 this.endingChr,
                 this.readsPerChr,

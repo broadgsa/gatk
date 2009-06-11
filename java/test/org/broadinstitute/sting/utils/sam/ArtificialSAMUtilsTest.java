@@ -16,12 +16,12 @@ import net.sf.samtools.SAMRecord;
  * Time: 3:09:34 AM
  * To change this template use File | Settings | File Templates.
  */
-public class ArtificialSamUtilsTest extends BaseTest {
+public class ArtificialSAMUtilsTest extends BaseTest {
 
 
     @Test
     public void basicReadIteratorTest() {
-        StingSAMIterator iter = ArtificialSamUtils.unmappedReadIterator(1, 100, 100);
+        StingSAMIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 100);
         int count = 0;
         while (iter.hasNext()) {
             SAMRecord rec = iter.next();
@@ -32,7 +32,7 @@ public class ArtificialSamUtilsTest extends BaseTest {
 
     @Test
     public void tenPerChromosome() {
-        StingSAMIterator iter = ArtificialSamUtils.unmappedReadIterator(1, 100, 10);
+        StingSAMIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 10);
         int count = 0;
         while (iter.hasNext()) {
             SAMRecord rec = iter.next();
@@ -45,7 +45,7 @@ public class ArtificialSamUtilsTest extends BaseTest {
 
     @Test
     public void onePerChromosome() {
-        StingSAMIterator iter = ArtificialSamUtils.unmappedReadIterator(1, 100, 1);
+        StingSAMIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 1);
         int count = 0;
         while (iter.hasNext()) {
             SAMRecord rec = iter.next();
@@ -58,7 +58,7 @@ public class ArtificialSamUtilsTest extends BaseTest {
 
     @Test
     public void basicUnmappedIteratorTest() {
-        StingSAMIterator iter = ArtificialSamUtils.unmappedReadIterator(1, 100, 100, 1000);
+        StingSAMIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 100, 1000);
         int count = 0;
         for (int x = 0; x < (100* 100); x++ ) {
             if (!iter.hasNext()) {
@@ -82,7 +82,7 @@ public class ArtificialSamUtilsTest extends BaseTest {
 
     @Test
     public void testPeeking() {
-        PeekingStingIterator iter = ArtificialSamUtils.unmappedReadIterator(1, 100, 100);
+        PeekingStingIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 100);
         int count = 0;
         while (iter.hasNext()) {
             int readCnt = ((ArtificialSAMIterator)(iter)).readsTaken();

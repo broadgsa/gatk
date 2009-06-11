@@ -121,13 +121,13 @@ public class ArtificialSAMIterator implements PeekingStingIterator {
                 return false;
             } else {
                 ++totalReadCount;
-                this.next = ArtificialSamUtils.createArtificialRead(this.header, String.valueOf(totalReadCount), -1, -1, 50);
+                this.next = ArtificialSAMUtils.createArtificialRead(this.header, String.valueOf(totalReadCount), -1, -1, 50);
                 --uMappedReadCount;
                 return true;
             }
         }
         ++totalReadCount;
-        this.next = ArtificialSamUtils.createArtificialRead(this.header, String.valueOf(totalReadCount), currentChromo, currentRead, 50);
+        this.next = ArtificialSAMUtils.createArtificialRead(this.header, String.valueOf(totalReadCount), currentChromo, currentRead, 50);
         ++currentRead;
         return true;
     }

@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.glf;
+package org.broadinstitute.sting.utils.genotype.glf;
 
 import org.junit.Before;
 import org.junit.Test;

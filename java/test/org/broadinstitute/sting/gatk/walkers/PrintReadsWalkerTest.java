@@ -1,12 +1,11 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.executive.Accumulator;
 import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
 import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
 import org.broadinstitute.sting.utils.sam.ArtificialReadsTraversal;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMFileWriter;
-import org.broadinstitute.sting.utils.sam.ArtificialSamUtils;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
@@ -85,8 +84,8 @@ public class PrintReadsWalkerTest extends BaseTest {
     @Test
     public void testReturnRead() {
         PrintReadsWalker walker = new PrintReadsWalker();
-        SAMFileHeader head = ArtificialSamUtils.createArtificialSamHeader(3,1,1000);
-        SAMRecord rec = ArtificialSamUtils.createArtificialRead(head, "FakeRead", 1, 1, 50);
+        SAMFileHeader head = ArtificialSAMUtils.createArtificialSamHeader(3,1,1000);
+        SAMRecord rec = ArtificialSAMUtils.createArtificialRead(head, "FakeRead", 1, 1, 50);
         SAMRecord ret = walker.map(bases, rec);
         assertTrue(ret == rec);
         assertTrue(ret.getReadName().equals(rec.getReadName()));
@@ -96,8 +95,8 @@ public class PrintReadsWalkerTest extends BaseTest {
     @Test
     public void testReducingRead() {
         PrintReadsWalker walker = new PrintReadsWalker();
-         SAMFileHeader head = ArtificialSamUtils.createArtificialSamHeader(3,1,1000);
-        SAMRecord rec = ArtificialSamUtils.createArtificialRead(head, "FakeRead", 1, 1, 50);
+         SAMFileHeader head = ArtificialSAMUtils.createArtificialSamHeader(3,1,1000);
+        SAMRecord rec = ArtificialSAMUtils.createArtificialRead(head, "FakeRead", 1, 1, 50);
         ArtificialSAMFileWriter writer = new ArtificialSAMFileWriter();
         SAMRecord ret = walker.map(bases, null);
         walker.reduce(ret,writer);

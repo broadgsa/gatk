@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.utils.sam;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.iterators.PeekingStingIterator;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import net.sf.samtools.SAMRecord;
@@ -44,7 +43,7 @@ public class ArtificialSAMQueryIteratorTest extends BaseTest {
 
     @Test
     public void testWholeChromosomeQuery() {
-        ArtificialSAMQueryIterator iter = ArtificialSamUtils.queryReadIterator(1, 2, 100);
+        ArtificialSAMQueryIterator iter = ArtificialSAMUtils.queryReadIterator(1, 2, 100);
         iter.queryContained("chr1", 1, -1);
         int count = 0;
         while (iter.hasNext()) {
@@ -57,7 +56,7 @@ public class ArtificialSAMQueryIteratorTest extends BaseTest {
 
     @Test
     public void testContainedQueryStart() {
-        ArtificialSAMQueryIterator iter = ArtificialSamUtils.queryReadIterator(1, 2, 100);
+        ArtificialSAMQueryIterator iter = ArtificialSAMUtils.queryReadIterator(1, 2, 100);
         iter.queryContained("chr1", 1, 50);
         int count = 0;
         while (iter.hasNext()) {
@@ -70,7 +69,7 @@ public class ArtificialSAMQueryIteratorTest extends BaseTest {
 
     @Test
     public void testOverlappingQueryStart() {
-        ArtificialSAMQueryIterator iter = ArtificialSamUtils.queryReadIterator(1, 2, 100);
+        ArtificialSAMQueryIterator iter = ArtificialSAMUtils.queryReadIterator(1, 2, 100);
         iter.queryOverlapping("chr1", 1, 50);
         int count = 0;
         while (iter.hasNext()) {
@@ -83,7 +82,7 @@ public class ArtificialSAMQueryIteratorTest extends BaseTest {
 
     @Test
     public void testContainedQueryMiddle() {
-        ArtificialSAMQueryIterator iter = ArtificialSamUtils.queryReadIterator(1, 2, 100);
+        ArtificialSAMQueryIterator iter = ArtificialSAMUtils.queryReadIterator(1, 2, 100);
         iter.queryContained("chr1", 25, 74);
         int count = 0;
         while (iter.hasNext()) {
@@ -96,7 +95,7 @@ public class ArtificialSAMQueryIteratorTest extends BaseTest {
 
     @Test
     public void testOverlappingQueryMiddle() {
-        ArtificialSAMQueryIterator iter = ArtificialSamUtils.queryReadIterator(1, 2, 100);
+        ArtificialSAMQueryIterator iter = ArtificialSAMUtils.queryReadIterator(1, 2, 100);
         iter.queryOverlapping("chr1", 25, 74);
         int count = 0;
         while (iter.hasNext()) {
@@ -109,7 +108,7 @@ public class ArtificialSAMQueryIteratorTest extends BaseTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testUnknownChromosome() {
-        ArtificialSAMQueryIterator iter = ArtificialSamUtils.queryReadIterator(1, 2, 100);
+        ArtificialSAMQueryIterator iter = ArtificialSAMUtils.queryReadIterator(1, 2, 100);
         iter.queryOverlapping("chr621", 25, 74);         
     }
 }
