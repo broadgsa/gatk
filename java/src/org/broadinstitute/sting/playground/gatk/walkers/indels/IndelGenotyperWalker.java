@@ -10,6 +10,7 @@ import java.util.Set;
 
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMReadGroupRecord;
@@ -27,6 +28,9 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	@Argument(fullName="somatic", shortName="somatic", 
 			doc="Perform somatic calls; two input alignment files must be specified", required=false)
 	public boolean call_somatic = false;
+	@Argument(fullName="verbose", shortName="verbose", 
+			doc="Tell us what you are calling now (printed to stdout)", required=false)
+	public boolean verbose = false;
 	 
 	private static int WINDOW_SIZE = 200;
 	private RunningCoverage coverage;
@@ -141,12 +145,25 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			throw new StingException("Read "+read.getReadName()+": out of order on the contig");
 		}
 		
+		// a little trick here: we want to make sure that current read completely fits into the current
+		// window so that we can accumulate the coverage/indel counts over the whole length of the read.
+		// The ::getAlignmentEnd() method returns the last position on the reference where bases from the
+		// read actually match (M or D cigar elements). After our cleaning procedure, we can have reads that end
+		// with I element, which is not gonna be counted into alignment length on the reference. On the other hand, 
+		// in this program we assign insertions, internally, to the first base *after* the insertion position. 
+		// Hence, we have to make sure that that extra base is already in the window or we will get IndexOutOfBounds.
 		
-		if ( read.getAlignmentEnd() > coverage.getStop()) {
+		long alignmentEnd = read.getAlignmentEnd();
+		Cigar c = read.getCigar();
+		if ( c.getCigarElement(c.numCigarElements()-1).getOperator() == CigarOperator.I) alignmentEnd++;
+		
+		if ( alignmentEnd > coverage.getStop()) {
 			
 			// we don't emit anything until we reach a read that does not fit into the current window.
 			// At that point we shift the window to the start of that read and emit everything prior to 
-			// that position (reads are sorted, so we are not gonna see any more coverage at those lower positions)
+			// that position (reads are sorted, so we are not gonna see any more coverage at those lower positions).
+			// Clearly, we assume here that window is large enough to accomodate any single read, so simply shifting
+			// the window to the read's start will ensure that the read fits...
 			
 			if ( call_somatic ) emit_somatic( read.getAlignmentStart() );
 			else emit( read.getAlignmentStart() );
@@ -287,7 +304,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 				} else {
 					message += "\tGERMLINE";
 				}
-				logger.info(message);
+				if ( verbose ) System.out.println(message);
 			}
 //			for ( IndelVariant var : variants ) {
 //				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
@@ -467,7 +484,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	                    // will increment position on the read below, there's no 'break' statement yet...
 	            case H:
 	            case S:
-	            		// here we also skip hard and soft-clipped bases on th eread; according to SAM format specification, 
+	            		// here we also skip hard and soft-clipped bases on the read; according to SAM format specification, 
                			// alignment start position on the reference points to where the actually aligned 
     					// (not clipped) bases go, so we do not need to increment reference position here	                    
 	            		posOnRead += ce.getLength();
@@ -492,7 +509,15 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	            if ( i == 0 ) logger.warn("Indel at the start of the read "+r.getReadName());
 	            if ( i == nCigarElems - 1) logger.warn("Indel at the end of the read "+r.getReadName());
 
-	            updateCount(indelPosition, type, bases);
+	            try {
+	            	updateCount(indelPosition, type, bases);
+	            } catch (IndexOutOfBoundsException e) {
+					System.out.println("Read "+r.getReadName()+": out of coverage window bounds.Probably window is too small.\n"+
+							"Read length="+r.getReadLength()+"; cigar="+r.getCigarString()+"; start="+
+							r.getAlignmentStart()+"; end="+r.getAlignmentEnd()+"; window start="+getStart()+
+							"; window end="+getStop());
+	            	throw e;
+	            }
 	        }
 	            
 			
