@@ -80,11 +80,10 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 			}
 		}
 
-        AlleleFrequencyEstimate freq = getAlleleFrequency(ref, context, sample_name);
+        AlleleFrequencyEstimate freq = getAlleleFrequency(tracker, ref, context, sample_name);
 
         if (printMetrics) {
             if (freq != null) {
-                //System.out.println(context.getContig() + ":" + context.getPosition());
                 metrics.nextPosition(freq, tracker);
             }
             metrics.printMetricsAtLocusIntervals(metricsInterval);
@@ -93,7 +92,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         return freq;
     }
 
-    private AlleleFrequencyEstimate getAlleleFrequency(char ref, LocusContext context, String sample_name) {
+    private AlleleFrequencyEstimate getAlleleFrequency(RefMetaDataTracker tracker, char ref, LocusContext context, String sample_name) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         String bases = pileup.getBases();
 
@@ -123,7 +122,22 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         
 		// Handle single-base polymorphisms.
         GenotypeLikelihoods G = new GenotypeLikelihoods(PRIOR_HOM_REF, PRIOR_HET, PRIOR_HOM_VAR);
-        for ( int i = 0; i < reads.size(); i++ )  
+
+        if (isHapmapSite(tracker)) {
+            //System.out.println(context.getLocation() + " is a Hapmap site.");
+
+            //G.setHomRefPrior(PRIOR_HOM_REF);
+            //G.setHetPrior(PRIOR_HET);
+            //G.setHomVarPrior(PRIOR_HOM_VAR);
+        } else if (isDbSNPSite(tracker)) {
+            //System.out.println(context.getLocation() + " is a dbSNP site.");
+
+            //G.setHomRefPrior(PRIOR_HOM_REF);
+            //G.setHetPrior(PRIOR_HET);
+            //G.setHomVarPrior(PRIOR_HOM_VAR);
+        }
+
+        for ( int i = 0; i < reads.size(); i++ )
         {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
@@ -137,6 +151,14 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         }
 
         return G.toAlleleFrequencyEstimate(context.getLocation(), ref, bases.length(), bases, G.likelihoods, sample_name);
+    }
+
+    private boolean isHapmapSite(RefMetaDataTracker tracker) {
+        return tracker.lookup("hapmap-chip", null) != null;
+    }
+
+    private boolean isDbSNPSite(RefMetaDataTracker tracker) {
+        return tracker.lookup("dbsnp", null) != null;
     }
 
     private String getRodString(RefMetaDataTracker tracker) {
