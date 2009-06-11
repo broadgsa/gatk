@@ -98,6 +98,15 @@ public class GenotypeLikelihoods {
         offNextBestBasePriors.put("TT", 0.505);
     }
 
+    public double getHomRefPrior() { return priorHomRef; }
+    public void setHomRefPrior(double priorHomRef) { this.priorHomRef = priorHomRef; }
+
+    public double getHetPrior() { return priorHet; }
+    public void setHetPrior(double priorHet) { this.priorHet = priorHet; }
+
+    public double getHomVarPrior() { return priorHomVar; }
+    public void setHomVarPrior(double priorHomVar) { this.priorHomVar = priorHomVar; }
+
     public void add(char ref, char read, byte qual) 
 	{ 
         for (int i = 0; i < genotypes.length; i++) 
