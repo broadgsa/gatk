@@ -1,0 +1,66 @@
+
+package org.broadinstitute.sting.playground.gatk.walkers.indels;
+
+import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+
+@WalkerName("SNPClusters")
+@By(DataSource.REFERENCE)
+@Requires(DataSource.REFERENCE)
+@Allows(DataSource.REFERENCE)
+public class SNPClusterWalker extends RefWalker<GenomeLoc, GenomeLoc> {
+    @Argument(fullName="windowSize", shortName="window", doc="window size for calculating clusters", required=false)
+    public int windowSize = 10;
+
+    public void initialize() {
+        if ( windowSize < 1)
+            throw new RuntimeException("Window Size must be a positive integer");
+    }
+
+    public GenomeLoc map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+        AllelicVariant eval = (AllelicVariant)tracker.lookup("eval", null);
+        if ( eval instanceof SNPCallFromGenotypes )
+            return context.getLocation();
+        return null;
+    }
+
+    public void onTraversalDone(GenomeLoc sum) {
+        if ( sum != null && sum.getStart() != sum.getStop() )
+            out.println(sum);
+    }
+
+    public GenomeLoc reduceInit() {
+        return null;
+    }
+
+    public GenomeLoc reduce(GenomeLoc value, GenomeLoc sum) {
+        // ignore non-SNP variants
+        if ( value == null )
+            return sum;
+
+        // if we have no previous SNPs start with the new location
+        if ( sum == null )
+            return value;
+
+        // if we hit a new contig, emit and start with the new location
+        if ( sum.getContigIndex() != value.getContigIndex() ) {
+            if ( sum.getStart() != sum.getStop() )
+                out.println(sum);
+            return value;
+        }
+
+        // if the last SNP location was within a window, merge them
+        if ( value.getStart() - sum.getStop() <= windowSize ) {
+            sum.setStop(value.getStart());            
+            return sum;
+        }
+
+        // otherwise, emit and start with the new location
+        if ( sum.getStart() != sum.getStop() )
+            out.println(sum);
+        return value;
+    }
+}
