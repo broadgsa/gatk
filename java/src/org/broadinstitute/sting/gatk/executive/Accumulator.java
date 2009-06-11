@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
+import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
 

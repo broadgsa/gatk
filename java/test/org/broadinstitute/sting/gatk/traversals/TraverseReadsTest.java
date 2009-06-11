@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
-import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
-import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
+import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.CountReadsWalker;

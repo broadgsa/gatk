@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.utils.sam.ArtificialReadsTraversal;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMFileWriter;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;

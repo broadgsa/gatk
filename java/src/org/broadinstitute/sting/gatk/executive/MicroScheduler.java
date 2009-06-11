@@ -2,12 +2,12 @@ package org.broadinstitute.sting.gatk.executive;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategy;
-import org.broadinstitute.sting.gatk.dataSources.shards.ShardStrategyFactory;
-import org.broadinstitute.sting.gatk.dataSources.shards.Shard;
-import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.dataSources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.dataSources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
+import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
+import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.traversals.TraverseReads;
 import org.broadinstitute.sting.gatk.traversals.TraverseLoci;
@@ -26,8 +26,6 @@ import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.ArrayList;
 
 /**
