@@ -38,7 +38,7 @@ public class ArtificialSAMIterator implements PeekingStingIterator {
 
 
     protected int currentChromo = 0;
-    protected int currentRead = 0;
+    protected int currentRead = 1;
     protected int totalReadCount = 0;
     protected boolean done = false;
     // the next record
@@ -110,9 +110,9 @@ public class ArtificialSAMIterator implements PeekingStingIterator {
     }
 
     protected boolean createNextRead() {
-        if (currentRead >= rCount) {
+        if (currentRead > rCount) {
             currentChromo++;
-            currentRead = 0;
+            currentRead = 1;
         }
         // check for end condition, have we finished the chromosome listing, and have no unmapped reads
         if (currentChromo >= eChromosomeCount) {

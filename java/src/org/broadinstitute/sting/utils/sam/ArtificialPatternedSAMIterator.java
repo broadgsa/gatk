@@ -71,7 +71,7 @@ public class ArtificialPatternedSAMIterator extends ArtificialSAMIterator {
         reads = new int[readCount];
 
         for (int x = 0; x < readCount; x++) {
-            reads[x] = x;
+            reads[x] = x+1;
         }
         if (pattern == PATTERN.RANDOM_READS) {
             // scramble a bunch of the reads
@@ -102,9 +102,9 @@ public class ArtificialPatternedSAMIterator extends ArtificialSAMIterator {
      * @return
      */
     protected boolean createNextRead() {
-        if (currentRead >= rCount) {
+        if (currentRead > rCount) {
             currentChromo++;
-            currentRead = 0;
+            currentRead = 1;
         }
         // check for end condition, have we finished the chromosome listing, and have no unmapped reads
         if (currentChromo >= eChromosomeCount) {
@@ -137,7 +137,7 @@ public class ArtificialPatternedSAMIterator extends ArtificialSAMIterator {
         if (read > this.readCount) {
             return ArtificialSAMUtils.createArtificialRead(this.header, String.valueOf(reads[readCount - 1]), currentChromo, reads[readCount - 1], 50);
         }
-        return ArtificialSAMUtils.createArtificialRead(this.header, String.valueOf(reads[read]), currentChromo, reads[read], 50);
+        return ArtificialSAMUtils.createArtificialRead(this.header, String.valueOf(reads[read-1]), currentChromo, reads[read-1], 50);
     }
 
 }

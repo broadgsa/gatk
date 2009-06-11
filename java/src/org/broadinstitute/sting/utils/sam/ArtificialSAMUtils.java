@@ -7,6 +7,7 @@ import java.util.*;
 
 import org.broadinstitute.sting.gatk.iterators.PeekingStingIterator;
 import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.utils.StingException;
 
 /**
  *
@@ -114,10 +115,12 @@ public class ArtificialSAMUtils {
      * @return the artificial read
      */
     public static SAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, int length ) {
+        if( alignmentStart == 0 )
+            throw new StingException("Invalid alignment start for artificial read");
         SAMRecord record = new SAMRecord(header);
         record.setReadName(name);
         record.setReferenceIndex(refIndex);
-        record.setAlignmentStart(alignmentStart + 1);
+        record.setAlignmentStart(alignmentStart);
         List<CigarElement> elements = new ArrayList<CigarElement>();
         elements.add(new CigarElement(length, CigarOperator.characterToEnum('M')));
         record.setCigar(new Cigar(elements));

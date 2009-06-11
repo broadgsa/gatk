@@ -174,7 +174,7 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator {
 
     /** make sure we haven't been used as an iterator yet; this is to miror the MergingSamIterator2 action. */
     public void ensureUntouched() {
-        if (this.currentChromo != 0 || this.currentRead > 0) {
+        if (this.currentChromo != 0 || this.currentRead > 1) {
             throw new UnsupportedOperationException("We've already been used as an iterator; you can't query after that");
         }
     }

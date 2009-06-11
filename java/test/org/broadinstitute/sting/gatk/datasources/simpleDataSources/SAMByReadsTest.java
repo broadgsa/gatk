@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 import static junit.framework.Assert.fail;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
