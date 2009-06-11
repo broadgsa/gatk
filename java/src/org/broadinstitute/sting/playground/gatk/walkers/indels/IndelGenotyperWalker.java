@@ -2,10 +2,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import net.sf.samtools.Cigar;
@@ -31,6 +29,18 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	@Argument(fullName="verbose", shortName="verbose", 
 			doc="Tell us what you are calling now (printed to stdout)", required=false)
 	public boolean verbose = false;
+	@Argument(fullName="minCoverage", shortName="minCoverage", 
+			doc="must have minCoverage or more reads to call indel; with --somatic this value is applied to tumor sample", required=false)
+	public int minCoverage = 6;
+	@Argument(fullName="minNormalCoverage", shortName="minNormalCoverage", 
+			doc="used only with --somatic;  normal sample must have at least minNormalCoverage or more reads to call germline/somatic indel", required=false)
+	public int minNormalCoverage = 4;
+	@Argument(fullName="minFraction", shortName="minFraction", 
+			doc="minimum fraction of reads with indels at a site, out of all reads covering the site, required for a call", required=false)
+	public double minFraction = 0.3;
+	@Argument(fullName="minConsensusFraction", shortName="minConsensusFraction", 
+			doc="Minimum fraction of reads with indel at the site that must contain consensus indel in order to make the call", required=false)
+	public double minConsensusFraction = 0.7;
 	 
 	private static int WINDOW_SIZE = 200;
 	private RunningCoverage coverage;
@@ -215,7 +225,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 
 			int cov = coverage.coverageAt(pos);
 			
-			if ( cov < 6 ) continue; // low coverage
+			if ( cov < minCoverage ) continue; // low coverage
 			
 			int total_variant_count = 0;
 			int max_variant_count = 0;
@@ -231,7 +241,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 					event_length = var.lengthOnRef();
 				}
 			}	
-			if ( (double)total_variant_count > 0.3*cov && (double) max_variant_count > 0.7*total_variant_count ) { 		
+			if ( (double)total_variant_count > minFraction * cov && (double) max_variant_count > minConsensusFraction*total_variant_count ) { 		
 			
 				try {
 					output.write(refName+"\t"+(pos-1)+"\t"+(event_length > 0 ? pos-1+event_length : pos-1)+
@@ -268,8 +278,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			int tumor_cov = coverage.coverageAt(pos);
 			int normal_cov = normal_coverage.coverageAt(pos);
 			
-			if ( tumor_cov < 6 ) continue; // low coverage
-			if ( normal_cov < 4 ) continue; // low coverage
+			if ( tumor_cov < minCoverage ) continue; // low coverage
+			if ( normal_cov < minNormalCoverage ) continue; // low coverage
 			
 			int total_variant_count_tumor = 0;
 			int max_variant_count_tumor = 0;
@@ -286,7 +296,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 				}
 			}	
 			
-			if ( (double)total_variant_count_tumor > 0.3*tumor_cov && (double) max_variant_count_tumor > 0.7*total_variant_count_tumor ) {
+			if ( (double)total_variant_count_tumor > minFraction * tumor_cov && (double) max_variant_count_tumor > minConsensusFraction*total_variant_count_tumor ) {
 				
 				String message = refName+"\t"+(pos-1)+"\t"+(event_length_tumor > 0 ? pos-1+event_length_tumor : pos-1)+
 							"\t"+(event_length_tumor >0? "-":"+")+indelStringTumor +":"+total_variant_count_tumor+"/"+tumor_cov;
