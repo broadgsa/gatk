@@ -788,8 +788,24 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
 
         public void finalizeUpdate() {
-            read.setCigar(newCigar);
-            read.setAlignmentStart(newStart);
+            // if it's a paired end read, we need to update the insert size
+            if ( read.getReadPairedFlag() ) {
+                int insertSize = read.getInferredInsertSize();
+                if ( insertSize > 0 ) {
+                    read.setCigar(newCigar);
+                    read.setInferredInsertSize(insertSize + read.getAlignmentStart() - newStart);
+                    read.setAlignmentStart(newStart);
+                } else {
+                    // note that the correct order of actions is crucial here
+                    int oldEnd = read.getAlignmentEnd();
+                    read.setCigar(newCigar);
+                    read.setAlignmentStart(newStart);
+                    read.setInferredInsertSize(insertSize + oldEnd - read.getAlignmentEnd());
+                }
+            } else {
+                read.setCigar(newCigar);
+                read.setAlignmentStart(newStart);
+            }
         }
 
         public String getBaseQualityString() {
