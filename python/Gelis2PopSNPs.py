@@ -15,13 +15,25 @@ def geli2dbsnpFile(geli):
     root, flowcellDotlane, ext = picard_utils.splitPath(geli)
     return os.path.join(root, flowcellDotlane) + '.dbsnp_matches'
 
-   
+def SingleSampleGenotyperCmd(bam, geli, use2bp):
+    naid = bam.split(".")[0]
+    metrics = geli + '.metrics'
+    gatkPath = '/humgen/gsa-scr1/kiran/repositories/Sting/trunk/dist/GenomeAnalysisTK.jar'
+    hapmapChip = '/home/radon01/andrewk/hapmap_1kg/gffs/' + naid + '.gff'
+    targetList = '/home/radon01/depristo/work/1kg_pilot_evaluation/data/thousand_genomes_alpha_redesign.targets.interval_list'
+    cmd = "java -ea -jar " + gatkPath + ' ' + ' '.join(['-T SingleSampleGenotyper', '-I', bam, '-L', targetList, '-R', ref, '-D', '/humgen/gsa-scr1/GATK_Data/dbsnp.rod.out', '--hapmap_chip', hapmapChip, '-calls', geli, '-met', metrics, '-geli -fb -l INFO'])
+    return cmd
+ 
 def bams2geli(bams):
     def call1(bam):
         geli = os.path.splitext(bam)[0] + '.geli'
         jobid = 0
-        if not os.path.exists(geli):
-            cmd = picard_utils.callGenotypesCmd( bam, geli, options = picard_utils.hybridSelectionExtraArgsForCalling())
+        if OPTIONS.useSSG:
+            if not os.path.exists(geli + '.calls'):
+                cmd = SingleSampleGenotyperCmd(bam, geli + '.calls', OPTIONS.useSSG2b)
+        else:
+            if not os.path.exists(geli):
+                cmd = picard_utils.callGenotypesCmd( bam, geli, options = picard_utils.hybridSelectionExtraArgsForCalling())
             jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands = OPTIONS.dry )
         return geli, jobid
     calls = map(call1, bams)
@@ -44,6 +56,12 @@ def main():
     parser.add_option("", "--dry", dest="dry",
                         action='store_true', default=False,
                         help="If provided, nothing actually gets run, just a dry run")
+    parser.add_option("", "--ssg", dest="useSSG",
+                        action='store_true', default=False,
+                        help="If provided, we'll use the GATK SSG for genotyping")
+    parser.add_option("", "--ssg2b", dest="useSSG2b",
+                        action='store_true', default=False,
+                        help="If provided, we'll use 2bp enabled GATK SSG ")
     parser.add_option("-o", "--output", dest="output",
                         type="string", default='/dev/stdout',
                         help="x")
