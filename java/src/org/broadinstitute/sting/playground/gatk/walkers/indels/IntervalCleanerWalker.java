@@ -271,9 +271,20 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         // if we have too many reads with mismatches, be greedy
         if ( altReads.size() > GREEDY_THRESHOLD) {
             logger.debug("Downsampling from " + altReads.size() + " to " + GREEDY_THRESHOLD + " mismatching reads");
-            //sortByGreedy();
-            for ( int i = GREEDY_THRESHOLD; i < altReads.size(); i++)
-                altAlignmentsToTest.set(i, false);
+            // the best thing to do here is to randomly sample from the reads
+            // however, we definitely do want to keep the clean indel-containing reads
+            // (which were purposely placed at the beginning of the list)
+            int downsampleTo = GREEDY_THRESHOLD - priorIndelsToTest.size();
+            int sampleRate = (altReads.size() - priorIndelsToTest.size()) / downsampleTo;
+            for ( int i = 0; i < downsampleTo; i++) {
+                int index = priorIndelsToTest.size() + (i * sampleRate);
+                for ( int j = 1; j < sampleRate; j++)
+                    altAlignmentsToTest.set(index+j, false);
+            }
+            // also get the trailing reads
+            int tail = priorIndelsToTest.size() + (downsampleTo * sampleRate);
+            for ( int i = tail; i < altAlignmentsToTest.size(); i++)
+                altAlignmentsToTest.set(i, false);    
         }
 
         Consensus bestConsensus = null;
@@ -710,7 +721,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                                           // got maximum possible shift after checking period=1 above.
         }
         
-        //        if ( ce2.getLength() >= 2 ) 
+        //        if ( ce2.getLength() >= 2 )
         //            System.out.println("-----------------------------------\n  FROM:\n"+AlignmentUtils.alignmentToString(cigar,readSeq,refSeq,refIndex, (readIsConsensusSequence?refIndex:0)));
 
                         
@@ -720,7 +731,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             newCigar.add(ce2);
             newCigar.add(new CigarElement(cigar.getCigarElement(2).getLength()+difference, CigarOperator.M));
             //            System.out.println("  FROM:\n"+AlignmentUtils.alignmentToString(cigar,readSeq,refSeq,refIndex));
-            //            if ( ce2.getLength() >=2 ) 
+            //            if ( ce2.getLength() >=2 )
             //                System.out.println("  REALIGNED TO:\n"+AlignmentUtils.alignmentToString(newCigar,readSeq,refSeq,refIndex,readIndex)+"\n");
 
             logger.debug("Realigning indel: " + cigarToString(cigar) + " to " + cigarToString(newCigar));
