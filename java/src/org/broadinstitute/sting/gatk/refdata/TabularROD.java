@@ -41,7 +41,7 @@ import org.apache.log4j.Logger;
 public class TabularROD extends BasicReferenceOrderedDatum implements Map<String, String> {
     private static Logger logger = Logger.getLogger(TabularROD.class);
 
-    private GenomeLoc loc;
+    protected GenomeLoc loc;
     private HashMap<String, String> attributes;
     private ArrayList<String> header;
 
@@ -176,7 +176,15 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
         if ( header != null ) {
             logger.debug(String.format("HEADER IS %s%n", Utils.join(":", header)));
         } else {
-            throw new RuntimeException("Couldn't find header line in TabularROD!");
+            // use the indexes as the header fields
+            logger.debug("USING INDEXES FOR ROD HEADER");
+            // reset if necessary
+            if ( !reader.hasNext() )
+                reader = new xReadLines(source);
+            header = new ArrayList<String>();
+            int tokens = reader.next().split(DELIMITER_REGEX).length;
+            for ( int i = 0; i < tokens; i++)
+                header.add(Integer.toString(i));
         }
 
         return header;
@@ -188,6 +196,7 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
     //
     // ----------------------------------------------------------------------
     public GenomeLoc getLocation() {
+        loc = GenomeLoc.parseGenomeLoc(get(header.get(0)));
         return loc;
     }
 
@@ -282,8 +291,7 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
             throw new IOException(String.format("Header length %d not equal to Tabular parts length %d", header.size(), parts.length));
         }
 
-        loc = GenomeLoc.parseGenomeLoc(parts[0]);
-        for ( int i = 1; i < parts.length; i++ ) {
+        for ( int i = 0; i < parts.length; i++ ) {
             put(header.get(i), parts[i]);
         }
 
