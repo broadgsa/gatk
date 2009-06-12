@@ -14,8 +14,12 @@ import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 
+import org.broadinstitute.sting.gatk.refdata.RODIterator;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.playground.utils.CircularArray;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
@@ -48,6 +52,9 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	private int currentContigIndex = -1;
 	private String refName = null;
 	private java.io.Writer output = null;
+	private GenomeLoc location = null;
+	
+	private RODIterator<rodRefSeq> refseqIterator;
 
 	private Set<String> normal_samples = new HashSet<String>();
 	private Set<String> tumor_samples = new HashSet<String>();
@@ -56,8 +63,14 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	public void initialize() {
 		coverage = new RunningCoverage(0,WINDOW_SIZE);
 		
+		ReferenceOrderedData<rodRefSeq> refseq = new ReferenceOrderedData<rodRefSeq>("refseq",
+					new java.io.File("/humgen/gsa-scr1/GATK_Data/refGene.sorted.txt"),rodRefSeq.class);
+		
+		refseqIterator = refseq.iterator();
+		
 		int nSams = getToolkit().getArguments().samFiles.size(); 
 		
+		location = new GenomeLoc(0,1);
 		
 		if ( call_somatic ) {
 			if ( nSams != 2 ) {
@@ -146,13 +159,17 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			else emit(1000000000);
 			currentContigIndex = read.getReferenceIndex();
 			refName = new String(read.getReferenceName());
+			location.setContig(refName);
+			
 			coverage.clear(); // reset coverage window; this will also set reference position to 0
 			if ( call_somatic) normal_coverage.clear();
 		}
 		
 		if ( read.getAlignmentStart() < coverage.getStart() ) {
 			// should never happen
-			throw new StingException("Read "+read.getReadName()+": out of order on the contig");
+			throw new StingException("Read "+read.getReadName()+": out of order on the contig\n"+
+					"Read starts at "+read.getReferenceName()+":"+read.getAlignmentStart()+ " (cigar="+read.getCigarString()+
+					"); window starts at "+coverage.getStart());
 		}
 		
 		// a little trick here: we want to make sure that current read completely fits into the current
@@ -269,6 +286,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		
 		for ( long pos = coverage.getStart() ; pos < Math.min(position,coverage.getStop()+1) ; pos++ ) {
 			
+			
 			List<IndelVariant> tumor_variants = coverage.indelsAt(pos);
 			List<IndelVariant> normal_variants = normal_coverage.indelsAt(pos);
 
@@ -281,6 +299,10 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			if ( tumor_cov < minCoverage ) continue; // low coverage
 			if ( normal_cov < minNormalCoverage ) continue; // low coverage
 			
+			location.setStart(pos); location.setStop(pos); // retrieve annotation data
+			rodRefSeq annotation = refseqIterator.seekForward(location);
+			
+
 			int total_variant_count_tumor = 0;
 			int max_variant_count_tumor = 0;
 			String indelStringTumor = null;
@@ -298,22 +320,34 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			
 			if ( (double)total_variant_count_tumor > minFraction * tumor_cov && (double) max_variant_count_tumor > minConsensusFraction*total_variant_count_tumor ) {
 				
+				String annotationString = null;
+				if ( annotation == null ) annotationString = "GENOMIC";
+				else {
+					if ( annotation.isExon() ) {
+						if ( annotation.isCoding() ) annotationString = "CODING";
+						else annotationString = "UTR";
+					} else {
+						if ( annotation.isCoding() ) annotationString = "INTRON";
+						else annotationString = "UNKNOWN";
+					}
+				}
+				
 				String message = refName+"\t"+(pos-1)+"\t"+(event_length_tumor > 0 ? pos-1+event_length_tumor : pos-1)+
 							"\t"+(event_length_tumor >0? "-":"+")+indelStringTumor +":"+total_variant_count_tumor+"/"+tumor_cov;
 				if ( normal_variants.size() == 0 ) { 		
 			
 					try {
-						output.write(refName+"\t"+(pos-1)+"\t"+(event_length_tumor > 0 ? pos-1+event_length_tumor : pos-1)+
-								"\t"+(event_length_tumor >0? "-":"+")+indelStringTumor +":"+total_variant_count_tumor+"/"+tumor_cov+"\n");
+						output.write(message+"\n");
 					} catch (IOException e) {
 						System.out.println(e.getMessage());
 						e.printStackTrace();
 						throw new StingException("Error encountered while writing into output BED file");
 					}
-					message += "\tSOMATIC";
+					message += "\tSOMATIC\t";
 				} else {
-					message += "\tGERMLINE";
+					message += "\tGERMLINE\t";
 				}
+				message += annotationString;
 				if ( verbose ) System.out.println(message);
 			}
 //			for ( IndelVariant var : variants ) {
