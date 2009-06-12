@@ -4,16 +4,17 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.util.CloseableIterator;
 
-import java.io.File;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Queue;
 import java.util.LinkedList;
+import java.io.File;
 /**
  * User: hanna
  * Date: Jun 10, 2009
@@ -49,7 +50,7 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
      * Target file for BAM output.
      */
     @Argument(fullName="output_bam",shortName="ob",doc="Output BAM file",required=true)
-    SAMFileWriter outputBAM = null;
+    String outputBAMFileName = null;
 
     /**
      * A stream of processed intervals.  The current head of the queue represents the next interval.
@@ -66,11 +67,25 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
      */
     private Map<String,SAMRecord> cleanedReads = new HashMap<String,SAMRecord>();
 
+    /**
+     * The writer that handles writing of SAM files. 
+     */
+    SAMFileWriter outputBAM = null;
+
     @Override
     public void initialize() {
         intervals = new LinkedList<GenomeLoc>( GenomeAnalysisEngine.parseIntervalRegion(intervalsSource,false) );
         interval = intervals.remove();
         loadCleanedReadsOverlappingInterval( interval );
+
+        // HACK: The unit tests create their own output files.  Make sure this walker doesn't step
+        //       on any toes.
+        if( outputBAM == null ) {
+            outputBAM = Utils.createSAMFileWriterWithCompression(getToolkit().getEngine().getSAMHeader(),
+                                                                 false,
+                                                                 outputBAMFileName,
+                                                                 getToolkit().getBAMCompression());
+        }
     }
 
     /**
@@ -124,6 +139,11 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
         return accum + value;
     }
 
+    @Override
+    public void onTraversalDone( Integer value ) {
+        outputBAM.close();
+    }
+
     /**
      * Load a list of all the reads overlapping the given interval into memory.
      * @param interval
@@ -135,6 +155,7 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
             SAMRecord read = overlappingReads.next();
             cleanedReads.put( read.getReadName(), read );
         }
+        overlappingReads.close();
     }
 
     /**

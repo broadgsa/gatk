@@ -15,6 +15,12 @@ import java.util.List;
 import java.util.Collection;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.io.File;
+
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMFileWriterFactory;
+import net.sf.samtools.SAMFileHeader;
 
 /**
  * Created by IntelliJ IDEA.
@@ -418,6 +424,9 @@ public class ParsingEngine {
      */
     private Object constructSingleElement(Field f, Class type, String str) {
         // lets go through the types we support
+        if (type == SAMFileReader.class) {
+            return new SAMFileReader(new File(str),true);
+        }
         if (type == Boolean.TYPE) {
             boolean b = false;
             if (str.toLowerCase().equals("true")) {
