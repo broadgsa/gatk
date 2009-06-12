@@ -227,7 +227,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
             Collections.sort(locs);
             //logger.info(String.format("Going to process %d locations", locs.length));
             locs = mergeOverlappingLocations(locs);
-            logger.info("Locations are:" + Utils.join(", ", locs));
+            logger.debug("Locations are:" + Utils.join(", ", locs));
             return locs;
         } catch (Exception e) {
             e.printStackTrace();

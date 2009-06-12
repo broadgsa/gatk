@@ -5,7 +5,6 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.*;
@@ -60,9 +59,9 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         analyses.add(new VariantCounter());
         analyses.add(new VariantDBCoverage("dbSNP"));
         analyses.add(new TransitionTranversionAnalysis());
-        analyses.add(new PairwiseDistanceAnalysis());
+        analyses.add(new NeighborDistanceAnalysis());
         analyses.add(new HardyWeinbergEquilibrium(badHWEThreshold));
-
+        analyses.add(new ClusterCounterAnalysis());
 
         if ( printVariants ) analyses.add(new VariantMatcher("dbSNP"));
 

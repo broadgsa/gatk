@@ -9,6 +9,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.HashSet;
 import java.io.PrintStream;
 
 /**
@@ -18,16 +19,19 @@ import java.io.PrintStream;
  * Time: 4:38:19 PM
  * To change this template use File | Settings | File Templates.
  */
-public class PairwiseDistanceAnalysis extends BasicVariantAnalysis {
-    ArrayList<Long> pairWiseDistances;
-    int[] pairWiseBoundries = {1, 2, 5, 10, 20, 50, 100, 1000, 10000};
-
+public class ClusterCounterAnalysis extends BasicVariantAnalysis {
+    ArrayList<HashSet<GenomeLoc>> variantsWithClusters;
+    int[] neighborWiseBoundries = {1, 2, 5, 10, 20, 50, 100};
     AllelicVariant lastVariant = null;
     GenomeLoc lastVariantInterval = null;
+    int nSeen = 0;
 
-    public PairwiseDistanceAnalysis() {
-        super("pairwise_distances");
-        pairWiseDistances = new ArrayList<Long>();
+    public ClusterCounterAnalysis() {
+        super("cluster_counter_analysis");
+
+        variantsWithClusters = new ArrayList<HashSet<GenomeLoc>>(neighborWiseBoundries.length);
+        for (int i = 0; i < neighborWiseBoundries.length; i++)
+            variantsWithClusters.add(new HashSet<GenomeLoc>());
     }
 
     public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
@@ -46,41 +50,37 @@ public class PairwiseDistanceAnalysis extends BasicVariantAnalysis {
                         // we're on different intervals
                         //out.printf("# Excluding %d %s %s vs. %s %s%n", d, eL, interval, lvL, lastVariantInterval);
                     } else {
-                        pairWiseDistances.add(d);
-                        r = String.format("Pairwise-distance %d %s %s", d, eL, lvL);
+                        nSeen++;
+                        StringBuilder s = new StringBuilder();
+                        for (int i = 0; i < neighborWiseBoundries.length; i++) {
+                            int maxDist = neighborWiseBoundries[i];
+                            s.append(String.format("%d ", d <= maxDist ? maxDist : 0));
+                            if ( d <= maxDist ) {
+                                variantsWithClusters.get(i).add(eL);
+                            }
+                        }
+                        r = String.format("snp_within_cluster %d %s %s %s", d, eL, lvL, s.toString());
                     }
                 }
             }
-            
+
             lastVariant = eval;
             lastVariantInterval = interval;
         }
-        
+
         return r;
     }
 
     public List<String> done() {
-        int[] pairCounts = new int[pairWiseBoundries.length];
-        Arrays.fill(pairCounts, 0);
-        for ( long dist : pairWiseDistances ) {
-            boolean done = false;
-            for ( int i = 0; i < pairWiseBoundries.length && ! done ; i++ ) {
-                int maxDist = pairWiseBoundries[i];
-                if ( dist <= maxDist ) {
-                    pairCounts[i]++;
-                    done = true;
-                }
-            }
-        }
-
         List<String> s = new ArrayList<String>();
-        s.add(String.format("snps counted for pairwise distance: %d", pairWiseDistances.size()));
+        s.add(String.format("snps_counted_for_neighbor_distances %d", nSeen));
         int cumulative = 0;
-        for ( int i = 0; i < pairWiseBoundries.length; i++ ) {
-            int maxDist = pairWiseBoundries[i];
-            int count = pairCounts[i];
+        s.add(String.format("description        maxDist count cumulative"));
+        for ( int i = 0; i < neighborWiseBoundries.length; i++ ) {
+            int maxDist = neighborWiseBoundries[i];
+            int count = variantsWithClusters.get(i).size();
             cumulative += count;
-            s.add(String.format("snps within %8d bp:    %d  %d", maxDist, count, cumulative));
+            s.add(String.format("snps_within_clusters_of_size %10d %10d %10d", maxDist, count, cumulative));
         }
 
         return s;
