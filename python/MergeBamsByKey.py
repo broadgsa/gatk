@@ -77,6 +77,6 @@ by key and spawn merge and index jobs to merge all of the files sharing the same
             jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, output, just_print_commands = OPTIONS.dry)
 
         if OPTIONS.ignoreExistingFiles or not os.path.exists(spec.getMergedBAMIndex()):
-            pass
-            jobid = farm_commands.cmd(spec.getIndexCmd(), OPTIONS.farmQueue, '', waitID = jobid, just_print_commands = OPTIONS.dry)
+            #pass
+            jobid = farm_commands.cmd(spec.getIndexCmd(), OPTIONS.farmQueue, None, waitID = jobid, just_print_commands = OPTIONS.dry)
 
