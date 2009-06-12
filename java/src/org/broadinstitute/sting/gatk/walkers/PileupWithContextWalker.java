@@ -81,7 +81,7 @@ public class PileupWithContextWalker extends LocusWalker<Integer, Integer> imple
         String rodString = "";
         for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
             if ( datum != null && ! (datum instanceof rodDbSNP)) {
-                rodString += datum.toSimpleString();
+                rodString += datum.toSimpleString() + " ";
             }
         }
 
