@@ -208,6 +208,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
     public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
 	{
+		if (alleleFreq == null) { return ""; }
         if ( alleleFreq.lodVsRef >= lodThreshold ) {
             String line = GeliOutputFormat ? alleleFreq.asGeliString() : alleleFreq.asTabularString();
 		    calls_file.println(line);
