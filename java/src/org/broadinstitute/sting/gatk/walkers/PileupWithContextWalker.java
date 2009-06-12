@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.rodGFF;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
@@ -80,8 +81,14 @@ public class PileupWithContextWalker extends LocusWalker<Integer, Integer> imple
 
         String rodString = "";
         for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
+            /*
             if ( datum != null && ! (datum instanceof rodDbSNP)) {
                 rodString += datum.toSimpleString() + " ";
+            }
+            */
+
+            if ( datum != null && (datum instanceof rodGFF)) {
+                rodString += "Hapmap: " + datum.toSimpleString() + " ";
             }
         }
 
