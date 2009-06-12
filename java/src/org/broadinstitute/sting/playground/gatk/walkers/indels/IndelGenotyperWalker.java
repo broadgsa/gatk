@@ -59,6 +59,13 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	private Set<String> normal_samples = new HashSet<String>();
 	private Set<String> tumor_samples = new HashSet<String>();
 	
+	
+	private static String annGenomic = "GENOMIC";
+	private static String annIntron = "INTRON";
+	private static String annUTR = "UTR";
+	private static String annCoding = "CODING";
+	private static String annUnknown = "UNKNOWN";
+	
 	@Override
 	public void initialize() {
 		coverage = new RunningCoverage(0,WINDOW_SIZE);
@@ -244,6 +251,9 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			
 			if ( cov < minCoverage ) continue; // low coverage
 			
+			location.setStart(pos); location.setStop(pos); // retrieve annotation data
+			rodRefSeq annotation = refseqIterator.seekForward(location);
+
 			int total_variant_count = 0;
 			int max_variant_count = 0;
 			String indelString = null;
@@ -260,14 +270,19 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			}	
 			if ( (double)total_variant_count > minFraction * cov && (double) max_variant_count > minConsensusFraction*total_variant_count ) { 		
 			
+				String annotationString = getAnnotationString(annotation);
+				
+				String message = refName+"\t"+(pos-1)+"\t"+(event_length > 0 ? pos-1+event_length : pos-1)+
+				"\t"+(event_length>0? "-":"+")+indelString +":"+total_variant_count+"/"+cov;
+				
 				try {
-					output.write(refName+"\t"+(pos-1)+"\t"+(event_length > 0 ? pos-1+event_length : pos-1)+
-							"\t"+(event_length>0? "-":"+")+indelString +":"+total_variant_count+"/"+cov+"\n");
+					output.write(message+"\n");
 				} catch (IOException e) {
 					System.out.println(e.getMessage());
 					e.printStackTrace();
 					throw new StingException("Error encountered while writing into output BED file");
 				}
+				if ( verbose ) System.out.println(message + "\t"+ annotationString);
 			}
 //			for ( IndelVariant var : variants ) {
 //				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
@@ -320,17 +335,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			
 			if ( (double)total_variant_count_tumor > minFraction * tumor_cov && (double) max_variant_count_tumor > minConsensusFraction*total_variant_count_tumor ) {
 				
-				String annotationString = null;
-				if ( annotation == null ) annotationString = "GENOMIC";
-				else {
-					if ( annotation.isExon() ) {
-						if ( annotation.isCoding() ) annotationString = "CODING";
-						else annotationString = "UTR";
-					} else {
-						if ( annotation.isCoding() ) annotationString = "INTRON";
-						else annotationString = "UNKNOWN";
-					}
-				}
+				String annotationString = getAnnotationString(annotation);
 				
 				String message = refName+"\t"+(pos-1)+"\t"+(event_length_tumor > 0 ? pos-1+event_length_tumor : pos-1)+
 							"\t"+(event_length_tumor >0? "-":"+")+indelStringTumor +":"+total_variant_count_tumor+"/"+tumor_cov;
@@ -359,6 +364,20 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		normal_coverage.shift((int)(position - normal_coverage.getStart() ) );
 	}
 
+
+	private String getAnnotationString(rodRefSeq ann) {
+		if ( ann == null ) return annGenomic;
+		else {
+			if ( ann.isExon() ) {
+				if ( ann.isCoding() ) return annCoding;
+				else return annUTR;
+			} else {
+				if ( ann.isCoding() ) return annIntron;
+				else return annUnknown;
+			}
+		}
+		
+	}
 	
 	@Override
 	public void onTraversalDone(Integer result) {
