@@ -15,18 +15,21 @@
   <project name="{$project.name}" default="package" basedir="..">
     <property name="sting.dir" value="{$ant.basedir}" />
     <property name="package.dir" value="{concat($ant.basedir,'/packages/',$project.name)}" />
-
+    
     <target name="package">
       <mkdir dir="{$package.dir}"/>
       <mkdir dir="{$resources.dir}"/>
-      <copy todir="{$resources.dir}">
+      <jar jarfile="{concat($package.dir,'/GenomeAnalysisTK.jar')}">
         <classfileset dir="{$staging.dir}">
           <root classname="{main-class}"/>
-        <xsl:for-each select="dependencies/class">
-          <root classname="{current()}" />
-        </xsl:for-each>
+          <xsl:for-each select="dependencies/class">
+            <root classname="{current()}" />
+          </xsl:for-each>
         </classfileset>
-      </copy>
+        <manifest>
+          <attribute name="Main-Class" value="{main-class}"/>
+        </manifest>
+      </jar>
       <xsl:for-each select="scripts/file">
         <xsl:variable name="short.name">
           <xsl:call-template name="get-short-name">
@@ -39,7 +42,8 @@
             <xsl:with-param name="file" select="."/>
           </xsl:call-template>
         </xsl:variable>
-        <symlink link="{concat($package.dir,$short.name)}" resource="{$full.path}" overwrite="true" />
+        <delete file="{concat($package.dir,$short.name)}" />
+        <symlink link="{concat($package.dir,$short.name)}" resource="{$full.path}" />
       </xsl:for-each>
       <xsl:for-each select="resources/file">
         <xsl:variable name="short.name">
@@ -53,6 +57,7 @@
             <xsl:with-param name="file" select="."/>
           </xsl:call-template>
         </xsl:variable>
+        <delete file="{concat($resources.dir,'/',$short.name)}" />
         <symlink link="{concat($resources.dir,'/',$short.name)}" resource="{$full.path}" overwrite="true" />
       </xsl:for-each>
     </target>

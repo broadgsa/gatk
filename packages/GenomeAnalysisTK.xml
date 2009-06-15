@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package>
+  <name>GenomeAnalysisTK</name>
+  <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
+  <dependencies>
+    <class>org.broadinstitute.sting.gatk.walkers.DepthOfCoverage</class>
+    <class>org.broadinstitute.sting.gatk.walkers.PileupWalker</class>
+    <class>org.broadinstitute.sting.gatk.walkers.PrintReadsWalker</class>
+  </dependencies>
+</package>

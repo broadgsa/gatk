@@ -4,14 +4,24 @@
     <property name="source.dir" value="java/src" />
     <property name="single" value="*Test" />
 
+    <!-- If running the 'package' task, this property controls the name of the xml file to package -->
+    <property name="executable" value="GenomeAnalysisTK" />
+
     <!-- Set target based on STING_BUILD_TYPE environment variable -->
     <property environment="env"/>
     <condition property="target" value="playground" else="core">
         <equals arg1="${env.STING_BUILD_TYPE}" arg2="playground" casesensitive="false"/>
     </condition>
 
-    <path id="external.dependencies">
-        <fileset dir="lib" includes="*.jar"/>
+    <patternset id="dependency.mask" includes="*.jar">
+        <exclude name="junit*.jar" />
+        <exclude name="bcel*.jar" />
+    </patternset>
+
+    <path id="runtime.dependencies">
+      <fileset dir="lib">
+        <patternset refid="dependency.mask" />
+      </fileset>
     </path>
 
     <!-- ivy properties -->
@@ -63,8 +73,7 @@
 	</condition>
         
         <!-- Compile the java code from ${src} into build -->
-        <javac srcdir="${source.dir}" destdir="build" classpathref="external.dependencies"
-               debug="true" debuglevel="lines,vars,source">
+        <javac srcdir="${source.dir}" destdir="build" debug="true" debuglevel="lines,vars,source" classpathref="runtime.dependencies">
             <!--compilerarg value="-Xlint:unchecked" /-->
              <exclude name="**/playground/**" unless="target.is.playground"/>
         </javac>
@@ -125,35 +134,6 @@
           </manifest>
         </jar>
 
-<!--
-        <jar jarfile="dist/CombineSamAndFourProbs.jar" whenmanifestonly="skip">
-          <fileset dir="build">
-            <include name="**/secondarybase/**/*.class" />
-          </fileset>
-          <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.secondarybase.CombineSamAndFourProbs" />
-          </manifest>
-        </jar>
-
-        <jar jarfile="dist/MatchSQTagToStrand.jar" whenmanifestonly="skip">
-          <fileset dir="build">
-            <include name="**/secondarybase/**/*.class" />
-          </fileset>
-          <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.secondarybase.MatchSQTagToStrand" />
-          </manifest>
-        </jar>
-
-        <jar jarfile="dist/AddFourProbsToSAM.jar" whenmanifestonly="skip">
-          <fileset dir="build">
-            <include name="**/secondarybase/**/*.class" />
-          </fileset>
-          <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.secondarybase.AddFourProbsToSAM" />
-          </manifest>
-        </jar>
--->
-
         <jar jarfile="dist/Playground.jar" whenmanifestonly="skip">
             <fileset dir="build">
                 <include name="**/*.class"/>
@@ -191,26 +171,6 @@
             </manifest>
         </jar>
 
-<!--
-        <jar jarfile="dist/CombineSamAndFourProbs.jar" update="true" whenmanifestonly="skip">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}" />
-            </manifest>
-        </jar>
-
-        <jar jarfile="dist/MatchSQTagToStrand.jar" update="true" whenmanifestonly="skip">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}" />
-            </manifest>
-        </jar>
-
-        <jar jarfile="dist/AddFourProbsToSAM.jar" update="true" whenmanifestonly="skip">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}" />
-            </manifest>
-        </jar>
--->
-
         <jar jarfile="dist/Playground.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
@@ -242,7 +202,7 @@
         <javac destdir="${test.classes}" debug="true" optimize="on">
             <src path="${test.sources}"/>
             <classpath>
-                <path refid="external.dependencies"/>
+                <path refid="runtime.dependencies" />
                 <pathelement location="build"/>
                 <pathelement location="lib/junit-4.4.jar"/>
             </classpath>
@@ -257,12 +217,11 @@
             <jvmarg value="-javaagent:build/TestAgent.jar"/>
             <formatter type="brief" usefile="false" />
             <classpath>
-                <path refid="external.dependencies"/>
+                <path refid="runtime.dependencies"/>
                 <pathelement location="build"/>
                 <pathelement location="${test.classes}"/>
                 <pathelement location="lib/junit-4.4.jar"/>
             </classpath>
-
 
             <batchtest fork="yes" todir="${report}">
                 <fileset dir="${test.classes}">
@@ -272,7 +231,6 @@
             </batchtest>
         </junit>
         <fail message="test failed" if="test.failure" />
-
     </target>
 
     <!-- this builds the instrumentation library we're going to use for test cases -->
@@ -294,20 +252,33 @@
         <mkdir dir="javadoc"/>
 	<!-- Javadoc can't take the same dirsets as javac; it only likes getting the base directory -->
 	<!-- Exclude playground files with excludepackagenames instead of the "source" dirset -->
-	<condition property="package.excludes" value="" else="org.broadinstitute.sting.playground.*">
-          <equals arg1="${target}" arg2="playground" />
-	</condition>
-        <javadoc destdir="javadoc" 
-		 sourcepath="${source.dir}" 
-		 classpathref="external.dependencies"
-		 excludepackagenames="${package.excludes}" />
+    	<condition property="package.excludes" value="" else="org.broadinstitute.sting.playground.*">
+              <equals arg1="${target}" arg2="playground" />
+	    </condition>
+        <javadoc destdir="javadoc" sourcepath="${source.dir}" excludepackagenames="${package.excludes}" classpathref="runtime.dependencies"/>
     </target>
 
-    <target name="clean"
-            description="clean up">
+    <!-- Unzip all classes from their current locations and assemble them in a staging directory -->
+    <target name="stage" description="stage files for distribution">
+        <mkdir dir="staging"/>
+        <unjar dest="staging" overwrite="false">
+          <fileset dir="dist">
+            <patternset refid="dependency.mask" />
+          </fileset>
+        </unjar>
+    </target>
+
+    <!-- Build a package consisting of all supporting files -->
+    <target name="package" depends="dist,stage" description="bundle up an executable for distribution">
+        <xslt in="packages/${executable}.xml" out="packages/Build${executable}.xml" style="packages/CreatePackager.xsl" />
+        <ant antfile="packages/Build${executable}.xml" />
+    </target>
+
+    <target name="clean" description="clean up">
         <delete dir="out"/>
         <delete dir="build"/>
         <delete dir="dist"/>
         <delete dir="lib"/>
+        <delete dir="staging"/>
     </target>
 </project>
