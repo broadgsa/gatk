@@ -40,12 +40,25 @@ import java.util.Random;
  * This walker prints out the reads from the BAM files provided to the traversal engines.
  * It also supports the command line option '-outputBamFile filname', which outputs all the
  * reads to a specified BAM file
+ * The walker now also optionally filters reads based on command line options.
  */
 public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
 
     /** an optional argument to dump the reads out to a BAM file */
     @Argument(fullName = "outputBamFile", shortName = "of", doc = "Write output to this BAM filename instead of STDOUT", required = false)
     String outputBamFile = null;
+    @Argument(fullName = "maxReadLength", shortName = "maxRead", doc="Discard reads with length greater than the specified value", required = false)
+    Integer maxLength = null;
+
+    /**
+     * The reads filter function.
+     * @param ref the reference bases that correspond to our read, if a reference was provided
+     * @param read the read itself, as a SAMRecord
+     * @return true if the read passes the filter, false if it doesn't
+     */
+    public boolean filter(char[] ref, SAMRecord read) {
+		return (maxLength == null || read.getReadLength() <= maxLength);
+	}
 
     /**
      * The reads map function.
