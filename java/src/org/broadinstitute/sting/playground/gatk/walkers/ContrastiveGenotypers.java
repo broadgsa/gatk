@@ -26,7 +26,7 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
         caller_1b = new SingleSampleGenotyper();
         caller_1b.METRICS_FILE = new File("/dev/stdout");
         caller_1b.METRICS_INTERVAL = 6000;
-        caller_1b.NO_SECONDARY_BASES = false;
+        caller_1b.IGNORE_SECONDARY_BASES = true;
         //caller_1b.retest = false;
         //caller_1b.qHom = 0.04;
         //caller_1b.qHet = 0.49;
@@ -38,7 +38,7 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
         caller_4b = new SingleSampleGenotyper();
         caller_4b.METRICS_FILE = new File("/dev/stdout");
         caller_4b.METRICS_INTERVAL = caller_1b.METRICS_INTERVAL;
-        caller_4b.NO_SECONDARY_BASES = true;
+        caller_4b.IGNORE_SECONDARY_BASES = false;
         //caller_4b.retest = true;
         //caller_4b.qHom = 0.04;
         //caller_4b.qHet = 0.49;

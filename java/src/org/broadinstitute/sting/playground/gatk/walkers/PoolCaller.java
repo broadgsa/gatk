@@ -88,8 +88,8 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 			caller.VARIANTS_FILE = null;
 			caller.METRICS_FILE = null;
             caller.LOD_THRESHOLD = lodThreshold;
-            caller.NO_SECONDARY_BASES = false;
-            caller.PRINT_METRICS = false;
+            caller.IGNORE_SECONDARY_BASES = true;
+            caller.SUPPRESS_METRICS = true;
 			caller.SAMPLE_NAME_REGEX = SAMPLE_NAME_REGEX;
             caller.initialize();
 			caller.variantsOut = individual_output_file;
