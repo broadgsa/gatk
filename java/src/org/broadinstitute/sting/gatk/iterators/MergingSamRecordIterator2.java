@@ -1,13 +1,28 @@
 /*
-* The Broad Institute
-* SOFTWARE COPYRIGHT NOTICE AGREEMENT
-* This software and its documentation are copyright 2009 by the
-* Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
-*
-* This software is supplied without any warranty or guaranteed support whatsoever.
-* Neither the Broad Institute nor MIT can be responsible for its use, misuse, or
-* functionality.
-*/
+ * Copyright (c) 2009 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.picard.PicardException;
@@ -38,34 +53,49 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
     protected static Logger logger = Logger.getLogger(MergingSamRecordIterator2.class);
     private SAMRecord mNextRecord;
     protected boolean initialized = false;
+    protected final Reads reads;
 
     /**
      * Constructs a new merging iterator with the same set of readers and sort order as
      * provided by the header merger parameter.
+     *
+     * @param headerMerger the header to merge
+     * @param reads        the reads pile
      */
     public MergingSamRecordIterator2(final SamFileHeaderMerger headerMerger, Reads reads) {
         this.samHeaderMerger = headerMerger;
+        this.reads = reads;
         this.sortOrder = headerMerger.getMergedHeader().getSortOrder();
         this.pq = new PriorityQueue<ComparableSamRecordIterator>(samHeaderMerger.getReaders().size());
 
     }
 
-    /** this class MUST only be initialized once, since the creation of the */
+    /**
+     * we hold off initializing because we don't know if they plan to query or just iterate.  This function
+     * gets called if the hasNext() determines we haven't been query-ed yet, and we want to setup the iterator to start
+     * at the beginning of the read pile
+     */
     private void lazyInitialization() {
         if (initialized) {
             throw new UnsupportedOperationException("You cannot double initialize a MergingSamRecordIterator2");
         }
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
-            if (this.sortOrder != SAMFileHeader.SortOrder.unsorted && reader.getFileHeader().getSortOrder() != this.sortOrder) {
-                throw new PicardException("Files are not compatible with sort order: " + reader.getFileHeader().getSortOrder() + " vrs " + this.sortOrder);
-            }
+            checkSortOrder(reader);
 
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, comparator);
             addIfNotEmpty(iterator);
         }
         setInitialized();
 
+    }
+
+    private void checkSortOrder(SAMFileReader reader) {
+        if (this.sortOrder != SAMFileHeader.SortOrder.unsorted && reader.getFileHeader().getSortOrder() != this.sortOrder) {
+            throw new PicardException("Files are not compatible with sort order: " + reader.getFileHeader().getSortOrder() +
+                    " vrs " + this.sortOrder + ".  Make sure that the SO flag in your bam file is set (The reader attribute for sort order equals "
+                    + reader.getFileHeader().getAttribute("SO") + " in this case).");
+        }
     }
 
     public boolean supportsSeeking() {
@@ -79,6 +109,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         final SAMRecordComparator comparator = getComparator();
 
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
+            checkSortOrder(reader);
             Iterator<SAMRecord> recordIter = reader.queryOverlapping(contig, start, stop);
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, recordIter, comparator);
             addIfNotEmpty(iterator);
@@ -93,6 +124,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         }
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
+            checkSortOrder(reader);
             Iterator<SAMRecord> recordIter = reader.query(contig, start, stop, contained);
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, recordIter, comparator);
             addIfNotEmpty(iterator);
@@ -107,6 +139,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         }
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
+            checkSortOrder(reader);
             Iterator<SAMRecord> recordIter = reader.queryContained(contig, start, stop);
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, recordIter, comparator);
             addIfNotEmpty(iterator);
@@ -142,11 +175,16 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         return r;
     }
 
+    /** @return the next record, without moving the iterator */
     public SAMRecord peek() {
         return mNextRecord;
     }
 
-    /** Returns the next record from the top most iterator during merging. */
+    /**
+     * Returns the next record from the top most iterator during merging.
+     *
+     * @return the next record, null if it's unavailable
+     */
     public SAMRecord nextRecord() {
         if (!initialized) {
             lazyInitialization();
@@ -184,9 +222,9 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
 
         record.setHeader(samHeaderMerger.getMergedHeader());
         if (this.samHeaderMerger.hasMergedSequenceDictionary() && record.getReferenceIndex() >= 0) {
-            record.setReferenceIndex(this.samHeaderMerger.getMergedSequenceIndex(iterator.getReader(),record.getReferenceIndex()));
+            record.setReferenceIndex(this.samHeaderMerger.getMergedSequenceIndex(iterator.getReader(), record.getReferenceIndex()));
         }
-        
+
         //System.out.printf("NEXT = %s %s %d%n", record.getReadName(), record.getReferenceName(), record.getAlignmentStart());
         //System.out.printf("PEEK = %s %s %d%n", this.pq.peek().peek().getReadName(), this.pq.peek().peek().getReferenceName(), this.pq.peek().peek().getAlignmentStart());
 
@@ -196,6 +234,8 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
     /**
      * Adds iterator to priority queue. If the iterator has more records it is added
      * otherwise it is closed and not added.
+     *
+     * @param iterator the iterator to add
      */
     protected void addIfNotEmpty(final ComparableSamRecordIterator iterator) {
         //System.out.printf("Adding %s %s %d%n", iterator.peek().getReadName(), iterator.peek().getReferenceName(), iterator.peek().getAlignmentStart());
@@ -215,6 +255,8 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
      * Get the right comparator for a given sort order (coordinate, alphabetic). In the
      * case of "unsorted" it will return a comparator that gives an arbitrary but reflexive
      * ordering.
+     *
+     * @return the SAMRecordComparator appropriate for our sort order
      */
     protected SAMRecordComparator getComparator() {
         // For unsorted build a fake comparator that compares based on object ID
@@ -249,7 +291,11 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         }
     }
 
-    /** Returns the merged header that the merging iterator is working from. */
+    /**
+     * Returns the merged header that the merging iterator is working from.
+     *
+     * @return our sam file header
+     */
     public SAMFileHeader getHeader() {
         return this.samHeaderMerger.getMergedHeader();
     }
@@ -260,7 +306,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
      * with sharding.
      */
     public void close() {
-        for( ComparableSamRecordIterator iterator: pq )
+        for (ComparableSamRecordIterator iterator : pq)
             iterator.close();
     }
 
@@ -268,7 +314,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
     /**
      * allows us to be used in the new style for loops
      *
-     * @return
+     * @return this iterator, which can be used in for loop each iterations
      */
     public Iterator<SAMRecord> iterator() {
         return this;
@@ -278,10 +324,10 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
      * Gets source information for the reads.  Contains information about the original reads
      * files, plus information about downsampling, etc.
      *
-     * @return
+     * @return the read object we were created for
      */
     public Reads getSourceInfo() {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return this.reads;
     }
 }
 
@@ -312,12 +358,16 @@ class ComparableSamRecordIterator extends PeekableIterator<SAMRecord> implements
     }
 
     public Reads getSourceInfo() {
-        if( sourceInfo == null )
+        if (sourceInfo == null)
             throw new StingException("Unable to provide source info for the reads.  Please upgrade to the new data sharding framework.");
         return sourceInfo;
-    }    
+    }
 
-    /** Returns the reader from which this iterator was constructed. */
+    /**
+     * Returns the reader from which this iterator was constructed.
+     *
+     * @return the SAMFileReader
+     */
     public SAMFileReader getReader() {
         return reader;
     }
@@ -328,6 +378,7 @@ class ComparableSamRecordIterator extends PeekableIterator<SAMRecord> implements
      * comparator types internally an exception is thrown.
      *
      * @param that another iterator to compare to
+     *
      * @return a negative, 0 or positive number as described in the Comparator interface
      */
     public int compareTo(final ComparableSamRecordIterator that) {
