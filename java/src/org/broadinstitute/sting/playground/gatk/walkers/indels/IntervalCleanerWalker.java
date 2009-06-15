@@ -25,6 +25,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public boolean printAllReads = false;
     @Argument(fullName="statisticsFile", shortName="stats", doc="print out statistics (what does or doesn't get cleaned)", required=false)
     public String OUT_STATS = null;
+    @Argument(fullName="SNPsFile", shortName="snps", doc="print out whether mismatching columns do or don't get cleaned out", required=false)
+    public String OUT_SNPS = null;
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
     public double LOD_THRESHOLD = 5.0;
     @Argument(fullName="EntropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
@@ -37,6 +39,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     private SAMFileWriter writer = null;
     private FileWriter indelOutput = null;
     private FileWriter statsOutput = null;
+    private FileWriter snpsOutput = null;
 
     
     // we need to sort the reads ourselves because SAM headers get messed up and claim to be "unsorted" sometimes
@@ -74,6 +77,15 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 logger.warn("Failed to create output file "+ OUT_STATS+". Cleaning stats output will be suppressed");
                 err.println(e.getMessage());
                 statsOutput = null;
+            }
+        }
+        if ( OUT_SNPS != null ) {
+            try {
+                snpsOutput = new FileWriter(new File(OUT_SNPS));
+            } catch (Exception e) {
+                logger.warn("Failed to create output file "+ OUT_SNPS+". Cleaning snps output will be suppressed");
+                err.println(e.getMessage());
+                snpsOutput = null;
             }
         }
     }
@@ -150,6 +162,13 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 statsOutput.close();
             } catch (Exception e) {
                 logger.error("Failed to close "+OUT_STATS+" gracefully. Data may be corrupt.");
+            }
+        }
+        if ( OUT_SNPS != null ) {
+            try {
+                snpsOutput.close();
+            } catch (Exception e) {
+                logger.error("Failed to close "+OUT_SNPS+" gracefully. Data may be corrupt.");
             }
         }
     }
@@ -616,6 +635,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
 
         int originalMismatchColumns = 0, cleanedMismatchColumns = 0;
+        StringBuffer sb = new StringBuffer();
         for ( int i=0; i < reference.length(); i++ ) {
             if ( cleanedMismatchBases[i] == originalMismatchBases[i] )
                 continue;
@@ -623,11 +643,32 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 originalMismatchColumns++;
             if ( cleanedMismatchBases[i] > totalBases[i] * MISMATCH_THRESHOLD )
                 cleanedMismatchColumns++;
+            if ( snpsOutput != null ) {
+                    if ( originalMismatchBases[i] > totalBases[i] * MISMATCH_THRESHOLD ) {
+                        sb.append(reads.get(0).getRead().getReferenceName() + ":");
+                        sb.append(((int)leftmostIndex + i));
+                        if ( cleanedMismatchBases[i] > totalBases[i] * MISMATCH_THRESHOLD )
+                            sb.append(" SAME_SNP\n");
+                        else
+                            sb.append(" NOT_SNP\n");
+                    } else if ( cleanedMismatchBases[i] > totalBases[i] * MISMATCH_THRESHOLD ) {
+                        sb.append(reads.get(0).getRead().getReferenceName() + ":");
+                        sb.append(((int)leftmostIndex + i));
+                        sb.append(" NEW_SNP\n");
+                    }
+            }
         }
                 
         logger.debug("Original mismatch columns = " + originalMismatchColumns + "; cleaned mismatch columns = " + cleanedMismatchColumns);
 
-        return (originalMismatchColumns == 0 || cleanedMismatchColumns < originalMismatchColumns);
+        boolean reduces = (originalMismatchColumns == 0 || cleanedMismatchColumns < originalMismatchColumns);
+        if ( reduces && snpsOutput != null ) {
+            try {
+                snpsOutput.write(sb.toString());
+                snpsOutput.flush();
+            } catch (Exception e) {}
+        }
+        return reduces;
     }
 
     /** Takes the alignment of the read sequence <code>readSeq</code> to the reference sequence <code>refSeq</code>
