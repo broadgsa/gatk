@@ -18,6 +18,7 @@ import org.broadinstitute.sting.gatk.refdata.RODIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.playground.indels.AlignmentUtils;
 import org.broadinstitute.sting.playground.utils.CircularArray;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
@@ -58,6 +59,10 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 
 	private Set<String> normal_samples = new HashSet<String>();
 	private Set<String> tumor_samples = new HashSet<String>();
+	
+	private int MISMATCH_WIDTH = 5; // 5 bases on each side of the indel
+	private int MISMATCH_CUTOFF = 1000000;
+	private double AV_MISMATCHES_PER_READ = 1.5;
 	
 	
 	private static String annGenomic = "GENOMIC";
@@ -162,8 +167,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			if ( read.getReferenceIndex() < currentContigIndex ) // paranoidal 
 				throw new StingException("Read "+read.getReadName()+": contig is out of order");
 			
-			if ( call_somatic) emit_somatic(1000000000); // print remaining indels from the previous contig (if any);
-			else emit(1000000000);
+			if ( call_somatic) emit_somatic(1000000000, true); // print remaining indels from the previous contig (if any);
+			else emit(1000000000,true);
 			currentContigIndex = read.getReferenceIndex();
 			refName = new String(read.getReferenceName());
 			location.setContig(refName);
@@ -199,8 +204,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			// Clearly, we assume here that window is large enough to accomodate any single read, so simply shifting
 			// the window to the read's start will ensure that the read fits...
 			
-			if ( call_somatic ) emit_somatic( read.getAlignmentStart() );
-			else emit( read.getAlignmentStart() );
+			if ( call_somatic ) emit_somatic( read.getAlignmentStart(), false );
+			else emit( read.getAlignmentStart(), false );
 
 			if ( read.getAlignmentEnd() > coverage.getStop()) {
 				// ooops, looks like the read does not fit into the current window!!
@@ -240,16 +245,45 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	 * 
 	 * @param position
 	 */
-	private void emit(long position) {
+	private void emit(long position, boolean force) {
+		
+		long stop_at = position; // we will shift to this position instead of passed 'position'
+					     // argument if we did not cover MISMATCH_WIDTH bases around the last indel yet
 		
 		for ( long pos = coverage.getStart() ; pos < Math.min(position,coverage.getStop()+1) ; pos++ ) {
 			
 			List<IndelVariant> variants = coverage.indelsAt(pos);
 			if ( variants.size() == 0 ) continue; // no indels
+			
+			// if we are here, we got a variant
 
 			int cov = coverage.coverageAt(pos);
 			
 			if ( cov < minCoverage ) continue; // low coverage
+			
+			long left = Math.max( pos-MISMATCH_WIDTH, coverage.getStart() );
+			long right = pos+MISMATCH_WIDTH;
+			
+			if ( right > coverage.getStop() ) { // we do not have enough bases in the current window
+					                            // in order to assess mismatch rate
+				if( force ) { // if we were asked to force-shift, then, well, shift anyway
+					right = coverage.getStop()  ;
+				} else {			
+					// shift to the position prior to the last indel so that we could get all the mismatch counts around it later 
+					stop_at = left; 
+					break;
+				}
+			}
+
+			// count mismatches around the current indel, inside specified window (MISMATCH_WIDTH on each side):
+			int total_mismatches = 0;
+			for ( long k = left; k <= right ; k++ ) total_mismatches+=coverage.mismatchesAt(k);
+			
+			if ( total_mismatches > MISMATCH_CUTOFF || total_mismatches > ((double)cov)*AV_MISMATCHES_PER_READ) {
+				System.out.println(refName+"\t"+(pos-1)+"\t"+
+				"\tTOO DIRTY\t"+total_mismatches);
+				continue; // too dirty
+			}
 			
 			location.setStart(pos); location.setStop(pos); // retrieve annotation data
 			rodRefSeq annotation = refseqIterator.seekForward(location);
@@ -289,7 +323,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 //			}
 		}
 		
-		coverage.shift((int)(position - coverage.getStart() ) );
+		coverage.shift((int)(stop_at - coverage.getStart() ) );
 	}
 
 	/** Output somatic indel calls up to the specified position and shift the coverage array(s): after this method is executed
@@ -297,7 +331,9 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	 * 
 	 * @param position
 	 */
-	private void emit_somatic(long position) {
+	private void emit_somatic(long position, boolean force) {
+		
+		long stop_at = position;
 		
 		for ( long pos = coverage.getStart() ; pos < Math.min(position,coverage.getStop()+1) ; pos++ ) {
 			
@@ -314,6 +350,38 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			if ( tumor_cov < minCoverage ) continue; // low coverage
 			if ( normal_cov < minNormalCoverage ) continue; // low coverage
 			
+			long left = Math.max( pos-MISMATCH_WIDTH, coverage.getStart() );
+			long right = pos+MISMATCH_WIDTH;
+			
+			if ( right > coverage.getStop() ) { // we do not have enough bases in the current window
+					                            // in order to assess mismatch rate
+				if( force ) { // if we were asked to force-shift, then, well, shift anyway
+					right = coverage.getStop()  ;
+				} else {			
+					// shift to the position prior to the last indel so that we could get all the mismatch counts around it later 
+					stop_at = left; 
+					break;
+				}
+			}
+
+			// count mismatches around the current indel, inside specified window (MISMATCH_WIDTH on each side):
+			int total_mismatches_normal = 0;
+			int total_mismatches_tumor = 0;
+			for ( long k = left; k <= right ; k++ ) {
+				total_mismatches_tumor+=coverage.mismatchesAt(k);
+				total_mismatches_normal+=normal_coverage.mismatchesAt(k);
+			}
+			
+			if ( total_mismatches_normal > MISMATCH_CUTOFF || total_mismatches_normal > ((double)normal_cov)*AV_MISMATCHES_PER_READ) {
+				System.out.println(refName+"\t"+(pos-1)+"\t"+
+				"\tNORMAL TOO DIRTY\t"+total_mismatches_normal);
+				continue; // too dirty
+			}
+			if ( total_mismatches_tumor > MISMATCH_CUTOFF || total_mismatches_tumor > ((double)tumor_cov)*AV_MISMATCHES_PER_READ) {
+				System.out.println(refName+"\t"+(pos-1)+"\t"+
+				"\tTUMOR TOO DIRTY\t"+total_mismatches_tumor);
+				continue; // too dirty
+			}
 			location.setStart(pos); location.setStop(pos); // retrieve annotation data
 			rodRefSeq annotation = refseqIterator.seekForward(location);
 			
@@ -336,7 +404,13 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			if ( (double)total_variant_count_tumor > minFraction * tumor_cov && (double) max_variant_count_tumor > minConsensusFraction*total_variant_count_tumor ) {
 				
 				String annotationString = getAnnotationString(annotation);
-				
+/*				
+				int leftpos = pos-1;
+				int rightpos = pos-1;
+				if ( event_length_tumor > 0 ) {
+					leftpos -= event_length;
+				}
+*/				
 				String message = refName+"\t"+(pos-1)+"\t"+(event_length_tumor > 0 ? pos-1+event_length_tumor : pos-1)+
 							"\t"+(event_length_tumor >0? "-":"+")+indelStringTumor +":"+total_variant_count_tumor+"/"+tumor_cov;
 				if ( normal_variants.size() == 0 ) { 		
@@ -381,7 +455,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	
 	@Override
 	public void onTraversalDone(Integer result) {
-		emit(1000000000); // emit everything we might have left
+		if ( call_somatic ) emit_somatic(1000000000, true);
+		else emit(1000000000,true); // emit everything we might have left
 		try {
 			output.close();
 		} catch (IOException e) {
@@ -458,6 +533,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		
 		private CircularArray.Int coverageWindow;
 		private CircularArray< List< IndelVariant > > indels;
+		private CircularArray.Int mismatches;
 		
 		private static List<IndelVariant> emptyIndelList;
 		
@@ -469,6 +545,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			this.start = start;
 			coverageWindow = new CircularArray.Int(length);
 			indels = new CircularArray< List<IndelVariant> >(length);
+			mismatches = new CircularArray.Int(length);
 		}
 		
 		/** Returns 1-based reference start position of the interval this object keeps coverage for.
@@ -492,6 +569,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			return coverageWindow.get( (int)( refPos - start ) );
 		}
 		
+		public int mismatchesAt(final long refPos) { return mismatches.get((int)(refPos-start)); }
+		
 		public List<IndelVariant> indelsAt( final long refPos ) {
 			List<IndelVariant> l = indels.get((int)( refPos - start ));
 			if ( l == null ) return emptyIndelList;
@@ -507,11 +586,13 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		public void add(SAMRecord r, char [] ref) {
 			final long rStart = r.getAlignmentStart();
 			final long rStop = r.getAlignmentEnd();
+			final String readBases = r.getReadString().toUpperCase();
 
+			
 	        int localStart = (int)( rStart - start ); // start of the alignment wrt start of the current window
 			
 			try {
-				for ( int k = localStart; k <= (int)(rStop-start) ; k++ ) coverageWindow.increment(k, 1);
+				for ( int k = localStart; k <= (int)(rStop-start) ; k++ ) coverageWindow.increment(k, 1);		
 			} catch ( IndexOutOfBoundsException e) { // replace the message and re-throw:
 				throw new IndexOutOfBoundsException("Current coverage window: "+getStart()+"-"+getStop()+
 						"; illegal attempt to add read spanning "+rStart+"-"+rStop);				
@@ -528,22 +609,20 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	        int posOnRead = 0;
 	        int posOnRef = 0; // the chunk of reference ref[] that we have access to is aligned with the read:
 	        	              // its start on the actual full reference contig is r.getAlignmentStart()
+	 //      int mm=0;
 	        
 	        for ( int i = 0 ; i < nCigarElems ; i++ ) {
 
 	            final CigarElement ce = c.getCigarElement(i);
 	            IndelVariant.Type type = null;
 	            String bases = null;
+	            int eventPosition = posOnRef;
 	            
-	            int indelPosition = 0; // indel position in our coverage window (i.e. relative to getStart()).
-	            	                   // note that here we assign indels to the first deleted base or to the first
-	            	                   // base after insertion
 	            
 	            switch(ce.getOperator()) {
 	            case I:
 	                    type = IndelVariant.Type.I; 
-	                    bases = r.getReadString().substring(posOnRead,posOnRead+ce.getLength()); 
-	                    indelPosition = localStart + posOnRef ;
+	                    bases = readBases.substring(posOnRead,posOnRead+ce.getLength()); 
 	                    // will increment position on the read below, there's no 'break' statement yet...
 	            case H:
 	            case S:
@@ -555,12 +634,13 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	            case D: 
 	            		type = IndelVariant.Type.D;
 	            		bases = new String( ref, posOnRef, ce.getLength() );
-	                    indelPosition = localStart + posOnRef ;
 	                    posOnRef += ce.getLength();
 	                    break;
-	            case M: 
-	            		posOnRef += ce.getLength(); 
-	            		posOnRead += ce.getLength(); 
+	            case M: for ( int k = 0; k < ce.getLength(); k++, posOnRef++, posOnRead++ ) {
+	            		    if ( readBases.charAt(posOnRead) != Character.toUpperCase(ref[posOnRef]) ) { // mismatch!
+	            		    	mismatches.increment(localStart+posOnRef, 1); //mm++;
+	            		    }
+	            		}
 	            		break; // advance along the gapless block in the alignment
 	            default :
 	                throw new IllegalArgumentException("Unexpected operator in cigar string: "+ce.getOperator());
@@ -573,7 +653,9 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	            if ( i == nCigarElems - 1) logger.warn("Indel at the end of the read "+r.getReadName());
 
 	            try {
-	            	updateCount(indelPosition, type, bases);
+	            	// note that here we will be assigning indels to the first deleted base or to the first
+	            	// base after insertion, not to the last base before the event!
+	            	updateCount(localStart+eventPosition, type, bases);
 	            } catch (IndexOutOfBoundsException e) {
 					System.out.println("Read "+r.getReadName()+": out of coverage window bounds.Probably window is too small.\n"+
 							"Read length="+r.getReadLength()+"; cigar="+r.getCigarString()+"; start="+
@@ -583,6 +665,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	            }
 	        }
 	            
+//			System.out.println(r.getReadName()+"\t"+(r.getReadNegativeStrandFlag()?"RC":"FW")+"\t"+r.getCigarString()+"\t"+mm);
+//			System.out.println(AlignmentUtils.alignmentToString(r.getCigar(), readBases, new String(ref), 0));
 			
 		}
 		
@@ -633,6 +717,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			start += offset;
 			coverageWindow.shiftData(offset);
 			indels.shiftData(offset);
+			mismatches.shiftData(offset);
 		}
 	}
 
