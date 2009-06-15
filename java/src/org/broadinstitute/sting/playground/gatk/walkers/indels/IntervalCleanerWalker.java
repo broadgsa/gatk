@@ -654,7 +654,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         
         CigarElement ce1 = cigar.getCigarElement(0);
         CigarElement ce2 = cigar.getCigarElement(1);
-  
+
         int difference = 0; // we can move indel 'difference' bases left
         final int indel_length = ce2.getLength();
 
@@ -665,9 +665,12 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         if ( ce2.getOperator() == CigarOperator.D )
             indelString = refSeq.substring(indelIndexOnRef, indelIndexOnRef+ce2.getLength()).toUpperCase(); // deleted bases
-        else if ( ce2.getOperator() == CigarOperator.I ) {
+        else if ( ce2.getOperator() == CigarOperator.I )
             indelString = readSeq.substring(indelIndexOnRead, indelIndexOnRead+ce2.getLength()).toUpperCase(); // get the inserted bases
-        }
+        else
+            // we can get here if there is soft clipping done at the beginning of the read
+            // for now, we'll just punt the issue and not try to realign these
+            return cigar;
 
         // now we have to check all WHOLE periods of the indel sequence:
         //  for instance, if 
