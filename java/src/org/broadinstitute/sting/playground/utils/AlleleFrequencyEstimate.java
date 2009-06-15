@@ -7,6 +7,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 
 public class AlleleFrequencyEstimate {
 
+    /*
         static 
         {
 	        boolean assertsEnabled = false;
@@ -17,6 +18,7 @@ public class AlleleFrequencyEstimate {
 	            throw new RuntimeException("Asserts must be enabled!");
             }
         }
+    */
 
     //AlleleFrequencyEstimate();
     public GenomeLoc location;
@@ -44,6 +46,7 @@ public class AlleleFrequencyEstimate {
 
     public AlleleFrequencyEstimate(GenomeLoc location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, double pBest, double pRef, int depth, String bases, double[][] quals, double[] posteriors, String sample_name)
     {
+        /*
         if( Double.isNaN(lodVsRef)) { System.out.printf("%s: lodVsRef is NaN\n", location.toString()); }
         if( Double.isNaN(lodVsNextBest)) { System.out.printf("%s lodVsNextBest is NaN\n", location.toString()); }
         if( Double.isNaN(qhat)) { System.out.printf("%s qhat is NaN\n", location.toString()); }
@@ -78,6 +81,7 @@ public class AlleleFrequencyEstimate {
         assert(! Double.isInfinite(qstar));
         assert(! Double.isInfinite(pBest));
         assert(! Double.isInfinite(pRef));
+        */
 
         this.location = location;
         this.ref = ref;

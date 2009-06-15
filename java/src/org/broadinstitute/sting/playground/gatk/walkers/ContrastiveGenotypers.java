@@ -10,11 +10,9 @@ import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.io.PrintStream;
-
-import net.sf.samtools.SAMRecord;
+import java.io.File;
 
 public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
     private SingleSampleGenotyper caller_1b;
@@ -26,28 +24,26 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
 
     public void initialize() {
         caller_1b = new SingleSampleGenotyper();
-        caller_1b.metricsFileName = "/dev/stdout";
-        caller_1b.metricsInterval = 6000;
-        caller_1b.printMetrics = false;
-        caller_1b.fourBaseMode = false;
+        caller_1b.METRICS_FILE = new File("/dev/stdout");
+        caller_1b.METRICS_INTERVAL = 6000;
+        caller_1b.NO_SECONDARY_BASES = false;
         //caller_1b.retest = false;
         //caller_1b.qHom = 0.04;
         //caller_1b.qHet = 0.49;
         //caller_1b.qHomNonRef = 0.97;
-        caller_1b.lodThreshold = 5.0;
+        caller_1b.LOD_THRESHOLD = 5.0;
         caller_1b.initialize();
         caller_1b.reduceInit();
 
         caller_4b = new SingleSampleGenotyper();
-        caller_4b.metricsFileName = "/dev/stdout";
-        caller_4b.metricsInterval = caller_1b.metricsInterval;
-        caller_4b.printMetrics = false;
-        caller_4b.fourBaseMode = true;
+        caller_4b.METRICS_FILE = new File("/dev/stdout");
+        caller_4b.METRICS_INTERVAL = caller_1b.METRICS_INTERVAL;
+        caller_4b.NO_SECONDARY_BASES = true;
         //caller_4b.retest = true;
         //caller_4b.qHom = 0.04;
         //caller_4b.qHet = 0.49;
         //caller_4b.qHomNonRef = 0.97;
-        caller_4b.lodThreshold = 5.0;
+        caller_4b.LOD_THRESHOLD = 5.0;
         caller_4b.initialize();
         caller_4b.reduceInit();
     }
@@ -119,16 +115,18 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
                           bases2
                           );
 
-        caller_1b.metrics.nextPosition(call_1b, tracker);
-        caller_4b.metrics.nextPosition(call_4b, tracker);
+        caller_1b.metricsOut.nextPosition(call_1b, tracker);
+        caller_4b.metricsOut.nextPosition(call_4b, tracker);
 
-        if (caller_1b.metrics.num_loci_total % caller_1b.metricsInterval == 0) {
+        /*
+        if (caller_1b.metricsOut.num_loci_total % caller_1b.METRICS_INTERVAL == 0) {
             System.out.print("1-Base Metrics");
-            caller_1b.metrics.printMetricsAtLocusIntervals(caller_1b.metricsInterval);
+            caller_1b.metrics.printMetricsAtLocusIntervals(caller_1b.METRICS_INTERVAL);
             System.out.print("4-Base Metrics");
-            caller_4b.metrics.printMetricsAtLocusIntervals(caller_1b.metricsInterval);
+            caller_4b.metrics.printMetricsAtLocusIntervals(caller_1b.METRICS_INTERVAL);
             System.out.println("--------------");
         }
+        */
 
         return null;
     }
@@ -269,9 +267,9 @@ public class ContrastiveGenotypers extends LocusWalker<Integer, Integer> {
         }
 
         System.out.print("1-Base Metrics");
-        caller_1b.metrics.printMetricsAtLocusIntervals(1);
+        caller_1b.metricsOut.printMetricsAtLocusIntervals(1);
         System.out.print("4-Base Metrics");
-        caller_4b.metrics.printMetricsAtLocusIntervals(1);
+        caller_4b.metricsOut.printMetricsAtLocusIntervals(1);
         System.out.println("--------------");
     }
 }

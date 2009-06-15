@@ -1,8 +1,9 @@
 package org.broadinstitute.sting.playground.utils;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.QualityUtils;
 
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
@@ -13,26 +14,28 @@ public class GenotypeLikelihoods {
     private static final double[] oneMinusData = new double[Byte.MAX_VALUE];
 
     static {
-        for(int qual=0; qual < Byte.MAX_VALUE; qual++) {
-            oneMinusData[qual] = log10(1.0 - pow(10,(qual/-10.0)));
+        for (int qual = 0; qual < Byte.MAX_VALUE; qual++) {
+            oneMinusData[qual] = log10(1.0 - pow(10, (qual / -10.0)));
+            //oneMinusData[qual] = log10(1.0 - QualityUtils.qualToProb(qual));
         }
     }
+
     private static double getOneMinusQual(final byte qual) {
         return oneMinusData[qual];
     }
 
     private static final double[] oneHalfMinusData = new double[Byte.MAX_VALUE];
+
     static {
-        for(int qual=0; qual < Byte.MAX_VALUE; qual++) {
-            oneHalfMinusData[qual] = log10(0.5-pow(10,(qual/-10.0))/2.0);
+        for (int qual = 0; qual < Byte.MAX_VALUE; qual++) {
+            oneHalfMinusData[qual] = log10(0.5 - pow(10, (qual / -10.0)) / 2.0);
+            //oneHalfMinusData[qual] = log10(0.5 - QualityUtils.qualToProb(qual) / 2.0);
         }
     }
 
     private static double getOneHalfMinusQual(final byte qual) {
         return oneHalfMinusData[qual];
     }
-
-
 
     public double[] likelihoods;
     public String[] genotypes;
@@ -43,20 +46,30 @@ public class GenotypeLikelihoods {
     private double priorHomVar;
 
     // Store the 2nd-best base priors for on-genotype primary bases
-    HashMap<String, Double> onNextBestBasePriors = new HashMap<String, Double>();
+    private HashMap<String, Double> onNextBestBasePriors = new HashMap<String, Double>();
 
     // Store the 2nd-best base priors for off-genotype primary bases
-    HashMap<String, Double> offNextBestBasePriors = new HashMap<String, Double>();
+    private HashMap<String, Double> offNextBestBasePriors = new HashMap<String, Double>();
 
     public GenotypeLikelihoods() {
-        initialize(1.0 - 1e-3, 1e-3, 1e-5);
+        double[] p2ndon = {0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000};
+        double[] p2ndoff = {0.480, 0.769, 0.744, 0.538, 0.575, 0.727, 0.768, 0.589, 0.762, 0.505};
+
+        initialize(1.0 - 1e-3, 1e-3, 1e-5, p2ndon, p2ndoff);
     }
 
     public GenotypeLikelihoods(double priorHomRef, double priorHet, double priorHomVar) {
-        initialize(priorHomRef, priorHet, priorHomVar);
+        double[] p2ndon = {0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000};
+        double[] p2ndoff = {0.480, 0.769, 0.744, 0.538, 0.575, 0.727, 0.768, 0.589, 0.762, 0.505};
+
+        initialize(priorHomRef, priorHet, priorHomVar, p2ndon, p2ndoff);
     }
 
-    private void initialize(double priorHomRef, double priorHet, double priorHomVar) {
+    public GenotypeLikelihoods(double priorHomRef, double priorHet, double priorHomVar, double[] p2ndon, double[] p2ndoff) {
+        initialize(priorHomRef, priorHet, priorHomVar, p2ndon, p2ndoff);
+    }
+
+    private void initialize(double priorHomRef, double priorHet, double priorHomVar, double[] p2ndon, double[] p2ndoff) {
         this.priorHomRef = priorHomRef;
         this.priorHet = priorHet;
         this.priorHomVar = priorHomVar;
@@ -75,69 +88,93 @@ public class GenotypeLikelihoods {
         genotypes[8] = "GT";
         genotypes[9] = "TT";
 
-        onNextBestBasePriors.put("AA", 0.000);
-        onNextBestBasePriors.put("AC", 0.302);
-        onNextBestBasePriors.put("AG", 0.366);
-        onNextBestBasePriors.put("AT", 0.142);
-        onNextBestBasePriors.put("CC", 0.000);
-        onNextBestBasePriors.put("CG", 0.548);
-        onNextBestBasePriors.put("CT", 0.370);
-        onNextBestBasePriors.put("GG", 0.000);
-        onNextBestBasePriors.put("GT", 0.319);
-        onNextBestBasePriors.put("TT", 0.000);
-
-        offNextBestBasePriors.put("AA", 0.480);
-        offNextBestBasePriors.put("AC", 0.769);
-        offNextBestBasePriors.put("AG", 0.744);
-        offNextBestBasePriors.put("AT", 0.538);
-        offNextBestBasePriors.put("CC", 0.575);
-        offNextBestBasePriors.put("CG", 0.727);
-        offNextBestBasePriors.put("CT", 0.768);
-        offNextBestBasePriors.put("GG", 0.589);
-        offNextBestBasePriors.put("GT", 0.762);
-        offNextBestBasePriors.put("TT", 0.505);
+        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
+            onNextBestBasePriors.put(genotypes[genotypeIndex], p2ndon[genotypeIndex]);
+            offNextBestBasePriors.put(genotypes[genotypeIndex], p2ndoff[genotypeIndex]);
+        }
     }
 
-    public double getHomRefPrior() { return priorHomRef; }
-    public void setHomRefPrior(double priorHomRef) { this.priorHomRef = priorHomRef; }
+    public double getHomRefPrior() {
+        return priorHomRef;
+    }
 
-    public double getHetPrior() { return priorHet; }
-    public void setHetPrior(double priorHet) { this.priorHet = priorHet; }
+    public void setHomRefPrior(double priorHomRef) {
+        this.priorHomRef = priorHomRef;
+    }
 
-    public double getHomVarPrior() { return priorHomVar; }
-    public void setHomVarPrior(double priorHomVar) { this.priorHomVar = priorHomVar; }
+    public double getHetPrior() {
+        return priorHet;
+    }
 
-    public void add(char ref, char read, byte qual) 
-	{ 
-        for (int i = 0; i < genotypes.length; i++) 
-		{
+    public void setHetPrior(double priorHet) {
+        this.priorHet = priorHet;
+    }
+
+    public double getHomVarPrior() {
+        return priorHomVar;
+    }
+
+    public void setHomVarPrior(double priorHomVar) {
+        this.priorHomVar = priorHomVar;
+    }
+
+    public double[] getOnGenotypeSecondaryPriors() {
+        double[] p2ndon = new double[10];
+
+        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
+            p2ndon[genotypeIndex] = onNextBestBasePriors.get(genotypes[genotypeIndex]);
+        }
+
+        return p2ndon;
+    }
+
+    public void setOnGenotypeSecondaryPriors(double[] p2ndon) {
+        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
+            onNextBestBasePriors.put(genotypes[genotypeIndex], p2ndon[genotypeIndex]);
+        }
+    }
+
+    public double[] getOffGenotypeSecondaryPriors() {
+        double[] p2ndoff = new double[10];
+
+        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
+            p2ndoff[genotypeIndex] = offNextBestBasePriors.get(genotypes[genotypeIndex]);
+        }
+
+        return p2ndoff;
+    }
+
+    public void setOffGenotypeSecondaryPriors(double[] p2ndoff) {
+        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
+            offNextBestBasePriors.put(genotypes[genotypeIndex], p2ndoff[genotypeIndex]);
+        }
+    }
+
+    public void add(char ref, char read, byte qual) {
+        for (int i = 0; i < genotypes.length; i++) {
             likelihoods[i] += calculateAlleleLikelihood(ref, read, genotypes[i], qual);
         }
     }
 
-    private double calculateAlleleLikelihood(char ref, char read, String genotype, byte qual) 
-	{
-		if (qual == 0) { qual = 1; } // zero quals are wrong.
+    private double calculateAlleleLikelihood(char ref, char read, String genotype, byte qual) {
+        if (qual == 0) {
+            qual = 1;
+        } // zero quals are wrong.
 
         char h1 = genotype.charAt(0);
         char h2 = genotype.charAt(1);
 
         double p_base;
 
-        if ((h1 == h2) && (h1 == read))
-		{
-			// hom
-            p_base = getOneMinusQual(qual); 
-        } 
-		else if ((h1 != h2) && ((h1 == read) || (h2 == read)))
-		{
-			// het 
-            p_base = getOneHalfMinusQual(qual); 
-        } 
-		else 
-		{
-			// error
-            p_base = qual/-10.0;
+        if ((h1 == h2) && (h1 == read)) {
+            // hom
+            p_base = getOneMinusQual(qual);
+        } else if ((h1 != h2) && ((h1 == read) || (h2 == read))) {
+            // het
+            p_base = getOneHalfMinusQual(qual);
+        } else {
+            // error
+            p_base = qual / -10.0;
         }
 
         return p_base;
@@ -170,54 +207,41 @@ public class GenotypeLikelihoods {
         return s;
     }
 
-    public void ApplyPrior(char ref, char alt, double p_alt) 
-    {
-        for (int i = 0; i < genotypes.length; i++) 
-		{
-            if ((p_alt == -1) || (p_alt <= 1e-6))
-            {
-	            if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) 
-				{
-	                // hom-ref
-	                likelihoods[i] += Math.log10(priorHomRef);
-	            } 
-				else if ((genotypes[i].charAt(0) != ref) && (genotypes[i].charAt(1) != ref)) 
-				{
-	                // hom-nonref
-	                likelihoods[i] += Math.log10(priorHomVar);
-	            } 
-				else 
-				{
-	                // het
-	                likelihoods[i] += Math.log10(priorHet);
-	            }
-                if (Double.isInfinite(likelihoods[i])) { likelihoods[i] = -1000; }
-            }
-            else
-            {
-	            if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) 
-				{
-	                // hom-ref
-	                likelihoods[i] += 2.0 * Math.log10(1.0 - p_alt);
-	            } 
-				else if ((genotypes[i].charAt(0) == alt) && (genotypes[i].charAt(1) == alt)) 
-				{
-	                // hom-nonref
-	                likelihoods[i] += 2.0 * Math.log10(p_alt);
-	            } 
-				else if (((genotypes[i].charAt(0) == alt) && (genotypes[i].charAt(1) == ref)) ||
-						 ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == alt)))
-				{
-	                // het
-	                likelihoods[i] += Math.log10((1.0-p_alt) * p_alt * 2.0);
-	            }
-				else
-				{
-					// something else (noise!)
-					likelihoods[i] += Math.log10(1e-5);
-				}
+    public void ApplyPrior(char ref, char alt, double p_alt) {
+        for (int i = 0; i < genotypes.length; i++) {
+            if ((p_alt == -1) || (p_alt <= 1e-6)) {
+                if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) {
+                    // hom-ref
+                    likelihoods[i] += Math.log10(priorHomRef);
+                } else if ((genotypes[i].charAt(0) != ref) && (genotypes[i].charAt(1) != ref)) {
+                    // hom-nonref
+                    likelihoods[i] += Math.log10(priorHomVar);
+                } else {
+                    // het
+                    likelihoods[i] += Math.log10(priorHet);
+                }
+                if (Double.isInfinite(likelihoods[i])) {
+                    likelihoods[i] = -1000;
+                }
+            } else {
+                if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) {
+                    // hom-ref
+                    likelihoods[i] += 2.0 * Math.log10(1.0 - p_alt);
+                } else if ((genotypes[i].charAt(0) == alt) && (genotypes[i].charAt(1) == alt)) {
+                    // hom-nonref
+                    likelihoods[i] += 2.0 * Math.log10(p_alt);
+                } else if (((genotypes[i].charAt(0) == alt) && (genotypes[i].charAt(1) == ref)) ||
+                        ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == alt))) {
+                    // het
+                    likelihoods[i] += Math.log10((1.0 - p_alt) * p_alt * 2.0);
+                } else {
+                    // something else (noise!)
+                    likelihoods[i] += Math.log10(1e-5);
+                }
 
-                if (Double.isInfinite(likelihoods[i])) { likelihoods[i] = -1000; }
+                if (Double.isInfinite(likelihoods[i])) {
+                    likelihoods[i] = -1000;
+                }
             }
         }
         this.sort();
@@ -322,108 +346,9 @@ public class GenotypeLikelihoods {
             }
         }
 
-		this.LodVsRef(ref); //HACK
-		//System.out.printf("DBG: %f %f\n", sorted_likelihoods[0], ref_likelihood); 
+        this.LodVsRef(ref); //HACK
+        //System.out.printf("DBG: %f %f\n", sorted_likelihoods[0], ref_likelihood);
 
-        return new AlleleFrequencyEstimate(location, ref, alt, 2, qhat, qstar, this.LodVsRef(ref), this.LodVsNextBest(), sorted_likelihoods[0], ref_likelihood, depth, bases, (double[][]) null, this.likelihoods, sample_name);
+        return new AlleleFrequencyEstimate(location, ref, alt, 2, qhat, qstar, this.LodVsRef(ref), this.LodVsNextBest(), sorted_likelihoods[0], ref_likelihood, depth, bases, null, this.likelihoods, sample_name);
     }
-
-	public static class IndelCall
-	{
-		public String   type;
-		public String[] alleles;
-		public double   p;
-		public double   lod;
-
-		public IndelCall(String type, String[] alleles, double p, double lod)
-		{
-			this.type = type;
-			this.alleles = alleles;
-			this.p = p;
-			this.lod = lod;
-		}
-
-		public String toString()
-		{
-			return String.format("%s/%s %f %f", alleles[0], alleles[1], p, lod); 
-		}
-	}
-
-	public static IndelCall callIndel(String[] indels)
-	{
-		HashMap<String,Integer> indel_allele_counts = new HashMap<String,Integer>();
-		for (int i = 0; i < indels.length; i++)
-		{
-			if (! indel_allele_counts.containsKey(indels[i])) 
-			{
-				indel_allele_counts.put(indels[i], 1);
-			}
-			else
-			{
-				indel_allele_counts.put(indels[i], indel_allele_counts.get(indels[i])+1);
-			}
-		}
-
-		Object[] keys = indel_allele_counts.keySet().toArray();
-		String[] alleles = new String[keys.length];
-		int[] counts = new int[keys.length];
-		double likelihoods[] = new double[keys.length];
-		int null_count = 0;
-		String max_allele = null;
-		int max_count = -1;
-		if ((keys.length > 0) && (! ((keys.length == 1) && (((String)keys[0]).equals("null")))))
-		{
-			for (int i = 0; i < keys.length; i++)
-			{
-				Integer count = (Integer)indel_allele_counts.get(keys[i]);
-				alleles[i] = (String)keys[i];
-				counts[i] = count;
-				if (alleles[i].equals("null")) { null_count = counts[i]; }
-				else if (counts[i] > max_count) { max_count = counts[i]; max_allele = alleles[i]; }
-				//System.out.printf("%s[%d] ", keys[i], count);
-			}
-			//System.out.printf("\n");
-
-			double eps = 1e-3;
-			double pRef = null_count*Math.log10(1.0 - eps)   + max_count*Math.log10(eps) + Math.log10(0.999);
-			double pHet = null_count*Math.log10(0.5 - eps/2) + max_count*Math.log10(0.5-eps/2) + Math.log10(1e-3);
-			double pHom = null_count*Math.log10(eps)         + max_count*Math.log10(1.0 - eps) + Math.log10(1e-5);
-
-			double lodRef = pRef - Math.max(pHet, pHom);
-			double lodHet = pHet - pRef;
-			double lodHom = pHom - pRef;
-
-			//System.out.printf("%s/%s %f %f\n", "null", "null", pRef, lodRef);
-			//System.out.printf("%s/%s %f %f\n", max_allele, "null", pHet, lodHet);
-			//System.out.printf("%s/%s %f %f\n", max_allele, max_allele, pHom, lodHom);
-			//System.out.printf("\n");
-
-			if (lodRef > 0)
-			{
-				// reference call
-				String[] genotype = new String[2];
-				genotype[0] = "null";
-				genotype[1] = "null";
-				return new IndelCall("ref", genotype, pRef, lodRef);
-			}
-			else if (lodHet > lodHom)
-			{
-				// het call
-				String[] genotype = new String[2];
-				genotype[0] = "null";
-				genotype[1] = max_allele;
-				return new IndelCall("het", genotype, pHet, lodHet);
-			}
-			else
-			{
-				// hom call
-				String[] genotype = new String[2];
-				genotype[0] = max_allele;
-				genotype[1] = max_allele;
-				return new IndelCall("hom", genotype, pHom, lodHom);
-			}
-		}
-		return null;
-	}
-
 }

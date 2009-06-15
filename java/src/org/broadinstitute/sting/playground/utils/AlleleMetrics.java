@@ -8,60 +8,50 @@ import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
 
 import java.util.List;
 import java.io.PrintStream;
+import java.io.File;
+import java.io.FileNotFoundException;
 
-/**
- * Created by IntelliJ IDEA.
- * User: andrewk
- * Date: Apr 1, 2009
- * Time: 5:53:21 PM
- * To change this template use File | Settings | File Templates.
- */
 public class AlleleMetrics {
-
-    long dbsnp_hits=0;
-    long num_variants=0;
-    public long num_loci_total=0;
-    long num_loci_confident=0;
-    double LOD_cutoff = 5;
-    long hapmap_genotype_correct = 0;
-    long hapmap_genotype_incorrect = 0;
-    long hapmap_refvar_correct = 0;
-    long hapmap_refvar_incorrect = 0;
+    private double LOD_cutoff = 5;
+    
+    private long dbsnp_hits = 0;
+    private long num_variants = 0;
+    private long num_loci_total = 0;
+    private long num_loci_confident = 0;
+    private long hapmap_genotype_correct = 0;
+    private long hapmap_genotype_incorrect = 0;
+    private long hapmap_refvar_correct = 0;
+    private long hapmap_refvar_incorrect = 0;
 
     private final double dbl_cmp_precision = 0.0001;
 
     protected PrintStream out;
 
-    public AlleleMetrics(String MetricsOutputFile) {
-        try
-        {
-            /*if ( MetricsOutputFile.equals("-") )
-                this.out = out;
-            else*/
-            this.out = new PrintStream(MetricsOutputFile);
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-            System.exit(-1);
-        }
+    public AlleleMetrics(String metricsOutputPath) {
+        initialize(new File(metricsOutputPath), LOD_cutoff);
     }
 
-    public AlleleMetrics(String MetricsOutputFile, double lodThreshold) {
-        LOD_cutoff = lodThreshold;
+    public AlleleMetrics(String metricsOutputPath, double lodThreshold) {
+        initialize(new File(metricsOutputPath), lodThreshold);
+    }
 
-        try
-        {
-            /*if ( MetricsOutputFile.equals("-") )
-                this.out = out;
-            else*/
-            this.out = new PrintStream(MetricsOutputFile);
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
+    public AlleleMetrics(File metricsOutputFile) {
+        initialize(metricsOutputFile, LOD_cutoff);
+    }
+
+    public AlleleMetrics(File metricsOutputFile, double lodThreshold) {
+        initialize(metricsOutputFile, lodThreshold);
+    }
+
+    private void initialize(File metricsOutputFile, double lodThresold) {
+        try {
+            this.out = new PrintStream(metricsOutputFile);
+        } catch (FileNotFoundException e) {
+            System.err.format("Unable to open file '%s'. Perhaps the parent directory does not exist or is read-only.", metricsOutputFile.getAbsolutePath());
             System.exit(-1);
         }
+
+        this.LOD_cutoff = lodThresold;
     }
 
     public void nextPosition(AlleleFrequencyEstimate alleleFreq, RefMetaDataTracker tracker) {

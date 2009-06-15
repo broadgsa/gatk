@@ -85,14 +85,14 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
             System.out.println("SAMPLE: " + sample_name);
 
             SingleSampleGenotyper caller = new SingleSampleGenotyper();
-			caller.callsFileName = null;
-			caller.metricsFileName = null;
-            caller.lodThreshold = lodThreshold;
-            caller.fourBaseMode = false;
-            caller.printMetrics = false;
+			caller.VARIANTS_FILE = null;
+			caller.METRICS_FILE = null;
+            caller.LOD_THRESHOLD = lodThreshold;
+            caller.NO_SECONDARY_BASES = false;
+            caller.PRINT_METRICS = false;
 			caller.SAMPLE_NAME_REGEX = SAMPLE_NAME_REGEX;
             caller.initialize();
-			caller.calls_file = individual_output_file;
+			caller.variantsOut = individual_output_file;
 			caller_sums.add(caller.reduceInit());
             callers.add(caller);
         } 
