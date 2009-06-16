@@ -137,7 +137,7 @@ public class TraverseReads extends TraversalEngine {
                 sum = readWalker.reduce(x, sum);
             }
 
-            if (locus != null) { printProgress("loci", locus.getLocation()); }
+            printProgress("reads", null);
         }
         return sum;
     }
