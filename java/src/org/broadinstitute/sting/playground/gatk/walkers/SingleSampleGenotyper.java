@@ -272,26 +272,12 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 		this.alt_allele = alt;
     }
 
-    // Given result of map function
-    private String  confident_ref_interval_contig  = "";
-    private long    confident_ref_interval_start   = 0;
-    private double  confident_ref_interval_LOD_sum = 0;
-    private double  confident_ref_interval_length  = 0;
-    private long    last_position_considered       = -1;
-    private boolean inside_confident_ref_interval  = false;
-
     /**
      * Initialize values appropriately for the reduce step.
      *
      * @return an empty string
      */
     public String reduceInit() {
-        confident_ref_interval_contig  = "";
-        confident_ref_interval_start   = 0;
-        confident_ref_interval_LOD_sum = 0;
-        confident_ref_interval_length  = 0;
-        last_position_considered       = -1;
-        inside_confident_ref_interval  = false;
         return "";
     }
 

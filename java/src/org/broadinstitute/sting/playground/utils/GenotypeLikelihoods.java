@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.playground.utils;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.QualityUtils;
 
@@ -39,6 +38,7 @@ public class GenotypeLikelihoods {
 
     public double[] likelihoods;
     public String[] genotypes;
+	public int coverage;
 
     // The genotype priors;
     private double priorHomRef;
@@ -76,6 +76,9 @@ public class GenotypeLikelihoods {
 
         likelihoods = new double[10];
         genotypes = new String[10];
+		coverage = 0;
+
+		for (int i = 0; i < likelihoods.length; i++) { likelihoods[i] = Math.log10(0.1); }
 
         genotypes[0] = "AA";
         genotypes[1] = "AC";
@@ -150,9 +153,21 @@ public class GenotypeLikelihoods {
         }
     }
 
-    public void add(char ref, char read, byte qual) {
-        for (int i = 0; i < genotypes.length; i++) {
-            likelihoods[i] += calculateAlleleLikelihood(ref, read, genotypes[i], qual);
+    public void add(char ref, char read, byte qual) 
+	{ 
+		if (coverage == 0)
+		{
+			for (int i = 0; i < likelihoods.length; i++)
+			{
+				likelihoods[i] = 0;
+			}
+		}
+		double sum = 0.0;
+        for (int i = 0; i < genotypes.length; i++) 
+		{
+			double likelihood = calculateAlleleLikelihood(ref, read, genotypes[i], qual); 
+            likelihoods[i] += likelihood;
+			coverage += 1;
         }
     }
 
@@ -197,15 +212,39 @@ public class GenotypeLikelihoods {
 
     public String toString(char ref) {
         this.sort();
+		double sum = 0;
         String s = String.format("%s %f %f ", this.BestGenotype(), this.LodVsNextBest(), this.LodVsRef(ref));
         for (int i = 0; i < sorted_genotypes.length; i++) {
             if (i != 0) {
                 s = s + " ";
             }
             s = s + sorted_genotypes[i] + ":" + String.format("%.2f", sorted_likelihoods[i]);
+			sum += Math.pow(10,sorted_likelihoods[i]);
         }
+		s = s + String.format(" %f", sum);
         return s;
     }
+
+    public void ApplyPrior(char ref, double[] allele_likelihoods)
+	{
+		int k = 0;
+		for (int i = 0; i < 4; i++)
+		{ 
+			for (int j = i; j < 4; j++)
+			{
+				if (i == j) 
+				{
+					this.likelihoods[k] += Math.log10(allele_likelihoods[i]) + Math.log10(allele_likelihoods[j]);
+				}
+				else
+				{
+					this.likelihoods[k] += Math.log10(allele_likelihoods[i]) + Math.log10(allele_likelihoods[j]) + Math.log10(2);
+				}
+				k++;
+			}
+		}
+		this.sort();
+	}
 
     public void ApplyPrior(char ref, char alt, double p_alt) {
         for (int i = 0; i < genotypes.length; i++) {
@@ -317,6 +356,12 @@ public class GenotypeLikelihoods {
         return this.sorted_likelihoods[0];
     }
 
+	public double RefPosterior(char ref)
+	{
+		this.LodVsRef(ref);
+		return this.ref_likelihood;
+	}
+
     public AlleleFrequencyEstimate toAlleleFrequencyEstimate(GenomeLoc location, char ref, int depth, String bases, double[] posteriors, String sample_name) {
         this.sort();
         double qhat = Double.NaN;
@@ -349,6 +394,8 @@ public class GenotypeLikelihoods {
         this.LodVsRef(ref); //HACK
         //System.out.printf("DBG: %f %f\n", sorted_likelihoods[0], ref_likelihood);
 
-        return new AlleleFrequencyEstimate(location, ref, alt, 2, qhat, qstar, this.LodVsRef(ref), this.LodVsNextBest(), sorted_likelihoods[0], ref_likelihood, depth, bases, null, this.likelihoods, sample_name);
+        AlleleFrequencyEstimate AFE = new AlleleFrequencyEstimate(location, ref, alt, 2, qhat, qstar, this.LodVsRef(ref), this.LodVsNextBest(), sorted_likelihoods[0], ref_likelihood, depth, bases, (double[][]) null, this.likelihoods, sample_name);
+		AFE.genotypeLikelihoods = this;
+		return AFE;
     }
 }

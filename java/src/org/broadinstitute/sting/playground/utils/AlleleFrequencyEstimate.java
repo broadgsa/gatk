@@ -41,6 +41,8 @@ public class AlleleFrequencyEstimate {
 	public int n_het;
 	public int n_hom;
 
+	public GenotypeLikelihoods genotypeLikelihoods = null;
+
     GenomeLoc l;
 
 

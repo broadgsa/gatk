@@ -79,6 +79,23 @@ public class ReadBackedPileup extends BasicPileup {
         return secondaryQualPileupAsString(reads, offsets);
     }
 
+    public String getBasePileupAsCountsString() {
+        String bases = basePileupAsString(reads, offsets);
+
+		int[] counts = new int[4];
+		for (int i = 0; i < reads.size(); i++)
+		{
+			char base = Character.toUpperCase((char)(reads.get(i).getReadBases()[offsets.get(i)]));
+			if (BaseUtils.simpleBaseToBaseIndex(base) == -1) { continue; }
+			counts[BaseUtils.simpleBaseToBaseIndex(base)]++; 
+		}
+		return String.format("A[%d] C[%d] G[%d] T[%d]",
+								counts[0],
+								counts[1],
+								counts[2],
+								counts[3]);
+    }
+
     public String getProbDistPileup() {
         return probDistPileupAsString(reads, offsets);
     }

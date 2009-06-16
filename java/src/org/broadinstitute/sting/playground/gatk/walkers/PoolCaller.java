@@ -9,9 +9,9 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.playground.utils.*;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.*;
@@ -21,7 +21,7 @@ import java.io.*;
 // Draft iterative pooled caller
 // j.maguire 4-27-2009
 
-public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String> 
+public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate[], String[]> 
 {
     List<SingleSampleGenotyper> callers = null;
     List<String> sample_names = null;
@@ -37,9 +37,6 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
     private SAMFileHeader header;
 	private PrintStream discovery_output_file;
 	private PrintStream individual_output_file;
-
-	AlleleFrequencyEstimate[] calls;
-	ArrayList<String>         caller_sums;
 
     public void initialize() 
     { 
@@ -59,15 +56,8 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
         this.header = toolkit.getEngine().getSAMHeader();
         List<SAMReadGroupRecord> read_groups = header.getReadGroups();
 
-        /*
-        GenomeAnalysisEngine toolkit = this.getToolkit();
-        SAMFileHeader header = toolkit.getSamReader().getFileHeader();
-        List<SAMReadGroupRecord> read_groups = header.getReadGroups();
-        */
-
         sample_names    = new ArrayList<String>();
         callers         = new ArrayList<SingleSampleGenotyper>();
-		caller_sums     = new ArrayList<String>();
 
         random = new Random(42);
 
@@ -93,12 +83,11 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 			caller.SAMPLE_NAME_REGEX = SAMPLE_NAME_REGEX;
             caller.initialize();
 			caller.variantsOut = individual_output_file;
-			caller_sums.add(caller.reduceInit());
             callers.add(caller);
         } 
     }
 
-    public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) 
+    public AlleleFrequencyEstimate[] map(RefMetaDataTracker tracker, char ref, LocusContext context) 
     {
 		if (ref == 'N') { return null; }
 		ref = Character.toUpperCase(ref);
@@ -110,65 +99,150 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 		if (forward.getReads().size() == 0) { return null; }
 		if (backward.getReads().size() == 0) { return null; }
 
-		AlleleFrequencyEstimate estimate_both     = EM(tracker, ref, context);
-		AlleleFrequencyEstimate estimate_forward  = EM(tracker, ref, forward);
-		AlleleFrequencyEstimate estimate_backward = EM(tracker, ref, backward);
+		// Pick the alternate base
+		char alt = 'N';
+		{
+			EM_Result result_both = EM(tracker, ref, context, -1, 'N', 1, lodThreshold, callers);
+			int[] counts = new int[4];
+			if (result_both.individuals == null) { return null; }
+			for (int i = 0; i < result_both.individuals.length; i++)
+			{
+				if (result_both.individuals[i] == null) { continue; }
+				if (result_both.individuals[i].lodVsRef >= lodThreshold) 
+				{
+					counts[BaseUtils.simpleBaseToBaseIndex(result_both.individuals[i].alt)] += 1;
+				}
+				Integer[] perm = Utils.SortPermutation(counts);
+				alt = BaseUtils.baseIndexToSimpleBase(perm[3]);	
+			}
+		}
 
-		discovery_output_file.printf("%s %c %f %c %f\n",
+		double EM_alt_freq;
+		if (MAX_ITERATIONS == 1) { EM_alt_freq = -1; }
+		else                     { EM_alt_freq = 0.5; }
+
+		EM_Result result_both     = EM(tracker, ref, context, EM_alt_freq, alt, MAX_ITERATIONS, lodThreshold, callers);
+		EM_Result result_forward  = EM(tracker, ref, forward, EM_alt_freq, alt, MAX_ITERATIONS, lodThreshold, callers);
+		EM_Result result_backward = EM(tracker, ref, backward, EM_alt_freq, alt, MAX_ITERATIONS, lodThreshold, callers);
+
+		EM_Result null_both       = EM(tracker, ref, context,  0, alt, 1, 1e-3, callers);
+		EM_Result null_forward    = EM(tracker, ref, forward,  0, alt, 1, 1e-3, callers);
+		EM_Result null_backward   = EM(tracker, ref, backward, 0, alt, 1, 1e-3, callers);
+
+		if (result_both.pool == null) { return null; }
+		AlleleFrequencyEstimate estimate_both = result_both.pool;
+
+		double lod_forward;
+		double lod_backward;
+		double lod_both;
+		double strand_score;
+		char forward_alt;
+		char backward_alt;
+
+		if ((result_forward.pool == null) ||
+		    (result_backward.pool == null) ||
+			(null_both == null) ||
+			(null_forward == null) ||
+		    (null_backward == null))
+		{
+			lod_forward = 0;
+			lod_backward = 0;
+			lod_both = 0;
+			strand_score = 0;
+			forward_alt = 'N';
+			backward_alt = 'N';
+		}
+		else
+		{
+			AlleleFrequencyEstimate estimate_forward       = result_forward.pool;
+			AlleleFrequencyEstimate estimate_backward      = result_backward.pool;
+
+	
+			double p_D_both     = 0;
+			double p_D_forward  = 0;
+			double p_D_backward = 0;
+			double p_D_null_both = 0;
+			double p_D_null_forward = 0;
+			double p_D_null_backward = 0;
+			for (int i = 0; i < result_both.individuals.length; i++)
+			{
+				double sum_both = 0;
+				double sum_forward = 0;
+				double sum_backward = 0;
+	
+				double sum_null_both     = 0;
+				double sum_null_forward  = 0;
+				double sum_null_backward = 0;
+	
+				for (int j = 0; j < result_both.individuals[i].genotypeLikelihoods.likelihoods.length; j++)
+				{
+					sum_both     += Math.pow(10, result_both.individuals[i].genotypeLikelihoods.likelihoods[j]);
+					sum_forward  += Math.pow(10, result_forward.individuals[i].genotypeLikelihoods.likelihoods[j]);
+					sum_backward += Math.pow(10, result_backward.individuals[i].genotypeLikelihoods.likelihoods[j]);
+					sum_null_both += Math.pow(10, null_both.individuals[i].genotypeLikelihoods.likelihoods[j]);
+					sum_null_forward += Math.pow(10, null_forward.individuals[i].genotypeLikelihoods.likelihoods[j]);
+					sum_null_backward += Math.pow(10, null_backward.individuals[i].genotypeLikelihoods.likelihoods[j]);
+				}
+	
+				p_D_both     += Math.log10(sum_both);
+				p_D_forward  += Math.log10(sum_forward);
+				p_D_backward += Math.log10(sum_backward);
+	
+				p_D_null_both     += Math.log10(sum_null_both);
+				p_D_null_forward  += Math.log10(sum_null_forward);
+				p_D_null_backward += Math.log10(sum_null_backward);
+			}
+			forward_alt = estimate_forward.alt;
+			backward_alt = estimate_backward.alt;
+			lod_forward  = (p_D_forward  + p_D_null_backward) - p_D_null_both;
+			lod_backward = (p_D_backward + p_D_null_backward) - p_D_null_both;
+			lod_both     = p_D_both - p_D_null_both;
+			strand_score = Math.max(lod_forward - lod_both, lod_backward - lod_both);
+		}
+
+		System.out.printf("DBG %s %f %f %f %f\n", context.getLocation(), result_both.pool.pBest, null_both.pool.pBest, result_both.pool.pRef, null_both.pool.pBest);
+
+		discovery_output_file.printf("%s %c %c %f\n",
 				estimate_both.asPoolTabularString(),
-				estimate_forward.alt,
-				estimate_forward.lodVsRef,
-				estimate_backward.alt,
-				estimate_backward.lodVsRef);
-		//discovery_output_file.printf("%s\n", estimate_forward.asPoolTabularString());
-		//discovery_output_file.printf("%s\n", estimate_backward.asPoolTabularString());
-		//discovery_output_file.printf("\n");
+				forward_alt,
+				backward_alt,
+				strand_score);
 
-		return null;
+		return result_both.individuals;
 	}
 
-	private AlleleFrequencyEstimate EM(RefMetaDataTracker tracker, char ref, LocusContext context)
+	private class EM_Result
+	{
+		AlleleFrequencyEstimate pool;
+		AlleleFrequencyEstimate[] individuals;
+
+		public EM_Result(AlleleFrequencyEstimate pool, AlleleFrequencyEstimate[] individuals) 
+		{
+			this.pool = pool;
+			this.individuals = individuals;
+		}
+
+		// Construct an EM_Result that indicates no data.
+		public EM_Result()
+		{
+			this.pool = null; 
+			this.individuals = null;
+		}
+	}
+
+	private EM_Result EM(RefMetaDataTracker tracker, char ref, LocusContext context, double EM_alt_freq, char alt, int MAX_ITERATIONS, double lodThreshold, List<SingleSampleGenotyper> callers)
 	{
 		if (context.getReads().size() == 0) { return null; }
         LocusContext[] contexts = filterLocusContext(context, sample_names, 0);
 
         // EM Loop:
-	    double EM_alt_freq;
 	    double EM_N = 0;
-		calls = null;
-
-		// this line is kinda hacky
-		if (MAX_ITERATIONS == 1) { EM_alt_freq = -1; }
-		else { EM_alt_freq = 0.5; }
+		AlleleFrequencyEstimate[] calls = null;
 
         // (this loop is the EM cycle)
         double[] trajectory = new double[MAX_ITERATIONS + 1]; trajectory[0] = EM_alt_freq;
         double[] likelihood_trajectory = new double[MAX_ITERATIONS + 1]; likelihood_trajectory[0] = 0.0;
         boolean is_a_snp = false;
-
-		// Pick the alternate base
-		char alt = 'N';
-		{
-        	ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-			String bases = pileup.getBases();
-			int A = 0;
-			int C = 0;
-			int G = 0; 
-			int T = 0;
-			int max_count = -1;
-			for (int i = 0; i < bases.length(); i++)
-			{
-				char b = bases.charAt(i);
-				if (b == ref) { continue; }
-				switch (b)
-				{
-					case 'A' : A += 1; if (A > max_count) { max_count = A; alt = 'A'; } break;
-					case 'C' : C += 1; if (C > max_count) { max_count = C; alt = 'C'; } break;
-					case 'G' : G += 1; if (G > max_count) { max_count = G; alt = 'G'; } break;
-					case 'T' : T += 1; if (T > max_count) { max_count = T; alt = 'T'; } break;
-				}
-			}
-		}
 
         for (int iterations = 0; iterations < MAX_ITERATIONS; iterations++)
         { 
@@ -193,12 +267,11 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 	
                     if (! FRACTIONAL_COUNTS)
                     {
-	                		//System.out.printf("DBG: %s %f %f\n",
-							//				context.getLocation(),
-	                        //              calls[i].lodVsNextBest,
-	                        //              calls[i].lodVsRef);
-				            EM_sum += calls[i].emperical_allele_frequency() * calls[i].N;
-				            EM_N   += calls[i].N;
+							if (Math.abs(calls[i].lodVsRef) >= lodThreshold) 
+							{
+								EM_sum += calls[i].emperical_allele_frequency() * calls[i].N;
+					            EM_N   += calls[i].N;
+							}
                     }
                     else
                     {
@@ -218,14 +291,16 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 
 			if (likelihood_trajectory[iterations] == likelihood_trajectory[iterations+1]) { break; }
 
-            //System.out.printf("DBGTRAJ %s %f %f %f %f %f %f\n", 
-			//						context.getLocation(),
-			//						EM_sum, 
-			//						EM_N, 
-			//						trajectory[iterations], 
-			//						trajectory[iterations+1], 
-			//						likelihood_trajectory[iterations],
-			//						likelihood_trajectory[iterations+1]);
+			/*
+            System.out.printf("DBGTRAJ %s %f %f %f %f %f %f\n", 
+									context.getLocation(),
+									EM_sum, 
+									EM_N, 
+									trajectory[iterations], 
+									trajectory[iterations+1], 
+									likelihood_trajectory[iterations],
+									likelihood_trajectory[iterations+1]);
+			*/
         }
 
         // 7. Output some statistics.
@@ -246,9 +321,10 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 		{
 			if (calls[i].depth == 0) { continue; }
 
+			if (calls[i].lodVsRef < lodThreshold) { continue; }
+
 			discovery_likelihood += calls[i].pBest;
 			discovery_null       += calls[i].pRef;
-			//System.out.printf("DBG %f %f %c %s\n", calls[i].pBest, calls[i].pRef, ref, calls[i].bases);
 		
 			if (calls[i].qhat == 0.0) { n_ref += 1; }	
 			if (calls[i].qhat == 0.5) { n_het += 1; }	
@@ -257,6 +333,8 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 		double discovery_lod = (discovery_likelihood + discovery_prior) - (discovery_null + discovery_null_prior);
 		if (discovery_lod <= 0) { alt = 'N'; }
 		//discovery_output_file.printf("%s %c %c %f %f %f %f %f %f %d %d %d\n", context.getLocation(), ref, alt, EM_alt_freq, discovery_likelihood, discovery_null, discovery_prior, discovery_lod, EM_N, n_ref, n_het, n_hom);
+
+		if (EM_N == 0) { return new EM_Result(); }
 
 		AlleleFrequencyEstimate estimate = new AlleleFrequencyEstimate(context.getLocation(), 
 																			ref, 
@@ -276,7 +354,7 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 		estimate.n_ref = n_ref; // HACK
 		estimate.n_het = n_het; // HACK
 		estimate.n_hom = n_hom; // HACK
-		return estimate;
+		return new EM_Result(estimate, calls);
 
 
         //for (int i = 0; i < likelihood_trajectory.length; i++)
@@ -391,14 +469,7 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
         return contexts;
     }
 
-    private void CollectStrandInformation(char ref, LocusContext context)
-	{
-		List<SAMRecord> reads   = context.getReads();
-		List<Integer>   offsets = context.getOffsets();
-
-	}
-
-    public void onTraversalDone(String result) 
+    public void onTraversalDone(String[] result) 
     {
 		try 
 		{
@@ -411,32 +482,30 @@ public class PoolCaller extends LocusWalker<AlleleFrequencyEstimate, String>
 		{
 			e.printStackTrace(); 
 		}
+		out.println("PoolCaller done.\n");
 		return;
     }
 
-    public String reduceInit() 
+	public String[] single_sample_reduce_sums = null;
+    public String[] reduceInit() 
     { 
-		discovery_output_file.printf("loc ref alt EM_alt_freq discovery_likelihood discovery_null discovery_prior discovery_lod EM_N n_ref n_het n_hom fw_alt fw_lod bw_alt bw_lod\n");
+		discovery_output_file.printf("loc ref alt EM_alt_freq discovery_likelihood discovery_null discovery_prior discovery_lod EM_N n_ref n_het n_hom fw_alt bw_alt strand_score\n");
+		String[] single_sample_reduce_sums = new String[callers.size()];
 		for (int i = 0; i < callers.size(); i++)
 		{
-			callers.get(i).reduceInit(); 
+			single_sample_reduce_sums[i] = callers.get(i).reduceInit(); 
 		}
-		return "";
+		return single_sample_reduce_sums;
     }
 
-    public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) 
+    public String[] reduce(AlleleFrequencyEstimate[] alleleFreqs, String[] sum) 
     {
-		if (calls == null) { return ""; }
+		if (alleleFreqs == null) { return sum; }
 		for (int i = 0; i < callers.size(); i++)
 		{
-			if (calls == null) { System.err.printf("calls == null\n"); }
-			if (calls[i] == null) { System.err.printf("calls[%d] == null\n", i); }
-			if (caller_sums == null) { System.err.printf("caller_sums == null\n"); }
-			if (callers.get(i) == null) { System.err.printf("callers[%d] == null\n", i); }
-			if (caller_sums.get(i) == null) { System.err.printf("caller_sums[%d] == null\n", i); }
-			caller_sums.set(i, callers.get(i).reduce(calls[i], caller_sums.get(i))); 
+			sum[i] = callers.get(i).reduce(alleleFreqs[i], sum[i]);
 		}
-        return "";
+        return sum;
     }
 
     
