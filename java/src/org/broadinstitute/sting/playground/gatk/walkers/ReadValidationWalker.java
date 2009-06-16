@@ -50,13 +50,13 @@ import java.math.BigInteger;
  *
  * A descriptions should go here. Blame aaron if it's missing.
  */
-public class ReadValidationWalker extends ReadWalker<SAMRecord, Integer> {
+public class ReadValidationWalker extends ReadWalker<SAMRecord, SAMRecord> {
 
     // our MD5 sum
     private MessageDigest m;
 
     // private list of md5sums
-    private final List<BigInteger> list = new ArrayList<BigInteger>();
+    private final List<String> list = new ArrayList<String>();
 
     /**
      * The initialize function.
@@ -94,8 +94,8 @@ public class ReadValidationWalker extends ReadWalker<SAMRecord, Integer> {
      * bam file, if it was specified on the command line
      * @return SAMFileWriter, set to the BAM output file if the command line option was set, null otherwise
      */
-    public Integer reduceInit() {
-        return new Integer(0);
+    public SAMRecord reduceInit() {
+        return null;
     }
 
     /**
@@ -104,31 +104,16 @@ public class ReadValidationWalker extends ReadWalker<SAMRecord, Integer> {
      * @param output the output source
      * @return the SAMFileWriter, so that the next reduce can emit to the same source
      */
-    public Integer reduce( SAMRecord read, Integer output ) {
-        byte[] ray = new byte[read.getReadName().length() + 5];
-        int x = 0;
-        for (char c: read.getReadName().toCharArray()) {
-            ray[x] = (byte)c;
-            //System.err.println("adding " + c + " to pos " + x);
-            x++;
+    public SAMRecord reduce( SAMRecord read, SAMRecord output ) {
+        if (output == null)
+            return read;
+        if ((read.getReferenceIndex() == output.getReferenceIndex()) && (read.getAlignmentStart() < output.getAlignmentStart())) {
+            System.err.println("saw the read " + read.getReadName() + " duplicated,  old alignment = " + output.getAlignmentStart());
         }
-        //System.err.println(read.getReadName() + " name, alignment = " + read.getAlignmentStart());
-        int y = 0;
-        for (;y < 4; y++) {
-            ray[x+y] = (byte)((read.getAlignmentStart() >> y * 8) & 0x000f);    
+        else if (read.getReferenceIndex() != output.getReferenceIndex()){
+            System.err.println("Switching Chromo");   
         }
-        ray[x+y] = read.getSecondOfPairFlag() ? (byte)1 : (byte)0;
-        BigInteger bigInt = new BigInteger(m.digest(ray));
-        //System.err.println(bigInt.toString());
-        m.reset();
-        if (this.list.contains(bigInt)) {
-            throw new StingException("Seen Read: " + bigInt + "-> " + read.getReadName() + " before (list size = " + list.size() + ")");
-        }
-        if (read.getAlignmentStart() < output) {
-            throw new StingException("Seen Read " + read.getReadName() + " has alignment of " + read.getAlignmentStart() + " before (list size = " + output + ")");
-        }
-        list.add(bigInt);
-        return read.getAlignmentStart();
+        return read;
     }
 
 

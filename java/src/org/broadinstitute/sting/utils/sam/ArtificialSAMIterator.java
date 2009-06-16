@@ -1,9 +1,12 @@
 package org.broadinstitute.sting.utils.sam;
 
-import org.broadinstitute.sting.gatk.iterators.PeekingStingIterator;
+import org.broadinstitute.sting.gatk.iterators.QueryIterator;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.Reads;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.util.CloseableIterator;
+import net.sf.picard.util.PeekableIterator;
 
 import java.util.Iterator;
 
@@ -34,7 +37,7 @@ import java.util.Iterator;
  */
 
 /** this fake iterator allows us to look at how specific piles of reads are handled */
-public class ArtificialSAMIterator implements PeekingStingIterator {
+public class ArtificialSAMIterator implements StingSAMIterator {
 
 
     protected int currentChromo = 0;

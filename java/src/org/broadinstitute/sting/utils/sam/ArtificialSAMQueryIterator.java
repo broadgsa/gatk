@@ -7,6 +7,7 @@ import net.sf.samtools.SAMRecord;
 import java.util.List;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.gatk.iterators.QueryIterator;
 
 
 /*
@@ -41,7 +42,7 @@ import org.broadinstitute.sting.utils.StingException;
  * to test out classes that use specific itervals.  The reads returned will
  * all lie in order in the specified interval.
  */
-public class ArtificialSAMQueryIterator extends ArtificialSAMIterator {
+public class ArtificialSAMQueryIterator extends ArtificialSAMIterator implements QueryIterator {
 
     // get the next positon
     protected int finalPos = 0;
@@ -88,6 +89,39 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator {
         initialize(contig, start, stop);
     }
 
+    @Override
+    public void query( String contig, int start, int stop, boolean contained ) {
+        if (contained)
+            queryContained(contig, start, stop);
+        else
+            queryOverlapping(contig, start, stop);
+    }
+
+    @Override
+    public void queryUnmappedReads() {
+        initializeUnmapped();
+    }
+
+
+    /**
+     * initialize the iterator to an unmapped read position
+     */
+    public void initializeUnmapped() {
+        ensureUntouched();
+         while (super.hasNext() && this.peek().getReferenceIndex() >= 0) {
+            super.next();
+        }
+        // sanity check that we have an actual matching read next
+        SAMRecord rec = this.peek();
+        if (rec == null) {
+            throw new StingException("The next read doesn't match");
+        }
+        // set the seeked variable to true
+        seeked = true;
+    }
+
+
+
 
     /**
      * initialize the query iterator
@@ -124,7 +158,7 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator {
         // sanity check that we have an actual matching read next
         SAMRecord rec = this.peek();
         if (!matches(rec)) {
-            throw new StingException("The next read doesn't match");    
+            throw new StingException("The next read doesn't match");
         }
         // set the seeked variable to true
         seeked = true;
@@ -141,6 +175,11 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator {
         if (rec.getReferenceIndex() != this.contigIndex) {
             return false;
         }
+        // if we have an unmapped read, matching the contig is good enough for us
+        if (rec.getReferenceIndex() < 0) {
+            return true;    
+        }
+
         if (!overlapping) {
             // if the start or the end are somewhere within our range
             if (( rec.getAlignmentStart() >= startPos && rec.getAlignmentEnd() <= finalPos )) {

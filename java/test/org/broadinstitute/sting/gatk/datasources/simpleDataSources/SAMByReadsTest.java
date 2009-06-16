@@ -3,7 +3,6 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 import static junit.framework.Assert.fail;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
@@ -84,7 +83,7 @@ public class SAMByReadsTest extends BaseTest {
             SAMDataSource data = new SAMDataSource(reads,true);
             for (int x = 0; x < 10; x++) {
                 ++iterations;
-                PeekingStingIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 10, 1000);
+                QueryIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 10, 1000);
                 BoundedReadIterator ret = data.toUnmappedReads(100, iter);
                 // count the reads we've gotten back
                 if (ret == null) {
@@ -173,7 +172,7 @@ public class SAMByReadsTest extends BaseTest {
             while (shardStrategy.hasNext()) {
 
 
-                BoundedReadIterator ret = (BoundedReadIterator)data.seek(shardStrategy.next());
+                StingSAMIterator ret = data.seek(shardStrategy.next());
                 assertTrue(ret != null);
                 while (ret.hasNext()) {
                     ret.next();
@@ -227,7 +226,7 @@ class ArtificialResourcePool extends SAMIteratorPool {
     }
 
     @Override
-    public StingSAMIterator iterator( GenomeLoc loc ) {
+    public QueryIterator iterator( GenomeLoc loc ) {
         ArtificialSAMQueryIterator iter = ArtificialSAMUtils.queryReadIterator(1, 10, 100, 1000);
         if (loc != null) {
             iter.queryContained(loc.getContig(), (int)loc.getStart(), (int)loc.getStop());

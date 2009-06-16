@@ -2,7 +2,7 @@ package org.broadinstitute.sting.utils.sam;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.iterators.PeekingStingIterator;
+import org.broadinstitute.sting.gatk.iterators.QueryIterator;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -80,30 +80,5 @@ public class ArtificialSAMUtilsTest extends BaseTest {
         assertEquals(1000, count);
     }
 
-    @Test
-    public void testPeeking() {
-        PeekingStingIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 100);
-        int count = 0;
-        while (iter.hasNext()) {
-            int readCnt = ((ArtificialSAMIterator)(iter)).readsTaken();
-
-            // peek the record
-            SAMRecord rec = iter.peek();
-            assertTrue(rec.getReferenceIndex() >= 0);
-
-            // next the record
-            SAMRecord rec2 = iter.next();
-            assertTrue(rec2.getReadName() == rec.getReadName());
-            assertTrue(rec2.getAlignmentStart() == rec.getAlignmentStart());
-
-            // find out how many reads we've taken now
-             int readCnt2 = ((ArtificialSAMIterator)(iter)).readsTaken();
-
-            count++;
-            if (count < 100*100) assertEquals(readCnt + 1, readCnt2);
-            else assertEquals(readCnt, readCnt2);
-        }
-        assertEquals(100 * 100, count );
-
-    }
+  
 }

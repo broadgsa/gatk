@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.iterators;
 
-import net.sf.samtools.SAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -30,14 +29,12 @@ import net.sf.samtools.SAMRecord;
 /**
  * @author aaron
  *         <p/>
- *         Interface Peekable
+ *         Class PeekingIterator
  *         <p/>
- *         This interface indicates that
+ *         a peekable interface, that requires a peek() method
  */
-public interface PeekingStingIterator extends StingSAMIterator {
-    /**
-     * peek, given the specified type
-     * @return
-     */
-    SAMRecord peek();
+public interface PeekingIterator<T> {
+
+    /** @return returns a peeked value */
+    public T peek();
 }
