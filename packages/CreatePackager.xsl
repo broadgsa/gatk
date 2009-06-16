@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 
+  <xsl:variable name="ant.basedir" select="'${basedir}'" />
+  <xsl:variable name="sting.dir" select="'${sting.dir}/'" />
+  <xsl:variable name="dist.dir" select="'${sting.dir}/dist'" />
+  <xsl:variable name="staging.dir" select="'${sting.dir}/staging'" />
+  <xsl:variable name="package.dir" select="'${package.dir}/'" />
+  <xsl:variable name="resources.dir" select="'${package.dir}/resources'" />
+
 <xsl:template match="package">
   <xsl:output method="xml" indent="yes"/>
 
   <xsl:variable name="project.name" select="name" />
 
-  <xsl:variable name="ant.basedir" select="'${basedir}'" />
-  <xsl:variable name="sting.dir" select="'${sting.dir}/'" />
-  <xsl:variable name="staging.dir" select="'${sting.dir}/staging'" />
-  <xsl:variable name="package.dir" select="'${package.dir}/'" />
-  <xsl:variable name="resources.dir" select="'${package.dir}/resources'" />
-
   <project name="{$project.name}" default="package" basedir="..">
     <property name="sting.dir" value="{$ant.basedir}" />
-    <property name="package.dir" value="{concat($ant.basedir,'/packages/',$project.name)}" />
+    <property name="package.dir" value="{concat($dist.dir,'/packages/',$project.name)}" />
     
     <target name="package">
       <mkdir dir="{$package.dir}"/>
-      <mkdir dir="{$resources.dir}"/>
-      <jar jarfile="{concat($package.dir,'/GenomeAnalysisTK.jar')}">
+      <jar jarfile="{concat($package.dir,'/',$project.name,'.jar')}">
         <classfileset dir="{$staging.dir}">
           <root classname="{main-class}"/>
           <xsl:for-each select="dependencies/class">
@@ -31,39 +31,42 @@
         </manifest>
       </jar>
       <xsl:for-each select="scripts/file">
-        <xsl:variable name="short.name">
-          <xsl:call-template name="get-short-name">
-            <xsl:with-param name="string" select="." />
-          </xsl:call-template>
-        </xsl:variable>
-        <xsl:variable name="full.path">
-          <xsl:call-template name="get-full-path">
-            <xsl:with-param name="working-dir" select="$sting.dir"/>
-            <xsl:with-param name="file" select="."/>
-          </xsl:call-template>
-        </xsl:variable>
-        <delete file="{concat($package.dir,$short.name)}" />
-        <symlink link="{concat($package.dir,$short.name)}" resource="{$full.path}" />
+        <xsl:call-template name="symlink">
+          <xsl:with-param name="file.name" select="." />
+          <xsl:with-param name="target.dir" select="$package.dir" />
+        </xsl:call-template>
       </xsl:for-each>
       <xsl:for-each select="resources/file">
-        <xsl:variable name="short.name">
-          <xsl:call-template name="get-short-name">
-            <xsl:with-param name="string" select="." />
-          </xsl:call-template>
-        </xsl:variable>
-        <xsl:variable name="full.path">
-          <xsl:call-template name="get-full-path">
-            <xsl:with-param name="working-dir" select="$sting.dir"/>
-            <xsl:with-param name="file" select="."/>
-          </xsl:call-template>
-        </xsl:variable>
-        <delete file="{concat($resources.dir,'/',$short.name)}" />
-        <symlink link="{concat($resources.dir,'/',$short.name)}" resource="{$full.path}" overwrite="true" />
+        <mkdir dir="{$resources.dir}"/>
+        <xsl:call-template name="symlink">
+          <xsl:with-param name="file.name" select="." />
+          <xsl:with-param name="target.dir" select="concat($resources.dir,'/')" />
+        </xsl:call-template>
       </xsl:for-each>
     </target>
   </project>
 </xsl:template>
 
+<!-- Create a symlink for the given file in the given target directory -->
+<xsl:template name="symlink">
+  <xsl:param name="file.name" />
+  <xsl:param name="target.dir" />
+  <xsl:variable name="short.name">
+    <xsl:call-template name="get-short-name">
+      <xsl:with-param name="string" select="$file.name" />
+    </xsl:call-template>
+  </xsl:variable>
+  <xsl:variable name="full.path">
+    <xsl:call-template name="get-full-path">
+      <xsl:with-param name="working-dir" select="$sting.dir"/>
+      <xsl:with-param name="file" select="$file.name" />
+    </xsl:call-template>
+  </xsl:variable>
+  <delete file="{concat($target.dir,'/',$short.name)}" />
+  <symlink link="{concat($target.dir,'/',$short.name)}" resource="{$full.path}" overwrite="true" />
+</xsl:template>
+
+<!-- Determine the short name (filename w/o directory structure of the given filename -->
 <xsl:template name="get-short-name">
   <xsl:param name="string"/>
   <xsl:choose>
@@ -76,6 +79,7 @@
   </xsl:choose>    
 </xsl:template>
 
+<!-- Determine the full path of the given filename.  Take into account absolute / relative paths -->
 <xsl:template name="get-full-path">
   <xsl:param name="working-dir"/>
   <xsl:param name="file"/>

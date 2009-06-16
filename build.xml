@@ -270,8 +270,9 @@
 
     <!-- Build a package consisting of all supporting files -->
     <target name="package" depends="dist,stage" description="bundle up an executable for distribution">
-        <xslt in="packages/${executable}.xml" out="packages/Build${executable}.xml" style="packages/CreatePackager.xsl" />
-        <ant antfile="packages/Build${executable}.xml" />
+        <mkdir dir="dist/packages" />
+        <xslt in="packages/${executable}.xml" out="dist/packages/Build${executable}.xml" style="packages/CreatePackager.xsl" />
+        <ant antfile="dist/packages/Build${executable}.xml" />
     </target>
 
     <target name="clean" description="clean up">
