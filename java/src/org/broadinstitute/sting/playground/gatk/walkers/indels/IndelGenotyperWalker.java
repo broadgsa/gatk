@@ -155,11 +155,18 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			return -1;
 		}
 		
+//		if ( read.getAlignmentStart() < 112337549 && read.getAlignmentEnd() > 112337550 ) {
+//			System.out.print("adding "+read.getReadString()+" "+read.getCigarString());
+//		}
+
 		if ( read.getReadUnmappedFlag() ||
 			 read.getDuplicateReadFlag() ||
 			 read.getNotPrimaryAlignmentFlag() ||
-			 read.getMappingQuality() == 0 ) return 0; // we do not need those reads!
-		
+			 read.getMappingQuality() == 0 ) { 
+//			System.out.println(" ignored");
+			return 0; // we do not need those reads!
+		}
+//		System.out.print(" added");
 		
 		if ( read.getReferenceIndex() != currentContigIndex ) { 
 			// we just jumped onto a new contig
@@ -227,8 +234,10 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			if ( rg == null ) throw new StingException("Read "+read.getReadName()+" has no read group in merged stream");
 			
 			if ( normal_samples.contains(rg) ) {
+//				System.out.println(" TO NORMAL");
 				normal_coverage.add(read,ref);
 			} else if ( tumor_samples.contains(rg) ) {
+//				System.out.println(" TO TUMOR");
 				coverage.add(read,ref);
 			} else {
 				throw new StingException("Unrecognized read group in merged stream: "+rg);
@@ -404,14 +413,15 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			if ( (double)total_variant_count_tumor > minFraction * tumor_cov && (double) max_variant_count_tumor > minConsensusFraction*total_variant_count_tumor ) {
 				
 				String annotationString = getAnnotationString(annotation);
-/*				
-				int leftpos = pos-1;
-				int rightpos = pos-1;
-				if ( event_length_tumor > 0 ) {
-					leftpos -= event_length;
+				
+				long leftpos = pos;
+				long rightpos = pos+event_length_tumor-1;
+				if ( event_length_tumor == 0 ) { // insertion
+					leftpos--;
+					rightpos = leftpos;
 				}
-*/				
-				String message = refName+"\t"+(pos-1)+"\t"+(event_length_tumor > 0 ? pos-1+event_length_tumor : pos-1)+
+				
+				String message = refName+"\t"+leftpos+"\t"+rightpos+
 							"\t"+(event_length_tumor >0? "-":"+")+indelStringTumor +":"+total_variant_count_tumor+"/"+tumor_cov;
 				if ( normal_variants.size() == 0 ) { 		
 			
@@ -434,8 +444,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 //			}
 		}
 		
-		coverage.shift((int)(position - coverage.getStart() ) );
-		normal_coverage.shift((int)(position - normal_coverage.getStart() ) );
+		coverage.shift((int)(stop_at - coverage.getStart() ) );
+		normal_coverage.shift((int)(stop_at - normal_coverage.getStart() ) );
 	}
 
 
@@ -505,7 +515,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		 */
 		public int lengthOnRef() { 
 			if ( type == Type.D ) return bases.length();
-			else return -1;
+			else return 0;
 		}
 		
 		public void increment() { count+=1; }
