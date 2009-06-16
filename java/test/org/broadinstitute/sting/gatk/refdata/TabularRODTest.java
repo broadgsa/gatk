@@ -49,7 +49,7 @@ public class TabularRODTest extends BaseTest {
     public void test1() {
         logger.warn("Executing test1");
         TabularROD one = (TabularROD)iter.next();
-        assertTrue(one.size() == 3);
+        assertTrue(one.size() == 4);
         assertTrue(one.getLocation().equals(new GenomeLoc("chrM", 10)));
         assertTrue(one.get("COL1").equals("A"));
         assertTrue(one.get("COL2").equals("B"));        
@@ -61,7 +61,7 @@ public class TabularRODTest extends BaseTest {
         logger.warn("Executing test2");
         TabularROD one = (TabularROD)iter.next();
         TabularROD two = (TabularROD)iter.next();
-        assertTrue(two.size() == 3);
+        assertTrue(two.size() == 4);
         assertTrue(two.getLocation().equals(new GenomeLoc("chrM", 20)));
         assertTrue(two.get("COL1").equals("C"));
         assertTrue(two.get("COL2").equals("D"));
@@ -74,7 +74,7 @@ public class TabularRODTest extends BaseTest {
         TabularROD one = (TabularROD)iter.next();
         TabularROD two = (TabularROD)iter.next();
         TabularROD three = (TabularROD)iter.next();
-        assertTrue(three.size() == 3);
+        assertTrue(three.size() == 4);
         assertTrue(three.getLocation().equals(new GenomeLoc("chrM", 30)));
         assertTrue(three.get("COL1").equals("F"));
         assertTrue(three.get("COL2").equals("G"));
@@ -94,7 +94,7 @@ public class TabularRODTest extends BaseTest {
     public void testSeek() {
         logger.warn("Executing testSeek");
         TabularROD two = (TabularROD)iter.seekForward(new GenomeLoc("chrM", 20));
-        assertTrue(two.size() == 3);
+        assertTrue(two.size() == 4);
         assertTrue(two.getLocation().equals(new GenomeLoc("chrM", 20)));
         assertTrue(two.get("COL1").equals("C"));
         assertTrue(two.get("COL2").equals("D"));
@@ -117,7 +117,7 @@ public class TabularRODTest extends BaseTest {
 
         logger.warn("Executing testDelim1");
         TabularROD one2 = (TabularROD)iter_commas.next();
-        assertTrue(one2.size() == 4);
+        assertTrue(one2.size() == 5);
         assertTrue(one2.getLocation().equals(new GenomeLoc("chrM", 10)));
         assertTrue(one2.get("COL1").equals("A"));
         assertTrue(one2.get("COL2").equals("B"));
@@ -134,7 +134,7 @@ public class TabularRODTest extends BaseTest {
 
         logger.warn("Executing testDelim1");
         TabularROD one2 = (TabularROD)iter_commas.next();
-        assertTrue(one2.size() == 4);
+        assertTrue(one2.size() == 5);
         assertTrue(one2.getLocation().equals(new GenomeLoc("chrM", 10)));
         assertTrue(one2.get("COL1").equals("A"));
         assertTrue(one2.get("COL2").equals("B"));
@@ -149,6 +149,7 @@ public class TabularRODTest extends BaseTest {
         assertTrue(TabularROD.headerString(header).equals("HEADER\tcol1\tcol2\tcol3"));
         String rowData = String.format("%d %d %d", 1, 2, 3);
         TabularROD row = new TabularROD("myName", header, new GenomeLoc("chrM", 1), rowData.split(" "));
+        System.out.println(">>>>> " + row.toString());
         assertTrue(row.toString().equals("chrM:1\t1\t2\t3"));
     }
 
@@ -176,14 +177,14 @@ public class TabularRODTest extends BaseTest {
         RODIterator iter_commas = ROD_commas.iterator();
 
         TabularROD one = (TabularROD)iter_commas.next();
-        assertTrue(one.size() == 3);
+        assertTrue(one.size() == 4);
         assertTrue(one.getLocation().equals(new GenomeLoc("chrM", 1)));
         assertTrue(one.get("col1").equals("1"));
         assertTrue(one.get("col2").equals("2"));
         assertTrue(one.get("col3").equals("3"));
 
         TabularROD two = (TabularROD)iter_commas.next();
-        assertTrue(two.size() == 3);
+        assertTrue(two.size() == 4);
         assertTrue(two.getLocation().equals(new GenomeLoc("chrM", 2)));
         assertTrue(two.get("col1").equals("3"));
         assertTrue(two.get("col2").equals("4"));

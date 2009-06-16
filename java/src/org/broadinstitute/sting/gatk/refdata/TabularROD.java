@@ -196,8 +196,12 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
     //
     // ----------------------------------------------------------------------
     public GenomeLoc getLocation() {
-        loc = GenomeLoc.parseGenomeLoc(get(header.get(0)));
-        return loc;
+        if ( loc != null )
+            return loc;
+        String s = get(header.get(0));
+        if ( s == null )
+            return null;
+        return GenomeLoc.parseGenomeLoc(s);
     }
 
     public ArrayList<String> getHeader() {
@@ -258,7 +262,9 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
     //
     // ----------------------------------------------------------------------
     public String toString() {
-        return String.format("%s\t%s", getLocation(), getAttributeString());
+        if ( loc != null )
+            return String.format("%s\t%s", loc, getAttributeString());
+        return String.format("%s", getAttributeString());
     }
 
     /**
