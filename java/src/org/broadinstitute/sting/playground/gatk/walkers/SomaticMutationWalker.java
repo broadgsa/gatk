@@ -314,7 +314,7 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
                             " QSUM was " + tumorReadPile.qualitySums.get(altAllele) +
                             " QSUM is now " + t2.qualitySums.get(altAllele);
 
-                    System.out.println(
+                    out.println(
                             context.getContig() + "\t" +
                                     context.getPosition() + "\t" +
                                     context.getPosition() + "\t"
@@ -333,7 +333,7 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
                 if (OUTPUT_FAILURES) {
                     String msg = "FAILED due to DISALIGNMENT TEST.";
 
-                    System.out.println(
+                    out.println(
                             context.getContig() + "\t" +
                                     context.getPosition() + "\t" +
                                     context.getPosition() + "\t"
@@ -368,7 +368,7 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
                         "__NAltSum: " + normalReadPile.qualitySums.get(altAllele) +
                         "__MIDP: " + midp.get(altAllele);
 
-            System.out.println(
+            out.println(
                     context.getContig() + "\t" +
                             context.getPosition() + "\t" +
                             context.getPosition() + "\t"
@@ -419,7 +419,7 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
                 char base = read.getReadString().charAt(offset);
 
                 // TODO: use a logger to output this information for debugging/Picard folks
-                //System.out.println("MMQSUM: Filtering out " + read.getReadName() + " with locus base " + base + " and ref of " + pile.refBase);
+                //out.println("MMQSUM: Filtering out " + read.getReadName() + " with locus base " + base + " and ref of " + pile.refBase);
             }
         }
         return newPile;
@@ -553,7 +553,7 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             if ( mismatchScore > 0 ) {
 
                 if ( mismatchScore > 100) {
-                    System.out.println(read.getReadName() + " has a sum of mismatch quality scores of " + mismatchScore);
+                    out.println(read.getReadName() + " has a sum of mismatch quality scores of " + mismatchScore);
 
                 } else {
                     altReads.add(aRead);
