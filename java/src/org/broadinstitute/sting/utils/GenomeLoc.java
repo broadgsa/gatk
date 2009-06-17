@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
     private static Logger logger = Logger.getLogger(GenomeLoc.class);
 
-    private Integer contigIndex;
+    private int contigIndex;
     private long start;
     private long stop;
 
@@ -475,7 +475,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
             return false;
         if(other instanceof GenomeLoc) {
             GenomeLoc otherGenomeLoc = (GenomeLoc)other;
-            return this.contigIndex.equals(otherGenomeLoc.contigIndex) &&
+            return this.contigIndex == otherGenomeLoc.contigIndex &&
                    this.start == otherGenomeLoc.start &&
                    this.stop == otherGenomeLoc.stop;
         }
@@ -546,7 +546,11 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
     }
 
     public final int compareContigs( GenomeLoc that ) {
-        return (this.contigIndex == that.contigIndex)?0:((this.contigIndex < that.contigIndex)?-1:1);
+        if (this.contigIndex == that.contigIndex)
+            return 0;
+        else if (this.contigIndex > that.contigIndex)
+            return 1;
+        return -1;
     }
 
     public int compareTo( GenomeLoc that ) {
