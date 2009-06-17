@@ -139,6 +139,9 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
         //byte newQualCalc = regressor2newQual(regressor, cycle, qual);
         byte[][] dataTable = RGcache.get(dinuc);
 
+        if ( dataTable == null && prevBase != 'N' && base != 'N' )
+            throw new RuntimeException(String.format("Unmapped data table at %s %s", readGroup, dinuc));
+        
         byte newQualCached = dataTable != null ? dataTable[cycle][qual] : qual;
         //if ( newQualCached != newQualCalc ) {
         //    throw new RuntimeException(String.format("Inconsistent quals between the cache and calculation for RG=%s: %s %d %d : %d <> %d",
