@@ -1,10 +1,11 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.playground.gatk.walkers.recalibration;
 
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.playground.gatk.walkers.recalibration.RecalData;
 import org.apache.log4j.Logger;
 
 import java.util.*;

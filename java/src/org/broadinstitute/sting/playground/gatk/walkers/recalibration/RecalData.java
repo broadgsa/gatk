@@ -1,7 +1,8 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.playground.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 public class RecalData {
     long N;
@@ -28,7 +29,7 @@ public class RecalData {
     }
 
     public void inc(char curBase, char ref) {
-        inc(1, nuc2num[curBase] == nuc2num[ref] ? 0 : 1);
+        inc(1, BaseUtils.simpleBaseToBaseIndex(curBase) == BaseUtils.simpleBaseToBaseIndex(ref) ? 0 : 1);
         //out.printf("%s %s\n", curBase, ref);
     }
 
@@ -74,39 +75,39 @@ public class RecalData {
 
     public static int bases2dinucIndex(char prevBase, char base, boolean Complement) {
         if (!Complement) {
-            return nuc2num[prevBase] * 4 + nuc2num[base];
+            return BaseUtils.simpleBaseToBaseIndex(prevBase) * 4 + BaseUtils.simpleBaseToBaseIndex(base);
         }else{
-            return (3 - nuc2num[prevBase]) * 4 + (3 - nuc2num[base]);
+           return (3 - BaseUtils.simpleBaseToBaseIndex(prevBase)) * 4 + (3 - BaseUtils.simpleBaseToBaseIndex(base));
         }
     }
 
     public static String dinucIndex2bases(int index) {
-        char data[] = {num2nuc[index / 4], num2nuc[index % 4]};
+        char data[] = {BaseUtils.baseIndexToSimpleBase(index / 4), BaseUtils.baseIndexToSimpleBase(index % 4)};
         return new String( data );
     }
 
     public static int string2dinucIndex(String s) {
         return bases2dinucIndex(s.charAt(0), s.charAt(1), false);
     }
-
-    private static int nuc2num[];
-    private static char num2nuc[];
-    
-    static {
-        nuc2num = new int[128];
-        nuc2num['A'] = 0;
-        nuc2num['C'] = 1;
-        nuc2num['G'] = 2;
-        nuc2num['T'] = 3;
-        nuc2num['a'] = 0;
-        nuc2num['c'] = 1;
-        nuc2num['g'] = 2;
-        nuc2num['t'] = 3;
-
-        num2nuc = new char[4];
-        num2nuc[0] = 'A';
-        num2nuc[1] = 'C';
-        num2nuc[2] = 'G';
-        num2nuc[3] = 'T';
-    }
+//
+//    private static int nuc2num[];
+//    private static char num2nuc[];
+//
+//    static {
+//        nuc2num = new int[128];
+//        nuc2num['A'] = 0;
+//        nuc2num['C'] = 1;
+//        nuc2num['G'] = 2;
+//        nuc2num['T'] = 3;
+//        nuc2num['a'] = 0;
+//        nuc2num['c'] = 1;
+//        nuc2num['g'] = 2;
+//        nuc2num['t'] = 3;
+//
+//        num2nuc = new char[4];
+//        num2nuc[0] = 'A';
+//        num2nuc[1] = 'C';
+//        num2nuc[2] = 'G';
+//        num2nuc[3] = 'T';
+//    }
 }
