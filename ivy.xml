@@ -9,5 +9,6 @@
     <dependency org="colt" name="colt" rev="1.2.0" />
     <dependency org="jboss" name="javassist" rev="3.7.ga" />
     <dependency org="org.simpleframework" name="simple-xml" rev="2.0.4" />
+    <dependency org="org.apache.bcel" name="bcel" rev="5.2" />
   </dependencies>
 </ivy-module>

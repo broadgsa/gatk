@@ -16,10 +16,10 @@
   <project name="{$project.name}" default="package" basedir="..">
     <property name="sting.dir" value="{$ant.basedir}" />
     <property name="package.dir" value="{concat($dist.dir,'/packages/',$project.name)}" />
-    
+
     <target name="package">
       <mkdir dir="{$package.dir}"/>
-      <jar jarfile="{concat($package.dir,'/',$project.name,'.jar')}">
+      <jar jarfile="{concat($package.dir,$project.name,'.jar')}">
         <classfileset dir="{$staging.dir}">
           <root classname="{main-class}"/>
           <xsl:for-each select="dependencies/class">
