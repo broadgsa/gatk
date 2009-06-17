@@ -80,6 +80,7 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 
     public String map(RefMetaDataTracker tracker, char ref, LocusContext context) 
 	{
+		if (ref == 'N') { return null; }
 		this.ref = ref;
 		if (tracker.lookup("DBSNP", null) != null) { in_dbsnp = "known"; } else { in_dbsnp = "novel"; }
 		this.MultiSampleCall(context, sample_names);
