@@ -24,9 +24,9 @@ public class RecalData {
         B += incB;
     }
 
-    public int getDinucIndex() {
-        return string2dinucIndex(this.dinuc);
-    }
+    //public int getDinucIndex() {
+    //    return string2dinucIndex(this.dinuc);
+    //}
 
     public void inc(char curBase, char ref) {
         inc(1, BaseUtils.simpleBaseToBaseIndex(curBase) == BaseUtils.simpleBaseToBaseIndex(ref) ? 0 : 1);
@@ -52,8 +52,8 @@ public class RecalData {
         return String.format("%3d,%s,%s,%3d,%5.1f,%5.1f,%6d,%6d", pos, readGroup, dinuc, qual, empiricalQual, qual-empiricalQual, N, B);
     }
 
-    public String toCSVString() {
-        return String.format("%s,%s,%d,%d,%d,%d", readGroup, dinuc, qual, pos, N, B);
+    public String toCSVString(boolean collapsedPos) {
+        return String.format("%s,%s,%d,%s,%d,%d", readGroup, dinuc, qual, collapsedPos ? "*" : pos, N, B);
     }
 
     public static RecalData fromCSVString(String s) {
@@ -61,7 +61,8 @@ public class RecalData {
         String rg = vals[0];
         String dinuc = vals[1];
         int qual = Integer.parseInt(vals[2]);
-        int pos = Integer.parseInt(vals[3]);
+
+        int pos = vals[3].equals("*") ? 0 : Integer.parseInt(vals[3]);
         int N = Integer.parseInt(vals[4]);
         int B = Integer.parseInt(vals[5]);
         RecalData datum = new RecalData(pos, qual, rg, dinuc);
@@ -74,9 +75,12 @@ public class RecalData {
     }
 
     public static int bases2dinucIndex(char prevBase, char base, boolean Complement) {
+        if ( BaseUtils.simpleBaseToBaseIndex(prevBase) == -1 || BaseUtils.simpleBaseToBaseIndex(base) == -1 )
+            return -1;
+
         if (!Complement) {
             return BaseUtils.simpleBaseToBaseIndex(prevBase) * 4 + BaseUtils.simpleBaseToBaseIndex(base);
-        }else{
+        }else {
            return (3 - BaseUtils.simpleBaseToBaseIndex(prevBase)) * 4 + (3 - BaseUtils.simpleBaseToBaseIndex(base));
         }
     }

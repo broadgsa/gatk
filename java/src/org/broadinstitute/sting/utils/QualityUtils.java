@@ -7,6 +7,8 @@ package org.broadinstitute.sting.utils;
  * @author Kiran Garimella
  */
 public class QualityUtils {
+    public final static byte MAX_QUAL_SCORE = 63;
+
     /**
      * Private constructor.  No instantiating this class!
      */
@@ -70,7 +72,7 @@ public class QualityUtils {
      * @return the capped quality score
      */
     static public byte boundQual(int qual) {
-        return (byte) Math.min(qual, 63);        
+        return (byte) Math.min(qual, MAX_QUAL_SCORE);
     }
 
     /**

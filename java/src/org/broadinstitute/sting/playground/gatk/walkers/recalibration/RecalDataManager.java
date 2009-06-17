@@ -1,21 +1,8 @@
 package org.broadinstitute.sting.playground.gatk.walkers.recalibration;
 
-import org.broadinstitute.sting.gatk.walkers.WalkerName;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.util.*;
-import java.io.PrintStream;
-import java.io.FileNotFoundException;
-
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
 
 /**
  * Created by IntelliJ IDEA.
@@ -34,7 +21,7 @@ public class RecalDataManager {
     public RecalDataManager(String readGroup,
                             int maxReadLen, int maxQual, int nDinucs,
                             boolean trackPos, boolean trackDinuc) {
-        data = new RecalData[maxReadLen+1][QualityUtils.MAX_QUAL_SCORE+1][nDinucs];
+        data = new RecalData[maxReadLen+1][maxQual+1][nDinucs];
         this.readGroup = readGroup;
         this.trackPos = trackPos;
         this.trackDinuc = trackDinuc;
@@ -46,8 +33,12 @@ public class RecalDataManager {
         return trackPos ? pos : 0;
     }
 
-    public int getDinucIndex(int dinuc) {
-        return trackDinuc ? dinuc : 0;
+    public int getDinucIndex(String dinuc) {
+        if ( trackDinuc ) {
+            return RecalData.string2dinucIndex(dinuc);
+        } else {
+            return 0;
+        }
     }
 
     public void addDatum(RecalData datum) {
@@ -55,27 +46,33 @@ public class RecalDataManager {
             throw new RuntimeException(String.format("BUG: adding incorrect read group datum %s to RecalDataManager for %s", datum.readGroup, this.readGroup));
         }
 
-        if ( getRecalData(datum.pos, datum.qual, datum.getDinucIndex()) != null )
-            throw new RuntimeException(String.format("Duplicate entry discovered: %s vs. %s", getRecalData(datum.pos, datum.qual, datum.getDinucIndex()), datum));
+        if ( getRecalData(datum.pos, datum.qual, datum.dinuc) != null )
+            throw new RuntimeException(String.format("Duplicate entry discovered: %s vs. %s", getRecalData(datum.pos, datum.qual, datum.dinuc), datum));
+
 
         int posIndex = getPosIndex(datum.pos);
-        int internalDinucIndex = getDinucIndex(datum.getDinucIndex());
+        int internalDinucIndex = getDinucIndex(datum.dinuc);
+
+        if ( internalDinucIndex == -1 ) return;
+
         data[posIndex][datum.qual][internalDinucIndex] = datum;
         flattenData.add(datum);
     }
     
-    public RecalData getRecalData(int pos, int qual, int dinuc_index) {
-        return expandingGetRecalData(pos, qual, dinuc_index, false);
+    public RecalData getRecalData(int pos, int qual, String dinuc) {
+        return expandingGetRecalData(pos, qual, dinuc, false);
     }
 
-    public RecalData expandingGetRecalData(int pos, int qual, int dinuc_index, boolean expandP) {
+    public RecalData expandingGetRecalData(int pos, int qual, String dinuc, boolean expandP) {
         int posIndex = getPosIndex(pos);
-        int internalDinucIndex = getDinucIndex(dinuc_index);
+        int internalDinucIndex = getDinucIndex(dinuc);
+
+        if ( internalDinucIndex == -1 ) return null;
 
         RecalData datum = data[posIndex][qual][internalDinucIndex];
         if ( datum == null && expandP ) {
             //System.out.printf("Allocating %s %d %d %d%n", readGroup, pos, qual, dinuc_index);
-            datum = new RecalData(posIndex, qual, readGroup, RecalData.dinucIndex2bases(dinuc_index));
+            datum = new RecalData(posIndex, qual, readGroup, trackDinuc ? dinuc : "**");
             data[posIndex][qual][internalDinucIndex] = datum;
             flattenData.add(datum);
         }
@@ -108,7 +105,7 @@ public class RecalDataManager {
             for ( int qual = 0; qual < QualityUtils.MAX_QUAL_SCORE+1; qual++ ) {
                 RecalData datum = new RecalData(pos, qual, readGroup, "**");
                 for ( int dinucIndex = 0; dinucIndex < nDinucs; dinucIndex++ ) {
-                    RecalData datum2 = getRecalData(pos, qual, dinucIndex);
+                    RecalData datum2 = getRecalData(pos, qual, RecalData.dinucIndex2bases(dinucIndex));
                     if ( datum2 != null )
                         datum.inc(data[pos][qual][dinucIndex].N, data[pos][qual][dinucIndex].B);
                 }
@@ -128,7 +125,7 @@ public class RecalDataManager {
                 RecalData datum = new RecalData(-1, qual, readGroup, RecalData.dinucIndex2bases(dinucIndex));
                 System.out.printf("Aggregating      [%s]:%n", datum);
                 for ( int pos = 0; pos < data.length; pos++ ) {
-                    RecalData datum2 = getRecalData(pos, qual, dinucIndex);
+                    RecalData datum2 = getRecalData(pos, qual, RecalData.dinucIndex2bases(dinucIndex));
                     if ( datum2 != null ) {
                         System.out.printf("             +   [%s]:%n", datum2);
                         datum.inc(data[pos][qual][dinucIndex].N, data[pos][qual][dinucIndex].B);

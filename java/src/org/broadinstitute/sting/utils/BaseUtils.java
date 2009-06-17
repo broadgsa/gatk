@@ -54,6 +54,7 @@ public class BaseUtils {
      */
     static public int simpleBaseToBaseIndex(char base) {
         switch (base) {
+            case '*':               // the wildcard character counts as an A
             case 'A':
             case 'a': return 0;
 

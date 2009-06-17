@@ -13,11 +13,7 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.BaseUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.HashMap;
-import java.util.Collections;
+import java.util.*;
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
 
@@ -53,13 +49,17 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="rawData", shortName="raw", required=false, doc="If true, raw mismatch observations will be output to a file")
     public boolean outputRawData = true;
 
+    @Argument(fullName="collapsePos", shortName="collapsePos", required=false, doc="")
+    public boolean collapsePos = false;
+
+    @Argument(fullName="collapseDinuc", shortName="collapseDinuc", required=false, doc="")
+    public boolean collapseDinuc = false;
+
     int NDINUCS = 16;
     //ArrayList<RecalData> flattenData = new ArrayList<RecalData>();
     //HashMap<String, RecalData[][][]> data = new HashMap<String, RecalData[][][]>();
     HashMap<String, RecalDataManager> data = new HashMap<String, RecalDataManager>();
     //RecalData[][][] data;
-    boolean trackPos = true;
-    boolean trackDinuc = true;
 
     long counted_sites = 0; // number of sites used to count covariates
     long counted_bases = 0; // number of bases used to count covariates
@@ -76,14 +76,15 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             if( !isSupportedReadGroup(readGroup) )
                 continue;
             String rg = readGroup.getReadGroupId();
-            RecalDataManager manager = new RecalDataManager(rg, maxReadLen, QualityUtils.MAX_QUAL_SCORE+1, NDINUCS, trackPos, trackDinuc );
-            //data.put(rg, new RecalData[maxReadLen+1][QualityUtils.MAX_QUAL_SCORE+1][NDINUCS]);
+            RecalDataManager manager = new RecalDataManager(rg, maxReadLen, QualityUtils.MAX_QUAL_SCORE+1, NDINUCS, ! collapsePos, ! collapseDinuc );
             data.put(rg, manager);
         }
     }
 
-    private RecalData getRecalData(String readGroup, int pos, int qual, int dinuc_index) {
-        return data.get(readGroup).expandingGetRecalData(pos, qual, dinuc_index, true);
+    private RecalData getRecalData(String readGroup, int pos, int qual, char prevBase, char base) {
+        byte[] cs = {(byte)prevBase, (byte)base};
+        String s = new String(cs);
+        return data.get(readGroup).expandingGetRecalData(pos, qual, s, true);
     }
 
     private List<RecalData> getRecalData(String readGroup) {
@@ -141,9 +142,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         int qual = quals[offset];
         if ( qual > 0 && qual <= QualityUtils.MAX_QUAL_SCORE ) {
             // previous base is the next base in terms of machine chemistry if this is a negative strand
-            int dinuc_index = RecalData.bases2dinucIndex(prevBase, base, false);
             //System.out.printf("Adding b_offset=%c offset=%d cycle=%d qual=%d dinuc=%c%c ref_match=%c comp=%c%n", (char)read.getReadBases()[offset], offset, cycle, qual, prevBase, base, ref, (char)BaseUtils.simpleComplement(ref));
-            getRecalData(rg, cycle, qual, dinuc_index).inc(base,ref);
+            RecalData datum = getRecalData(rg, cycle, qual, prevBase, base);
+            if (datum != null) datum.inc(base,ref);
             return 1;
         } else {
             return 0;
@@ -168,13 +169,21 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         qualityDiffVsCycle();
         qualityDiffVsDinucleotide();
 
-        out.printf("Counted sites: %d%n", counted_sites);
-        out.printf("Counted bases: %d%n", counted_bases);
-        out.printf("Skipped sites: %d%n", skipped_sites);
-        out.printf("Fraction skipped: 1/%.0f%n", (double)counted_sites / skipped_sites);
+        printInfo(out);
 
         if (CREATE_TRAINING_DATA) writeTrainingData();
     }
+
+    void printInfo(PrintStream out) {
+        out.printf("# date          %s%n", new Date());
+        out.printf("# collapsed_pos %b%n", collapsePos);
+        out.printf("# collapsed_dinuc %b%n", collapseDinuc);
+        out.printf("# counted_sites %d%n", counted_sites);
+        out.printf("# counted_bases %d%n", counted_bases);
+        out.printf("# skipped_sites %d%n", skipped_sites);
+        out.printf("# fraction_skipped 1/%.0f%n", (double)counted_sites / skipped_sites);
+    }
+
 
     void writeTrainingData() {
         PrintStream dinuc_out = null;
@@ -197,10 +206,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
             if ( outputRawData ) {
                 table_out = new PrintStream( OUTPUT_FILEROOT+".raw_data.csv");
+                printInfo(table_out);
+                table_out.println("rg,dn,Qrep,pos,NBases,MMismatches");
                 for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
                     for ( RecalData datum: getRecalData(readGroup.getReadGroupId()) ) {
                         if ( datum.N > 0 )
-                            table_out.format("%s%n", datum.toCSVString());
+                            table_out.format("%s%n", datum.toCSVString(collapsePos));
                     }
                 }
             }
