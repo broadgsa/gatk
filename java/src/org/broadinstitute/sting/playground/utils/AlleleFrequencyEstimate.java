@@ -171,7 +171,8 @@ public class AlleleFrequencyEstimate {
         // chr1    7764136 A       48      99      CC      83.650421       9.18159         -92.83638       -18.367548      -96.91729       -96.614204      -9.185958       -23.33643       -23.033337      -101.282059     -101.583092     -101.279999
 
         // chr pos ref Nreads maxMapQ genotype BtrLod BtnbLod dbSNP AA      AC      AG      AT      CC      CG      CT      GG      GT      TT
-        return String.format("%s    %16d  %c  %8d  %d  %s %.6f %.6f    0.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0",
+        //public double[] posteriors;
+        return String.format("%s    %16d  %c  %8d  %d  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
 	                                        location.getContig(),
                                             location.getStart(),
 											ref,
@@ -179,7 +180,17 @@ public class AlleleFrequencyEstimate {
                                             -1,
 	                                        genotype(),
 	                                        lodVsRef,
-	                                        lodVsNextBest);
+	                                        lodVsNextBest,
+                                            posteriors[0],
+                                            posteriors[1],
+                                            posteriors[2],
+                                            posteriors[3],
+                                            posteriors[4],
+                                            posteriors[5],
+                                            posteriors[6],
+                                            posteriors[7],
+                                            posteriors[8],
+                                            posteriors[9]);
     }
 
     public String asTabularString() 
