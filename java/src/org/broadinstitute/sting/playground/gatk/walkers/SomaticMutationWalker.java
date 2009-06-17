@@ -75,11 +75,12 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
     public int MIN_MUTANT_SUM = 100;
 
 
+    @Argument(fullName = "mode", required = false, doc="Mode of operation (detect, full)")
+    public String mode = "full";
+
 //    @Argument(fullName = "output_failures", required = false, doc="produce output for failed sites")
     public boolean OUTPUT_FAILURES = true;
 
-
-    public boolean bedOutput = true;
 
     public void initialize() {
     }
@@ -283,9 +284,9 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             // than one alternate allele (hints at being an alignment artifact)
             ReferenceSequence refSeq;
             // TODO: don't hardcode.  Make this the max read length in the pile 
-            long refStart = context.getLocation().getStart() - 100;
+            long refStart = context.getLocation().getStart() - 150;
             //tumorReadPile.offsets.get(0);
-            long refStop = context.getLocation().getStart() + 100;
+            long refStop = context.getLocation().getStart() + 150;
             try {
                 IndexedFastaSequenceFile seqFile = new IndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
                 refSeq = seqFile.getSubsequenceAt(context.getContig(),refStart, refStop);
@@ -304,13 +305,21 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             //     at least 100 or the LOD score for mutant:ref + mutant:mutant vs ref:ref must
             //     be at least 6.3;
             double tumorLod = t2.getAltVsRef(altAllele);
-            if (t2.qualitySums.get(altAllele) < MIN_MUTANT_SUM && tumorLod < TUMOR_LOD_THRESHOLD) {
+            if (mode.equals("full") && t2.qualitySums.get(altAllele) < MIN_MUTANT_SUM && tumorLod < TUMOR_LOD_THRESHOLD) {
                 if (OUTPUT_FAILURES) {
-                    System.out.println("FAILED " + context.getContig() + ":" + context.getPosition() + " due to MAX MM QSCORE TEST." +
+
+                    String msg = "FAILED  due to MAX MM QSCORE TEST." +
                             " LOD was " + tumorReadPile.getAltVsRef(altAllele) +
                             " LOD is now " + t2.getAltVsRef(altAllele) +
                             " QSUM was " + tumorReadPile.qualitySums.get(altAllele) +
-                            " QSUM is now " + t2.qualitySums.get(altAllele));
+                            " QSUM is now " + t2.qualitySums.get(altAllele);
+
+                    System.out.println(
+                            context.getContig() + "\t" +
+                                    context.getPosition() + "\t" +
+                                    context.getPosition() + "\t"
+                            + msg.replace(' ','_')
+                            );
                 }
                 continue;
             }
@@ -320,9 +329,17 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             boolean shouldDisalign =
                     disaligner(context.getPosition(), tumorReadPile, StringUtil.bytesToString(refSeq.getBases()), refStart);
 
-            if (shouldDisalign) {
+            if (mode.equals("full") && shouldDisalign) {
                 if (OUTPUT_FAILURES) {
-                    System.out.println("FAILED " + context.getContig() + ":" + context.getPosition() + " due to DISALIGNMENT TEST.");
+                    String msg = "FAILED due to DISALIGNMENT TEST.";
+
+                    System.out.println(
+                            context.getContig() + "\t" +
+                                    context.getPosition() + "\t" +
+                                    context.getPosition() + "\t"
+                            + msg.replace(' ','_')
+                            );
+
                 }
                 continue;
             }
@@ -341,33 +358,24 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
 
             // if we're still here... we've got a somatic mutation!  Output the results
             // and stop looking for mutants!
-            if (bedOutput) {
-                out.println(
-                context.getContig() + "\t" +
-                        context.getPosition() + "\t" +
-                        context.getPosition() + "\t" +
+            String msg =
+                        (failedMidpointCheck?"__FAILED-MPCHECK":"") +
                         "TScore:" + tumorLod +
                         "__TRefSum: " + tumorReadPile.qualitySums.get(ref) +
                         "__TAltSum: " + tumorReadPile.qualitySums.get(altAllele) +
                         "__NScore:" + normalLod +
                         "__NRefSum: " + normalReadPile.qualitySums.get(ref) +
                         "__NAltSum: " + normalReadPile.qualitySums.get(altAllele) +
-                        "__MIDP: " + midp.get(altAllele) + 
-                        (failedMidpointCheck?"__FAILED-MPCHECK":"")
-                );
+                        "__MIDP: " + midp.get(altAllele);
 
-            } else {
-                out.println(context.getLocation() + " " + upRef + " " + altAllele +
-                " TScore:" + tumorLod +
-                " TRefSum: " + tumorReadPile.qualitySums.get(ref) +
-                " TAltSum: " + tumorReadPile.qualitySums.get(altAllele) +
-                " NScore:" + normalLod +
-                " NRefSum: " + normalReadPile.qualitySums.get(ref) +
-                " NAltSum: " + normalReadPile.qualitySums.get(altAllele) + " " +
-                        tumorReadPile.getLocusBases().toString() + " " +
-                        normalReadPile.getLocusBases().toString()
-                        );
-            }
+            System.out.println(
+                    context.getContig() + "\t" +
+                            context.getPosition() + "\t" +
+                            context.getPosition() + "\t"
+                    + msg.replace(' ','_')
+                    );
+
+
 
 
             return 1;
