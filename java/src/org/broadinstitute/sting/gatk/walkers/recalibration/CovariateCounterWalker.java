@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.recalibration;
+package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
@@ -43,8 +43,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="MAX_READ_GROUPS", shortName="mrg", required=false, doc="Abort if number of read groups in input file exceeeds this count.")
     public int MAX_READ_GROUPS = 100;
 
-    @Argument(fullName="PLATFORM", shortName="pl", required=false, doc="Only calibrate read groups generated from the given platform (default = Illumina)")
-    public List<String> platforms = Collections.singletonList("ILLUMINA");
+    @Argument(fullName="PLATFORM", shortName="pl", required=false, doc="Only calibrate read groups generated from the given platform (default = * for all platforms)")
+    public List<String> platforms = Collections.singletonList("*");
+    //public List<String> platforms = Collections.singletonList("ILLUMINA");
 
     @Argument(fullName="rawData", shortName="raw", required=false, doc="If true, raw mismatch observations will be output to a file")
     public boolean outputRawData = true;
@@ -380,7 +381,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     private boolean isSupportedReadGroup( SAMReadGroupRecord readGroup ) {
         for( String platform: platforms ) {
             platform = platform.trim();
-            if( readGroup.getAttribute("PL") == null || readGroup.getAttribute("PL").toString().equalsIgnoreCase(platform) )
+            if( readGroup.getAttribute("PL") == null ||
+                    platform.equals("*") || 
+                    readGroup.getAttribute("PL").toString().equalsIgnoreCase(platform) )
                 return true;
         }
 

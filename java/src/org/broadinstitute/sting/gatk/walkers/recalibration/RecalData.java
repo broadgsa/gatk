@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.recalibration;
+package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -38,7 +38,7 @@ public class RecalData {
 
     public double empiricalQualDouble() {
         double empiricalQual = -10 * Math.log10((double)B / N);
-        if (empiricalQual > QualityUtils.MAX_QUAL_SCORE) empiricalQual = QualityUtils.MAX_QUAL_SCORE;
+        if (empiricalQual > QualityUtils.MAX_REASONABLE_Q_SCORE) empiricalQual = QualityUtils.MAX_REASONABLE_Q_SCORE;
         return empiricalQual;
     }
 

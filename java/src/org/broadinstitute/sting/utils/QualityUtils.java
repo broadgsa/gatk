@@ -8,6 +8,8 @@ package org.broadinstitute.sting.utils;
  */
 public class QualityUtils {
     public final static byte MAX_QUAL_SCORE = 63;
+    public final static double MIN_REASONABLE_ERROR = 0.0001;
+    public final static byte MAX_REASONABLE_Q_SCORE = 40;
 
     /**
      * Private constructor.  No instantiating this class!
@@ -47,7 +49,7 @@ public class QualityUtils {
      * @return a quality score (0-40)
      */
     static public byte probToQual(double prob) {
-        return probToQual(prob, 0.0001);
+        return probToQual(prob, MIN_REASONABLE_ERROR);
         //return (byte) Math.round(-10.0*Math.log10(1.0 - prob + 0.0001));
     }
 

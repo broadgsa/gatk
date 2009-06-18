@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.recalibration;
+package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.utils.QualityUtils;
 
