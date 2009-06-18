@@ -5,6 +5,8 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import java.io.IOException;
 
 public class rodVariants extends BasicReferenceOrderedDatum {
+    private enum Genotype { AA, AC, AG, AT, CC, CG, CT, GG, GT, TT }
+
     private GenomeLoc loc;
     private char refBase = 'N';
     private int depth;
@@ -75,4 +77,40 @@ public class rodVariants extends BasicReferenceOrderedDatum {
     public float getLodBtnb() { return lodBtnb; }
 
     public float[] getGenotypeLikelihoods() { return genotypeLikelihoods; }
+
+    public void adjustLikelihoods(double[] likelihoods) {
+        for (int likelihoodIndex = 0; likelihoodIndex < likelihoods.length; likelihoodIndex++) {
+            genotypeLikelihoods[likelihoodIndex] += likelihoods[likelihoodIndex];
+        }
+
+        String bestGenotype = "NN";
+        double bestLikelihood = Double.NEGATIVE_INFINITY;
+        double nextBestLikelihood = Double.NEGATIVE_INFINITY;
+        double refLikelihood = Double.NEGATIVE_INFINITY;
+
+        for (int likelihoodIndex = 0; likelihoodIndex < likelihoods.length; likelihoodIndex++) {
+            if (genotypeLikelihoods[likelihoodIndex] > bestLikelihood) {
+                bestLikelihood = genotypeLikelihoods[likelihoodIndex];
+
+                bestGenotype = Genotype.values()[likelihoodIndex].toString();
+            }
+        }
+
+        for (int likelihoodIndex = 0; likelihoodIndex < likelihoods.length; likelihoodIndex++) {
+            if (genotypeLikelihoods[likelihoodIndex] > nextBestLikelihood && genotypeLikelihoods[likelihoodIndex] < bestLikelihood) {
+                nextBestLikelihood = genotypeLikelihoods[likelihoodIndex];
+            }
+        }
+
+        for (int likelihoodIndex = 0; likelihoodIndex < likelihoods.length; likelihoodIndex++) {
+            if (refBase == Genotype.values()[likelihoodIndex].toString().charAt(0) &&
+                refBase == Genotype.values()[likelihoodIndex].toString().charAt(1)) {
+                refLikelihood = genotypeLikelihoods[likelihoodIndex];
+            }
+        }
+
+        this.bestGenotype = bestGenotype;
+        this.lodBtr = (float) (bestLikelihood - refLikelihood);
+        this.lodBtnb = (float) (bestLikelihood - nextBestLikelihood);
+    }
 }

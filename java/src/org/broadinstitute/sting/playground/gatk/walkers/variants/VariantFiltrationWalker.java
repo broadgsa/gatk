@@ -47,7 +47,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             if (feature.equalsIgnoreCase("binomial")) { ivf = new IVFBinomialStrand(); }
             else { throw new StingException(String.format("Cannot understand feature '%s'\n", feature)); }
 
-            variant.multiplyLikelihoods(ivf.compute(ref, context));
+            variant.adjustLikelihoods(ivf.compute(ref, context));
             vwriter.println(variant);
         }
 
