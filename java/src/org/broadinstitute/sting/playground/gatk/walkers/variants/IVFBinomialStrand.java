@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.utils.ReadBackedPileup;
-import org.broadinstitute.sting.utils.MathUtils;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.ReadBackedPileup;
 
 import java.util.List;
 
@@ -15,8 +15,6 @@ public class IVFBinomialStrand implements IndependentVariantFeature {
             strandBalance = Double.valueOf(arguments);
         }
     }
-
-    public String getFeatureName() { return "binomial"; }
 
     public double[] compute(char ref, LocusContext context) {
         double[] likelihoods = new double[10];
