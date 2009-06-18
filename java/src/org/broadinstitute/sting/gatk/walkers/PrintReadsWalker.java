@@ -43,6 +43,7 @@ import java.util.Random;
  * reads to a specified BAM file
  * The walker now also optionally filters reads based on command line options.
  */
+@Requires({DataSource.READS, DataSource.REFERENCE})
 public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
 
     /** an optional argument to dump the reads out to a BAM file */

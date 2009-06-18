@@ -17,5 +17,6 @@ package org.broadinstitute.sting.gatk.walkers;
  */
 public enum DataSource {
     READS,
-    REFERENCE
+    REFERENCE,
+    REFERENCE_BASES         // Do I actually need the reference bases passed to the walker?
 }

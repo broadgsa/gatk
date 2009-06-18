@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.traversals;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadReferenceView;
@@ -13,6 +14,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.io.File;
@@ -103,7 +105,8 @@ public class TraverseReads extends TraversalEngine {
             throw new IllegalArgumentException("Unable to traverse reads; no read data is available.");
 
         ReadWalker<M, T> readWalker = (ReadWalker<M, T>) walker;
-
+        boolean needsReferenceBasesP = WalkerManager.isRequired(walker, DataSource.REFERENCE_BASES);
+        
         ReadView reads = new ReadView(dataProvider);
         ReadReferenceView reference = new ReadReferenceView(dataProvider);
 
@@ -116,7 +119,7 @@ public class TraverseReads extends TraversalEngine {
             // an array of characters that represent the reference
             char[] refSeq = null;
 
-            if (read.getReferenceIndex() >= 0) {
+            if (needsReferenceBasesP && read.getReferenceIndex() >= 0) {
                 // get the genome loc from the read
                 GenomeLoc site = new GenomeLoc(read);
 

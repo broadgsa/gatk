@@ -9,7 +9,7 @@ import net.sf.samtools.SAMRecord;
  * Time: 2:52:28 PM
  * To change this template use File | Settings | File Templates.
  */
-@Requires(DataSource.READS)
+@Requires({DataSource.READS, DataSource.REFERENCE_BASES})
 public abstract class ReadWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     public boolean requiresOrderedReads() { return false; }
     
