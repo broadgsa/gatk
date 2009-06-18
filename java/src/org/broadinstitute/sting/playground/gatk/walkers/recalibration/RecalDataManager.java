@@ -33,12 +33,21 @@ public class RecalDataManager {
         return trackPos ? pos : 0;
     }
 
+    public int canonicalPos(int cycle) {
+        return getPosIndex(cycle);
+    }
+
+
     public int getDinucIndex(String dinuc) {
-        if ( trackDinuc ) {
-            return RecalData.string2dinucIndex(dinuc);
-        } else {
-            return 0;
-        }
+        return trackDinuc ? RecalData.dinucIndex(dinuc) : 0;
+    }
+
+    public int getDinucIndex(byte prevBase, byte base) {
+        return trackDinuc ? RecalData.dinucIndex(prevBase, base) : 0;
+    }
+
+    public String canonicalDinuc(String dinuc) {
+        return trackDinuc ? dinuc : "**";
     }
 
     public void addDatum(RecalData datum) {

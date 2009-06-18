@@ -3,6 +3,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.recalibration;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
 import org.apache.log4j.Logger;
@@ -12,6 +14,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 
 @WalkerName("LogisticRecalibration")
+@Requires({DataSource.READS, DataSource.REFERENCE})
 public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
     @Argument(shortName="logisticParams", doc="logistic params file", required=true)
     public String logisticParamsFile;
@@ -185,7 +188,7 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
         }
 
         if (read.getReadNegativeStrandFlag())
-            recalQuals = BaseUtils.reverse(quals);
+            recalQuals = BaseUtils.reverse(recalQuals);
         //System.out.printf("OLD: %s%n", read.format());
         read.setBaseQualities(recalQuals);
         //System.out.printf("NEW: %s%n", read.format());

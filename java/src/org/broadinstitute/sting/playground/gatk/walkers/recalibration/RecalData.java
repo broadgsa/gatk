@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.BaseUtils;
 
 public class RecalData {
@@ -53,7 +52,7 @@ public class RecalData {
     }
 
     public String toCSVString(boolean collapsedPos) {
-        return String.format("%s,%s,%d,%s,%d,%d", readGroup, dinuc, qual, collapsedPos ? "*" : pos, N, B);
+        return String.format("%s,%s,%d,%s,%d,%d,%d", readGroup, dinuc, qual, collapsedPos ? "*" : pos, N, B, empiricalQualByte());
     }
 
     public static RecalData fromCSVString(String s) {
@@ -74,25 +73,26 @@ public class RecalData {
         return datum;
     }
 
-    public static int bases2dinucIndex(char prevBase, char base, boolean Complement) {
-        if ( BaseUtils.simpleBaseToBaseIndex(prevBase) == -1 || BaseUtils.simpleBaseToBaseIndex(base) == -1 )
-            return -1;
-
-        if (!Complement) {
-            return BaseUtils.simpleBaseToBaseIndex(prevBase) * 4 + BaseUtils.simpleBaseToBaseIndex(base);
-        }else {
-           return (3 - BaseUtils.simpleBaseToBaseIndex(prevBase)) * 4 + (3 - BaseUtils.simpleBaseToBaseIndex(base));
-        }
+    public static int bases2dinucIndex(char prevBase, char base) {
+        int pbI = BaseUtils.simpleBaseToBaseIndex(prevBase);
+        int bI = BaseUtils.simpleBaseToBaseIndex(base);
+        return (pbI == -1 || bI == -1) ? -1 : pbI * 4 + bI;
     }
 
+    public final static int NDINUCS = 16;
     public static String dinucIndex2bases(int index) {
         char data[] = {BaseUtils.baseIndexToSimpleBase(index / 4), BaseUtils.baseIndexToSimpleBase(index % 4)};
         return new String( data );
     }
 
-    public static int string2dinucIndex(String s) {
-        return bases2dinucIndex(s.charAt(0), s.charAt(1), false);
+    public static int dinucIndex(String s) {
+        return bases2dinucIndex(s.charAt(0), s.charAt(1));
     }
+
+    public static int dinucIndex(byte prevBase, byte base) {
+        return bases2dinucIndex((char)prevBase, (char)base);
+    }
+
 //
 //    private static int nuc2num[];
 //    private static char num2nuc[];

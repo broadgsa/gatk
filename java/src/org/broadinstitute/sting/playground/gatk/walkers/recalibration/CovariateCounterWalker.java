@@ -55,7 +55,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="collapseDinuc", shortName="collapseDinuc", required=false, doc="")
     public boolean collapseDinuc = false;
 
-    int NDINUCS = 16;
     //ArrayList<RecalData> flattenData = new ArrayList<RecalData>();
     //HashMap<String, RecalData[][][]> data = new HashMap<String, RecalData[][][]>();
     HashMap<String, RecalDataManager> data = new HashMap<String, RecalDataManager>();
@@ -76,7 +75,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             if( !isSupportedReadGroup(readGroup) )
                 continue;
             String rg = readGroup.getReadGroupId();
-            RecalDataManager manager = new RecalDataManager(rg, maxReadLen, QualityUtils.MAX_QUAL_SCORE+1, NDINUCS, ! collapsePos, ! collapseDinuc );
+            RecalDataManager manager = new RecalDataManager(rg, maxReadLen, QualityUtils.MAX_QUAL_SCORE+1, RecalData.NDINUCS, ! collapsePos, ! collapseDinuc );
             data.put(rg, manager);
         }
     }
@@ -142,7 +141,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         int qual = quals[offset];
         if ( qual > 0 && qual <= QualityUtils.MAX_QUAL_SCORE ) {
             // previous base is the next base in terms of machine chemistry if this is a negative strand
-            //System.out.printf("Adding b_offset=%c offset=%d cycle=%d qual=%d dinuc=%c%c ref_match=%c comp=%c%n", (char)read.getReadBases()[offset], offset, cycle, qual, prevBase, base, ref, (char)BaseUtils.simpleComplement(ref));
+            // if ( qual == 2 )
+            //if ( read.getReadName().equals("30PTAAAXX090126:5:14:132:764#0") )
+            //    System.out.printf("Adding neg?=%b b_offset=%c offset=%d cycle=%d qual=%d dinuc=%c%c ref_match=%c comp=%c name=%s%n",
+            //            read.getReadNegativeStrandFlag(), (char)read.getReadBases()[offset], offset, cycle, qual, prevBase, base,
+            //            ref, (char)BaseUtils.simpleComplement(ref), read.getReadName());
             RecalData datum = getRecalData(rg, cycle, qual, prevBase, base);
             if (datum != null) datum.inc(base,ref);
             return 1;
@@ -174,7 +177,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         if (CREATE_TRAINING_DATA) writeTrainingData();
     }
 
-    void printInfo(PrintStream out) {
+    private void printInfo(PrintStream out) {
         out.printf("# date          %s%n", new Date());
         out.printf("# collapsed_pos %b%n", collapsePos);
         out.printf("# collapsed_dinuc %b%n", collapseDinuc);
@@ -185,16 +188,16 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     }
 
 
-    void writeTrainingData() {
+    private void writeTrainingData() {
         PrintStream dinuc_out = null;
         PrintStream table_out = null;
         try {
             dinuc_out = new PrintStream( OUTPUT_FILEROOT+".covariate_counts.csv");
             dinuc_out.println("rg,dn,logitQ,pos,indicator,count");
             for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
-                for ( int dinuc_index=0; dinuc_index<NDINUCS; dinuc_index++) {
+                for ( int dinuc_index=0; dinuc_index<RecalData.NDINUCS; dinuc_index++) {
                     for ( RecalData datum: getRecalData(readGroup.getReadGroupId()) ) {
-                        if ( RecalData.string2dinucIndex(datum.dinuc) == dinuc_index ) {
+                        if ( RecalData.dinucIndex(datum.dinuc) == dinuc_index ) {
                             if ((datum.N - datum.B) > 0)
                                 dinuc_out.format("%s,%s,%d,%d,%d,%d%n", readGroup.getReadGroupId(), RecalData.dinucIndex2bases(dinuc_index), datum.qual, datum.pos, 0, datum.N - datum.B);
                             if (datum.B > 0)
@@ -207,7 +210,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             if ( outputRawData ) {
                 table_out = new PrintStream( OUTPUT_FILEROOT+".raw_data.csv");
                 printInfo(table_out);
-                table_out.println("rg,dn,Qrep,pos,NBases,MMismatches");
+                table_out.println("rg,dn,Qrep,pos,NBases,MMismatches,Qemp");
                 for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
                     for ( RecalData datum: getRecalData(readGroup.getReadGroupId()) ) {
                         if ( datum.N > 0 )
@@ -295,20 +298,20 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
             ByDinucFile.printf("dinuc,Qemp-obs,Qemp,Qobs,B,N%n");
             RecalData All = new RecalData(0,0,readGroup.getReadGroupId(),"");
             MeanReportedQuality AllReported = new MeanReportedQuality();
-            for (int c=0; c < NDINUCS; c++) {
+            for (int c=0; c < RecalData.NDINUCS; c++) {
                 ByCycle.add(new RecalData(-1, -1,readGroup.getReadGroupId(),RecalData.dinucIndex2bases(c)));
                 ByCycleReportedQ.add(new MeanReportedQuality());
             }
 
             for ( RecalData datum: getRecalData(readGroup.getReadGroupId()) ) {
-                int dinucIndex = RecalData.string2dinucIndex(datum.dinuc); //bases2dinucIndex(datum.dinuc.charAt(0), datum.dinuc.charAt(1), false);
+                int dinucIndex = RecalData.dinucIndex(datum.dinuc); //bases2dinucIndex(datum.dinuc.charAt(0), datum.dinuc.charAt(1), false);
                 ByCycle.get(dinucIndex).inc(datum.N, datum.B);
                 ByCycleReportedQ.get(dinucIndex).inc(datum.qual, datum.N);
                 All.inc(datum.N, datum.B);
                 AllReported.inc(datum.qual, datum.N);
             }
 
-            for (int c=0; c < NDINUCS; c++) {
+            for (int c=0; c < RecalData.NDINUCS; c++) {
                 double empiricalQual = -10 * Math.log10((double)ByCycle.get(c).B / ByCycle.get(c).N);
                 double reportedQual = ByCycleReportedQ.get(c).result();
                 ByDinucFile.printf("%s, %f, %f, %f, %d, %d%n", ByCycle.get(c).dinuc, empiricalQual-reportedQual, empiricalQual, reportedQual, ByCycle.get(c).B, ByCycle.get(c).N);
@@ -347,7 +350,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
             for (int q=0; q<QualityUtils.MAX_QUAL_SCORE; q++) {
                 double empiricalQual = -10 * Math.log10((double)ByQ.get(q).B / ByQ.get(q).N);
-                ByQualFile.printf("%d, %f, %.0f, %d, %d%n", q, empiricalQual, ByQReportedQ.get(q).result(), ByQ.get(q).B, ByQ.get(q).N);
+                ByQualFile.printf("%3d, %2.2f, %2.2f, %12d, %12d%n", q, empiricalQual, ByQReportedQ.get(q).result(), ByQ.get(q).B, ByQ.get(q).N);
                 //out.printf("%3d,%s,%3d,%5.1f,%5.1f,%6d,%6d", pos, dinuc, qual, empiricalQual, qual-empiricalQual, N, B);                                                                                      n
             }
         }
