@@ -70,11 +70,7 @@ public class SomaticCoverageTool extends CommandLineExecutable {
 
     /** override any arguments we see fit. */
     protected void overrideArguments() {
-        try {
-            this.argCollection = GATKArgumentCollection.unmarshal(this.getClass().getResource("/src/org/broadinstitute/sting/playground/somaticcoverage/SomaticCoverage.xml").openStream());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        this.argCollection = GATKArgumentCollection.unmarshal(getClass().getClassLoader().getResourceAsStream("SomaticCoverage.xml"));
         this.argCollection.samFiles = samFiles;
     }
 }

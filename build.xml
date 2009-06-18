@@ -110,30 +110,6 @@
           </manifest>
         </jar>
     
-        <jar jarfile="dist/SomaticCoverage.jar" whenmanifestonly="skip">
-          <fileset dir="build">
-            <include name="**/somaticcoverage/*.class"/>
-            <include name="**/walkers/SomaticCoverageWalker.class"/>
-            
-          </fileset>
-          <fileset dir="java">
-            <include name="**/somaticcoverage/*.xml"/>
-          </fileset>
-            <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.somaticcoverage.SomaticCoverageTool" />
-          </manifest>
-        </jar>
-
-
-        <jar jarfile="dist/AnnotateSecondaryBase.jar" whenmanifestonly="skip">
-          <fileset dir="build">
-            <include name="**/secondarybase/**/*.class" />
-          </fileset>
-          <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.secondarybase.AnnotateSecondaryBase" />
-          </manifest>
-        </jar>
-
         <jar jarfile="dist/Playground.jar" whenmanifestonly="skip">
             <fileset dir="build">
                 <include name="**/*.class"/>
@@ -165,19 +141,7 @@
             </manifest>
         </jar>
 
-        <jar jarfile="dist/AnnotateSecondaryBase.jar" update="true" whenmanifestonly="skip">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}" />
-            </manifest>
-        </jar>
-
         <jar jarfile="dist/Playground.jar" update="true" whenmanifestonly="skip">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}"/>
-            </manifest>
-        </jar>
-        
-        <jar jarfile="dist/SomaticCoverage.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
             </manifest>

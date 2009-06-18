@@ -26,6 +26,9 @@
             <root classname="{current()}" />
           </xsl:for-each>
         </classfileset>
+        <xsl:for-each select="dependencies/file">
+          <fileset file="{current()}" />
+        </xsl:for-each>
         <manifest>
           <attribute name="Main-Class" value="{main-class}"/>
         </manifest>
