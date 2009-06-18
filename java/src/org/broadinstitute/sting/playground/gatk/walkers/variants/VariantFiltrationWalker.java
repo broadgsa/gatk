@@ -18,15 +18,12 @@ import java.io.FileNotFoundException;
 
 @Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=rodVariants.class))
 public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
-    @Argument(fullName="features", shortName="F", doc="Comma-separated list of feature tests to apply to genotype posteriors.") public String FEATURES;
+    @Argument(fullName="features", shortName="F", doc="Feature test (optionally with arguments) to apply to genotype posteriors.  Syntax: 'testname:arg1,arg2,...,argN'") public String[] FEATURES;
     @Argument(fullName="variants_out", shortName="VO", doc="File to which modified variants should be written") public File VARIANTS_OUT;
 
-    private String[] features;
     private PrintWriter vwriter;
 
     public void initialize() {
-        features = FEATURES.split(",");
-
         try {
             vwriter = new PrintWriter(VARIANTS_OUT);
 
@@ -41,11 +38,15 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         rodVariants variant = (rodVariants) tracker.lookup("variant", null);
 
-        for (String feature : features) {
+        for (String feature : FEATURES) {
+            String[] featurePieces = feature.split(":");
+            String featureName = featurePieces[0];
+            String featureArgs = featurePieces[1];
+
             IndependentVariantFeature ivf;
             
-            if (feature.equalsIgnoreCase("binomial")) { ivf = new IVFBinomialStrand(); }
-            else { throw new StingException(String.format("Cannot understand feature '%s'\n", feature)); }
+            if (featureName.equalsIgnoreCase("binomialstrand")) { ivf = new IVFBinomialStrand(featureArgs); }
+            else { throw new StingException(String.format("Cannot understand feature '%s'", featureName)); }
 
             variant.adjustLikelihoods(ivf.compute(ref, context));
             vwriter.println(variant);

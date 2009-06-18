@@ -8,6 +8,14 @@ import net.sf.samtools.SAMRecord;
 import java.util.List;
 
 public class IVFBinomialStrand implements IndependentVariantFeature {
+    private double strandBalance = 0.5;
+
+    public IVFBinomialStrand(String arguments) {
+        if (arguments != null && !arguments.isEmpty()) {
+            strandBalance = Double.valueOf(arguments);
+        }
+    }
+
     public String getFeatureName() { return "binomial"; }
 
     public double[] compute(char ref, LocusContext context) {
@@ -35,7 +43,7 @@ public class IVFBinomialStrand implements IndependentVariantFeature {
                 }
             }
 
-            likelihoods[genotypeIndex] = Math.log10(MathUtils.binomialProbability(strandCounts[0], strandCounts[0] + strandCounts[1], 0.5));
+            likelihoods[genotypeIndex] = Math.log10(MathUtils.binomialProbability(strandCounts[0], strandCounts[0] + strandCounts[1], strandBalance));
         }
 
         return likelihoods;
