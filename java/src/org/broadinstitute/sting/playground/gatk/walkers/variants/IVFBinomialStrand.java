@@ -10,7 +10,7 @@ import java.util.List;
 public class IVFBinomialStrand implements IndependentVariantFeature {
     private double strandBalance = 0.5;
 
-    public IVFBinomialStrand(String arguments) {
+    public void initialize(String arguments) {
         if (arguments != null && !arguments.isEmpty()) {
             strandBalance = Double.valueOf(arguments);
         }

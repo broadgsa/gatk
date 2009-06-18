@@ -10,24 +10,31 @@ import org.broadinstitute.sting.gatk.refdata.rodVariants;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.PackageUtils;
+import org.broadinstitute.sting.utils.JVMUtils;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 
 import java.io.File;
 import java.io.PrintWriter;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
 
 @Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=rodVariants.class))
 public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
-    @Argument(fullName="features", shortName="F", doc="Feature test (optionally with arguments) to apply to genotype posteriors.  Syntax: 'testname:arg1,arg2,...,argN'") public String[] FEATURES;
+    @Argument(fullName="features", shortName="F", doc="Feature test (optionally with arguments) to apply to genotype posteriors.  Syntax: 'testname:arguments'") public String[] FEATURES;
     @Argument(fullName="variants_out", shortName="VO", doc="File to which modified variants should be written") public File VARIANTS_OUT;
+    @Argument(fullName="verbose", shortName="V", doc="Show how the variant likelihoods are changing with the application of each feature") public Boolean VERBOSE = false;
 
     private PrintWriter vwriter;
+    private ArrayList<Class> featureClasses;
 
     public void initialize() {
         try {
             vwriter = new PrintWriter(VARIANTS_OUT);
-
             vwriter.println(AlleleFrequencyEstimate.geliHeaderString());
+
+            featureClasses = PackageUtils.getClassesImplementingInterface(IndependentVariantFeature.class);
         } catch (FileNotFoundException e) {
             throw new StingException(String.format("Could not open file '%s' for writing", VARIANTS_OUT.getAbsolutePath()));
         }
@@ -44,11 +51,36 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             String featureArgs = featurePieces[1];
 
             IndependentVariantFeature ivf;
-            
-            if (featureName.equalsIgnoreCase("binomialstrand")) { ivf = new IVFBinomialStrand(featureArgs); }
-            else { throw new StingException(String.format("Cannot understand feature '%s'", featureName)); }
 
-            variant.adjustLikelihoods(ivf.compute(ref, context));
+            if (VERBOSE) {
+                out.println("Original:");
+                out.println("  " + variant);
+            }
+
+            for ( Class featureClass : featureClasses ) {
+                String featureClassName = featureClass.getSimpleName();
+                featureClassName = featureClassName.replaceFirst("IVF", "");
+
+                if (featureName.equalsIgnoreCase(featureClassName)) {
+                    try {
+                        ivf = (IndependentVariantFeature) featureClass.newInstance();
+                        ivf.initialize(featureArgs);
+
+                        variant.adjustLikelihoods(ivf.compute(ref, context));
+
+                        if (VERBOSE) {
+                            out.println(featureClassName + ":");
+                            out.println("  " + variant);
+                        }
+                    } catch (InstantiationException e) {
+                        throw new StingException(String.format("Cannot instantiate feature class '%s': must be concrete class", featureClass.getSimpleName()));
+                    } catch (IllegalAccessException e) {
+                        throw new StingException(String.format("Cannot instantiate feature class '%s': must have no-arg constructor", featureClass.getSimpleName()));
+                    }
+                }
+            }
+
+            if (VERBOSE) { System.out.println(); }
         }
         
         vwriter.println(variant);
