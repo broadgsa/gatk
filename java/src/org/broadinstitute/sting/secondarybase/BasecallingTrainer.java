@@ -89,12 +89,47 @@ public class BasecallingTrainer {
     }
 
     /**
+     * Take the first N reads that have no ambiguous bases, an average quality score greater
+     * than or equal to 15, and are not largely homopolymers and add them to the training set.
+     *
+     * @param bustardDir     the bustard directory
+     * @param lane           the lane number
+     * @param trainingLimit  how many reads should we use to train?
+     */
+    public static void loadNReasonableReadsTrainingSet(File bustardDir, int lane, int trainingLimit) {
+        ArrayList<RawRead> trainingData = new ArrayList<RawRead>(trainingLimit);
+
+        IlluminaParser iparser = new IlluminaParser(bustardDir, lane);
+
+        RawRead rawread;
+        int numreads = 0;
+
+        while (numreads < trainingLimit && iparser.next()) {
+            rawread = iparser.getRawRead();
+
+            int numAmbiguous = 0;
+            byte[] sequence = rawread.getSequence();
+
+            for ( byte byteBase : sequence ) {
+                if (BaseUtils.simpleBaseToBaseIndex((char) byteBase) == -1) {
+                    numAmbiguous++;
+                }
+            }
+
+            if (numAmbiguous == 0 && getAverageQualityScore(rawread) >= 15 && BaseUtils.mostFrequentBaseFraction(rawread.getSequence()) < 0.4) {
+                trainingData.add(rawread);
+                numreads++;
+            }
+        }
+    }
+
+    /**
      * Return the average quality score of a raw read.
      *
      * @param read  the raw read
      * @return  the average quality score
      */
-    private double getAverageQualityScore(RawRead read) {
+    private static double getAverageQualityScore(RawRead read) {
         double averageQual = 0;
 
         for ( byte qual : read.getQuals() ) {
