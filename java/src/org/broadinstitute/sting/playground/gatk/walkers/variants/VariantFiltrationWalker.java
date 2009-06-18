@@ -49,8 +49,9 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             else { throw new StingException(String.format("Cannot understand feature '%s'", featureName)); }
 
             variant.adjustLikelihoods(ivf.compute(ref, context));
-            vwriter.println(variant);
         }
+        
+        vwriter.println(variant);
 
         return 1;
     }
