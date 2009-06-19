@@ -44,7 +44,7 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 			discovery_output_file = new PrintStream(DISCOVERY_OUTPUT);
 			individual_output_file = new PrintStream(new GZIPOutputStream(new FileOutputStream(INDIVIDUAL_OUTPUT)));
 			
-			discovery_output_file.println("loc ref alt lod strand_score pD pNull discovery_lod in_dbsnp pA pC pG pT EM_alt_freq EM_N n_ref n_het n_hom pD_fw nNull_fw EM_alt_freq_fw pD_bw pNull_bw EM_alt_freq_bw");
+			discovery_output_file.println("loc ref alt lod strand_score pD pNull discovery_lod in_dbsnp pA pC pG pT EM_alt_freq EM_N n_ref n_het n_hom"); 
 			individual_output_file.println("loc ref sample_name genotype lodVsNextBest lodVsRef in_dbsnp AA AC AG AT CC CG CT GG GT TT");
 		} 
 		catch (Exception e)
@@ -173,6 +173,7 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 			
 			double Z = 0;
 			for(int k = 0; k < 10; k++) { Z += Math.pow(10,genotype_likelihoods[x].likelihoods[k]); }
+			Z = Math.log10(Z);
 
 			double[] personal_allele_likelihoods = new double[4];
 			int k = 0;
@@ -180,8 +181,8 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 			{ 
 				for (int j = i; j < 4; j++)
 				{
-					personal_allele_likelihoods[i] += Math.pow(10,genotype_likelihoods[x].likelihoods[k])/Z;
-					personal_allele_likelihoods[j] += Math.pow(10,genotype_likelihoods[x].likelihoods[k])/Z;
+					personal_allele_likelihoods[i] += Math.pow(10,genotype_likelihoods[x].likelihoods[k]-Z);
+					personal_allele_likelihoods[j] += Math.pow(10,genotype_likelihoods[x].likelihoods[k]-Z);
 					k++;
 				}
 			}
@@ -227,13 +228,18 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 		return Compute_pD(G);
 	}
 
+	// Some globals to cache results.
+	EM_Result em_result;
+	double pD;
+	double pNull;
+	double lod;
 	double LOD(LocusContext[] contexts)
 	{
-		EM_Result em_result = EM(contexts);
+		em_result = EM(contexts);
 		GenotypeLikelihoods[] G = em_result.genotype_likelihoods;
-		double pD = Compute_pD(G);
-		double pNull = Compute_pNull(contexts);
-		double lod = pD - pNull;
+		pD = Compute_pD(G);
+		pNull = Compute_pNull(contexts);
+		lod = pD - pNull;
 		return lod;
 	}
 
@@ -273,6 +279,7 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 			{
 				G[j] = Genotype(contexts[j], allele_likelihoods);
 			}
+		
 			allele_likelihoods = CountFreqs(G);
 		}
 
@@ -280,15 +287,9 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 	}
 
 	// Hacky global variables for debugging.
-	double pNull_fw;
-	double pNull_bw;
-	double pD_fw;
-	double pD_bw;
-	double EM_alt_freq_fw;
-	double EM_alt_freq_bw;
 	double StrandScore(LocusContext context)
 	{
-		LocusContext[] contexts = filterLocusContextBySample(context, sample_names, 0);
+		//LocusContext[] contexts = filterLocusContextBySample(context, sample_names, 0);
 
 		LocusContext fw = filterLocusContextByStrand(context, "+");
 		LocusContext bw = filterLocusContextByStrand(context, "-");
@@ -298,18 +299,18 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 		EM_Result em_fw = EM(contexts_fw);
 		EM_Result em_bw = EM(contexts_bw);
 
-		pNull_fw = Compute_pNull(contexts_fw);
-		pNull_bw = Compute_pNull(contexts_bw);
+		double pNull_fw = Compute_pNull(contexts_fw);
+		double pNull_bw = Compute_pNull(contexts_bw);
 
-		pD_fw = Compute_pD(em_fw.genotype_likelihoods);
-		pD_bw = Compute_pD(em_bw.genotype_likelihoods);
+		double pD_fw = Compute_pD(em_fw.genotype_likelihoods);
+		double pD_bw = Compute_pD(em_bw.genotype_likelihoods);
 
-		EM_alt_freq_fw = Compute_alt_freq(ref, em_fw.allele_likelihoods);
-		EM_alt_freq_bw = Compute_alt_freq(ref, em_bw.allele_likelihoods);
+		double EM_alt_freq_fw = Compute_alt_freq(ref, em_fw.allele_likelihoods);
+		double EM_alt_freq_bw = Compute_alt_freq(ref, em_bw.allele_likelihoods);
 
-		double pNull = Compute_pNull(contexts);
-
-		double lod = LOD(contexts);
+		//double pNull = Compute_pNull(contexts);
+		//double lod = LOD(contexts);
+	
 		double lod_fw = (pD_fw + pNull_bw) - pNull;
 		double lod_bw = (pD_bw + pNull_fw) - pNull;
 		double strand_score = Math.max(lod_fw - lod, lod_bw - lod);
@@ -399,11 +400,11 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 		LocusContext[] contexts = filterLocusContextBySample(context, sample_names, 0);
 		double lod = LOD(contexts);		
 		double strand_score = StrandScore(context);
-		EM_Result em_result = EM(contexts);
+		//EM_Result em_result = EM(contexts);
 		GenotypeLikelihoods population_genotype_likelihoods = HardyWeinberg(em_result.allele_likelihoods);	
 
-		double pD = Compute_pD(em_result.genotype_likelihoods);
-		double pNull = Compute_pNull(contexts);
+		//double pD = Compute_pD(em_result.genotype_likelihoods);
+		//double pNull = Compute_pNull(contexts);
 
 		double discovery_lod = Compute_discovery_lod(ref, em_result.genotype_likelihoods);
 		double alt_freq      = Compute_alt_freq(ref, em_result.allele_likelihoods);
@@ -417,7 +418,7 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 
 		discovery_output_file.printf("%s %c %c %f %f %f %f %f %s ", context.getLocation(), ref, alt, lod, strand_score, pD, pNull, discovery_lod, in_dbsnp);
 		for (int i = 0; i < 4; i++) { discovery_output_file.printf("%f ", em_result.allele_likelihoods[i]); }
-		discovery_output_file.printf("%f %d %d %d %d %f %f %f %f %f %f\n", alt_freq, em_result.EM_N, n_ref, n_het, n_hom, pD_fw, pNull_fw, EM_alt_freq_fw, pD_bw, pNull_bw, EM_alt_freq_bw);
+		discovery_output_file.printf("%f %d %d %d %d\n", alt_freq, em_result.EM_N, n_ref, n_het, n_hom);
 
 		for (int i = 0; i < em_result.genotype_likelihoods.length; i++)
 		{
