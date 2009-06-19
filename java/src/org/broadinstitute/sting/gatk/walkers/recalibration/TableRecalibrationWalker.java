@@ -32,7 +32,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     HashMap<String, RecalMapping> cache = new HashMap<String, RecalMapping>();
 
     //@Argument(shortName="serial", doc="", required=false)
-    boolean serialRecalibration = false;
+    //boolean serialRecalibration = false;
 
     private static Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static Pattern COLLAPSED_POS_PATTERN = Pattern.compile("^#\\s+collapsed_pos\\s+(\\w+)");
@@ -98,7 +98,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // initialize the data structure
         HashMap<String, RecalDataManager> managers = new HashMap<String, RecalDataManager>();
         for ( String readGroup : readGroups ) {
-            RecalDataManager manager = new RecalDataManager(readGroup,  maxPos, maxQReported, dinucs.size(), ! collapsedPos, ! collapsedDinuc);
+            RecalDataManager manager = new RecalDataManager(readGroup, ! collapsedPos, ! collapsedDinuc);
+            //RecalDataManager manager = new RecalDataManager(readGroup,  maxPos, maxQReported, dinucs.size(), ! collapsedPos, ! collapsedDinuc);
             managers.put(readGroup, manager);
         }
 
@@ -111,10 +112,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         for ( String readGroup : readGroups ) {
             RecalDataManager manager = managers.get(readGroup);
             RecalMapping mapper = null;
-            if ( serialRecalibration )
-                mapper = new SerialRecalMapping(manager, dinucs, maxPos, maxQReported);
-            else
-                mapper = new CombinatorialRecalMapping(manager, dinucs, maxPos, maxQReported);
+            //if ( serialRecalibration )
+            //    mapper = new SerialRecalMapping(manager, dinucs, maxPos, maxQReported);
+            //else
+            mapper = new CombinatorialRecalMapping(manager, dinucs, maxPos, maxQReported);
             cache.put(readGroup, mapper);
         }
     }
@@ -286,7 +287,7 @@ class CombinatorialRecalMapping implements RecalMapping {
         return result;
     }
 }*/
-
+/*
 class SerialRecalMapping implements RecalMapping {
     // mapping from dinuc x Q => new Q
     HashMap<String, byte[]> mappingByDinuc;
@@ -338,4 +339,4 @@ class SerialRecalMapping implements RecalMapping {
 
         return newQual;
     }
-}
+}*/

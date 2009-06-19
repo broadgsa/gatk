@@ -17,7 +17,7 @@ output_root = './'
 
 # Location of the resource files distributed with the recalibration tool.  
 # If editing, please end this variable with a trailing slash.
-resources='resources/'
+resources='recalibratorResources/'
 #resources='/broad/1KG/DCC_recal/ReadQualityRecalibrator/resources/'
 
 import getopt,glob,os,sys
@@ -30,17 +30,17 @@ if not os.path.isabs(resources):
     resources = os.path.abspath(application_path) + '/' + resources
 
 # Where does the reference live?
-reference_base = resources + 'human_b36_both'
+reference_base = resources + 'Homo_sapiens_assembly18'
 reference      = reference_base + '.fasta'
 reference_dict = reference_base + '.dict'
 reference_fai  = reference_base + '.fasta.fai'
 
 # Where does DBSNP live?
-dbsnp = resources + 'dbsnp.1kg.rod.out'
+dbsnp = resources + 'dbsnp_129_hg18.rod'
 
 # Where are the application files required to run the recalibration?
-gatk = resources + 'gatk/GenomeAnalysisTK.jar'
-#gatk = '/home/radon01/depristo/dev/GenomeAnalysisTK/trunk/dist/GenomeAnalysisTK.jar'
+#gatk = resources + 'gatk/GenomeAnalysisTK.jar'
+gatk = '/home/radon01/depristo/dev/GenomeAnalysisTK_stable/trunk/dist/GenomeAnalysisTK.jar'
 
 logistic_regression_script = resources + 'logistic_regression.R'
 empirical_vs_reported_grapher = resources + 'plot_q_emp_stated_hst.R'
@@ -146,7 +146,7 @@ def usage():
 
 # Try to parse the given command-line arguments.
 try:
-    opts, args = getopt.gnu_getopt(sys.argv[1:],'',['recalibrate','evaluate', 'reprocess', 'dry'])
+    opts, args = getopt.gnu_getopt(sys.argv[1:],'',['recalibrate','evaluate', 'reprocess', 'dry', 'outputRoot='])
 except getopt.GetoptError, err:
     usage()
 
@@ -168,6 +168,8 @@ for opt,arg in opts:
         reprocessFiles = True
     if opt == '--dry':
         dryRun = True
+    if opt == '--outputRoot':
+        output_root = arg
         
 # Default to 'recalibrate' unless the user specified only evaluate.
 do_recalibration = not (evaluate_requested and not recalibrate_requested)

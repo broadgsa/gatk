@@ -27,20 +27,17 @@ def cmd(cmd_str_from_user, farm_queue=False, output_head=None, just_print_comman
         cmd_str += " \""+cmd_str_from_user + "\""
         
         print ">>> Farming via "+cmd_str
-        
-        #result = 'Job <2542666> is submitted to queue <broad>.'
-        result = subprocess.Popen([cmd_str, ""], shell=True, stdout=subprocess.PIPE).communicate()[0]
-        
-        p = re.compile('Job <(\d+)> is submitted to queue')
-        jobid = p.match(result).group(1)
-        
-        return jobid        
     else:
         cmd_str = cmd_str_from_user
         print ">>> Executing "+cmd_str
 
     if just_print_commands or (globals().has_key("justPrintCommands") and globals().justPrintCommands):
         return -1
+    elif farm_queue:
+        result = subprocess.Popen([cmd_str, ""], shell=True, stdout=subprocess.PIPE).communicate()[0]
+        p = re.compile('Job <(\d+)> is submitted to queue')
+        jobid = p.match(result).group(1)
+        return jobid        
     else:
         # Actually execute the command if we're not just in debugging output mode
         status = os.system(cmd_str)

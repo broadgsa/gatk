@@ -16,12 +16,17 @@ def geli2dbsnpFile(geli):
     return os.path.join(root, flowcellDotlane) + '.dbsnp_matches'
 
 def SingleSampleGenotyperCmd(bam, geli, use2bp):
-    naid = bam.split(".")[0]
+    naid = os.path.split(bam)[1].split(".")[0]
     metrics = geli + '.metrics'
     gatkPath = '/humgen/gsa-scr1/kiran/repositories/Sting/trunk/dist/GenomeAnalysisTK.jar'
     hapmapChip = '/home/radon01/andrewk/hapmap_1kg/gffs/' + naid + '.gff'
+    hapmapChipStr = ' '.join(['--hapmap_chip', hapmapChip]) 
+    if not os.path.exists(hapmapChip):
+        print '*** warning, no hapmap chip resuls for', naid
+        hapmapChipStr = ''
+
     targetList = '/home/radon01/depristo/work/1kg_pilot_evaluation/data/thousand_genomes_alpha_redesign.targets.interval_list'
-    cmd = "java -ea -jar " + gatkPath + ' ' + ' '.join(['-T SingleSampleGenotyper', '-I', bam, '-L', targetList, '-R', ref, '-D', '/humgen/gsa-scr1/GATK_Data/dbsnp.rod.out', '--hapmap_chip', hapmapChip, '-calls', geli, '-met', metrics, '-geli -fb -l INFO'])
+    cmd = "java -ea -jar " + gatkPath + ' ' + ' '.join(['-T SingleSampleGenotyper', '-I', bam, '-L', targetList, '-R', ref, '-D', '/humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod', '-metout', metrics, '-varout', geli, '-geli -l INFO ']) + hapmapChipStr
     return cmd
  
 def bams2geli(bams):
@@ -34,7 +39,7 @@ def bams2geli(bams):
         else:
             if not os.path.exists(geli):
                 cmd = picard_utils.callGenotypesCmd( bam, geli, options = picard_utils.hybridSelectionExtraArgsForCalling())
-            jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands = OPTIONS.dry )
+        jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands = OPTIONS.dry )
         return geli, jobid
     calls = map(call1, bams)
     return map(lambda x: x[0], calls), map(lambda x: x[1], calls)        

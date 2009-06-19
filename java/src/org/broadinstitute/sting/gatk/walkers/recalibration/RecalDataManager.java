@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.ExpandingArrayList;
 
 import java.util.*;
 
@@ -13,20 +14,28 @@ import java.util.*;
  */
 public class RecalDataManager {
     ArrayList<RecalData> flattenData = new ArrayList<RecalData>();
-    RecalData[][][] data = null;
     boolean trackPos, trackDinuc;
     String readGroup;
     int nDinucs, maxReadLen;
 
+    //RecalData[][][] data = null;
+    ExpandingArrayList<ExpandingArrayList<ExpandingArrayList<RecalData>>> data = null;
+
     public RecalDataManager(String readGroup,
-                            int maxReadLen, int maxQual, int nDinucs,
+                            //int maxReadLen, int maxQual, int nDinucs,
                             boolean trackPos, boolean trackDinuc) {
-        data = new RecalData[maxReadLen+1][maxQual+1][nDinucs];
+        data = new ExpandingArrayList<ExpandingArrayList<ExpandingArrayList<RecalData>>>();
+        //data = new RecalData[maxReadLen+1][maxQual+1][nDinucs];
+
         this.readGroup = readGroup;
         this.trackPos = trackPos;
         this.trackDinuc = trackDinuc;
-        this.maxReadLen = maxReadLen;
-        this.nDinucs = nDinucs;
+        //this.maxReadLen = maxReadLen;
+        //this.nDinucs = nDinucs;
+    }
+
+    public int getMaxReadLen() {
+        return data.size();
     }
 
     public int getPosIndex(int pos) {
@@ -58,13 +67,11 @@ public class RecalDataManager {
         if ( getRecalData(datum.pos, datum.qual, datum.dinuc) != null )
             throw new RuntimeException(String.format("Duplicate entry discovered: %s vs. %s", getRecalData(datum.pos, datum.qual, datum.dinuc), datum));
 
-
         int posIndex = getPosIndex(datum.pos);
         int internalDinucIndex = getDinucIndex(datum.dinuc);
-
         if ( internalDinucIndex == -1 ) return;
 
-        data[posIndex][datum.qual][internalDinucIndex] = datum;
+        set(posIndex, datum.qual, internalDinucIndex, datum);
         flattenData.add(datum);
     }
     
@@ -78,18 +85,61 @@ public class RecalDataManager {
 
         if ( internalDinucIndex == -1 ) return null;
 
-        RecalData datum = data[posIndex][qual][internalDinucIndex];
+        RecalData datum = get(posIndex, qual, internalDinucIndex);
         if ( datum == null && expandP ) {
             //System.out.printf("Allocating %s %d %d %d%n", readGroup, pos, qual, dinuc_index);
             datum = new RecalData(posIndex, qual, readGroup, trackDinuc ? dinuc : "**");
-            data[posIndex][qual][internalDinucIndex] = datum;
+            set(posIndex, qual, internalDinucIndex, datum);
             flattenData.add(datum);
         }
 
         return datum;
     }
 
-    public List<RecalData> select(int pos, int qual, int dinuc_index ) {
+    /**
+     * Returns the RecalData associated with pos, qual, dinuc, or null if not is bound.
+     * Does not expand the system to corporate a new data point
+     * @param posIndex
+     * @param qual
+     * @param dinucIndex
+     * @return
+     */
+    private RecalData get(int posIndex, int qual, int dinucIndex) {
+        ExpandingArrayList<ExpandingArrayList<RecalData>> d2 = data.get(posIndex);
+        if (d2 == null) return null;
+        ExpandingArrayList<RecalData> d3 = d2.get(qual);
+        return d3 == null ? null : d3.get(dinucIndex);
+    }
+
+    //private RecalData get(int posIndex, int qual, int dinucIndex) {
+    //    return data[posIndex][qual][dinucIndex];
+    //}
+
+    private void set(int posIndex, int qual, int dinucIndex, RecalData datum) {
+        // grow data if necessary
+        ExpandingArrayList<ExpandingArrayList<RecalData>> d2 = data.get(posIndex);
+        if (d2 == null) {
+            d2 = new ExpandingArrayList<ExpandingArrayList<RecalData>>();
+            data.set(posIndex, d2);
+        }
+
+        // Expand d2 if necessary
+        ExpandingArrayList<RecalData> d3 = d2.get(qual);
+        if ( d3 == null ) {
+            d3 = new ExpandingArrayList<RecalData>();
+            d2.set(qual, d3);
+        }
+
+        // set d3 to datum
+        d3.set(dinucIndex, datum);
+    }
+
+    //private void set(int posIndex, int qual, int dinucIndex, RecalData datum) {
+    //    data[posIndex][qual][dinucIndex] = datum;
+    //}
+
+
+   /* public List<RecalData> select(int pos, int qual, int dinuc_index ) {
         List<RecalData> l = new LinkedList<RecalData>();
         for ( int i = 0; i < data.length; i++ ) {
             if ( i == pos || pos == -1 || ! trackPos ) {
@@ -147,7 +197,7 @@ public class RecalDataManager {
 
         System.out.printf("getDataByDinuc => %d%n", l.size());
         return l;
-    }
+    }*/
 
     public List<RecalData> getAll() {
         return flattenData;
