@@ -7,6 +7,7 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileReader.ValidationStringency;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.iterators.*;
@@ -419,6 +420,16 @@ public abstract class TraversalEngine {
 
             final SAMFileHeader header = samReader.getFileHeader();
             logger.debug(String.format("Sort order is: " + header.getSortOrder()));
+
+            // Kludge filename into sam file header.
+            if (samReader.getFileHeader().getReadGroups().size() < 1) {
+                //logger.warn("Setting header in reader " + f.getName());
+                SAMReadGroupRecord rec = new SAMReadGroupRecord(samFile.getName());
+                rec.setLibrary(samFile.getName());
+                rec.setSample(samFile.getName());
+
+                samReader.getFileHeader().addReadGroup(rec);
+            }
 
             return samReader;
         }

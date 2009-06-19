@@ -13,6 +13,7 @@ import org.junit.Test;
 
 import java.io.FileNotFoundException;
 import java.io.File;
+import java.util.Arrays;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
@@ -39,7 +40,7 @@ public class CleanedReadInjectorTest extends BaseTest {
      * The fasta, for comparison.
      */
     protected static IndexedFastaSequenceFile sequenceFile = null;
-    
+
     /**
      * Initialize the fasta.
      */
@@ -83,8 +84,7 @@ public class CleanedReadInjectorTest extends BaseTest {
         SAMRecord sourceRead = ArtificialSAMUtils.createArtificialRead(header,"read1",1,1,5);
 
         SAMRecord cleanedRead = ArtificialSAMUtils.createArtificialRead(header,"read1",1,1,5);
-        cleanedRead.setReadName(CleanedReadInjector.getUniquifiedReadName(sourceRead));
-        cleanedRead.setReadString("AAAAA");
+        cleanedRead.setBaseQualities(getMockBaseQualityString((byte)1,cleanedRead.getReadLength()));
         ArtificialSAMFileReader cleanedReads = new ArtificialSAMFileReader(cleanedRead);
 
         ArtificialSAMFileWriter output = new ArtificialSAMFileWriter();
@@ -103,8 +103,7 @@ public class CleanedReadInjectorTest extends BaseTest {
         SAMRecord sourceRead = ArtificialSAMUtils.createArtificialRead(header,"read1",1,1,5);
 
         SAMRecord cleanedRead = ArtificialSAMUtils.createArtificialRead(header,"read1",1,1,5);
-        cleanedRead.setReadName(CleanedReadInjector.getUniquifiedReadName(sourceRead));
-        cleanedRead.setReadString("AAAAA");
+        cleanedRead.setBaseQualities(getMockBaseQualityString((byte)1,cleanedRead.getReadLength()));
         ArtificialSAMFileReader cleanedReads = new ArtificialSAMFileReader(cleanedRead);
 
         ArtificialSAMFileWriter output = new ArtificialSAMFileWriter();
@@ -127,8 +126,7 @@ public class CleanedReadInjectorTest extends BaseTest {
                                                     ArtificialSAMUtils.createArtificialRead(header,"read5",1,5,5) };
 
         SAMRecord cleanedRead = ArtificialSAMUtils.createArtificialRead(header,"read1",1,1,1);
-        cleanedRead.setReadName(CleanedReadInjector.getUniquifiedReadName(sourceReads[0]));
-        cleanedRead.setReadString("AAAAA");
+        cleanedRead.setBaseQualities(getMockBaseQualityString((byte)1,cleanedRead.getReadLength()));
         ArtificialSAMFileReader cleanedReads = new ArtificialSAMFileReader(cleanedRead);
 
         ArtificialSAMFileWriter output = new ArtificialSAMFileWriter();
@@ -154,8 +152,7 @@ public class CleanedReadInjectorTest extends BaseTest {
                                                     ArtificialSAMUtils.createArtificialRead(header,"read3",1,3,5) };
 
         SAMRecord cleanedRead = ArtificialSAMUtils.createArtificialRead(header,"read1",1,3,1);
-        cleanedRead.setReadName(CleanedReadInjector.getUniquifiedReadName(sourceReads[0]));
-        cleanedRead.setReadString("AAAAA");
+        cleanedRead.setBaseQualities(getMockBaseQualityString((byte)1,cleanedRead.getReadLength()));
         ArtificialSAMFileReader cleanedReads = new ArtificialSAMFileReader(cleanedRead);
 
         ArtificialSAMFileWriter output = new ArtificialSAMFileWriter();
@@ -176,8 +173,7 @@ public class CleanedReadInjectorTest extends BaseTest {
         SAMRecord sourceRead = ArtificialSAMUtils.createArtificialRead(header,"read1",1,1,5);
 
         SAMRecord cleanedRead = ArtificialSAMUtils.createArtificialRead(header,"read1",1,1,5);
-        cleanedRead.setReadName(CleanedReadInjector.getUniquifiedReadName(sourceRead));
-        cleanedRead.setReadString("AAAAA");
+        cleanedRead.setBaseQualities(getMockBaseQualityString((byte)1,cleanedRead.getReadLength()));
         ArtificialSAMFileReader cleanedReads = new ArtificialSAMFileReader(cleanedRead);
 
         ArtificialSAMFileWriter output = new ArtificialSAMFileWriter();
@@ -202,8 +198,7 @@ public class CleanedReadInjectorTest extends BaseTest {
         for( int i = 0; i < sourceReads.length; i++ ) {
             try {
                 cleanedReads[i] = (SAMRecord)sourceReads[i].clone();
-                cleanedReads[i].setReadName(CleanedReadInjector.getUniquifiedReadName(sourceReads[i]));
-                cleanedReads[i].setReadString("AAAAA");
+                cleanedReads[i].setBaseQualities(getMockBaseQualityString((byte)1,cleanedReads[i].getReadLength()));
             }
             catch( CloneNotSupportedException ex ) {
                 throw new StingException("Unable to clone samrecord", ex);
@@ -250,6 +245,12 @@ public class CleanedReadInjectorTest extends BaseTest {
         }
         walker.onTraversalDone(accum);
         return accum;
+    }
+
+    private byte[] getMockBaseQualityString( byte value, int length ) {
+        byte[] baseQualities = new byte[length];
+        Arrays.fill(baseQualities,value);
+        return baseQualities;
     }
 
 }

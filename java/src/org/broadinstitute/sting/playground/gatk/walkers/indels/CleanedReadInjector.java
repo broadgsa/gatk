@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileWriter;
@@ -14,7 +15,8 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Queue;
 import java.util.LinkedList;
-import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 /**
  * User: hanna
  * Date: Jun 10, 2009
@@ -74,7 +76,7 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
 
     @Override
     public void initialize() {
-        intervals = new LinkedList<GenomeLoc>( GenomeAnalysisEngine.parseIntervalRegion(intervalsSource,false) );
+        intervals = parseIntervals( intervalsSource );
         interval = intervals.remove();
         loadCleanedReadsOverlappingInterval( interval );
 
@@ -145,6 +147,21 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
     }
 
     /**
+     * Load the intervals directly from the command-line or from file, as appropriate.
+     * Merge overlapping intervals.
+     * @param intervalsSource Source of intervals.
+     * @return a queue of sorted, merged intervals.
+     */
+    private Queue parseIntervals( String intervalsSource ) {
+        List<GenomeLoc> parsedIntervals = GenomeAnalysisEngine.parseIntervalRegion(intervalsSource,false);
+        GenomeLocSortedSet intervalSortedSet = new GenomeLocSortedSet();
+        for( GenomeLoc parsedInterval: parsedIntervals )
+            intervalSortedSet.addRegion(parsedInterval);
+
+        return new LinkedList<GenomeLoc>( intervalSortedSet );        
+    }
+
+    /**
      * Load a list of all the reads overlapping the given interval into memory.
      * @param interval
      */
@@ -153,7 +170,7 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
         // Load in all reads mapped to this region.  The cleaner will augment the read name in a way that uniquifies it.
         while( overlappingReads.hasNext() ) {
             SAMRecord read = overlappingReads.next();
-            cleanedReads.put( read.getReadName(), read );
+            cleanedReads.put( getUniquifiedReadName(read), read );
         }
         overlappingReads.close();
     }
@@ -163,7 +180,7 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
      * @param read read to uniquify.
      * @return A (hopefully) completely unique name for the read.
      */
-    static String getUniquifiedReadName( SAMRecord read ) {
+    private static String getUniquifiedReadName( SAMRecord read ) {
         return String.format("%s.%s.%s.%s",read.getAttribute("RG"),read.getReadName(),read.getFlags(),read.getReadString());            
     }
 }

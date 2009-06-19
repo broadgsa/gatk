@@ -3,10 +3,12 @@ package org.broadinstitute.sting.gatk.traversals;
 import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
+import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 
@@ -14,7 +16,10 @@ import java.util.*;
 import java.io.File;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.util.CloseableIterator;
+import net.sf.picard.sam.SamFileHeaderMerger;
 
 /**
  * Created by IntelliJ IDEA.
@@ -86,9 +91,7 @@ public class TraverseByLocusWindows extends TraversalEngine {
         for ( GenomeLoc interval : locations ) {
             logger.debug(String.format("Processing interval %s", interval.toString()));
 
-            CloseableIterator<SAMRecord> readIter = samReader.queryOverlapping( interval.getContig(),
-                    (int)interval.getStart(),
-                    (int)interval.getStop());
+            CloseableIterator<SAMRecord> readIter = getIteratorOverDesiredRegion( samReader, interval );
             Iterator<SAMRecord> wrappedIter = wrapReadsIterator(readIter, false);
             LocusContext locus = getLocusContext(wrappedIter, interval);
             readIter.close();
@@ -114,7 +117,7 @@ public class TraverseByLocusWindows extends TraversalEngine {
         GenomeLoc currentInterval = (locations.size() > 0 ? locations.get(0) : null);
         int locationsIndex = 0;
         ArrayList<SAMRecord> intervalReads = new ArrayList<SAMRecord>();
-        Iterator<SAMRecord> readIter = samReader.iterator();
+        Iterator<SAMRecord> readIter = getIteratorOverDesiredRegion(samReader,null);
 
         while (readIter.hasNext()) {
             TraversalStatistics.nRecords++;
@@ -305,5 +308,20 @@ public class TraverseByLocusWindows extends TraversalEngine {
 
         //printProgress("intervals", interval.getLocation());
         return sum;
+    }
+
+    /**
+     * Gets an iterator over the specified region.  Uses a special iterator that dynamically adds a header to all
+     * read information.
+     * @param reader SAMFileReader to query.
+     * @param region Region to use.
+     * @return An iterator over the desired region.
+     */
+    private CloseableIterator<SAMRecord> getIteratorOverDesiredRegion( SAMFileReader reader, GenomeLoc region ) {
+        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger( Collections.singletonList(reader), SAMFileHeader.SortOrder.coordinate );
+        MergingSamRecordIterator2 iterator = new MergingSamRecordIterator2( headerMerger, new Reads(readsFiles) );
+        if( region != null )
+            iterator.queryOverlapping( region.getContig(), (int)region.getStart(), (int)region.getStop() );
+        return iterator;
     }
 }
