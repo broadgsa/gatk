@@ -27,6 +27,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="features", shortName="F", doc="Feature test (optionally with arguments) to apply to genotype posteriors.  Syntax: 'testname[:arguments]'") public String[] FEATURES;
     @Argument(fullName="variants_out", shortName="VO", doc="File to which modified variants should be written") public File VARIANTS_OUT;
     @Argument(fullName="verbose", shortName="V", doc="Show how the variant likelihoods are changing with the application of each feature") public Boolean VERBOSE = false;
+    @Argument(fullName="list_features", shortName="list", doc="List the available features and exit") public Boolean LIST_FEATURES = false;
 
     private ArrayList<Class> featureClasses;
     private PrintWriter vwriter;
@@ -61,11 +62,17 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
      * Prepare the output file and the list of available features.
      */
     public void initialize() {
+        featureClasses = PackageUtils.getClassesImplementingInterface(IndependentVariantFeature.class);
+        
+        if (LIST_FEATURES) {
+            out.println("\nAvailable features: " + getAvailableFeatureClasses() + "\n");
+            System.exit(0);
+        }
+
         try {
             vwriter = new PrintWriter(VARIANTS_OUT);
             vwriter.println(AlleleFrequencyEstimate.geliHeaderString());
 
-            featureClasses = PackageUtils.getClassesImplementingInterface(IndependentVariantFeature.class);
         } catch (FileNotFoundException e) {
             throw new StingException(String.format("Could not open file '%s' for writing", VARIANTS_OUT.getAbsolutePath()));
         }
