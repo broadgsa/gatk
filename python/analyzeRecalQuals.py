@@ -8,6 +8,7 @@ from gatkConfigParser import *
 import re
 from itertools import *
 import math
+import operator
 
 def phredQScore( nMismatches, nBases ):
     #print 'phredQScore', nMismatches, nBases
@@ -23,6 +24,12 @@ def phredScore2ErrorProp(qual):
     #print 'phredScore2ErrorProp', qual
     return math.pow(10.0, float(qual) / -10.0)
 
+def tryByInt(s):
+    try:
+        return int(s)
+    except:
+        return s        
+
 expectedHeader = 'rg,dn,Qrep,pos,NBases,MMismatches,Qemp'.split(',')
 defaultValues = '0,**,0,0,0,0,0'.split(',')
 class RecalData(dict):
@@ -32,7 +39,7 @@ class RecalData(dict):
 
     def parse(self, header, data):
         # rg,dn,Qrep,pos,NBases,MMismatches,Qemp
-        types = [str, str, int, int, int, int, int]
+        types = [str, str, int, tryByInt, int, int, int]
         for head, expected, datum, type in zip(header, expectedHeader, data, types):
             if head <> expected:
                 raise ("Unexpected header in rawData %s %s %s" % (head, expected, datum))
@@ -77,7 +84,9 @@ class RecalData(dict):
         return newQemp
 
     def __str__(self):
-        return "rg=%s cycle=%d dinuc=%s qrep=%.1f qemp=%.1f nbases=%d nmismatchs=%d" % ( self.readGroup(), self.cycle(), self.dinuc(), self.qReported(), self.qEmpirical(), self.nBases(), self.nMismatches())
+        return "[rg=%s cycle=%s dinuc=%s qrep=%.1f qemp=%.1f nbases=%d nmismatchs=%d]" % ( self.readGroup(), str(self.cycle()), self.dinuc(), self.qReported(), self.qEmpirical(), self.nBases(), self.nMismatches())
+    def __repr__(self):
+        return self.__str__()
     
 #    def __init__(dinuc, Qrep, pos, nbases, nmismatches, qemp ):
 #        self.dinuc = dinuc
@@ -117,6 +126,7 @@ def analyzeReadGroup(readGroup, data, outputRoot):
 
     files = []
     if OPTIONS.toStdout:
+        basicQualScoreStats(readGroup, data, sys.stdout )
         qReportedVsqEmpirical(readGroup, data, sys.stdout )
         qDiffByCycle(readGroup, data, sys.stdout)
         qDiffByDinuc(readGroup, data, sys.stdout)
@@ -126,6 +136,8 @@ def analyzeReadGroup(readGroup, data, outputRoot):
             files.append(file)
             return file
             
+        with open(outputFile(".basic_info.dat"), 'w') as output:
+            basicQualScoreStats(readGroup, data, output )
         with open(outputFile(".empirical_v_reported_quality.dat"), 'w') as output:
             qReportedVsqEmpirical(readGroup, data, output )
         with open(outputFile(".quality_difference_v_cycle.dat"), 'w') as output:
@@ -136,40 +148,114 @@ def analyzeReadGroup(readGroup, data, outputRoot):
     print 'Files', files
     return analyzeFiles(files)
 
+def countQsOfMinQuality(thres, data):
+    """Returns RecalData lists for each of the following:
+    All quality score bins with qRep > thres, and all quality scores with qRep and qRemp > thres""" 
+    qDeclared = RecalData().combine(filter(lambda x: x.qReported() > thres, data))
+    qDeclaredTrue = RecalData().combine(filter(lambda x: x.qReported() > thres and x.qEmpirical() > thres, data))
+    #print qDeclared
+    return qDeclared, qDeclaredTrue
+
+def medianQreported(jaffe, allBases):
+    i, ignore = medianByCounts(map( RecalData.nBases, jaffe ))
+    return jaffe[i].qReported()
+
+def medianByCounts(counts):
+    nTotal = lsum(counts)
+    sum = 0.0
+    for i in range(len(counts)):
+        sum += counts[i]
+        if sum / nTotal > 0.5:  
+            # The current datum contains the median
+            return i, counts[i]
+
+def modeQreported(jaffe, allBases):
+    ordered = sorted(jaffe, key=RecalData.nBases, reverse=True )
+    #print ordered
+    return ordered[0].qReported()
+
+def averageQreported(jaffe, allBases):
+    # the average reported quality score is already calculated and stored as qRep!
+    return allBases.qReported()
+
+def lsum(inlist):
+    return reduce(operator.__add__, inlist, 0)
+
+def lsamplestdev (inlist, counts, mean):
+    """
+    Returns the variance of the values in the passed list using
+    N for the denominator (i.e., DESCRIBES the sample variance only).
+
+    Usage:   lsamplevar(inlist)"""
+    n = lsum(counts)
+    sum = 0.0
+    for item, count in zip(inlist, counts):
+        diff = item - mean
+        inc = count * diff * diff
+        #print item, count, mean, diff, diff*diff, inc
+        sum += inc
+    return math.sqrt(sum / float(n-1))
+
+def rmse(reportedList, empiricalList, counts):
+    sum = 0.0
+    for reported, empirical, count in zip(reportedList, empiricalList, counts):
+        diff = reported - empirical
+        inc = count * diff * diff
+        sum += inc
+    return math.sqrt(sum)
+
+def stdevQReported(jaffe, allBases):
+    mean = averageQreported(jaffe, allBases)
+    return lsamplestdev(map( RecalData.qReported, jaffe ), map( RecalData.nBases, jaffe ), mean)
+
+def coeffOfVariationQreported(jaffe, allBases):
+    mean = averageQreported(jaffe, allBases)
+    stdev = stdevQReported(jaffe, allBases)
+    return stdev / mean
+
+#    o("variance_Qreported                           %2.2f" % varianceQreported(jaffe))
+
+def rmseJaffe(jaffe):
+    return rmse( map( RecalData.qReported, jaffe ), map( RecalData.qEmpirical, jaffe ), map( RecalData.nBases, jaffe ) )
+
+def basicQualScoreStats(readGroup, data, output ):
+    def o(s):
+        print >> output, s
+    # aggregate all the data into a single datum
+    rg, allBases = groupRecalData(data, key=RecalData.readGroup)[0]
+    #o(allBases)
+    o("read_group                                   %s" % rg)
+    #o("number_of_cycles %d" % 0)
+    #o("maximum_reported_quality_score %d" % 0)
+    o("number_of_bases                              %d" % allBases.nBases())
+    o("number_of_mismatching_bases                  %d" % allBases.nMismatches())
+    o("lane_wide_Qreported                          %2.2f" % allBases.qReported())
+    o("lane_wide_Qempirical                         %2.2f" % allBases.qEmpirical())
+    o("lane_wide_Qempirical_minus_Qreported         %2.2f" % (allBases.qEmpirical()-allBases.qReported()))
+
+    jaffe = [datum for key, datum in qReportedVsqEmpiricalStream(readGroup, data)]
+
+    o("median_Qreported                             %2.2f" % medianQreported(jaffe, allBases))
+    o("mode_Qreported                               %2.2f" % modeQreported(jaffe, allBases))
+    o("average_Qreported                            %2.2f" % averageQreported(jaffe, allBases))
+    o("stdev_Qreported                              %2.2f" % stdevQReported(jaffe, allBases))
+    o("coeff_of_variation_Qreported                 %2.2f" % coeffOfVariationQreported(jaffe, allBases))
+
+    o("RMSE(qReported,qEmpirical)                   %2.2f" % rmseJaffe(jaffe))
+    for thres in [20, 25, 30]:
+        qDeclared, qDeclaredTrue = countQsOfMinQuality(thres, jaffe)
+        o("number_of_q%d_bases                          %d" % (thres, qDeclared.nBases()))
+        o("percent_of_q%d_bases                         %2.2f" % (thres, 100 * qDeclared.nBases() / float(allBases.nBases())))
+        o("number_of_q%d_bases_with_qemp_above_q%d      %d" % (thres, thres, qDeclaredTrue.nBases()))
+        o("percent_of_q%d_bases_with_qemp_above_q%d     %2.2f" % (thres, thres, 100 * qDeclaredTrue.nBases() / float(allBases.nBases())))
+
 def qDiffByCycle(readGroup, allData, output):
     print >> output, '# Note Qreported is a float here due to combining Qreported across quality bins -- Qreported is the expected Q across all Q bins, weighted by nBases'
     print >> output, 'Cycle    Qreported   Qempirical     Qempirical_Qreported     nMismatches     nBases'
     for cycle, datum in groupRecalData(allData, key=RecalData.cycle):
         datum.set(['rg', 'dn', 'pos'], [readGroup, '**', cycle])
         diff = datum.qEmpirical() - datum.qReported()
-        print >> output, "%d   %2.2f  %2.2f   %2.2f     %12d    %12d" % (datum.cycle(), datum.qReported(), datum.qEmpirical(), diff, datum.nMismatches(), datum.nBases())
-
-# 
-#     public void qualityDiffVsDinucleotide(PrintStream file, final String readGroup) {
-#         ArrayList<RecalData> ByCycle = new ArrayList<RecalData>();
-#         ArrayList<MeanReportedQuality> ByCycleReportedQ = new ArrayList<MeanReportedQuality>();
-#         file.printf("dinuc,Qemp-obs,Qemp,Qobs,B,N%n");
-#         RecalData All = new RecalData(0,0,readGroup,"");
-#         MeanReportedQuality AllReported = new MeanReportedQuality();
-#         for (int c=0; c < RecalData.NDINUCS; c++) {
-#             ByCycle.add(new RecalData(-1, -1,readGroup,RecalData.dinucIndex2bases(c)));
-#             ByCycleReportedQ.add(new MeanReportedQuality());
-#         }
-# 
-#         for ( RecalData datum: getRecalData(readGroup) ) {
-#             int dinucIndex = RecalData.dinucIndex(datum.dinuc); //bases2dinucIndex(datum.dinuc.charAt(0), datum.dinuc.charAt(1), false);
-#             ByCycle.get(dinucIndex).inc(datum.N, datum.B);
-#             ByCycleReportedQ.get(dinucIndex).inc(datum.qual, datum.N);
-#             All.inc(datum.N, datum.B);
-#             AllReported.inc(datum.qual, datum.N);
-#         }
-# 
-#         for (int c=0; c < RecalData.NDINUCS; c++) {
-#             double empiricalQual = -10 * Math.log10((double)ByCycle.get(c).B / ByCycle.get(c).N);
-#             double reportedQual = ByCycleReportedQ.get(c).result();
-#             file.printf("%s, %f, %f, %f, %d, %d%n", ByCycle.get(c).dinuc, empiricalQual-reportedQual, empiricalQual, reportedQual, ByCycle.get(c).B, ByCycle.get(c).N);
-#         }
-#     }
+        print >> output, "%s   %2.2f  %2.2f   %2.2f     %12d    %12d" % (datum.cycle(), datum.qReported(), datum.qEmpirical(), diff, datum.nMismatches(), datum.nBases())
 
 def qDiffByDinuc(readGroup, allData, output):
     print >> output, '# Note Qreported is a float here due to combining Qreported across quality bins -- Qreported is the expected Q across all Q bins, weighted by nBases'
@@ -179,11 +265,15 @@ def qDiffByDinuc(readGroup, allData, output):
         diff = datum.qEmpirical() - datum.qReported()
         print >> output, "%s   %2.2f  %2.2f   %2.2f     %12d    %12d" % (datum.dinuc(), datum.qReported(), datum.qEmpirical(), diff, datum.nMismatches(), datum.nBases())
 
+def qReportedVsqEmpiricalStream(readGroup, data):
+    for key, datum in groupRecalData(data, key=RecalData.qReported):
+        datum.set(['rg', 'dn', 'Qrep', 'pos'], [readGroup, '**', key, '*'])
+        yield key, datum
+
 def qReportedVsqEmpirical(readGroup, allData, output):
     print >> output, 'Qreported    Qempirical   nMismatches     nBases'
-    for key, datum in groupRecalData(allData, key=RecalData.qReported):
-        datum.set(['rg', 'dn', 'Qrep', 'pos'], [readGroup, '**', key, '*'])
-        print >> output, "%2d  %2.2f   %12d    %12d" % (datum.qReported(), datum.qEmpirical(), datum.nMismatches(), datum.nBases())
+    for key, datum in qReportedVsqEmpiricalStream(readGroup, allData):
+        print >> output, "%2.2f  %2.2f   %12d    %12d" % (datum.qReported(), datum.qEmpirical(), datum.nMismatches(), datum.nBases())
 
 def analyzeRawData(rawDataFile):
     for readGroup, data in rawDataByReadGroup(rawDataFile):
@@ -218,7 +308,8 @@ def analyzeFiles(files):
             cmd = ' '.join([Rscript, plotter, file])
             farm_commands.cmd(cmd, None, None, just_print_commands = OPTIONS.dry)
 
-if __name__ == "__main__":
+def main():
+    global config, OPTIONS
     usage = """usage: %prog -c config.cfg files*"""
 
     parser = OptionParser(usage=usage)
@@ -251,3 +342,31 @@ if __name__ == "__main__":
     config = gatkConfigParser(OPTIONS.configs)
   
     analyzeFiles(args)
+
+import unittest
+class TestanalzyeRecalQuals(unittest.TestCase):
+    def setUp(self):
+        self.numbers = [0, 1, 2, 2, 3, 4, 4, 4, 5, 5, 5, 6, 6]
+        self.numbersItems  = [0, 1, 2, 3, 4, 5, 6]
+        self.numbersCounts = [1, 1, 2, 1, 3, 3, 2]
+        self.numbers_sum = 47
+        self.numbers_mean = 3.615385
+        self.numbers_mode = 4
+        self.numbers_median = 4
+        self.numbers_stdev = 1.894662
+        self.numbers_var = 3.589744
+        self.numbers_cov = self.numbers_stdev / self.numbers_mean
+        
+    def testSum(self):
+        self.assertEquals(self.numbers_sum, lsum(self.numbers))
+        self.assertEquals(0, lsum(self.numbers[0:0]))
+        self.assertEquals(1, lsum(self.numbers[0:2]))
+        self.assertEquals(3, lsum(self.numbers[0:3]))
+
+    def teststdev(self):
+        self.assertAlmostEqual(self.numbers_stdev, lsamplestdev(self.numbersItems, self.numbersCounts, self.numbers_mean), 4)
+
+if __name__ == '__main__':
+    main()    
+    #unittest.main()    
+    
