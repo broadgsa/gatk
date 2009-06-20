@@ -229,7 +229,7 @@ class CombinatorialRecalMapping implements RecalMapping {
         byte[][] dataTable = index == -1 ? null : cache.get(index);
 
         if ( dataTable == null && prevBase != 'N' && base != 'N' )
-            throw new RuntimeException(String.format("Unmapped data table at %s %c%c", readGroup, prevBase, base));
+            throw new RuntimeException(String.format("Unmapped data table at %s %c%c", readGroup, (char)prevBase, (char)base));
 
         byte result = dataTable != null && pos < dataTable.length ? dataTable[pos][qual] : qual;
 

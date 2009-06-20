@@ -22,20 +22,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="buggyMaxReadLen", doc="If we see a read longer than this, we assume there's a bug and abort", required=false)
     public int buggyMaxReadLen = 100000;
 
-    //@Argument(fullName="MAX_QUAL_SCORE", shortName="mqs", doc="max quality score", required=false)
-    //public int MAX_QUAL_SCORE = 63;
-
     @Argument(fullName="OUTPUT_FILEROOT", shortName="outroot", required=false, doc="Filename root for the outputted logistic regression training files")
     public String OUTPUT_FILEROOT = "output";
 
-    //@Argument(fullName="CREATE_TRAINING_DATA", shortName="trainingdata", required=false, doc="Create training data files for logistic regression")
-    //public boolean CREATE_TRAINING_DATA = true;
-
-    //@Argument(fullName="DOWNSAMPLE_FRACTION", shortName="sample", required=false, doc="Fraction of bases to randomly sample")
-    //public float DOWNSAMPLE_FRACTION=1.0f;
-
     @Argument(fullName="MIN_MAPPING_QUALITY", shortName="minmap", required=false, doc="Only use reads with at least this quality score")
-    public int MIN_MAPPING_QUALITY = 0;
+    public int MIN_MAPPING_QUALITY = 1;
 
     @Argument(fullName="READ_GROUP", shortName="rg", required=false, doc="Only use reads with this read group (@RG)")
     public String READ_GROUP = "none";
@@ -47,9 +38,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     public List<String> platforms = Collections.singletonList("*");
     //public List<String> platforms = Collections.singletonList("ILLUMINA");
 
-    //@Argument(fullName="rawData", shortName="raw", required=false, doc="If true, raw mismatch observations will be output to a file")
-    //public boolean outputRawData = true;
-
     @Argument(fullName="writeDetailedAnalysisFiles", required=false, doc="If true, we'll write detailed analysis files out at the end of covariate calcuilations")
     public boolean writeDetailedAnalysisFiles = false;
 
@@ -59,10 +47,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="collapseDinuc", shortName="collapseDinuc", required=false, doc="")
     public boolean collapseDinuc = false;
 
-    //ArrayList<RecalData> flattenData = new ArrayList<RecalData>();
-    //HashMap<String, RecalData[][][]> data = new HashMap<String, RecalData[][][]>();
     HashMap<String, RecalDataManager> data = new HashMap<String, RecalDataManager>();
-    //RecalData[][][] data;
 
     long counted_sites = 0; // number of sites used to count covariates
     long counted_bases = 0; // number of bases used to count covariates
@@ -161,21 +146,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     }
 
     public void onTraversalDone(Integer result) {
-        /*
-        PrintStream covars_out;
-        try {
-            covars_out = new PrintStream(OUTPUT_FILEROOT+".covars.out");
-            covars_out.println(RecalData.headerString());
-            for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
-                for ( RecalData datum : getRecalData(readGroup.getReadGroupId()) ) {
-                    covars_out.println(datum);
-                }
-            }
-        } catch (FileNotFoundException e) {
-            System.err.println("FileNotFoundException: " + e.getMessage());
-        }
-        */
-
         printInfo(out);
         writeTrainingData();
         writeAnalysisData();
@@ -194,7 +164,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
     private void writeTrainingData() {
         out.printf("Writing raw recalibration data%n");
-        writeRawTable();
+        writeRecalTable();
         out.printf("...done%n");
 
         out.printf("Writing logistic recalibration data%n");
@@ -228,10 +198,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         }
     }
 
-     private void writeRawTable() {
+     private void writeRecalTable() {
          PrintStream table_out = null;
          try {
-             table_out = new PrintStream( OUTPUT_FILEROOT+".raw_data.csv");
+             table_out = new PrintStream( OUTPUT_FILEROOT+".recal_data.csv");
              printInfo(table_out);
              table_out.println("rg,dn,Qrep,pos,NBases,MMismatches,Qemp");
              for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {

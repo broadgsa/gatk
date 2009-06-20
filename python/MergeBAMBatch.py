@@ -69,5 +69,5 @@ if __name__ == "__main__":
                     jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, output, just_print_commands = OPTIONS.dry)
     
                 if OPTIONS.ignoreExistingFiles or not os.path.exists(spec.getMergedBAMIndex()):
-                    jobid = farm_commands.cmd(spec.getIndexCmd(), OPTIONS.farmQueue, '', waitID = jobid, just_print_commands = OPTIONS.dry)
+                    jobid = farm_commands.cmd(spec.getIndexCmd(), OPTIONS.farmQueue, None, waitID = jobid, just_print_commands = OPTIONS.dry)
 
