@@ -37,7 +37,8 @@ public abstract class TraversalEngine {
     protected long lastProgressPrintTime = -1;                // When was the last time we printed our progress?
 
     // How long can we go without printing some progress info?
-    protected long MAX_PROGRESS_PRINT_TIME = 10 * 1000;        // 10 seconds in millisecs
+    protected long MAX_PROGRESS_PRINT_TIME = 30 * 1000;        // 10 seconds in millisecs
+    protected long N_RECORDS_TO_PRINT = 1000000;
 
     // Maximum number of reads to process before finishing
     protected long maxReads = -1;
@@ -70,7 +71,6 @@ public abstract class TraversalEngine {
     protected int maxOnFlySorts = 100000;
     protected double downsamplingFraction = 1.0;
     protected int downsamplingCoverage = 0;
-    protected long N_RECORDS_TO_PRINT = 100000;
     protected boolean THREADED_IO = false;
     protected int THREADED_IO_BUFFER_SIZE = 10000;
     protected boolean filterZeroMappingQualityReads = false;
