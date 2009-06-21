@@ -360,13 +360,13 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 // however we don't have enough info to use the proper MAQ scoring system.
                 // For now, we'll use a heuristic:
                 // the mapping quality score is improved by the LOD difference in mismatching
-                // bases between the reference and alternate consensus
+                // bases between the reference and alternate consensus (divided by 10)
 
                 // finish cleaning the appropriate reads
                 for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes ) {
                     AlignedRead aRead = altReads.get(indexPair.first);
                     if ( aRead.finalizeUpdate() ) {
-                        aRead.getRead().setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + (int)improvement, 255));
+                        aRead.getRead().setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + (int)(improvement/10.0), 255));
                         aRead.getRead().setAttribute("NM", AlignmentUtils.numMismatches(aRead.getRead(), reference, aRead.getRead().getAlignmentStart()-(int)leftmostIndex));
                     }
                 }
@@ -393,7 +393,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             for ( AlignedRead aRec : leftMovedIndels )
                 aRec.finalizeUpdate();
             for ( AlignedRead aRec : altReads ) {
-                if ( aRec.wasUpdated() )
+                if ( !cleanedReadsOnly || aRec.wasUpdated() )
                     readsToWrite.add(new ComparableSAMRecord(aRec.getRead()));
             }
         }
