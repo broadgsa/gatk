@@ -27,12 +27,18 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 
     String COMMENT_STRING = "";
 
+    final String knownSNPDBName = "dbSNP";
+
     HashMap<String, ArrayList<VariantAnalysis>> analysisSets;
+
+    long nSites = 0;
 
     final String ALL_SNPS = "all";
     final String SINGLETON_SNPS = "singletons";
     final String TWOHIT_SNPS = "2plus_hit";
-    final String[] ALL_ANALYSIS_NAMES = { ALL_SNPS, SINGLETON_SNPS, TWOHIT_SNPS };
+    final String KNOWN_SNPS = "known";
+    final String NOVEL_SNPS = "novel";
+    final String[] ALL_ANALYSIS_NAMES = { ALL_SNPS, SINGLETON_SNPS, TWOHIT_SNPS, KNOWN_SNPS, NOVEL_SNPS };
 
     public void initialize() {
         // setup the path to the analysis
@@ -57,13 +63,13 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         // Add new analyzes here!
         //
         analyses.add(new VariantCounter());
-        analyses.add(new VariantDBCoverage("dbSNP"));
+        analyses.add(new VariantDBCoverage(knownSNPDBName));
         analyses.add(new TransitionTranversionAnalysis());
         analyses.add(new NeighborDistanceAnalysis());
         analyses.add(new HardyWeinbergEquilibrium(badHWEThreshold));
         analyses.add(new ClusterCounterAnalysis());
 
-        if ( printVariants ) analyses.add(new VariantMatcher("dbSNP"));
+        if ( printVariants ) analyses.add(new VariantMatcher(knownSNPDBName));
 
         for ( VariantAnalysis analysis : analyses ) {
             analysis.initialize(this, openAnalysisOutputStream(setName, analysis));
@@ -100,6 +106,8 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     }
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+        nSites++;
+
         // Iterate over each analysis, and update it
         AllelicVariant eval = (AllelicVariant)tracker.lookup("eval", null);
 
@@ -107,7 +115,23 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         if ( eval != null && eval.getVariationConfidence() < minDiscoveryQ )
             eval = null;
 
+        // update stats about all of the SNPs
         updateAnalysisSet(ALL_SNPS, eval, tracker, ref, context);
+
+        // update the known / novel set by checking whether the knownSNPDBName track has an entry here
+        if ( eval != null ) {
+            AllelicVariant dbsnp = (AllelicVariant)tracker.lookup(knownSNPDBName, null);
+            String noveltySet = dbsnp == null ? NOVEL_SNPS : KNOWN_SNPS;
+            updateAnalysisSet(noveltySet, eval, tracker, ref, context);
+        }
+
+        if ( eval instanceof SNPCallFromGenotypes ) {
+            SNPCallFromGenotypes call = (SNPCallFromGenotypes)eval;
+            int nVarGenotypes = call.nHetGenotypes() + call.nHomVarGenotypes();
+            //System.out.printf("%d variant genotypes at %s%n", nVarGenotypes, calls);
+            final String s = nVarGenotypes == 1 ? SINGLETON_SNPS : TWOHIT_SNPS;
+            updateAnalysisSet(s, eval, tracker, ref, context);
+        }
 
         if ( eval instanceof SNPCallFromGenotypes ) {
             SNPCallFromGenotypes call = (SNPCallFromGenotypes)eval;
@@ -146,8 +170,10 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     }
 
     private void printAnalysisSet( final String analysisSetName ) {
+        out.printf("Writing analysis set %s", analysisSetName);
         Date now = new Date();
         for ( VariantAnalysis analysis : getAnalysisSet(analysisSetName) ) {
+            analysis.finalize(nSites);
             PrintStream stream = analysis.getPrintStream(); // getAnalysisOutputStream(analysisSetName + "." + analysis.getName(), analysis.getParams());
             stream.printf("%s%s%n", COMMENT_STRING, Utils.dupString('-', 78));
             stream.printf("%sAnalysis set       %s%n", COMMENT_STRING, analysisSetName);

@@ -31,15 +31,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="READ_GROUP", shortName="rg", required=false, doc="Only use reads with this read group (@RG)")
     public String READ_GROUP = "none";
 
-    @Argument(fullName="MAX_READ_GROUPS", shortName="mrg", required=false, doc="Abort if number of read groups in input file exceeeds this count.")
-    public int MAX_READ_GROUPS = 100;
+    //@Argument(fullName="MAX_READ_GROUPS", shortName="mrg", required=false, doc="Abort if number of read groups in input file exceeeds this count.")
+    //public int MAX_READ_GROUPS = 100;
 
     @Argument(fullName="PLATFORM", shortName="pl", required=false, doc="Only calibrate read groups generated from the given platform (default = * for all platforms)")
     public List<String> platforms = Collections.singletonList("*");
     //public List<String> platforms = Collections.singletonList("ILLUMINA");
-
-    @Argument(fullName="writeDetailedAnalysisFiles", required=false, doc="If true, we'll write detailed analysis files out at the end of covariate calcuilations")
-    public boolean writeDetailedAnalysisFiles = false;
 
     @Argument(fullName="collapsePos", shortName="collapsePos", required=false, doc="")
     public boolean collapsePos = false;
@@ -54,9 +51,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     long skipped_sites = 0; // number of sites skipped because of a dbSNP entry
 
     public void initialize() {
-        if( getToolkit().getEngine().getSAMHeader().getReadGroups().size() > MAX_READ_GROUPS )
-            Utils.scareUser("Number of read groups in the specified file exceeds the number that can be processed in a reasonable amount of memory." +
-                            "To override this limit, use the --MAX_READ_GROUPS (-mrg) parameter");
+        //if( getToolkit().getEngine().getSAMHeader().getReadGroups().size() > MAX_READ_GROUPS )
+        //    Utils.scareUser("Number of read groups in the specified file exceeds the number that can be processed in a reasonable amount of memory." +
+        //                    "To override this limit, use the --MAX_READ_GROUPS (-mrg) parameter");
 
         for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
             if( readGroup.getAttribute("PL") == null )
@@ -96,7 +93,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
                 SAMReadGroupRecord readGroup = read.getHeader().getReadGroup((String)read.getAttribute("RG"));
                 if ( isSupportedReadGroup(readGroup) &&
-                    //!read.getReadNegativeStrandFlag() &&
                     (READ_GROUP.equals("none") || read.getAttribute("RG") != null && read.getAttribute("RG").equals(READ_GROUP)) &&
                     (read.getMappingQuality() >= MIN_MAPPING_QUALITY)) {
                     int offset = offsets.get(i);
@@ -147,8 +143,14 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
     public void onTraversalDone(Integer result) {
         printInfo(out);
-        writeTrainingData();
-        writeAnalysisData();
+
+        out.printf("Writing raw recalibration data%n");
+        writeRecalTable();
+        out.printf("...done%n");
+
+        //out.printf("Writing logistic recalibration data%n");
+        //writeLogisticRecalibrationTable();
+        //out.printf("...done%n");
     }
 
     private void printInfo(PrintStream out) {
@@ -159,17 +161,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         out.printf("# counted_bases %d%n", counted_bases);
         out.printf("# skipped_sites %d%n", skipped_sites);
         out.printf("# fraction_skipped 1/%.0f%n", (double)counted_sites / skipped_sites);
-    }
-
-
-    private void writeTrainingData() {
-        out.printf("Writing raw recalibration data%n");
-        writeRecalTable();
-        out.printf("...done%n");
-
-        out.printf("Writing logistic recalibration data%n");
-        writeLogisticRecalibrationTable();
-        out.printf("...done%n");        
     }
 
     private void writeLogisticRecalibrationTable() {
@@ -217,132 +208,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
              if (table_out != null) table_out.close();
          }
      }
-
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // Analysis data
-    //
-    // --------------------------------------------------------------------------------------------------------------
-    private void writeAnalysisData() {
-        if ( writeDetailedAnalysisFiles ) {
-            for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
-                PrintStream DiffVsCycleFile = null, DiffVsDinucFile = null, EmpObsFile = null;
-                try {
-                    DiffVsCycleFile = new PrintStream(OUTPUT_FILEROOT+".RG_"+readGroup.getReadGroupId()+".quality_difference_v_cycle.csv");
-                    DiffVsDinucFile = new PrintStream(OUTPUT_FILEROOT+".RG_"+readGroup.getReadGroupId()+".quality_difference_v_dinucleotide.csv");
-                    EmpObsFile = new PrintStream(OUTPUT_FILEROOT+".RG_"+readGroup.getReadGroupId()+".empirical_v_reported_quality.csv");
-
-                    qualityEmpiricalObserved(EmpObsFile, readGroup.getReadGroupId());
-                    qualityDiffVsCycle(DiffVsCycleFile, readGroup.getReadGroupId());
-                    qualityDiffVsDinucleotide(DiffVsDinucFile, readGroup.getReadGroupId());
-                } catch (FileNotFoundException e){
-                    throw new RuntimeException("Could not open output files based on OUTPUT_FILEROOT option: " + OUTPUT_FILEROOT, e);
-                } finally {
-                    if ( DiffVsCycleFile != null) DiffVsCycleFile.close();
-                    if ( DiffVsDinucFile != null) DiffVsDinucFile.close();
-                    if ( EmpObsFile != null) EmpObsFile.close();
-                }
-            }
-        }
-    }
-
-    class MeanReportedQuality {
-        double Qn = 0;
-        long n = 0;
-        double sumErrors = 0; // Count of estimated number of errors
-
-        void inc(double Q, long n) {
-            this.n += n;
-            //Qn += Q * n; // wrong calculation that worked did not account for Qs being in log space
-            sumErrors += QualityUtils.qualToErrorProb((byte)Q) * n;
-        }
-
-        double result() {
-            //return Qn / n;
-            return -10 * Math.log10(sumErrors / n);
-            //return QualityUtils.probToQual(1.0 - (sumErrors / n));
-        }
-    }
-
-    public void qualityDiffVsCycle(PrintStream file, final String readGroup) {
-        ArrayList<RecalData> ByCycle = new ArrayList<RecalData>();
-        ArrayList<MeanReportedQuality> ByCycleReportedQ = new ArrayList<MeanReportedQuality>();
-        file.printf("cycle,Qemp-obs,Qemp,Qobs,B,N%n");
-        RecalData All = new RecalData(0,0,readGroup,"");
-        MeanReportedQuality AllReported = new MeanReportedQuality();
-        RecalDataManager manager = data.get(readGroup);
-        int maxReadLen = manager.getMaxReadLen();
-        for (int c=0; c < maxReadLen+1; c++)  {
-            ByCycle.add(new RecalData(c, -1,readGroup,"-"));
-            ByCycleReportedQ.add(new MeanReportedQuality());
-        }
-
-        for ( RecalData datum: getRecalData(readGroup) ) {
-            ByCycle.get(datum.pos).inc(datum.N, datum.B);
-            ByCycleReportedQ.get(datum.pos).inc(datum.qual, datum.N);
-            All.inc(datum.N, datum.B);
-            AllReported.inc(datum.qual, datum.N);
-        }
-
-        for (int c=0; c < maxReadLen+1; c++) {
-            double empiricalQual = -10 * Math.log10((double)ByCycle.get(c).B / ByCycle.get(c).N);
-            double reportedQual = ByCycleReportedQ.get(c).result();
-            file.printf("%d, %f, %f, %f, %d, %d%n", c, empiricalQual-reportedQual, empiricalQual, reportedQual, ByCycle.get(c).B, ByCycle.get(c).N);
-        }
-    }
-
-    public void qualityDiffVsDinucleotide(PrintStream file, final String readGroup) {
-        ArrayList<RecalData> ByCycle = new ArrayList<RecalData>();
-        ArrayList<MeanReportedQuality> ByCycleReportedQ = new ArrayList<MeanReportedQuality>();
-        file.printf("dinuc,Qemp-obs,Qemp,Qobs,B,N%n");
-        RecalData All = new RecalData(0,0,readGroup,"");
-        MeanReportedQuality AllReported = new MeanReportedQuality();
-        for (int c=0; c < RecalData.NDINUCS; c++) {
-            ByCycle.add(new RecalData(-1, -1,readGroup,RecalData.dinucIndex2bases(c)));
-            ByCycleReportedQ.add(new MeanReportedQuality());
-        }
-
-        for ( RecalData datum: getRecalData(readGroup) ) {
-            int dinucIndex = RecalData.dinucIndex(datum.dinuc); //bases2dinucIndex(datum.dinuc.charAt(0), datum.dinuc.charAt(1), false);
-            ByCycle.get(dinucIndex).inc(datum.N, datum.B);
-            ByCycleReportedQ.get(dinucIndex).inc(datum.qual, datum.N);
-            All.inc(datum.N, datum.B);
-            AllReported.inc(datum.qual, datum.N);
-        }
-
-        for (int c=0; c < RecalData.NDINUCS; c++) {
-            double empiricalQual = -10 * Math.log10((double)ByCycle.get(c).B / ByCycle.get(c).N);
-            double reportedQual = ByCycleReportedQ.get(c).result();
-            file.printf("%s, %f, %f, %f, %d, %d%n", ByCycle.get(c).dinuc, empiricalQual-reportedQual, empiricalQual, reportedQual, ByCycle.get(c).B, ByCycle.get(c).N);
-        }
-    }
-
-    public void qualityEmpiricalObserved(PrintStream file, final String readGroup) {
-        ArrayList<RecalData> ByQ = new ArrayList<RecalData>();
-        ArrayList<MeanReportedQuality> ByQReportedQ = new ArrayList<MeanReportedQuality>();
-        file.printf("Qrep,Qemp,Qrep_avg,B,N%n");
-        RecalData All = new RecalData(0,0,readGroup,"");
-        MeanReportedQuality AllReported = new MeanReportedQuality();
-        for (int q=0; q<QualityUtils.MAX_QUAL_SCORE+1; q++) {
-            ByQ.add(new RecalData(-1,q,readGroup,"-"));
-            ByQReportedQ.add(new MeanReportedQuality());
-        }
-
-        for ( RecalData datum: getRecalData(readGroup) ){
-            ByQ.get(datum.qual).inc(datum.N, datum.B);
-            ByQReportedQ.get(datum.qual).inc(datum.qual, datum.N);
-            All.inc(datum.N, datum.B);
-            AllReported.inc(datum.qual, datum.N);
-            //out.printf("%2d%6d%3d %2d %s%n", datum.qual, datum.N, datum.pos, datum.qual, datum.dinuc);
-        }
-
-        for (int q=0; q<QualityUtils.MAX_QUAL_SCORE; q++) {
-            double empiricalQual = -10 * Math.log10((double)ByQ.get(q).B / ByQ.get(q).N);
-            file.printf("%3d, %2.2f, %2.2f, %12d, %12d%n", q, empiricalQual, ByQReportedQ.get(q).result(), ByQ.get(q).B, ByQ.get(q).N);
-            //out.printf("%3d,%s,%3d,%5.1f,%5.1f,%6d,%6d", pos, dinuc, qual, empiricalQual, qual-empiricalQual, N, B);                                                                                      n
-        }
-    }
 
     public Integer reduceInit() {
         return 0;

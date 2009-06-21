@@ -37,6 +37,14 @@ public abstract class BasicVariantAnalysis implements VariantAnalysis {
     public List<String> done() {
         return new ArrayList<String>();
     }
-    
+
+    /**
+     * No need to finalize the data in general
+     * @param nSites
+     */
+    public void finalize(long nSites) {
+
+    }
+
     public abstract String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context);
 }

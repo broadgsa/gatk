@@ -13,5 +13,6 @@ public interface VariantAnalysis {
     public List<String> getParams();
     public void initialize(VariantEvalWalker master, PrintStream out);
     public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context);
+    public void finalize(long nSites);
     public List<String> done();
 }

@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class VariantCounter extends BasicVariantAnalysis {
-    int nBasesCovered = 0;
+    long nBasesCovered = 0;
     int nSNPs = 0;
 
     public VariantCounter() {
@@ -17,9 +17,16 @@ public class VariantCounter extends BasicVariantAnalysis {
     }
 
     public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
-        nBasesCovered++;
         nSNPs += eval == null ? 0 : 1;
         return null;
+    }
+
+    /**
+     * No need to finalize the data in general
+     * @param nSites
+     */
+    public void finalize(long nSites) {
+        nBasesCovered = nSites;
     }
 
     public List<String> done() {

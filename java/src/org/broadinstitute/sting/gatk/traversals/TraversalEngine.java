@@ -266,7 +266,7 @@ public abstract class TraversalEngine {
         final double elapsed = (curTime - startTime) / 1000.0;
         //System.out.printf("Cur = %d, last print = %d, elapsed=%.2f, nRecords=%d, met=%b%n", curTime, lastProgressPrintTime, elapsed, nRecords, maxElapsedIntervalForPrinting(curTime));
 
-        if (mustPrint || nRecords % N_RECORDS_TO_PRINT == 0 || maxElapsedIntervalForPrinting(curTime)) {
+        if (mustPrint || nRecords == 1 || nRecords % N_RECORDS_TO_PRINT == 0 || maxElapsedIntervalForPrinting(curTime)) {
             this.lastProgressPrintTime = curTime;
             final double secsPer1MReads = (elapsed * 1000000.0) / nRecords;
             if (loc != null)
