@@ -177,7 +177,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                 }
 
                 if (notYetSeenExclusion == exclusionClasses.size()) {
-                    throw new StingException(String.format("Unknown exclusion '%s'. Valid features are '%s'", requestedExclusionName, getAvailableClasses(exclusionClasses)));
+                    throw new StingException(String.format("Unknown exclusion '%s'. Valid exclusions are '%s'", requestedExclusionName, getAvailableClasses(exclusionClasses)));
                 }
             }
 
