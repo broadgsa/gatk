@@ -32,7 +32,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
     public double LOD_THRESHOLD = 5.0;
     @Argument(fullName="EntropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
-    public double MISMATCH_THRESHOLD = 0.25;
+    public double MISMATCH_THRESHOLD = 0.15;
     @Argument(fullName="maxConsensuses", shortName="maxConsensuses", doc="max alternate consensuses to try (necesary to improve performance in deep coverage)", required=false)
     public int MAX_CONSENSUSES = 30;
     @Argument(fullName="maxReadsForConsensuses", shortName="greedy", doc="max reads used for finding the alternate consensuses (necesary to improve performance in deep coverage)", required=false)
@@ -607,10 +607,10 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                             sb.append(" SAME_SNP\n");
                         else
                             sb.append(" NOT_SNP\n");
-                    } else if ( cleanedMismatchBases[i] > totalBases[i] * MISMATCH_THRESHOLD ) {
-                        sb.append(reads.get(0).getRead().getReferenceName() + ":");
-                        sb.append(((int)leftmostIndex + i));
-                        sb.append(" NEW_SNP\n");
+                    //} else if ( cleanedMismatchBases[i] > totalBases[i] * MISMATCH_THRESHOLD ) {
+                    //    sb.append(reads.get(0).getRead().getReferenceName() + ":");
+                    //    sb.append(((int)leftmostIndex + i));
+                    //    sb.append(" NEW_SNP\n");
                     }
             }
         }
