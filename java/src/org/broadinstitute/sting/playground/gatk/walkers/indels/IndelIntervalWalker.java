@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.AlignmentBlock;
 
@@ -35,8 +36,8 @@ public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval
         long indelLeftEdge = read.getAlignmentStart() + blocks.get(0).getLength() - 1;
         long indelRightEdge = read.getAlignmentEnd() - blocks.get(blocks.size()-1).getLength() + 1;
 
-        GenomeLoc indelLoc = new GenomeLoc(read.getReferenceIndex(), indelLeftEdge, indelRightEdge);
-        GenomeLoc refLoc = new GenomeLoc(read);
+        GenomeLoc indelLoc = GenomeLocParser.createGenomeLoc(read.getReferenceIndex(), indelLeftEdge, indelRightEdge);
+        GenomeLoc refLoc = GenomeLocParser.createGenomeLoc(read);
 
         return new Interval(refLoc, indelLoc);
     }
@@ -81,7 +82,7 @@ public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval
         public Interval merge(Interval i) {
             long indelLeftEdge = Math.min(this.indelLoc.getStart(), i.indelLoc.getStart());
             long indelRightEdge = Math.max(this.indelLoc.getStop(), i.indelLoc.getStop());
-            GenomeLoc mergedIndelLoc = new GenomeLoc(this.indelLoc.getContigIndex(), indelLeftEdge, indelRightEdge);
+            GenomeLoc mergedIndelLoc = GenomeLocParser.createGenomeLoc(this.indelLoc.getContigIndex(), indelLeftEdge, indelRightEdge);
             Interval mergedInterval = new Interval(this.readLoc.merge(i.readLoc), mergedIndelLoc);
             mergedInterval.indelCount = this.indelCount + i.indelCount;
             return mergedInterval;

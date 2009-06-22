@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.playground.indels;
 
 import java.io.File;
-import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -16,6 +15,7 @@ import net.sf.picard.reference.ReferenceSequence;
 
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 public class IndelInspectorMain extends CommandLineProgram {
 
@@ -55,10 +55,10 @@ public class IndelInspectorMain extends CommandLineProgram {
             System.out.println("No reference sequence dictionary found. Abort.");
         }
 
-        GenomeLoc.setupRefContigOrdering(reference.getSequenceDictionary());
+        GenomeLocParser.setupRefContigOrdering(reference.getSequenceDictionary());
         GenomeLoc location = null;
         if ( GENOME_LOCATION != null ) {
-            location = GenomeLoc.parseGenomeLoc(GENOME_LOCATION);
+            location = GenomeLocParser.parseGenomeLoc(GENOME_LOCATION);
         }
         
         if ( COUNT_CUTOFF == null ) COUNT_CUTOFF = 2;
@@ -117,8 +117,8 @@ public class IndelInspectorMain extends CommandLineProgram {
                 cur_contig = r.getReferenceName();
                 System.out.println("Contig "+cur_contig);
                 // if contig is specified and we are past that contig, we are done:
-                if ( location != null && GenomeLoc.compareContigs(cur_contig, location.getContig()) == 1 ) break;
-                if ( location == null || GenomeLoc.compareContigs(cur_contig, location.getContig()) == 0 ) {
+                if ( location != null && GenomeLocParser.compareContigs(cur_contig, location.getContig()) == 1 ) break;
+                if ( location == null || GenomeLocParser.compareContigs(cur_contig, location.getContig()) == 0 ) {
                 	if ( location != null ) System.out.println("Time spent to scroll input bam file to the specified chromosome: "+ ((System.currentTimeMillis()-tc)/1000) + " seconds.");
                 	tc = System.currentTimeMillis();
                     contig_seq = reference.get(r.getReferenceIndex());
@@ -130,7 +130,7 @@ public class IndelInspectorMain extends CommandLineProgram {
             }
 
             // if contig is specified and we did not reach it yet, skip the records until we reach that contig:
-            if ( location != null && GenomeLoc.compareContigs(cur_contig, location.getContig()) == -1 ) continue;
+            if ( location != null && GenomeLocParser.compareContigs(cur_contig, location.getContig()) == -1 ) continue;
 
             if ( location != null && r.getAlignmentEnd() < location.getStart() ) continue;
 
@@ -327,7 +327,7 @@ public class IndelInspectorMain extends CommandLineProgram {
             setDefaultContigOrdering();
             return;
         }
-        GenomeLoc.setupRefContigOrdering(h.getSequenceDictionary());
+        GenomeLocParser.setupRefContigOrdering(h.getSequenceDictionary());
     }
 
     private void setDefaultContigOrdering() {

@@ -915,7 +915,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         reads.add(r5);
         reads.add(r6);
         reads.add(r7);
-        clean(reads, reference, new GenomeLoc(0,0));
+        clean(reads, reference, GenomeLocParser.createGenomeLoc(0,0));
     }
 
     private void testCleanWithDeletion() {
@@ -971,7 +971,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         reads.add(r6);
         reads.add(r7);
         reads.add(r8);
-        clean(reads, reference, new GenomeLoc(0,0));
+        clean(reads, reference, GenomeLocParser.createGenomeLoc(0,0));
     }
 
     public static String cigarToString(Cigar cig) {

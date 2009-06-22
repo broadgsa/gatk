@@ -4,11 +4,12 @@ package org.broadinstitute.sting.utils;
 
 // the imports for unit testing.
 
-import org.junit.*;
-import static org.junit.Assert.assertTrue;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
-import org.broadinstitute.sting.utils.RefHanger;
+import static org.junit.Assert.assertTrue;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.File;
 import java.util.Arrays;
@@ -69,7 +70,7 @@ public class RefHangerTest extends BaseTest {
     public static void init() {
         // sequence
         seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
-        GenomeLoc.setupRefContigOrdering(seq);
+        GenomeLocParser.setupRefContigOrdering(seq);
 
         System.out.printf("Filled hanger is %n%s%n", makeFilledHanger());
     }
@@ -81,7 +82,7 @@ public class RefHangerTest extends BaseTest {
         l3 = Arrays.asList(6);
         l4 = Arrays.asList(7, 8);
         l5 = Arrays.asList(9, 10);
-        p1 = new GenomeLoc(0, 1, 1);
+        p1 = GenomeLocParser.createGenomeLoc(0, 1, 1);
         p2 = new GenomeLoc(p1).nextLoc();
         p3 = new GenomeLoc(p2).nextLoc();
         p4 = new GenomeLoc(p3).nextLoc();
@@ -94,7 +95,7 @@ public class RefHangerTest extends BaseTest {
 
     @Before
     public void setupHanger() {
-        startLoc = new GenomeLoc(0, 1, 1);  // chrM 1
+        startLoc = GenomeLocParser.createGenomeLoc(0, 1, 1);  // chrM 1
         emptyHanger = new RefHanger<Integer>();
         filledHanger = makeFilledHanger();
 
@@ -145,7 +146,7 @@ public class RefHangerTest extends BaseTest {
         assertTrue(filledHanger.hasLocation(p3));
         assertTrue(filledHanger.hasLocation(p4));
         assertTrue(filledHanger.hasLocation(p5));
-        assertTrue(! filledHanger.hasLocation(new GenomeLoc(0, 6, 6)));
+        assertTrue(! filledHanger.hasLocation(GenomeLocParser.createGenomeLoc(0, 6, 6)));
 
         assertTrue(filledHanger.getHanger(0) != null);
         assertTrue(filledHanger.getHanger(1) != null);

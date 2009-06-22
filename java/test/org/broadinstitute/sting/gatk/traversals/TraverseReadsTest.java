@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
@@ -10,8 +11,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.CountReadsWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import static org.junit.Assert.fail;
@@ -116,7 +116,7 @@ public class TraverseReadsTest extends BaseTest {
         catch (FileNotFoundException ex) {
             throw new RuntimeException("File not found opening fasta file; please do this check before MicroManaging", ex);
         }
-        GenomeLoc.setupRefContigOrdering(ref);
+        GenomeLocParser.setupRefContigOrdering(ref);
 
         ShardStrategy shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS,
                 ref.getSequenceDictionary(),
@@ -148,7 +148,7 @@ public class TraverseReadsTest extends BaseTest {
             fail("Count read walker should return an interger.");
         }
         if (((Integer) accumulator) != 9721) {
-            fail("there should be 9721 mapped reads in the index file");
+            fail("there should be 9721 mapped reads in the index file, there was " + ((Integer) accumulator) );
         }
     }
 
@@ -156,7 +156,6 @@ public class TraverseReadsTest extends BaseTest {
     /** Test out that we can shard the file and iterate over every read */
     @Test
     public void testUnmappedReadCount() {
-
         IndexedFastaSequenceFile ref = null;
         try {
             ref = new IndexedFastaSequenceFile(refFile);
@@ -164,7 +163,7 @@ public class TraverseReadsTest extends BaseTest {
         catch (FileNotFoundException ex) {
             throw new RuntimeException("File not found opening fasta file; please do this check before MicroManaging", ex);
         }
-        GenomeLoc.setupRefContigOrdering(ref);
+        GenomeLocParser.setupRefContigOrdering(ref);
 
         ShardStrategy shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS,
                 ref.getSequenceDictionary(),
@@ -195,7 +194,7 @@ public class TraverseReadsTest extends BaseTest {
             fail("Count read walker should return an interger.");
         }
         if (((Integer) accumulator) != 10000) {
-            fail("there should be 10000 mapped reads in the index file");
+            fail("there should be 10000 mapped reads in the index file, there was " + ((Integer) accumulator));
         }
     }
 

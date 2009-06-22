@@ -7,8 +7,6 @@ import net.sf.samtools.util.CloseableIterator;
 import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
-import java.io.File;
-import java.util.Collections;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -16,8 +14,7 @@ import java.util.ArrayList;
 
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
-import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 /**
  * User: hanna
  * Date: Jun 11, 2009
@@ -54,11 +51,11 @@ public class ArtificialSAMFileReader extends SAMFileReader {
      */
     @Override
     public CloseableIterator<SAMRecord> query(final String sequence, final int start, final int end, final boolean contained) {
-        GenomeLoc region = new GenomeLoc(sequence, start, end);
+        GenomeLoc region = GenomeLocParser.createGenomeLoc(sequence, start, end);
         List<SAMRecord> coveredSubset = new ArrayList<SAMRecord>();
 
         for( SAMRecord read: reads ) {
-            GenomeLoc readPosition = new GenomeLoc(read);
+            GenomeLoc readPosition = GenomeLocParser.createGenomeLoc(read);
             if( contained && region.containsP(readPosition) ) coveredSubset.add(read);
             else if( !contained && readPosition.overlapsP(region) ) coveredSubset.add(read);
         }

@@ -14,6 +14,7 @@ import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -184,7 +185,7 @@ public class SAMDataSource implements SimpleDataSource {
 
         if (!intoUnmappedReads) {
             if (lastReadPos == null) {
-                lastReadPos = new GenomeLoc(getHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, Integer.MAX_VALUE);
+                lastReadPos = GenomeLocParser.createGenomeLoc(getHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, Integer.MAX_VALUE);
                 iter = iteratorPool.iterator(lastReadPos);
                 return InitialReadIterator(shard.getSize(), iter);
             } else {
@@ -280,7 +281,8 @@ public class SAMDataSource implements SimpleDataSource {
                 ++x;
             } else {
                 // jump contigs
-                if (lastReadPos.toNextContig() == false) {
+                lastReadPos = GenomeLocParser.toNextContig(lastReadPos);
+                if (lastReadPos == null) {
                     // check to see if we're using unmapped reads, if not return, we're done
                     readsTaken = 0;
                     intoUnmappedReads = true;
@@ -304,7 +306,7 @@ public class SAMDataSource implements SimpleDataSource {
         else if (rec != null) {
             int stopPos = rec.getAlignmentStart();
             if (stopPos < lastReadPos.getStart()) {
-                lastReadPos = new GenomeLoc(lastReadPos.getContigIndex() + 1, stopPos, stopPos);
+                lastReadPos = GenomeLocParser.createGenomeLoc(lastReadPos.getContigIndex() + 1, stopPos, stopPos);
             } else {
                 lastReadPos.setStart(rec.getAlignmentStart());
             }

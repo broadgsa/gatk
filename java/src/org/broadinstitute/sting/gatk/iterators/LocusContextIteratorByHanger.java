@@ -1,14 +1,15 @@
 package org.broadinstitute.sting.gatk.iterators;
 
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.AlignmentBlock;
-import org.broadinstitute.sting.utils.*;
+import net.sf.samtools.SAMRecord;
+import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.RefHanger;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.util.Iterator;
-
-import org.broadinstitute.sting.utils.RefHanger;
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.apache.log4j.Logger;
 
 /**
  * Iterator that traverses a SAM File, accumulating information on a per-locus basis
@@ -103,12 +104,12 @@ public class LocusContextIteratorByHanger extends LocusContextIterator {
     }
 
     protected void hangRead(final SAMRecord read) {
-        GenomeLoc readLoc = new GenomeLoc(read);
+        GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
 
         for ( AlignmentBlock block : read.getAlignmentBlocks() ) {
             if ( DEBUG ) logger.debug(String.format("Processing block %s len=%d", block, block.getLength()));
             for ( int i = 0; i < block.getLength(); i++ ) {
-                GenomeLoc offset = new GenomeLoc(readLoc.getContigIndex(), block.getReferenceStart() + i);
+                GenomeLoc offset = GenomeLocParser.createGenomeLoc(readLoc.getContigIndex(), block.getReferenceStart() + i);
                 readHanger.expandingPut(offset, read);
                 offsetHanger.expandingPut(offset, block.getReadStart() + i - 1);
                 if ( DEBUG ) logger.debug(String.format("  # Added %s", offset));
@@ -134,7 +135,7 @@ public class LocusContextIteratorByHanger extends LocusContextIterator {
             return true;
         else {
             final SAMRecord read = it.peek();
-            GenomeLoc readLoc = new GenomeLoc(read);
+            GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
             final boolean coveredP = currentPositionIsFullyCovered(readLoc);
             //System.out.printf("CoverP = %s => %b%n", readLoc, coveredP);
             return coveredP;
@@ -161,7 +162,7 @@ public class LocusContextIteratorByHanger extends LocusContextIterator {
             SAMRecord read = it.next();
             justCleared = false;
 
-            GenomeLoc readLoc = new GenomeLoc(read);
+            GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
             if ( DEBUG ) {
                 logger.debug(String.format("  Expanding window sizes %d with %d : left=%s, right=%s, readLoc = %s, cmp=%d",
                         readHanger.size(), incrementSize,

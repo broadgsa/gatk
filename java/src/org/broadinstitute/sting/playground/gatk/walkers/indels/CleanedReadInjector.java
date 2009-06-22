@@ -1,24 +1,20 @@
 package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Queue;
-import java.util.LinkedList;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 /**
- * User: hanna
+ * User: hanna                                                                                                                    
  * Date: Jun 10, 2009
  * Time: 2:40:19 PM
  * BROAD INSTITUTE SOFTWARE COPYRIGHT NOTICE AND AGREEMENT
@@ -99,7 +95,7 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
      */
     @Override
     public Integer map(char[] ref, SAMRecord read) {
-        GenomeLoc loc = new GenomeLoc(read);
+        GenomeLoc loc = GenomeLocParser.createGenomeLoc(read);
 
         while( loc.isPast(interval) && intervals.size() > 0 ) {
             interval = intervals.remove();

@@ -6,6 +6,7 @@ import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.junit.*;
 import static org.junit.Assert.assertTrue;
@@ -42,7 +43,7 @@ public class ShardStrategyFactoryTest extends BaseTest {
 
     @Before
     public void setup() {
-        GenomeLoc.setupRefContigOrdering(header.getSequenceDictionary());
+        GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
         set = new GenomeLocSortedSet();
     }
 
@@ -54,7 +55,7 @@ public class ShardStrategyFactoryTest extends BaseTest {
 
     @Test
     public void testReadInterval() {
-        GenomeLoc l = new GenomeLoc(0,1,100);
+        GenomeLoc l = GenomeLocParser.createGenomeLoc(0,1,100);
         set.add(l);
         ShardStrategy st = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS,header.getSequenceDictionary(),100,set);
         assertTrue(st instanceof IntervalShardStrategy);
@@ -74,7 +75,7 @@ public class ShardStrategyFactoryTest extends BaseTest {
 
     @Test
     public void testExpInterval() {
-        GenomeLoc l = new GenomeLoc(0,1,100);
+        GenomeLoc l = GenomeLocParser.createGenomeLoc(0,1,100);
         set.add(l);
         ShardStrategy st = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.EXPONENTIAL,header.getSequenceDictionary(),100,set);
         assertTrue(st instanceof ExpGrowthLocusShardStrategy);
@@ -82,7 +83,7 @@ public class ShardStrategyFactoryTest extends BaseTest {
 
     @Test
     public void testLinearInterval() {
-        GenomeLoc l = new GenomeLoc(0,1,100);
+        GenomeLoc l = GenomeLocParser.createGenomeLoc(0,1,100);
         set.add(l);
         ShardStrategy st = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,header.getSequenceDictionary(),100,set);
         assertTrue(st instanceof LinearLocusShardStrategy);

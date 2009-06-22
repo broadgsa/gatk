@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.BaseTest;
 import net.sf.samtools.SAMFileHeader;
@@ -60,7 +61,7 @@ public class IntervalShardStrategyTest extends BaseTest {
 
     @Before
     public void setup() {
-        GenomeLoc.setupRefContigOrdering(header.getSequenceDictionary());
+        GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
         mSortedSet = new GenomeLocSortedSet();
     }
 
@@ -71,7 +72,7 @@ public class IntervalShardStrategyTest extends BaseTest {
 
     @Test
     public void testSingleChromosomeFunctionality() {
-        GenomeLoc loc = new GenomeLoc(1, 1, 1000);
+        GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, 1, 1000);
         mSortedSet.add(loc);
         IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet);
         int counter = 0;
@@ -87,7 +88,7 @@ public class IntervalShardStrategyTest extends BaseTest {
     @Test
     public void testMultipleChromosomeFunctionality() {
         for (int x = 0; x < 5; x++) {
-            GenomeLoc loc = new GenomeLoc(x, 1, 1000);
+            GenomeLoc loc = GenomeLocParser.createGenomeLoc(x, 1, 1000);
             mSortedSet.add(loc);
         }
         IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet);
@@ -104,7 +105,7 @@ public class IntervalShardStrategyTest extends BaseTest {
     @Test
     public void testOddSizeShardFunctionality() {
         for (int x = 0; x < 5; x++) {
-            GenomeLoc loc = new GenomeLoc(x, 1, 1000);
+            GenomeLoc loc = GenomeLocParser.createGenomeLoc(x, 1, 1000);
             mSortedSet.add(loc);
         }
         IntervalShardStrategy strat = new IntervalShardStrategy(789, mSortedSet);
@@ -122,7 +123,7 @@ public class IntervalShardStrategyTest extends BaseTest {
     @Test
     public void testInfiniteShardSize() {
         for (int x = 0; x < 5; x++) {
-            GenomeLoc loc = new GenomeLoc(x, 1, 1000);
+            GenomeLoc loc = GenomeLocParser.createGenomeLoc(x, 1, 1000);
             mSortedSet.add(loc);
         }
         IntervalShardStrategy strat = new IntervalShardStrategy(Long.MAX_VALUE, mSortedSet);
@@ -137,7 +138,7 @@ public class IntervalShardStrategyTest extends BaseTest {
 
     @Test(expected = UnsupportedOperationException.class)
     public void testRemove() {
-        GenomeLoc loc = new GenomeLoc(1, 1, 1000);
+        GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, 1, 1000);
         mSortedSet.add(loc);
         IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet);
         strat.remove();

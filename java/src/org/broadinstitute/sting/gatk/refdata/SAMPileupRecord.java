@@ -6,10 +6,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.Pileup;
-import org.broadinstitute.sting.utils.xReadLines;
+import org.broadinstitute.sting.utils.*;
 
 import net.sf.picard.reference.ReferenceSequenceFileWalker;
 
@@ -97,8 +94,8 @@ class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
 		   if ( refBaseChar == '*' ) {
  	
 			   parseIndels(observedString) ;
-			   if ( varType == DELETION_VARIANT ) loc = new GenomeLoc(contig, start, start+eventLength-1);
-			   else loc = new GenomeLoc(contig, start, start-1); // if it's not a deletion and we are biallelic, this got to be an insertion; otherwise the state is inconsistent!!!!
+			   if ( varType == DELETION_VARIANT ) loc = GenomeLocParser.createGenomeLoc(contig, start, start+eventLength-1);
+			   else loc = GenomeLocParser.createGenomeLoc(contig, start, start-1); // if it's not a deletion and we are biallelic, this got to be an insertion; otherwise the state is inconsistent!!!!
 		   } else {
 			   parseBasesAndQuals(line,pos[7]+1,pos[8], pos[8]+1, ( pos.length > 9 ? pos[9] : line.length()) );
 //			   parseBasesAndQuals(line.substring(pos[7]+1,pos[8]), line.substring(pos[8]+1, ( pos.length > 9 ? pos[9] : line.length()) ) );
@@ -108,7 +105,7 @@ class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
 			   refBases = line.substring(pos[1]+1, pos[2]).toUpperCase();
 			   eventLength = 1;
 			   //loc = new GenomeLoc(contig, start, start+1);
-			   loc = new GenomeLoc(contig, start, start);
+			   loc = GenomeLocParser.createGenomeLoc(contig, start, start);
 
 			   char ch = observedString.charAt(0);
 
@@ -170,8 +167,8 @@ class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
             if ( refBaseChar == '*' ) {
             	
                 parseIndels(parts[3]) ;
-                if ( varType == DELETION_VARIANT ) loc = GenomeLoc.parseGenomeLoc(contig, start, start+eventLength-1);
-                else loc = GenomeLoc.parseGenomeLoc(contig, start, start-1); // if it's not a deletion and we are biallelic, this got to be an insertion; otherwise the state is inconsistent!!!!
+                if ( varType == DELETION_VARIANT ) loc = GenomeLocParser.parseGenomeLoc(contig, start, start+eventLength-1);
+                else loc = GenomeLocParser.parseGenomeLoc(contig, start, start-1); // if it's not a deletion and we are biallelic, this got to be an insertion; otherwise the state is inconsistent!!!!
             }
             else {
                 parseBasesAndQuals(parts[8], parts[9]);
@@ -181,7 +178,7 @@ class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
                 refBases = parts[2].toUpperCase();
                 eventLength = 1;
                 //loc = GenomeLoc.parseGenomeLoc(contig, start, start+1);
-                loc = GenomeLoc.parseGenomeLoc(contig, start, start);
+                loc = GenomeLocParser.parseGenomeLoc(contig, start, start);
 
                 char ch = parts[3].charAt(0);
 
@@ -623,7 +620,7 @@ class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
 			System.exit(1);
 		}
 
-		GenomeLoc.setupRefContigOrdering(reference.getSequenceDictionary());
+		GenomeLocParser.setupRefContigOrdering(reference.getSequenceDictionary());
 		
 		int counter = 0;
 		

@@ -18,10 +18,10 @@ import org.broadinstitute.sting.gatk.refdata.RODIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.playground.indels.AlignmentUtils;
 import org.broadinstitute.sting.playground.utils.CircularArray;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 
@@ -82,7 +82,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		
 		int nSams = getToolkit().getArguments().samFiles.size(); 
 		
-		location = new GenomeLoc(0,1);
+		location = GenomeLocParser.createGenomeLoc(0,1);
 		
 		if ( call_somatic ) {
 			if ( nSams != 2 ) {

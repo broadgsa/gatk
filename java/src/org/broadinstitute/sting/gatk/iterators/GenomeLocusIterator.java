@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.iterators;
 
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.NoSuchElementException;
 /**
@@ -39,7 +39,7 @@ public class GenomeLocusIterator implements LocusIterator {
      */
     public GenomeLocusIterator( GenomeLoc completeLocus ) {
         this.completeLocus = completeLocus;
-        this.currentLocus = new GenomeLoc(completeLocus.getContig(),completeLocus.getStart());
+        this.currentLocus = GenomeLocParser.createGenomeLoc(completeLocus.getContig(),completeLocus.getStart());
     }
 
     /**

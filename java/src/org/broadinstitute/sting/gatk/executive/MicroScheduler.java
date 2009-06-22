@@ -18,9 +18,9 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
@@ -202,7 +202,7 @@ public abstract class MicroScheduler {
         catch (FileNotFoundException ex) {
             throw new StingException("I/O error while opening fasta file: " + ex.getMessage(), ex);
         }
-        GenomeLoc.setupRefContigOrdering(ref);
+        GenomeLocParser.setupRefContigOrdering(ref);
         return ref;
     }
 }

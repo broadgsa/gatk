@@ -7,6 +7,7 @@ import java.util.*;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import net.sf.picard.reference.ReferenceSequenceFileWalker;
 
@@ -192,7 +193,7 @@ public class rodSAMPileup extends BasicReferenceOrderedDatum implements Genotype
 			System.exit(1);
 		}
 
-		GenomeLoc.setupRefContigOrdering(reference.getSequenceDictionary());
+		GenomeLocParser.setupRefContigOrdering(reference.getSequenceDictionary());
 		
 		int counter = 0;
 		

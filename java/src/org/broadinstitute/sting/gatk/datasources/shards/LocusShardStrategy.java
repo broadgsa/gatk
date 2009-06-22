@@ -5,6 +5,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.Iterator;
 /**
@@ -63,7 +64,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
     LocusShardStrategy( SAMSequenceDictionary dic ) {
         this.dic = dic;
         limitingFactor = -1;
-        mLoc = new GenomeLoc(0, 0, 0);
+        mLoc = GenomeLocParser.createGenomeLoc(0, 0, 0);
         if (dic.getSequences().size() > 0) {
             nextContig = true;
         }
@@ -98,7 +99,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
             throw new IllegalArgumentException("Interval files must contain at least one interval");
         }
         GenomeLoc loc = intervals.iterator().next();
-        mLoc = new GenomeLoc(loc.getContig(), loc.getStart() - 1, loc.getStart() - 1);
+        mLoc = GenomeLocParser.createGenomeLoc(loc.getContig(), loc.getStart() - 1, loc.getStart() - 1);
         if (dic.getSequences().size() > 0) {
             nextContig = true;
         }
@@ -174,7 +175,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
             intervals.removeRegion(loc);
             return new IntervalShard(loc);
         } else {
-            GenomeLoc subLoc = new GenomeLoc(loc.getContigIndex(), loc.getStart(), loc.getStart() + proposedSize - 1);
+            GenomeLoc subLoc = GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart(), loc.getStart() + proposedSize - 1);
             intervals.removeRegion(subLoc);
             return new IntervalShard(subLoc);
         }
@@ -193,7 +194,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
         // can we fit it into the current seq size?
         if (nextStart + proposedSize - 1 < length) {
             lastGenomeLocSize = proposedSize;
-            mLoc = new GenomeLoc(dic.getSequence(seqLoc).getSequenceIndex(), nextStart, nextStart + proposedSize - 1);
+            mLoc = GenomeLocParser.createGenomeLoc(dic.getSequence(seqLoc).getSequenceIndex(), nextStart, nextStart + proposedSize - 1);
             return LocusShard.toShard(mLoc);
         }
         // else we can't make it in the current location, we have to stitch one together
@@ -207,7 +208,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
 
             // move to the next contig
             // the next sequence should start at the begining of the next contig
-            Shard ret = LocusShard.toShard(new GenomeLoc(dic.getSequence(seqLoc).getSequenceIndex(), nextStart, nextStart + lastGenomeLocSize - 1));
+            Shard ret = LocusShard.toShard(GenomeLocParser.createGenomeLoc(dic.getSequence(seqLoc).getSequenceIndex(), nextStart, nextStart + lastGenomeLocSize - 1));
 
             // now  jump ahead to the next contig
             jumpContig();
@@ -226,7 +227,7 @@ public abstract class LocusShardStrategy implements ShardStrategy {
             return;
         }
         logger.debug("Next contig, index = " + dic.getSequence(seqLoc).getSequenceIndex());
-        mLoc = new GenomeLoc(dic.getSequence(seqLoc).getSequenceIndex(), 0, 0);
+        mLoc = GenomeLocParser.createGenomeLoc(dic.getSequence(seqLoc).getSequenceIndex(), 0, 0);
 
 
     }

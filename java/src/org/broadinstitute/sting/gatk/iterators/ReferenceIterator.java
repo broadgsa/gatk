@@ -5,6 +5,7 @@ import net.sf.samtools.util.RuntimeIOException;
 import net.sf.samtools.util.StringUtil;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.util.Iterator;
@@ -65,7 +66,7 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
     }
 
     public GenomeLoc getLocation() {
-        return new GenomeLoc(getCurrentContig().getName(), getPosition());
+        return GenomeLocParser.createGenomeLoc(getCurrentContig().getName(), getPosition());
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -137,11 +138,11 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
         if (seekOffset < offset  ) {  
             // bad boy -- can't go backward safely
             throw new IllegalArgumentException(String.format("Invalid seek %s => %s, which is usually due to out of order reads%n",
-                    new GenomeLoc(currentContig.getName(), offset), new GenomeLoc(seekContigName, seekOffset)));
+                    GenomeLocParser.createGenomeLoc(currentContig.getName(), offset), GenomeLocParser.createGenomeLoc(seekContigName, seekOffset)));
         } else if (seekOffset >= currentContig.length()) {
             // bad boy -- can't go beyond the contig length
             throw new IllegalArgumentException(String.format("Invalid seek to %s, which is beyond the end of the contig%n",
-                    new GenomeLoc(currentContig.getName(), seekOffset + 1)));
+                    GenomeLocParser.createGenomeLoc(currentContig.getName(), seekOffset + 1)));
         } else {
             offset = seekOffset - 1;
             return next();
@@ -160,15 +161,16 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
         if (DEBUG)
             logger.debug(String.format("  -> Seeking to %s %d from %s %d%n", seekContigName, seekOffset, currentContig.getName(), offset));
 
-        int cmpContigs = GenomeLoc.compareContigs(seekContigName, currentContig.getName());
+
+        int cmpContigs = GenomeLocParser.compareContigs(seekContigName,currentContig.getName());
         
-        if ( cmpContigs < 0 && GenomeLoc.hasKnownContigOrdering() ) {  // if we know the order of contigs and we are already past the contig we seek, it's too late! 
+        if ( cmpContigs < 0 && GenomeLocParser.hasKnownContigOrdering() ) {  // if we know the order of contigs and we are already past the contig we seek, it's too late!
             // The contig we are looking for is before the currentContig -- it's an error
             throw new IllegalArgumentException(String.format("Invalid seek %s => %s, contigs/sequences are out of order%n",
-                    new GenomeLoc(currentContig.getName(), offset), new GenomeLoc(seekContigName, seekOffset)));
+                    GenomeLocParser.createGenomeLoc(currentContig.getName(), offset), GenomeLocParser.createGenomeLoc(seekContigName, seekOffset)));
         } 
         
-        if ( cmpContigs > 0 ||  (! GenomeLoc.hasKnownContigOrdering() ) && cmpContigs != 0 ) { // if contig we seek is still ahead, or if we have no idea what the order is and current contig is not what we seek
+        if ( cmpContigs > 0 ||  (! GenomeLocParser.hasKnownContigOrdering() ) && cmpContigs != 0 ) { // if contig we seek is still ahead, or if we have no idea what the order is and current contig is not what we seek
             // then try to seek forward in the reference file until we get the contig we need
             if (DEBUG)
                 logger.debug(String.format("  -> Seeking in the fasta file to %s from %s%n", seekContigName, currentContig.getName()));
@@ -176,7 +178,7 @@ public class ReferenceIterator implements Iterator<ReferenceIterator> {
             if (!refFile.seekToContig(seekContigName)) { // ok, do the seek
                 // a false result indicates a failure, throw a somewhat cryptic call
                 throw new RuntimeIOException(String.format("Unexpected seek failure from %s to %s%n",
-                        new GenomeLoc(currentContig.getName(), offset), new GenomeLoc(seekContigName, seekOffset)));
+                        GenomeLocParser.createGenomeLoc(currentContig.getName(), offset), GenomeLocParser.createGenomeLoc(seekContigName, seekOffset)));
             }
 
             readNextContig(); // since we haven't failed, we just read in the next contig (which is seekContigName)

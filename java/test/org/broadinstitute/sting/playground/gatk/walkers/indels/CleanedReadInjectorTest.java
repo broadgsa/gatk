@@ -3,8 +3,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.indels;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.OutputTracker;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMFileReader;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMFileWriter;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
@@ -47,7 +47,7 @@ public class CleanedReadInjectorTest extends BaseTest {
     @BeforeClass
     public static void initialize() throws FileNotFoundException {
         sequenceFile = new IndexedFastaSequenceFile( new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta") );
-        GenomeLoc.setupRefContigOrdering(sequenceFile);
+        GenomeLocParser.setupRefContigOrdering(sequenceFile);
     }
 
     @Test

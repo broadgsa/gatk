@@ -4,7 +4,7 @@ import org.junit.Test;
 import org.junit.BeforeClass;
 import org.junit.Assert;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.TabularROD;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -44,7 +44,7 @@ public class ReferenceOrderedViewTest extends BaseTest {
     public static void init() throws FileNotFoundException {
         // sequence
         seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
-        GenomeLoc.setupRefContigOrdering(seq);
+        GenomeLocParser.setupRefContigOrdering(seq);
     }
 
     /**
@@ -52,11 +52,11 @@ public class ReferenceOrderedViewTest extends BaseTest {
      */
     @Test
     public void testNoBindings() {
-        Shard shard = new LocusShard(new GenomeLoc("chrM",1,30));
+        Shard shard = new LocusShard(GenomeLocParser.createGenomeLoc("chrM",1,30));
         ShardDataProvider provider = new ShardDataProvider(shard, null, seq, Collections.<ReferenceOrderedDataSource>emptyList());
         ReferenceOrderedView view = new ReferenceOrderedView( provider );
 
-        RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(new GenomeLoc("chrM",10));
+        RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",10));
         Assert.assertNull("The tracker should not have produced any data", tracker.lookup("tableTest",null));
     }
 
@@ -69,12 +69,12 @@ public class ReferenceOrderedViewTest extends BaseTest {
         ReferenceOrderedData rod = new ReferenceOrderedData("tableTest", file, TabularROD.class);
         ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(rod);
 
-        Shard shard = new LocusShard(new GenomeLoc("chrM",1,30));
+        Shard shard = new LocusShard(GenomeLocParser.createGenomeLoc("chrM",1,30));
 
         ShardDataProvider provider = new ShardDataProvider(shard, null, seq, Collections.singletonList(dataSource));
         ReferenceOrderedView view = new ReferenceOrderedView( provider );
 
-        RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(new GenomeLoc("chrM",20));
+        RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",20));
         TabularROD datum = (TabularROD)tracker.lookup("tableTest",null);
 
         Assert.assertEquals("datum parameter for COL1 is incorrect", "C", datum.get("COL1"));
@@ -95,12 +95,12 @@ public class ReferenceOrderedViewTest extends BaseTest {
         ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(rod2);
 
 
-        Shard shard = new LocusShard(new GenomeLoc("chrM",1,30));
+        Shard shard = new LocusShard(GenomeLocParser.createGenomeLoc("chrM",1,30));
 
         ShardDataProvider provider = new ShardDataProvider(shard, null, seq, Arrays.asList(dataSource1,dataSource2));
         ReferenceOrderedView view = new ReferenceOrderedView( provider );
 
-        RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(new GenomeLoc("chrM",20));
+        RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",20));
         TabularROD datum1 = (TabularROD)tracker.lookup("tableTest1",null);
 
         Assert.assertEquals("datum1 parameter for COL1 is incorrect", "C", datum1.get("COL1"));

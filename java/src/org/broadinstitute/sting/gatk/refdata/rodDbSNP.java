@@ -4,10 +4,10 @@ import net.sf.picard.util.SequenceUtil;
 
 import java.util.*;
 
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.MalformedGenomeLocException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 
 /**
@@ -162,7 +162,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
             String contig = parts[1];
             long start = Long.parseLong(parts[2]) + 1; // The final is 0 based
             long stop = Long.parseLong(parts[3]) + 1;  // The final is 0 based
-            loc = GenomeLoc.parseGenomeLoc(contig, start, stop-1);
+            loc = GenomeLocParser.parseGenomeLoc(contig, start, stop-1);
 
             name = parts[4];
             refBases = parts[5];

@@ -101,7 +101,7 @@ public class GenomeAnalysisEngine {
         // Prepare the sort ordering w.r.t. the sequence dictionary
         if (argCollection.referenceFile != null) {
             final ReferenceSequenceFile refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(argCollection.referenceFile);
-            GenomeLoc.setupRefContigOrdering(refFile);
+            GenomeLocParser.setupRefContigOrdering(refFile);
         }
 
         // Determine the validation stringency.  Default to ValidationStringency.STRICT.
@@ -145,7 +145,7 @@ public class GenomeAnalysisEngine {
         // Prepare the sort ordering w.r.t. the sequence dictionary
         if (argCollection.referenceFile != null) {
             final ReferenceSequenceFile refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(argCollection.referenceFile);
-            GenomeLoc.setupRefContigOrdering(refFile);
+            GenomeLocParser.setupRefContigOrdering(refFile);
         }
 
         // Determine the validation stringency.  Default to ValidationStringency.STRICT.
@@ -222,10 +222,10 @@ public class GenomeAnalysisEngine {
         if ( intervalsString != null) {
             if (new File(intervalsString).exists()) {
                 if (! quiet) logger.info("Intervals argument specifies a file.  Loading intervals from file.");
-                locs = GenomeLoc.IntervalFileToList(intervalsString);
+                locs = GenomeLocParser.intervalFileToList(intervalsString);
             } else {
                 if (! quiet) logger.info("Intervals argument does not specify a file.  Trying to parse it as a simple string.");
-                locs = GenomeLoc.parseGenomeLocs(intervalsString);
+                locs = GenomeLocParser.parseGenomeLocs(intervalsString);
             }
         }
         return locs;

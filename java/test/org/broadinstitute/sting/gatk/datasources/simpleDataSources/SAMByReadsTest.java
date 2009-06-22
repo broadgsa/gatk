@@ -10,6 +10,7 @@ import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMQueryIterator;
 import static org.junit.Assert.assertEquals;
@@ -76,7 +77,7 @@ public class SAMByReadsTest extends BaseTest {
     @Test
     public void testToUnmappedReads() {
         ArtificialResourcePool gen = new ArtificialResourcePool(1,10,100,1000);
-        GenomeLoc.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
+        GenomeLocParser.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
         try {
             int unmappedReadsSeen = 0;
             int iterations = 0;
@@ -109,7 +110,7 @@ public class SAMByReadsTest extends BaseTest {
     @Test
     public void testShardingOfReadsSize14() {
         ArtificialResourcePool gen = new ArtificialResourcePool(1,10,100,1000);
-        GenomeLoc.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
+        GenomeLocParser.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
         targetReadCount = 14;
         try {
             int iterations = 0;
@@ -159,7 +160,7 @@ public class SAMByReadsTest extends BaseTest {
     @Test
     public void testShardingOfReadsSize25() {
         ArtificialResourcePool gen = new ArtificialResourcePool(1,10,100,1000);
-        GenomeLoc.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
+        GenomeLocParser.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
         targetReadCount = 25;
         try {
             int iterations = 0;

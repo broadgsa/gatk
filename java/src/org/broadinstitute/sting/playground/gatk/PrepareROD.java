@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.playground.gatk;
 
-import net.sf.samtools.SAMSequenceRecord;
 import net.sf.picard.cmdline.CommandLineProgram;
 import net.sf.picard.cmdline.Usage;
 import net.sf.picard.cmdline.Option;
@@ -11,8 +10,6 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.List;
 import java.util.ArrayList;
 
 public class PrepareROD extends CommandLineProgram {
@@ -33,7 +30,7 @@ public class PrepareROD extends CommandLineProgram {
 
         // Prepare the sort ordering w.r.t. the sequence dictionary
         final ReferenceSequenceFile refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(REF_FILE_ARG);
-        GenomeLoc.setupRefContigOrdering(refFile);
+        GenomeLocParser.setupRefContigOrdering(refFile);
 
         Class<? extends ReferenceOrderedDatum> rodClass = ReferenceOrderedData.Types.get(ROD_TYPE.toLowerCase()).type;
 

@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.junit.Assert;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.LocusContext;
 import net.sf.samtools.SAMRecord;
 
@@ -43,11 +44,11 @@ public class CoveredLocusViewTest extends LocusViewTemplate {
         CoveredLocusView coveredLocusView = (CoveredLocusView)view;
 
         for( long i = bounds.getStart(); i <= bounds.getStop(); i++ ) {
-            GenomeLoc site = new GenomeLoc("chr1",i);
+            GenomeLoc site = GenomeLocParser.createGenomeLoc("chr1",i);
 
             int expectedReadsAtSite = 0;
             for( SAMRecord read: reads ) {
-                if( new GenomeLoc(read).containsP(site) )
+                if( GenomeLocParser.createGenomeLoc(read).containsP(site) )
                     expectedReadsAtSite++;
             }
 
@@ -61,7 +62,7 @@ public class CoveredLocusViewTest extends LocusViewTemplate {
             Assert.assertEquals("Found wrong number of reads at site", expectedReadsAtSite, locusContext.getReads().size());
 
             for( SAMRecord read: reads ) {
-                if(new GenomeLoc(read).containsP(locusContext.getLocation()))
+                if(GenomeLocParser.createGenomeLoc(read).containsP(locusContext.getLocation()))
                     Assert.assertTrue("Target locus context does not contain reads", locusContext.getReads().contains(read) );
             }
         }

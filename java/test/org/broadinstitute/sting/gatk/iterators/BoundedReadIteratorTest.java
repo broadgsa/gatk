@@ -9,7 +9,7 @@ import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SimpleDataSourceLoadException;
 import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -73,7 +73,7 @@ public class BoundedReadIteratorTest extends BaseTest {
 
         // sequence
         seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
-        GenomeLoc.setupRefContigOrdering(seq.getSequenceDictionary());
+        GenomeLocParser.setupRefContigOrdering(seq.getSequenceDictionary());
     }
 
 

@@ -1,25 +1,28 @@
 package org.broadinstitute.sting.gatk.traversals;
 
+import net.sf.picard.filter.FilteringIterator;
+import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
+import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Pair;
 
 import java.io.File;
-import java.util.*;
-
-import net.sf.picard.filter.FilteringIterator;
-import net.sf.picard.filter.SamRecordFilter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  *
@@ -66,12 +69,12 @@ public class TraverseDuplicates extends TraversalEngine {
 
     private List<SAMRecord> readsAtLoc(final SAMRecord read, PushbackIterator<SAMRecord> iter)
     {
-        GenomeLoc site = new GenomeLoc(read);
+        GenomeLoc site = GenomeLocParser.createGenomeLoc(read);
         ArrayList<SAMRecord> l = new ArrayList<SAMRecord>();
 
         l.add(read);
         for (SAMRecord read2: iter) {
-            GenomeLoc site2 = new GenomeLoc(read2);
+            GenomeLoc site2 = GenomeLocParser.createGenomeLoc(read2);
 
             // the next read starts too late
             if ( site2.getStart() != site.getStart() ) {
@@ -105,12 +108,12 @@ public class TraverseDuplicates extends TraversalEngine {
         // At this point, there are two possibilities, we have found at least one dup or not
         // if it's a dup, add it to the dups list, otherwise add it to the uniques list 
         if ( key != null ) {
-            final GenomeLoc keyLoc = new GenomeLoc(key);
-            final GenomeLoc keyMateLoc = new GenomeLoc(key.getMateReferenceIndex(), key.getMateAlignmentStart(), key.getMateAlignmentStart());
+            final GenomeLoc keyLoc = GenomeLocParser.createGenomeLoc(key);
+            final GenomeLoc keyMateLoc = GenomeLocParser.createGenomeLoc(key.getMateReferenceIndex(), key.getMateAlignmentStart(), key.getMateAlignmentStart());
 
             for ( SAMRecord read : reads ) {
-                final GenomeLoc readLoc = new GenomeLoc(read);
-                final GenomeLoc readMateLoc = new GenomeLoc(read.getMateReferenceIndex(), read.getMateAlignmentStart(), read.getMateAlignmentStart());
+                final GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
+                final GenomeLoc readMateLoc = GenomeLocParser.createGenomeLoc(read.getMateReferenceIndex(), read.getMateAlignmentStart(), read.getMateAlignmentStart());
                 if (DEBUG) logger.debug(String.format("Examining reads at %s vs. %s at %s / %s vs. %s / %s%n", key.getReadName(), read.getReadName(), keyLoc, keyMateLoc, readLoc, readMateLoc));
 
                 // read and key start at the same place, and either the this read and the key
@@ -150,7 +153,7 @@ public class TraverseDuplicates extends TraversalEngine {
         PushbackIterator<SAMRecord> iter = new PushbackIterator<SAMRecord>(readIter);
         for (SAMRecord read: iter) {
             // get the genome loc from the read
-            GenomeLoc site = new GenomeLoc(read);
+            GenomeLoc site = GenomeLocParser.createGenomeLoc(read);
             List<SAMRecord> reads = readsAtLoc(read, iter);
             Pair<List<SAMRecord>, List<SAMRecord>> split = splitDuplicates(reads);
             List<SAMRecord> uniqueReads =  split.getFirst();

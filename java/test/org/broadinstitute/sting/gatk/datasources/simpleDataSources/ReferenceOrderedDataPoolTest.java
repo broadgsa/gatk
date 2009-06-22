@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.TabularROD;
@@ -38,13 +39,13 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
 
     private ReferenceOrderedData<? extends ReferenceOrderedDatum> rod = null;
 
-    private final GenomeLoc testSite1 = new GenomeLoc("chrM",10);
-    private final GenomeLoc testSite2 = new GenomeLoc("chrM",20);
-    private final GenomeLoc testSite3 = new GenomeLoc("chrM",30);
+    private final GenomeLoc testSite1 = GenomeLocParser.createGenomeLoc("chrM",10);
+    private final GenomeLoc testSite2 = GenomeLocParser.createGenomeLoc("chrM",20);
+    private final GenomeLoc testSite3 = GenomeLocParser.createGenomeLoc("chrM",30);
 
     @BeforeClass
     public static void init() throws FileNotFoundException {
-        GenomeLoc.setupRefContigOrdering(new IndexedFastaSequenceFile(sequenceFile));
+        GenomeLocParser.setupRefContigOrdering(new IndexedFastaSequenceFile(sequenceFile));
         TabularROD.setDelimiter(TabularROD.DEFAULT_DELIMITER, TabularROD.DEFAULT_DELIMITER_REGEX);
     }
 

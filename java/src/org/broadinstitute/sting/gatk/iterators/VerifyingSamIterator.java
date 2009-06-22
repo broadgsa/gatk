@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.iterators;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.RuntimeIOException;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.Reads;
 
 import java.util.Iterator;
@@ -63,8 +64,8 @@ public class VerifyingSamIterator implements StingSAMIterator {
         if ( last == null || cur.getReadUnmappedFlag() )
             return false;
         else {
-            GenomeLoc lastLoc = new GenomeLoc( last );
-            GenomeLoc curLoc = new GenomeLoc( cur );
+            GenomeLoc lastLoc = GenomeLocParser.createGenomeLoc( last );
+            GenomeLoc curLoc = GenomeLocParser.createGenomeLoc( cur );
             return curLoc.compareTo(lastLoc) == -1;
         }
     }

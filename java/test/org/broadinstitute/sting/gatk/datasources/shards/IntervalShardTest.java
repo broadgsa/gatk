@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,20 +52,20 @@ public class IntervalShardTest extends BaseTest {
 
     @Before
     public void setup() {
-        GenomeLoc.setupRefContigOrdering(header.getSequenceDictionary());
+        GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
     }
 
 
     @Test
     public void simpleReturn() {
-        GenomeLoc loc = new GenomeLoc(1, 1, 100);
+        GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, 1, 100);
         intervalShard = new IntervalShard(loc);
         assertTrue(intervalShard.getGenomeLoc().equals(loc));
     }
 
     @Test
     public void ensureNotReference() {
-        GenomeLoc loc = new GenomeLoc(1, 1, 100);
+        GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, 1, 100);
         intervalShard = new IntervalShard(loc);
         assertTrue(intervalShard.getGenomeLoc() != loc && intervalShard.getGenomeLoc().equals(loc));
     }

@@ -1,14 +1,14 @@
 package org.broadinstitute.sting.gatk.refdata;
 
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.Utils;
+
 import java.util.HashMap;
-import java.util.Scanner;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
-
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
 
 /**
  * Class for representing arbitrary reference ordered data sets
@@ -73,7 +73,7 @@ public class rodGFF extends BasicReferenceOrderedDatum {
     }
 
     public GenomeLoc getLocation() {
-        return GenomeLoc.parseGenomeLoc(contig, start, stop);
+        return GenomeLocParser.parseGenomeLoc(contig, start, stop);
     }
 
     public String getAttribute(final String key) {

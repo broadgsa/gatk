@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.refdata.Transcript;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.xReadLines;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 public class rodRefSeq extends BasicReferenceOrderedDatum {
 
@@ -178,8 +179,8 @@ class refSeqIterator implements Iterator<rodRefSeq> {
 		
 		while ( reader.hasNext() ) {
 			Transcript t = reader.peek();
-			int ci1 = GenomeLoc.getContigIndex(curr_contig_name);
-			int ci2 = GenomeLoc.getContigIndex( t.getLocation().getContig() ); 
+			int ci1 = GenomeLocParser.getContigIndex(curr_contig_name);
+			int ci2 = GenomeLocParser.getContigIndex( t.getLocation().getContig() );
 			if ( ci1 > ci2 ) throw new StingException("RefSeq track seems to be not contig-ordered");
 			if ( ci1 < ci2 ) break; // next transcript is on the next contig, we do not need it yet...
 			if ( t.getLocation().getStart() > curr_position ) break; // next transcript is on the same contig but starts after the current position; we are done
@@ -192,7 +193,7 @@ class refSeqIterator implements Iterator<rodRefSeq> {
 		
 		// 'records' and current position are fully updated. We can now create new rod and return it (NOTE: this iterator will break if the list
 		// of pre-loaded records is meddled with by the clients between iterations, so we return them as unmodifiable list)
-		rodRefSeq rod = new rodRefSeq(name,GenomeLoc.parseGenomeLoc(curr_contig_name,curr_position, curr_position),Collections.unmodifiableList(records));
+		rodRefSeq rod = new rodRefSeq(name, GenomeLocParser.parseGenomeLoc(curr_contig_name,curr_position, curr_position),Collections.unmodifiableList(records));
 //		if ( (++z) % 1000000 == 0 ) {
 //			System.out.println(rod.getLocation()+": holding "+records.size()+ "; time per 1M ref positions: "+((double)(System.currentTimeMillis()-t)/1000.0)+" s");
 //			z = 0;

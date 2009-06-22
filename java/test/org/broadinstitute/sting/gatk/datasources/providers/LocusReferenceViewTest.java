@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 import org.junit.Test;
 import org.junit.Assert;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.LocusShard;
 import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
@@ -32,7 +33,7 @@ public class LocusReferenceViewTest extends ReferenceViewTemplate {
      */
     @Test(expected=InvalidPositionException.class)
     public void testSingleBPFailure() {
-        Shard shard = new LocusShard( new GenomeLoc(0,1,50) );
+        Shard shard = new LocusShard( GenomeLocParser.createGenomeLoc(0,1,50) );
 
         ShardDataProvider dataProvider = new ShardDataProvider(shard,null,sequenceFile,null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
@@ -45,12 +46,12 @@ public class LocusReferenceViewTest extends ReferenceViewTemplate {
      */
     @Test(expected=InvalidPositionException.class)
     public void testBoundsFailure() {
-        Shard shard = new LocusShard( new GenomeLoc(0,1,50) );
+        Shard shard = new LocusShard(GenomeLocParser.createGenomeLoc(0,1,50) );
 
         ShardDataProvider dataProvider = new ShardDataProvider(shard,null,sequenceFile,null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
-        view.getReferenceBase(new GenomeLoc(0,51));
+        view.getReferenceBase(GenomeLocParser.createGenomeLoc(0,51));
     }
 
 

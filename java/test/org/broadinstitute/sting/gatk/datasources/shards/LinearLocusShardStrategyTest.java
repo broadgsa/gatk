@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.BaseTest;
 import org.junit.Before;
@@ -52,7 +52,7 @@ public class LinearLocusShardStrategyTest extends BaseTest {
 
     @Before
     public void setup() {
-        GenomeLoc.setupRefContigOrdering(header.getSequenceDictionary());
+        GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
     }
 
     @Test

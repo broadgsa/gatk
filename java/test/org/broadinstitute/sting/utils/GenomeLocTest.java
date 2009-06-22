@@ -22,7 +22,7 @@ public class GenomeLocTest extends BaseTest {
     public static void init() {
         // sequence
         seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
-        GenomeLoc.setupRefContigOrdering(seq);
+        GenomeLocParser.setupRefContigOrdering(seq);
     }
 
     /**
@@ -32,10 +32,10 @@ public class GenomeLocTest extends BaseTest {
     public void testIsBetween() {
         logger.warn("Executing testIsBetween");
 
-        GenomeLoc locMiddle = new GenomeLoc("chr1", 3, 3);
+        GenomeLoc locMiddle = GenomeLocParser.createGenomeLoc("chr1", 3, 3);
 
-        GenomeLoc locLeft = new GenomeLoc("chr1", 1, 1);
-        GenomeLoc locRight = new GenomeLoc("chr1", 5, 5);
+        GenomeLoc locLeft = GenomeLocParser.createGenomeLoc("chr1", 1, 1);
+        GenomeLoc locRight = GenomeLocParser.createGenomeLoc("chr1", 5, 5);
 
         Assert.assertTrue(locMiddle.isBetween(locLeft, locRight));
         Assert.assertFalse(locLeft.isBetween(locMiddle, locRight));
@@ -45,15 +45,15 @@ public class GenomeLocTest extends BaseTest {
     @Test
     public void testContigIndex() {
         logger.warn("Executing testContigIndex");
-        GenomeLoc locOne = new GenomeLoc("chr1",1,1);
+        GenomeLoc locOne = GenomeLocParser.createGenomeLoc("chr1",1,1);
         Assert.assertEquals(locOne.getContigIndex(), 1);
         Assert.assertEquals(locOne.getContig(), "chr1");
 
-        GenomeLoc locX = new GenomeLoc("chrX",1,1);
+        GenomeLoc locX = GenomeLocParser.createGenomeLoc("chrX",1,1);
         Assert.assertEquals(locX.getContigIndex(), 23);
         Assert.assertEquals(locX.getContig(), "chrX");
 
-        GenomeLoc locNumber = new GenomeLoc(1,1,1);
+        GenomeLoc locNumber = GenomeLocParser.createGenomeLoc(1,1,1);
         Assert.assertEquals(locNumber.getContigIndex(), 1);
         Assert.assertEquals(locNumber.getContig(), "chr1");
         Assert.assertEquals(locOne.compareTo(locNumber), 0);
@@ -63,15 +63,15 @@ public class GenomeLocTest extends BaseTest {
     @Test
     public void testCompareTo() {
         logger.warn("Executing testCompareTo");
-        GenomeLoc twoOne = new GenomeLoc("chr2", 1);
-        GenomeLoc twoFive = new GenomeLoc("chr2", 5);
-        GenomeLoc twoOtherFive = new GenomeLoc("chr2", 5);
+        GenomeLoc twoOne = GenomeLocParser.createGenomeLoc("chr2", 1);
+        GenomeLoc twoFive = GenomeLocParser.createGenomeLoc("chr2", 5);
+        GenomeLoc twoOtherFive = GenomeLocParser.createGenomeLoc("chr2", 5);
         Assert.assertEquals(0, twoFive.compareTo(twoOtherFive));
 
         Assert.assertEquals(-1, twoOne.compareTo(twoFive));
         Assert.assertEquals(1, twoFive.compareTo(twoOne));
 
-        GenomeLoc oneOne = new GenomeLoc("chr1", 5);
+        GenomeLoc oneOne = GenomeLocParser.createGenomeLoc("chr1", 5);
         Assert.assertEquals(-1, oneOne.compareTo(twoOne));
         Assert.assertEquals(1, twoOne.compareTo(oneOne));
     }

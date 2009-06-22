@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.io.IOException;
 
@@ -22,7 +23,7 @@ public class rodVariants extends BasicReferenceOrderedDatum {
 
     public boolean parseLine(Object header, String[] parts) throws IOException {
         if (!parts[0].startsWith("#")) {
-            loc = new GenomeLoc(parts[0], Long.valueOf(parts[1]));
+            loc = GenomeLocParser.createGenomeLoc(parts[0], Long.valueOf(parts[1]));
             refBase = parts[2].charAt(0);
             depth = Integer.valueOf(parts[3]);
             maxMappingQuality = Integer.valueOf(parts[4]);

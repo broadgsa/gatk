@@ -16,6 +16,7 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -121,7 +122,7 @@ public class TraverseReads extends TraversalEngine {
 
             if (needsReferenceBasesP && read.getReferenceIndex() >= 0) {
                 // get the genome loc from the read
-                GenomeLoc site = new GenomeLoc(read);
+                GenomeLoc site = GenomeLocParser.createGenomeLoc(read);
 
                 // Jump forward in the reference to this locus location
                 locus = new LocusContext(site, Arrays.asList(read), Arrays.asList(0));

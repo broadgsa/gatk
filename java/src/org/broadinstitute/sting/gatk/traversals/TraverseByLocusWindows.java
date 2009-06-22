@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.*;
 import java.io.File;
@@ -141,7 +142,7 @@ public class TraverseByLocusWindows extends TraversalEngine {
                 walker.nonIntervalReadAction(read);
             }
             else {
-                GenomeLoc loc = new GenomeLoc(read);
+                GenomeLoc loc = GenomeLocParser.createGenomeLoc(read);
                 // if we're in the current interval, add it to the list
                 if ( currentInterval.overlapsP(loc) ) {
                     intervalReads.add(read);
@@ -243,7 +244,7 @@ public class TraverseByLocusWindows extends TraversalEngine {
             }
         }
 
-        GenomeLoc window = new GenomeLoc(interval.getContig(), leftmostIndex, rightmostIndex);
+        GenomeLoc window = GenomeLocParser.createGenomeLoc(interval.getContig(), leftmostIndex, rightmostIndex);
         LocusContext locus = new LocusContext(window, reads, null);
         if ( DOWNSAMPLE_BY_COVERAGE )
             locus.downsampleToCoverage(downsamplingCoverage);
@@ -255,8 +256,8 @@ public class TraverseByLocusWindows extends TraversalEngine {
         GenomeLoc loc = locus1.getLocation().merge(locus2.getLocation());
         TreeSet<SAMRecord> set = new TreeSet<SAMRecord>(new Comparator<SAMRecord>() {
             public int compare(SAMRecord obj1, SAMRecord obj2) {
-                GenomeLoc myLoc = new GenomeLoc(obj1);
-                GenomeLoc hisLoc = new GenomeLoc(obj2);
+                GenomeLoc myLoc = GenomeLocParser.createGenomeLoc(obj1);
+                GenomeLoc hisLoc = GenomeLocParser.createGenomeLoc(obj2);
                 int comparison = myLoc.compareTo(hisLoc);
                  // if the reads have the same start position, we must give a non-zero comparison
                  // (because java Sets often require "consistency with equals")

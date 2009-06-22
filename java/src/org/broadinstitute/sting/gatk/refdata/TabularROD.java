@@ -1,17 +1,16 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import java.util.*;
-import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.xReadLines;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.apache.log4j.Logger;
 
 /**
@@ -201,7 +200,7 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
         String s = get(header.get(0));
         if ( s == null )
             return null;
-        return GenomeLoc.parseGenomeLoc(s);
+        return GenomeLocParser.parseGenomeLoc(s);
     }
 
     public ArrayList<String> getHeader() {

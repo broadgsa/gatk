@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.List;
 import java.util.Arrays;
@@ -79,7 +80,7 @@ public class HapMapAlleleFrequenciesROD extends BasicReferenceOrderedDatum {
             varFreq = Double.parseDouble(parts[11]); // CEU_var_freq
             totalCounts = Integer.parseInt(parts[12]); // CEU_var
 
-            loc = GenomeLoc.parseGenomeLoc(contig, start, stop);
+            loc = GenomeLocParser.parseGenomeLoc(contig, start, stop);
 
         } catch ( RuntimeException e ) {
             System.out.printf("  Exception caught during parsing HapMap Allele Freq %s%n", Utils.join(" <=> ", parts));

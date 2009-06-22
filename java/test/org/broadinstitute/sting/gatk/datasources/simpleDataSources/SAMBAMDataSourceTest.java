@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import org.junit.After;
 import org.junit.Before;
@@ -60,7 +60,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
 
         // sequence
         seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
-        GenomeLoc.setupRefContigOrdering(seq.getSequenceDictionary());
+        GenomeLocParser.setupRefContigOrdering(seq.getSequenceDictionary());
     }
 
     /**
