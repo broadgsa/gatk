@@ -1,32 +1,56 @@
+/*
+ * Copyright (c) 2009 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.executive;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.gatk.traversals.TraverseReads;
-import org.broadinstitute.sting.gatk.traversals.TraverseLoci;
-import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
+import org.broadinstitute.sting.gatk.traversals.TraverseDuplicates;
+import org.broadinstitute.sting.gatk.traversals.TraverseLoci;
+import org.broadinstitute.sting.gatk.traversals.TraverseReads;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * Created by IntelliJ IDEA.
@@ -51,8 +75,13 @@ public abstract class MicroScheduler {
     /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
      * selected walker.
-     * @param walker Which walker to use.
+     *
+     * @param walker        Which walker to use.
+     * @param reads         the informations associated with the reads
+     * @param ref           the reference file
+     * @param rods          the rods to include in the traversal
      * @param nThreadsToUse Number of threads to utilize.
+     *
      * @return The best-fit microscheduler.
      */
     public static MicroScheduler create(Walker walker, Reads reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods, int nThreadsToUse) {
@@ -67,16 +96,24 @@ public abstract class MicroScheduler {
 
     /**
      * Create a microscheduler given the reads and reference.
-     * @param reads The reads.
+     *
+     * @param walker  the walker to execute with
+     * @param reads   The reads.
      * @param refFile File pointer to the reference.
+     * @param rods    the rods to include in the traversal
      */
     protected MicroScheduler(Walker walker, Reads reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         if (walker instanceof ReadWalker) {
             traversalEngine = new TraverseReads(reads.getReadsFiles(), refFile, rods);
-            this.reads = getReadsDataSource(reads,true);
-        } else {
+            this.reads = getReadsDataSource(reads, true);
+        } else if (walker instanceof LocusWalker) {
             traversalEngine = new TraverseLoci(reads.getReadsFiles(), refFile, rods);
-            this.reads = getReadsDataSource(reads,false);
+            this.reads = getReadsDataSource(reads, false);
+        } else if (walker instanceof DuplicateWalker) {
+            traversalEngine = new TraverseDuplicates(reads.getReadsFiles(), refFile, rods);
+            this.reads = getReadsDataSource(reads, true);
+        } else {
+            throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
         }
 
 
@@ -87,6 +124,7 @@ public abstract class MicroScheduler {
     /**
      * A temporary getter for the traversal engine.  In the future, clients
      * of the microscheduler shouldn't need to know anything about the traversal engine.
+     *
      * @return The traversal engine.
      */
     public TraversalEngine getTraversalEngine() {
@@ -95,18 +133,23 @@ public abstract class MicroScheduler {
 
     /**
      * Walks a walker over the given list of intervals.
-     * @param walker Computation to perform over dataset.
-     * @param intervals A list of intervals over which to walk.  Null for whole dataset.
+     *
+     * @param walker        Computation to perform over dataset.
+     * @param intervals     A list of intervals over which to walk.  Null for whole dataset.
      * @param maxIterations the maximum number of iterations we're to perform
+     *
      * @return the return type of the walker
      */
     public abstract Object execute(Walker walker, GenomeLocSortedSet intervals, Integer maxIterations);
 
     /**
      * Get the sharding strategy given a driving data source.
-     * @param walker Walker for which to infer sharding strategy.
+     *
+     * @param walker            Walker for which to infer sharding strategy.
      * @param drivingDataSource Data on which to shard.
-     * @param intervals Intervals to use when limiting sharding.
+     * @param intervals         Intervals to use when limiting sharding.
+     * @param maxIterations     the maximum number of iterations to run through
+     *
      * @return Sharding strategy for this driving data source.
      */
     protected ShardStrategy getShardStrategy(Walker walker,
@@ -118,31 +161,32 @@ public abstract class MicroScheduler {
         if (walker instanceof LocusWalker) {
             if (intervals != null) {
                 shardType = (walker.isReduceByInterval()) ?
-                             ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL :
-                             ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
+                        ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL :
+                        ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
 
                 shardStrategy = ShardStrategyFactory.shatter(shardType,
-                                                             drivingDataSource.getSequenceDictionary(),
-                                                             SHARD_SIZE,
-                                                             intervals, maxIterations);
+                        drivingDataSource.getSequenceDictionary(),
+                        SHARD_SIZE,
+                        intervals, maxIterations);
             } else
                 shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
-                                                             drivingDataSource.getSequenceDictionary(),
-                                                             SHARD_SIZE, maxIterations);
+                        drivingDataSource.getSequenceDictionary(),
+                        SHARD_SIZE, maxIterations);
 
-        } else if (walker instanceof ReadWalker) {
+        } else if (walker instanceof ReadWalker ||
+                walker instanceof DuplicateWalker) {
 
             shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS;
 
             if (intervals != null) {
                 shardStrategy = ShardStrategyFactory.shatter(shardType,
-                                                             drivingDataSource.getSequenceDictionary(),
-                                                             SHARD_SIZE,
-                                                             intervals, maxIterations);
+                        drivingDataSource.getSequenceDictionary(),
+                        SHARD_SIZE,
+                        intervals, maxIterations);
             } else {
                 shardStrategy = ShardStrategyFactory.shatter(shardType,
-                                                             drivingDataSource.getSequenceDictionary(),
-                                                             SHARD_SIZE, maxIterations);
+                        drivingDataSource.getSequenceDictionary(),
+                        SHARD_SIZE, maxIterations);
             }
         } else
             throw new StingException("Unable to support walker of type" + walker.getClass().getName());
@@ -152,7 +196,9 @@ public abstract class MicroScheduler {
 
     /**
      * Gets an window into all the data that can be viewed as a single shard.
+     *
      * @param shard The section of data to view.
+     *
      * @return An accessor for all the data in this shard.
      */
     protected ShardDataProvider getShardDataProvider(Shard shard) {
@@ -161,6 +207,10 @@ public abstract class MicroScheduler {
 
     /**
      * Gets a data source for the given set of reads.
+     *
+     * @param reads   the read source information
+     * @param byReads are we a by reads traversal, or not
+     *
      * @return A data source for the given set of reads.
      */
     private SAMDataSource getReadsDataSource(Reads reads, boolean byReads) {
@@ -180,6 +230,9 @@ public abstract class MicroScheduler {
 
     /**
      * Open the reference-ordered data sources.
+     *
+     * @param rods the reference order data to execute using
+     *
      * @return A list of reference-ordered data sources.
      */
     private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
@@ -191,7 +244,9 @@ public abstract class MicroScheduler {
 
     /**
      * Opens a reference sequence file paired with an index.
+     *
      * @param refFile Handle to a reference sequence file.  Non-null.
+     *
      * @return A thread-safe file wrapper.
      */
     private IndexedFastaSequenceFile openReferenceSequenceFile(File refFile) {

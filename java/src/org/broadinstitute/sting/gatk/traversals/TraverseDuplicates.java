@@ -1,3 +1,28 @@
+/*
+ * Copyright (c) 2009 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.traversals;
 
 import net.sf.picard.filter.FilteringIterator;
@@ -29,22 +54,12 @@ import java.util.List;
  * User: aaron
  * Date: Apr 24, 2009
  * Time: 10:35:22 AM
- *
- * The Broad Institute
- * SOFTWARE COPYRIGHT NOTICE AGREEMENT 
- * This software and its documentation are copyright 2009 by the
- * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
- *
- * This software is supplied without any warranty or guaranteed support whatsoever. Neither
- * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
- *
  */
 
 
 /**
  * @author Mark DePristo
  * @version 0.1
- * @date Apr 29, 2009
  * <p/>
  * Class TraverseDuplicates
  * <p/>
@@ -67,17 +82,16 @@ public class TraverseDuplicates extends TraversalEngine {
         super(reads, ref, rods);
     }
 
-    private List<SAMRecord> readsAtLoc(final SAMRecord read, PushbackIterator<SAMRecord> iter)
-    {
+    private List<SAMRecord> readsAtLoc(final SAMRecord read, PushbackIterator<SAMRecord> iter) {
         GenomeLoc site = GenomeLocParser.createGenomeLoc(read);
         ArrayList<SAMRecord> l = new ArrayList<SAMRecord>();
 
         l.add(read);
-        for (SAMRecord read2: iter) {
+        for (SAMRecord read2 : iter) {
             GenomeLoc site2 = GenomeLocParser.createGenomeLoc(read2);
 
             // the next read starts too late
-            if ( site2.getStart() != site.getStart() ) {
+            if (site2.getStart() != site.getStart()) {
                 //System.out.printf("site = %s, site2 = %s%n", site, site2);
                 iter.pushback(read2);
                 break;
@@ -96,8 +110,8 @@ public class TraverseDuplicates extends TraversalEngine {
 
         // find the first duplicate
         SAMRecord key = null;
-        for ( SAMRecord read : reads ) {
-            if ( read.getDuplicateReadFlag() ) {
+        for (SAMRecord read : reads) {
+            if (read.getDuplicateReadFlag()) {
                 // this is our key
                 key = read;
                 if (DEBUG) logger.debug(String.format("Key %s is a duplicate", read.getReadName()));
@@ -107,20 +121,21 @@ public class TraverseDuplicates extends TraversalEngine {
 
         // At this point, there are two possibilities, we have found at least one dup or not
         // if it's a dup, add it to the dups list, otherwise add it to the uniques list 
-        if ( key != null ) {
+        if (key != null) {
             final GenomeLoc keyLoc = GenomeLocParser.createGenomeLoc(key);
             final GenomeLoc keyMateLoc = GenomeLocParser.createGenomeLoc(key.getMateReferenceIndex(), key.getMateAlignmentStart(), key.getMateAlignmentStart());
 
-            for ( SAMRecord read : reads ) {
+            for (SAMRecord read : reads) {
                 final GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
                 final GenomeLoc readMateLoc = GenomeLocParser.createGenomeLoc(read.getMateReferenceIndex(), read.getMateAlignmentStart(), read.getMateAlignmentStart());
-                if (DEBUG) logger.debug(String.format("Examining reads at %s vs. %s at %s / %s vs. %s / %s%n", key.getReadName(), read.getReadName(), keyLoc, keyMateLoc, readLoc, readMateLoc));
+                if (DEBUG)
+                    logger.debug(String.format("Examining reads at %s vs. %s at %s / %s vs. %s / %s%n", key.getReadName(), read.getReadName(), keyLoc, keyMateLoc, readLoc, readMateLoc));
 
                 // read and key start at the same place, and either the this read and the key
                 // share a mate location or the read is flagged as a duplicate
-                if ( readLoc.compareTo(keyLoc) == 0 &&
-                        ( readMateLoc.compareTo(keyMateLoc) == 0) ||
-                          read.getDuplicateReadFlag() ) {
+                if (readLoc.compareTo(keyLoc) == 0 &&
+                        (readMateLoc.compareTo(keyMateLoc) == 0) ||
+                        read.getDuplicateReadFlag()) {
                     // we are at the same position as the dup and have the same mat pos, it's a dup
                     if (DEBUG) logger.debug(String.format("  => Adding read to dups list: %s%n", read));
                     dups.add(read);
@@ -137,33 +152,43 @@ public class TraverseDuplicates extends TraversalEngine {
 
     /**
      * Traverse by reads, given the data and the walker
+     *
      * @param sum of type T, the return from the walker
      * @param <M> the generic type
      * @param <T> the return type of the reduce function
-     * @return
+     * @param dupWalker our duplicates walker
+     * @param readIter our iterator
+     *
+     * @return the reduce type, T, the final product of all the reduce calls
      */
-    public <M, T> T actuallyTraverse(DuplicateWalker<M, T> dupWalker,
-                                     Iterator<SAMRecord> readIter,
-                                     T sum) {
-        // while we still have more reads
-        // ok, here's the idea.  We get all the reads that start at the same position in the genome
-        // We then split the list of reads into sublists of reads:
-        //   -> those with the same mate pair position, for paired reads
-        //   -> those flagged as unpaired and duplicated but having the same start and end and
+    private <M, T> T actuallyTraverse(DuplicateWalker<M, T> dupWalker,
+                                      Iterator<SAMRecord> readIter,
+                                      T sum) {
+        /**
+         * while we still have more reads:
+         * ok, here's the idea.  We get all the reads that start at the same position in the genome
+         * We then split the list of reads into sublists of reads:
+         *   -> those with the same mate pair position, for paired reads
+         *   -> those flagged as unpaired and duplicated but having the same start and end and
+         */
         PushbackIterator<SAMRecord> iter = new PushbackIterator<SAMRecord>(readIter);
-        for (SAMRecord read: iter) {
+
+
+        for (SAMRecord read : iter) {
+
             // get the genome loc from the read
             GenomeLoc site = GenomeLocParser.createGenomeLoc(read);
+
             List<SAMRecord> reads = readsAtLoc(read, iter);
             Pair<List<SAMRecord>, List<SAMRecord>> split = splitDuplicates(reads);
-            List<SAMRecord> uniqueReads =  split.getFirst();
-            List<SAMRecord> duplicateReads =  split.getSecond();
+            List<SAMRecord> uniqueReads = split.getFirst();
+            List<SAMRecord> duplicateReads = split.getSecond();
 
             logger.debug(String.format("*** TraverseDuplicates.traverse at %s with %d reads has %d unique and %d duplicate reads",
                     site, reads.size(), uniqueReads.size(), duplicateReads.size()));
-            if ( reads.size() != uniqueReads.size() + duplicateReads.size() )
-                    throw new RuntimeException(String.format("Bug occurred spliting reads [N=%d] at loc %s into unique [N=%d] and duplicates [N=%d], sizes don't match",
-                            reads.size(), uniqueReads.size(), duplicateReads.size()));
+            if (reads.size() != uniqueReads.size() + duplicateReads.size())
+                throw new RuntimeException(String.format("Bug occurred spliting reads [N=%d] at loc %s into unique [N=%d] and duplicates [N=%d], sizes don't match",
+                        reads.size(), site.toString(), uniqueReads.size(), duplicateReads.size()));
 
             // Jump forward in the reference to this locus location
             LocusContext locus = new LocusContext(site, duplicateReads, Arrays.asList(0));
@@ -176,15 +201,15 @@ public class TraverseDuplicates extends TraversalEngine {
 
             byte[] refBases = new byte[0];
 
-            if ( dupWalker.mapUniqueReadsTooP() ) {
+            if (dupWalker.mapUniqueReadsTooP()) {
                 // Send each unique read to the map function
-                for ( SAMRecord unique : uniqueReads ) {
+                for (SAMRecord unique : uniqueReads) {
                     List<SAMRecord> l = Arrays.asList(unique);
                     sum = mapOne(dupWalker, uniqueReads, l, site, refBases, locus, sum);
                 }
             }
 
-            if ( duplicateReads.size() > 0 )
+            if (duplicateReads.size() > 0)
                 sum = mapOne(dupWalker, uniqueReads, duplicateReads, site, refBases, locus, sum);
 
             printProgress("dups", site);
@@ -206,21 +231,16 @@ public class TraverseDuplicates extends TraversalEngine {
         SAMRecord lastRead = null;
         public boolean filterOut(SAMRecord rec) {
             boolean result = false;
-            String why = "";
             if (rec.getReadUnmappedFlag()) {
                 TraversalStatistics.nUnmappedReads++;
                 result = true;
-                why = "Unmapped";
             } else if (rec.getNotPrimaryAlignmentFlag()) {
                 TraversalStatistics.nNotPrimary++;
                 result = true;
-                why = "Not Primary";
             } else if (rec.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START) {
                 TraversalStatistics.nBadAlignments++;
                 result = true;
-                why = "No alignment start";
-            }
-            else {
+            } else {
                 result = false;
             }
 
@@ -250,7 +270,6 @@ public class TraverseDuplicates extends TraversalEngine {
     }
 
 
-
     // --------------------------------------------------------------------------------------------------------------
     //
     // new style interface to the system
@@ -258,19 +277,21 @@ public class TraverseDuplicates extends TraversalEngine {
     // --------------------------------------------------------------------------------------------------------------
     /**
      * Traverse by reads, given the data and the walker
+     *
      * @param walker the walker to execute over
-     * @param shard the shard of data to feed the walker
-     * @param sum of type T, the return from the walker
-     * @param <M> the generic type
-     * @param <T> the return type of the reduce function
-     * @return
+     * @param shard  the shard of data to feed the walker
+     * @param sum    of type T, the return from the walker
+     * @param <M>    the generic type
+     * @param <T>    the return type of the reduce function
+     *
+     * @return the result type T, the product of all the reduce calls
      */
     public <M, T> T traverse(Walker<M, T> walker,
                              Shard shard,
                              ShardDataProvider dataProvider,
                              T sum) {
 
-        logger.debug(String.format("TraverseDuplicates.traverse Genomic interval is %s", ((ReadShard)shard).getSize()));
+        logger.debug(String.format("TraverseDuplicates.traverse Genomic interval is %s", ((ReadShard) shard).getSize()));
 
         if (!(walker instanceof DuplicateWalker))
             throw new IllegalArgumentException("Walker isn't a duplicate walker!");
@@ -286,5 +307,17 @@ public class TraverseDuplicates extends TraversalEngine {
         FilteringIterator filterIter = new FilteringIterator(new ReadView(dataProvider).iterator(), new duplicateStreamFilterFunc());
         PushbackIterator<SAMRecord> iter = new PushbackIterator<SAMRecord>(filterIter);
         return actuallyTraverse(dupWalker, iter, sum);
+    }
+
+
+    /**
+     * Temporary override of printOnTraversalDone.
+     * TODO: Add some sort of TE.getName() function once all TraversalEngines are ported.
+     *
+     * @param sum Result of the computation.
+     * @param <T> Type of the result.
+     */
+    public <T> void printOnTraversalDone(T sum) {
+        printOnTraversalDone("reads", sum);
     }
 }

@@ -1,3 +1,28 @@
+/*
+ * Copyright (c) 2009 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
@@ -91,7 +116,7 @@ public class GenomeAnalysisEngine {
 
         // if we're a read or a locus walker, we use the new system.  Right now we have complicated
         // branching based on the input data, but this should disapear when all the traversals are switched over
-        if (my_walker instanceof LocusWalker || my_walker instanceof ReadWalker) {
+        if (my_walker instanceof LocusWalker || my_walker instanceof ReadWalker || my_walker instanceof DuplicateWalker) {
             microScheduler = createMicroscheduler(my_walker, rods);
         } else { // we have an old style traversal, once we're done return
             legacyTraversal(my_walker, rods);
@@ -129,15 +154,12 @@ public class GenomeAnalysisEngine {
      * into their own function allows us to deviate in the two behaviors so the new style traversals aren't limited to what
      * the old style does.  As traversals are converted, this function should disappear.
      *
-     * @param my_walker
-     * @param rods
+     * @param my_walker the walker to run
+     * @param rods the rod tracks to associate with
      */
     private void legacyTraversal(Walker my_walker, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         if (my_walker instanceof LocusWindowWalker) {
             this.engine = new TraverseByLocusWindows(argCollection.samFiles, argCollection.referenceFile, rods);
-        } else if (my_walker instanceof DuplicateWalker) {
-            // we're a duplicate walker
-            this.engine = new TraverseDuplicates(argCollection.samFiles, argCollection.referenceFile, rods);
         } else {
             throw new RuntimeException("Unexpected walker type: " + my_walker);
         }
@@ -178,11 +200,13 @@ public class GenomeAnalysisEngine {
             microScheduler = MicroScheduler.create(my_walker, extractSourceInfoFromArguments(argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
             engine = microScheduler.getTraversalEngine();
         }
-        else if (my_walker instanceof ReadWalker) {
+        else if (my_walker instanceof ReadWalker || my_walker instanceof DuplicateWalker) {
             if (argCollection.referenceFile == null)
-                Utils.scareUser(String.format("Locus-based traversals require a reference file but none was given"));
+                Utils.scareUser(String.format("Read-based traversals require a reference file but none was given"));
             microScheduler = MicroScheduler.create(my_walker, extractSourceInfoFromArguments(argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
             engine = microScheduler.getTraversalEngine();
+        } else {
+            Utils.scareUser(String.format("Unable to create the appropriate TraversalEngine for analysis type " + argCollection.analysisName));    
         }
 
         return microScheduler;
