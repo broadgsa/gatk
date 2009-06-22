@@ -45,11 +45,11 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
         this.stop = stop == -1 ? start : stop;
     }*/
 
-    GenomeLoc(final SAMRecord read) {
+    protected GenomeLoc(final SAMRecord read) {
         this(read.getHeader().getSequence(read.getReferenceIndex()).getSequenceName(), read.getReferenceIndex(), read.getAlignmentStart(), read.getAlignmentEnd());
     }
 
-    GenomeLoc( final String contig, final int contigIndex, final long start, final long stop ) {
+    protected GenomeLoc( final String contig, final int contigIndex, final long start, final long stop ) {
         this.contigName = contig;
         this.contigIndex = contigIndex;
         this.start = start;
@@ -60,16 +60,17 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
         this(contig, pos, pos );
     }
     */
-    GenomeLoc( final GenomeLoc toCopy ) {
+    protected GenomeLoc( final GenomeLoc toCopy ) {
         this( toCopy.getContig(), toCopy.contigIndex, toCopy.getStart(), toCopy.getStop() );
     }
 
 
     /**
-     * Returns true iff we have a specified series of locations to process AND we are past the last
+     * Returns true if we have a specified series of locations to process AND we are past the last
      * location in the list.  It means that, in a serial processing of the genome, that we are done.
      *
      * @param curr Current genome Location
+     * @param locs a list of genomic locations
      * @return true if we are past the last location to process
      */
     public static boolean pastFinalLocation(GenomeLoc curr, List<GenomeLoc> locs) {
@@ -80,7 +81,8 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
      * A key function that returns true if the proposed GenomeLoc curr is within the list of
      * locations we are processing in this TraversalEngine
      *
-     * @param curr
+     * @param curr the current location
+     * @param locs a list of genomic locations
      * @return true if we should process GenomeLoc curr, otherwise false
      */
     public static boolean inLocations(GenomeLoc curr, ArrayList<GenomeLoc> locs) {
@@ -158,17 +160,11 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
     public final boolean isSingleBP() { return stop == start; }
 
     public final boolean disjointP(GenomeLoc that) {
-        if ( this.contigIndex != that.contigIndex ) return true;    // different chromosomes
-        if ( this.start > that.stop ) return true;                  // this guy is past that
-        if ( that.start > this.stop ) return true;                  // that guy is past our start
-        return false;
+        return this.contigIndex != that.contigIndex || this.start > that.stop || that.start > this.stop;
     }
 
     public final boolean discontinuousP(GenomeLoc that) {
-        if ( this.contigIndex != that.contigIndex ) return true;    // different chromosomes
-        if ( (this.start - 1) > that.stop ) return true;            // this guy is past that
-        if ( (that.start - 1) > this.stop ) return true;            // that guy is past our start
-        return false;
+        return this.contigIndex != that.contigIndex || (this.start - 1) > that.stop || (that.start - 1) > this.stop;
     }
 
     public final boolean overlapsP(GenomeLoc that) {
@@ -190,8 +186,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
     }
 
     public final boolean containsP(GenomeLoc that) {
-        if ( ! onSameContig(that) ) return false;
-        return getStart() <= that.getStart() && getStop() >= that.getStop();
+        return onSameContig(that) && getStart() <= that.getStart() && getStop() >= that.getStop();
     }
 
     public final boolean onSameContig(GenomeLoc that) {
@@ -272,8 +267,8 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
 
     /**
      * conpare this genomeLoc's contig to another genome loc
-     * @param that
-     * @return
+     * @param that the genome loc to compare contigs with
+     * @return 0 if equal, -1 if that.contig is greater, 1 if this.contig is greater
      */
     public final int compareContigs( GenomeLoc that ) {
         if (this.contigIndex == that.contigIndex)
