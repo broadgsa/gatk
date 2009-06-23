@@ -23,6 +23,10 @@ import java.util.*;
 
 @By(DataSource.REFERENCE)
 public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
+    protected enum MutantFailureReason {
+        StrandImbalance,
+        Misalignment
+    }
     protected static class QualitySums {
         private int a = 0;
         private int c = 0;
@@ -74,9 +78,10 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName = "min_mutant_sum", required = false, doc = "threshold for sum of mutant allele quality scores")
     public int MIN_MUTANT_SUM = 100;
 
-
     @Argument(fullName = "mode", required = false, doc="Mode of operation (detect, full)")
     public String mode = "full";
+
+    public float SKEW_LOD_THRESHOLD = 1.0f;
 
 //    @Argument(fullName = "output_failures", required = false, doc="produce output for failed sites")
     public boolean OUTPUT_FAILURES = true;
@@ -125,9 +130,20 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
         }
 
         public String getLocusBases() {
+            return getLocusBases(0);
+        }
+
+        public String getLocusBases(int locusOffset) {
             StringBuilder sb = new StringBuilder();
             for(int i=0; i<reads.size(); i++) {
-                sb.append(reads.get(i).getReadString().charAt(offsets.get(i)));
+                SAMRecord read = reads.get(i);
+                int readOffset = offsets.get(i);
+
+                int offset = readOffset + locusOffset;
+                if (offset >= 0 && offset < read.getReadString().length()) {
+                    char base = read.getReadString().charAt(offset);
+                    sb.append(base);
+                }
             }
             return sb.toString();
         }
@@ -173,6 +189,71 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             return new double[]{refRef, altRef, altAlt};
         }
 
+        private GenotypeLikelihoods getLikelihood(int locusOffset) {
+            GenotypeLikelihoods likelihoods = new GenotypeLikelihoods();
+
+
+            for(int i=0; i<reads.size(); i++) {
+                SAMRecord read = reads.get(i);
+                int readOffset = offsets.get(i);
+
+                int offset = readOffset + locusOffset;
+                if (offset >= 0 && offset < read.getReadString().length()) {
+
+                    char base = read.getReadString().charAt(offset);
+                    byte qual = read.getBaseQualities()[offset];
+
+                    likelihoods.add(refBase, base, qual);
+                }
+
+            }
+            return likelihoods;
+        }
+
+        public double[] getNormalizedProbs(int locusOffset) {
+            GenotypeLikelihoods likelihoods = new GenotypeLikelihoods();
+
+
+            for(int i=0; i<reads.size(); i++) {
+                SAMRecord read = reads.get(i);
+                int readOffset = offsets.get(i);
+
+                int offset = readOffset + locusOffset;
+                if (offset >= 0 && offset < read.getReadString().length()) {
+
+                    char base = read.getReadString().charAt(offset);
+                    byte qual = read.getBaseQualities()[offset];
+
+                    likelihoods.add(refBase, base, qual);
+                }
+
+            }
+
+            double[] logLikelihood = likelihoods.likelihoods;
+            double[] nonLogLikelihood = new double[10];
+            double sum = 0;
+            for(int i=0; i<10; i++) {
+                nonLogLikelihood[i] = Math.pow(10, logLikelihood[i]);
+                sum += nonLogLikelihood[i];
+            }
+
+            double[] normalizedProbs = new double[10];
+            for(int i=0; i<10; i++) {
+                normalizedProbs[i] = nonLogLikelihood[i] / sum;
+            }
+
+
+            //quick sanity check
+//            sum=0;
+//            for(int i=0; i<10; i++) {
+//                sum += normalizedProbs[i];
+//            }
+//            System.out.println("normalized probs = " + sum);
+
+
+            return normalizedProbs;
+        }
+        
     }
 
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
@@ -272,6 +353,13 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
                 continue;
             }
 
+            // (ii) the quality score sum for the mutant base in the normal must be < 50 and the
+            //      LOD score for ref:ref vs mutant:ref + mutant:mutant must be at least 2.3.
+            double normalLod = normalReadPile.getRefVsAlt(altAllele);
+            if ( normalReadPile.qualitySums.get(altAllele) > 50 || normalLod < NORMAL_LOD_THRESHOLD) {
+                continue;
+            }
+
             // make sure we've seen at least 1 obs of the alternate allele within 20bp of the read-middle
             boolean failedMidpointCheck = midp.get(altAllele) > 20;
 //            if (failedMidpointCheck) {
@@ -324,14 +412,17 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
                 continue;
             }
 
-            // TODO: using the original pile here since often these artifacts will be supported
-            // by those reads that get thrown out!  Maybe that means we don't need the noise filter...
-            boolean shouldDisalign =
-                    disaligner(context.getPosition(), tumorReadPile, StringUtil.bytesToString(refSeq.getBases()), refStart);
+//            // TODO: using the original pile here since often these artifacts will be supported
+//            // by those reads that get thrown out!  Maybe that means we don't need the noise filter...
+//            boolean shouldDisalign =
+//                    disaligner(context.getPosition(), tumorReadPile, StringUtil.bytesToString(refSeq.getBases()), refStart);
+            MutantFailureReason failureReason =
+                    readPileSkew(t2, altAllele, StringUtil.bytesToString(refSeq.getBases()), refStart);
+                    
 
-            if (mode.equals("full") && shouldDisalign) {
+            if (mode.equals("full") && failureReason != null) {
                 if (OUTPUT_FAILURES) {
-                    String msg = "FAILED due to DISALIGNMENT TEST.";
+                    String msg = "FAILED due to " + failureReason.name();
 
                     out.println(
                             context.getContig() + "\t" +
@@ -349,12 +440,6 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
 
 
 
-            // (ii) the quality score sum for the mutant base in the normal must be < 50 and the
-            //      LOD score for ref:ref vs mutant:ref + mutant:mutant must be at least 2.3.
-            double normalLod = normalReadPile.getRefVsAlt(altAllele);
-            if ( normalReadPile.qualitySums.get(altAllele) > 50 || normalLod < NORMAL_LOD_THRESHOLD) {
-                continue;
-            }
 
             // if we're still here... we've got a somatic mutation!  Output the results
             // and stop looking for mutants!
@@ -401,6 +486,73 @@ public class SomaticMutationWalker extends LocusWalker<Integer, Integer> {
     }
 
 
+
+    private MutantFailureReason readPileSkew(LocusReadPile pile, char mutantAllele, String reference, long leftmostIndex) {
+        // first split into two piles, those supporting the mutant and those not
+        LocusReadPile mutantPile = new LocusReadPile(mutantAllele);
+        LocusReadPile otherPile =  new LocusReadPile(mutantAllele);
+
+
+        for (int i=0; i<pile.reads.size(); i++) {
+            SAMRecord read = pile.reads.get(i);
+            int offset = pile.offsets.get(i);
+
+            if (read.getReadString().charAt(offset) == mutantAllele) {
+                mutantPile.add(read, offset);
+            } else {
+                otherPile.add(read, offset);
+            }
+        }
+
+        // now we can ask questons abot the two piles.
+
+        // e.g. is the mutant allele seen in both strands?
+        boolean seenOnPositive = false;
+        boolean seenOnNegative = false;
+        for(SAMRecord read : mutantPile.reads) {
+            if (read.getReadNegativeStrandFlag()) { seenOnNegative = true; } else { seenOnPositive = true; }
+        }
+        if (!seenOnPositive || !seenOnNegative) {
+//            return MutantFailureReason.StrandImbalance;
+        }
+
+
+        //chr17:4979257
+        // are the two alleles distributed differently
+        //fixme: calculate this range properly
+        //fixme: this seems to degrade as you lose reads?
+        //fixme: what should the threshold be here?
+        SortedMap<Integer, Double> skewLodOffsets = new TreeMap<Integer, Double>();
+
+        for(int offset=-76; offset<76; offset++) {
+            // allow for doubletons
+            if (offset >= -1 && offset <= 1 ) { continue; }
+
+            double[] mutantNormProbs = mutantPile.getNormalizedProbs(offset);
+            double[] otherNormProbs = otherPile.getNormalizedProbs(offset);
+
+            double J = 0;
+            for(int i=0; i<10; i++) {
+                J += mutantNormProbs[i] * otherNormProbs[i];
+            }
+            double skewLod = Math.log10( (1-J) / J);
+
+            if (skewLod > SKEW_LOD_THRESHOLD) {
+//                System.out.println( "Offset: " + offset +
+//                        " mutant_reads: " + mutantPile.getLocusBases(offset).length() +
+//                        " other_reads: " + otherPile.getLocusBases(offset).length() +
+//                        " skewLod:" + skewLod );
+
+                skewLodOffsets.put(offset, skewLod);
+            }
+        }
+
+        if (skewLodOffsets.size() > 0) {
+            return MutantFailureReason.Misalignment;
+        }
+
+        return null;
+    }
 
     int MAX_READ_MISMATCH_QUALITY_SCORE_SUM = 100;
     private LocusReadPile filterHighMismatchScoreReads(LocusReadPile pile, String reference, long leftmostIndex) {
