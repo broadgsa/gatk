@@ -316,7 +316,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			}
 			
 			location.setStart(pos); location.setStop(pos); // retrieve annotation data
-			rodRefSeq annotation = refseqIterator.seekForward(location);
+			rodRefSeq annotation = (refseqIterator == null ? null : refseqIterator.seekForward(location));
 
 			int total_variant_count = 0;
 			int max_variant_count = 0;
@@ -334,7 +334,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			}	
 			if ( (double)total_variant_count > minFraction * cov && (double) max_variant_count > minConsensusFraction*total_variant_count ) { 		
 			
-				String annotationString = getAnnotationString(annotation);
+				String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotation));
 				
 				String message = refName+"\t"+(pos-1)+"\t"+(event_length > 0 ? pos-1+event_length : pos-1)+
 				"\t"+(event_length>0? "-":"+")+indelString +":"+total_variant_count+"/"+cov;
@@ -413,7 +413,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 				continue; // too dirty
 			}
 			location.setStart(pos); location.setStop(pos); // retrieve annotation data
-			rodRefSeq annotation = refseqIterator.seekForward(location);
+			rodRefSeq annotation = (refseqIterator == null ? null : refseqIterator.seekForward(location));
 			
 
 			int total_variant_count_tumor = 0;
@@ -433,7 +433,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			
 			if ( (double)total_variant_count_tumor > minFraction * tumor_cov && (double) max_variant_count_tumor > minConsensusFraction*total_variant_count_tumor ) {
 				
-				String annotationString = getAnnotationString(annotation);
+				String annotationString = ( refseqIterator == null ? "": getAnnotationString(annotation));
 				
 				long leftpos = pos;
 				long rightpos = pos+event_length_tumor-1;
