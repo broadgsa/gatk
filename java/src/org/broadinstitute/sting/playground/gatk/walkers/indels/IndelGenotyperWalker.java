@@ -46,16 +46,20 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	@Argument(fullName="minConsensusFraction", shortName="minConsensusFraction", 
 			doc="Minimum fraction of reads with indel at the site that must contain consensus indel in order to make the call", required=false)
 	public double minConsensusFraction = 0.7;
+	@Argument(fullName="refseq", shortName="refseq", 
+			doc="Name of RefSeq transcript annotation file. If specified, indels will be annotated as GENOMIC/UTR/INTRON/CODING", required=false)
+	public String RefseqFileName = null;
 	 
 	private static int WINDOW_SIZE = 200;
 	private RunningCoverage coverage;
 	private RunningCoverage normal_coverage; // when performing somatic calls, we will be using this one for normal, and 'coverage' for tumor
 	private int currentContigIndex = -1;
+	private int currentPosition = -1; // position of the last read we've seen on the current contig
 	private String refName = null;
 	private java.io.Writer output = null;
 	private GenomeLoc location = null;
 	
-	private RODIterator<rodRefSeq> refseqIterator;
+	private RODIterator<rodRefSeq> refseqIterator=null;
 
 	private Set<String> normal_samples = new HashSet<String>();
 	private Set<String> tumor_samples = new HashSet<String>();
@@ -71,14 +75,20 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	private static String annCoding = "CODING";
 	private static String annUnknown = "UNKNOWN";
 	
+	private SAMRecord lastRead;
+	
+	// "/humgen/gsa-scr1/GATK_Data/refGene.sorted.txt"
+	
 	@Override
 	public void initialize() {
 		coverage = new RunningCoverage(0,WINDOW_SIZE);
 		
-		ReferenceOrderedData<rodRefSeq> refseq = new ReferenceOrderedData<rodRefSeq>("refseq",
-					new java.io.File("/humgen/gsa-scr1/GATK_Data/refGene.sorted.txt"),rodRefSeq.class);
+		if ( RefseqFileName != null ) {
+			ReferenceOrderedData<rodRefSeq> refseq = new ReferenceOrderedData<rodRefSeq>("refseq",
+					new java.io.File(RefseqFileName),rodRefSeq.class);
 		
-		refseqIterator = refseq.iterator();
+			refseqIterator = refseq.iterator();
+		}
 		
 		int nSams = getToolkit().getArguments().samFiles.size(); 
 		
@@ -177,6 +187,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			if ( call_somatic) emit_somatic(1000000000, true); // print remaining indels from the previous contig (if any);
 			else emit(1000000000,true);
 			currentContigIndex = read.getReferenceIndex();
+			currentPosition = read.getAlignmentStart();
 			refName = new String(read.getReferenceName());
 			location.setContig(refName);
 			
@@ -184,12 +195,22 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			if ( call_somatic) normal_coverage.clear();
 		}
 		
+		if ( read.getAlignmentStart() < currentPosition ) 
+			throw new StingException("Read "+read.getReadName() +" out of order on the contig\n"+
+					"Read starts at "+refName+":"+read.getAlignmentStart()+"; last read seen started at "+refName+":"+currentPosition
+					+"\nLast read was: "+lastRead.getReadName()+" RG="+lastRead.getAttribute("RG")+" at "+lastRead.getAlignmentStart()+"-"
+					+lastRead.getAlignmentEnd()+" cigar="+lastRead.getCigarString());
+		
+		currentPosition = read.getAlignmentStart();
+		
 		if ( read.getAlignmentStart() < coverage.getStart() ) {
 			// should never happen
 			throw new StingException("Read "+read.getReadName()+": out of order on the contig\n"+
 					"Read starts at "+read.getReferenceName()+":"+read.getAlignmentStart()+ " (cigar="+read.getCigarString()+
 					"); window starts at "+coverage.getStart());
 		}
+		
+		lastRead = read;
 		
 		// a little trick here: we want to make sure that current read completely fits into the current
 		// window so that we can accumulate the coverage/indel counts over the whole length of the read.
