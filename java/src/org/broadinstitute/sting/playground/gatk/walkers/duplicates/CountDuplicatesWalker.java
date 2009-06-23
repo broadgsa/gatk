@@ -33,12 +33,12 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import java.util.List;
 
 /**
- * a class to store the duplicates information we pass around
+ * a class to store the traversal information we pass around
  */
 class DuplicateCount  {
-        public int count = 0;
-        public int undupDepth = 0;
-        public int depth = 0;
+        public int count = 0; // the count of sites we were given
+        public int undupDepth = 0; // the unique read count
+        public int depth = 0; // the dupplicate read depth
     }
 
 /**
@@ -96,11 +96,10 @@ public class CountDuplicatesWalker extends DuplicateWalker<DuplicateCount, Dupli
      */
     public void onTraversalDone(DuplicateCount result) {
         out.println("[REDUCE RESULT] Traversal result is: ");
-        out.println("duplicate count = " + result.count);
+        out.println("traversal iterations = " + result.count);
         out.println("average depth = " + (double)result.depth / (double)result.count);
         out.println("duplicates seen = " + result.depth);
-        out.println("average unique depth = " + (double)result.undupDepth / (double)result.undupDepth);
         out.println("unique read count = " + result.undupDepth);
-
+        out.println("average unique read depth = " + (double)result.undupDepth / (double)result.count);
     }
 }
