@@ -108,13 +108,13 @@ public class ArtificialPatternedSAMIterator extends ArtificialSAMIterator {
         }
         // check for end condition, have we finished the chromosome listing, and have no unmapped reads
         if (currentChromo >= eChromosomeCount) {
-            if (uMappedReadCount < 1) {
+            if (unmappedRemaining < 1) {
                 this.next = null;
                 return false;
             } else {
                 ++totalReadCount;
                 this.next = ArtificialSAMUtils.createArtificialRead(this.header, String.valueOf(totalReadCount), -1, -1, 50);
-                --uMappedReadCount;
+                --unmappedRemaining;
                 return true;
             }
         }

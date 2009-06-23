@@ -58,7 +58,7 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
     @Test
     public void testCreateSingleIterator() {
         ResourcePool iteratorPool = new ReferenceOrderedDataPool(rod);
-        RODIterator iterator = (RODIterator)iteratorPool.iterator( testSite1 );
+        RODIterator iterator = (RODIterator)iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -79,10 +79,10 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
     @Test
     public void testCreateMultipleIterators() {
         ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod);
-        RODIterator iterator1 = (RODIterator)iteratorPool.iterator( testSite1 );
+        RODIterator iterator1 = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         // Create a new iterator at position 2.
-        RODIterator iterator2 = iteratorPool.iterator( testSite2 );
+        RODIterator iterator2 = iteratorPool.iterator( new MappedStreamSegment(testSite2) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 2, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -129,7 +129,7 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
     @Test
     public void testIteratorConservation() {
         ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod);
-        RODIterator iterator = (RODIterator)iteratorPool.iterator( testSite1 );
+        RODIterator iterator = (RODIterator)iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -143,7 +143,7 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
         iteratorPool.release(iterator);
 
         // Create another iterator after the current iterator.
-        iterator = iteratorPool.iterator(testSite3);
+        iterator = iteratorPool.iterator( new MappedStreamSegment(testSite3) );
 
         // Make sure that the previously acquired iterator was reused.
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
@@ -164,7 +164,7 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
     @Test
     public void testIteratorCreation() {
         ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod);
-        RODIterator iterator = (RODIterator)iteratorPool.iterator( testSite3 );
+        RODIterator iterator = (RODIterator)iteratorPool.iterator( new MappedStreamSegment(testSite3) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
@@ -178,7 +178,7 @@ public class ReferenceOrderedDataPoolTest extends BaseTest {
         iteratorPool.release(iterator);
 
         // Create another iterator after the current iterator.
-        iterator = iteratorPool.iterator(testSite1);
+        iterator = iteratorPool.iterator(new MappedStreamSegment(testSite1) );
 
         // Make sure that the previously acquired iterator was reused.
         Assert.assertEquals("Number of iterators in the pool is incorrect", 2, iteratorPool.numIterators());

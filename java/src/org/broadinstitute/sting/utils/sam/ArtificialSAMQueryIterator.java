@@ -65,6 +65,19 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator implements
         this.startingChr = startingChr;
     }
 
+    @Override
+    protected void reset() {
+        this.startPos = 0;
+        this.finalPos = 0;
+        this.contigIndex = -1;
+        // Doesn't make sense to reset the overlapping flag, because we rely on its state later on.
+        // TODO: Make this a bit more direct.
+        //overlapping = false;
+        this.startingChr = 0;
+        this.seeked = false;
+        super.reset();
+    }
+
     /**
      * query containing - get reads contained by the specified interval
      *
@@ -89,7 +102,6 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator implements
         initialize(contig, start, stop);
     }
 
-    @Override
     public void query( String contig, int start, int stop, boolean contained ) {
         if (contained)
             queryContained(contig, start, stop);
@@ -97,18 +109,19 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator implements
             queryOverlapping(contig, start, stop);
     }
 
-    @Override
     public void queryUnmappedReads() {
         initializeUnmapped();
     }
-
 
     /**
      * initialize the iterator to an unmapped read position
      */
     public void initializeUnmapped() {
+        // throw away data from the previous invocation, if one exists.
         ensureUntouched();
-         while (super.hasNext() && this.peek().getReferenceIndex() >= 0) {
+        reset();
+
+        while (super.hasNext() && this.peek().getReferenceIndex() >= 0) {
             super.next();
         }
         // sanity check that we have an actual matching read next
@@ -131,7 +144,10 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator implements
      * @param stop   the stop postition
      */
     private void initialize( String contig, int start, int stop ) {
+        // throw away data from the previous invocation, if one exists.
         ensureUntouched();
+        reset();
+
         finalPos = stop;
         startPos = start;
         if (finalPos < 0) {
@@ -213,7 +229,7 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator implements
 
     /** make sure we haven't been used as an iterator yet; this is to miror the MergingSamIterator2 action. */
     public void ensureUntouched() {
-        if (this.currentChromo != 0 || this.currentRead > 1) {
+        if (open) {
             throw new UnsupportedOperationException("We've already been used as an iterator; you can't query after that");
         }
     }

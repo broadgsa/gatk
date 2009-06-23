@@ -9,10 +9,11 @@ import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMQueryIterator;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMIterator;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
@@ -76,16 +77,20 @@ public class SAMByReadsTest extends BaseTest {
     /** Test out that we can shard the file and iterate over every read */
     @Test
     public void testToUnmappedReads() {
-        ArtificialResourcePool gen = new ArtificialResourcePool(1,10,100,1000);
+        ArtificialResourcePool gen = new ArtificialResourcePool(createArtificialSamHeader(1,10,100,1000),
+                                                                ArtificialSAMUtils.unmappedReadIterator(1, 100, 10, 1000) );
+
         GenomeLocParser.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
         try {
             int unmappedReadsSeen = 0;
             int iterations = 0;
+
             SAMDataSource data = new SAMDataSource(reads,true);
+            data.setResourcePool(gen);
+
             for (int x = 0; x < 10; x++) {
                 ++iterations;
-                QueryIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 10, 1000);
-                BoundedReadIterator ret = data.toUnmappedReads(100, iter);
+                StingSAMIterator ret = data.toUnmappedReads(100);
                 // count the reads we've gotten back
                 if (ret == null) {
                     fail("On iteration " + iterations + " we were returned a null pointer, after seeing " + unmappedReadsSeen + " reads out of a 1000");
@@ -109,7 +114,8 @@ public class SAMByReadsTest extends BaseTest {
     /** Test out that we can shard the file and iterate over every read */
     @Test
     public void testShardingOfReadsSize14() {
-        ArtificialResourcePool gen = new ArtificialResourcePool(1,10,100,1000);
+        ArtificialResourcePool gen = new ArtificialResourcePool(createArtificialSamHeader(1,10,100,1000),
+                                                                ArtificialSAMUtils.queryReadIterator(1,10,100,1000) );
         GenomeLocParser.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
         targetReadCount = 14;
         try {
@@ -117,18 +123,22 @@ public class SAMByReadsTest extends BaseTest {
             int readCount = 0;
             SAMDataSource data = new SAMDataSource(reads,true);
 
+            ArrayList<Integer> readsPerShard = new ArrayList<Integer>();
 
             data.setResourcePool(gen);
             shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS, gen.getHeader().getSequenceDictionary(), targetReadCount);
             while (shardStrategy.hasNext()) {
+                int initialReadCount = readCount;
 
-
-                BoundedReadIterator ret = (BoundedReadIterator)data.seek(shardStrategy.next());
+                StingSAMIterator ret = data.seek(shardStrategy.next());
                 assertTrue(ret != null);
                 while (ret.hasNext()) {
                     ret.next();
                     readCount++;
                 }
+
+                readsPerShard.add(readCount-initialReadCount);
+
                 ret.close();
                 iterations++;
             }
@@ -159,7 +169,8 @@ public class SAMByReadsTest extends BaseTest {
     /** Test out that we can shard the file and iterate over every read */
     @Test
     public void testShardingOfReadsSize25() {
-        ArtificialResourcePool gen = new ArtificialResourcePool(1,10,100,1000);
+        ArtificialResourcePool gen = new ArtificialResourcePool(createArtificialSamHeader(1,10,100,1000),
+                                                                ArtificialSAMUtils.queryReadIterator(1,10,100,1000) );        
         GenomeLocParser.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
         targetReadCount = 25;
         try {
@@ -206,7 +217,11 @@ public class SAMByReadsTest extends BaseTest {
 
     }
 
-
+    private SAMFileHeader createArtificialSamHeader(int startingChr, int endingChr, int readCount, int readSize) {
+        return ArtificialSAMUtils.createArtificialSamHeader( ( endingChr - startingChr ) + 1,
+                                                             startingChr,
+                                                             readCount + readSize );
+    }
 }
 
 /**
@@ -218,21 +233,42 @@ class ArtificialResourcePool extends SAMIteratorPool {
 
     // the header
     private SAMFileHeader header;
-    private final SAMFileHeader.SortOrder sortOrder = SAMFileHeader.SortOrder.coordinate;
+    private ArtificialSAMIterator iterator;
 
-    public ArtificialResourcePool( int startingChr, int endingChr, int readCount, int readSize) {
+    /**
+     * Track the iterator to see whether it's venturing into unmapped reads for the first
+     * time.  If so, query straight there.  Only works for query iterators.
+     *
+     * TODO: Clean up.
+     */
+    private boolean intoUnmappedReads = false;
+
+    public ArtificialResourcePool( SAMFileHeader header, ArtificialSAMIterator iterator ) {
         super( new Reads(Collections.<File>emptyList()),true );
-        header = ArtificialSAMUtils.createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + readSize);
-
+        this.header = header;
+        this.iterator = iterator;
     }
 
     @Override
-    public QueryIterator iterator( GenomeLoc loc ) {
-        ArtificialSAMQueryIterator iter = ArtificialSAMUtils.queryReadIterator(1, 10, 100, 1000);
-        if (loc != null) {
-            iter.queryContained(loc.getContig(), (int)loc.getStart(), (int)loc.getStop());
+    public StingSAMIterator iterator( DataStreamSegment segment ) {
+        if (segment instanceof MappedStreamSegment && iterator instanceof ArtificialSAMQueryIterator) {
+            ArtificialSAMQueryIterator queryIterator = (ArtificialSAMQueryIterator)iterator;
+            MappedStreamSegment mappedSegment = (MappedStreamSegment)segment;
+            queryIterator.queryContained(mappedSegment.locus.getContig(), (int)mappedSegment.locus.getStart(), (int)mappedSegment.locus.getStop());
+            return queryIterator;
         }
-        return iter;
+        else if (segment instanceof UnmappedStreamSegment) {
+            if( !intoUnmappedReads ) {
+                if( iterator instanceof ArtificialSAMQueryIterator ) {
+                    ArtificialSAMQueryIterator queryIterator = (ArtificialSAMQueryIterator)iterator;
+                    queryIterator.queryUnmappedReads();
+                }
+                intoUnmappedReads = true;
+            }
+            return new BoundedReadIterator(iterator,((UnmappedStreamSegment)segment).size);
+        }
+        else
+            throw new StingException("Unsupported segment type passed to test");
     }
 
     /**

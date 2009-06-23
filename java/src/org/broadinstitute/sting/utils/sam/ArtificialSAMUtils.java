@@ -6,6 +6,7 @@ import java.io.File;
 import java.util.*;
 
 import org.broadinstitute.sting.gatk.iterators.QueryIterator;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.StingException;
 
 /**
@@ -219,7 +220,7 @@ public class ArtificialSAMUtils {
      *
      * @return StingSAMIterator representing the specified amount of fake data
      */
-    public static QueryIterator unmappedReadIterator( int startingChr, int endingChr, int readCount, int unmappedReadCount ) {
+    public static ArtificialSAMIterator unmappedReadIterator( int startingChr, int endingChr, int readCount, int unmappedReadCount ) {
         SAMFileHeader header = createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, unmappedReadCount, header);

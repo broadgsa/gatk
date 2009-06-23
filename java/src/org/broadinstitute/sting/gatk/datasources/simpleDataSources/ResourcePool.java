@@ -42,29 +42,28 @@ abstract class ResourcePool <T,I extends Iterator> {
 
     /**
      * Get an iterator whose position is before the specified location.  Create a new one if none exists.
-     * @param position Target position for the iterator.
+     * @param segment Target position for the iterator.
      * @return An iterator that can traverse the selected region.  Should be able to iterate concurrently with other
      *         iterators from tihs pool.
      */
-    public I iterator( GenomeLoc position ) {
+    public I iterator( DataStreamSegment segment ) {
         // Grab the first iterator in the list whose position is before the requested position.
         T selectedResource = null;
         synchronized(this) {
-            selectedResource = selectBestExistingResource( position, availableResources );
+            selectedResource = selectBestExistingResource( segment, availableResources );
+
+            // No iterator found?  Create another.  It is expected that
+            // each iterator created will have its own file handle.
+            if( selectedResource == null ) {
+                selectedResource = createNewResource();
+                addNewResource( selectedResource );
+            }
 
             // Remove the iterator from the list of available iterators.
-            if( selectedResource != null )
-                availableResources.remove(selectedResource);
+            availableResources.remove(selectedResource);
         }
 
-        // No iterator found?  Create another.  It is expected that
-        // each iterator created will have its own file handle.
-        if( selectedResource == null ) {
-            selectedResource = createNewResource(position);
-            addNewResource( selectedResource );
-        }
-
-        I iterator = createIteratorFromResource( position, selectedResource );
+        I iterator = createIteratorFromResource( segment, selectedResource );
 
         // Make a note of this assignment for proper releasing later.
         resourceAssignments.put( iterator, selectedResource );
@@ -97,32 +96,33 @@ abstract class ResourcePool <T,I extends Iterator> {
     protected void addNewResource( T resource ) {
         synchronized(this) {
             allResources.add(resource);
+            availableResources.add(resource);
         }
     }
 
     /**
      * If no appropriate resources are found in the pool, the system can create a new resource.
      * Delegate the creation of the resource to the subclass.
-     * @param position Position for the new resource.  This information may or may not inform the new resource.
      * @return The new resource created.
      */
-    protected abstract T createNewResource( GenomeLoc position );
+    protected abstract T createNewResource();
 
     /**
      * Find the most appropriate resource to acquire the specified data. 
-     * @param position The data over which the resource is required.
+     * @param segment The data over which the resource is required.
      * @param availableResources A list of candidate resources to evaluate.
      * @return The best choice of the availableResources, or null if no resource meets the criteria.
      */
-    protected abstract T selectBestExistingResource( GenomeLoc position, List<T> availableResources );
+    protected abstract T selectBestExistingResource( DataStreamSegment segment, List<T> availableResources );
 
     /**
      * Create an iterator over the specified resource.
      * @param position The bounds of iteration.  The first element of the iterator through the last element should all
      *                 be in the range described by position.
+     * @param resource The resource from which to derive the iterator.
      * @return A new iterator over the given data.
      */
-    protected abstract I createIteratorFromResource( GenomeLoc position, T resource );
+    protected abstract I createIteratorFromResource( DataStreamSegment position, T resource );
 
     /**
      * Retire this resource from service.
@@ -148,4 +148,45 @@ abstract class ResourcePool <T,I extends Iterator> {
         return availableResources.size();
     }
 
+}
+
+/**
+ * Marker interface that represents an arbitrary consecutive segment within a data stream.
+ */
+interface DataStreamSegment {
+}
+
+/**
+ * Models a mapped position within a stream of GATK input data.
+ */
+class MappedStreamSegment implements DataStreamSegment {
+    public final GenomeLoc locus;
+    public MappedStreamSegment( GenomeLoc locus ) {
+        this.locus = locus;
+    }
+}
+
+/**
+ * Models a position within the unmapped reads in a stream of GATK input data.
+ */
+class UnmappedStreamSegment implements DataStreamSegment {
+    /**
+     * Where does this region start, given 0 = the position of the first unmapped read.
+     */
+    public final long position;
+
+    /**
+     * How many reads wide is this region?  This size is generally treated as an upper bound.
+     */
+    public final long size;
+
+    /**
+     * Create a new target location in an unmapped read stream.
+     * @param position The 0-based index into the unmapped reads.  Position 0 represents the first unmapped read.
+     * @param size the size of the segment.
+     */
+    public UnmappedStreamSegment( long position, long size ) {
+        this.position = position;
+        this.size = size;
+    }
 }

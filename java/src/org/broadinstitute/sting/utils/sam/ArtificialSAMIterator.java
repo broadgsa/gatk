@@ -1,12 +1,9 @@
 package org.broadinstitute.sting.utils.sam;
 
-import org.broadinstitute.sting.gatk.iterators.QueryIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.Reads;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.util.CloseableIterator;
-import net.sf.picard.util.PeekableIterator;
 
 import java.util.Iterator;
 
@@ -43,6 +40,7 @@ public class ArtificialSAMIterator implements StingSAMIterator {
     protected int currentChromo = 0;
     protected int currentRead = 1;
     protected int totalReadCount = 0;
+    protected int unmappedRemaining = 0;
     protected boolean done = false;
     // the next record
     protected SAMRecord next = null;
@@ -52,10 +50,15 @@ public class ArtificialSAMIterator implements StingSAMIterator {
     protected final int sChr;
     protected final int eChromosomeCount;
     protected final int rCount;
-    protected int uMappedReadCount;
+    protected final int unmappedReadCount;
 
     // let us know to make a read, we need this to help out the fake sam query iterator
     private boolean initialized = false;
+
+    /**
+     * Is this iterator currently open or closed?  Closed iterators can be reused.
+     */    
+    protected boolean open = false;
 
     /**
      * create the fake iterator, given the mapping of chromosomes and read counts
@@ -70,8 +73,18 @@ public class ArtificialSAMIterator implements StingSAMIterator {
         eChromosomeCount = (endingChr - startingChr) + 1;
         rCount = readCount;
         this.header = header;
+        unmappedReadCount = 0;
+        reset();
+    }
+
+    protected void reset() {
         this.currentChromo = 0;
-        uMappedReadCount = 0;
+        this.currentRead = 1;
+        this.totalReadCount = 0;
+        this.done = false;
+        this.next = null;
+        this.initialized = false;
+        this.unmappedRemaining = unmappedReadCount;
     }
 
     /**
@@ -88,7 +101,8 @@ public class ArtificialSAMIterator implements StingSAMIterator {
         rCount = readCount;
         this.header = header;
         this.currentChromo = 0;
-        this.uMappedReadCount = unmappedReadCount;
+        this.unmappedReadCount = unmappedReadCount;
+        reset();
     }
 
 
@@ -97,11 +111,12 @@ public class ArtificialSAMIterator implements StingSAMIterator {
     }
 
     public void close() {
-        // done
-        currentChromo = Integer.MAX_VALUE;
+        open = false;
     }
 
     public boolean hasNext() {
+        open = true;
+
         if (!initialized){
             initialized = true;
             createNextRead();
@@ -119,13 +134,13 @@ public class ArtificialSAMIterator implements StingSAMIterator {
         }
         // check for end condition, have we finished the chromosome listing, and have no unmapped reads
         if (currentChromo >= eChromosomeCount) {
-            if (uMappedReadCount < 1) {
+            if (unmappedRemaining < 1) {
                 this.next = null;
                 return false;
             } else {
                 ++totalReadCount;
                 this.next = ArtificialSAMUtils.createArtificialRead(this.header, String.valueOf(totalReadCount), -1, -1, 50);
-                --uMappedReadCount;
+                --unmappedRemaining;
                 return true;
             }
         }
@@ -137,6 +152,8 @@ public class ArtificialSAMIterator implements StingSAMIterator {
 
 
     public SAMRecord next() {
+        open = true;        
+
         SAMRecord ret = next;
         createNextRead();
         return ret;

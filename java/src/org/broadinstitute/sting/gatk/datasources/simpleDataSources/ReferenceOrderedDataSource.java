@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.RODIterator;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.Iterator;
 import java.util.List;
@@ -58,7 +59,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * @return Iterator through the data.
      */
     public Iterator seek( Shard shard ) {
-        RODIterator iterator = iteratorPool.iterator(shard.getGenomeLoc());
+        RODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(shard.getGenomeLoc()) );
         return iterator;
     }
 
@@ -85,21 +86,25 @@ class ReferenceOrderedDataPool extends ResourcePool<RODIterator,RODIterator> {
     /**
      * Create a new iterator from the existing reference-ordered data.  This new iterator is expected
      * to be completely independent of any other iterator.
-     * @param position @{inheritedDoc}
      * @return The newly created resource.
      */
-    public RODIterator createNewResource( GenomeLoc position ) {
+    public RODIterator createNewResource() {
         return rod.iterator();
     }
 
     /**
      * Finds the best existing ROD iterator from the pool.  In this case, the best existing ROD is defined as
      * the first one encountered that is at or before the given position.
-     * @param position @{inheritedDoc}
+     * @param segment @{inheritedDoc}
      * @param resources @{inheritedDoc}
      * @return @{inheritedDoc}
      */
-    public RODIterator selectBestExistingResource( GenomeLoc position, List<RODIterator> resources ) {
+    public RODIterator selectBestExistingResource( DataStreamSegment segment, List<RODIterator> resources ) {
+        if( !(segment instanceof MappedStreamSegment) )
+            throw new StingException("Reference-ordered data cannot utilitize unmapped segments.");
+
+        GenomeLoc position = ((MappedStreamSegment)segment).locus;
+
         for( RODIterator iterator: resources ) {
             if( (iterator.position() == null && iterator.hasNext()) ||
                 (iterator.position() != null && iterator.position().isBefore(position)) )
@@ -111,7 +116,7 @@ class ReferenceOrderedDataPool extends ResourcePool<RODIterator,RODIterator> {
     /**
      * In this case, the iterator is the resource.  Pass it through.
      */
-    public RODIterator createIteratorFromResource( GenomeLoc position, RODIterator resource ) {
+    public RODIterator createIteratorFromResource( DataStreamSegment segment, RODIterator resource ) {
         return resource;
     }
 

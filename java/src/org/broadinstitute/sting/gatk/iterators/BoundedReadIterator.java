@@ -55,7 +55,10 @@ public class BoundedReadIterator implements StingSAMIterator {
     // our unmapped read flag
     private boolean doNotUseThatUnmappedReadPile = false;
 
-    // the next read we've buffered
+    /**
+     * The next read that we've buffered.  Null indicates that there's
+     * nothing in the buffer (not that there isn't a next read).
+     */
     private SAMRecord record = null;
 
     /**
@@ -96,6 +99,9 @@ public class BoundedReadIterator implements StingSAMIterator {
      * @return
      */
     public boolean hasNext() {
+        if( record != null )
+            return true;
+
         if (iterator.hasNext() && currentCount < readCount) {
             record = iterator.next();
             ++currentCount;
@@ -113,7 +119,9 @@ public class BoundedReadIterator implements StingSAMIterator {
      * @return SAMRecord representing the next read
      */
     public SAMRecord next() {
-        return record;
+        SAMRecord cached = record;
+        record = null;
+        return cached;
     }
 
     /**
