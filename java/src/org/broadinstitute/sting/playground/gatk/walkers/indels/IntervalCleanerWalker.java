@@ -33,9 +33,9 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public double LOD_THRESHOLD = 5.0;
     @Argument(fullName="EntropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
     public double MISMATCH_THRESHOLD = 0.15;
-    @Argument(fullName="maxConsensuses", shortName="maxConsensuses", doc="max alternate consensuses to try (necesary to improve performance in deep coverage)", required=false)
+    @Argument(fullName="maxConsensuses", shortName="maxConsensuses", doc="max alternate consensuses to try (necessary to improve performance in deep coverage)", required=false)
     public int MAX_CONSENSUSES = 30;
-    @Argument(fullName="maxReadsForConsensuses", shortName="greedy", doc="max reads used for finding the alternate consensuses (necesary to improve performance in deep coverage)", required=false)
+    @Argument(fullName="maxReadsForConsensuses", shortName="greedy", doc="max reads used for finding the alternate consensuses (necessary to improve performance in deep coverage)", required=false)
     public int MAX_READS_FOR_CONSENSUSES = 120;
 
     public static final int MAX_QUAL = 99;
