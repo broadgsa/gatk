@@ -12,9 +12,9 @@ if __name__ == "__main__":
     parser.add_option("-A", "--args", dest="args",
                         type="string", default="",
                         help="arguments to GATK")
-    parser.add_option("-C", "--CovariateArgs", dest="CovariateArgs",
+    parser.add_option("-m", "--mode", dest="RecalMode",
                         type="string", default="",
-                        help="arguments to GATK")
+                        help="Mode argument to provide to table recalibrator")
     parser.add_option("-q", "--farm", dest="farmQueue",
                         type="string", default=None,
                         help="Farm queue to send processing jobs to")
@@ -45,37 +45,36 @@ if __name__ == "__main__":
 
     covariateRoot = os.path.join(OPTIONS.scratchDir, rootname)
     covariateInitial = covariateRoot + '.init'
-    initDataFile = covariateInitial + '.raw_data.csv'
+    initDataFile = covariateInitial + '.recal_data.csv'
     covariateRecal = covariateRoot +  '.recal'
-    recalDataFile = covariateRecal + '.raw_data.csv'
+    recalDataFile = covariateRecal + '.recal_data.csv'
 
     if not os.path.exists(OPTIONS.scratchDir):
         os.mkdir(OPTIONS.scratchDir)
     
-    def covariateCmd(bam, outputDir, ignoreAdds):
+    def covariateCmd(bam, outputDir):
         add = " -I %s --OUTPUT_FILEROOT %s" % (bam, outputDir)
-        if not ignoreAdds:
-            add += " " + OPTIONS.CovariateArgs
         return config.gatkCmd('CountCovariates') + add 
 
     def recalibrateCmd(inputBAM, dataFile, outputBAM):
-        return config.gatkCmd('TableRecalibration') + " -I %s -params %s -outputBAM %s" % (inputBAM, dataFile, outputBAM)
+        return config.gatkCmd('TableRecalibration') + " -I %s -params %s -outputBAM %s -mode %s" % (inputBAM, dataFile, outputBAM, OPTIONS.RecalMode)
 
-    def runCovariateCmd(inputBAM, dataFile, dir, jobid, ignoreAdds = False):
+    def runCovariateCmd(inputBAM, dataFile, dir, jobid):
         if OPTIONS.ignoreExistingFiles or not os.path.exists(dataFile):
-            cmd = covariateCmd(inputBAM, dir, ignoreAdds)
+            cmd = covariateCmd(inputBAM, dir)
             return farm_commands.cmd(cmd, OPTIONS.farmQueue, None, just_print_commands = OPTIONS.dry, waitID = jobid)
 
     #
     # Actually do some work here
     #
     jobid = None
-    jobid = runCovariateCmd(inputBAM, initDataFile, covariateInitial, jobid, False)
+    if OPTIONS.ignoreExistingFiles or not os.path.exists(initDataFile): 
+        jobid = runCovariateCmd(inputBAM, initDataFile, covariateInitial, jobid)
     
     if OPTIONS.ignoreExistingFiles or not os.path.exists(outputBAM):
         cmd = recalibrateCmd(inputBAM, initDataFile, outputBAM)
         jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, None, just_print_commands = OPTIONS.dry, waitID = jobid)
         jobid = farm_commands.cmd('samtools index ' + outputBAM, OPTIONS.farmQueue, None, just_print_commands = OPTIONS.dry, waitID = jobid)
         
-    jobid = runCovariateCmd(outputBAM, recalDataFile, covariateRecal, jobid, True)
+    jobid = runCovariateCmd(outputBAM, recalDataFile, covariateRecal, jobid)
         

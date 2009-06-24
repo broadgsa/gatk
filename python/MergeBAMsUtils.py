@@ -59,7 +59,7 @@ class MergeFilesSpec:
 
     def filename(self):
         if self.merged_filename_base <> None:
-            return self.merged_filename_base + '.' + self.group()
+            return self.merged_filename_base + '.'.join([self.group()])
         else:
             return self.group()
 
