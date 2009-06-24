@@ -98,7 +98,8 @@ public class BasecallingReadModel {
 
             double[] fourIntensity = new double[4];
             for (int channel = 0; channel < 4; channel++) {
-                fourIntensity[channel] = (double) ints[cycle][channel];
+                //fourIntensity[channel] = (double) ints[cycle][channel];
+                fourIntensity[channel] = (double) ints[channel][cycle];
             }
 
             basemodels[cycle].addMeanPoint(probMatrix, fourIntensity);
@@ -135,7 +136,8 @@ public class BasecallingReadModel {
 
             double[] fourIntensity = new double[4];
             for (int channel = 0; channel < 4; channel++) {
-                fourIntensity[channel] = (double) ints[cycle][channel];
+                //fourIntensity[channel] = (double) ints[cycle][channel];
+                fourIntensity[channel] = (double) ints[channel][cycle];
             }
 
             basemodels[cycle].addCovariancePoint(probMatrix, fourIntensity);
@@ -207,7 +209,8 @@ public class BasecallingReadModel {
 
             double[] fourIntensity = new double[4];
             for (int channel = 0; channel < 4; channel++) {
-                fourIntensity[channel] = (double) read.getIntensities()[cycle][channel];
+                //fourIntensity[channel] = (double) read.getIntensities()[cycle][channel];
+                fourIntensity[channel] = (double) read.getIntensities()[channel][cycle];
             }
 
             fpr.add(cycle, computeProbabilities(cycle, basePrev, qualPrev, fourIntensity));

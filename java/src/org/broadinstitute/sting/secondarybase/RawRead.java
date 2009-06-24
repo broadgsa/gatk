@@ -58,7 +58,8 @@ public class RawRead implements Comparable<RawRead> {
         sequence = pastedReadString[1][4].substring(cycleBegin, cycleEnd + 1).getBytes();
 
         quals = new byte[sequence.length];
-        intensities = new short[sequence.length][4];
+        //intensities = new short[sequence.length][4];
+        intensities = new short[4][sequence.length];
 
         for (int cycle = cycleBegin, offset = 0; cycle <= cycleEnd; cycle++, offset++) {
             byte maxQual = -50;
@@ -75,7 +76,8 @@ public class RawRead implements Comparable<RawRead> {
                 double doubleChannelIntensity = Double.valueOf(pastedReadString[0][fullReadIndex]);
                 short shortChannelIntensity = (short) doubleChannelIntensity;
 
-                intensities[offset][channel] = shortChannelIntensity;
+                //intensities[offset][channel] = shortChannelIntensity;
+                intensities[channel][offset] = shortChannelIntensity;
             }
         }
     }
@@ -181,14 +183,14 @@ public class RawRead implements Comparable<RawRead> {
     /**
      * Get the raw read intensities.
      *
-     * @return the (readLength)x(numChannels) array of raw intensities
+     * @return the (numChannels)x(readLength) array of raw intensities
      */
     public short[][] getIntensities() { return intensities; }
 
     /**
      * Set the raw intensities.
      *
-     * @param intensities  the (readLength)x(numChannels) array of raw intensities
+     * @param intensities  the (numChannels)x(readLength) array of raw intensities
      */
     public void setIntensities(short[][] intensities) { this.intensities = intensities; }
 
@@ -239,12 +241,17 @@ public class RawRead implements Comparable<RawRead> {
 
         byte[] newSequence = new byte[cycleStop - cycleStart + 1];
         byte[] newQuals = new byte[cycleStop - cycleStart + 1];
-        short[][] newIntensities = new short[cycleStop - cycleStart + 1][4];
+        //short[][] newIntensities = new short[cycleStop - cycleStart + 1][4];
+        short[][] newIntensities = new short[4][cycleStop - cycleStart + 1];
 
         for (int cycle = cycleStart, offset = 0; cycle <= cycleStop; cycle++, offset++) {
             newSequence[offset] = sequence[cycle];
             newQuals[offset] = quals[cycle];
-            newIntensities[offset] = intensities[cycle];
+            //newIntensities[offset] = intensities[cycle];
+
+            for (int channel = 0; channel < 4; channel++) {
+                newIntensities[channel][offset] = intensities[channel][cycle];
+            }
         }
 
         subRead.setSequence(newSequence);
