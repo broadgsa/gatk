@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.ExpandingArrayList;
 
 import java.util.*;
@@ -64,15 +63,19 @@ public class RecalDataManager {
             throw new RuntimeException(String.format("BUG: adding incorrect read group datum %s to RecalDataManager for %s", datum.readGroup, this.readGroup));
         }
 
-        if ( getRecalData(datum.pos, datum.qual, datum.dinuc) != null )
-            throw new RuntimeException(String.format("Duplicate entry discovered: %s vs. %s", getRecalData(datum.pos, datum.qual, datum.dinuc), datum));
+        RecalData prev = getRecalData(datum.pos, datum.qual, datum.dinuc);
+        if ( prev != null ) {
+            if ( trackDinuc && trackPos )
+                throw new RuntimeException(String.format("Duplicate entry discovered: %s vs. %s", getRecalData(datum.pos, datum.qual, datum.dinuc), datum));
+            prev.inc(datum);
+        } else {
+            int posIndex = getPosIndex(datum.pos);
+            int internalDinucIndex = getDinucIndex(datum.dinuc);
+            if ( internalDinucIndex == -1 ) return;
 
-        int posIndex = getPosIndex(datum.pos);
-        int internalDinucIndex = getDinucIndex(datum.dinuc);
-        if ( internalDinucIndex == -1 ) return;
-
-        set(posIndex, datum.qual, internalDinucIndex, datum);
-        flattenData.add(datum);
+            set(posIndex, datum.qual, internalDinucIndex, datum);
+            flattenData.add(datum);
+        }
     }
     
     public RecalData getRecalData(int pos, int qual, String dinuc) {
@@ -157,47 +160,41 @@ public class RecalDataManager {
 
         return l;
     }
+    */
 
-    public List<RecalData> getDataByPos() {
-        List<RecalData> l = new ArrayList<RecalData>(data.length);
-        for ( int pos = 0; pos < maxReadLen; pos++ ) {
-            for ( int qual = 0; qual < QualityUtils.MAX_QUAL_SCORE+1; qual++ ) {
-                RecalData datum = new RecalData(pos, qual, readGroup, "**");
-                for ( int dinucIndex = 0; dinucIndex < nDinucs; dinucIndex++ ) {
-                    RecalData datum2 = getRecalData(pos, qual, RecalData.dinucIndex2bases(dinucIndex));
-                    if ( datum2 != null )
-                        datum.inc(data[pos][qual][dinucIndex].N, data[pos][qual][dinucIndex].B);
-                }
-                if ( datum.N > 0 ) l.add(datum);                
+    private RecalData getMatchingDatum(List<RecalData> l, RecalData datum,
+                                       boolean combinePos, boolean combineQual, boolean combineDinuc) {
+        for ( RecalData find : l ) {
+            if ( (combineQual  || find.qual == datum.qual) &&
+                 (combinePos   || find.pos == datum.pos ) &&
+                 (combineDinuc || find.dinuc.equals(datum.dinuc)) ) {
+                //System.out.printf("Found %s for %s%n", find, datum);
+                return find;
             }
         }
-
-        System.out.printf("getDataByPos => %d%n", l.size());
-        return l;
+        RecalData d = new RecalData(combinePos ? 0 : datum.pos, combineQual ? 0 : datum.qual, datum.readGroup, combineDinuc ? "**" : datum.dinuc );
+        //System.out.printf("Making new match %s%n", d);
+        l.add(d);
+        return d;
     }
 
-    public List<RecalData> getDataByDinuc() {
-        List<RecalData> l = new ArrayList<RecalData>(nDinucs);
+    public List<RecalData> combineDinucs() {
+        return combine(false, false, true);
+    }
 
-        for ( int dinucIndex = 0; dinucIndex < nDinucs; dinucIndex++ ) {
-            for ( int qual = 0; qual < QualityUtils.MAX_QUAL_SCORE+1; qual++ ) {
-                RecalData datum = new RecalData(-1, qual, readGroup, RecalData.dinucIndex2bases(dinucIndex));
-                System.out.printf("Aggregating      [%s]:%n", datum);
-                for ( int pos = 0; pos < data.length; pos++ ) {
-                    RecalData datum2 = getRecalData(pos, qual, RecalData.dinucIndex2bases(dinucIndex));
-                    if ( datum2 != null ) {
-                        System.out.printf("             +   [%s]:%n", datum2);
-                        datum.inc(data[pos][qual][dinucIndex].N, data[pos][qual][dinucIndex].B);
-                    }
-                }
-                if ( datum.N > 0 ) l.add(datum);
-                System.out.printf("             %s  [%s]:%n", datum.N > 0 ? "=>" : "<>", datum);
-            }
+    public List<RecalData> combineCycles() {
+        return combine(true, false, false);
+    }
+
+    public List<RecalData> combine(boolean ignorePos, boolean ignoreQual, boolean ignoreDinuc) {
+        List<RecalData> l = new ArrayList<RecalData>();
+        for ( RecalData datum : flattenData ) {
+            RecalData reduced = getMatchingDatum(l, datum, ignorePos, ignoreQual, ignoreDinuc);
+            //System.out.printf("Combining %s with %s%n", datum, reduced);
+            reduced.inc(datum);
         }
-
-        System.out.printf("getDataByDinuc => %d%n", l.size());
         return l;
-    }*/
+    }
 
     public List<RecalData> getAll() {
         return flattenData;

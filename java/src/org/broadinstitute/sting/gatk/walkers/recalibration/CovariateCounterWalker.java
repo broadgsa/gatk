@@ -33,7 +33,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
 
     //@Argument(fullName="MAX_READ_GROUPS", shortName="mrg", required=false, doc="Abort if number of read groups in input file exceeeds this count.")
     //public int MAX_READ_GROUPS = 100;
-
+    
     @Argument(fullName="PLATFORM", shortName="pl", required=false, doc="Only calibrate read groups generated from the given platform (default = * for all platforms)")
     public List<String> platforms = Collections.singletonList("*");
     //public List<String> platforms = Collections.singletonList("ILLUMINA");
@@ -50,10 +50,14 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
     long counted_bases = 0; // number of bases used to count covariates
     long skipped_sites = 0; // number of sites skipped because of a dbSNP entry
 
+    PrintStream recalTableOut = null;
+
     public void initialize() {
-        //if( getToolkit().getEngine().getSAMHeader().getReadGroups().size() > MAX_READ_GROUPS )
-        //    Utils.scareUser("Number of read groups in the specified file exceeds the number that can be processed in a reasonable amount of memory." +
-        //                    "To override this limit, use the --MAX_READ_GROUPS (-mrg) parameter");
+        try {
+            recalTableOut = new PrintStream( OUTPUT_FILEROOT+".recal_data.csv" );
+        } catch ( FileNotFoundException e ) {
+            throw new RuntimeException("Couldn't open output file", e);
+        }
 
         for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
             if( readGroup.getAttribute("PL") == null )
@@ -68,12 +72,31 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         out.printf("Created recalibration data collectors for %d read group(s)%n", data.size());
     }
 
+    /**
+     * Get the particular RecalData datum associated with readGroup, at machine pos, with reported
+     * quality qual, and with the dinuc context of prevBase, base.  If an example of such a
+     * base has been seen before, returns the associated RecalData.  If not, it creates one, places it in the
+     * system so that subsequent requests will return that object, and returns it.
+     * 
+     * @param readGroup
+     * @param pos
+     * @param qual
+     * @param prevBase
+     * @param base
+     * @return
+     */
     private RecalData getRecalData(String readGroup, int pos, int qual, char prevBase, char base) {
         byte[] cs = {(byte)prevBase, (byte)base};
         String s = new String(cs);
         return data.get(readGroup).expandingGetRecalData(pos, qual, s, true);
     }
 
+    /**
+     * Get a list of all of the RecalData associated with readGroup
+     *
+     * @param readGroup
+     * @return
+     */
     private List<RecalData> getRecalData(String readGroup) {
         return data.get(readGroup).getAll();
     }
@@ -110,6 +133,20 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         return 1;
     }
 
+    /**
+     * Updates the recalibration data for the base at offset in the read, associated with readGroup rg.
+     * Correctly handles machine orientation of the read.  I.e., it adds data not by offset in the read
+     * but by implied machine cycle associated with the offset.
+     *
+     * TODO: this whole system is 0-based and therefore inconsisent with the rest of the GATK, where pos is 1-based
+     * TODO: and offset is 0-based.  How very annoying.
+     *
+     * @param rg
+     * @param read
+     * @param offset
+     * @param ref
+     * @return
+     */
     private int updateDataFromRead( String rg, SAMRecord read, int offset, char ref ) {
         int cycle = offset;
         byte[] bases = read.getReadBases();
@@ -126,13 +163,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         }
 
         int qual = quals[offset];
-        if ( qual > 0 ) { // && qual <= QualityUtils.MAX_QUAL_SCORE ) {
-            // previous base is the next base in terms of machine chemistry if this is a negative strand
-            // if ( qual == 2 )
-            //if ( read.getReadName().equals("30PTAAAXX090126:5:14:132:764#0") )
-            //    System.out.printf("Adding neg?=%b b_offset=%c offset=%d cycle=%d qual=%d dinuc=%c%c ref_match=%c comp=%c name=%s%n",
-            //            read.getReadNegativeStrandFlag(), (char)read.getReadBases()[offset], offset, cycle, qual, prevBase, base,
-            //            ref, (char)BaseUtils.simpleComplement(ref), read.getReadName());
+        if ( qual > 0 ) {
             RecalData datum = getRecalData(rg, cycle, qual, prevBase, base);
             if (datum != null) datum.inc(base,ref);
             return 1;
@@ -153,6 +184,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         //out.printf("...done%n");
     }
 
+    /**
+     * Prints some basic information about the CountCovariates run to the output stream out
+     * @param out
+     */
     private void printInfo(PrintStream out) {
         out.printf("# date          %s%n", new Date());
         out.printf("# collapsed_pos %b%n", collapsePos);
@@ -163,6 +198,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         out.printf("# fraction_skipped 1/%.0f%n", (double)counted_sites / skipped_sites);
     }
 
+    @Deprecated
     private void writeLogisticRecalibrationTable() {
         PrintStream dinuc_out = null;
         try {
@@ -189,36 +225,28 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         }
     }
 
-     private void writeRecalTable() {
-         PrintStream table_out = null;
-         try {
-             table_out = new PrintStream( OUTPUT_FILEROOT+".recal_data.csv");
-             printInfo(table_out);
-             table_out.println("rg,dn,Qrep,pos,NBases,MMismatches,Qemp");
-             for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
-                 for ( RecalData datum: getRecalData(readGroup.getReadGroupId()) ) {
-                     if ( datum.N > 0 )
-                         table_out.format("%s%n", datum.toCSVString(collapsePos));
-                 }
-             }
-         } catch (FileNotFoundException e ) {
-             System.err.println("FileNotFoundException: " + e.getMessage());
-         }
-         finally {
-             if (table_out != null) table_out.close();
-         }
-     }
-
-    public Integer reduceInit() {
-        return 0;
-    }
-
-    public Integer reduce(Integer a, Integer b) {
-        return 0;
+    /**
+     * Writes out the key recalibration data collected from the reads.  Dumps this recalibration data
+     * as a CVS string to the recalTableOut PrintStream.  Emits the data for all read groups into this file.
+     */
+    private void writeRecalTable() {
+        printInfo(recalTableOut);
+        recalTableOut.println("rg,pos,Qrep,dn,nBases,nMismatches,Qemp");
+        for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
+            // TODO: should sort the data coming out of getRecalData here for easier processing
+            for ( RecalData datum: RecalData.sort(getRecalData(readGroup.getReadGroupId())) ) {
+                if ( datum.N > 0 )
+                    recalTableOut.format("%s%n", datum.toCSVString(collapsePos));
+            }
+        }
+        recalTableOut.close();
     }
 
     /**
-     * Check to see whether this read group should be processed.
+     * Check to see whether this read group should be processed.  Returns true if the
+     * read group is in the list of platforms to process or the platform == *, indicating
+     * that all platforms should be processed.
+     *
      * @param readGroup
      * @return
      */
@@ -232,5 +260,25 @@ public class CovariateCounterWalker extends LocusWalker<Integer, Integer> {
         }
 
         return false;
+    }
+
+    /**
+     * No initialization routines
+     *
+     * @return
+     */
+    public Integer reduceInit() {
+        return 0;
+    }
+
+    /**
+     * Doesn't do anything
+     *
+     * @param a
+     * @param b
+     * @return
+     */
+    public Integer reduce(Integer a, Integer b) {
+        return 0;
     }
 }

@@ -67,6 +67,14 @@ public class QualityUtils {
         return b;
     }
 
+    static public double phredScaleCorrectRate(double trueRate) {
+        return phredScaleErrorRate(1-trueRate);
+    }
+
+    static public double phredScaleErrorRate(double errorRate) {
+        return -10.0*Math.log10(errorRate);
+    }
+    
     /**
      * Return a quality score, capped at 63.
      *
@@ -74,7 +82,11 @@ public class QualityUtils {
      * @return the capped quality score
      */
     static public byte boundQual(int qual) {
-        return (byte) Math.min(qual, MAX_QUAL_SCORE);
+        return boundQual(qual, MAX_QUAL_SCORE);
+    }
+
+    static public byte boundQual(int qual, byte maxQual) {
+        return (byte) Math.min(qual, maxQual);
     }
 
     /**
