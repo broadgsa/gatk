@@ -8,6 +8,7 @@ import org.broadinstitute.sting.secondarybase.RawRead;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.containers.BoundedScoringSet;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
@@ -25,8 +26,6 @@ public class TileAnnotator extends CommandLineProgram {
 
     private String currentContig = "";
     private byte[] refbases;
-    //private int lane;
-    //private int tile;
 
     @Argument(fullName="sam_tile_in", shortName="STI", doc="SAM tile file", required=false) public File SAM_TILE_IN;
     @Argument(fullName="sam_tile_out", shortName="STO", doc="Annotated SAM tile output file") public File SAM_TILE_OUT;
@@ -53,7 +52,6 @@ public class TileAnnotator extends CommandLineProgram {
         BasecallingReadModel model = new BasecallingReadModel(trainingData);
 
         System.out.printf("%s: Calling bases...\n", (new Date()).toString());
-        //callBases(model, cycleRanges, trainingData);
         callBases(model, cycleRanges);
 
         System.out.println("Done.");
@@ -71,27 +69,17 @@ public class TileAnnotator extends CommandLineProgram {
 
         BasecallingStats bstats = new BasecallingStats();
 
-        //for (RawRead rr : trainingData) {
         for (RawRead rr : tileParser) {
             FourProbRead fpr = model.call(rr);
-
-            //System.out.println(rr.getSequenceAsString());
-            //System.out.println(fpr.getPrimaryBaseSequence());
 
             for (int rangeIndex = 0; rangeIndex < cycleRanges.size(); rangeIndex++) {
                 FourProbRead fprEnd = fpr.getSubset(cycleRanges.get(rangeIndex).getFirst(), cycleRanges.get(rangeIndex).getSecond());
                 RawRead rrEnd = rr.getSubset(cycleRanges.get(rangeIndex).getFirst(), cycleRanges.get(rangeIndex).getSecond());
 
-                //System.out.println(rangeIndex + " : " + cycleRanges.get(rangeIndex).getFirst() + " " + cycleRanges.get(rangeIndex).getSecond());
-                //System.out.println(rrEnd.getSequenceAsString());
-                //System.out.println(fprEnd.getPrimaryBaseSequence());
-
                 SAMRecord sr = constructSAMRecord(rrEnd, fprEnd, sheader, cycleRanges.size() > 1, rangeIndex == 1);
 
                 swriter.addAlignment(sr);
             }
-
-            //System.out.println();
 
             bstats.update(rr, fpr);
             bstats.notifyOnInterval(10000);
@@ -227,10 +215,7 @@ public class TileAnnotator extends CommandLineProgram {
             if (offset + readbases.length < refbases.length) {
                 valid = true;
     
-                //String refString = "";
                 for (int i = offset, j = 0; i < offset + readbases.length; i++, j++) {
-                    //refString += (char) refbases[i - 1];
-
                     int refbase = BaseUtils.simpleBaseToBaseIndex((char) refbases[i - 1]);
                     int readbase = BaseUtils.simpleBaseToBaseIndex((char) readbases[j]);
 
@@ -269,20 +254,8 @@ public class TileAnnotator extends CommandLineProgram {
             } else {
                 additionalData.add(rr);
             }
-
-            //trainingData.add(rr);
-
-            //if (trainingData.size() % 10000 == 0) {
-            //    System.out.printf("  loaded %d reads\n", trainingData.size());
-            //}
         }
         
-        //System.out.printf("  loaded %d reads\n", trainingData.size());
-
-        //for (RawRead rr : additionalData.toArray(new RawRead[0])) {
-        //    System.out.println(rr.getSequenceAsString());
-        //}
-
         tileParser.close();
 
         System.out.printf("  found %d perfect reads with an optional reservoir of %d good reads\n", trainingData.size(), additionalData.size());
