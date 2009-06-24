@@ -9,6 +9,8 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.playground.indels.*;
 
 import net.sf.samtools.*;
+import net.sf.samtools.SAMFileHeader.SortOrder;
+
 import java.util.*;
 import java.io.File;
 import java.io.FileWriter;
@@ -37,6 +39,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public int MAX_CONSENSUSES = 30;
     @Argument(fullName="maxReadsForConsensuses", shortName="greedy", doc="max reads used for finding the alternate consensuses (necessary to improve performance in deep coverage)", required=false)
     public int MAX_READS_FOR_CONSENSUSES = 120;
+    @Argument(fullName="noOutputSorting", shortName="nosort", doc="if specified, the output bam file may be not fully sorted. Use if low on temp space", required=false)
+    public boolean NOSORT=false;
 
     public static final int MAX_QUAL = 99;
 
@@ -58,7 +62,12 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
         if ( OUT != null ) {
-            writer = Utils.createSAMFileWriterWithCompression(header, false, OUT, getToolkit().getBAMCompression());
+        	if ( NOSORT ) {
+        		header.setSortOrder(SortOrder.unsorted);
+        		writer = Utils.createSAMFileWriterWithCompression(header, true, OUT, getToolkit().getBAMCompression());
+        	} else {
+        		writer = Utils.createSAMFileWriterWithCompression(header, false, OUT, getToolkit().getBAMCompression());
+        	}
             readsToWrite = new TreeSet<ComparableSAMRecord>();
         }
 
