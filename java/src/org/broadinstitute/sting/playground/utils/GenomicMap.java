@@ -274,8 +274,10 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 						if ( gl.getContigIndex() != r.getReferenceIndex() )
 							throw new StingException("Contig "+oldRefName+" has segments on different master contigs: currently unsupported");
 					
-						if ( refPos <= currStop + 1 ) 
+						if ( refPos < currStop + 1 ) 
 							throw new StingException("Contig "+oldRefName+" has segments that are out of order or strictly adjacent: currently unsupported");
+						if ( refPos == currStop + 1 ) 
+							System.out.println("WARNING: Contig "+oldRefName+" has segments that are strictly adjacent");
 					
 						// add "deletion" w/respect to the master ref over the region between adjacent segments:
 						deletionLength += (int)(refPos-currStop-1);
@@ -322,13 +324,16 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 						throw new StingException("Contig "+oldRefName+
 						" has segments on different master contigs: currently unsupported");
 					
-					if ( refPos <= currStop + 1 ) 
+					if ( refPos < currStop + 1 ) 
 						throw new StingException("Contig "+oldRefName+
 						" has segments that are out of order or strictly adjacent: currently unsupported");
-					
-					// add "deletion" w/respect to the master ref over the region between adjacent segments:
-					newCigar.add(new CigarElement((int)(refPos-currStop-1),CigarOperator.D));
-
+					if ( refPos == currStop + 1 ) { 
+						System.out.println("WARNING: Contig "+oldRefName+
+						" has segments that are strictly adjacent");
+					} else {
+						// add "deletion" w/respect to the master ref over the region between adjacent segments:
+						newCigar.add(new CigarElement((int)(refPos-currStop-1),CigarOperator.D));
+					}
 					currStop = gl.getStop();
 					// now we can continue with recording remaining matching bases over the current segment
 				}
