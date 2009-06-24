@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.piecemealannotator;
+package org.broadinstitute.sting.utils.containers;
 
 import java.util.PriorityQueue;
 
