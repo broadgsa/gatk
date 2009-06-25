@@ -93,8 +93,7 @@ public class TraverseByLocusWindows extends TraversalEngine {
             LocusContext locus = getLocusContext(wrappedIter, interval);
             readIter.close();
 
-            //sum = carryWalkerOverInterval(walker, sum, locus);
-            System.out.println(locus.getLocation());
+            sum = carryWalkerOverInterval(walker, sum, locus);
         }
         return sum;
     }

@@ -104,7 +104,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                  !read.getDuplicateReadFlag() &&
                  read.getMappingQuality() != 0 &&           
                  read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START &&
-		 (allow454 || !Utils.is454Read(read, getToolkit().getEngine().getSAMHeader())) )
+		         (allow454 || !Utils.is454Read(read, getToolkit().getEngine().getSAMHeader())) )
                 goodReads.add(read);
             else if ( writer != null && !cleanedReadsOnly )
                 readsToWrite.add(new ComparableSAMRecord(read));
