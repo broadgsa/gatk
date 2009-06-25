@@ -118,11 +118,11 @@ public class GenomeAnalysisEngine {
 
         // if we're a read or a locus walker, we use the new system.  Right now we have complicated
         // branching based on the input data, but this should disapear when all the traversals are switched over
-        if (!(my_walker instanceof LocusWindowWalker) && !args.useNewTraverseByLocusWindow) {
-            microScheduler = createMicroscheduler(my_walker, rods);
-        } else { // we have an old style traversal, once we're done return
+        if (my_walker instanceof LocusWindowWalker && !args.useNewTraverseByLocusWindow) {
             legacyTraversal(my_walker, rods);
             return;
+        } else { // we have an old style traversal, once we're done return
+            microScheduler = createMicroscheduler(my_walker, rods);
         }
 
         // Prepare the sort ordering w.r.t. the sequence dictionary
@@ -194,7 +194,7 @@ public class GenomeAnalysisEngine {
         MicroScheduler microScheduler = null;
 
         // we need to verify different parameter based on the walker type
-        if (my_walker instanceof LocusWalker) {
+        if (my_walker instanceof LocusWalker || my_walker instanceof LocusWindowWalker) {
             // create the MicroScheduler
             if( argCollection.walkAllLoci )
                 Utils.scareUser("Argument --all_loci is deprecated.  Please annotate your walker with @By(DataSource.REFERENCE) to perform a by-reference traversal.");

@@ -36,10 +36,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrde
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.gatk.traversals.TraverseDuplicates;
-import org.broadinstitute.sting.gatk.traversals.TraverseLoci;
-import org.broadinstitute.sting.gatk.traversals.TraverseReads;
+import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
@@ -107,6 +104,8 @@ public abstract class MicroScheduler {
             traversalEngine = new TraverseReads(reads.getReadsFiles(), refFile, rods);            
         } else if (walker instanceof LocusWalker) {
             traversalEngine = new TraverseLoci(reads.getReadsFiles(), refFile, rods);
+        } else if (walker instanceof LocusWindowWalker) {
+            traversalEngine = new TraverseLocusWindows(reads.getReadsFiles(), refFile, rods);  
         } else if (walker instanceof DuplicateWalker) {
             traversalEngine = new TraverseDuplicates(reads.getReadsFiles(), refFile, rods);
         } else {
@@ -184,6 +183,13 @@ public abstract class MicroScheduler {
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE, maxIterations);
             }
+        } else if (walker instanceof LocusWindowWalker) {
+            if( intervals == null )
+                throw new StingException("Unable to shard: walker is of type LocusWindow, but no intervals were provided");
+            shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL,
+                    drivingDataSource.getSequenceDictionary(),
+                    SHARD_SIZE,
+                    intervals, maxIterations);
         } else
             throw new StingException("Unable to support walker of type" + walker.getClass().getName());
 

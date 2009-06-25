@@ -47,7 +47,11 @@ public class TraverseLocusWindows extends TraversalEngine {
 
         LocusContext locus = getLocusContext(readView.iterator(), interval);
 
-        String referenceSubsequence = new String(referenceView.getReferenceBases(interval));
+        // The TraverseByLocusWindow expands intervals to cover all reads in a non-standard way.
+        // TODO: Convert this approach to the standard.
+        GenomeLoc expandedInterval = locus.getLocation();
+
+        String referenceSubsequence = new String(referenceView.getReferenceBases(expandedInterval));
 
         // Iterate forward to get all reference ordered data covering this interval
         final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation());
@@ -92,6 +96,16 @@ public class TraverseLocusWindows extends TraversalEngine {
             locus.downsampleToCoverage(downsamplingCoverage);
 
         return locus;
+    }
+
+    /**
+     * Temporary override of printOnTraversalDone.
+     * TODO: Add some sort of TE.getName() function once all TraversalEngines are ported.
+     * @param sum Result of the computation.
+     * @param <T> Type of the result.
+     */
+    public <T> void printOnTraversalDone( T sum ) {
+        printOnTraversalDone( "intervals", sum );
     }
 
 }
