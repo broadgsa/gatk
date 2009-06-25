@@ -17,14 +17,12 @@ import java.io.FileWriter;
  
 @WalkerName("IntervalCleaner")
 public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> {
-    @Argument(fullName="maxReadLength", shortName="maxRead", doc="max read length", required=false)
-    public int maxReadLength = -1;
+    @Argument(fullName="allow454Reads", shortName="454", doc="process 454 reads", required=false)
+    public boolean allow454 = false;
     @Argument(fullName="OutputCleaned", shortName="O", required=false, doc="Output file (sam or bam) for improved (realigned) reads")
     public String OUT = null;
     @Argument(fullName="OutputIndels", shortName="indels", required=false, doc="Output file (text) for the indels found")
     public String OUT_INDELS = null;
-    @Argument(fullName="OutputAllReads", shortName="all", doc="print out all reads (otherwise, just those within the intervals)", required=false)
-    public boolean printAllReads = false;
     @Argument(fullName="OutputCleanedReadsOnly", shortName="cleanedOnly", doc="print out cleaned reads only (otherwise, all reads within the intervals)", required=false)
     public boolean cleanedReadsOnly = false;
     @Argument(fullName="statisticsFile", shortName="stats", doc="print out statistics (what does or doesn't get cleaned)", required=false)
@@ -39,8 +37,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     public int MAX_CONSENSUSES = 30;
     @Argument(fullName="maxReadsForConsensuses", shortName="greedy", doc="max reads used for finding the alternate consensuses (necessary to improve performance in deep coverage)", required=false)
     public int MAX_READS_FOR_CONSENSUSES = 120;
-    @Argument(fullName="noOutputSorting", shortName="nosort", doc="if specified, the output bam file may be not fully sorted. Use if low on temp space", required=false)
-    public boolean NOSORT=false;
 
     public static final int MAX_QUAL = 99;
 
@@ -62,12 +58,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
         if ( OUT != null ) {
-        	if ( NOSORT ) {
-        		header.setSortOrder(SortOrder.unsorted);
-        		writer = Utils.createSAMFileWriterWithCompression(header, true, OUT, getToolkit().getBAMCompression());
-        	} else {
-        		writer = Utils.createSAMFileWriterWithCompression(header, false, OUT, getToolkit().getBAMCompression());
-        	}
+	    writer = Utils.createSAMFileWriterWithCompression(header, true, OUT, getToolkit().getBAMCompression());
             readsToWrite = new TreeSet<ComparableSAMRecord>();
         }
 
@@ -104,34 +95,16 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
     }
 
-    // do we care about reads that are not part of our intervals?
-    public boolean actOnNonIntervalReads() {
-        return printAllReads && !cleanedReadsOnly;
-    }
-
-    // What do we do with the reads that are not part of our intervals?
-    public void nonIntervalReadAction(SAMRecord read) {
-        if ( writer != null ) {
-            try {
-                writer.addAlignment(read);
-            } catch (Exception e ) {
-                logger.error("Failed to write read "+read.getReadName()+" aligned at "+read.getReferenceName() +":"+read.getAlignmentStart());
-                e.printStackTrace(out);
-                throw new StingException(e.getMessage());
-            }
-        }
-     }
-
     public Integer map(RefMetaDataTracker tracker, String ref, LocusContext context) {
         List<SAMRecord> reads = context.getReads();
         ArrayList<SAMRecord> goodReads = new ArrayList<SAMRecord>();
         for ( SAMRecord read : reads ) {
-            if ( (maxReadLength < 0 || read.getReadLength() <= maxReadLength) &&
-                 !read.getReadUnmappedFlag() &&
+            if ( !read.getReadUnmappedFlag() &&
                  !read.getNotPrimaryAlignmentFlag() &&
                  !read.getDuplicateReadFlag() &&
                  read.getMappingQuality() != 0 &&           
-                 read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START )
+                 read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START &&
+		 (allow454 || !Utils.is454Read(read, getToolkit().getEngine().getSAMHeader())) )
                 goodReads.add(read);
             else if ( writer != null && !cleanedReadsOnly )
                 readsToWrite.add(new ComparableSAMRecord(read));

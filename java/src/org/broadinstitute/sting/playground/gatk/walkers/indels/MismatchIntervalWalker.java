@@ -17,6 +17,8 @@ public class MismatchIntervalWalker extends LocusWalker<Pair<GenomeLoc, Boolean>
     public int windowSize = 10;
     @Argument(fullName="mismatchFraction", shortName="mismatch", doc="fraction of mismatching base qualities threshold", required=false)
     public double mismatchThreshold = 0.15;
+    @Argument(fullName="allow454Reads", shortName="454", doc="process 454 reads", required=false)
+    public boolean allow454 = false;
 
     private final int minReadsAtInterval = 4;
 
@@ -32,7 +34,9 @@ public class MismatchIntervalWalker extends LocusWalker<Pair<GenomeLoc, Boolean>
         int goodReads = 0, mismatchQualities = 0, totalQualities = 0;
         for (int i = 0; i < reads.size(); i++) {
             SAMRecord read = reads.get(i);
-            if ( read.getMappingQuality() == 0 || read.getAlignmentBlocks().size() > 1 )
+            if ( read.getMappingQuality() == 0 ||
+                 read.getAlignmentBlocks().size() > 1 ||
+		 (!allow454 && Utils.is454Read(read, getToolkit().getEngine().getSAMHeader())) )
                  continue;
 
             goodReads++;

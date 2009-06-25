@@ -3,8 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.indels;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.*;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.AlignmentBlock;
 
@@ -17,8 +16,8 @@ import java.util.List;
 
 @WalkerName("IndelIntervals")
 public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval, IndelIntervalWalker.Interval> {
-    @Argument(fullName="maxReadLength", shortName="maxRead", doc="max read length", required=false)
-    public int maxReadLength = -1;
+    @Argument(fullName="allow454Reads", shortName="454", doc="process 454 reads", required=false)
+    public boolean allow454 = false;
     @Argument(fullName="minIndelsPerInterval", shortName="minIndels", doc="min indels per interval", required=false)
     public int minIntervalIndelCount = 1;
 
@@ -26,9 +25,9 @@ public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval
 
     public boolean filter(char[] ref, SAMRecord read) {
         return ( !read.getReadUnmappedFlag() &&            // mapped
-                 (maxReadLength < 0 || read.getReadLength() <= maxReadLength) &&  // not too big
                  read.getMappingQuality() != 0 &&          // positive mapping quality
-                 read.getAlignmentBlocks().size() > 1);    // indel
+                 read.getAlignmentBlocks().size() > 1 &&   // indel
+                 (allow454 || !Utils.is454Read(read, getToolkit().getEngine().getSAMHeader())) );
     }
 
     public Interval map(char[] ref, SAMRecord read) {
