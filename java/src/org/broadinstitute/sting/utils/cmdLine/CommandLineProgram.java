@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.EnumSet;
+import java.util.Enumeration;
 
 /**
  * User: aaron
@@ -84,7 +85,7 @@ public abstract class CommandLineProgram {
     /**
      * our logging output patterns
      */
-    private static String patternString = "%p %m %n";
+    private static String patternString = "%-5p %d{HH:mm:ss,SSS} %C{1} - %m %n";
     private static String debugPatternString = "%n[level] %p%n[date]\t\t %d{dd MMM yyyy HH:mm:ss,SSS} %n[class]\t\t %C %n[location]\t %l %n[line number]\t %L %n[message]\t %m %n";
 
     /**
@@ -203,7 +204,12 @@ public abstract class CommandLineProgram {
                 //logger.info("not Setting debug");
                 layout.setConversionPattern(patternString);
             }
-            
+            // now set the layout of all the loggers to our layout
+            Enumeration<Appender> en = logger.getAllAppenders();
+            for (; en.hasMoreElements();) {
+                Appender app = en.nextElement();
+                app.setLayout(layout);
+            }
 
             // if they set the mode to quiet
             if (clp.quietMode) {

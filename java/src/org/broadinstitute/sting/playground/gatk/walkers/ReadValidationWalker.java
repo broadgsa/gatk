@@ -108,10 +108,10 @@ public class ReadValidationWalker extends ReadWalker<SAMRecord, SAMRecord> {
         if (output == null)
             return read;
         if ((read.getReferenceIndex() == output.getReferenceIndex()) && (read.getAlignmentStart() < output.getAlignmentStart())) {
-            System.err.println("saw the read " + read.getReadName() + " duplicated,  old alignment = " + output.getAlignmentStart());
+            logger.error("saw the read " + read.getReadName() + " duplicated,  old alignment = " + output.getAlignmentStart());
         }
         else if (read.getReferenceIndex() != output.getReferenceIndex()){
-            System.err.println("Switching Chromo");   
+            logger.warn("Switching Chromo");   
         }
         return read;
     }
