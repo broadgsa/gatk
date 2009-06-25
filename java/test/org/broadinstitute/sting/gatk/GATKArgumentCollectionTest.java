@@ -8,10 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -93,7 +90,8 @@ public class GATKArgumentCollectionTest extends BaseTest {
         collect.maximumReadSorts = null;
         collect.downsampleFraction = null;
         collect.downsampleCoverage = null;
-        collect.intervals = "intervals".toLowerCase();
+        collect.intervals = new ArrayList<String>();
+        collect.intervals.add("intervals".toLowerCase());
         collect.walkAllLoci = true;
         collect.disableThreading = false;
         collect.outFileName = "outFileName".toLowerCase();

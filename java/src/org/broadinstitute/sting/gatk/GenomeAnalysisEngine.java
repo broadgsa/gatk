@@ -40,7 +40,7 @@ import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.io.File;
+import java.io.*;
 
 public class GenomeAnalysisEngine {
 
@@ -99,8 +99,10 @@ public class GenomeAnalysisEngine {
             bindConvenienceRods("hapmap", "HapMapAlleleFrequencies", argCollection.HAPMAPFile);
         if (argCollection.HAPMAPChipFile != null)
             bindConvenienceRods("hapmap-chip", "GFF", argCollection.HAPMAPChipFile);
-        if ( argCollection.intervals != null )
-            bindConvenienceRods("interval", "Intervals", argCollection.intervals.replaceAll(",", ""));
+        // TODO: The ROD iterator currently does not understand multiple intervals file.  Fix this by cleaning the ROD system.
+        if ( argCollection.intervals != null && argCollection.intervals.size() == 1) {
+            bindConvenienceRods("interval", "Intervals", argCollection.intervals.get(0).replaceAll(",", ""));
+        }
 
         // parse out the rod bindings
         ReferenceOrderedData.parseBindings(logger, argCollection.RODBindings, rods);
@@ -147,7 +149,6 @@ public class GenomeAnalysisEngine {
         // excute the microscheduler, storing the results
         walkerReturn = microScheduler.execute(my_walker, locs, argCollection.maximumEngineIterations);
     }
-
 
     /**
      * this is to accomdate the older style traversals, that haven't been converted over to the new system.  Putting them
@@ -226,7 +227,7 @@ public class GenomeAnalysisEngine {
 
         // we default interval files over the genome region string
         if (argCollection.intervals != null) {
-            engine.setLocation(parseIntervalRegion(argCollection.intervals, false));
+            engine.setLocation(parseIntervalRegion(argCollection.intervals));
         }
 
         engine.setReadFilters(sourceInfo);
@@ -241,16 +242,15 @@ public class GenomeAnalysisEngine {
      *
      * @return a list of genomeLoc representing the interval file
      */
-    public static List<GenomeLoc> parseIntervalRegion(final String intervalsString, boolean quiet ) {
-        List<GenomeLoc> locs = null;
-        if ( intervalsString != null) {
-            if (new File(intervalsString).exists()) {
-                if (! quiet) logger.info("Intervals argument specifies a file.  Loading intervals from file.");
-                locs = GenomeLocParser.intervalFileToList(intervalsString);
+    public static List<GenomeLoc> parseIntervalRegion(final List<String> intervals ) {
+        List<GenomeLoc> locs = new ArrayList<GenomeLoc>();
+        for( String interval: intervals ) {
+            if (new File(interval).exists()) {
+                locs.addAll(GenomeLocParser.intervalFileToList(interval));
             } else {
-                if (! quiet) logger.info("Intervals argument does not specify a file.  Trying to parse it as a simple string.");
-                locs = GenomeLocParser.parseGenomeLocs(intervalsString);
+                locs.addAll(GenomeLocParser.parseGenomeLocs(interval));
             }
+
         }
         return locs;
     }

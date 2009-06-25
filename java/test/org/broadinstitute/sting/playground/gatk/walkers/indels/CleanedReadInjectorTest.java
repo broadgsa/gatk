@@ -14,6 +14,7 @@ import org.junit.Test;
 import java.io.FileNotFoundException;
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
@@ -223,7 +224,7 @@ public class CleanedReadInjectorTest extends BaseTest {
     private CleanedReadInjector createWalker( String intervals, ArtificialSAMFileReader cleanedReads, ArtificialSAMFileWriter output ) {
         CleanedReadInjector walker = new CleanedReadInjector();
 
-        walker.intervalsSource = intervals;        
+        walker.intervalsSource = Collections.singletonList(intervals);        
         walker.cleanedReadsSource = cleanedReads;
         walker.outputBAM = output;
 

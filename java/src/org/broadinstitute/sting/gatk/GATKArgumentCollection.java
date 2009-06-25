@@ -57,9 +57,9 @@ public class GATKArgumentCollection {
     @Argument(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
     public List<File> samFiles = new ArrayList<File>();
 
-    @Element(required = false)
+    @ElementList(required = false)
     @Argument(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.", required = false)
-    public String intervals = null;
+    public List<String> intervals = null;
 
     @Element(required = false)
     @Argument(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)

@@ -22,7 +22,7 @@ public class IntervalRodIterator implements Iterator<IntervalRod> {
 
     public static IntervalRodIterator IntervalRodIteratorFromLocsFile(final String trackName, final File file) {
         //System.out.printf("Parsing %s for intervals %s%n", file, trackName);
-        List<GenomeLoc> locs = GenomeAnalysisEngine.parseIntervalRegion(file.getPath(), true);
+        List<GenomeLoc> locs = GenomeAnalysisEngine.parseIntervalRegion(Collections.singletonList(file.getPath()));
         //System.out.printf(" => got %d entries %n", locs.size());
         return new IntervalRodIterator(trackName, locs);
     }

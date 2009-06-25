@@ -36,7 +36,7 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
      * The source of all cleaned intervals.
      */
     @Argument(fullName="cleaned_intervals",shortName="ci",doc="Intervals which have been cleaned.",required=true)
-    String intervalsSource = null;
+    List<String> intervalsSource = null;
 
     /**
      * The source of all cleaned reads.
@@ -148,8 +148,8 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
      * @param intervalsSource Source of intervals.
      * @return a queue of sorted, merged intervals.
      */
-    private Queue parseIntervals( String intervalsSource ) {
-        List<GenomeLoc> parsedIntervals = GenomeAnalysisEngine.parseIntervalRegion(intervalsSource,false);
+    private Queue parseIntervals( List<String> intervalsSource ) {
+        List<GenomeLoc> parsedIntervals = GenomeAnalysisEngine.parseIntervalRegion(intervalsSource);
         GenomeLocSortedSet intervalSortedSet = new GenomeLocSortedSet();
         for( GenomeLoc parsedInterval: parsedIntervals )
             intervalSortedSet.addRegion(parsedInterval);
