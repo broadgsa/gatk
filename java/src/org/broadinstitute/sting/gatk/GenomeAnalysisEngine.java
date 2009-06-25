@@ -116,7 +116,7 @@ public class GenomeAnalysisEngine {
 
         // if we're a read or a locus walker, we use the new system.  Right now we have complicated
         // branching based on the input data, but this should disapear when all the traversals are switched over
-        if (my_walker instanceof LocusWalker || my_walker instanceof ReadWalker || my_walker instanceof DuplicateWalker) {
+        if (!(my_walker instanceof LocusWindowWalker) && !args.useNewTraverseByLocusWindow) {
             microScheduler = createMicroscheduler(my_walker, rods);
         } else { // we have an old style traversal, once we're done return
             legacyTraversal(my_walker, rods);
