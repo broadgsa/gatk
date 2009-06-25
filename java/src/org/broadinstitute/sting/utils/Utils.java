@@ -176,6 +176,19 @@ public class Utils {
         return new String(basesAsbytes);
     }
 
+    public static boolean is454Read(SAMRecord read, SAMFileHeader header) {
+        Object readGroupAttr = read.getAttribute("RG");
+        if ( readGroupAttr != null ) {
+            SAMReadGroupRecord readGroup = header.getReadGroup(readGroupAttr.toString());
+            if ( readGroup != null ) {
+            Object readPlatformAttr = readGroup.getAttribute("PL");
+            if ( readPlatformAttr != null )
+                return readPlatformAttr.toString().toUpperCase().contains("454");
+            }
+        }
+        return false;
+    }
+
     private static final Map<Integer, String> readFlagNames
             = new HashMap<Integer, String>();
 
