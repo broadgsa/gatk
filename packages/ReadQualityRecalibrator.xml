@@ -3,18 +3,7 @@
   <name>ReadQualityRecalibrator</name>
   <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
   <dependencies>
-    <class>org.broadinstitute.sting.playground.gatk.walkers.CovariateCounterWalker</class>
-    <class>org.broadinstitute.sting.playground.gatk.walkers.LogisticRecalibrationWalker</class>
+    <class>org.broadinstitute.sting.gatk.walkers.recalibration.CovariateCounterWalker</class>
+    <class>org.broadinstitute.sting.gatk.walkers.recalibration.TableRecalibrationWalker</class>
   </dependencies>
-  <scripts>
-    <file>python/RecalQual.py</file>
-    <file>python/LogisticRegressionByReadGroup.py</file>
-  </scripts>
-  <resources>
-    <file>R/logistic_regression.R</file>
-    <file>/humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod</file>
-    <file>/broad/1KG/reference/human_b36_both.fasta</file>
-    <file>/broad/1KG/reference/human_b36_both.dict</file>
-    <file>/broad/1KG/reference/human_b36_both.fasta.fai</file>
-  </resources>
 </package>

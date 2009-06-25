@@ -30,6 +30,9 @@ public class BaseQualityHistoWalker extends ReadWalker<Integer, Integer> {
     // Map over the org.broadinstitute.sting.gatk.LocusContext
     public Integer map(char[] ref, SAMRecord read) {
         for ( byte qual : read.getBaseQualities() ) {
+            if ( qual < 0 || qual > 100 ) {
+                throw new RuntimeException(String.format("Invalid base quality detected -- %d at %s%n", qual, read.getReadName()));
+            }
             //System.out.println(qual);
             this.qualCounts[qual]++;
         }

@@ -85,8 +85,16 @@ public class QualityUtils {
         return boundQual(qual, MAX_QUAL_SCORE);
     }
 
+    /**
+     * Returns an integer quality score bounded by 1 - maxQual.
+     *
+     * @param qual
+     * @param maxQual
+     * @return
+     */
     static public byte boundQual(int qual, byte maxQual) {
-        return (byte) Math.min(qual, maxQual);
+        //return (byte) Math.min(qual, maxQual);
+        return (byte) Math.max(Math.min(qual, maxQual), 1);
     }
 
     /**

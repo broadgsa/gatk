@@ -191,7 +191,7 @@ public class ArtificialSAMUtils {
         }
         SAMRecord rec = createArtificialRead(header, name, refIndex, alignmentStart, bases.length);
         rec.setReadBases(bases);
-        rec.setBaseQualities(bases);
+        rec.setBaseQualities(qual);
         return rec;
     }
 

@@ -13,6 +13,7 @@ import operator
 MAX_QUAL_SCORE = 50
 
 def phredQScore( nMismatches, nBases ):
+    """Calculates a phred-scaled score for nMismatches in nBases"""
     #print 'phredQScore', nMismatches, nBases
     if nMismatches == 0:
         return MAX_QUAL_SCORE
@@ -24,10 +25,12 @@ def phredQScore( nMismatches, nBases ):
         
 
 def phredScore2ErrorProp(qual):
+    """Converts a phred-scaled quality score to an error probability"""
     #print 'phredScore2ErrorProp', qual
     return math.pow(10.0, float(qual) / -10.0)
 
 def tryByInt(s):
+    """Try to cast something to an int, or return it as a string"""
     try:
         return int(s)
     except:
@@ -36,11 +39,13 @@ def tryByInt(s):
 expectedHeader = 'rg,pos,Qrep,dn,nBases,nMismatches,Qemp'.split(',')
 defaultValues = '0,0,0,**,0,0,0'.split(',')
 class RecalData(dict):
-
+    """Basic recalibration data -- corresponds exactly to the Java version in GATK"""
     def __init__(self):
         self.parse(expectedHeader, defaultValues)
 
     def parse(self, header, data):
+        """Parse the comma-separated data line with corresponding header.  Throws an error
+        if the header doesn't correspond to the expectedHeader"""
         # rg,pos,Qrep,dn,NBases,MMismatches,Qemp
         types = [str, tryByInt, int, str, int, int, int]
         for head, expected, datum, type in zip(header, expectedHeader, data, types):
@@ -57,8 +62,11 @@ class RecalData(dict):
             
     def __getattr__(self, name):
         return self[name]
-    
-    # rg,dn,Qrep,pos,NBases,MMismatches,Qemp
+        
+        
+    #
+    # Trivial accessor functions
+    #
     def readGroup(self): return self.rg
     def dinuc(self): return self.dn
     def qReported(self): return self.Qrep
@@ -204,8 +212,9 @@ def lsamplestdev (inlist, counts, mean):
     for item, count in zip(inlist, counts):
         diff = item - mean
         inc = count * diff * diff
-        #print item, count, mean, diff, diff*diff, inc
+        #print "%3d" % int(item), count, mean, diff, diff*diff, inc, sum
         sum += inc
+    #print sum, n, sum / float(n-1), math.sqrt(sum / float(n-1))
     return math.sqrt(sum / float(n-1))
 
 def rmse(reportedList, empiricalList, counts):
@@ -320,7 +329,7 @@ def analyzeFiles(files):
     for file in files:
         print 'Analyzing file', file 
         plotter = getPlotterForFile(file)
-        if plotter <> None:
+        if plotter <> None and not OPTIONS.noplots:
             cmd = ' '.join([Rscript, plotter, file])
             farm_commands.cmd(cmd, None, None, just_print_commands = OPTIONS.dry)
 
@@ -341,6 +350,9 @@ def main():
     parser.add_option("-s", "--stdout", dest="toStdout",
                         action='store_true', default=False,
                         help="If provided, writes output to standard output, not to files")
+    parser.add_option("", "--no_plots", dest="noplots",
+                        action='store_true', default=False,
+                        help="If provided, no plots will be generated")
     parser.add_option("", "--dry", dest="dry",
                         action='store_true', default=False,
                         help="If provided, nothing actually gets run, just a dry run")

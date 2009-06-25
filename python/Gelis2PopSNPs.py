@@ -44,6 +44,16 @@ def bams2geli(bams):
     calls = map(call1, bams)
     return map(lambda x: x[0], calls), map(lambda x: x[1], calls)        
    
+def gelis2gelisText( gelis ):
+    def geli2geliText( maybeGeli ):
+        if os.path.splitext(maybeGeli)[1] == ".calls" :
+            return maybeGeli
+        else:
+            return os.path.split(geli)[1] + '.calls'
+            
+    return map( geli2geliText, gelis)
+
+   
 def main():    
     global OPTIONS, ROOT
 
@@ -124,7 +134,7 @@ def main():
 
     # convert the geli's to text
     jobid = None
-    variantsOut = map( lambda geli: os.path.split(geli)[1] + '.calls', gelis)
+    variantsOut = gelis2gelisText( gelis ) 
     for geli, variantOut in zip(gelis, variantsOut):
         name = os.path.split(geli)[1]
         if not os.path.exists(variantOut):

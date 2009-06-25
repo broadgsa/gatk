@@ -244,7 +244,7 @@ public class GenomeLocParser {
      * @return the list of merged locations
      */
     public static List<GenomeLoc> mergeOverlappingLocations(final List<GenomeLoc> raw) {
-        logger.debug("  Raw locations are:\n" + Utils.join("\n", raw));
+        logger.debug("  Raw locations are: " + Utils.join(", ", raw));
         if (raw.size() <= 1)
             return raw;
         else {

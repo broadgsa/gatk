@@ -54,6 +54,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
     private static Logger logger = Logger.getLogger(TableRecalibrationWalker.class);
 
+    private static String VERSION = "0.2.1";
+
     private final static boolean DEBUG = false;
 
     // maps from [readGroup] -> [prevBase x base -> [cycle, qual, new qual]]
@@ -77,9 +79,12 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static Pattern COLLAPSED_DINUC_PATTERN = Pattern.compile("^#\\s+collapsed_dinuc\\s+(\\w+)");
     private static Pattern HEADER_PATTERN = Pattern.compile("^rg.*");
 
+    //private static boolean DEBUG_ME = true;
+
     public void initialize() {
+        logger.info("TableRecalibrator version: " + VERSION);
         //
-        // crap hack until Enum arg types are supported
+        // crappy hack until Enum arg types are supported
         //
         for ( RecalibrationMode potential : RecalibrationMode.values() ) {
             if ( potential.toString().equals(modeString)) {
@@ -96,13 +101,13 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         //
         int lineNumber = 0;
         try {
-            System.out.printf("Reading data...%n");
+            logger.info(String.format("Reading data..."));
             List<RecalData> data = new ArrayList<RecalData>();
             boolean collapsedPos = false;
             boolean collapsedDinuc = false;
 
-            List<String> lines = new xReadLines(new File(paramsFile)).readLines();
-            for ( String line : lines ) {
+            //List<String> lines = new xReadLines(new File(paramsFile)).readLines();
+            for ( String line : new xReadLines(new File(paramsFile)) ) {
                 lineNumber++;
                 if ( HEADER_PATTERN.matcher(line).matches() )
                     continue;
@@ -159,12 +164,14 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                 if ( collapsedPos )
                     throw new RuntimeException(String.format("Cannot perform position_only recalibration -- data is already partially collapsed by pos=%b and dinuc=%b", collapsedPos, collapsedDinuc));
                 collapsedPos = true;
-                break;
+                throw new RuntimeException("Unsupported mode requested, sorry");
+                //break;
             case BY_DINUC_ONLY:
                 if ( collapsedDinuc )
                     throw new RuntimeException(String.format("Cannot perform dinuc_only recalibration -- data is already partially collapsed by pos=%b and dinuc=%b", collapsedPos, collapsedDinuc));
                 collapsedDinuc = true;
-                break;
+                throw new RuntimeException("Unsupported mode requested, sorry");
+                //break;
             case COMBINATORIAL:
                 if ( collapsedPos || collapsedDinuc )
                     throw new RuntimeException(String.format("Cannot perform combinatorial recalibration -- data is already collapsed by pos=%b and dinuc=%b", collapsedPos, collapsedDinuc));
@@ -231,12 +238,22 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             quals = BaseUtils.reverse(quals);
         }
 
-        byte[] recalQuals = recalibrateBasesAndQuals(read.getAttribute("RG").toString(), bases, quals);
+        try {
+            byte[] recalQuals = recalibrateBasesAndQuals(read.getAttribute("RG").toString(), bases, quals);
 
-        if (read.getReadNegativeStrandFlag())               // reverse the quals for the neg strand read
-            recalQuals = BaseUtils.reverse(recalQuals);
-        read.setBaseQualities(recalQuals);
-        return read;
+            //if ( read.getReadName().equals("IL12_395:7:215:171:693") ) {
+            //    for ( int i = 0; i < quals.length; i++ ) {
+            //        System.out.printf("READ found: %s is now %s%n", quals[i], recalQuals[i]);
+            //    }
+            //}
+
+            if (read.getReadNegativeStrandFlag())               // reverse the quals for the neg strand read
+                recalQuals = BaseUtils.reverse(recalQuals);
+            read.setBaseQualities(recalQuals);
+            return read;
+        } catch ( StingException e ) {
+            throw new RuntimeException(String.format("Bug found while processing read %s: %s", read.format(), e.getMessage()));
+        }
     }
 
     /**
@@ -248,14 +265,21 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      * @param quals
      * @return
      */
-    public byte[] recalibrateBasesAndQuals(final String readGroup, byte[] bases, byte[] quals) {
+    public byte[] recalibrateBasesAndQuals(final String readGroup, byte[] bases, byte[] quals) throws StingException {
         byte[] recalQuals = new byte[quals.length];
         RecalMapping mapper = cache.get(readGroup);
+
+        //if ( mapper == null && DEBUG_ME )
+        //    return recalQuals;
 
         recalQuals[0] = quals[0];               // can't change the first -- no dinuc
         for ( int cycle = 1; cycle < bases.length; cycle++ ) { // skip first and last base, qual already set because no dinuc
             byte qual = quals[cycle];
             byte newQual = mapper.getNewQual(readGroup, bases[cycle - 1], bases[cycle], cycle, qual);
+
+            if ( newQual <= 0 || newQual > QualityUtils.MAX_REASONABLE_Q_SCORE )
+                throw new StingException(String.format("Bug found -- assigning bad quality score %d x %d => %d", cycle, qual, newQual));
+
             recalQuals[cycle] = newQual;
             //System.out.printf("Mapping %d => %d%n", qual, newQual);
         }
@@ -322,17 +346,12 @@ class CombinatorialRecalMapping implements RecalMapping {
             int pos = manager.canonicalPos(datum.pos);
             if ( table[pos][datum.qual] != 0 )
                 throw new RuntimeException(String.format("Duplicate entry discovered: %s", datum));
-            //table[datum.pos][datum.qual] = (byte)(1 + datum.empiricalQualByte());
             table[pos][datum.qual] = datum.empiricalQualByte(useRawQempirical);
             //System.out.printf("Binding %d %d => %d%n", pos, datum.qual, datum.empiricalQualByte(useRawQempirical));
         }
     }
 
     public byte getNewQual(final String readGroup, byte prevBase, byte base, int cycle, byte qual) {
-        //String dinuc = String.format("%c%c", (char)prevBase, (char)base);
-        //if ( qual == 2 )
-        //    System.out.printf("Qual = 2%n");
-
         int pos = manager.canonicalPos(cycle);
         int index = this.manager.getDinucIndex(prevBase, base);
         byte[][] dataTable = index == -1 ? null : cache.get(index);
@@ -340,13 +359,7 @@ class CombinatorialRecalMapping implements RecalMapping {
         if ( dataTable == null && prevBase != 'N' && base != 'N' )
             throw new RuntimeException(String.format("Unmapped data table at %s %c%c", readGroup, (char)prevBase, (char)base));
 
-        byte result = dataTable != null && pos < dataTable.length ? dataTable[pos][qual] : qual;
-
-        //if ( result == 2 )
-        //    System.out.printf("Lookup RG=%s dinuc=%s cycle=%d pos=%d qual=%d datatable=%s / %d => %d%n",
-        //            readGroup, dinuc, cycle, pos, qual, dataTable, dataTable.length, result);
-
-        return result;        
+        return dataTable != null && pos < dataTable.length ? dataTable[pos][qual] : qual;
     }
 }
 
@@ -368,13 +381,13 @@ class SerialRecalMapping implements RecalMapping {
     private double globalDeltaQ = 0.0;
     private double[][] deltaQPosMap, deltaQDinucMap;
     double [] deltaQualMap;
-    RecalData [][] qPosSupports, qDinucSupports;
+    RecalData [][] qPosSupports = null, qDinucSupports = null;
 
     CombinatorialRecalMapping combiMap;
     RecalDataManager manager;
 
     String dinucToLookAt = null; // "CC";
-    int posToLookAt = 0;
+    int posToLookAt = -1;
     int qualToLookAt = 25;
 
     public SerialRecalMapping(RecalDataManager manager, final boolean useRawQempirical,
@@ -387,7 +400,7 @@ class SerialRecalMapping implements RecalMapping {
             RecalData datum = new RecalData(0, 0, manager.readGroup, "**").inc(manager.getAll());
             double aggregrateQreported = RecalData.combinedQreported(manager.getAll());
             globalDeltaQ = datum.empiricalQualDouble(useRawQempirical) - aggregrateQreported;
-            System.out.printf("Global quality score shift is %.2f - %.2f = %.2f%n", datum.empiricalQualDouble(useRawQempirical), aggregrateQreported, globalDeltaQ);
+            //System.out.printf("Global quality score shift is %.2f - %.2f = %.2f%n", datum.empiricalQualDouble(useRawQempirical), aggregrateQreported, globalDeltaQ);
         }
 
         for ( RecalData datum : manager.getAll() ) {
@@ -399,12 +412,12 @@ class SerialRecalMapping implements RecalMapping {
         deltaQualMap = new double[maxQReported+1];
         for ( RecalData datum : RecalData.sort(manager.combine(true, false, true)) ) {
             deltaQualMap[datum.qual] = datum.empiricalQualDouble(useRawQempirical) - datum.qual - globalDeltaQ;
-            System.out.printf("%s => %s%n", datum, deltaQualMap[datum.qual]);            
+            //System.out.printf("%s => %s%n", datum, deltaQualMap[datum.qual]);
         }
 
         // calculate the delta Q pos array
         deltaQPosMap = new double[maxPos+1][maxQReported+1];
-        qPosSupports = new RecalData[maxPos+1][maxQReported+1];
+        //qPosSupports = new RecalData[maxPos+1][maxQReported+1];
         for ( RecalData datumAtPosQual : manager.combineDinucs() ) {
             double offset = globalDeltaQ + deltaQualMap[datumAtPosQual.qual];
             updateCache(qPosSupports, datumAtPosQual, useRawQempirical, deltaQPosMap, datumAtPosQual.pos, datumAtPosQual.qual, offset);
@@ -412,7 +425,7 @@ class SerialRecalMapping implements RecalMapping {
 
         // calculate the delta Q dinuc array
         deltaQDinucMap = new double[dinucs.size()+1][maxQReported+1];
-        qDinucSupports = new RecalData[dinucs.size()+1][maxQReported+1];
+        //qDinucSupports = new RecalData[dinucs.size()+1][maxQReported+1];
         for ( RecalData datumAtDinucQual : manager.combineCycles() ) {
             double offset = globalDeltaQ + deltaQualMap[datumAtDinucQual.qual];
             updateCache(qDinucSupports, datumAtDinucQual, useRawQempirical, deltaQDinucMap, datumAtDinucQual.getDinucIndex(), datumAtDinucQual.qual, offset);
@@ -429,7 +442,7 @@ class SerialRecalMapping implements RecalMapping {
             for ( int j = 0; j < maxQReported; j++ ) {
                 if ( printStateP(i, null, j) )
                     System.out.printf("Mapping: pos=%d qual=%2d delta=%.2f based on %s%n",
-                            i, j, deltaQPosMap[i][j], qPosSupports[i][j]);
+                            i, j, deltaQPosMap[i][j], qPosSupports != null ? qPosSupports[i][j] : null);
             }
         }
 
@@ -438,7 +451,7 @@ class SerialRecalMapping implements RecalMapping {
                 String dinuc = RecalData.dinucIndex2bases(i);
                 if ( printStateP(0, dinuc, j ) )
                     System.out.printf("Mapping: dinuc=%s qual=%2d delta=%.2f based on %s%n",
-                            dinuc, j, deltaQDinucMap[i][j], qDinucSupports[i][j]);
+                            dinuc, j, deltaQDinucMap[i][j], qDinucSupports != null ? qDinucSupports[i][j] : null);
             }
         }
 
@@ -457,7 +470,8 @@ class SerialRecalMapping implements RecalMapping {
             throw new RuntimeException(String.format("Duplicate entry discovered: %s", datum));
         double deltaQ = datum.empiricalQualDouble(useRawQempirical) - datum.qual - meanQ;
         table[i][j] = deltaQ;
-        supports[i][j] = datum;
+        if ( supports != null )
+            supports[i][j] = datum;
     }
 
     private boolean printStateP( int cycle, String dinuc, int qual ) {

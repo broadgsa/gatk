@@ -85,7 +85,6 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     public static void parseBindings(Logger logger, ArrayList<String> bindings, List<ReferenceOrderedData<? extends ReferenceOrderedDatum> > rods)
     {
         // Loop over triplets
-        System.out.printf("Binding is %s%n", Utils.join(" XXX ", bindings));
         for( String bindingSets: bindings ) {
             String[] bindingTokens = bindingSets.split(",");
             if( bindingTokens.length % 3 != 0 )

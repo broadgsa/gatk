@@ -167,7 +167,7 @@ public class RecalData implements Comparable<RecalData> {
      * @param s
      * @return
      */
-    public static RecalData fromCSVString(String s) {
+    public static RecalData fromCSVString(String s) throws NumberFormatException {
         String[] vals = s.split(",");
         String rg = vals[0];
         int pos = vals[1].equals("*") ? 0 : Integer.parseInt(vals[1]);
@@ -178,6 +178,13 @@ public class RecalData implements Comparable<RecalData> {
         RecalData datum = new RecalData(pos, qual, rg, dinuc);
         datum.B = B;
         datum.N = N;
+
+        // Checking for badness
+        if ( pos < 0 ) throw new NumberFormatException("Illegal position detected: " + pos);
+        if ( B < 0 ) throw new NumberFormatException("Illegal mismatch count detected: " + B);
+        if ( N < 0 ) throw new NumberFormatException("Illegal base count detected: " + N);
+        if ( qual < 0 || qual > QualityUtils.MAX_QUAL_SCORE ) throw new NumberFormatException("Illegal qual detected: " + qual);
+
         return datum;
     }
 
@@ -216,8 +223,8 @@ public class RecalData implements Comparable<RecalData> {
         }
 
         double q = QualityUtils.phredScaleErrorRate(sumExpectedErrors / nBases);
-        System.out.printf("expected errors=%f, nBases = %d, rate=%f, qual=%f%n",
-                sumExpectedErrors, nBases, 1 - sumExpectedErrors / nBases, q);
+        //System.out.printf("expected errors=%f, nBases = %d, rate=%f, qual=%f%n",
+        //        sumExpectedErrors, nBases, 1 - sumExpectedErrors / nBases, q);
         return q;
     }
 }
