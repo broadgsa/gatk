@@ -104,19 +104,15 @@ public abstract class MicroScheduler {
      */
     protected MicroScheduler(Walker walker, Reads reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         if (walker instanceof ReadWalker) {
-            traversalEngine = new TraverseReads(reads.getReadsFiles(), refFile, rods);
-            this.reads = getReadsDataSource(reads, true);
+            traversalEngine = new TraverseReads(reads.getReadsFiles(), refFile, rods);            
         } else if (walker instanceof LocusWalker) {
             traversalEngine = new TraverseLoci(reads.getReadsFiles(), refFile, rods);
-            this.reads = getReadsDataSource(reads, false);
         } else if (walker instanceof DuplicateWalker) {
             traversalEngine = new TraverseDuplicates(reads.getReadsFiles(), refFile, rods);
-            this.reads = getReadsDataSource(reads, true);
         } else {
             throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
         }
-
-
+        this.reads = getReadsDataSource(reads);
         this.reference = openReferenceSequenceFile(refFile);
         this.rods = getReferenceOrderedDataSources(rods);
     }
@@ -209,16 +205,15 @@ public abstract class MicroScheduler {
      * Gets a data source for the given set of reads.
      *
      * @param reads   the read source information
-     * @param byReads are we a by reads traversal, or not
      *
      * @return A data source for the given set of reads.
      */
-    private SAMDataSource getReadsDataSource(Reads reads, boolean byReads) {
+    private SAMDataSource getReadsDataSource(Reads reads) {
         // By reference traversals are happy with no reads.  Make sure that case is handled.
         if (reads.getReadsFiles().size() == 0)
             return null;
 
-        SAMDataSource dataSource = new SAMDataSource(reads, byReads);
+        SAMDataSource dataSource = new SAMDataSource(reads);
 
         // Side effect: initialize the traversal engine with reads data.
         // TODO: Give users a dedicated way of getting the header so that the MicroScheduler

@@ -95,7 +95,7 @@ public class BoundedReadIteratorTest extends BaseTest {
         long shardReadCount = 0;
 
         try {
-            SAMDataSource data = new SAMDataSource(reads,true);
+            SAMDataSource data = new SAMDataSource(reads);
 
             // make sure we have a shard
             if (!strat.hasNext()) {

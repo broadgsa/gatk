@@ -1,19 +1,14 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import static junit.framework.Assert.fail;
-import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
-import org.broadinstitute.sting.gatk.iterators.BoundedReadIterator;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMQueryIterator;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMIterator;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
@@ -22,7 +17,6 @@ import org.junit.Test;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Collections;
 
 /**
  *
@@ -78,14 +72,14 @@ public class SAMByReadsTest extends BaseTest {
     @Test
     public void testToUnmappedReads() {
         ArtificialResourcePool gen = new ArtificialResourcePool(createArtificialSamHeader(1,10,100,1000),
-                                                                ArtificialSAMUtils.unmappedReadIterator(1, 100, 10, 1000) );
+                                                                ArtificialSAMUtils.mappedAndUnmappedReadIterator(1, 100, 10, 1000) );
 
         GenomeLocParser.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
         try {
             int unmappedReadsSeen = 0;
             int iterations = 0;
 
-            SAMDataSource data = new SAMDataSource(reads,true);
+            SAMDataSource data = new SAMDataSource(reads);
             data.setResourcePool(gen);
 
             for (int x = 0; x < 10; x++) {
@@ -121,7 +115,7 @@ public class SAMByReadsTest extends BaseTest {
         try {
             int iterations = 0;
             int readCount = 0;
-            SAMDataSource data = new SAMDataSource(reads,true);
+            SAMDataSource data = new SAMDataSource(reads);
 
             ArrayList<Integer> readsPerShard = new ArrayList<Integer>();
 
@@ -176,7 +170,7 @@ public class SAMByReadsTest extends BaseTest {
         try {
             int iterations = 0;
             int readCount = 0;
-            SAMDataSource data = new SAMDataSource(reads,true);
+            SAMDataSource data = new SAMDataSource(reads);
 
 
             data.setResourcePool(gen);
@@ -224,59 +218,3 @@ public class SAMByReadsTest extends BaseTest {
     }
 }
 
-/**
- * use this to inject into SAMDataSource for testing
- */
-class ArtificialResourcePool extends SAMIteratorPool {
-    // How strict should we be with SAM/BAM parsing?
-    protected SAMFileReader.ValidationStringency strictness = SAMFileReader.ValidationStringency.SILENT;
-
-    // the header
-    private SAMFileHeader header;
-    private ArtificialSAMIterator iterator;
-
-    /**
-     * Track the iterator to see whether it's venturing into unmapped reads for the first
-     * time.  If so, query straight there.  Only works for query iterators.
-     *
-     * TODO: Clean up.
-     */
-    private boolean intoUnmappedReads = false;
-
-    public ArtificialResourcePool( SAMFileHeader header, ArtificialSAMIterator iterator ) {
-        super( new Reads(Collections.<File>emptyList()),true );
-        this.header = header;
-        this.iterator = iterator;
-    }
-
-    @Override
-    public StingSAMIterator iterator( DataStreamSegment segment ) {
-        if (segment instanceof MappedStreamSegment && iterator instanceof ArtificialSAMQueryIterator) {
-            ArtificialSAMQueryIterator queryIterator = (ArtificialSAMQueryIterator)iterator;
-            MappedStreamSegment mappedSegment = (MappedStreamSegment)segment;
-            queryIterator.queryContained(mappedSegment.locus.getContig(), (int)mappedSegment.locus.getStart(), (int)mappedSegment.locus.getStop());
-            return queryIterator;
-        }
-        else if (segment instanceof UnmappedStreamSegment) {
-            if( !intoUnmappedReads ) {
-                if( iterator instanceof ArtificialSAMQueryIterator ) {
-                    ArtificialSAMQueryIterator queryIterator = (ArtificialSAMQueryIterator)iterator;
-                    queryIterator.queryUnmappedReads();
-                }
-                intoUnmappedReads = true;
-            }
-            return new BoundedReadIterator(iterator,((UnmappedStreamSegment)segment).size);
-        }
-        else
-            throw new StingException("Unsupported segment type passed to test");
-    }
-
-    /**
-     * get the merged header
-     *
-     * @return the merged header
-     */
-    public SAMFileHeader getHeader() {
-       return this.header;
-    }
-}

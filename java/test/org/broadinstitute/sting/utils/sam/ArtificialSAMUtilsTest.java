@@ -2,7 +2,6 @@ package org.broadinstitute.sting.utils.sam;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.iterators.QueryIterator;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -21,7 +20,7 @@ public class ArtificialSAMUtilsTest extends BaseTest {
 
     @Test
     public void basicReadIteratorTest() {
-        StingSAMIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 100);
+        StingSAMIterator iter = ArtificialSAMUtils.mappedReadIterator(1, 100, 100);
         int count = 0;
         while (iter.hasNext()) {
             SAMRecord rec = iter.next();
@@ -32,7 +31,7 @@ public class ArtificialSAMUtilsTest extends BaseTest {
 
     @Test
     public void tenPerChromosome() {
-        StingSAMIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 10);
+        StingSAMIterator iter = ArtificialSAMUtils.mappedReadIterator(1, 100, 10);
         int count = 0;
         while (iter.hasNext()) {
             SAMRecord rec = iter.next();
@@ -45,7 +44,7 @@ public class ArtificialSAMUtilsTest extends BaseTest {
 
     @Test
     public void onePerChromosome() {
-        StingSAMIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 1);
+        StingSAMIterator iter = ArtificialSAMUtils.mappedReadIterator(1, 100, 1);
         int count = 0;
         while (iter.hasNext()) {
             SAMRecord rec = iter.next();
@@ -58,7 +57,7 @@ public class ArtificialSAMUtilsTest extends BaseTest {
 
     @Test
     public void basicUnmappedIteratorTest() {
-        StingSAMIterator iter = ArtificialSAMUtils.unmappedReadIterator(1, 100, 100, 1000);
+        StingSAMIterator iter = ArtificialSAMUtils.mappedAndUnmappedReadIterator(1, 100, 100, 1000);
         int count = 0;
         for (int x = 0; x < (100* 100); x++ ) {
             if (!iter.hasNext()) {

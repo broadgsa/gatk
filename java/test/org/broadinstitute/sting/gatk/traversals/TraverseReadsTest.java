@@ -122,7 +122,7 @@ public class TraverseReadsTest extends BaseTest {
                 ref.getSequenceDictionary(),
                 readSize);
 
-        SAMDataSource dataSource = new SAMDataSource(new Reads(bamList),true);
+        SAMDataSource dataSource = new SAMDataSource(new Reads(bamList));
         dataSource.viewUnmappedReads(false);
 
         countReadWalker.initialize();
@@ -169,7 +169,7 @@ public class TraverseReadsTest extends BaseTest {
                 ref.getSequenceDictionary(),
                 readSize);
 
-        SAMDataSource dataSource = new SAMDataSource(new Reads(bamList),true);
+        SAMDataSource dataSource = new SAMDataSource(new Reads(bamList));
         dataSource.viewUnmappedReads(true);
 
         countReadWalker.initialize();
