@@ -204,7 +204,7 @@ public class ArtificialSAMUtils {
      *
      * @return StingSAMIterator representing the specified amount of fake data
      */
-    public static QueryIterator unmappedReadIterator( int startingChr, int endingChr, int readCount ) {
+    public static QueryIterator mappedReadIterator( int startingChr, int endingChr, int readCount ) {
         SAMFileHeader header = createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, 0, header);
@@ -220,7 +220,7 @@ public class ArtificialSAMUtils {
      *
      * @return StingSAMIterator representing the specified amount of fake data
      */
-    public static ArtificialSAMIterator unmappedReadIterator( int startingChr, int endingChr, int readCount, int unmappedReadCount ) {
+    public static ArtificialSAMIterator mappedAndUnmappedReadIterator( int startingChr, int endingChr, int readCount, int unmappedReadCount ) {
         SAMFileHeader header = createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, unmappedReadCount, header);
