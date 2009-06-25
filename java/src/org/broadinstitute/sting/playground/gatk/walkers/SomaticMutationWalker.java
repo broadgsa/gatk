@@ -81,7 +81,7 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName = "mode", required = false, doc="Mode of operation (detect, full)")
     public String mode = "full";
 
-    public float SKEW_LOD_THRESHOLD = 1.0f;
+    public float SKEW_LOD_THRESHOLD = 1.5f;
 
 //    @Argument(fullName = "output_failures", required = false, doc="produce output for failed sites")
     public boolean OUTPUT_FAILURES = true;
@@ -432,8 +432,8 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             if (mode.equals("full") && failureReason.first != null) {
                 if (OUTPUT_FAILURES) {
                     String msg = "FAILED due to " + failureReason.first.name() +
-                            "mutAllele_" + altAllele + "_" +
-                            "maxSkewLod_" + failureReason.second
+                            " mutAllele " + altAllele + "_" +
+                            " maxSkewLod " + failureReason.second
                             ;
 
                     out.println(
@@ -534,13 +534,14 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
 
         //chr17:4979257
         // are the two alleles distributed differently
-        //fixme: calculate this range properly
         //fixme: this seems to degrade as you lose reads?
         //fixme: what should the threshold be here?
         SortedMap<Integer, Double> skewLodOffsets = new TreeMap<Integer, Double>();
         double maxSkewLod = 0;
 
-        for(int offset=-76; offset<76; offset++) {
+        //fixme: calculate this range properly
+        int MAX_OFFSET_DISTANCE = 60;
+        for(int offset=-1 * MAX_OFFSET_DISTANCE; offset<MAX_OFFSET_DISTANCE; offset++) {
             // allow for doubletons
             if (offset >= -1 && offset <= 1 ) { continue; }
 
@@ -555,6 +556,7 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             double skewLod = Math.log10( (1-J) / J);
 
 
+            // fixme: is it legit to require that we see it in at least 2 reads each?
             int mutantReadCounts = mutantPile.getLocusBases(offset).length();
             int otherReadCounts = refPile.getLocusBases(offset).length();
             if (mutantReadCounts >= 2 && otherReadCounts >= 2) {
@@ -562,7 +564,6 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
                 if (skewLod > maxSkewLod) { maxSkewLod = skewLod; }
                 if (skewLod > SKEW_LOD_THRESHOLD) {
 
-                // fixme: is it legit to require that we see it in at least 2 reads each?
 //                    System.out.println( "Offset: " + offset +
 //                            " mutant_reads: " + mutantReadCounts +
 //                            " mutant bases: " + mutantPile.getLocusBases(offset) +
