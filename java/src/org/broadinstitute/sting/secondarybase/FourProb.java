@@ -2,6 +2,7 @@ package org.broadinstitute.sting.secondarybase;
 
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 /**
  * FourProb represents four base hypotheses, their probabilities, and the ranking among one another.
@@ -9,8 +10,8 @@ import org.broadinstitute.sting.utils.Utils;
  * @author Kiran Garimella
  */
 public class FourProb {
-    private double[] baseProbs;
     private int[] baseIndices;
+    private double[] baseProbs;
 
     /**
      * Constructor for FourProb.
@@ -25,18 +26,33 @@ public class FourProb {
             }
         }
 
-        int[] baseIndices = {0, 1, 2, 3};
-        
-        Integer[] perm = Utils.SortPermutation(baseProbs);
-        double[] ascendingBaseProbs = Utils.PermuteArray(baseProbs, perm);
-        int[] ascendingBaseIndices = Utils.PermuteArray(baseIndices, perm);
-
         this.baseProbs = new double[4];
         this.baseIndices = new int[4];
 
+        // store this information in sorted form
         for (int i = 0; i < 4; i++) {
-            this.baseProbs[i] = ascendingBaseProbs[3 - i];
-            this.baseIndices[i] = ascendingBaseIndices[3 - i];
+            if (baseProbs[i] > this.baseProbs[0]) {
+                this.baseProbs[1] = this.baseProbs[0];
+                this.baseIndices[1] = this.baseIndices[0];
+
+                this.baseProbs[0] = baseProbs[i];
+                this.baseIndices[0] = i;
+            } else if (baseProbs[i] > this.baseProbs[1]) {
+                this.baseProbs[2] = this.baseProbs[1];
+                this.baseIndices[2] = this.baseIndices[1];
+
+                this.baseProbs[1] = baseProbs[i];
+                this.baseIndices[1] = i;
+            } else if (baseProbs[i] > this.baseProbs[2]) {
+                this.baseProbs[3] = this.baseProbs[2];
+                this.baseIndices[3] = this.baseIndices[2];
+
+                this.baseProbs[2] = baseProbs[i];
+                this.baseIndices[2] = i;
+            } else {
+                this.baseProbs[3] = baseProbs[i];
+                this.baseIndices[3] = i;
+            }
         }
     }
 
@@ -54,7 +70,8 @@ public class FourProb {
      * @param rank (0 = best, 3 = worst) the rank of the base whose index should be returned
      * @return the base label (A, C, G, T).
      */
-    public char baseAtRank(int rank) { return baseIndexToBase(indexAtRank(rank)); }
+    //public char baseAtRank(int rank) { return baseIndexToBase(indexAtRank(rank)); }
+    public char baseAtRank(int rank) { return BaseUtils.baseIndexToSimpleBase(indexAtRank(rank)); }
 
     /**
      * Returns the probability of the base at the specified rank.
@@ -73,32 +90,16 @@ public class FourProb {
     public byte qualAtRank(int rank) { return QualityUtils.probToQual(probAtRank(rank)); }
 
     /**
-     * A utility method to convert a base index into a base label.
-     *
-     * @param baseIndex the index of the base (0, 1, 2, 3).
-     * @return A, C, G, T, or '.' if the base index can't be understood.
-     */
-    private char baseIndexToBase(int baseIndex) {
-        switch (baseIndex) {
-            case 0: return 'A';
-            case 1: return 'C';
-            case 2: return 'G';
-            case 3: return 'T';
-            default: return '.';
-        }
-    }
-
-    /**
      * Prettily formats the FourProb info.
      * 
      * @return a prettily formatted Sting containing the base and quality score in rank order.
      */
     public String toString() {
         return (
-                "[" + baseAtRank(0) + ":" + qualAtRank(0) + " "
-                    + baseAtRank(1) + ":" + qualAtRank(1) + " "
-                    + baseAtRank(2) + ":" + qualAtRank(2) + " "
-                    + baseAtRank(3) + ":" + qualAtRank(3) + "]"
+                "[" + baseAtRank(0) + ":" + probAtRank(0) + " "
+                    + baseAtRank(1) + ":" + probAtRank(1) + " "
+                    + baseAtRank(2) + ":" + probAtRank(2) + " "
+                    + baseAtRank(3) + ":" + probAtRank(3) + "]"
                );
     }
 }
