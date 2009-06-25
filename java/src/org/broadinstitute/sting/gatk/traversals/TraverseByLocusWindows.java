@@ -2,19 +2,15 @@ package org.broadinstitute.sting.gatk.traversals;
 
 import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.*;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.fasta.*;
 
 import java.util.*;
-import java.io.File;
+import java.io.*;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileReader;
@@ -30,6 +26,8 @@ import net.sf.picard.sam.SamFileHeaderMerger;
  * To change this template use File | Settings | File Templates.
  */
 public class TraverseByLocusWindows extends TraversalEngine {
+
+    private IndexedFastaSequenceFile sequenceFile = null;
 
     public TraverseByLocusWindows(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         super(reads, ref, rods);
@@ -61,6 +59,13 @@ public class TraverseByLocusWindows extends TraversalEngine {
 
         if(readsFiles.size() > 1)
             throw new UnsupportedOperationException("Cannot do ByInterval traversal on file with multiple inputs.");        
+
+         try {
+             sequenceFile = new IndexedFastaSequenceFile(GenomeAnalysisEngine.instance.getArguments().referenceFile);
+         }
+         catch ( FileNotFoundException ex ) {
+             throw new StingException("No ref!",ex);
+         }
 
         samReader = initializeSAMFile(readsFiles.get(0));
 
@@ -127,40 +132,14 @@ public class TraverseByLocusWindows extends TraversalEngine {
         return locus;
     }
 
-    private LocusContext merge(LocusContext locus1, LocusContext locus2) {
-        GenomeLoc loc = locus1.getLocation().merge(locus2.getLocation());
-        TreeSet<SAMRecord> set = new TreeSet<SAMRecord>(new Comparator<SAMRecord>() {
-            public int compare(SAMRecord obj1, SAMRecord obj2) {
-                GenomeLoc myLoc = GenomeLocParser.createGenomeLoc(obj1);
-                GenomeLoc hisLoc = GenomeLocParser.createGenomeLoc(obj2);
-                int comparison = myLoc.compareTo(hisLoc);
-                 // if the reads have the same start position, we must give a non-zero comparison
-                 // (because java Sets often require "consistency with equals")
-                if ( comparison == 0 )
-                    comparison = obj1.getReadName().compareTo(obj2.getReadName());
-                return comparison;
-            }
-        });
-
-        set.addAll(locus1.getReads());
-        set.addAll(locus2.getReads());
-        return new LocusContext(loc, new ArrayList<SAMRecord>(set), null);
-    }
-
     protected <M, T> T carryWalkerOverInterval(LocusWindowWalker<M, T> walker, T sum, LocusContext window) {
-        ReferenceIterator refSite = refIter.seekForward(window.getLocation());
-        StringBuffer refBases = new StringBuffer(refSite.getBaseAsString());
-        int locusLength = (int)(window.getLocation().getStop() - window.getLocation().getStart());
-        for ( int i = 0; i < locusLength; i++ ) {
-            refSite = refSite.next();
-            refBases.append(refSite.getBaseAsChar());
-        }
-        window.setReferenceContig(refSite.getCurrentContig());
+
+        String refBases = new String(sequenceFile.getSubsequenceAt(window.getContig(),window.getLocation().getStart(),window.getLocation().getStop()).getBases());
 
         // Iterate forward to get all reference ordered data covering this interval
         final RefMetaDataTracker tracker = getReferenceOrderedDataAtLocus(window.getLocation());
 
-        sum = walkAtinterval( walker, sum, window, refBases.toString(), tracker );
+        sum = walkAtinterval( walker, sum, window, refBases, tracker );
 
         printProgress("intervals", window.getLocation());
 
