@@ -79,6 +79,7 @@ public class SAMByIntervalTest extends BaseTest {
      */
     @Before
     public void doForEachTest() {
+
         fl = new ArrayList<File>();
 
         // sequence
@@ -122,7 +123,7 @@ public class SAMByIntervalTest extends BaseTest {
      */
     @Test
     public void testSingleRead() {
-        testRead(1,ArtificialSAMUtils.DEFAULT_READ_LENGTH,1);
+        testRead(1,ArtificialSAMUtils.DEFAULT_READ_LENGTH,50);
     }
 
     /**
@@ -130,7 +131,7 @@ public class SAMByIntervalTest extends BaseTest {
      */
     @Test
     public void testChromosome() {
-        testRead(1, READ_COUNT, READ_COUNT -ArtificialSAMUtils.DEFAULT_READ_LENGTH+1); // +1 because we go from 1 up to 101
+        testRead(1, READ_COUNT, READ_COUNT);
     }
 
     /**
@@ -138,7 +139,7 @@ public class SAMByIntervalTest extends BaseTest {
      */
     @Test
     public void testMiddle() {
-        testRead(20, READ_COUNT-20, READ_COUNT -ArtificialSAMUtils.DEFAULT_READ_LENGTH-40+2);
+        testRead(20, READ_COUNT-20,61);
     }
 
 

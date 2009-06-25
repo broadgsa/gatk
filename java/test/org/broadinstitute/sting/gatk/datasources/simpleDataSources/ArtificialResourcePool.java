@@ -68,7 +68,11 @@ public class ArtificialResourcePool extends SAMIteratorPool {
         if (segment instanceof MappedStreamSegment && iterator instanceof ArtificialSAMQueryIterator) {
             ArtificialSAMQueryIterator queryIterator = (ArtificialSAMQueryIterator)iterator;
             MappedStreamSegment mappedSegment = (MappedStreamSegment)segment;
-            queryIterator.queryContained(mappedSegment.locus.getContig(), (int)mappedSegment.locus.getStart(), (int)mappedSegment.locus.getStop());
+            if (!this.queryOverlapping) {
+                queryIterator.queryContained(mappedSegment.locus.getContig(), (int)mappedSegment.locus.getStart(), (int)mappedSegment.locus.getStop());
+            } else {
+                queryIterator.queryOverlapping(mappedSegment.locus.getContig(), (int)mappedSegment.locus.getStart(), (int)mappedSegment.locus.getStop());
+            }
             return queryIterator;
         }
         else if (segment instanceof UnmappedStreamSegment) {
