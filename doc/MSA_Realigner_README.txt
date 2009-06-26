@@ -67,7 +67,7 @@ Optional Arguments:
 
 --allow454Reads [don't filter out 454 reads (which inherently have false indels); default=false]
 
---mismatchFraction f [fraction of reads that need to mismatch for the position to be considered mismatching; default=0.25]
+--mismatchFraction f [fraction of reads that need to mismatch for the position to be considered mismatching; default=0.15]
 Note that this fraction should be adjusted based on your particular data set.  For DEEP coverage and/or
 when looking for indels with low allele frequency, this number should be smaller.
 
@@ -106,7 +106,7 @@ This term is equivalent to "significance" - i.e. is the improvement significant 
 Note that this number should be adjusted based on your particular data set.  For LOW coverage and/or
 when looking for indels with low allele frequency, this number should be smaller.
 
---EntropyThreshold f [percentage of mismatching base quality scores at a position to be considered having high entropy; default=0.25]
+--EntropyThreshold f [percentage of mismatching base quality scores at a position to be considered having high entropy; default=0.15]
 This is similar to the argument in the MismatchIntervals method.  The point here is that the realigner
 will only proceed with the realignment (even above the given threshold) if it minimizes entropy among
 the reads (and doesn't simply push the mismatch column to another position).  This parameter is just
