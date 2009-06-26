@@ -40,6 +40,9 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
     public static final int MAX_QUAL = 99;
 
+    // fraction of mismatches that need to no longer mismatch for a column to be considered cleaned
+    private static final double MISMATCH_COLUMN_CLEANED_FRACTION = 0.75;
+
     private SAMFileWriter writer = null;
     private FileWriter indelOutput = null;
     private FileWriter statsOutput = null;
@@ -577,22 +580,25 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         for ( int i=0; i < reference.length(); i++ ) {
             if ( cleanedMismatchBases[i] == originalMismatchBases[i] )
                 continue;
-            if ( originalMismatchBases[i] > totalBases[i] * MISMATCH_THRESHOLD )
+            boolean didMismatch = false, stillMismatches = false;
+            if ( originalMismatchBases[i] > totalBases[i] * MISMATCH_THRESHOLD )  {
+                didMismatch = true;
                 originalMismatchColumns++;
-            if ( cleanedMismatchBases[i] > totalBases[i] * MISMATCH_THRESHOLD )
+                if ( cleanedMismatchBases[i] > originalMismatchBases[i] * (1.0 - MISMATCH_COLUMN_CLEANED_FRACTION) ) {
+                    stillMismatches = true;
+                    cleanedMismatchColumns++;
+                }
+            } else if ( cleanedMismatchBases[i] > totalBases[i] * MISMATCH_THRESHOLD ) {
                 cleanedMismatchColumns++;
+            }
             if ( snpsOutput != null ) {
-                    if ( originalMismatchBases[i] > totalBases[i] * MISMATCH_THRESHOLD ) {
+                    if ( didMismatch ) {
                         sb.append(reads.get(0).getRead().getReferenceName() + ":");
                         sb.append(((int)leftmostIndex + i));
-                        if ( cleanedMismatchBases[i] > totalBases[i] * MISMATCH_THRESHOLD )
+                        if ( stillMismatches )
                             sb.append(" SAME_SNP\n");
                         else
                             sb.append(" NOT_SNP\n");
-                    //} else if ( cleanedMismatchBases[i] > totalBases[i] * MISMATCH_THRESHOLD ) {
-                    //    sb.append(reads.get(0).getRead().getReferenceName() + ":");
-                    //    sb.append(((int)leftmostIndex + i));
-                    //    sb.append(" NEW_SNP\n");
                     }
             }
         }
