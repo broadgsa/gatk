@@ -1,5 +1,14 @@
 package org.broadinstitute.sting.utils.genotype;
 
+import org.junit.Test;
+import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+
+import java.io.File;
+
+import net.sf.samtools.SAMFileHeader;
+
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -30,10 +39,35 @@ package org.broadinstitute.sting.utils.genotype;
  * 
  * @author aaron 
  * 
- * Class Genotype
+ * Class GeliAdapterTest
  *
- * The interface for making genotype calls.  
+ * Tests the GeliAdapter class
  */
-public interface Genotype {
-    
+public class GeliAdapterTest extends BaseTest {
+
+
+    // private our Geli adapter
+    private GenotypeWriter adapter = null;
+
+    /**
+     * test out the likelihood object
+     */
+    @Test
+    public void test1() {
+        File fl = new File("testFile.txt");
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(2,1,10);
+        adapter = new GeliAdapter(fl,header);
+        LikelihoodObject obj = new LikelihoodObject(createFakeLikelihoods());
+        adapter.addGenotypeCall(100,100,'A',100,obj);
+        adapter.close();
+    }
+
+
+    public double[] createFakeLikelihoods() {
+        double ret[] = new double[10];
+        for (int x = 0; x < 10; x++) {
+            ret[x] = (double)(10.0-x) * 10.0;
+        }
+        return ret;
+    }
 }

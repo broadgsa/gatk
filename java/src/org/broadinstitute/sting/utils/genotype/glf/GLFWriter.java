@@ -6,33 +6,43 @@ import net.sf.samtools.util.BlockCompressedOutputStream;
 import java.io.File;
 import java.io.DataOutputStream;
 
-/**
+import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
+import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+/*
+ * Copyright (c) 2009 The Broad Institute
  *
- * User: aaron
- * Date: May 13, 2009
- * Time: 3:36:18 PM
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
  *
- * The Broad Institute
- * SOFTWARE COPYRIGHT NOTICE AGREEMENT 
- * This software and its documentation are copyright 2009 by the
- * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
  *
- * This software is supplied without any warranty or guaranteed support whatsoever. Neither
- * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
- *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
-
 
 /**
  * @author aaron
  * @version 1.0
- *
- * This class writes GLF files. You can either specify GLFRecords, or programaticly generate
- * single and variable length genotype calls using the provided functions.  When you've finished
- * generating GLF records, make sure you close the file.
- *
+ *          <p/>
+ *          This class writes GLF files. You can either specify GLFRecords, or programaticly generate
+ *          single and variable length genotype calls using the provided functions.  When you've finished
+ *          generating GLF records, make sure you close the file.
  */
-public class GLFWriter {
+public class GLFWriter implements GenotypeWriter {
     // our output codec
     private final BinaryCodec outputBinaryCodec;
 
@@ -62,21 +72,23 @@ public class GLFWriter {
     /**
      * add a point genotype to the GLF writer
      *
-     * @param refBase the reference base, as a char
+     * @param refBase    the reference base, as a char
      * @param genomicLoc the location, as an offset from the previous glf record
-     * @param readDepth the read depth at the specified postion
-     * @param rmsMapQ the root mean square of the mapping quality
-     * @param lhValues the LikelihoodObject, representing the genotype likelyhoods
+     * @param readDepth  the read depth at the specified postion
+     * @param rmsMapQ    the root mean square of the mapping quality
+     * @param lhValues   the GenotypeLikelihoods object, representing the genotype likelyhoods
      */
-    public void addPointCall( char refBase,
-                              int genomicLoc,
-                              int readDepth,
-                              short rmsMapQ,
-                              LikelihoodObject lhValues ) {
+    @Override
+    public void addGenotypeCall( int genomicLoc,
+                                 float rmsMapQ,
+                                 char refBase,
+                                 int readDepth,
+                                 LikelihoodObject lhValues ) {
+
 
         SinglePointCall call = new SinglePointCall(refBase, genomicLoc,
                 readDepth,
-                rmsMapQ,
+                (short) rmsMapQ,
                 lhValues);
         call.write(this.outputBinaryCodec);
     }
@@ -84,60 +96,66 @@ public class GLFWriter {
     /**
      * add a variable length (indel, deletion, etc) to the genotype writer
      *
-     * @param refBase the reference base
-     * @param genomicLoc the location, as an offset from the previous glf record
-     * @param readDepth the read depth at the specified postion
-     * @param rmsMapQ the root mean square of the mapping quality
-     * @param minimumLikelihood the minimum likelihood value
-     * @param homozygProb1 the negitive log likelihood of the first homozygous indel allele, from 0 to 255
-     * @param homozygProb2 the negitive log likelihood of the second homozygous indel allele, from 0 to 255
-     * @param heterozygProb the negitive log likelihood of the heterozygote,  from 0 to 255
-     * @param indelLength1 the length of the first indel allele
-     * @param indelLength2 the length of the second indel allele
-     * @param indelSeq1 the sequence for the first indel allele
-     * @param indelSeq2 the sequence for the second indel allele
+     * @param refBase       the reference base
+     * @param genomicLoc    the location, as an offset from the previous glf record
+     * @param readDepth     the read depth at the specified postion
+     * @param rmsMapQ       the root mean square of the mapping quality
+     * @param firstHomZyg   the first homozygous call
+     * @param secondHomZyg  the second homozygous call
+     * @param hetLikelihood the negitive log likelihood of the heterozygote,  from 0 to 255
      */
-    public void addVarLengthCall( char refBase,
-                                  long genomicLoc,
-                                  int readDepth,
-                                  short rmsMapQ,
-                                  short minimumLikelihood,
-                                  short homozygProb1,
-                                  short homozygProb2,
-                                  short heterozygProb,
-                                  int indelLength1,
-                                  int indelLength2,
-                                  char[] indelSeq1,
-                                  char[] indelSeq2 ) {
+    @Override
+    public void addVariableLengthCall( int genomicLoc,
+                                       float rmsMapQ,
+                                       int readDepth,
+                                       char refBase,
+                                       IndelLikelihood firstHomZyg,
+                                       IndelLikelihood secondHomZyg,
+                                       byte hetLikelihood ) {
 
-        short[] indexSeqEq1 = new short[indelSeq1.length];
-        short[] indexSeqEq2 = new short[indelSeq2.length];
-        for (int x = 0; x < indelSeq1.length; x++) {
-            indexSeqEq1[x] = new Integer(0x00ff & indelSeq1[x]).shortValue();
-        }
-        for (int x = 0; x < indelSeq2.length; x++) {
-            indexSeqEq2[x] = new Integer(0x00ff & indelSeq2[x]).shortValue();
+        // in this context, the minumum likelihood is lowest of the three options
+        double lowestLikelihood = Double.MAX_VALUE;
+        if (firstHomZyg.getLikelihood() < lowestLikelihood) {
+            lowestLikelihood = firstHomZyg.getLikelihood();
+        } else if (secondHomZyg.getLikelihood() < lowestLikelihood) {
+            lowestLikelihood = secondHomZyg.getLikelihood();
+        } else if (hetLikelihood < lowestLikelihood) {
+            lowestLikelihood = hetLikelihood;
         }
 
+        // normalize the two
         VariableLengthCall call = new VariableLengthCall(refBase,
                 genomicLoc,
                 readDepth,
-                minimumLikelihood,
-                rmsMapQ,
-                homozygProb1,
-                homozygProb2,
-                heterozygProb,
-                indelLength1,
-                indelLength2,
-                indexSeqEq1,
-                indexSeqEq2);
+                lowestLikelihood,
+                (short) rmsMapQ,
+                firstHomZyg.getLikelihood(),
+                secondHomZyg.getLikelihood(),
+                hetLikelihood,
+                firstHomZyg.getLengthOfIndel(),
+                secondHomZyg.getLengthOfIndel(),
+                firstHomZyg.getIndelSequence(),
+                secondHomZyg.getIndelSequence());
 
         call.write(this.outputBinaryCodec);
 
     }
 
     /**
+     * add a no call to the genotype file, if supported.
+     *
+     * @param position  the position
+     * @param readDepth the read depth
+     */
+    @Override
+    public void addNoCall( int position, int readDepth ) {
+        // glf doesn't support this operation
+        throw new UnsupportedOperationException("GLF doesn't support a 'no call' call.");
+    }
+
+    /**
      * add a GLF record to the output file
+     *
      * @param rec the GLF record to write.
      */
     public void addGLFRecord( GLFRecord rec ) {
@@ -149,13 +167,12 @@ public class GLFWriter {
      * the magic number, the length of the header text, the text itself, the reference
      * sequence (null terminated) preceeded by it's length, and the the genomic
      * length of the reference sequence.
-     *
      */
     private void writeHeader() {
         for (int x = 0; x < glfMagic.length; x++) {
             outputBinaryCodec.writeByte(glfMagic[x]);
         }
-        if (!(headerText.equals(""))) {
+        if (!( headerText.equals("") )) {
             outputBinaryCodec.writeString(headerText, true, true);
         } else {
             outputBinaryCodec.writeInt(0);
@@ -167,11 +184,33 @@ public class GLFWriter {
     /**
      * close the file.  You must close the file to ensure any remaining data gets
      * written out.
-     *
      */
+    @Override
     public void close() {
         outputBinaryCodec.writeByte((byte) 0);
         outputBinaryCodec.close();
+    }
+
+    /**
+     * normalize the values to the range of a byte (0 - 255)
+     *
+     * @param values the floating point values to normalize
+     *
+     * @return a byte array containing the normalized values
+     */
+    private byte[] normalizeToByte( double[] values ) {
+        byte ret[] = new byte[values.length];
+        double min = Double.MAX_VALUE;
+        double max = Double.MIN_VALUE;
+        for (double d : values) {
+            min = ( d < min ) ? d : min;
+            max = ( d > max ) ? d : max;
+        }
+        double scale = max / 255.0;
+        for (int x = 0; x < values.length; x++) {
+            ret[x] = (byte) ( ( values[x] - min ) / scale );
+        }
+        return ret;
     }
 
 }

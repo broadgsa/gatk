@@ -1,9 +1,10 @@
-package org.broadinstitute.sting.utils.genotype.glf;
+package org.broadinstitute.sting.utils.genotype;
 
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 import static junit.framework.Assert.assertTrue;
 
 
@@ -56,7 +57,7 @@ public class LikelihoodObjectTest extends BaseTest {
 
     @Test
     public void testConstructionFromArray() {
-        int[] ray = new int[10];
+        double[] ray = new double[10];
         for (int x = 0; x < 10; x++) {
             ray[x] = ( x * 25 );
         }
@@ -72,9 +73,9 @@ public class LikelihoodObjectTest extends BaseTest {
 
     @Test
     public void testByteArrayReturn() {
-        int[] ray = new int[10];
+        double[] ray = new double[10];
         for (int x = 0; x < 10; x++) {
-            ray[x] = ( x * 25 );
+            ray[x] = ( x * 25.0 );
         }
         mLO = new LikelihoodObject(ray);
         assertTrue(mLO.likelihood.size() == LikelihoodObject.GENOTYPE.values().length);
@@ -97,14 +98,15 @@ public class LikelihoodObjectTest extends BaseTest {
 
     @Test
     public void testGetMinimum() {
-        int[] ray = new int[10];
+        double[] ray = new double[10];
         for (int x = 0; x < 10; x++) {
-            ray[x] = ( 240 );
+            ray[x] = ( 240.0 );
+            ray[x] = ( 240.0 );
         }
         ray [5] = 0;
         mLO = new LikelihoodObject(ray);
         assertTrue(mLO.likelihood.size() == LikelihoodObject.GENOTYPE.values().length);
-        short smallest = (short)mLO.getMinimumValue();
+        short smallest = (short)mLO.getBestLikelihood();
         assertTrue(smallest == 0);
         int index = 0;
         short[] ret = mLO.toByteArray();

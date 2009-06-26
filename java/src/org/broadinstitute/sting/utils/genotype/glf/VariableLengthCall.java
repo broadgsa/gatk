@@ -70,19 +70,19 @@ class VariableLengthCall extends GLFRecord {
     VariableLengthCall( char refBase,
                         long offset,
                         int readDepth,
-                        short minimumLikelihood,
+                        double minimumLikelihood,
                         short rmsMapQ,
-                        short lkHom1,
-                        short lkHom2,
-                        short lkHet,
+                        double lkHom1,
+                        double lkHom2,
+                        double lkHet,
                         int indelLen1,
                         int indelLen2,
                         final short indelSeq1[],
                         final short indelSeq2[] ) {
-        super(refBase, offset, minimumLikelihood, readDepth, rmsMapQ);
-        this.lkHom1 = lkHom1;
-        this.lkHom2 = lkHom2;
-        this.lkHet = lkHet;
+        super(refBase, offset, GLFRecord.toCappedShort(minimumLikelihood), readDepth, rmsMapQ);
+        this.lkHom1 = GLFRecord.toCappedShort(lkHom1);
+        this.lkHom2 = GLFRecord.toCappedShort(lkHom2);
+        this.lkHet = GLFRecord.toCappedShort(lkHet);
         this.indelLen1 = indelLen1;
         this.indelLen2 = indelLen2;
         this.indelSeq1 = indelSeq1;

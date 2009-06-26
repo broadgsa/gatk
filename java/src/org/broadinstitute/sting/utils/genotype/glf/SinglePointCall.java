@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
 import net.sf.samtools.util.BinaryCodec;
+import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 
 
 /*
@@ -53,7 +54,7 @@ class SinglePointCall extends GLFRecord {
      * @param lhValues  the LikelihoodObject, representing the genotype likelyhoods
      */
     SinglePointCall( char refBase, int offset, int readDepth, short rmsMapQ, LikelihoodObject lhValues ) {
-        super(refBase, offset, (short) lhValues.getMinimumValue(), readDepth, rmsMapQ);
+        super(refBase, offset, (short) lhValues.getBestLikelihood(), readDepth, rmsMapQ);
 
         likelihoods = lhValues;
     }

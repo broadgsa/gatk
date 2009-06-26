@@ -4,7 +4,8 @@ import org.junit.Test;
 import org.junit.Before;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.genotype.glf.GLFWriter;
-import org.broadinstitute.sting.utils.genotype.glf.LikelihoodObject;
+import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 
 import java.io.File;
 
@@ -49,7 +50,7 @@ public class GLFWriterTest extends BaseTest {
     private final int refLength = 1000;
     File writeTo = new File("testGLF.glf");
 
-    private GLFWriter rec;
+    private GenotypeWriter rec;
 
     @Before
     public void before() {
@@ -77,11 +78,11 @@ public class GLFWriterTest extends BaseTest {
                 let = 'G';
                 break;
         }
-    try {
+    /*try {
         rec.addPointCall(let, location, 10, (short) 10, obj);
     } catch (IllegalArgumentException e) {
         e.printStackTrace();
-    }
+    } */
     }
 
 

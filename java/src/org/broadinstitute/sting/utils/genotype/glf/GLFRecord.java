@@ -206,5 +206,15 @@ abstract class GLFRecord {
     public int getByteSize() {
         return 10; // the record type field (1), offset (4), the min depth field (4), and the rms mapping (1)
     }
+
+    /**
+     * convert a double to a byte, capping it at the maximum value of 255
+     * @param d a double value
+     * @return a byte, capped at 
+     */
+    protected static short toCappedShort(double d) {
+        return (d > 255.0) ? (byte)255 : (byte)Math.round(d);
+    }
+
 }
 
