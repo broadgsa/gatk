@@ -95,6 +95,12 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
      */
     @Override
     public Integer map(char[] ref, SAMRecord read) {
+
+    	if( read.getReadUnmappedFlag() ) {
+    		outputBAM.addAlignment(read);
+    		return 0;
+    	}
+    	
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(read);
 
         while( loc.isPast(interval) && intervals.size() > 0 ) {
