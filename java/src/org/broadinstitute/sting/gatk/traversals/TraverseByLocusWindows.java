@@ -4,7 +4,6 @@ import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.*;
 import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.iterators.ReferenceIterator;
 import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.fasta.*;
@@ -111,7 +110,6 @@ public class TraverseByLocusWindows extends TraversalEngine {
         while (readIter.hasNext() && !done) {
             TraversalStatistics.nRecords++;
 
-
             SAMRecord read = readIter.next();
             reads.add(read);
             if ( read.getAlignmentStart() < leftmostIndex )
@@ -134,12 +132,20 @@ public class TraverseByLocusWindows extends TraversalEngine {
 
     protected <M, T> T carryWalkerOverInterval(LocusWindowWalker<M, T> walker, T sum, LocusContext window) {
 
-        String refBases = new String(sequenceFile.getSubsequenceAt(window.getContig(),window.getLocation().getStart(),window.getLocation().getStop()).getBases());
+        int contigLength = getSAMHeader().getSequence(window.getLocation().getContig()).getSequenceLength();
+        String refSuffix = "";
+        if ( window.getLocation().getStop() > contigLength ) {
+            refSuffix = Utils.dupString('x', (int)window.getLocation().getStop() - contigLength);
+            window.getLocation().setStop(contigLength);
+        }
+
+        StringBuffer refBases = new StringBuffer(new String(sequenceFile.getSubsequenceAt(window.getContig(),window.getLocation().getStart(),window.getLocation().getStop()).getBases()));
+        refBases.append(refSuffix);
 
         // Iterate forward to get all reference ordered data covering this interval
         final RefMetaDataTracker tracker = getReferenceOrderedDataAtLocus(window.getLocation());
 
-        sum = walkAtinterval( walker, sum, window, refBases, tracker );
+        sum = walkAtinterval( walker, sum, window, refBases.toString(), tracker );
 
         printProgress("intervals", window.getLocation());
 

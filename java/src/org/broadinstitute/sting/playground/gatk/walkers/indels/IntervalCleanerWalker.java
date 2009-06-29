@@ -171,8 +171,15 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         for (int readIndex = 0 ; readIndex < readSeq.length() ; refIndex++, readIndex++ ) {
             if ( refIndex >= refSeq.length() )
                 sum += MAX_QUAL;
-            else if ( Character.toUpperCase(readSeq.charAt(readIndex)) != Character.toUpperCase(refSeq.charAt(refIndex)) )
-                sum += (int)quals.charAt(readIndex) - 33;
+            else {
+                char refChr = refSeq.charAt(refIndex);
+                char readChr = readSeq.charAt(readIndex);
+                if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
+                     BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
+                    continue; // do not count Ns/Xs/etc ?
+                if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
+                    sum += (int)quals.charAt(readIndex) - 33;        
+            }
         }
         return sum;
     }
@@ -692,9 +699,10 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                     boolean match = true;
                 
                     for ( int testRefPos = newIndex - period, indelPos = 0 ; testRefPos < newIndex; testRefPos++, indelPos++) {
-                        if ( Character.toUpperCase(refSeq.charAt(testRefPos)) != indelString.charAt(indelPos) || indelString.charAt(indelPos) == 'N' ) {
-                                match = false;
-                                break;
+                        char indelChr = indelString.charAt(indelPos);
+                        if ( Character.toUpperCase(refSeq.charAt(testRefPos)) != indelChr || BaseUtils.simpleBaseToBaseIndex(indelChr) == -1 ) {
+                            match = false;
+                            break;
                         }
                     }
                     if ( match )

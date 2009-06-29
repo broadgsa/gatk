@@ -6,7 +6,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.playground.utils.CountedObject;
-import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.*;
 
 import java.util.*;
 
@@ -41,9 +41,13 @@ public class AlignmentUtils {
             switch( ce.getOperator() ) {
                 case M:
                     for ( int l = 0 ; l < ce.getLength() ; l++, i_ref++, i_read++ ) {
-                        if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) == 'N' ) continue; // do not count N's ?
-                        if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) !=
-                             Character.toUpperCase((char)ref[i_ref]) ) mm_count++;
+                        char refChr = (char)ref[i_ref];
+                        char readChr = r.getReadString().charAt(i_read);
+                        if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
+                             BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
+                            continue; // do not count Ns/Xs/etc ?
+                        if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
+                            mm_count++;
                     }
                     break;
                 case I: i_read += ce.getLength(); break;
@@ -74,9 +78,13 @@ public class AlignmentUtils {
             switch( ce.getOperator() ) {
                 case M:
                     for ( int l = 0 ; l < ce.getLength() ; l++, i_ref++, i_read++ ) {
-                        if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) == 'N' ) continue; // do not count N's ?
-                        if ( Character.toUpperCase(r.getReadString().charAt(i_read) ) !=
-                             Character.toUpperCase(ref[i_ref]) ) mm_count++;
+                        char refChr = (char)ref[i_ref];
+                        char readChr = r.getReadString().charAt(i_read);
+                        if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
+                             BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
+                            continue; // do not count Ns/Xs/etc ?
+                        if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
+                             mm_count++;
                     }
                     break;
                 case I: i_read += ce.getLength(); break;
@@ -123,7 +131,14 @@ public class AlignmentUtils {
             switch ( ce.getOperator() ) {
                 case M:
                     for (int j = 0 ; j < ce.getLength() ; j++, refIndex++, readIdx++ ) {
-                        if ( refIndex < refSeq.length() && Character.toUpperCase(readSeq.charAt(readIdx)) != Character.toUpperCase(refSeq.charAt(refIndex)) )
+                        if ( refIndex >= refSeq.length() )
+                            continue;
+                        char refChr = refSeq.charAt(refIndex);
+                        char readChr = readSeq.charAt(readIdx);
+                        if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
+                             BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
+                            continue; // do not count Ns/Xs/etc ?
+                        if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
                             mismatches++;
                     }
                     break;
