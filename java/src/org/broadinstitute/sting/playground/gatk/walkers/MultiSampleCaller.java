@@ -28,6 +28,7 @@ public class MultiSampleCaller extends LocusWalker<String,String>
     @Argument(fullName="discovery_output", shortName="discovery_output", required=true, doc="file to write SNP discovery output to")       public String DISCOVERY_OUTPUT;
     @Argument(fullName="individual_output", shortName="individual_output", required=true, doc="file to write individual SNP calls to") public String INDIVIDUAL_OUTPUT;
     @Argument(fullName="sample_name_regex", shortName="sample_name_regex", required=false, doc="sample_name_regex") public String SAMPLE_NAME_REGEX = null;
+    @Argument(fullName="call_indels", shortName="call_indels", required=false, doc="call indels?") public boolean CALL_INDELS = false;
 
 	// Private state.
     List<String> sample_names;
@@ -111,7 +112,7 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 
 	char ref;
 
-	GenotypeLikelihoods Genotype(LocusContext context, double[] allele_likelihoods)
+	GenotypeLikelihoods Genotype(LocusContext context, double[] allele_likelihoods, double indel_alt_freq)
 	{
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         String bases = pileup.getBases();
@@ -125,22 +126,6 @@ public class MultiSampleCaller extends LocusWalker<String,String>
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
         ref = Character.toUpperCase(ref);
-
-		/*
-		// Handle indels.
-		if (call_indels)
-		{
-			String[] indels = BasicPileup.indelPileup(reads, offsets);
-			IndelCall indel_call = GenotypeLikelihoods.callIndel(indels);
-			if (indel_call != null)
-			{
-				if (! indel_call.type.equals("ref"))
-				{ 
-					System.out.printf("INDEL %s %s\n", context.getLocation(), indel_call); 
-				}
-			}
-		}
-		*/
         
 		// Handle single-base polymorphisms.
         GenotypeLikelihoods G = new GenotypeLikelihoods();
@@ -151,6 +136,21 @@ public class MultiSampleCaller extends LocusWalker<String,String>
             G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset]);
         }
         G.ApplyPrior(ref, allele_likelihoods);
+
+		// Handle indels
+		if (CALL_INDELS)
+		{
+			String[] indels = BasicPileup.indelPileup(reads, offsets);
+			IndelLikelihood indel_call = new IndelLikelihood(indels, indel_alt_freq);
+			if (indel_call.getType() != null)
+			{
+				G.addIndelLikelihood(indel_call);
+			}
+			else
+			{
+				G.addIndelLikelihood(null);
+			}
+		}
 
 		/*
 		// Handle 2nd-best base calls.
@@ -163,7 +163,6 @@ public class MultiSampleCaller extends LocusWalker<String,String>
         return G;
     }
 
-	// thoughly check this function
 	double[] CountFreqs(GenotypeLikelihoods[] genotype_likelihoods)
 	{
 		double[] allele_likelihoods = new double[4];
@@ -199,6 +198,35 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 		return allele_likelihoods;
 	}
 
+	double CountIndelFreq(GenotypeLikelihoods[] genotype_likelihoods)
+	{ 
+		HashMap<String, Double> indel_allele_likelihoods = new HashMap<String, Double>();
+
+		double pRef = 0;
+		double pAlt = 0;
+
+		for (int j = 0; j < sample_names.size(); j++)
+		{
+			double personal_pRef = 0;
+			double personal_pAlt = 0;
+
+			IndelLikelihood indel_likelihood = genotype_likelihoods[j].getIndelLikelihood();
+			personal_pRef += 2*Math.pow(10, indel_likelihood.pRef()) + Math.pow(10, indel_likelihood.pHet());
+			personal_pAlt += 2*Math.pow(10, indel_likelihood.pHom()) + Math.pow(10, indel_likelihood.pHet());
+
+			personal_pRef = personal_pRef / (personal_pAlt + personal_pRef);
+			personal_pAlt = personal_pAlt / (personal_pAlt + personal_pRef);
+
+			pRef += personal_pRef;
+			pAlt += personal_pAlt;
+		}
+
+		pRef = pRef / (pRef + pAlt);
+		pAlt = pAlt / (pRef + pAlt);
+
+		return pAlt;
+	}
+
 	// Potential precision error here.
 	double Compute_pD(GenotypeLikelihoods[] genotype_likelihoods)
 	{
@@ -223,7 +251,7 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 		GenotypeLikelihoods[] G = new GenotypeLikelihoods[sample_names.size()];
 		for (int j = 0; j < sample_names.size(); j++)
 		{
-			G[j] = Genotype(contexts[j], allele_likelihoods);
+			G[j] = Genotype(contexts[j], allele_likelihoods, 1e-6);
 		}
 		return Compute_pD(G);
 	}
@@ -271,16 +299,22 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 			if (i == BaseUtils.simpleBaseToBaseIndex(ref)) { allele_likelihoods[i] = 0.9994999; } //sqrt(0.999) 
 			else { allele_likelihoods[i] = 0.0005002502; } // 0.001 / (2 * sqrt(0.999)
 		}
+		double indel_alt_freq = 1e-4;
 
 		GenotypeLikelihoods[] G = new GenotypeLikelihoods[sample_names.size()];
 		for (int i = 0; i < MAX_ITERATIONS; i++)
 		{
 			for (int j = 0; j < sample_names.size(); j++)
 			{
-				G[j] = Genotype(contexts[j], allele_likelihoods);
+				G[j] = Genotype(contexts[j], allele_likelihoods, indel_alt_freq);
 			}
 		
 			allele_likelihoods = CountFreqs(G);
+
+			if (CALL_INDELS) 
+			{
+				indel_alt_freq = CountIndelFreq(G);
+			}
 		}
 
 		return new EM_Result(G, allele_likelihoods);

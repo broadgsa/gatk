@@ -155,6 +155,8 @@ public class GenotypeLikelihoods {
 
     public void add(char ref, char read, byte qual) 
 	{ 
+		if (qual <= 0) { qual = 1; }
+
 		if (coverage == 0)
 		{
 			for (int i = 0; i < likelihoods.length; i++)
@@ -398,4 +400,9 @@ public class GenotypeLikelihoods {
 		AFE.genotypeLikelihoods = this;
 		return AFE;
     }
+
+	private IndelLikelihood indel_likelihood;
+	public void addIndelLikelihood(IndelLikelihood indel_likelihood) { this.indel_likelihood = indel_likelihood; }
+	public IndelLikelihood getIndelLikelihood() { return this.indel_likelihood; }
+
 }

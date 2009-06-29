@@ -40,7 +40,7 @@ public class PooledEMSNPROD extends TabularROD implements SNPCallFromGenotypes {
     public double getMAF()         { return Double.parseDouble(this.get("EM_alt_freq")); }
     public double getHeterozygosity() { return 2 * getMAF() * (1 - getMAF()); }
     public boolean isGenotype()    { return false; }
-    public double getVariationConfidence() { return Double.parseDouble(this.get("discovery_lod")) * 10; }
+    public double getVariationConfidence() { return Double.parseDouble(this.get("discovery_lod")); }
     public double getConsensusConfidence() { return -1; }
     public List<String> getGenotype() throws IllegalStateException { throw new IllegalStateException(); }
     public int getPloidy() throws IllegalStateException { return 2; }

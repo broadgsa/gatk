@@ -8,11 +8,17 @@ public class IndelLikelihood {
     private double   p;
     private double   lod;
 
+	private double pRef;
+	private double pHet;
+	private double pHom;
+	private String alt;
+
     public IndelLikelihood(String type, String[] alleles, double p, double lod) {
         initialize(type, alleles, p, lod);
     }
 
-    public IndelLikelihood(String[] indels) {
+    public IndelLikelihood(String[] indels, double indel_alt_freq) 
+	{
         HashMap<String,Integer> indel_allele_counts = new HashMap<String,Integer>();
 
         for (int i = 0; i < indels.length; i++) {
@@ -43,9 +49,9 @@ public class IndelLikelihood {
             //System.out.printf("\n");
 
             double eps = 1e-3;
-            double pRef = null_count*Math.log10(1.0 - eps)   + max_count*Math.log10(eps) + Math.log10(0.999);
-            double pHet = null_count*Math.log10(0.5 - eps/2) + max_count*Math.log10(0.5-eps/2) + Math.log10(1e-3);
-            double pHom = null_count*Math.log10(eps)         + max_count*Math.log10(1.0 - eps) + Math.log10(1e-5);
+            pRef = null_count*Math.log10(1.0 - eps)   + max_count*Math.log10(eps)       + 2*Math.log10(1-indel_alt_freq);
+            pHet = null_count*Math.log10(0.5 - eps/2) + max_count*Math.log10(0.5-eps/2) + Math.log10((1-indel_alt_freq)*indel_alt_freq);
+            pHom = null_count*Math.log10(eps)         + max_count*Math.log10(1.0 - eps) + 2*Math.log10(indel_alt_freq);
 
             double lodRef = pRef - Math.max(pHet, pHom);
             double lodHet = pHet - pRef;
@@ -90,6 +96,11 @@ public class IndelLikelihood {
         this.p = p;
         this.lod = lod;
     }
+
+	public String getAlt() { return alt; }
+	public double pRef() { return pRef; }
+	public double pHet() { return pHet; }
+	public double pHom() { return pHom; }
 
     public String getType() { return type; }
     public String[] getAlleles() { return alleles; }

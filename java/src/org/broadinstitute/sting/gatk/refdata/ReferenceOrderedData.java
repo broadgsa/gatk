@@ -67,6 +67,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         addModule("Table", TabularROD.class);
         addModule("PooledEM", PooledEMSNPROD.class);
         addModule("1KGSNPs", KGenomesSNPROD.class);
+        addModule("SangerSNP", SangerSNPROD.class);
         addModule("Intervals", IntervalRod.class);
         addModule("Variants", rodVariants.class);
     }
