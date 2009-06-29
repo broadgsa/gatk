@@ -2,25 +2,42 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.junit.Assert;
+import org.junit.Test;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
+import net.sf.samtools.*;
 import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
+
+/*
+ * Copyright (c) 2009 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 /**
  * User: hanna
  * Date: May 27, 2009
  * Time: 1:04:27 PM
- * BROAD INSTITUTE SOFTWARE COPYRIGHT NOTICE AND AGREEMENT
- * Software and documentation are copyright 2005 by the Broad Institute.
- * All rights are reserved.
  *
- * Users acknowledge that this software is supplied without any warranty or support.
- * The Broad Institute is not responsible for its use, misuse, or
- * functionality.
  */
 
 /**
@@ -28,9 +45,54 @@ import net.sf.picard.reference.ReferenceSequence;
  */
 
 public class ReadReferenceViewTest extends ReferenceViewTemplate {
+
+
+    /**
+     * tests that the ReadReferenceView correctly generates X's when a read overhangs the
+     * end of a contig
+     */
+    @Test
+    public void testOverhangingRead() {
+        testOverhangingGivenSize(25,0);
+        testOverhangingGivenSize(25,12);
+        testOverhangingGivenSize(25,24);
+    }
+
+
+    /**
+     * a private method, that tests getting the read sequence for reads that overlap the end of the
+     * contig
+     * @param readLength the length of the read
+     * @param overlap the amount of overlap
+     */
+    private void testOverhangingGivenSize(int readLength, int overlap) {
+        SAMSequenceRecord selectedContig = sequenceFile.getSequenceDictionary().getSequences().get(sequenceFile.getSequenceDictionary().getSequences().size()-1);
+        final long contigStart = selectedContig.getSequenceLength() - (readLength - overlap - 1);
+        final long contigStop = selectedContig.getSequenceLength() + overlap;
+
+        ShardDataProvider dataProvider = new ShardDataProvider(null,null,sequenceFile,null);
+        ReadReferenceView view = new ReadReferenceView(dataProvider);
+
+        SAMRecord rec = buildSAMRecord(selectedContig.getSequenceName(),(int)contigStart,(int)contigStop);
+        ReferenceSequence expectedAsSeq = sequenceFile.getSubsequenceAt(selectedContig.getSequenceName(),(int)contigStart,selectedContig.getSequenceLength());
+        char[] expected = StringUtil.bytesToString(expectedAsSeq.getBases()).toCharArray();
+        char[] actual = view.getReferenceBases(rec);
+
+        Assert.assertEquals(expected.length, (readLength - overlap));
+        Assert.assertEquals(actual.length, readLength);
+        int xRange = 0;
+        for (; xRange < (readLength - overlap); xRange++) {
+            Assert.assertTrue(actual[xRange] != 'X');
+        }
+        for (; xRange < actual.length; xRange++) {
+            Assert.assertTrue(actual[xRange] == 'X');
+        }
+    }
+
+
     /**
      * Compares the contents of the fasta and view at a specified location.
-     * @param loc
+     * @param loc the location to validate
      */
     protected void validateLocation( GenomeLoc loc ) {
         SAMRecord read = buildSAMRecord( loc.getContig(), (int)loc.getStart(), (int)loc.getStop() );
