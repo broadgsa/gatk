@@ -229,7 +229,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
      */
     private IndelLikelihood callIndel(LocusContext context, List<SAMRecord> reads, List<Integer> offsets) {
         String[] indels = BasicPileup.indelPileup(reads, offsets);
-        IndelLikelihood indelCall = new IndelLikelihood(indels);
+        IndelLikelihood indelCall = new IndelLikelihood(indels, 1e-4);
 
         if (! indelCall.getType().equals("ref")) {
             System.out.printf("INDEL %s %s\n", context.getLocation(), indelCall);
