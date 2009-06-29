@@ -54,7 +54,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
     private static Logger logger = Logger.getLogger(TableRecalibrationWalker.class);
 
-    private static String VERSION = "0.2.1";
+    private static String VERSION = "0.2.2";
 
     private final static boolean DEBUG = false;
 
@@ -266,11 +266,14 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      * @return
      */
     public byte[] recalibrateBasesAndQuals(final String readGroup, byte[] bases, byte[] quals) throws StingException {
+        if ( readGroup == null ) { throw new StingException("BUG: read group is null"); }
+        if ( bases == null ) { throw new StingException("BUG: bases array is null"); }
+        if ( bases.length == 0) { throw new StingException("BUG: bases array is size 0"); }
+        if ( quals == null ) { throw new StingException("BUG: quals array is null"); }
+
         byte[] recalQuals = new byte[quals.length];
         RecalMapping mapper = cache.get(readGroup);
-
-        //if ( mapper == null && DEBUG_ME )
-        //    return recalQuals;
+        if ( mapper == null ) { throw new StingException(String.format("BUG: couldn't find RecalMapping for readgroup %s", readGroup)); }
 
         recalQuals[0] = quals[0];               // can't change the first -- no dinuc
         for ( int cycle = 1; cycle < bases.length; cycle++ ) { // skip first and last base, qual already set because no dinuc
@@ -489,28 +492,25 @@ class SerialRecalMapping implements RecalMapping {
         int pos = manager.canonicalPos(cycle);
         int index = this.manager.getDinucIndex(prevBase, base);
 
-        double deltaQual = deltaQualMap[qual];
-        double deltaQPos = pos >= deltaQPosMap.length ? 0.0 : deltaQPosMap[pos][qual];  // == length indices no data for last base
-        double deltaQDinuc = index == -1 ? 0.0 : deltaQDinucMap[index][qual];           // -1 indices N in prev or current base
-        double newQual = qual + globalDeltaQ + deltaQual + deltaQPos + deltaQDinuc;
-        byte newQualByte = QualityUtils.boundQual((int)Math.round(newQual), QualityUtils.MAX_REASONABLE_Q_SCORE);
+        byte newQualByte = qual;
+        if ( qual < deltaQualMap.length ) {
+            // it's possible to see a qual not in the recal table -- i.e., we only see Q28 at a dbSNP site
+            double deltaQual = deltaQualMap[qual];
+            double deltaQPos = pos >= deltaQPosMap.length ? 0.0 : deltaQPosMap[pos][qual];  // == length indices no data for last base
+            double deltaQDinuc = index == -1 ? 0.0 : deltaQDinucMap[index][qual];           // -1 indices N in prev or current base
+            double newQual = qual + globalDeltaQ + deltaQual + deltaQPos + deltaQDinuc;
+            newQualByte = QualityUtils.boundQual((int)Math.round(newQual), QualityUtils.MAX_REASONABLE_Q_SCORE);
+
+            if ( newQualByte <= 0 && newQualByte >= QualityUtils.MAX_REASONABLE_Q_SCORE )
+                throw new RuntimeException(String.format("Illegal base quality score calculated: %s %c%c %d %d => %d + %.2f + %.2f + %.2f = %d",
+                        readGroup, prevBase, base, cycle, qual, qual, globalDeltaQ, deltaQPos, deltaQDinuc, newQualByte));
+        }
 
         //if ( printStateP(pos, RecalData.dinucIndex2bases(index), qual) )
         //    System.out.printf("%s %c%c %d %d => %d + %.2f + %.2f + %.2f + %.2f = %d%n",
         //            readGroup, prevBase, base, cycle, qual,
         //           qual, globalDeltaQ, deltaQual, deltaQPos, deltaQDinuc,
         //            newQualByte);
-
-
-        //byte combiQualByte = combiMap.getNewQual(readGroup, prevBase, base, cycle, qual);
-        //System.out.printf("%s %c%c %d %d => %d + %.2f + %.2f + %.2f = %d vs %d (%d)%n",
-        //        readGroup, prevBase, base, cycle, qual,
-        //        qual, globalDeltaQ, deltaQPos, deltaQDinuc,
-        //        newQualByte, combiQualByte, newQualByte - combiQualByte);
-
-        if ( newQualByte <= 0 && newQualByte >= QualityUtils.MAX_REASONABLE_Q_SCORE )
-            throw new RuntimeException(String.format("Illegal base quality score calculated: %s %c%c %d %d => %d + %.2f + %.2f + %.2f = %d",
-                    readGroup, prevBase, base, cycle, qual, qual, globalDeltaQ, deltaQPos, deltaQDinuc, newQualByte));
 
         return newQualByte;
     }
