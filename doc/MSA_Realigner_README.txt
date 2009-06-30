@@ -76,6 +76,7 @@ Step 2: Merging the intervals
 
 At this point, you need to combine any intervals files you have into a
 master list; this is done by running the interval merger.
+*** Note that this step needs to be done even if you have only a single intervals file.
 
 Usage: java -jar dist/GenomeAnalysisTK.jar -I <input.bam> -R <ref.fasta> -T IntervalMerger
 --intervalsToMerge intervalsOutput1.txt [--intervalsToMerge intervalsOutput2.txt]
@@ -130,8 +131,7 @@ Important note: this option works best with the
 First, be sure to index your cleaned output BAM from Step 3:
 samtools index <output.bam>
 
-Usage: java -jar dist/GenomeAnalysisTK.jar -I <originalInput.bam> -R <ref.fasta> -T CleanedReadInjector
---cleaned_intervals mergedIntervalList.txt --cleaned_reads <previousOutput.bam> -S SILENT --output_bam <fullOutput.bam>
+Usage: java -jar dist/GenomeAnalysisTK.jar -I <originalInput.bam> -R <ref.fasta> -T CleanedReadInjector --cleaned_reads <previousOutput.bam> -S SILENT --output_bam <fullOutput.bam>
 
 Optional Arguments:
 --bam_compression N [when used with OutputCleaned it determines the BAM compression; default=5, recommended=1]
