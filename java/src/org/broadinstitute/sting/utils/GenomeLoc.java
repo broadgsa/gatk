@@ -146,8 +146,20 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
     public final boolean throughEndOfContigP() { return this.stop == Integer.MAX_VALUE; }
     public final boolean atBeginningOfContigP() { return this.start == 1; }
 
+    /** Sets contig name. UNSAFE since it 1) does NOT update contig index; 2) does not validate the name
+     * 
+     * @param contig
+     */
     public void setContig(String contig) {
         this.contigName = contig;
+    }
+
+    /** Sets contig index. UNSAFE since it 1) does NOT update contig name; 2) does not validate the index
+     * 
+     * @param contig
+     */
+    public void setContigIndex(int contig) {
+        this.contigIndex = contig;
     }
 
     public void setStart(long start) {
@@ -293,8 +305,6 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
         //if ( this.getStop() > that.getStop() ) return 1;
         return 0;
     }
-
-
 
 
 
