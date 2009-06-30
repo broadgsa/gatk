@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.samples;
+package org.broadinstitute.sting.playground.examples;
 
 import org.apache.log4j.BasicConfigurator;
 import org.broadinstitute.sting.utils.StingException;
