@@ -93,17 +93,17 @@ public class MismatchIntervalWalker extends LocusWalker<Pair<GenomeLoc, Boolean>
             // if there is no interval to the left, then this is the first one
             if ( sum.second == null ) {
                 sum.second = value.first;
-                sum.second.setStart(sum.second.getStart() - windowSize + firstMismatch + 1);
+                sum.second = GenomeLocParser.setStart(sum.second, sum.second.getStart() - windowSize + firstMismatch + 1);
             }
             // if the intervals don't overlap, print out the leftmost one and start a new one
             else if ( value.first.getStop() - sum.second.getStop() > windowSize ) {
                 out.println(sum.second);
                 sum.second = value.first;
-                sum.second.setStart(sum.second.getStart() - windowSize + firstMismatch + 1);
+                sum.second = GenomeLocParser.setStart(sum.second,sum.second.getStart() - windowSize + firstMismatch + 1);
             }
             // otherwise, merge them
             else {
-                sum.second.setStop(value.first.getStop());
+                sum.second = GenomeLocParser.setStop(sum.second, value.first.getStop());
             }
         }
 

@@ -58,7 +58,7 @@ public class CoverageGapIntervalWalker extends LocusWalker<Pair<GenomeLoc, Integ
     public GenomeLoc reduce(Pair<GenomeLoc, Integer> value, GenomeLoc sum) {
         if ( value.second > 1000 ) {
             if ( sum != null )
-                sum.setStop(value.first.getStop());
+                sum = GenomeLocParser.setStop(sum,value.first.getStop());
             else
                 sum = value.first;
         } else if ( sum != null ) {

@@ -34,7 +34,7 @@ public class GenomeLocusIterator implements LocusIterator {
     /**
      * Creates an iterator that can traverse over the entire
      * reference specified in the given ShardDataProvider.
-     * @param provider Data provider to use as a backing source.
+     * @param completeLocus Data provider to use as a backing source.
      *                 Provider must have a reference (hasReference() == true).
      */
     public GenomeLocusIterator( GenomeLoc completeLocus ) {
@@ -58,7 +58,7 @@ public class GenomeLocusIterator implements LocusIterator {
         if( !hasNext() )
             throw new NoSuchElementException("No elements remaining in bounded reference region.");
         GenomeLoc toReturn = (GenomeLoc)currentLocus.clone();
-        currentLocus.incPos();
+        currentLocus = GenomeLocParser.incPos(currentLocus);
         return toReturn;
     }
 

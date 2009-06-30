@@ -1,21 +1,31 @@
 package org.broadinstitute.sting.gatk.traversals;
 
+import net.sf.picard.sam.SamFileHeaderMerger;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.CloseableIterator;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.*;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.iterators.MergingSamRecordIterator2;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.fasta.*;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
-import java.util.*;
-import java.io.*;
-
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.util.CloseableIterator;
-import net.sf.picard.sam.SamFileHeaderMerger;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -136,7 +146,7 @@ public class TraverseByLocusWindows extends TraversalEngine {
         String refSuffix = "";
         if ( window.getLocation().getStop() > contigLength ) {
             refSuffix = Utils.dupString('x', (int)window.getLocation().getStop() - contigLength);
-            window.getLocation().setStop(contigLength);
+            window.setLocation(GenomeLocParser.setStop(window.getLocation(),contigLength));
         }
 
         StringBuffer refBases = new StringBuffer(new String(sequenceFile.getSubsequenceAt(window.getContig(),window.getLocation().getStart(),window.getLocation().getStop()).getBases()));

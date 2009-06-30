@@ -1,28 +1,21 @@
 package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
-
+import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.refdata.RODIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.playground.utils.CircularArray;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 
 public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
@@ -189,7 +182,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			currentContigIndex = read.getReferenceIndex();
 			currentPosition = read.getAlignmentStart();
 			refName = new String(read.getReferenceName());
-			location.setContig(refName);
+			location = GenomeLocParser.setContig(location,refName);
 			
 			coverage.clear(); // reset coverage window; this will also set reference position to 0
 			if ( call_somatic) normal_coverage.clear();
@@ -315,7 +308,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 				continue; // too dirty
 			}
 			
-			location.setStart(pos); location.setStop(pos); // retrieve annotation data
+			location = GenomeLocParser.setStart(location,pos); location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
 			rodRefSeq annotation = (refseqIterator == null ? null : refseqIterator.seekForward(location));
 
 			int total_variant_count = 0;
@@ -412,7 +405,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 				"\tTUMOR TOO DIRTY\t"+total_mismatches_tumor);
 				continue; // too dirty
 			}
-			location.setStart(pos); location.setStop(pos); // retrieve annotation data
+			location = GenomeLocParser.setStart(location,pos); location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
 			rodRefSeq annotation = (refseqIterator == null ? null : refseqIterator.seekForward(location));
 			
 

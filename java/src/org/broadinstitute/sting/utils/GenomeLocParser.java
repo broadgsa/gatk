@@ -124,7 +124,6 @@ public class GenomeLocParser {
                 logger.debug(String.format(" %s (%d bp)", contig.getSequenceName(), contig.getSequenceLength()));
             }
         }
-        GenomeLoc.MAX_CONTIG = contigInfo.getSequences().size();
         return true;
     }
 
@@ -221,7 +220,7 @@ public class GenomeLocParser {
             logger.debug("Locations are:" + Utils.join(", ", locs));
             return locs;
         } catch (Exception e) { // TODO: fix this so that it passes the message from the exception, and doesn't print it out
-            throw new StingException(String.format("Invalid locations string: %s, format is loc1;loc2; where each locN can be 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'", str),e);
+            throw new StingException(String.format("Invalid locations string: %s, format is loc1;loc2; where each locN can be 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'", str), e);
         }
     }
 
@@ -446,14 +445,10 @@ public class GenomeLocParser {
      * @return the genome loc if it's valid, otherwise we throw an exception
      */
     private static GenomeLoc verifyGenomeLoc(GenomeLoc toReturn) {
-        // conditions to fail on - we currently use a start of zero to indicate infinite read count, so don't check for that
-        //if ((toReturn.getStop() < toReturn.getStart())) {
-        //    throw new StingException("Parameters to GenomeLocParser are incorrect: the start position is after the stop (Start = " + toReturn.getStart() + " stop = " + toReturn.getStop() + ")");
-        //}
         if (toReturn.getStart() < 0) {
             throw new StingException("Parameters to GenomeLocParser are incorrect: the start position is less than 0");
         }
-        if (toReturn.getStop() < 0) {
+        if ((toReturn.getStop() != -1) && (toReturn.getStop() < 0)) {
             throw new StingException("Parameters to GenomeLocParser are incorrect: the stop position is less than 0");
         }
         if (toReturn.getContigIndex() < 0) {
@@ -483,8 +478,102 @@ public class GenomeLocParser {
     }
 
     /**
-     * check to make sure that we've setup the contig information
+     * create a new genome loc, given an old location and a new contig
+     *
+     * @param loc    the old location
+     * @param contig the new contig to set
+     *
+     * @return a new genome loc with an updated contig name and index
      */
+    public static GenomeLoc setContig(GenomeLoc loc, String contig) {
+        checkSetup();
+        if (!GenomeLocParser.contigInfo.getSequences().contains(contig)) {
+            throw new StingException("Contig name ( " + contig + " ) not in the set sequence dictionary.");
+        }
+        return verifyGenomeLoc(new GenomeLoc(contig, GenomeLocParser.contigInfo.getSequences().indexOf(contig), loc.start, loc.getStop()));
+    }
+
+/** Sets contig index. UNSAFE since it 1) does NOT update contig name; 2) does not validate the index
+     *
+     * @param contig
+     */
+    public static GenomeLoc setContigIndex(GenomeLoc loc, int contig) {
+        checkSetup();
+        if ((contig >= GenomeLocParser.contigInfo.getSequences().size()) || (contig < 0)) {
+            throw new StingException("Contig index ( " + contig + " ) is not in the sequence dictionary set.");
+        }
+        return verifyGenomeLoc(new GenomeLoc(GenomeLocParser.contigInfo.getSequence(contig).getSequenceName(), contig, loc.start, loc.getStop()));
+    }
+
+
+
+    /**
+     * create a new genome loc from an existing loc, with a new start position
+     *
+     * @param loc   the old location
+     * @param start a new start position
+     *
+     * @return the newly created genome loc
+     */
+    public static GenomeLoc setStart(GenomeLoc loc, long start) {
+        checkSetup();
+        if (loc.getContigIndex() < 0 || loc.getContigIndex() >= contigInfo.getSequences().size()) {
+            throw new StingException("Genome loc passed in to setStart has a contig index outside the range of our current sequence dictionary");
+        }
+        if (start > GenomeLocParser.contigInfo.getSequences().get(loc.getContigIndex()).getSequenceLength()) {
+            throw new StingException("start value of " + start + " is greater than the contig length, and is not -1.");
+        }
+        return verifyGenomeLoc(new GenomeLoc(loc.getContig(), loc.getContigIndex(), start, loc.getStop()));
+    }
+
+    /**
+     * create a new genome loc from an existing loc, with a new stop position
+     *
+     * @param loc  the old location
+     * @param stop a new stop position
+     *
+     * @return
+     */
+    public static GenomeLoc setStop(GenomeLoc loc, long stop) {
+        checkSetup();
+        if (loc.getContigIndex() < 0 || loc.getContigIndex() >= contigInfo.getSequences().size()) {
+            throw new StingException("Genome loc passed in to setStart has a contig index outside the range of our current sequence dictionary");
+        }
+        if ((stop != -1) && (stop > GenomeLocParser.contigInfo.getSequences().get(loc.getContigIndex()).getSequenceLength())) {
+            throw new StingException("stop value of " + stop + " is greater than the contig length, and is not -1.");
+        }
+        return verifyGenomeLoc(new GenomeLoc(loc.getContig(), loc.getContigIndex(), loc.start, stop));
+    }
+
+    /**
+     * return a new genome loc, with an incremented position
+     * @param loc the old location
+     * @return a new genome loc
+     */
+    public static GenomeLoc incPos(GenomeLoc loc) {
+        return incPos(loc, 1);
+    }
+
+    /**
+     * return a new genome loc, with an incremented position
+     * @param loc the old location
+     * @param by how much to move the start and stop by
+     * @return a new genome loc
+     */
+    public static GenomeLoc incPos(GenomeLoc loc, long by) {
+        return verifyGenomeLoc(new GenomeLoc(loc.getContig(), loc.getContigIndex(), loc.start + by, loc.stop + by));
+    }
+
+    /**
+     * create a new genome loc with an incremented position
+     * @param loc the location
+     * @return a new genome loc
+     */
+    public static GenomeLoc nextLoc(GenomeLoc loc) {
+        return incPos(loc);
+    }
+
+    /** check to make sure that we've setup the contig information */
     private static void checkSetup() {
         if (contigInfo == null) {
             throw new StingException("The GenomeLocParser hasn't been setup with a contig sequence yet");

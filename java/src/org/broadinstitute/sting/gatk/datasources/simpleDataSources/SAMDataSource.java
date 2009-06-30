@@ -180,7 +180,7 @@ public class SAMDataSource implements SimpleDataSource {
                 iter = iteratorPool.iterator(new MappedStreamSegment(lastReadPos));
                 return InitialReadIterator(shard.getSize(), iter);
             } else {
-                lastReadPos.setStop(-1);
+                lastReadPos = GenomeLocParser.setStop(lastReadPos,-1);
                 iter = fastMappedReadSeek(shard.getSize(), StingSAMIteratorAdapter.adapt(reads, iteratorPool.iterator(new MappedStreamSegment(lastReadPos))));
             }
 
@@ -267,7 +267,7 @@ public class SAMDataSource implements SimpleDataSource {
                 } else {
                     readsTaken = readCount;
                     readsSeenAtLastPos = 0;
-                    lastReadPos.setStop(-1);
+                    lastReadPos = GenomeLocParser.setStop(lastReadPos,-1);
                     CloseableIterator<SAMRecord> ret = iteratorPool.iterator(new MappedStreamSegment(lastReadPos));
                     return new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads, ret), readCount);
                 }
@@ -285,7 +285,7 @@ public class SAMDataSource implements SimpleDataSource {
             if (stopPos < lastReadPos.getStart()) {
                 lastReadPos = GenomeLocParser.createGenomeLoc(lastReadPos.getContigIndex() + 1, stopPos, stopPos);
             } else {
-                lastReadPos.setStart(rec.getAlignmentStart());
+                lastReadPos = GenomeLocParser.setStart(lastReadPos,rec.getAlignmentStart());
             }
         }
         // in case we're run out of reads, get out

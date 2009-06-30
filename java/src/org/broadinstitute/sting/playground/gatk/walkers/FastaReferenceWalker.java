@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Pair;
 
 // create a fasta sequence file from a reference and intervals
@@ -34,7 +35,7 @@ public class FastaReferenceWalker extends RefWalker<Pair<GenomeLoc, Character>, 
         }
         // otherwise, merge them
         else {
-            sum.first.setStop(value.first.getStop());
+            sum.first = GenomeLocParser.setStop(sum.first,value.first.getStop());
             sum.second = new String(sum.second + value.second);
         }
 		return sum;

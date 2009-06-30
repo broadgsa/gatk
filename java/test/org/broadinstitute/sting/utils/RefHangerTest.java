@@ -83,10 +83,10 @@ public class RefHangerTest extends BaseTest {
         l4 = Arrays.asList(7, 8);
         l5 = Arrays.asList(9, 10);
         p1 = GenomeLocParser.createGenomeLoc(0, 1, 1);
-        p2 = new GenomeLoc(p1).nextLoc();
-        p3 = new GenomeLoc(p2).nextLoc();
-        p4 = new GenomeLoc(p3).nextLoc();
-        p5 = new GenomeLoc(p4).nextLoc();
+        p2 = GenomeLocParser.nextLoc(p1);
+        p3 = GenomeLocParser.nextLoc(p2);
+        p4 = GenomeLocParser.nextLoc(p3);
+        p5 = GenomeLocParser.nextLoc(p4);
 
         filledHanger.addDataList(Arrays.asList(p1, p2, p3, p4, p5),
                                  Arrays.asList(l1, l2, l3, l4, l5));

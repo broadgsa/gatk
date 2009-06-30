@@ -1,15 +1,10 @@
 package org.broadinstitute.sting.gatk;
 
-import net.sf.samtools.SAMRecord;
-
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.TreeSet;
-import java.util.Random;
-
-import org.broadinstitute.sting.utils.GenomeLoc;
 import net.sf.picard.reference.ReferenceSequence;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.GenomeLoc;
+
+import java.util.*;
 
 /**
  * Useful class for forwarding on locusContext data from this iterator
@@ -81,7 +76,9 @@ public class LocusContext {
     public String getContig() { return getLocation().getContig(); }
     public long getPosition() { return getLocation().getStart(); }
     public GenomeLoc getLocation() { return loc; }
-
+    public void setLocation(GenomeLoc loc) {
+        this.loc = loc.clone();
+    }
     /**
      * Returns the entire reference sequence contig associated with these reads
      *

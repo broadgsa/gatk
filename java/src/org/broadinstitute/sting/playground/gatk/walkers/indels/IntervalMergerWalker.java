@@ -84,7 +84,7 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
         // at this point, we're in the first interval.
         // now we can merge any other intervals which we overlap
         while ( intervals.size() > 0 && loc.overlapsP(intervals.getFirst()) )
-            firstInterval.setStop(intervals.removeFirst().getStop());
+            firstInterval = GenomeLocParser.setStop(firstInterval,intervals.removeFirst().getStop());
 
         return 1;
     }

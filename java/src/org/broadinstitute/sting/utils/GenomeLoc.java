@@ -23,12 +23,11 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
      * the basic components of a genome loc, its contig index,
      * start and stop position, and (optionally) the contig name
      */
-    private int contigIndex;
-    private long start;
-    private long stop;
-    private String contigName;
-    static int MAX_CONTIG;
-
+    protected final int contigIndex;
+    protected final long start;
+    protected final long stop;
+    protected final String contigName;
+    
     // --------------------------------------------------------------------------------------------------------------
     //
     // constructors
@@ -146,28 +145,6 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
     public final boolean throughEndOfContigP() { return this.stop == Integer.MAX_VALUE; }
     public final boolean atBeginningOfContigP() { return this.start == 1; }
 
-    /** Sets contig name. UNSAFE since it 1) does NOT update contig index; 2) does not validate the name
-     * 
-     * @param contig
-     */
-    public void setContig(String contig) {
-        this.contigName = contig;
-    }
-
-    /** Sets contig index. UNSAFE since it 1) does NOT update contig name; 2) does not validate the index
-     * 
-     * @param contig
-     */
-    public void setContigIndex(int contig) {
-        this.contigIndex = contig;
-    }
-
-    public void setStart(long start) {
-        this.start = start;
-    }
-    public void setStop(long stop) {
-        this.stop = stop;
-    }
 
     public final boolean isSingleBP() { return stop == start; }
 
@@ -230,19 +207,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
         return ( comparison == 1 || ( comparison == 0 && this.getStart() > that.getStop() ));
     }
 
-    public final void incPos() {
-        incPos(1);
-    }
-    public final void incPos(long by) {
-        this.start += by;
-        this.stop += by;
-    }
-
-    public final GenomeLoc nextLoc() {
-        GenomeLoc n = new GenomeLoc(this);
-        n.incPos();
-        return n;
-    }
+    
 
     /**
      * Check to see whether two genomeLocs are equal.

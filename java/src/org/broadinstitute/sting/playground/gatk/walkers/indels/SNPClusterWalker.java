@@ -54,7 +54,7 @@ public class SNPClusterWalker extends RefWalker<GenomeLoc, GenomeLoc> {
 
         // if the last SNP location was within a window, merge them
         if ( value.getStart() - sum.getStop() <= windowSize ) {
-            sum.setStop(value.getStart());            
+            sum = GenomeLocParser.setStop(sum,value.getStart());            
             return sum;
         }
 

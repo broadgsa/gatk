@@ -1,11 +1,10 @@
 package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.apache.log4j.Logger;
 
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Hanging data off the reference sequence
@@ -271,12 +270,12 @@ public class RefHanger<T> {
         else {
             //assert pos.compareTo(getRightLoc()) == 1 : pos + " " + getRightLoc() + " => " + pos.compareTo(getRightLoc());
 
-            GenomeLoc nextRight = getRightLoc().nextLoc();
+            GenomeLoc nextRight = GenomeLocParser.nextLoc(getRightLoc());
             while (pos.compareTo(nextRight) == 1) {
                 //printState();
                 //System.out.printf("    *** Extending %s, heading for %s%n", nextRight, pos);
                 ensurePos(nextRight);
-                nextRight = nextRight.nextLoc();
+                nextRight = GenomeLocParser.nextLoc(nextRight);
             }
 
             ensurePos(pos);
