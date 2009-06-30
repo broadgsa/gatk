@@ -1,10 +1,7 @@
 package org.broadinstitute.sting.playground.piecemealannotator;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.secondarybase.BasecallingReadModel;
-import org.broadinstitute.sting.secondarybase.BasecallingStats;
-import org.broadinstitute.sting.secondarybase.FourProbRead;
-import org.broadinstitute.sting.secondarybase.RawRead;
+import org.broadinstitute.sting.secondarybase.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.StingException;
@@ -44,51 +41,17 @@ public class TileAnnotator extends CommandLineProgram {
 
     protected int execute() {
         ArrayList<Pair<Integer, Integer>> cycleRanges = getCycleRanges(CYCLE_RANGES);
+        SecondaryBaseAnnotator sba = new SecondaryBaseAnnotator();
 
         System.out.printf("%s: Loading training set...\n", (new Date()).toString());
-        ArrayList<RawRead> trainingData = loadTrainingData();
-
-        System.out.printf("%s: Training model...\n", (new Date()).toString());
-        BasecallingReadModel model = new BasecallingReadModel(trainingData);
+        loadTrainingData(sba);
 
         System.out.printf("%s: Calling bases...\n", (new Date()).toString());
-        callBases(model, cycleRanges);
+        callBases(sba, cycleRanges);
 
         System.out.println("Done.");
 
         return 0;
-    }
-
-    //private void callBases(BasecallingReadModel model, ArrayList<Pair<Integer, Integer>> cycleRanges, ArrayList<RawRead> trainingData) {
-    private void callBases(BasecallingReadModel model, ArrayList<Pair<Integer, Integer>> cycleRanges) {
-        SAMFileHeader sheader = new SAMFileHeader();
-        sheader.setSortOrder(SAMFileHeader.SortOrder.unsorted);
-        SAMFileWriter swriter =  new SAMFileWriterFactory().makeSAMOrBAMWriter(sheader, true, SAM_TILE_OUT);
-
-        IlluminaTile tileParser = new IlluminaTile(BUSTARD_DIR, lane, tile);
-
-        BasecallingStats bstats = new BasecallingStats();
-
-        for (RawRead rr : tileParser) {
-            FourProbRead fpr = model.call(rr);
-
-            for (int rangeIndex = 0; rangeIndex < cycleRanges.size(); rangeIndex++) {
-                FourProbRead fprEnd = fpr.getSubset(cycleRanges.get(rangeIndex).getFirst(), cycleRanges.get(rangeIndex).getSecond());
-                RawRead rrEnd = rr.getSubset(cycleRanges.get(rangeIndex).getFirst(), cycleRanges.get(rangeIndex).getSecond());
-
-                SAMRecord sr = constructSAMRecord(rrEnd, fprEnd, sheader, cycleRanges.size() > 1, rangeIndex == 1);
-
-                swriter.addAlignment(sr);
-            }
-
-            bstats.update(rr, fpr);
-            bstats.notifyOnInterval(10000);
-        }
-
-        bstats.notifyNow();
-
-        tileParser.close();
-        swriter.close();
     }
 
     private ArrayList<Pair<Integer, Integer>> getCycleRanges(String cycleRangesString) {
@@ -120,6 +83,61 @@ public class TileAnnotator extends CommandLineProgram {
         return cycleRanges;
     }
 
+    private void loadTrainingData(SecondaryBaseAnnotator sba) {
+        IlluminaTile tileParser = new IlluminaTile(BUSTARD_DIR, lane, tile);
+
+        for (RawRead rr : tileParser) { sba.addTrainingRead(rr); }
+
+        tileParser.close();
+
+        sba.doneTraining();
+    }
+
+    private void callBases(SecondaryBaseAnnotator sba, ArrayList<Pair<Integer, Integer>> cycleRanges) {
+        SAMFileHeader sheader = new SAMFileHeader();
+        sheader.setSortOrder(SAMFileHeader.SortOrder.unsorted);
+        SAMFileWriter swriter =  new SAMFileWriterFactory().makeSAMOrBAMWriter(sheader, true, SAM_TILE_OUT);
+
+        IlluminaTile tileParser = new IlluminaTile(BUSTARD_DIR, lane, tile);
+
+        BasecallingStats bstats = new BasecallingStats();
+
+        for (RawRead rr : tileParser) {
+            bstats.update(rr, sba.getFourProbRead(rr));
+
+            byte[] sqtag = sba.getSqTagValue(rr);
+
+            SAMRecord sr = constructSAMRecord(rr, sqtag, sheader, false, false);
+
+            swriter.addAlignment(sr);
+        }
+
+        bstats.notifyNow();
+
+        tileParser.close();
+        swriter.close();
+    }
+
+    private SAMRecord constructSAMRecord(RawRead rr, byte[] sqtag, SAMFileHeader sfh, boolean isPaired, boolean isSecondEndOfPair) {
+        SAMRecord sr = new SAMRecord(sfh);
+
+        sr.setReadName(String.format("%s:%d:%d:%d:%d#0", RUN_BARCODE, lane, tile, rr.getXCoordinate(), rr.getYCoordinate()));
+        sr.setReadUmappedFlag(true);
+        sr.setReadString(rr.getSequenceAsString());
+        sr.setBaseQualities(rr.getQuals());
+        sr.setAttribute("SQ", sqtag);
+
+        sr.setReadPairedFlag(isPaired);
+        if (isPaired) {
+            sr.setMateUnmappedFlag(true);
+            sr.setFirstOfPairFlag(!isSecondEndOfPair);
+            sr.setSecondOfPairFlag(isSecondEndOfPair);
+        }
+
+        return sr;
+    }
+
+    /*
     private SAMRecord constructSAMRecord(RawRead rr, FourProbRead fpr, SAMFileHeader sfh, boolean isPaired, boolean isSecondEndOfPair) {
         SAMRecord sr = new SAMRecord(sfh);
 
@@ -137,6 +155,37 @@ public class TileAnnotator extends CommandLineProgram {
         }
 
         return sr;
+    }
+
+    private void callBases(BasecallingReadModel model, ArrayList<Pair<Integer, Integer>> cycleRanges) {
+        SAMFileHeader sheader = new SAMFileHeader();
+        sheader.setSortOrder(SAMFileHeader.SortOrder.unsorted);
+        SAMFileWriter swriter =  new SAMFileWriterFactory().makeSAMOrBAMWriter(sheader, true, SAM_TILE_OUT);
+
+        IlluminaTile tileParser = new IlluminaTile(BUSTARD_DIR, lane, tile);
+
+        BasecallingStats bstats = new BasecallingStats();
+
+        for (RawRead rr : tileParser) {
+            FourProbRead fpr = model.call(rr);
+
+            for (int rangeIndex = 0; rangeIndex < cycleRanges.size(); rangeIndex++) {
+                FourProbRead fprEnd = fpr.getSubset(cycleRanges.get(rangeIndex).getFirst(), cycleRanges.get(rangeIndex).getSecond());
+                RawRead rrEnd = rr.getSubset(cycleRanges.get(rangeIndex).getFirst(), cycleRanges.get(rangeIndex).getSecond());
+
+                SAMRecord sr = constructSAMRecord(rrEnd, fprEnd, sheader, cycleRanges.size() > 1, rangeIndex == 1);
+
+                swriter.addAlignment(sr);
+            }
+
+            bstats.update(rr, fpr);
+            bstats.notifyOnInterval(10000);
+        }
+
+        bstats.notifyNow();
+
+        tileParser.close();
+        swriter.close();
     }
 
     private ArrayList<RawRead> loadTrainingData() {
@@ -268,4 +317,5 @@ public class TileAnnotator extends CommandLineProgram {
 
         return trainingData;
     }
+    */
 }
