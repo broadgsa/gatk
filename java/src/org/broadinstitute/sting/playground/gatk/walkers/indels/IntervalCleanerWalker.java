@@ -51,6 +51,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
     // we need to sort the reads ourselves because SAM headers get messed up and claim to be "unsorted" sometimes
     private TreeSet<ComparableSAMRecord> readsToWrite = null;
+    private TreeSet<ComparableSAMRecord> nextSetOfReadsToWrite = null;
 
     public void initialize() {
 
@@ -119,9 +120,23 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         //testCleanWithInsertion();
 
         if ( writer != null ) {
-            Iterator<ComparableSAMRecord> iter = readsToWrite.iterator();
-            while ( iter.hasNext() )
-                writer.addAlignment(iter.next().getRecord());
+            // Although we can guarantee that reads will be emitted in order WITHIN an interval
+            // (since we sort them ourselves), we can't guarantee it BETWEEN intervals.  So,
+            // we need to keep track of the PREVIOUS interval's reads: if they don't overlap
+            // with those from this interval then we can emit them; otherwise, we merge them.           
+            if ( nextSetOfReadsToWrite != null ) {
+                if ( readsToWrite.size() > 0 && nextSetOfReadsToWrite.size() > 0 &&
+                     readsToWrite.first().getRecord().getAlignmentStart() < nextSetOfReadsToWrite.last().getRecord().getAlignmentStart() ) {
+                    nextSetOfReadsToWrite.addAll(readsToWrite);
+                } else {
+                    Iterator<ComparableSAMRecord> iter = nextSetOfReadsToWrite.iterator();
+                    while ( iter.hasNext() )
+                        writer.addAlignment(iter.next().getRecord());
+                    nextSetOfReadsToWrite = new TreeSet<ComparableSAMRecord>(readsToWrite);
+                }
+            } else {
+                nextSetOfReadsToWrite = new TreeSet<ComparableSAMRecord>(readsToWrite);
+            }
             readsToWrite.clear();
         }
         return 1;
@@ -136,7 +151,11 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     }
 
     public void onTraversalDone(Integer result) {
-        out.println("Saw " + result + " intervals");
+        if ( nextSetOfReadsToWrite != null ) {
+            Iterator<ComparableSAMRecord> iter = nextSetOfReadsToWrite.iterator();
+            while ( iter.hasNext() )
+                writer.addAlignment(iter.next().getRecord());
+        }
         if ( writer != null ) {
             writer.close();
         }
@@ -161,6 +180,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 logger.error("Failed to close "+OUT_SNPS+" gracefully. Data may be corrupt.");
             }
         }
+        out.println("Saw " + result + " intervals");
     }
 
  
