@@ -7,4 +7,8 @@
     <class>org.broadinstitute.sting.gatk.walkers.PileupWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.PrintReadsWalker</class>
   </dependencies>
+  <resources>
+    <file>java/src/org/broadinstitute/sting/gatk/examples/HelloWalker.java</file>
+    <file>java/src/org/broadinstitute/sting/gatk/examples/build.xml</file>
+  </resources>
 </package>
