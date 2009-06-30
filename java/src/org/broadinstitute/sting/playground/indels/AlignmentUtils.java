@@ -135,9 +135,10 @@ public class AlignmentUtils {
                             continue;
                         char refChr = refSeq.charAt(refIndex);
                         char readChr = readSeq.charAt(readIdx);
-                        if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
-                             BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
-                            continue; // do not count Ns/Xs/etc ?
+                        // Note: we need to count X/N's as mismatches because that's what SAM requires
+                        //if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
+                        //     BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
+                        //    continue; // do not count Ns/Xs/etc ?
                         if ( Character.toUpperCase(readChr) != Character.toUpperCase(refChr) )
                             mismatches++;
                     }
