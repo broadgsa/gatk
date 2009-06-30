@@ -205,7 +205,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         printInfo(recalTableStream);
 
         recalTableStream.println("rg,pos,Qrep,dn,nBases,nMismatches,Qemp");
-        for (String readGroup : covariateCounter.getReadGroups()) {
+        for (String readGroup : new TreeSet<String>(covariateCounter.getReadGroups()) ) {
             for ( RecalData datum: RecalData.sort(covariateCounter.getRecalData(readGroup)) ) {
                 if ( datum.N > 0 )
                     recalTableStream.format("%s%n", datum.toCSVString(collapsePos));
