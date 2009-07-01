@@ -7,14 +7,14 @@ import net.sf.samtools.util.CloseableIterator;
 import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.List;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.ArrayList;
+import java.io.File;
+import java.util.*;
 
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
+import org.broadinstitute.sting.gatk.Reads;
 /**
  * User: hanna
  * Date: Jun 11, 2009
@@ -40,6 +40,7 @@ public class ArtificialSAMFileReader extends SAMFileReader {
 
     /**
      * Construct an artificial SAM file reader.
+     * @param reads Reads to use as backing data source.
      */
     public ArtificialSAMFileReader(SAMRecord... reads) {
         super( createEmptyInputStream(),true );
@@ -67,6 +68,11 @@ public class ArtificialSAMFileReader extends SAMFileReader {
             public void close() {}
             public void remove() { iterator.remove(); } 
         };
+    }
+
+    @Override
+    public CloseableIterator<SAMRecord> iterator() {
+        return StingSAMIteratorAdapter.adapt( new Reads( Collections.<File>emptyList() ), reads.iterator() );    
     }
 
     /**

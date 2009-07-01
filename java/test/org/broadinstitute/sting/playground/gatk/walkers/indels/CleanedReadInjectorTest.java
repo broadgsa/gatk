@@ -3,7 +3,6 @@ package org.broadinstitute.sting.playground.gatk.walkers.indels;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.OutputTracker;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMFileReader;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMFileWriter;
@@ -14,7 +13,6 @@ import org.junit.Test;
 import java.io.FileNotFoundException;
 import java.io.File;
 import java.util.Arrays;
-import java.util.Collections;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
@@ -44,6 +42,7 @@ public class CleanedReadInjectorTest extends BaseTest {
 
     /**
      * Initialize the fasta.
+     * @throws FileNotFoundException if fasta or index is not found.
      */
     @BeforeClass
     public static void initialize() throws FileNotFoundException {
@@ -55,7 +54,7 @@ public class CleanedReadInjectorTest extends BaseTest {
     public void testNoReads() {
         ArtificialSAMFileReader cleanedReads = new ArtificialSAMFileReader();
         ArtificialSAMFileWriter output = new ArtificialSAMFileWriter();
-        CleanedReadInjector walker = createWalker( "chr1:1-10", cleanedReads, output );
+        CleanedReadInjector walker = createWalker( cleanedReads, output );
 
         walker.initialize();
         walker.onTraversalDone(0);
@@ -70,7 +69,7 @@ public class CleanedReadInjectorTest extends BaseTest {
 
         ArtificialSAMFileReader cleanedReads = new ArtificialSAMFileReader();
         ArtificialSAMFileWriter output = new ArtificialSAMFileWriter();
-        CleanedReadInjector walker = createWalker( "chr1:1-10", cleanedReads, output );
+        CleanedReadInjector walker = createWalker( cleanedReads, output );
 
         int result = runWalkerOverReads(walker,sourceRead);
 
@@ -89,7 +88,7 @@ public class CleanedReadInjectorTest extends BaseTest {
         ArtificialSAMFileReader cleanedReads = new ArtificialSAMFileReader(cleanedRead);
 
         ArtificialSAMFileWriter output = new ArtificialSAMFileWriter();
-        CleanedReadInjector walker = createWalker( "chr1:1-10", cleanedReads, output );
+        CleanedReadInjector walker = createWalker( cleanedReads, output );
 
         int result = runWalkerOverReads(walker,sourceRead);
 
@@ -108,7 +107,7 @@ public class CleanedReadInjectorTest extends BaseTest {
         ArtificialSAMFileReader cleanedReads = new ArtificialSAMFileReader(cleanedRead);
 
         ArtificialSAMFileWriter output = new ArtificialSAMFileWriter();
-        CleanedReadInjector walker = createWalker( "chr1:4-12", cleanedReads, output );
+        CleanedReadInjector walker = createWalker( cleanedReads, output );
 
         int result = runWalkerOverReads(walker,sourceRead);
 
@@ -131,7 +130,7 @@ public class CleanedReadInjectorTest extends BaseTest {
         ArtificialSAMFileReader cleanedReads = new ArtificialSAMFileReader(cleanedRead);
 
         ArtificialSAMFileWriter output = new ArtificialSAMFileWriter();
-        CleanedReadInjector walker = createWalker( "chr1:1-10", cleanedReads, output );
+        CleanedReadInjector walker = createWalker( cleanedReads, output );
 
         int result = runWalkerOverReads(walker,sourceReads);
 
@@ -157,74 +156,20 @@ public class CleanedReadInjectorTest extends BaseTest {
         ArtificialSAMFileReader cleanedReads = new ArtificialSAMFileReader(cleanedRead);
 
         ArtificialSAMFileWriter output = new ArtificialSAMFileWriter();
-        CleanedReadInjector walker = createWalker( "chr1:1-10", cleanedReads, output );
+        CleanedReadInjector walker = createWalker( cleanedReads, output );
 
         int result = runWalkerOverReads(walker,sourceReads);
 
         Assert.assertEquals("Result of traversal is incorrect",1,result);
         Assert.assertEquals("Incorrect number of records in output",3,output.getRecords().size());
-        Assert.assertEquals("Incorrect read at position 1",cleanedRead,output.getRecords().get(0));
-        Assert.assertEquals("Incorrect read at position 2",sourceReads[1],output.getRecords().get(1));
+        Assert.assertEquals("Incorrect read at position 1",sourceReads[1],output.getRecords().get(0));
+        Assert.assertEquals("Incorrect read at position 2",cleanedRead,output.getRecords().get(1));
         Assert.assertEquals("Incorrect read at position 3",sourceReads[2],output.getRecords().get(2));
     }
 
-    @Test
-    public void testReadOutsideInterval() {
-        SAMFileHeader header = getMockSAMFileHeader();
-        SAMRecord sourceRead = ArtificialSAMUtils.createArtificialRead(header,"read1",1,1,5);
-
-        SAMRecord cleanedRead = ArtificialSAMUtils.createArtificialRead(header,"read1",1,1,5);
-        cleanedRead.setBaseQualities(getMockBaseQualityString((byte)1,cleanedRead.getReadLength()));
-        ArtificialSAMFileReader cleanedReads = new ArtificialSAMFileReader(cleanedRead);
-
-        ArtificialSAMFileWriter output = new ArtificialSAMFileWriter();
-        CleanedReadInjector walker = createWalker( "chr1:20-50", cleanedReads, output );
-
-        int result = runWalkerOverReads( walker, sourceRead );
-
-        Assert.assertEquals("Result of traversal is incorrect",0,result);
-        Assert.assertEquals("Incorrect number of records in output",1,output.getRecords().size());
-        Assert.assertEquals("Output record is incorrect",sourceRead,output.getRecords().get(0));
-    }
-
-    @Test
-    public void testMultipleIntervals() {
-        SAMFileHeader header = getMockSAMFileHeader();
-        SAMRecord[] sourceReads = new SAMRecord[] { ArtificialSAMUtils.createArtificialRead(header,"read1",1,1,10),
-                                                    ArtificialSAMUtils.createArtificialRead(header,"read2",1,11,10),
-                                                    ArtificialSAMUtils.createArtificialRead(header,"read3",1,21,10),
-                                                    ArtificialSAMUtils.createArtificialRead(header,"read4",1,31,10),
-                                                    ArtificialSAMUtils.createArtificialRead(header,"read5",1,41,10) };
-        SAMRecord[] cleanedReads = new SAMRecord[sourceReads.length];
-        for( int i = 0; i < sourceReads.length; i++ ) {
-            try {
-                cleanedReads[i] = (SAMRecord)sourceReads[i].clone();
-                cleanedReads[i].setBaseQualities(getMockBaseQualityString((byte)1,cleanedReads[i].getReadLength()));
-            }
-            catch( CloneNotSupportedException ex ) {
-                throw new StingException("Unable to clone samrecord", ex);
-            }
-        }
-
-        ArtificialSAMFileReader cleanedReader = new ArtificialSAMFileReader(cleanedReads);
-
-        ArtificialSAMFileWriter output = new ArtificialSAMFileWriter();
-        CleanedReadInjector walker = createWalker( "chr1:11-20;chr1:31-40", cleanedReader, output );
-        int result = runWalkerOverReads( walker, sourceReads );
-
-        Assert.assertEquals("Result of traversal is incorrect",2,result);
-        Assert.assertEquals("Incorrect number of records in output",5,output.getRecords().size());
-        Assert.assertEquals("Incorrect read at position 1",sourceReads[0],output.getRecords().get(0));
-        Assert.assertEquals("Incorrect read at position 2",cleanedReads[1],output.getRecords().get(1));
-        Assert.assertEquals("Incorrect read at position 3",sourceReads[2],output.getRecords().get(2));
-        Assert.assertEquals("Incorrect read at position 4",cleanedReads[3],output.getRecords().get(3));
-        Assert.assertEquals("Incorrect read at position 5",sourceReads[4],output.getRecords().get(4));
-    }
-
-    private CleanedReadInjector createWalker( String intervals, ArtificialSAMFileReader cleanedReads, ArtificialSAMFileWriter output ) {
+    private CleanedReadInjector createWalker( ArtificialSAMFileReader cleanedReads, ArtificialSAMFileWriter output ) {
         CleanedReadInjector walker = new CleanedReadInjector();
 
-        walker.intervalsSource = Collections.singletonList(intervals);        
         walker.cleanedReadsSource = cleanedReads;
         walker.outputBAM = output;
 
