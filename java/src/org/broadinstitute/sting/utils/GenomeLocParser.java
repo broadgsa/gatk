@@ -487,10 +487,12 @@ public class GenomeLocParser {
      */
     public static GenomeLoc setContig(GenomeLoc loc, String contig) {
         checkSetup();
-        if (!GenomeLocParser.contigInfo.getSequences().contains(contig)) {
+
+        int index = -1;
+        if ( ( index = contigInfo.getSequenceIndex(contig) ) < 0 ) {
             throw new StingException("Contig name ( " + contig + " ) not in the set sequence dictionary.");
         }
-        return verifyGenomeLoc(new GenomeLoc(contig, GenomeLocParser.contigInfo.getSequences().indexOf(contig), loc.start, loc.getStop()));
+        return verifyGenomeLoc(new GenomeLoc(contig, index, loc.start, loc.getStop()));
     }
 
 /** Sets contig index. UNSAFE since it 1) does NOT update contig name; 2) does not validate the index
