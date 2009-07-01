@@ -161,7 +161,7 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator implements
                 contigIndex = rec.getSequenceIndex();
             }
         }
-        if (contigIndex < 0) { throw new IllegalArgumentException("Contig" + contig + " doesn't exist"); }
+        if (contigIndex < 0) { throw new IllegalArgumentException("ArtificialContig" + contig + " doesn't exist"); }
         while (super.hasNext() && this.peek().getReferenceIndex() < contigIndex) {
             super.next();
         }

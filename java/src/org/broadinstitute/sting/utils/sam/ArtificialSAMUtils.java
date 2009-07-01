@@ -1,30 +1,12 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
-
-import java.io.File;
-import java.util.*;
-
 import org.broadinstitute.sting.gatk.iterators.QueryIterator;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.StingException;
 
-/**
- *
- * User: aaron
- * Date: May 21, 2009
- * Time: 2:57:48 PM
- *
- * The Broad Institute
- * SOFTWARE COPYRIGHT NOTICE AGREEMENT 
- * This software and its documentation are copyright 2009 by the
- * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
- *
- * This software is supplied without any warranty or guaranteed support whatsoever. Neither
- * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
- *
- */
-
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author aaron
@@ -46,11 +28,11 @@ public class ArtificialSAMUtils {
         SAMFileHeader header = createArtificialSamHeader(numberOfChromosomes, startingChromosome, chromosomeSize);
         File outFile = new File(filename);
 
-        SAMFileWriter out = new SAMFileWriterFactory().makeBAMWriter(header, false, outFile);
-
+        SAMFileWriter out = new SAMFileWriterFactory().makeBAMWriter(header, true, outFile);
+        
         for (int x = startingChromosome; x < startingChromosome + numberOfChromosomes; x++) {
-            for (int readNumber = 0; readNumber < readsPerChomosome; readNumber++) {
-                out.addAlignment(createArtificialRead(header, "Read_" + readNumber, x - startingChromosome, readNumber, 100));
+            for (int readNumber = 1; readNumber < readsPerChomosome; readNumber++) {
+                out.addAlignment(createArtificialRead(header, "Read_" + readNumber, x - startingChromosome, readNumber, DEFAULT_READ_LENGTH));
             }
         }
 
@@ -73,7 +55,7 @@ public class ArtificialSAMUtils {
         SAMFileWriter out = new SAMFileWriterFactory().makeSAMWriter(header, false, outFile);
 
         for (int x = startingChromosome; x < startingChromosome + numberOfChromosomes; x++) {
-            for (int readNumber = 0; readNumber < readsPerChomosome; readNumber++) {
+            for (int readNumber = 1; readNumber <= readsPerChomosome; readNumber++) {
                 out.addAlignment(createArtificialRead(header, "Read_" + readNumber, x - startingChromosome, readNumber, 100));
             }
         }
@@ -92,6 +74,7 @@ public class ArtificialSAMUtils {
      */
     public static SAMFileHeader createArtificialSamHeader( int numberOfChromosomes, int startingChromosome, int chromosomeSize ) {
         SAMFileHeader header = new SAMFileHeader();
+        header.setSortOrder(net.sf.samtools.SAMFileHeader.SortOrder.coordinate);
         SAMSequenceDictionary dict = new SAMSequenceDictionary();
         // make up some sequence records
         for (int x = startingChromosome; x < startingChromosome + numberOfChromosomes; x++) {
@@ -161,7 +144,7 @@ public class ArtificialSAMUtils {
      */
     public static SAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, int length ) {
         if (alignmentStart == 0)
-            throw new StingException("Invalid alignment start for artificial read");
+            throw new StingException("Invalid alignment start for artificial read, start = " + alignmentStart);
         SAMRecord record = new SAMRecord(header);
         record.setReadName(name);
         record.setReferenceIndex(refIndex);
