@@ -66,7 +66,6 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
         while ( allReads.hasNext() ) {
             SAMRecord read = allReads.next();
             cleanedReads.add(read);
-            String uniquifiedReadName = getUniquifiedReadName(read);
             cleanedReadHash.add(getUniquifiedReadName(read));
         }
         allReads.close();
@@ -94,15 +93,16 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
         // first emit reads from the cleaned set if appropriate
         int cleanedReadCount = 0;
         SAMRecord firstCleanedRead = cleanedReads.peek();
-        while ( firstCleanedRead != null && firstCleanedRead.getAlignmentStart() <= read.getAlignmentStart() ) {
+        while ( firstCleanedRead != null &&
+                firstCleanedRead.getReferenceIndex() <= read.getReferenceIndex() &&
+                firstCleanedRead.getAlignmentStart() <= read.getAlignmentStart() ) {
             outputBAM.addAlignment(firstCleanedRead);
             cleanedReadCount++;
             cleanedReads.remove();
             firstCleanedRead = cleanedReads.peek();
         }
 
-        String uniquifiedReadName = getUniquifiedReadName(read);
-        if ( !cleanedReadHash.contains(uniquifiedReadName) )
+        if ( !cleanedReadHash.contains(getUniquifiedReadName(read)) )
             outputBAM.addAlignment(read);
         return cleanedReadCount;
     }
