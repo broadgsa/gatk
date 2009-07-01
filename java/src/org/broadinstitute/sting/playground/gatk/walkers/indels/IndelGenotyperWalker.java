@@ -1,21 +1,27 @@
 package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
 import net.sf.samtools.*;
+
 import org.broadinstitute.sting.gatk.refdata.RODIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.Transcript;
 import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.playground.utils.CircularArray;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+
+import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 
 
 public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
@@ -81,7 +87,10 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 					new java.io.File(RefseqFileName),rodRefSeq.class);
 		
 			refseqIterator = refseq.iterator();
+			System.out.println("Using RefSeq annotations from "+RefseqFileName);
 		}
+		
+		if ( refseqIterator == null ) System.out.println("No annotations available");
 		
 		int nSams = getToolkit().getArguments().samFiles.size(); 
 		
@@ -152,11 +161,11 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	@Override
 	public Integer map(char[] ref, SAMRecord read) {
 		
-		if ( read.getReadUnmappedFlag() && read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX &&
-				read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ) {
-			System.out.println("I think I reached unmapped reads at the end of the file(s) and I am done...");
-			return -1;
-		}
+//		if ( read.getReadUnmappedFlag() && read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX &&
+//				read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ) {
+//			System.out.println("I think I reached unmapped reads at the end of the file(s) and I am done...");
+//			return 0;
+//		}
 		
 //		if ( read.getAlignmentStart() < 112337549 && read.getAlignmentEnd() > 112337550 ) {
 //			System.out.print("adding "+read.getReadString()+" "+read.getCigarString());
@@ -182,7 +191,9 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			currentContigIndex = read.getReferenceIndex();
 			currentPosition = read.getAlignmentStart();
 			refName = new String(read.getReferenceName());
+
 			location = GenomeLocParser.setContig(location,refName);
+//			location.setContigIndex(read.getReferenceIndex());
 			
 			coverage.clear(); // reset coverage window; this will also set reference position to 0
 			if ( call_somatic) normal_coverage.clear();
@@ -262,7 +273,73 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		
 		return 1;
 	}
+
+	/** Returns the indel variant with the largest count (ie consensus) among all the observed
+	 * variants, and the total count of all observations of any indels (including non-consensus) 
+	 * @param variants
+	 * @return
+	 */
+	private Pair<IndelVariant,Integer> findConsensus(List<IndelVariant> variants) {
+		int total_variant_count = 0;
+		int max_variant_count = 0;
+		IndelVariant v = null;
+		
+		for ( IndelVariant var : variants ) {
+			int cnt = var.getCount();
+			total_variant_count +=cnt;
+			if ( cnt > max_variant_count ) v = var;
+		}
+		return new Pair<IndelVariant,Integer>(v,total_variant_count);
+	}	
 	
+	/** Returns true if consensus (specified by the pair) should be considered a call given current values
+	 * of the fraction cutoffs
+	 * @param p
+	 * @param coverage
+	 * @return
+	 */
+	private boolean isCall(Pair<IndelVariant,Integer> p, int coverage) {
+		return ( (double)p.second > minFraction * coverage && (double) p.first.getCount() > minConsensusFraction*p.second ); 		
+	}
+
+	/** Build output line for bed file and write it to the specified output writer if the latter is not null; 
+	 * the line is also returned by this method as a String
+	 * 
+	 * @param p
+	 * @param coverage
+	 * @param pos
+	 * @param bedOutput
+	 * @return
+	 */
+	private String makeBedLine(Pair<IndelVariant,Integer> p, int coverage, long pos, java.io.Writer bedOutput) {
+		int event_length = p.first.lengthOnRef();
+		if ( event_length < 0 ) event_length = 0;
+		String message = refName+"\t"+(pos-1)+"\t"+(pos-1+event_length)+
+		"\t"+(event_length>0? "-":"+")+p.first.getBases() +":"+p.second+"/"+coverage;
+
+		if ( bedOutput != null ) {
+			try {
+				bedOutput.write(message+"\n");
+			} catch (IOException e) {
+				System.out.println(e.getMessage());
+				e.printStackTrace();
+				throw new StingException("Error encountered while writing into output BED file");
+			}
+		}
+		return message;
+	}
+
+	/** Same as makeBedLine(Pair,int,long,Writer), but only builds and returns the line without writing it anywhere.
+	 * 
+	 * @param p
+	 * @param coverage
+	 * @param pos
+	 * @return
+	 */
+	private String makeBedLine(Pair<IndelVariant,Integer> p, int coverage, long pos) {
+		return makeBedLine(p, coverage, pos, null);
+	}
+
 	/** Output indel calls up to the specified position and shift the coverage array(s): after this method is executed
 	 * first elements of the coverage arrays map onto 'position'
 	 * 
@@ -303,7 +380,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			for ( long k = left; k <= right ; k++ ) total_mismatches+=coverage.mismatchesAt(k);
 			
 			if ( total_mismatches > MISMATCH_CUTOFF || total_mismatches > ((double)cov)*AV_MISMATCHES_PER_READ) {
-				System.out.println(refName+"\t"+(pos-1)+"\t"+
+				out.println(refName+"\t"+(pos-1)+"\t"+
 				"\tTOO DIRTY\t"+total_mismatches);
 				continue; // too dirty
 			}
@@ -311,35 +388,12 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			location = GenomeLocParser.setStart(location,pos); location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
 			rodRefSeq annotation = (refseqIterator == null ? null : refseqIterator.seekForward(location));
 
-			int total_variant_count = 0;
-			int max_variant_count = 0;
-			String indelString = null;
-			int event_length = 0; // length of the event on the reference
-			
-			for ( IndelVariant var : variants ) {
-				int cnt = var.getCount();
-				total_variant_count +=cnt;
-				if ( cnt > max_variant_count ) {
-					max_variant_count = cnt;
-					indelString = var.getBases();
-					event_length = var.lengthOnRef();
-				}
-			}	
-			if ( (double)total_variant_count > minFraction * cov && (double) max_variant_count > minConsensusFraction*total_variant_count ) { 		
-			
+			Pair<IndelVariant,Integer> p = findConsensus(variants);
+			if ( isCall(p,cov) ) { 	
+				String message = makeBedLine(p,cov,pos,output);
 				String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotation));
 				
-				String message = refName+"\t"+(pos-1)+"\t"+(event_length > 0 ? pos-1+event_length : pos-1)+
-				"\t"+(event_length>0? "-":"+")+indelString +":"+total_variant_count+"/"+cov;
-				
-				try {
-					output.write(message+"\n");
-				} catch (IOException e) {
-					System.out.println(e.getMessage());
-					e.printStackTrace();
-					throw new StingException("Error encountered while writing into output BED file");
-				}
-				if ( verbose ) System.out.println(message + "\t"+ annotationString);
+				if ( verbose ) out.println(message + "\t"+ annotationString);
 			}
 //			for ( IndelVariant var : variants ) {
 //				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
@@ -396,49 +450,26 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			}
 			
 			if ( total_mismatches_normal > MISMATCH_CUTOFF || total_mismatches_normal > ((double)normal_cov)*AV_MISMATCHES_PER_READ) {
-				System.out.println(refName+"\t"+(pos-1)+"\t"+
+				out.println(refName+"\t"+(pos-1)+"\t"+
 				"\tNORMAL TOO DIRTY\t"+total_mismatches_normal);
 				continue; // too dirty
 			}
 			if ( total_mismatches_tumor > MISMATCH_CUTOFF || total_mismatches_tumor > ((double)tumor_cov)*AV_MISMATCHES_PER_READ) {
-				System.out.println(refName+"\t"+(pos-1)+"\t"+
+				out.println(refName+"\t"+(pos-1)+"\t"+
 				"\tTUMOR TOO DIRTY\t"+total_mismatches_tumor);
 				continue; // too dirty
 			}
 			location = GenomeLocParser.setStart(location,pos); location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
 			rodRefSeq annotation = (refseqIterator == null ? null : refseqIterator.seekForward(location));
 			
-
-			int total_variant_count_tumor = 0;
-			int max_variant_count_tumor = 0;
-			String indelStringTumor = null;
-			int event_length_tumor = 0; // length of the event on the reference
+			Pair<IndelVariant,Integer> p_tumor = findConsensus(tumor_variants);
+			if ( isCall(p_tumor,tumor_cov) ) { 	
+				String message = makeBedLine(p_tumor,tumor_cov,pos);
+				String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotation));
+				
 			
-			for ( IndelVariant var : tumor_variants ) {
-				int cnt = var.getCount();
-				total_variant_count_tumor +=cnt;
-				if ( cnt > max_variant_count_tumor ) {
-					max_variant_count_tumor = cnt;
-					indelStringTumor = var.getBases();
-					event_length_tumor = var.lengthOnRef();
-				}
-			}	
-			
-			if ( (double)total_variant_count_tumor > minFraction * tumor_cov && (double) max_variant_count_tumor > minConsensusFraction*total_variant_count_tumor ) {
-				
-				String annotationString = ( refseqIterator == null ? "": getAnnotationString(annotation));
-				
-				long leftpos = pos;
-				long rightpos = pos+event_length_tumor-1;
-				if ( event_length_tumor == 0 ) { // insertion
-					leftpos--;
-					rightpos = leftpos;
-				}
-				
-				String message = refName+"\t"+leftpos+"\t"+rightpos+
-							"\t"+(event_length_tumor >0? "-":"+")+indelStringTumor +":"+total_variant_count_tumor+"/"+tumor_cov;
 				if ( normal_variants.size() == 0 ) { 		
-			
+
 					try {
 						output.write(message+"\n");
 					} catch (IOException e) {
@@ -446,12 +477,13 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 						e.printStackTrace();
 						throw new StingException("Error encountered while writing into output BED file");
 					}
-					message += "\tSOMATIC\t";
+					message += "\tSOMATIC\t0/"+normal_cov;
 				} else {
-					message += "\tGERMLINE\t";
+					Pair<IndelVariant,Integer> p_normal = findConsensus(tumor_variants);
+					
+					message += "\tGERMLINE\t"+p_normal.second+"/"+normal_cov;
 				}
-				message += annotationString;
-				if ( verbose ) System.out.println(message);
+				if ( verbose ) out.println(message + "\t"+ annotationString);
 			}
 //			for ( IndelVariant var : variants ) {
 //				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
@@ -466,13 +498,21 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	private String getAnnotationString(rodRefSeq ann) {
 		if ( ann == null ) return annGenomic;
 		else {
+			StringBuilder b = new StringBuilder();
 			if ( ann.isExon() ) {
-				if ( ann.isCoding() ) return annCoding;
-				else return annUTR;
+				if ( ann.isCoding() ) b.append(annCoding);
+				else b.append(annUTR);
 			} else {
-				if ( ann.isCoding() ) return annIntron;
-				else return annUnknown;
+				if ( ann.isCoding() ) b.append(annIntron);
+				else b.append(annUnknown);
 			}
+			b.append('\t');
+			Iterator<Transcript> it = ann.getTranscripts().iterator();
+			b.append(it.next().getGeneName()); // there is at least one transcript in the list, guaranteed
+//			while ( it.hasNext() ) { // 
+//				t.getGeneName()
+//			}
+			return b.toString();
 		}
 		
 	}
