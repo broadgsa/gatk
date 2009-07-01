@@ -294,9 +294,9 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
                 // the mismatch score is the min of its alignment vs. the reference and vs. the alternate
                 int myScore = altAlignment.second;
-                if ( myScore > toTest.getMismatchScoreToReference() )
+                if ( myScore >= toTest.getMismatchScoreToReference() )
                     myScore = toTest.getMismatchScoreToReference();
-                // keep track of reads that align better OR EQUAL to the alternate consensus.
+                // keep track of reads that align better to the alternate consensus.
                 // By pushing alignments with equal scores to the alternate, it means we'll over-call (het -> hom non ref) but are less likely to under-call (het -> ref, het non ref -> het)
                 else
                     consensus.readIndexes.add(new Pair<Integer, Integer>(j, altAlignment.first));
@@ -384,7 +384,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 }
             }
 
-            // END IF ( improvemenr >= LOD_THRESHOLD )
+            // END IF ( improvement >= LOD_THRESHOLD )
 
         } else if ( statsOutput != null ) { 
             try {
