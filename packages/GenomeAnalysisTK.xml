@@ -10,5 +10,10 @@
   <resources>
     <file>java/src/org/broadinstitute/sting/gatk/examples/HelloWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/examples/build.xml</file>
+    <file>testdata/exampleBAM.bam</file>
+    <file>testdata/exampleBAM.bam.bai</file>
+    <file>testdata/exampleFASTA.fasta</file>
+    <file>testdata/exampleFASTA.fasta.fai</file>
+    <file>testdata/exampleFASTA.dict</file>
   </resources>
 </package>
