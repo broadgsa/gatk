@@ -17,9 +17,9 @@ import java.util.List;
 @WalkerName("IndelIntervals")
 public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval, IndelIntervalWalker.Interval> {
     @Argument(fullName="allow454Reads", shortName="454", doc="process 454 reads", required=false)
-    public boolean allow454 = false;
+    boolean allow454 = false;
     @Argument(fullName="minIndelsPerInterval", shortName="minIndels", doc="min indels per interval", required=false)
-    public int minIntervalIndelCount = 1;
+    int minIntervalIndelCount = 1;
 
     public void initialize() {}
 

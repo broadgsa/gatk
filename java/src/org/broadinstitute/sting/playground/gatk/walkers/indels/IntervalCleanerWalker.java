@@ -18,25 +18,25 @@ import java.io.FileWriter;
 @WalkerName("IntervalCleaner")
 public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> {
     @Argument(fullName="allow454Reads", shortName="454", doc="process 454 reads", required=false)
-    public boolean allow454 = false;
+    boolean allow454 = false;
     @Argument(fullName="OutputCleaned", shortName="O", required=false, doc="Output file (sam or bam) for improved (realigned) reads")
-    public String OUT = null;
+    String OUT = null;
     @Argument(fullName="OutputIndels", shortName="indels", required=false, doc="Output file (text) for the indels found")
-    public String OUT_INDELS = null;
+    String OUT_INDELS = null;
     @Argument(fullName="OutputCleanedReadsOnly", shortName="cleanedOnly", doc="print out cleaned reads only (otherwise, all reads within the intervals)", required=false)
-    public boolean cleanedReadsOnly = false;
+    boolean cleanedReadsOnly = false;
     @Argument(fullName="statisticsFile", shortName="stats", doc="print out statistics (what does or doesn't get cleaned)", required=false)
-    public String OUT_STATS = null;
+    String OUT_STATS = null;
     @Argument(fullName="SNPsFile", shortName="snps", doc="print out whether mismatching columns do or don't get cleaned out", required=false)
-    public String OUT_SNPS = null;
+    String OUT_SNPS = null;
     @Argument(fullName="LODThresholdForCleaning", shortName="LOD", doc="LOD threshold above which the cleaner will clean", required=false)
-    public double LOD_THRESHOLD = 5.0;
+    double LOD_THRESHOLD = 5.0;
     @Argument(fullName="EntropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
-    public double MISMATCH_THRESHOLD = 0.15;
+    double MISMATCH_THRESHOLD = 0.15;
     @Argument(fullName="maxConsensuses", shortName="maxConsensuses", doc="max alternate consensuses to try (necessary to improve performance in deep coverage)", required=false)
-    public int MAX_CONSENSUSES = 30;
+    int MAX_CONSENSUSES = 30;
     @Argument(fullName="maxReadsForConsensuses", shortName="greedy", doc="max reads used for finding the alternate consensuses (necessary to improve performance in deep coverage)", required=false)
-    public int MAX_READS_FOR_CONSENSUSES = 120;
+    int MAX_READS_FOR_CONSENSUSES = 120;
 
     public static final int MAX_QUAL = 99;
 

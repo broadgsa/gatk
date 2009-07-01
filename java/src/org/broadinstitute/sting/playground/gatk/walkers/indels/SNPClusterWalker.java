@@ -13,7 +13,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 @Allows(DataSource.REFERENCE)
 public class SNPClusterWalker extends RefWalker<GenomeLoc, GenomeLoc> {
     @Argument(fullName="windowSize", shortName="window", doc="window size for calculating clusters", required=false)
-    public int windowSize = 10;
+    int windowSize = 10;
 
     public void initialize() {
         if ( windowSize < 1)

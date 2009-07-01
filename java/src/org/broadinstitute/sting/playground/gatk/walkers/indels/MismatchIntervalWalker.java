@@ -14,11 +14,11 @@ import java.util.*;
 @WalkerName("MismatchIntervals")
 public class MismatchIntervalWalker extends LocusWalker<Pair<GenomeLoc, Boolean>, Pair<LinkedList<Boolean>, GenomeLoc>> {
     @Argument(fullName="windowSize", shortName="window", doc="window size for calculating entropy", required=false)
-    public int windowSize = 10;
+    int windowSize = 10;
     @Argument(fullName="mismatchFraction", shortName="mismatch", doc="fraction of mismatching base qualities threshold", required=false)
-    public double mismatchThreshold = 0.15;
+    double mismatchThreshold = 0.15;
     @Argument(fullName="allow454Reads", shortName="454", doc="process 454 reads", required=false)
-    public boolean allow454 = false;
+    boolean allow454 = false;
 
     private final int minReadsAtInterval = 4;
 

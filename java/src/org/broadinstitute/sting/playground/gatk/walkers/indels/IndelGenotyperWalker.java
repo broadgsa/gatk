@@ -20,28 +20,28 @@ import java.util.Set;
 
 public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	@Argument(fullName="bed", shortName="bed", doc="BED output file name", required=true)
-	public java.io.File bed_file;
+	java.io.File bed_file;
 	@Argument(fullName="somatic", shortName="somatic", 
 			doc="Perform somatic calls; two input alignment files must be specified", required=false)
-	public boolean call_somatic = false;
+	boolean call_somatic = false;
 	@Argument(fullName="verbose", shortName="verbose", 
 			doc="Tell us what you are calling now (printed to stdout)", required=false)
-	public boolean verbose = false;
+	boolean verbose = false;
 	@Argument(fullName="minCoverage", shortName="minCoverage", 
 			doc="must have minCoverage or more reads to call indel; with --somatic this value is applied to tumor sample", required=false)
-	public int minCoverage = 6;
+	int minCoverage = 6;
 	@Argument(fullName="minNormalCoverage", shortName="minNormalCoverage", 
 			doc="used only with --somatic;  normal sample must have at least minNormalCoverage or more reads to call germline/somatic indel", required=false)
-	public int minNormalCoverage = 4;
+	int minNormalCoverage = 4;
 	@Argument(fullName="minFraction", shortName="minFraction", 
 			doc="minimum fraction of reads with indels at a site, out of all reads covering the site, required for a call", required=false)
-	public double minFraction = 0.3;
+	double minFraction = 0.3;
 	@Argument(fullName="minConsensusFraction", shortName="minConsensusFraction", 
 			doc="Minimum fraction of reads with indel at the site that must contain consensus indel in order to make the call", required=false)
-	public double minConsensusFraction = 0.7;
+	double minConsensusFraction = 0.7;
 	@Argument(fullName="refseq", shortName="refseq", 
 			doc="Name of RefSeq transcript annotation file. If specified, indels will be annotated as GENOMIC/UTR/INTRON/CODING", required=false)
-	public String RefseqFileName = null;
+	String RefseqFileName = null;
 	 
 	private static int WINDOW_SIZE = 200;
 	private RunningCoverage coverage;

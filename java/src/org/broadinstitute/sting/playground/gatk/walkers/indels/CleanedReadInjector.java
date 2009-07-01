@@ -103,9 +103,7 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
 
         String uniquifiedReadName = getUniquifiedReadName(read);
         if ( !cleanedReadHash.contains(uniquifiedReadName) )
-        {
             outputBAM.addAlignment(read);
-        }
         return cleanedReadCount;
     }
 

@@ -44,9 +44,9 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
     @Argument(fullName="intervalsToMerge", shortName="intervals", doc="Intervals to merge", required=true)
     List<String> intervalsSource = null;
     @Argument(fullName="allow454Reads", shortName="454", doc="process 454 reads", required=false)
-    public boolean allow454 = false;
+    boolean allow454 = false;
     @Argument(fullName="maxIntervalSize", shortName="maxInterval", doc="max interval size", required=false)
-    public int maxIntervalSize = 500;
+    int maxIntervalSize = 500;
 
     private LinkedList<GenomeLoc> intervals;
     private GenomeLoc firstInterval = null;
