@@ -55,7 +55,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
     private SAMRecord mNextRecord;
     protected boolean initialized = false;
     protected final Reads reads;
-    protected boolean warnedUserAboutSortOrder = false; // so we only warn the user once
+    protected static boolean warnedUserAboutSortOrder = false; // so we only warn the user once
 
     /**
      * Constructs a new merging iterator with the same set of readers and sort order as
