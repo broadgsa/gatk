@@ -30,7 +30,6 @@ public class Reads {
     private SAMFileReader.ValidationStringency validationStringency = SAMFileReader.ValidationStringency.STRICT;
     private Double downsamplingFraction = null;
     private Integer downsampleToCoverage = null;
-    private Integer maxOnFlySorts = null;
     private Boolean beSafe = null;
     private Boolean filterZeroMappingQualityReads = null;
 
@@ -67,14 +66,6 @@ public class Reads {
     }
 
     /**
-     * Get the maximum number of supported on-the-fly sorts.
-     * @return Max number of on-the-fly sorts.
-     */
-    public Integer getMaxOnTheFlySorts() {
-        return maxOnFlySorts;
-    }
-
-    /**
      * Return whether to 'verify' the reads as we pass through them.
      * @return Whether to verify the reads.
      */
@@ -102,7 +93,6 @@ public class Reads {
      * @param strictness Stringency of reads file parsing.
      * @param downsampleFraction fraction of reads to downsample.
      * @param downsampleCoverage downsampling per-locus.
-     * @param maxOnFlySorts how many sorts to perform on-the-fly.
      * @param beSafe Whether to enable safety checking.
      * @param filterZeroMappingQualityReads whether to filter zero mapping quality reads.
      */
@@ -110,14 +100,12 @@ public class Reads {
            SAMFileReader.ValidationStringency strictness,
            Double downsampleFraction,
            Integer downsampleCoverage,
-           Integer maxOnFlySorts,
            Boolean beSafe,
            Boolean filterZeroMappingQualityReads ) {
         this.readsFiles = samFiles;
         this.validationStringency = strictness;
         this.downsamplingFraction = downsampleFraction;
         this.downsampleToCoverage = downsampleCoverage;
-        this.maxOnFlySorts = maxOnFlySorts;
         this.beSafe = beSafe;
         this.filterZeroMappingQualityReads = filterZeroMappingQualityReads;
     }

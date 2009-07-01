@@ -157,8 +157,6 @@ public class GenomeAnalysisEngine {
         // we need to verify different parameter based on the walker type
         if (my_walker instanceof LocusWalker || my_walker instanceof LocusWindowWalker) {
             // create the MicroScheduler
-            if( argCollection.walkAllLoci )
-                Utils.scareUser("Argument --all_loci is deprecated.  Please annotate your walker with @By(DataSource.REFERENCE) to perform a by-reference traversal.");
             microScheduler = MicroScheduler.create(my_walker, extractSourceInfoFromArguments(argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
             engine = microScheduler.getTraversalEngine();
         }
@@ -193,8 +191,6 @@ public class GenomeAnalysisEngine {
 
         engine.setReadFilters(sourceInfo);
 
-        engine.setThreadedIO(argCollection.enabledThreadedIO);
-        engine.setWalkOverAllSites(argCollection.walkAllLoci);
         engine.initialize();
     }
 
@@ -226,7 +222,6 @@ public class GenomeAnalysisEngine {
                           getValidationStringency(),
                           argCollection.downsampleFraction,
                           argCollection.downsampleCoverage,
-                          argCollection.maximumReadSorts,
                           !argCollection.unsafe,
                           argCollection.filterZeroMappingQualityReads );
     }

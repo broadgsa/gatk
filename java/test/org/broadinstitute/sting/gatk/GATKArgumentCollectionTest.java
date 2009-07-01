@@ -85,14 +85,11 @@ public class GATKArgumentCollectionTest extends BaseTest {
         collect.DBSNPFile = "DBSNPFile".toLowerCase();
         collect.HAPMAPFile = "HAPMAPFile".toLowerCase();
         collect.HAPMAPChipFile = "HAPMAPChipFile".toLowerCase();
-        collect.enabledThreadedIO = true;
         collect.unsafe = false;
-        collect.maximumReadSorts = null;
         collect.downsampleFraction = null;
         collect.downsampleCoverage = null;
         collect.intervals = new ArrayList<String>();
         collect.intervals.add("intervals".toLowerCase());
-        collect.walkAllLoci = true;
         collect.disableThreading = false;
         collect.outFileName = "outFileName".toLowerCase();
         collect.errFileName = "errFileName".toLowerCase();

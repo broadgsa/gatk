@@ -97,16 +97,8 @@ public class GATKArgumentCollection {
     public String outErrFileName = null;
 
     @Element(required = false)
-    @Argument(fullName = "all_loci", shortName = "A", doc = "Should we process all loci, not just those covered by reads", required = false)
-    public Boolean walkAllLoci = false;
-
-    @Element(required = false)
     @Argument(fullName = "maximum_reads", shortName = "M", doc = "Maximum number of iterations to process before exiting, the lower bound is zero.  Intended only for testing", required = false)
     public Integer maximumEngineIterations = -1;
-
-    @Element(required = false)
-    @Argument(fullName = "sort_on_the_fly", shortName = "sort", doc = "Maximum number of reads to sort on the fly", required = false)
-    public Integer maximumReadSorts = null;
 
     @Element(required = false)
     @Argument(fullName = "bam_compression", shortName = "compress", doc = "Compression level to use for writing BAM files", required = false)
@@ -131,10 +123,6 @@ public class GATKArgumentCollection {
     @Element(required = false)
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations, nothing will be checked at runtime.", required = false)
     public Boolean unsafe = false;
-
-    @Element(required = false)
-    @Argument(fullName = "threaded_IO", shortName = "P", doc = "If set, enables threaded I/O operations", required = false)
-    public Boolean enabledThreadedIO = false;
 
     @Element(required = false)
     @Argument(fullName = "disablethreading", shortName = "dt", doc = "Disable experimental threading support.", required = false)
@@ -253,14 +241,7 @@ public class GATKArgumentCollection {
         if (!other.HAPMAPChipFile.equals(this.HAPMAPChipFile)) {
             return false;
         }
-        if (!other.enabledThreadedIO.equals(this.enabledThreadedIO)) {
-            return false;
-        }
         if (!other.unsafe.equals(this.unsafe)) {
-            return false;
-        }
-        if (( other.maximumReadSorts == null && this.maximumReadSorts != null ) ||
-                ( other.maximumReadSorts != null && !other.maximumReadSorts.equals(this.maximumReadSorts) )) {
             return false;
         }
         if (( other.BAMcompression == null && this.BAMcompression != null ) ||
@@ -277,9 +258,6 @@ public class GATKArgumentCollection {
         }
         if (( other.downsampleCoverage == null && this.downsampleCoverage != null ) ||
                 ( other.downsampleCoverage != null && !other.downsampleCoverage.equals(this.downsampleCoverage) )) {
-            return false;
-        }
-        if (!other.walkAllLoci.equals(this.walkAllLoci)) {
             return false;
         }
         if (!other.outFileName.equals(this.outFileName)) {

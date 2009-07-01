@@ -71,8 +71,6 @@ public abstract class TraversalEngine {
     protected int maxOnFlySorts = 100000;
     protected double downsamplingFraction = 1.0;
     protected int downsamplingCoverage = 0;
-    protected boolean THREADED_IO = false;
-    protected int THREADED_IO_BUFFER_SIZE = 10000;
     protected boolean filterZeroMappingQualityReads = false;
 
 
@@ -126,14 +124,6 @@ public abstract class TraversalEngine {
         this.filterZeroMappingQualityReads = filterZeroMappingQualityReads;
     }
 
-    public void setThreadedIO(final boolean threadedIO) {
-        this.THREADED_IO = threadedIO;
-    }
-
-    public void setWalkOverAllSites(final boolean walkOverAllSites) {
-        this.walkOverAllSites = walkOverAllSites;
-    }
-
     private void setDebugging(final boolean d) {
         DEBUGGING = d;
     }
@@ -179,7 +169,6 @@ public abstract class TraversalEngine {
     public void setReadFilters( Reads reads) {
         if( reads.getDownsamplingFraction() != null ) setDownsampleByFraction(reads.getDownsamplingFraction());
         if( reads.getDownsampleToCoverage() != null ) setDownsampleByCoverage(reads.getDownsampleToCoverage());
-        if( reads.getMaxOnTheFlySorts() != null ) setSortOnFly(reads.getMaxOnTheFlySorts());
         if( reads.getSafetyChecking() != null ) setSafetyChecking(reads.getSafetyChecking());
     }
 
@@ -346,11 +335,6 @@ public abstract class TraversalEngine {
         StingSAMIterator wrappedIterator = StingSAMIteratorAdapter.adapt(null,rawIterator);
         wrappedIterator = applyDecoratingIterators(enableVerification,wrappedIterator);
 
-        if (THREADED_IO) {
-            logger.info(String.format("Enabling threaded I/O with buffer of %d reads", THREADED_IO_BUFFER_SIZE));
-            wrappedIterator = StingSAMIteratorAdapter.adapt(null,new ThreadedIterator<SAMRecord>(wrappedIterator, THREADED_IO_BUFFER_SIZE));
-        }
-
         return wrappedIterator;
     }
 
@@ -365,7 +349,6 @@ public abstract class TraversalEngine {
         return applyDecoratingIterators(enableVerification,
                                         wrappedIterator,
                                         DOWNSAMPLE_BY_FRACTION ? downsamplingFraction : null,
-                                        SORT_ON_FLY ? maxOnFlySorts : null,
                                         filterZeroMappingQualityReads,
                                         beSafeP);
     }
@@ -377,16 +360,12 @@ public abstract class TraversalEngine {
     public static StingSAMIterator applyDecoratingIterators(boolean enableVerification,
                                                             StingSAMIterator wrappedIterator,
                                                             Double downsamplingFraction,
-                                                            Integer maxOnFlySorts,
                                                             Boolean filterZeroMappingQualityReads, 
                                                             Boolean beSafeP) {
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away
         if (downsamplingFraction != null)
             wrappedIterator = new DownsampleIterator(wrappedIterator, downsamplingFraction);
-
-        if (maxOnFlySorts != null)
-            wrappedIterator = new SortSamIterator(wrappedIterator, maxOnFlySorts);
 
         if (beSafeP != null && beSafeP && enableVerification)
             wrappedIterator = new VerifyingSamIterator(wrappedIterator);
