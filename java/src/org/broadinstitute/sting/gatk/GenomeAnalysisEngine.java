@@ -116,14 +116,7 @@ public class GenomeAnalysisEngine {
         // our microscheduler, which is in charge of running everything
         MicroScheduler microScheduler = null;
 
-        // if we're a read or a locus walker, we use the new system.  Right now we have complicated
-        // branching based on the input data, but this should disapear when all the traversals are switched over
-        if (my_walker instanceof LocusWindowWalker && !args.useNewTraverseByLocusWindow) {
-            legacyTraversal(my_walker, rods);
-            return;
-        } else { // we have an old style traversal, once we're done return
-            microScheduler = createMicroscheduler(my_walker, rods);
-        }
+        microScheduler = createMicroscheduler(my_walker, rods);
 
         // Prepare the sort ordering w.r.t. the sequence dictionary
         if (argCollection.referenceFile != null) {
@@ -148,38 +141,6 @@ public class GenomeAnalysisEngine {
 
         // excute the microscheduler, storing the results
         walkerReturn = microScheduler.execute(my_walker, locs, argCollection.maximumEngineIterations);
-    }
-
-    /**
-     * this is to accomdate the older style traversals, that haven't been converted over to the new system.  Putting them
-     * into their own function allows us to deviate in the two behaviors so the new style traversals aren't limited to what
-     * the old style does.  As traversals are converted, this function should disappear.
-     *
-     * @param my_walker the walker to run
-     * @param rods the rod tracks to associate with
-     */
-    private void legacyTraversal(Walker my_walker, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
-        if (my_walker instanceof LocusWindowWalker) {
-            this.engine = new TraverseByLocusWindows(argCollection.samFiles, argCollection.referenceFile, rods);
-        } else {
-            throw new RuntimeException("Unexpected walker type: " + my_walker);
-        }
-
-        // Prepare the sort ordering w.r.t. the sequence dictionary
-        if (argCollection.referenceFile != null) {
-            final ReferenceSequenceFile refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(argCollection.referenceFile);
-            GenomeLocParser.setupRefContigOrdering(refFile);
-        }
-
-        // Determine the validation stringency.  Default to ValidationStringency.STRICT.
-        ValidationStringency strictness = getValidationStringency();
-
-        logger.info("Strictness is " + strictness);
-        genericEngineSetup();
-
-        // store the results of the walker run
-        walkerReturn = engine.traverse(my_walker);
-
     }
 
     /**

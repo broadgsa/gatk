@@ -140,10 +140,6 @@ public class GATKArgumentCollection {
     @Argument(fullName = "disablethreading", shortName = "dt", doc = "Disable experimental threading support.", required = false)
     public Boolean disableThreading = false;
 
-    @Element(required = false)
-    @Argument(fullName = "use_new_tblw", shortName= "tblw", doc="Use the legacy traverse by locus window.", required = false)
-    public Boolean useNewTraverseByLocusWindow = false;
-
     /** How many threads should be allocated to this analysis. */
     @Element(required = false)
     @Argument(fullName = "numthreads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
