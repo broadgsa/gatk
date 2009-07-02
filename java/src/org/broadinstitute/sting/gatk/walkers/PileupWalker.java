@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2009 The Broad Institute
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.LocusContext;
@@ -7,9 +31,6 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
-import net.sf.samtools.SAMRecord;
-
-import java.util.List;
 
 /**
  * samtools pileup [-f in.ref.fasta] [-t in.ref_list] [-l in.site_list] [-iscg] [-T theta] [-N nHap] [-r pairDiffRate] <in.alignment>
@@ -32,16 +53,14 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     @Argument(fullName="alwaysShowSecondBase",doc="If true, prints dummy bases for the second bases in the BAM file where they are missing",required=false)
     public boolean alwaysShowSecondBase = false;
 
-    //@Argument(fullName="showSecondBaseQuals",doc="If true, prints out second base qualities in the pileup",required=false)
-    //public boolean showSecondBaseQuals = false;
-
     @Argument(fullName="qualsAsInts",doc="If true, prints out qualities in the pileup as comma-separated integers",required=false)
     public boolean qualsAsInts = false;
 
     @Argument(fullName="extended",shortName="ext",doc="extended",required=false)
     public boolean EXTENDED = false;
 
-    public boolean FLAG_UNCOVERED_BASES = true;     // todo: how do I make this a command line argument?
+    @Argument(fullName="ignore_uncovered_bases",shortName="skip_uncov",doc="Output nothing when a base is uncovered")
+    public boolean IGNORE_UNCOVERED_BASES = false;
     
     public void initialize() {
     }
@@ -50,47 +69,16 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         String bases = pileup.getBases();
         
-        if ( bases.equals("") && FLAG_UNCOVERED_BASES ) {
+        if ( bases.equals("") && !IGNORE_UNCOVERED_BASES ) {
             bases = "***UNCOVERED_SITE***";
         }
 
-        StringBuilder extras = new StringBuilder();
+        String secondBasePileup = "";
+        if(shouldShowSecondaryBasePileup(pileup))
+            secondBasePileup = getSecondBasePileup(pileup);
+        String rods = getReferenceOrderedData( tracker );
 
-        String secondBasePileup = pileup.getSecondaryBasePileup();
-        if ( secondBasePileup == null && alwaysShowSecondBase ) {
-            secondBasePileup = Utils.dupString('N', bases.length());
-        }
-        if ( secondBasePileup != null ) extras.append(" ").append(secondBasePileup);
-
-        /*
-        if ( showSecondBaseQuals ) {
-            String secondQualPileup = pileup.getSecondaryQualPileup();
-            if ( secondQualPileup == null )
-             secondQualPileup = Utils.dupString((char)(33), bases.length());
-            extras.append(" ").append(secondQualPileup);
-        }
-        */
-
-        String rodString = "";
-        for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
-            if ( datum != null && ! (datum instanceof rodDbSNP)) {
-                //System.out.printf("rod = %s%n", datum.toSimpleString());
-                rodString += datum.toSimpleString();
-                //System.out.printf("Rod string %s%n", rodString);
-            }
-        }
-        
-        rodDbSNP dbsnp = (rodDbSNP)tracker.lookup("dbSNP", null);
-        if ( dbsnp != null )
-            rodString += dbsnp.toMediumString();
-
-        if ( rodString != "" )
-            rodString = "[ROD: " + rodString + "]";
-
-        //if ( context.getLocation().getStart() % 1 == 0 ) {
-        //System.out.printf("quals as ints %b%n", qualsAsInts);
-        out.printf("%s%s %s%n", pileup.getPileupString(qualsAsInts), extras, rodString);
-        //}
+        out.printf("%s%s %s%n", pileup.getPileupString(qualsAsInts), secondBasePileup, rods);
 
         if ( EXTENDED ) {
             String probDists = pileup.getProbDistPileup();
@@ -107,5 +95,50 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     }
     public Integer treeReduce(Integer lhs, Integer rhs) {
         return lhs + rhs;
+    }
+
+    /**
+     * Should the secondary base be shown under all circumstances?
+     * @param pileup The ReadBackedPileup at the current locus.
+     * @return True, if a secondary base pileup should always be shown.
+     */
+    private boolean shouldShowSecondaryBasePileup( ReadBackedPileup pileup ) {
+        return ( pileup.getSecondaryBasePileup() != null || alwaysShowSecondBase );
+    }
+
+    /**
+     * Gets second base information for the pileup, if requested.
+     * @param pileup Pileup from which to extract secondary base info.
+     * @return String representation of the secondary base.
+     */
+    private String getSecondBasePileup( ReadBackedPileup pileup ) {
+        String secondBasePileup = pileup.getSecondaryBasePileup();
+        if( secondBasePileup != null )
+            return " " + secondBasePileup;
+        else
+            return " " + Utils.dupString('N', pileup.getBases().length());
+    }
+
+    /**
+     * Get a string representation the reference-ordered data.
+     * @param tracker Container for the reference-ordered data.
+     * @return String representation of the reference-ordered data.
+     */
+    private String getReferenceOrderedData( RefMetaDataTracker tracker ) {
+        String rodString = "";
+        for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
+            if ( datum != null && ! (datum instanceof rodDbSNP)) {
+                rodString += datum.toSimpleString();
+            }
+        }
+
+        rodDbSNP dbsnp = (rodDbSNP)tracker.lookup("dbSNP", null);
+        if ( dbsnp != null )
+            rodString += dbsnp.toMediumString();
+
+        if ( !rodString.equals("") )
+            rodString = "[ROD: " + rodString + "]";
+
+        return rodString;
     }
 }

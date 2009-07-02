@@ -8,6 +8,9 @@
     <class>org.broadinstitute.sting.gatk.walkers.PrintReadsWalker</class>
   </dependencies>
   <resources>
+    <file>java/src/org/broadinstitute/sting/gatk/walkers/DepthOfCoverageWalker.java</file>
+    <file>java/src/org/broadinstitute/sting/gatk/walkers/PileupWalker.java</file>
+    <file>java/src/org/broadinstitute/sting/gatk/walkers/PrintReadsWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/examples/HelloWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/examples/build.xml</file>
     <file>testdata/exampleBAM.bam</file>
