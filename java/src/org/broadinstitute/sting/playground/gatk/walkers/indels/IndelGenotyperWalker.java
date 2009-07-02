@@ -40,10 +40,11 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			doc="used only with --somatic;  normal sample must have at least minNormalCoverage or more reads to call germline/somatic indel", required=false)
 	int minNormalCoverage = 4;
 	@Argument(fullName="minFraction", shortName="minFraction", 
-			doc="minimum fraction of reads with indels at a site, out of all reads covering the site, required for a call", required=false)
+			doc="minimum fraction of reads with CONSENSUS indel at a site, out of all reads covering the site, required for a consensus call"+
+			" (fraction of non-consensus indels at the site is not considered here, see minConsensusFraction)", required=false)
 	double minFraction = 0.3;
 	@Argument(fullName="minConsensusFraction", shortName="minConsensusFraction", 
-			doc="Minimum fraction of reads with indel at the site that must contain consensus indel in order to make the call", required=false)
+			doc="Minimum fraction of CONSENSUS indel observations at a site wrt all indel observations at the site required to make the call", required=false)
 	double minConsensusFraction = 0.7;
 	@Argument(fullName="refseq", shortName="refseq", 
 			doc="Name of RefSeq transcript annotation file. If specified, indels will be annotated as GENOMIC/UTR/INTRON/CODING", required=false)
@@ -299,7 +300,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	 * @return
 	 */
 	private boolean isCall(Pair<IndelVariant,Integer> p, int coverage) {
-		return ( (double)p.second > minFraction * coverage && (double) p.first.getCount() > minConsensusFraction*p.second ); 		
+		return ( (double)p.first.getCount() > minFraction * coverage && (double) p.first.getCount() > minConsensusFraction*p.second ); 		
 	}
 
 	/** Build output line for bed file and write it to the specified output writer if the latter is not null; 
