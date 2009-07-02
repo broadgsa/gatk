@@ -77,15 +77,11 @@ public class LocusReferenceView extends ReferenceView {
      */
     public char[] getReferenceBases( GenomeLoc genomeLoc ) {
         long stop = genomeLoc.getStop();
-        long other = reference.getSequence(genomeLoc.getContig()).length();
-        if (other < genomeLoc.getStop()) {
-            stop = other;
+        long seqLength = reference.getSequence(genomeLoc.getContig()).length();
+        if (seqLength < genomeLoc.getStop()) {
+            stop = seqLength;
         }
         ReferenceSequence subsequence = reference.getSubsequenceAt(genomeLoc.getContig(),genomeLoc.getStart(),stop);
-        if (genomeLoc.getStop() - stop < 0) {
-            int y = 0;
-            y++;
-        }
         return (StringUtil.bytesToString(subsequence.getBases()) + Utils.dupString('X', (int)(genomeLoc.getStop() - stop)) ).toCharArray();
     }
 
