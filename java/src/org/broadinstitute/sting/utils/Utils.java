@@ -65,6 +65,20 @@ public class Utils {
         logger.warn(String.format("* %s", builder));
     }
 
+    public static SAMFileHeader copySAMFileHeader( SAMFileHeader toCopy ) {
+        SAMFileHeader copy = new SAMFileHeader();
+
+        copy.setSortOrder(toCopy.getSortOrder());
+        copy.setGroupOrder(toCopy.getGroupOrder());
+        copy.setProgramRecords(toCopy.getProgramRecords());
+        copy.setReadGroups(toCopy.getReadGroups());
+        copy.setSequenceDictionary(toCopy.getSequenceDictionary());
+
+        for ( Map.Entry<String, Object> e : toCopy.getAttributes())
+            copy.setAttribute(e.getKey(), e.getValue());
+        
+        return copy;
+    }
 
     public static SAMFileWriter createSAMFileWriterWithCompression(SAMFileHeader header, boolean presorted, String file, int compression) {
         if (file.endsWith(".bam"))
