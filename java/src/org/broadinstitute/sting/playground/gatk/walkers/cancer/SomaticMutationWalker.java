@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.playground.gatk.walkers.cancer;
 
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.Cigar;
@@ -27,42 +27,6 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
         StrandImbalance,
         Misalignment
     }
-    protected static class QualitySums {
-        private int a = 0;
-        private int c = 0;
-        private int g = 0;
-        private int t = 0;
-
-        public int get(final char base) {
-            if (base == 'a' || base == 'A') { return a; }
-            if (base == 'c' || base == 'C') { return c; }
-            if (base == 'g' || base == 'G') { return g; }
-            if (base == 't' || base == 'T') { return t; }
-            throw new RuntimeException("Unknown base: " + base);
-        }
-
-        public void incrementSum(final char base, final byte qual) {
-            if (base == 'a' || base == 'A') { a += qual; }
-            else if (base == 'c' || base == 'C') { c += qual; }
-            else if (base == 'g' || base == 'G') { g += qual; }
-            else if (base == 't' || base == 'T') { t += qual; }
-            else throw new RuntimeException("Unknown base: " + base);
-        }
-
-        public int getOtherQualities(final char base) {
-            int total = a + c + g + t;
-            if (base == 'a' || base == 'A') { return total-a; }
-            else if (base == 'c' || base == 'C') { return total-c; }
-            else if (base == 'g' || base == 'G') { return total-g; }
-            else if (base == 't' || base == 'T') { return total-t; }
-            else throw new RuntimeException("Unknown base: " + base);
-        }
-
-        public void reset() {
-            a = 0; c = 0; g = 0; t = 0;
-        }
-    }
-
     @Argument(fullName = "tumor_sample_name", shortName = "s1", required = true, doc="Name of the tumor sample")
     public String tumorSampleName;
 
@@ -103,168 +67,6 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
     public static int MIN_QSCORE = 13;
 
 
-    private static class LocusReadPile {
-        private char refBase;
-        public List<SAMRecord> reads = new ArrayList<SAMRecord>();
-        public List<Integer> offsets = new ArrayList<Integer>();
-        public GenotypeLikelihoods likelihoods = new GenotypeLikelihoods();
-        public QualitySums qualitySums = new QualitySums();
-
-        public LocusReadPile(char refBase) {
-            this.refBase = refBase;
-        }
-
-        public void add(SAMRecord read, int offset) {
-            char base = read.getReadString().charAt(offset);
-            byte qual = read.getBaseQualities()[offset];
-
-            if (base == 'N' || base == 'n') { return; }
-
-            reads.add(read);
-            offsets.add(offset);
-
-
-            likelihoods.add(refBase, base, qual);
-            if (qual > MIN_QSCORE) qualitySums.incrementSum(base, qual);
-
-        }
-
-        public String getLocusBases() {
-            return getLocusBases(0);
-        }
-
-        public String getLocusBases(int locusOffset) {
-            StringBuilder sb = new StringBuilder();
-            for(int i=0; i<reads.size(); i++) {
-                SAMRecord read = reads.get(i);
-                int readOffset = offsets.get(i);
-
-                int offset = readOffset + locusOffset;
-                if (offset >= 0 && offset < read.getReadString().length()) {
-                    char base = read.getReadString().charAt(offset);
-                    sb.append(base);
-                }
-            }
-            return sb.toString();
-        }
-
-        public double getAltVsRef(char altAllele) {
-            double[] tumorRefAlt = extractRefAlt(this.likelihoods, this.refBase, altAllele);
-            double tumorLod = Math.log10(tumorRefAlt[1] + tumorRefAlt[2]) - tumorRefAlt[0];
-            return tumorLod;
-        }
-
-        public double getRefVsAlt(char altAllele) {
-            double[] refAlt = extractRefAlt(this.likelihoods, this.refBase, altAllele);
-            double normalLod = refAlt[0] - Math.log10(refAlt[1] + refAlt[2]);
-            return normalLod;
-        }
-
-        /**
-         * Extract the LOD comparing ref:ref to ref:alt and alt:alt
-         */
-        private double[] extractRefAlt(GenotypeLikelihoods gl, char ref, char altAllele) {
-            double refRef = 0;
-            double altRef = 0;
-            double altAlt = 0;
-            for(int j=0; j<10; j++) {
-                String gt = gl.genotypes[j];
-                double likelihood = gl.likelihoods[j];
-
-                // the ref:mutant theory
-                if ( (gt.charAt(0) == ref && gt.charAt(1) == altAllele) ||
-                     (gt.charAt(0) == altAllele && gt.charAt(1) == ref) ) {
-                    altRef += Math.pow(10, likelihood);
-                }
-
-                if ( gt.charAt(0) == altAllele && gt.charAt(1) == altAllele) {
-                    altAlt += Math.pow(10, likelihood);
-                }
-
-                if ( gt.charAt(0) == ref && gt.charAt(1) == ref) {
-                    refRef = likelihood;
-                }
-
-            }
-            return new double[]{refRef, altRef, altAlt};
-        }
-
-        private GenotypeLikelihoods getLikelihood(int locusOffset) {
-            GenotypeLikelihoods likelihoods = new GenotypeLikelihoods();
-
-
-            for(int i=0; i<reads.size(); i++) {
-                SAMRecord read = reads.get(i);
-                int readOffset = offsets.get(i);
-
-                int offset = readOffset + locusOffset;
-                if (offset >= 0 && offset < read.getReadString().length()) {
-
-                    char base = read.getReadString().charAt(offset);
-                    byte qual = read.getBaseQualities()[offset];
-
-                    likelihoods.add(refBase, base, qual);
-                }
-
-            }
-            return likelihoods;
-        }
-
-        public double[] getNormalizedProbs(int locusOffset, int qThreshold) {
-            GenotypeLikelihoods likelihoods = new GenotypeLikelihoods();
-
-
-            // FIXME: gaddy suggested this "correction" which evidently has a name...
-            //likelihoods.add(refBase, refBase, (byte) 20);
-            
-            for(int i=0; i<reads.size(); i++) {
-                SAMRecord read = reads.get(i);
-                int readOffset = offsets.get(i);
-
-                int offset = readOffset + locusOffset;
-                if (offset >= 0 && offset < read.getReadString().length()) {
-
-                    char base = read.getReadString().charAt(offset);
-                    byte qual = read.getBaseQualities()[offset];
-
-                    if (qual >= qThreshold) {
-                        likelihoods.add(refBase, base, qual);
-//                        if (locusOffset == -43) System.out.println("\tUSING " + base + " " + qual);
-                    } else {
-//                        if (locusOffset == -43) System.out.println("\tDropping " + base + " " + qual);
-                    }
-                }
-
-            }
-
-
-            double[] logLikelihood = likelihoods.likelihoods;
-            double[] nonLogLikelihood = new double[10];
-            double sum = 0;
-            for(int i=0; i<10; i++) {
-                nonLogLikelihood[i] = Math.pow(10, logLikelihood[i]);
-                sum += nonLogLikelihood[i];
-            }
-
-            double[] normalizedProbs = new double[10];
-            for(int i=0; i<10; i++) {
-                normalizedProbs[i] = nonLogLikelihood[i] / sum;
-            }
-
-
-            //quick sanity check
-//            sum=0;
-//            for(int i=0; i<10; i++) {
-//                sum += normalizedProbs[i];
-//            }
-//            System.out.println("normalized probs = " + sum);
-
-
-            return normalizedProbs;
-        }
-        
-    }
-
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         Map<Character, Integer> midp = new HashMap<Character, Integer>();
         midp.put('A', Integer.MAX_VALUE);
@@ -291,8 +93,8 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
         
         List<SAMRecord> reads = context.getReads();
 
-        LocusReadPile tumorReadPile = new LocusReadPile(upRef);
-        LocusReadPile normalReadPile = new LocusReadPile(upRef);
+        LocusReadPile tumorReadPile = new LocusReadPile(upRef,MIN_QSCORE);
+        LocusReadPile normalReadPile = new LocusReadPile(upRef,MIN_QSCORE);
 
         for ( int i = 0; i < reads.size(); i++ )
         {
@@ -350,8 +152,8 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             // (i) either an adjusted quality score sum in the tumor for the mutant base must be
             //     at least 100 or the LOD score for mutant:ref + mutant:mutant vs ref:ref must
             //     be at least 6.3;
-            int mutantSum = tumorReadPile.qualitySums.get(altAllele);
-            int refSum = tumorReadPile.qualitySums.get(upRef);
+            int mutantSum = tumorReadPile.qualitySums.getQualitySum(altAllele);
+            int refSum = tumorReadPile.qualitySums.getQualitySum(upRef);
 
             if (tumorReadPile.getAltVsRef(altAllele) >= TUMOR_LOD_THRESHOLD
 //                    ||
@@ -365,7 +167,10 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             // (ii) the quality score sum for the mutant base in the normal must be < 50 and the
             //      LOD score for ref:ref vs mutant:ref + mutant:mutant must be at least 2.3.
             double normalLod = normalReadPile.getRefVsAlt(altAllele);
-            if ( normalReadPile.qualitySums.get(altAllele) > 50 || normalLod < NORMAL_LOD_THRESHOLD) {
+            QualitySums normQs = normalReadPile.qualitySums;
+
+            if ( (normQs.getCounts(altAllele) >= 2 && normQs.getQualitySum(altAllele) > 20)
+                 || normalLod < NORMAL_LOD_THRESHOLD) {
                 continue;
             }
 
@@ -402,14 +207,14 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             //     at least 100 or the LOD score for mutant:ref + mutant:mutant vs ref:ref must
             //     be at least 6.3;
             double tumorLod = t2.getAltVsRef(altAllele);
-            if (mode.equals("full") && t2.qualitySums.get(altAllele) < MIN_MUTANT_SUM && tumorLod < TUMOR_LOD_THRESHOLD) {
+            if (mode.equals("full") && t2.qualitySums.getQualitySum(altAllele) < MIN_MUTANT_SUM && tumorLod < TUMOR_LOD_THRESHOLD) {
                 if (OUTPUT_FAILURES) {
 
                     String msg = "FAILED  due to MAX MM QSCORE TEST." +
                             " LOD was " + tumorReadPile.getAltVsRef(altAllele) +
                             " LOD is now " + t2.getAltVsRef(altAllele) +
-                            " QSUM was " + tumorReadPile.qualitySums.get(altAllele) +
-                            " QSUM is now " + t2.qualitySums.get(altAllele);
+                            " QSUM was " + tumorReadPile.qualitySums.getQualitySum(altAllele) +
+                            " QSUM is now " + t2.qualitySums.getQualitySum(altAllele);
 
                     out.println(
                             context.getContig() + "\t" +
@@ -458,11 +263,11 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             String msg =
                         (failedMidpointCheck?"__FAILED-MPCHECK":"") +
                         "TScore:" + tumorLod +
-                        "__TRefSum: " + tumorReadPile.qualitySums.get(upRef) +
-                        "__TAltSum: " + tumorReadPile.qualitySums.get(altAllele) +
+                        "__TRefSum: " + tumorReadPile.qualitySums.getQualitySum(upRef) +
+                        "__TAltSum: " + tumorReadPile.qualitySums.getQualitySum(altAllele) +
                         "__NScore:" + normalLod +
-                        "__NRefSum: " + normalReadPile.qualitySums.get(upRef) +
-                        "__NAltSum: " + normalReadPile.qualitySums.get(altAllele) +
+                        "__NRefSum: " + normalReadPile.qualitySums.getQualitySum(upRef) +
+                        "__NAltSum: " + normalReadPile.qualitySums.getQualitySum(altAllele) +
                         "__maxSkewLod_" + failureReason.second + "_" +
                         "__MIDP: " + midp.get(altAllele);
 
@@ -528,7 +333,7 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             if (read.getReadNegativeStrandFlag()) { seenOnNegative = true; } else { seenOnPositive = true; }
         }
         if (!seenOnPositive || !seenOnNegative) {
-//            return MutantFailureReason.StrandImbalance;
+            return new Pair<MutantFailureReason, Double>(MutantFailureReason.StrandImbalance, 0d);
         }
 
 
