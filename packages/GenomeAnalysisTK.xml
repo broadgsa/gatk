@@ -3,7 +3,7 @@
   <name>GenomeAnalysisTK</name>
   <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
   <dependencies>
-    <class>org.broadinstitute.sting.gatk.walkers.DepthOfCoverage</class>
+    <class>org.broadinstitute.sting.gatk.walkers.DepthOfCoverageWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.PileupWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.PrintReadsWalker</class>
   </dependencies>
