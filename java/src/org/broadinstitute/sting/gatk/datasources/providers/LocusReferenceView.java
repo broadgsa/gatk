@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
 /**
@@ -63,8 +64,12 @@ public class LocusReferenceView extends ReferenceView {
      *         at the end of the locus (inclusive).
      */
     public char[] getReferenceBases( GenomeLoc genomeLoc ) {
-        ReferenceSequence subsequence = reference.getSubsequenceAt(genomeLoc.getContig(),genomeLoc.getStart(),genomeLoc.getStop());
-        return StringUtil.bytesToString(subsequence.getBases()).toCharArray();
+        long stop = genomeLoc.getStop();
+        if (reference.getSequence(genomeLoc.getContig()).length() > genomeLoc.getStart()) {
+            stop = reference.getSequence(genomeLoc.getContig()).length();
+        }
+        ReferenceSequence subsequence = reference.getSubsequenceAt(genomeLoc.getContig(),genomeLoc.getStart(),stop);
+        return (StringUtil.bytesToString(subsequence.getBases()) + Utils.dupString('X', (int)(genomeLoc.getStop() - stop)) ).toCharArray();
     }
 
     /**
