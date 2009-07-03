@@ -50,6 +50,9 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
 //    @Argument(fullName = "output_failures", required = false, doc="produce output for failed sites")
     public boolean OUTPUT_FAILURES = true;
 
+    @Argument(fullName = "output_format", shortName = "s3", required = true, doc="Format of output: bed or maf")
+    public String OUTPUT_FORMAT;
+
 
     public void initialize() {
     }
@@ -260,23 +263,37 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
 
             // if we're still here... we've got a somatic mutation!  Output the results
             // and stop looking for mutants!
-            String msg =
-                        (failedMidpointCheck?"__FAILED-MPCHECK":"") +
-                        "TScore:" + tumorLod +
-                        "__TRefSum: " + tumorReadPile.qualitySums.getQualitySum(upRef) +
-                        "__TAltSum: " + tumorReadPile.qualitySums.getQualitySum(altAllele) +
-                        "__NScore:" + normalLod +
-                        "__NRefSum: " + normalReadPile.qualitySums.getQualitySum(upRef) +
-                        "__NAltSum: " + normalReadPile.qualitySums.getQualitySum(altAllele) +
-                        "__maxSkewLod_" + failureReason.second + "_" +
-                        "__MIDP: " + midp.get(altAllele);
+            if ("maf".equalsIgnoreCase(OUTPUT_FORMAT)) {
+                out.println(
+                       "36\t" + //build
+                        context.getContig() + "\t" +
+                        context.getPosition() + "\t" +
+                        context.getPosition() + "\t" +
+                        upRef + "\t" +
+                        upRef + "\t" +
+                        altAllele + "\t" +
+                        tumorSampleName + "\t" +
+                        normalSampleName);
+            } else {
 
-            out.println(
-                    context.getContig() + "\t" +
-                            context.getPosition() + "\t" +
-                            context.getPosition() + "\t"
-                    + msg.replace(' ','_')
-                    );
+                String msg =
+                            (failedMidpointCheck?"__FAILED-MPCHECK":"") +
+                            "TScore:" + tumorLod +
+                            "__TRefSum: " + tumorReadPile.qualitySums.getQualitySum(upRef) +
+                            "__TAltSum: " + tumorReadPile.qualitySums.getQualitySum(altAllele) +
+                            "__NScore:" + normalLod +
+                            "__NRefSum: " + normalReadPile.qualitySums.getQualitySum(upRef) +
+                            "__NAltSum: " + normalReadPile.qualitySums.getQualitySum(altAllele) +
+                            "__maxSkewLod_" + failureReason.second + "_" +
+                            "__MIDP: " + midp.get(altAllele);
+
+                out.println(
+                        context.getContig() + "\t" +
+                                context.getPosition() + "\t" +
+                                context.getPosition() + "\t"
+                        + msg.replace(' ','_')
+                        );
+            }
 
 
 
