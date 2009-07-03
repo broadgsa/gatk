@@ -115,8 +115,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private boolean isSupportedReadGroup( SAMReadGroupRecord readGroup ) {
         for( String platform: platforms ) {
             platform = platform.trim();
-            if( readGroup.getAttribute("PL") == null ||
-                    platform.equals("*") ||
+            if( platform.equals("*") ||
+                    readGroup.getAttribute("PL") == null ||
                     readGroup.getAttribute("PL").toString().equalsIgnoreCase(platform) )
                 return true;
         }
@@ -208,7 +208,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         for (String readGroup : new TreeSet<String>(covariateCounter.getReadGroups()) ) {
             for ( RecalData datum: RecalData.sort(covariateCounter.getRecalData(readGroup)) ) {
                 if ( datum.N > 0 )
-                    recalTableStream.format("%s%n", datum.toCSVString(collapsePos));
+                    recalTableStream.println(datum.toCSVString(collapsePos));
             }
         }
     }
