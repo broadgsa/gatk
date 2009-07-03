@@ -47,8 +47,8 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
 
     public float SKEW_LOD_THRESHOLD = 1.5f;
 
-//    @Argument(fullName = "output_failures", required = false, doc="produce output for failed sites")
-    public boolean OUTPUT_FAILURES = true;
+    @Argument(fullName = "output_failures", required = false, doc="produce output for failed sites")
+    public boolean OUTPUT_FAILURES = false;
 
     @Argument(fullName = "output_format", shortName = "s3", required = true, doc="Format of output: bed or maf")
     public String OUTPUT_FORMAT;
