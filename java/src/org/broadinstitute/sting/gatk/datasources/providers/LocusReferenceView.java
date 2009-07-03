@@ -4,6 +4,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
+import net.sf.samtools.SAMSequenceRecord;
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -76,11 +77,8 @@ public class LocusReferenceView extends ReferenceView {
      *         at the end of the locus (inclusive).
      */
     public char[] getReferenceBases( GenomeLoc genomeLoc ) {
-        long stop = genomeLoc.getStop();
-        long seqLength = reference.getSequence(genomeLoc.getContig()).length();
-        if (seqLength < genomeLoc.getStop()) {
-            stop = seqLength;
-        }
+        SAMSequenceRecord sequenceInfo = reference.getSequenceDictionary().getSequence(genomeLoc.getContig());
+        long stop = Math.min( genomeLoc.getStop(), sequenceInfo.getSequenceLength() );
         ReferenceSequence subsequence = reference.getSubsequenceAt(genomeLoc.getContig(),genomeLoc.getStart(),stop);
         return (StringUtil.bytesToString(subsequence.getBases()) + Utils.dupString('X', (int)(genomeLoc.getStop() - stop)) ).toCharArray();
     }
