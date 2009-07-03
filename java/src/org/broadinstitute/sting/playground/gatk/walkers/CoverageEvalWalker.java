@@ -5,12 +5,14 @@ import org.broadinstitute.sting.playground.utils.IndelLikelihood;
 import org.broadinstitute.sting.playground.utils.GenotypeLikelihoods;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.rodGFF;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.*;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
 import java.io.File;
@@ -22,26 +24,13 @@ import java.io.File;
  * Time: 12:38:17 PM
  * To change this template use File | Settings | File Templates.
  */
-public class CoverageEvalWalker extends LocusWalker<AlleleFrequencyEstimate, String> {
-
-    // Control how the genotype hypotheses are weighed
-    @Argument(fullName="priors_any_locus", shortName="plocus", doc="Comma-separated prior likelihoods for any locus (homref,het,homvar)", required=false) public String PRIORS_ANY_LOCUS = "0.999,1e-3,1e-5";
-    @Argument(fullName="priors_hapmap", shortName="phapmap", doc="Comma-separated prior likelihoods for Hapmap loci (homref,het,homvar)", required=false) public String PRIORS_HAPMAP = "0.999,1e-3,1e-5";
-    @Argument(fullName="priors_dbsnp", shortName="pdbsnp", doc="Comma-separated prior likelihoods for dbSNP loci (homref,het,homvar)", required=false) public String PRIORS_DBSNP = "0.999,1e-3,1e-5";
-    @Argument(fullName="priors_2nd_on", shortName="p2ndon", doc="Comma-separated prior likelihoods for the secondary bases of primary on-genotype bases (AA,AC,AG,AT,CC,CG,CT,GG,GT,TT)", required=false) public String PRIORS_2ND_ON = "0.000,0.302,0.366,0.142,0.000,0.548,0.370,0.000,0.319,0.000";
-    @Argument(fullName="priors_2nd_off", shortName="p2ndoff", doc="Comma-separated prior likelihoods for the secondary bases of primary off-genotype bases (AA,AC,AG,AT,CC,CG,CT,GG,GT,TT)", required=false) public String PRIORS_2ND_OFF = "0.480,0.769,0.744,0.538,0.575,0.727,0.768,0.589,0.762,0.505";
+public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
 
     // Control what goes into the variants file and what format that file should have
     @Argument(fullName="lod_threshold", shortName="lod", doc="The lod threshold on which variants should be filtered", required=false) public Double LOD_THRESHOLD = 5.0;
     @Argument(fullName="format_geli", shortName="geli", doc="Output variant calls in Geli/Picard format", required=false) public boolean GELI_OUTPUT_FORMAT = false;
 
     @Argument(fullName="variants_out", shortName="varout", doc="File to which variants should be written", required=true) public File VARIANTS_FILE;
-
-    public double[] plocus;
-    public double[] phapmap;
-    public double[] pdbsnp;
-    public double[] p2ndon;
-    public double[] p2ndoff;
 
     public PrintStream variantsOut;
 
@@ -54,43 +43,50 @@ public class CoverageEvalWalker extends LocusWalker<AlleleFrequencyEstimate, Str
         }
                 
         String header = GELI_OUTPUT_FORMAT ? AlleleFrequencyEstimate.geliHeaderString() : AlleleFrequencyEstimate.asTabularStringHeader();
-        variantsOut.println(header);
-
-        plocus = priorsArray(PRIORS_ANY_LOCUS);
-        phapmap = priorsArray(PRIORS_HAPMAP);
-        pdbsnp = priorsArray(PRIORS_DBSNP);
-        p2ndon = priorsArray(PRIORS_2ND_ON);
-        p2ndoff = priorsArray(PRIORS_2ND_OFF);
-
-    }    
+        variantsOut.println("#DownsampledCoverage\tAvailableCoveragt \t"+header);
+    }
 
     public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) {
         return (BaseUtils.simpleBaseToBaseIndex(ref) != -1 && context.getReads().size() != 0);
     }
 
-    private double[] priorsArray(String priorsString) {
-        String[] pstrs = priorsString.split(",");
-        double[] pdbls = new double[pstrs.length];
-
-        for (int i = 0; i < pstrs.length; i++) {
-            pdbls[i] = Double.valueOf(pstrs[i]);
+    public List<String> map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+        rodGFF hapmap_chip = (rodGFF)tracker.lookup("hapmap-chip", null);
+        String hc_genotype;
+        if (hapmap_chip != null) {
+            hc_genotype = hapmap_chip.getFeature();
+        }else{
+            hc_genotype = new String(new char[] {ref, ref});
         }
 
-        return pdbls;
-    }
-
-    public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-    
+        //if (tracker.hasROD("hapmap-chip")) {
+        ArrayList<String> Gs = new ArrayList<String>();
 
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         String bases = pileup.getBases();
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
 
-        // Handle single-base polymorphisms.
-        GenotypeLikelihoods G = callGenotype(tracker, ref, pileup, reads, offsets);
+        // Iterate over coverage levels
+        int coverage_available = reads.size();
+        int coverage_levels[] = {4, 10, 20, Integer.MAX_VALUE};
+        int downsampling_repeats = 10; // number of times to random re-sample each coverage_level
+        for (int coverage : coverage_levels) {
+            coverage = Math.min(coverage_available, coverage); // don't exceed max available coverage
+            for (int r=0; r<downsampling_repeats; r++) {
+                List<Integer> subset_indices = ListUtils.randomSubsetIndices(coverage, coverage_available);
+                List<SAMRecord> sub_reads = ListUtils.subsetListByIndices(subset_indices, reads);
+                List<Integer> sub_offsets = ListUtils.subsetListByIndices(subset_indices, offsets);
 
-        return G.toAlleleFrequencyEstimate(context.getLocation(), ref, bases.length(), bases, G.likelihoods, "sample");
+                // Call genotypes on subset of reads and offsets
+                GenotypeLikelihoods G = callGenotype(tracker, ref, pileup, sub_reads, sub_offsets);
+                String geliString = G.toAlleleFrequencyEstimate(context.getLocation(), ref, bases.length(), bases, G.likelihoods, "sample").asGeliString();
+
+                Gs.add(hc_genotype+"\t"+coverage+"\t"+coverage_available+"\t"+geliString);
+            }
+        }
+
+        return Gs;
     }
 
     /**
@@ -106,7 +102,7 @@ public class CoverageEvalWalker extends LocusWalker<AlleleFrequencyEstimate, Str
     private GenotypeLikelihoods callGenotype(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup, List<SAMRecord> reads, List<Integer> offsets) {
         GenotypeLikelihoods G;
 
-        G = new GenotypeLikelihoods(plocus[0], plocus[1], plocus[2], p2ndon, p2ndoff);
+        G = new GenotypeLikelihoods(); 
 
         for ( int i = 0; i < reads.size(); i++ ) {
             SAMRecord read = reads.get(i);
@@ -124,11 +120,11 @@ public class CoverageEvalWalker extends LocusWalker<AlleleFrequencyEstimate, Str
         return "";
     }
 
-    public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) {
-        GenomeLoc a =  GenomeLocParser.parseGenomeLoc("chr1:42971309");
-        if ((alleleFreq != null && alleleFreq.lodVsRef >= LOD_THRESHOLD) || (alleleFreq.location == a) )   {
-            String line = GELI_OUTPUT_FORMAT ? alleleFreq.asGeliString() : alleleFreq.asTabularString();
-		    variantsOut.println(line);
+    public String reduce(List<String> alleleFreqLines, String sum) {
+        //GenomeLoc a =  GenomeLocParser.parseGenomeLoc("chr1:42971309");
+        //if ((alleleFreq != null && alleleFreq.lodVsRef >= LOD_THRESHOLD)) { // || (alleleFreq.location == a) )   {
+        for (String line : alleleFreqLines) {
+            variantsOut.println(line);
         }
 
         return "";
