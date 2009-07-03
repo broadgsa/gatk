@@ -29,6 +29,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     public List<String> platforms = Collections.singletonList("*");
     //public List<String> platforms = Collections.singletonList("ILLUMINA");
 
+    @Argument(fullName="assumeFaultyHeader", required=false, doc="")
+    public boolean assumeFaultyHeader = false;
+
     //@Argument(fullName="collapsePos", shortName="collapsePos", required=false, doc="")
     public boolean collapsePos = false;
 
@@ -55,7 +58,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             readGroups.add(readGroup.getReadGroupId());
         }
 
-        covariateCounter = new CovariateCounter(readGroups, collapsePos, collapseDinuc);
+        covariateCounter = new CovariateCounter(readGroups, collapsePos, collapseDinuc, assumeFaultyHeader);
         logger.info(String.format("Created recalibration data collectors for %d read group(s)", covariateCounter.getNReadGroups()));
     }
 
@@ -88,11 +91,17 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                     throw new RuntimeException("Expectedly long read, please increase maxium read len with maxReadLen parameter: " + read.format());
                 }
 
-                SAMReadGroupRecord readGroup = read.getHeader().getReadGroup((String)read.getAttribute("RG"));
+                final String readGroupString = ((String)read.getAttribute("RG"));
+                SAMReadGroupRecord readGroup = read.getHeader().getReadGroup(readGroupString);
+
+                if ( readGroupString == null ) {
+                    throw new RuntimeException("No read group annotation found for read " + read.format());
+                }
+
                 if ((read.getMappingQuality() >= MIN_MAPPING_QUALITY && isSupportedReadGroup(readGroup) )) {
                     int offset = offsets.get(i);
                     if ( offset > 0 && offset < (read.getReadLength() - 1) ) { // skip first and last bases because they suck and they don't have a dinuc count
-                        counted_bases += covariateCounter.updateDataFromRead(readGroup.getReadGroupId(), read, offset, ref);
+                        counted_bases += covariateCounter.updateDataFromRead(readGroupString, read, offset, ref);
                     }
                 }
             }
@@ -115,7 +124,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private boolean isSupportedReadGroup( SAMReadGroupRecord readGroup ) {
         for( String platform: platforms ) {
             platform = platform.trim();
-            if( platform.equals("*") ||
+            if( platform.equals("*") || readGroup == null ||
                     readGroup.getAttribute("PL") == null ||
                     readGroup.getAttribute("PL").toString().equalsIgnoreCase(platform) )
                 return true;

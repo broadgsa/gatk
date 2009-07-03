@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.apache.log4j.Logger;
 
 import javax.management.RuntimeErrorException;
 import java.util.*;
@@ -9,17 +10,25 @@ import java.util.*;
 public class CovariateCounter {
     private boolean collapsePos = false;
     private boolean collapseDinuc = false;
+    private boolean assumeFaultyHeader = false;
 
     private HashMap<String, RecalDataManager> data = new HashMap<String, RecalDataManager>();
 
-    public CovariateCounter( Set<String> readGroups, boolean collapsePos, boolean collapseDinuc ) {
+    protected static Logger logger = Logger.getLogger(CovariateCounter.class);
+
+    public CovariateCounter( Set<String> readGroups, boolean collapsePos, boolean collapseDinuc, boolean assumeFaultyHeader ) {
         this.collapsePos = collapsePos;
         this.collapseDinuc = collapseDinuc;
+        this.assumeFaultyHeader = assumeFaultyHeader;
 
         for (String readGroup : readGroups ) {
-            RecalDataManager manager = new RecalDataManager(readGroup, ! collapsePos, ! collapseDinuc );
+            RecalDataManager manager = makeManager(readGroup);
             data.put(readGroup, manager);
         }
+    }
+
+    private RecalDataManager makeManager(final String readGroup) {
+        return new RecalDataManager(readGroup, ! collapsePos, ! collapseDinuc );
     }
 
     /**
@@ -60,6 +69,17 @@ public class CovariateCounter {
      * @return
      */
     public RecalData getRecalData(String readGroup, int pos, int qual, char prevBase, char base) {
+        if ( ! data.containsKey(readGroup) ) {
+            if ( assumeFaultyHeader ) {
+                logger.info(String.format("Found unexpected read group, but assuming the header was bad, so extending covariates with read group %s", readGroup));
+                RecalDataManager manager = makeManager(readGroup);
+                data.put(readGroup, manager);
+            } else {
+                throw new RuntimeException(String.format("Unexpected read group %s found, there's something wrong with your BAM file's header", readGroup));
+            }
+        }
+        
+
         byte[] cs = {(byte)prevBase, (byte)base};
         String s = new String(cs);
         return data.get(readGroup).expandingGetRecalData(pos, qual, s, true);
