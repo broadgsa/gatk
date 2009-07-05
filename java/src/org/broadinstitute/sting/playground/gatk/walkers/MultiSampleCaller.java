@@ -21,7 +21,7 @@ import java.io.*;
 // Beta iterative multi-sample caller
 // j.maguire 6-11-2009
 
-public class MultiSampleCaller extends LocusWalker<String,String>
+public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSampleCallResult,String>
 {
     @Argument(required=false, shortName="fractional_counts", doc="should we use fractional counts?") public boolean FRACTIONAL_COUNTS = false;
     @Argument(required=false, shortName="max_iterations", doc="Maximum number of iterations for EM") public int MAX_ITERATIONS = 10;
@@ -35,6 +35,41 @@ public class MultiSampleCaller extends LocusWalker<String,String>
     private SAMFileHeader header;
 	PrintStream individual_output_file;
 	PrintStream discovery_output_file;
+
+
+	class MultiSampleCallResult
+	{
+		char ref;
+		char alt;
+		EM_Result em_result;
+		double lod;
+		double strand_score;
+		double pD;
+		double pNull;
+		String in_dbsnp;
+		int n_ref;
+		int n_het;
+		int n_hom;
+		int EM_N;
+		double alt_freq;
+		public MultiSampleCallResult(char ref, char alt, EM_Result em_result, double lod, double strand_score, double pD, double pNull, String in_dbsnp, int n_ref, int n_het, int n_hom, int EM_N, double alt_freq)
+		{
+			this.ref = ref;
+			this.alt = alt;
+			this.em_result = em_result;
+			this.lod = lod;
+			this.strand_score = strand_score; 
+			this.pD = pD;
+			this.pNull = pNull;
+			this.in_dbsnp = in_dbsnp;
+			this.n_ref = n_ref;
+			this.n_het = n_het;
+			this.n_hom = n_hom;
+			this.EM_N = EM_N;
+			this.alt_freq = alt_freq;
+		}
+	}
+
 
 	/////////
 	// Walker Interface Functions 
@@ -76,15 +111,13 @@ public class MultiSampleCaller extends LocusWalker<String,String>
         } 
     }
 
-	public String in_dbsnp = "novel";
 
-    public String map(RefMetaDataTracker tracker, char ref, LocusContext context) 
+    public MultiSampleCallResult map(RefMetaDataTracker tracker, char ref, LocusContext context) 
 	{
 		if (ref == 'N') { return null; }
 		this.ref = ref;
-		if (tracker.lookup("DBSNP", null) != null) { in_dbsnp = "known"; } else { in_dbsnp = "novel"; }
-		this.MultiSampleCall(context, sample_names);
-		return null;
+		MultiSampleCallResult result = this.MultiSampleCall(tracker, ref, context, sample_names);
+		return result;
 	}
 
     public void onTraversalDone(String sum) 
@@ -98,7 +131,7 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 		return null;
 	}
 
-    public String reduce(String record, String sum) 
+    public String reduce(MultiSampleCallResult record, String sum) 
 	{
 		return null;
 	}
@@ -273,11 +306,15 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 
 	class EM_Result
 	{
+		String[] sample_names;
 		GenotypeLikelihoods[] genotype_likelihoods;
 		double[] allele_likelihoods;
 		int EM_N;
-		public EM_Result(GenotypeLikelihoods[] genotype_likelihoods, double[] allele_likelihoods)
+
+		public EM_Result(List<String> sample_names, GenotypeLikelihoods[] genotype_likelihoods, double[] allele_likelihoods)
 		{
+			this.sample_names = new String[1];
+			this.sample_names = sample_names.toArray(this.sample_names);
 			this.genotype_likelihoods = genotype_likelihoods;
 			this.allele_likelihoods = allele_likelihoods;
 
@@ -317,7 +354,7 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 			}
 		}
 
-		return new EM_Result(G, allele_likelihoods);
+		return new EM_Result(sample_names, G, allele_likelihoods);
 	}
 
 	// Hacky global variables for debugging.
@@ -429,8 +466,11 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 	}
 
 	// This should actually return a GLF Record
-	String MultiSampleCall(LocusContext context, List<String> sample_names) 
+	MultiSampleCallResult MultiSampleCall(RefMetaDataTracker tracker, char ref, LocusContext context, List<String> sample_names) 
 	{
+		String in_dbsnp;
+		if (tracker.lookup("DBSNP", null) != null) { in_dbsnp = "known"; } else { in_dbsnp = "novel"; }
+
 		LocusContext[] contexts = filterLocusContextBySample(context, sample_names, 0);
 		double lod = LOD(contexts);		
 		double strand_score = StrandScore(context);
@@ -472,7 +512,7 @@ public class MultiSampleCaller extends LocusWalker<String,String>
 			individual_output_file.printf("\n");
 		}
 
-		return null;
+		return new MultiSampleCallResult(ref, alt, em_result, lod, strand_score, pD, pNull, in_dbsnp, n_ref, n_het, n_hom, em_result.EM_N, alt_freq);
 	}
 
 	// END Calling Functions

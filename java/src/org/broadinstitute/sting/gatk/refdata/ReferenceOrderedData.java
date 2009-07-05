@@ -68,6 +68,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         addModule("PooledEM", PooledEMSNPROD.class);
         addModule("1KGSNPs", KGenomesSNPROD.class);
         addModule("SangerSNP", SangerSNPROD.class);
+        addModule("HapMapGenotype", HapMapGenotypeROD.class);
         addModule("Intervals", IntervalRod.class);
         addModule("Variants", rodVariants.class);
     }
@@ -309,15 +310,13 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     // Parsing
     //
     // ----------------------------------------------------------------------
+	private Constructor<ROD> parsing_constructor;
     private ROD newROD( final String name, final Class<ROD> type ) {
         try {
-            Constructor<ROD> c = type.getConstructor(String.class);
-            return (ROD)c.newInstance(name);
+            return (ROD)parsing_constructor.newInstance(name);
         } catch ( java.lang.InstantiationException e ) {
             throw new RuntimeException(e);
         } catch ( java.lang.IllegalAccessException e ) {
-            throw new RuntimeException(e);
-        } catch ( java.lang.NoSuchMethodException e ) {
             throw new RuntimeException(e);
         } catch ( InvocationTargetException e ) {
             throw new RuntimeException(e);
@@ -325,6 +324,8 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     }
 
     private Object initializeROD(final String name, final File file, final Class<ROD> type) {
+		try { parsing_constructor = type.getConstructor(String.class); }
+		catch (java.lang.NoSuchMethodException e) { throw new RuntimeException(e); }
         ROD rod = newROD(name, type);
         try {
             return rod.initialize(file);

@@ -51,7 +51,7 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
     public static String DELIMITER_REGEX = DEFAULT_DELIMITER_REGEX;
 
     private static int MAX_LINES_TO_LOOK_FOR_HEADER = 1000;
-    private static Pattern HEADER_PATTERN = Pattern.compile("^\\s*((HEADER)|(loc)).*");
+    private static Pattern HEADER_PATTERN = Pattern.compile("^\\s*((HEADER)|(loc)|(rs#)).*");
     private static Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
 
     private static int parsedRecords = 0;
@@ -91,7 +91,7 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
 
     private static boolean headerIsGood(final ArrayList<String> header) {
         if ( header.size() == 0 ) return false;
-        if ( ! header.get(0).equals("HEADER") ) return false;
+        //if ( ! header.get(0).equals("HEADER") ) return false;
         return true;
     }
 
