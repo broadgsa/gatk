@@ -225,8 +225,8 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         // decide which reads potentially need to be cleaned
         for ( SAMRecord read : reads ) {
 
-            // we currently can not deal with clipped reads correctly
-            if ( readIsClipped(read) ) {
+            // we currently can not deal with clipped reads correctly (or screwy record)
+            if ( read.getCigar().numCigarElements() == 0 || readIsClipped(read) ) {
                 refReads.add(read);
                 continue;
             }
