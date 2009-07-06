@@ -178,14 +178,6 @@ public abstract class LocusView extends LocusContextIterator implements View {
                 TraversalStatistics.nBadAlignments++;
                 result = true;
                 why = "No alignment start";
-            } else if (rec.getAlignmentEnd() != -1 && rec.getAlignmentEnd() < rec.getAlignmentStart() ) {
-                TraversalStatistics.nBadAlignments++;
-                result = true;
-                why = "Alignment ends before it starts";
-            } else if (rec.getAlignmentStart() != -1 && rec.getAlignmentBlocks().size() == 0) {
-                TraversalStatistics.nBadAlignments++;
-                result = true;
-                why = "Alignment cigar string is invalid";
             } else if (rec.getDuplicateReadFlag()) {
                 TraversalStatistics.nDuplicates++;
                 result = true;

@@ -49,7 +49,7 @@ public class LinearMicroScheduler extends MicroScheduler {
 
         Object result = accumulator.finishTraversal();
 
-        traversalEngine.printOnTraversalDone(result);
+        printOnTraversalDone(result);
 
         return accumulator;
     }

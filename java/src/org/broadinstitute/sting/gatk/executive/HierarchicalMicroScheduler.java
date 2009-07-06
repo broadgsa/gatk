@@ -135,8 +135,9 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
             throw new StingException("Unable to retrieve result", ex);
         }
 
-        traversalEngine.printOnTraversalDone(result);
-        walker.onTraversalDone(result);
+        walker.onTraversalDone(result);        
+
+        printOnTraversalDone(result);
 
         return result;
     }

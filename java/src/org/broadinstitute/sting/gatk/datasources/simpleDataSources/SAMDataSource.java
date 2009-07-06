@@ -3,6 +3,8 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
+import net.sf.picard.filter.FilteringIterator;
+import net.sf.picard.filter.SamRecordFilter;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
@@ -12,6 +14,8 @@ import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.sam.SAMReadValidator;
+import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 
 import java.io.File;
 import java.util.List;
@@ -54,6 +58,11 @@ public class SAMDataSource implements SimpleDataSource {
     /** Backing support for reads. */
     private final Reads reads;
 
+    /**
+     * A histogram of exactly what reads were removed from the input stream and why.
+     */
+    private SAMReadViolationHistogram violations = new SAMReadViolationHistogram();
+
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(SAMDataSource.class);
 
@@ -72,6 +81,14 @@ public class SAMDataSource implements SimpleDataSource {
 
     // A pool of SAM iterators.
     private SAMIteratorPool iteratorPool = null;
+
+    /**
+     * Returns a histogram of reads that were screened out, grouped by the nature of the error.
+     * @return Histogram of reads.  Will not be null.
+     */
+    public SAMReadViolationHistogram getViolationHistogram() {
+        return violations;
+    }
 
     /**
      * constructor, given sam files
@@ -94,26 +111,12 @@ public class SAMDataSource implements SimpleDataSource {
     }
 
     /**
-     * For unit testing, add a custom iterator pool.
+     * Gets the (potentially merged) SAM file header.
      *
-     * @param iteratorPool Custom mock iterator pool.
+     * @return SAM file header.
      */
-    void setResourcePool( SAMIteratorPool iteratorPool ) {
-        this.iteratorPool = iteratorPool;
-    }
-
-
-    /**
-     * <p>
-     * seekLocus
-     * </p>
-     *
-     * @param location the genome location to extract data for
-     *
-     * @return an iterator for that region
-     */
-    public StingSAMIterator seekLocus( GenomeLoc location ) throws SimpleDataSourceLoadException {
-        return iteratorPool.iterator(new MappedStreamSegment(location));
+    public SAMFileHeader getHeader() {
+        return iteratorPool.getHeader();
     }
 
     /**
@@ -130,14 +133,14 @@ public class SAMDataSource implements SimpleDataSource {
         StingSAMIterator iterator = null;
         if (shard.getShardType() == Shard.ShardType.READ) {
             iterator = seekRead((ReadShard) shard);
-            iterator = TraversalEngine.applyDecoratingIterators(true,
+            iterator = applyDecoratingIterators(true,
                     iterator,
                     reads.getDownsamplingFraction(),
                     reads.getFilterZeroMappingQualityReads(),
                     reads.getSafetyChecking());
         } else if (shard.getShardType() == Shard.ShardType.LOCUS || shard.getShardType() == Shard.ShardType.INTERVAL) {
             iterator = seekLocus(shard.getGenomeLoc());
-            iterator = TraversalEngine.applyDecoratingIterators(false,
+            iterator = applyDecoratingIterators(false,
                     iterator,
                     reads.getDownsamplingFraction(),
                     reads.getFilterZeroMappingQualityReads(),
@@ -151,12 +154,16 @@ public class SAMDataSource implements SimpleDataSource {
 
 
     /**
-     * Gets the (potentially merged) SAM file header.
+     * <p>
+     * seekLocus
+     * </p>
      *
-     * @return SAM file header.
+     * @param location the genome location to extract data for
+     *
+     * @return an iterator for that region
      */
-    public SAMFileHeader getHeader() {
-        return iteratorPool.getHeader();
+    private StingSAMIterator seekLocus( GenomeLoc location ) throws SimpleDataSourceLoadException {
+        return iteratorPool.iterator(new MappedStreamSegment(location));
     }
 
 
@@ -208,6 +215,15 @@ public class SAMDataSource implements SimpleDataSource {
     public void viewUnmappedReads( boolean seeUnMappedReads ) {
         includeUnmappedReads = seeUnMappedReads;
     }
+
+    /**
+     * For unit testing, add a custom iterator pool.
+     *
+     * @param iteratorPool Custom mock iterator pool.
+     */
+    void setResourcePool( SAMIteratorPool iteratorPool ) {
+        this.iteratorPool = iteratorPool;
+    }    
 
     /**
      * Retrieve unmapped reads.
@@ -333,6 +349,49 @@ public class SAMDataSource implements SimpleDataSource {
         return bound;
     }
 
+    /**
+     * Filter reads based on user-specified criteria.
+     *
+     * @param enableVerification Verify the order of reads.
+     * @param wrappedIterator the raw data source.
+     * @param downsamplingFraction whether and how much to downsample the reads themselves (not at a locus).
+     * @param filterZeroMappingQualityReads whether to filter zero mapping quality reads.
+     * @param beSafeP Another trigger for the verifying iterator?  TODO: look into this.
+     * @return An iterator wrapped with filters reflecting the passed-in parameters.  Will not be null.
+     */
+    private StingSAMIterator applyDecoratingIterators(boolean enableVerification,
+                                                      StingSAMIterator wrappedIterator,
+                                                      Double downsamplingFraction,
+                                                      Boolean filterZeroMappingQualityReads,
+                                                      Boolean beSafeP) {
+        wrappedIterator = new MalformedSAMFilteringIterator(wrappedIterator,violations);
+
+        // NOTE: this (and other filtering) should be done before on-the-fly sorting
+        //  as there is no reason to sort something that we will end of throwing away
+        if (downsamplingFraction != null)
+            wrappedIterator = new DownsampleIterator(wrappedIterator, downsamplingFraction);
+
+        if (beSafeP != null && beSafeP && enableVerification)
+            wrappedIterator = new VerifyingSamIterator(wrappedIterator);
+
+        if ( filterZeroMappingQualityReads != null && filterZeroMappingQualityReads )
+            wrappedIterator = StingSAMIteratorAdapter.adapt(wrappedIterator.getSourceInfo(),
+                    new FilteringIterator(wrappedIterator, new ZeroMappingQualityReadFilterFunc()));
+
+        return wrappedIterator;
+    }
+
+    private static class ZeroMappingQualityReadFilterFunc implements SamRecordFilter {
+        public boolean filterOut(SAMRecord rec) {
+            if (rec.getMappingQuality() == 0) {
+                //System.out.printf("Filtering 0 mapping quality read %s%n", rec.format());
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+    
 }
 
 class SAMIteratorPool extends ResourcePool<ReadStreamPointer, StingSAMIterator> {

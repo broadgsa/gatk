@@ -275,13 +275,10 @@ public abstract class TraversalEngine {
 
     /**
      * A passthrough method so that subclasses can report which types of traversals they're using.
-     * TODO: Make this method abstract once all traversals support it.
      * @param sum Result of the computation.
      * @param <T> Type of the computation.
      */
-    public <T> void printOnTraversalDone( T sum ) {
-        throw new UnsupportedOperationException( "This method is a required override for new traversal engines.  Please port your traversal engine to the new style." );
-    }
+    public abstract <T> void printOnTraversalDone( T sum );
 
     /**
      * Called after a traversal to print out information about the traversal process
@@ -296,7 +293,7 @@ public abstract class TraversalEngine {
         final long curTime = System.currentTimeMillis();
         final double elapsed = (curTime - startTime) / 1000.0;
         logger.info(String.format("Total runtime %.2f secs, %.2f min, %.2f hours%n", elapsed, elapsed / 60, elapsed / 3600));
-        logger.info(String.format("Traversal skipped %d reads out of %d total (%.2f%%)",
+        logger.info(String.format("Traversal skipped %d valid reads out of %d total (%.2f%%)",
                     TraversalStatistics.nSkippedReads,
                     TraversalStatistics.nReads,
                     (TraversalStatistics.nSkippedReads * 100.0) / TraversalStatistics.nReads));
@@ -325,67 +322,6 @@ public abstract class TraversalEngine {
         initializeRODs();
 
         return true;
-    }
-
-   
-    @Deprecated
-    protected StingSAMIterator wrapReadsIterator( final Iterator<SAMRecord> rawIterator, final boolean enableVerification ) {
-        // Reads sourceInfo is gone by this point in the traversal engine.  Stub in a null and rely on the iterator to
-        // throw an exception if reads info isn't present.
-        StingSAMIterator wrappedIterator = StingSAMIteratorAdapter.adapt(null,rawIterator);
-        wrappedIterator = applyDecoratingIterators(enableVerification,wrappedIterator);
-
-        return wrappedIterator;
-    }
-
-    /**
-     * Repackage instance variables and call static method.
-     * TODO: This method's days are numbered.
-     * @param enableVerification
-     * @param wrappedIterator
-     * @return
-     */
-    protected StingSAMIterator applyDecoratingIterators( final boolean enableVerification, final StingSAMIterator wrappedIterator ) {
-        return applyDecoratingIterators(enableVerification,
-                                        wrappedIterator,
-                                        DOWNSAMPLE_BY_FRACTION ? downsamplingFraction : null,
-                                        filterZeroMappingQualityReads,
-                                        beSafeP);
-    }
-
-    /**
-     * WARNING: In TraversalEngine for backward compatibility ONLY.  Reads are not used as the data source, only as parameters
-     *          for validation.
-     */
-    public static StingSAMIterator applyDecoratingIterators(boolean enableVerification,
-                                                            StingSAMIterator wrappedIterator,
-                                                            Double downsamplingFraction,
-                                                            Boolean filterZeroMappingQualityReads, 
-                                                            Boolean beSafeP) {
-        // NOTE: this (and other filtering) should be done before on-the-fly sorting
-        //  as there is no reason to sort something that we will end of throwing away
-        if (downsamplingFraction != null)
-            wrappedIterator = new DownsampleIterator(wrappedIterator, downsamplingFraction);
-
-        if (beSafeP != null && beSafeP && enableVerification)
-            wrappedIterator = new VerifyingSamIterator(wrappedIterator);
-
-        if ( filterZeroMappingQualityReads != null && filterZeroMappingQualityReads )
-            wrappedIterator = StingSAMIteratorAdapter.adapt(wrappedIterator.getSourceInfo(),
-                                                            new FilteringIterator(wrappedIterator, new ZeroMappingQualityReadFilterFunc()));
-
-        return wrappedIterator;
-    }
-
-    private static class ZeroMappingQualityReadFilterFunc implements SamRecordFilter {
-        public boolean filterOut(SAMRecord rec) {
-            if (rec.getMappingQuality() == 0) {
-                //System.out.printf("Filtering 0 mapping quality read %s%n", rec.format());
-                return true;
-            } else {
-                return false;
-            }
-        }
     }
 
     protected SAMFileReader initializeSAMFile(File samFile) {

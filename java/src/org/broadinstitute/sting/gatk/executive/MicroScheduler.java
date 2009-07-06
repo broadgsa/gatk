@@ -208,6 +208,15 @@ public abstract class MicroScheduler {
     }
 
     /**
+     * Print summary information for the analysis.
+     * @param sum The final reduce output.
+     */
+    protected void printOnTraversalDone(Object sum) {
+        logger.info(String.format("%n%s",reads.getViolationHistogram()));
+        traversalEngine.printOnTraversalDone(sum);
+    }
+
+    /**
      * Gets a data source for the given set of reads.
      *
      * @param reads   the read source information

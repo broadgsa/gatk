@@ -124,10 +124,6 @@ public class TraverseReads extends TraversalEngine {
                 // get the genome loc from the read
                 GenomeLoc site = GenomeLocParser.createGenomeLoc(read);
 
-                // this is a temporary fix to deal with unmapped reads which "map" to a given location and have a MAPPED flag set
-                if ( site.getStop() != -1 && site.getStop() < site.getStart() )
-                    continue;
-
                 // Jump forward in the reference to this locus location
                 locus = new LocusContext(site, Arrays.asList(read), Arrays.asList(0));
 
