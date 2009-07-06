@@ -247,7 +247,7 @@ public class DupUtils {
         String bases = BasicPileup.basePileupAsString(duplicates, offsets);
         ArrayList<Byte> quals = BasicPileup.qualPileup(duplicates, offsets);
         byte combinedBase  = BasicPileup.consensusBase(bases);
-        int baseMatches = Utils.countOccurances((char)combinedBase, bases);
+        int baseMatches = Utils.countOccurrences((char)combinedBase, bases);
         double maxP = QualityUtils.qualToProb(Utils.listMaxByte(quals));
         double mismatchRate = (double)baseMatches / bases.length();
         byte combinedQual = QualityUtils.probToQual(Math.min(maxP, mismatchRate), 0.0);

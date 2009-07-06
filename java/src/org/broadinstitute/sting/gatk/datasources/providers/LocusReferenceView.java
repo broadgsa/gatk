@@ -70,17 +70,12 @@ public class LocusReferenceView extends ReferenceView {
 
     /**
      * Allow the user to pull reference info from any arbitrary region of the reference.
-     * Assume the user has already performed all necessary bounds checking.
-     * TODO: This function is nearly identical to that in the ReadReferenceView.  Merge the common functionality.
      * @param genomeLoc The locus.
      * @return A list of the bases starting at the start of the locus (inclusive) and ending
      *         at the end of the locus (inclusive).
      */
     public char[] getReferenceBases( GenomeLoc genomeLoc ) {
-        SAMSequenceRecord sequenceInfo = reference.getSequenceDictionary().getSequence(genomeLoc.getContig());
-        long stop = Math.min( genomeLoc.getStop(), sequenceInfo.getSequenceLength() );
-        ReferenceSequence subsequence = reference.getSubsequenceAt(genomeLoc.getContig(),genomeLoc.getStart(),stop);
-        return (StringUtil.bytesToString(subsequence.getBases()) + Utils.dupString('X', (int)(genomeLoc.getStop() - stop)) ).toCharArray();
+        return super.getReferenceBases(genomeLoc);
     }
 
     /**

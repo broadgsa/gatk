@@ -437,12 +437,11 @@ public class Utils {
 
     public static String dupString( char c, int nCopies ) {
         char[] chars = new char[nCopies];
-        for ( int i = 0; i < nCopies; i++ ) chars[i] = c;
-        //System.out.printf("chars is %s%n", new String(chars));
+        Arrays.fill(chars,c);
         return new String(chars);
     }
 
-    public static int countOccurances(char c, String s) {
+    public static int countOccurrences(char c, String s) {
         int count = 0;
         for ( int i = 0; i < s.length(); i++ ) {
             count += s.charAt(i) == c ? 1 : 0;

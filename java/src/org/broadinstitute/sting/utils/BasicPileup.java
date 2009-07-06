@@ -58,7 +58,7 @@ abstract public class BasicPileup implements Pileup {
     }
 
     public static ArrayList<Byte> basePileup( List<SAMRecord> reads, List<Integer> offsets ) {
-        ArrayList<Byte> bases = new ArrayList(reads.size());
+        ArrayList<Byte> bases = new ArrayList<Byte>(reads.size());
         for ( int i = 0; i < reads.size(); i++ ) {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
@@ -68,7 +68,7 @@ abstract public class BasicPileup implements Pileup {
     }
 
     public static ArrayList<Byte> qualPileup( List<SAMRecord> reads, List<Integer> offsets ) {
-        ArrayList<Byte> quals = new ArrayList(reads.size());
+        ArrayList<Byte> quals = new ArrayList<Byte>(reads.size());
         for ( int i = 0; i < reads.size(); i++ ) {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
@@ -79,7 +79,7 @@ abstract public class BasicPileup implements Pileup {
     }
 
     public static ArrayList<Byte> mappingQualPileup( List<SAMRecord> reads) {
-        ArrayList<Byte> quals = new ArrayList(reads.size());
+        ArrayList<Byte> quals = new ArrayList<Byte>(reads.size());
         for ( int i = 0; i < reads.size(); i++ ) {
             SAMRecord read = reads.get(i);
             byte qual = (byte)read.getMappingQuality();
@@ -349,10 +349,10 @@ abstract public class BasicPileup implements Pileup {
 
     public static byte consensusBase(String bases) {
         String canon = bases.toUpperCase();
-        int ACount = Utils.countOccurances('A', bases);
-        int CCount = Utils.countOccurances('C', bases);
-        int TCount = Utils.countOccurances('T', bases);
-        int GCount = Utils.countOccurances('G', bases);
+        int ACount = Utils.countOccurrences('A', bases);
+        int CCount = Utils.countOccurrences('C', bases);
+        int TCount = Utils.countOccurrences('T', bases);
+        int GCount = Utils.countOccurrences('G', bases);
 
         int m = Math.max(ACount, Math.max(CCount, Math.max(TCount, GCount)));
         if ( ACount == m ) return 'A';

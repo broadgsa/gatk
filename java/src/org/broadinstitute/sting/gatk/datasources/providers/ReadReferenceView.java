@@ -5,6 +5,8 @@ import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -62,17 +64,7 @@ public class ReadReferenceView extends ReferenceView {
     public char[] getReferenceBases( SAMRecord read ) {
         if (read.getReadUnmappedFlag())
             return null;
-
-        String contig = read.getReferenceName();
-        int start = read.getAlignmentStart();
-        int stop = read.getAlignmentEnd();
-
-        SAMSequenceRecord sequenceRecord = reference.getSequenceDictionary().getSequence(contig);
-        if (stop > sequenceRecord.getSequenceLength())
-            stop = sequenceRecord.getSequenceLength();
-
-        ReferenceSequence alignmentToReference = reference.getSubsequenceAt(contig, start, stop);
-        return ( StringUtil.bytesToString(alignmentToReference.getBases()) + Utils.dupString('X', read.getAlignmentEnd() - stop) ).toCharArray();
+        return getReferenceBases( GenomeLocParser.createGenomeLoc(read) );
     }
 
 }
