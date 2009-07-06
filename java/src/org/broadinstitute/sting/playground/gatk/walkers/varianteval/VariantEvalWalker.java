@@ -21,7 +21,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     public boolean printVariants = false;
 
     @Argument(shortName="badHWEThreshold", doc="XXX", required=false)
-    public double badHWEThreshold = 0.001;
+    public double badHWEThreshold = 1e-3;
 
     String analysisFilenameBase = null;
 
@@ -72,7 +72,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         if ( printVariants ) analyses.add(new VariantMatcher(knownSNPDBName));
 
         for ( VariantAnalysis analysis : analyses ) {
-            analysis.initialize(this, openAnalysisOutputStream(setName, analysis));
+            initializeAnalysisOutputStream(setName, analysis);
         }
 
         return analyses;
@@ -91,14 +91,14 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
             return analysisFilenameBase + Utils.join(".", Utils.cons(name, params));
     }
 
-    public PrintStream openAnalysisOutputStream(final String setName, VariantAnalysis analysis) {
+    public void initializeAnalysisOutputStream(final String setName, VariantAnalysis analysis) {
         final String filename = getAnalysisFilename(setName + "." + analysis.getName(), analysis.getParams());
         if ( filename == null )
-            return out;
+            analysis.initialize(this, out, filename);
         else {
             File file = new File(filename);
             try {
-                return new PrintStream(new FileOutputStream(file));
+                analysis.initialize(this, new PrintStream(new FileOutputStream(file)), filename);
             } catch (FileNotFoundException e) {
                 throw new StingException("Couldn't open analysis output file " + filename, e);
             }
@@ -150,7 +150,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         // Iterate over each analysis, and update it
         for ( VariantAnalysis analysis : getAnalysisSet(analysisSetName) ) {
             String s = analysis.update(eval, tracker, ref, context);
-            if ( s != null ) analysis.getPrintStream().println(s);
+            if ( s != null ) analysis.getCallPrintStream().println(s);
         }
     }
 
@@ -174,7 +174,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         Date now = new Date();
         for ( VariantAnalysis analysis : getAnalysisSet(analysisSetName) ) {
             analysis.finalize(nSites);
-            PrintStream stream = analysis.getPrintStream(); // getAnalysisOutputStream(analysisSetName + "." + analysis.getName(), analysis.getParams());
+            PrintStream stream = analysis.getSummaryPrintStream();
             stream.printf("%s%s%n", COMMENT_STRING, Utils.dupString('-', 78));
             stream.printf("%sAnalysis set       %s%n", COMMENT_STRING, analysisSetName);
             stream.printf("%sAnalysis name      %s%n", COMMENT_STRING, analysis.getName());

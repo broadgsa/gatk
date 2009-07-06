@@ -189,19 +189,19 @@ public class TabularRODTest extends BaseTest {
         assertTrue(two.get("col3").equals("5"));
     }
 
-    @Test (expected=RuntimeException.class )
+/*    @Test (expected=RuntimeException.class )
     public void testBadHeader1() {
         logger.warn("Executing testBadHeader1");
         ArrayList<String> header = new ArrayList<String>();
         TabularROD row = new TabularROD("myName", header, GenomeLocParser.createGenomeLoc("chrM", 1));
-    }
+    }*/
 
-    @Test (expected=RuntimeException.class )
+/*    @Test (expected=RuntimeException.class )
     public void testBadHeader2() {
         logger.warn("Executing testBadHeader2");
         ArrayList<String> header = new ArrayList<String>(Arrays.asList("col1", "col2", "col3"));
         TabularROD row = new TabularROD("myName", header, GenomeLocParser.createGenomeLoc("chrM", 1));
-    }
+    }*/
 
     @Test (expected=RuntimeException.class )
     public void testBadData1() {

@@ -12,6 +12,7 @@ public abstract class BasicVariantAnalysis implements VariantAnalysis {
     protected String name;
     protected PrintStream out;
     protected VariantEvalWalker master;
+    protected String filename;
 
     public BasicVariantAnalysis(String name) {
         this.name = name;
@@ -25,12 +26,17 @@ public abstract class BasicVariantAnalysis implements VariantAnalysis {
         return new ArrayList<String>();
     }
 
-    public void initialize(VariantEvalWalker master, PrintStream out) {
+    public void initialize(VariantEvalWalker master, PrintStream out, String filename) {
         this.master = master;
         this.out = out;
+        this.filename = filename;
     }
 
-    public PrintStream getPrintStream() {
+    public PrintStream getSummaryPrintStream() {
+        return out;
+    }
+
+    public PrintStream getCallPrintStream() {
         return out;
     }
 

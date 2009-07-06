@@ -9,9 +9,10 @@ import java.util.List;
 
 public interface VariantAnalysis {
     public String getName();
-    public PrintStream getPrintStream();
+    public PrintStream getSummaryPrintStream();
+    public PrintStream getCallPrintStream();
     public List<String> getParams();
-    public void initialize(VariantEvalWalker master, PrintStream out);
+    public void initialize(VariantEvalWalker master, PrintStream out, String filename);
     public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context);
     public void finalize(long nSites);
     public List<String> done();

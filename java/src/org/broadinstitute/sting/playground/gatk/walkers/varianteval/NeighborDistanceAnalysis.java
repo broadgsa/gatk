@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.io.PrintStream;
+import java.io.File;
+import java.io.FileNotFoundException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,12 +20,13 @@ import java.io.PrintStream;
  * Time: 4:38:19 PM
  * To change this template use File | Settings | File Templates.
  */
-public class NeighborDistanceAnalysis extends BasicVariantAnalysis {
+public class NeighborDistanceAnalysis extends ViolationVariantAnalysis {
     ArrayList<Long> neighborWiseDistances;
     int[] neighborWiseBoundries = {1, 2, 5, 10, 20, 50, 100, 1000, 10000};
 
     AllelicVariant lastVariant = null;
     GenomeLoc lastVariantInterval = null;
+    PrintStream violationsOut = null;
 
     public NeighborDistanceAnalysis() {
         super("neighbor_distances");

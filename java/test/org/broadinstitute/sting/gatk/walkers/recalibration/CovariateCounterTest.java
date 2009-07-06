@@ -76,7 +76,7 @@ public class CovariateCounterTest extends BaseTest {
         readGroups.addAll(Arrays.asList(readGroup1, readGroup2));
         ArtificialSAMUtils.createDefaultReadGroup( header, readGroup1, "sample1" );
         ArtificialSAMUtils.createDefaultReadGroup( header, readGroup2, "sample2" ); 
-        c = new CovariateCounter( readGroups, false, false );
+        c = new CovariateCounter( readGroups, false, false, false );
 
         read1 = ArtificialSAMUtils.createArtificialRead(header,"read1",1,1, bases1, quals1);
         read2 = ArtificialSAMUtils.createArtificialRead(header,"read2",1,1, bases2, quals2);
