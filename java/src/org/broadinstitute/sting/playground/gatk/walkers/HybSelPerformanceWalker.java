@@ -6,14 +6,19 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.List;
+import java.io.IOException;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.StringUtil;
+import net.sf.picard.reference.ReferenceSequence;
 
 public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerformanceWalker.TargetInfo> {
     @Argument(fullName="min_mapq", shortName="mmq", required=false, doc="Minimum mapping quality of reads to consider") public Integer MIN_MAPQ = 1;
-    @Argument(fullName="include_duplicates", shortName="idup", required=false, doc="consider duplicate reads") public Boolean INCLUDE_DUPLICATE_READS = false;
+    @Argument(fullName="include_duplicates", shortName="idup", required=false, doc="consider duplicate reads")
+    public boolean INCLUDE_DUPLICATE_READS = false;
 
     public static class TargetInfo {
         public int counts = 0;
@@ -75,7 +80,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
     @Override
     public void onTraversalDone(List<Pair<GenomeLoc, TargetInfo>> results) {
-        out.println("location\tlength\tavg_coverage\tnormalized_coverage\thit_twice");
+        out.println("location\tlength\tgc\tavg_coverage\tnormalized_coverage\thit_twice");
 
         // first zip through and calculate the total average coverage
         long totalCoverage = 0;
@@ -102,12 +107,33 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
             double avgCoverage = ((double)ti.counts / (double)length);
             double normCoverage = avgCoverage / meanTargetCoverage;
 
-            out.printf("%s:%d-%d\t%d\t%6.4f\t%6.4f\t%d\n",
-                       target.getContig(), target.getStart(), target.getStop(), length,
+            // calculate gc for the target
+            double gc = calculateGC(target);
+
+            out.printf("%s:%d-%d\t%d\t%6.4f\t%6.4f\t%6.4f\t%d\n",
+                       target.getContig(), target.getStart(), target.getStop(), length, gc,
                         avgCoverage, normCoverage, ((ti.hitTwice)?1:0)
                     );
 
 
         }
+    }
+
+    private double calculateGC(GenomeLoc target) {
+        try {
+            IndexedFastaSequenceFile seqFile = new IndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
+            ReferenceSequence refSeq = seqFile.getSubsequenceAt(target.getContig(),target.getStart(), target.getStop());
+
+
+            int gcCount = 0;
+            for(char base : StringUtil.bytesToString(refSeq.getBases()).toCharArray()) {
+                if (base == 'C' || base == 'c' || base == 'G' || base == 'g') { gcCount++; }
+            }
+            return ( (double) gcCount ) / ((double) refSeq.getBases().length);
+
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
+
     }
 }
