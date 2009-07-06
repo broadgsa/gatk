@@ -62,7 +62,7 @@ public class CoverageHistogram extends LocusWalker<Integer,Integer>
 		out.printf("# mean:%f num_sites:%d\n\n", mean_coverage, num_sites);
 
 		out.println("depth count");
-		for (int i = 0; i < max_depth; i++)
+		for (int i = 1; i < max_depth; i++)
 		{
 			out.printf("%d %d\n", i, coverage_hist[i]);
 		}
