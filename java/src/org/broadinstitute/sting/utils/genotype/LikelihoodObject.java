@@ -161,9 +161,9 @@ public class LikelihoodObject {
      *
      * @return a float array containing our genotype likelihoods, as negitive log likelihoods
      */
-    public float[] toFloatArray() {
+    public double[] toDoubleArray() {
         // make an array of floats
-        float[] ft = new float[10];
+        double[] ft = new double[10];
         int index = 0;
         for (GENOTYPE T : GENOTYPE.values()) {
             ft[index] = this.likelihood.get(T).floatValue();
@@ -178,18 +178,19 @@ public class LikelihoodObject {
      * @return a GenotypeLikelihoods object representing our data
      */
     public GenotypeLikelihoods convert( SAMFileHeader samHeader, int seqIndex, int seqPosition, byte refBase ) {
-        float[] ft = toFloatArray();
-
+        double[] ft = toDoubleArray();
+        float[] db = new float[ft.length];
+        int index = 0;
         if (this.mLikelihoodType == LIKELIHOOD_TYPE.NEGITIVE_LOG) {
-            for (float f : ft) {
-                f = f * -1.0f;
+            for (;index < ft.length; index++) {
+                db[index] = ((float)ft[index] * -1.0f);
             }
         } else if (this.mLikelihoodType == LIKELIHOOD_TYPE.RAW) {
-            for (float f : ft) {
-                f = (float) Math.log(f);
+            for (;index < ft.length; index++) {
+                db[index] = (float) Math.log(ft[index]);
             }
         }
-        return new GenotypeLikelihoods(samHeader, seqIndex, seqPosition, refBase, ft);
+        return new GenotypeLikelihoods(samHeader, seqIndex, seqPosition, refBase, db);
     }
 
     /**

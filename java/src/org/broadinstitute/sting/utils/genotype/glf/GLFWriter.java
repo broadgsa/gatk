@@ -89,7 +89,7 @@ public class GLFWriter implements GenotypeWriter {
         SinglePointCall call = new SinglePointCall(refBase, genomicLoc,
                 readDepth,
                 (short) rmsMapQ,
-                lhValues);
+                lhValues.toDoubleArray());
         call.write(this.outputBinaryCodec);
     }
 
@@ -127,13 +127,10 @@ public class GLFWriter implements GenotypeWriter {
         VariableLengthCall call = new VariableLengthCall(refBase,
                 genomicLoc,
                 readDepth,
-                lowestLikelihood,
                 (short) rmsMapQ,
                 firstHomZyg.getLikelihood(),
                 secondHomZyg.getLikelihood(),
                 hetLikelihood,
-                firstHomZyg.getLengthOfIndel(),
-                secondHomZyg.getLengthOfIndel(),
                 firstHomZyg.getIndelSequence(),
                 secondHomZyg.getIndelSequence());
 

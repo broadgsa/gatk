@@ -2,7 +2,6 @@ package org.broadinstitute.sting.utils.genotype.glf;
 
 import net.sf.samtools.util.BinaryCodec;
 
-
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -58,33 +57,27 @@ class VariableLengthCall extends GLFRecord {
      * @param offset            the location, as an offset from the previous glf record
      * @param readDepth         the read depth at the specified postion
      * @param rmsMapQ           the root mean square of the mapping quality
-     * @param minimumLikelihood the minimum likelihood value
      * @param lkHom1            the negitive log likelihood of the first homozygous indel allele, from 0 to 255
      * @param lkHom2            the negitive log likelihood of the second homozygous indel allele, from 0 to 255
      * @param lkHet             the negitive log likelihood of the heterozygote,  from 0 to 255
-     * @param indelLen1         the length of the first indel allele
-     * @param indelLen2         the length of the second indel allele
      * @param indelSeq1         the sequence for the first indel allele
      * @param indelSeq2         the sequence for the second indel allele
      */
     VariableLengthCall( char refBase,
                         long offset,
                         int readDepth,
-                        double minimumLikelihood,
                         short rmsMapQ,
                         double lkHom1,
                         double lkHom2,
                         double lkHet,
-                        int indelLen1,
-                        int indelLen2,
                         final short indelSeq1[],
                         final short indelSeq2[] ) {
-        super(refBase, offset, GLFRecord.toCappedShort(minimumLikelihood), readDepth, rmsMapQ);
+        super(refBase, offset, GLFRecord.toCappedShort(findMin(new double []{lkHom1,lkHom2,lkHet})), readDepth, rmsMapQ);
         this.lkHom1 = GLFRecord.toCappedShort(lkHom1);
         this.lkHom2 = GLFRecord.toCappedShort(lkHom2);
         this.lkHet = GLFRecord.toCappedShort(lkHet);
-        this.indelLen1 = indelLen1;
-        this.indelLen2 = indelLen2;
+        this.indelLen1 = indelSeq1.length;
+        this.indelLen2 = indelSeq2.length;
         this.indelSeq1 = indelSeq1;
         this.indelSeq2 = indelSeq2;
         size = 16 + indelSeq1.length + indelSeq2.length;
@@ -103,11 +96,11 @@ class VariableLengthCall extends GLFRecord {
         out.writeByte(lkHet);
         out.writeShort(new Integer(indelLen1).shortValue());
         out.writeShort(new Integer(indelLen2).shortValue());
-        for (int x = 0; x < indelSeq1.length; x++) {
-            out.writeUByte(indelSeq1[x]);
+        for (short anIndelSeq1 : indelSeq1) {
+            out.writeUByte(anIndelSeq1);
         }
-        for (int x = 0; x < indelSeq2.length; x++) {
-            out.writeUByte(indelSeq2[x]);
+        for (short anIndelSeq2 : indelSeq2) {
+            out.writeUByte(anIndelSeq2);
         }
     }
 
@@ -120,4 +113,5 @@ class VariableLengthCall extends GLFRecord {
     public int getByteSize() {
         return size + super.getByteSize();
     }
+
 }

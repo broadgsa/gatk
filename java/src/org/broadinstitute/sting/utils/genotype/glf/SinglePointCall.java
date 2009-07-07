@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
 import net.sf.samtools.util.BinaryCodec;
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 
 
 /*
@@ -38,11 +37,8 @@ import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
  */
 class SinglePointCall extends GLFRecord {
 
-    // our record type
-    private final RECORD_TYPE type = RECORD_TYPE.SINGLE;
-
     // our likelihood object
-    private LikelihoodObject likelihoods;
+    private double likelihoods[];
 
     /**
      * create a single
@@ -51,25 +47,24 @@ class SinglePointCall extends GLFRecord {
      * @param offset    the location, as an offset from the previous glf record
      * @param readDepth the read depth at the specified postion
      * @param rmsMapQ   the root mean square of the mapping quality
-     * @param lhValues  the LikelihoodObject, representing the genotype likelyhoods
+     * @param likelihoods  the Likelihoods
      */
-    SinglePointCall( char refBase, int offset, int readDepth, short rmsMapQ, LikelihoodObject lhValues ) {
-        super(refBase, offset, (short) lhValues.getBestLikelihood(), readDepth, rmsMapQ);
+    SinglePointCall( char refBase, int offset, int readDepth, short rmsMapQ, double likelihoods[] ) {
+        super(refBase, offset, (short) GLFRecord.findMin(likelihoods), readDepth, rmsMapQ);
 
-        likelihoods = lhValues;
+        this.likelihoods = likelihoods;
     }
 
 
     /**
      * Write out the record to a binary codec
      *
-     * @param out
+     * @param out the codec to write to
      */
     void write( BinaryCodec out ) {
         super.write(out);
-        short array[] = likelihoods.toByteArray();
-        for (int x = 0; x < array.length; x++) {
-            out.writeUByte(array[x]);
+        for (double likelihood : likelihoods) {
+            out.writeUByte(GLFRecord.toCappedShort(likelihood));
         }
     }
 
@@ -88,7 +83,7 @@ class SinglePointCall extends GLFRecord {
      * @return number of bytes we represent
      */
     public int getByteSize() {
-        return likelihoods.genoTypeCount + super.getByteSize();
+        return likelihoods.length + super.getByteSize();
     }
 
 }

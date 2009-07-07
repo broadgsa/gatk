@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
 import net.sf.samtools.util.BinaryCodec;
+import org.broadinstitute.sting.utils.StingException;
 
 
 /*
@@ -214,6 +215,21 @@ abstract class GLFRecord {
      */
     protected static short toCappedShort(double d) {
         return (d > 255.0) ? (byte)255 : (byte)Math.round(d);
+    }
+
+    /**
+     * find the minimum value in a set of doubles
+     * @param vals
+     * @return
+     */
+    protected static double findMin(double vals[]) {
+        if (vals.length < 1) throw new StingException("findMin: an array of size < 1 was passed in");
+
+        double min = vals[0];
+        for (double d: vals) {
+            if (d < min) min = d;
+        }
+        return min;
     }
 
 }
