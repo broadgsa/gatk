@@ -58,11 +58,6 @@ public class SAMDataSource implements SimpleDataSource {
     /** Backing support for reads. */
     private final Reads reads;
 
-    /**
-     * A histogram of exactly what reads were removed from the input stream and why.
-     */
-    private SAMReadViolationHistogram violations = new SAMReadViolationHistogram();
-
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(SAMDataSource.class);
 
@@ -87,7 +82,7 @@ public class SAMDataSource implements SimpleDataSource {
      * @return Histogram of reads.  Will not be null.
      */
     public SAMReadViolationHistogram getViolationHistogram() {
-        return violations;
+        return iteratorPool.getViolationHistogram();
     }
 
     /**
@@ -364,8 +359,6 @@ public class SAMDataSource implements SimpleDataSource {
                                                       Double downsamplingFraction,
                                                       Boolean filterZeroMappingQualityReads,
                                                       Boolean beSafeP) {
-        wrappedIterator = new MalformedSAMFilteringIterator(wrappedIterator,violations);
-
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away
         if (downsamplingFraction != null)
@@ -398,6 +391,11 @@ class SAMIteratorPool extends ResourcePool<ReadStreamPointer, StingSAMIterator> 
     /** Source information about the reads. */
     protected Reads reads;
 
+    /**
+     * A histogram of exactly what reads were removed from the input stream and why.
+     */
+    private SAMReadViolationHistogram violations = new SAMReadViolationHistogram();
+
     /** Is this a by-reads traversal or a by-locus? */
     protected boolean queryOverlapping;
 
@@ -420,6 +418,14 @@ class SAMIteratorPool extends ResourcePool<ReadStreamPointer, StingSAMIterator> 
     /** Get the combined header for all files in the iterator pool. */
     public SAMFileHeader getHeader() {
         return header;
+    }
+
+    /**
+     * Returns a histogram of reads that were screened out, grouped by the nature of the error.
+     * @return Histogram of reads.  Will not be null.
+     */
+    public SAMReadViolationHistogram getViolationHistogram() {
+        return violations;
     }
 
     protected ReadStreamPointer selectBestExistingResource( DataStreamSegment segment, List<ReadStreamPointer> pointers ) {
@@ -446,7 +452,7 @@ class SAMIteratorPool extends ResourcePool<ReadStreamPointer, StingSAMIterator> 
             iterator = streamPointer.getReadsOverlapping((MappedStreamSegment) segment);
         }
 
-        return new ReleasingIterator(iterator);
+        return new ReleasingIterator(new MalformedSAMFilteringIterator(header, iterator, violations));
     }
 
     protected void closeResource( ReadStreamPointer resource ) {

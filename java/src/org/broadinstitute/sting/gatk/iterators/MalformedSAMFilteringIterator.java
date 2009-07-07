@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.sam.SAMReadValidator;
 import org.broadinstitute.sting.utils.sam.SAMReadValidationException;
@@ -41,6 +42,11 @@ import java.util.NoSuchElementException;
  */
 
 public class MalformedSAMFilteringIterator implements StingSAMIterator {
+    /**
+     * The header to validate reads against.
+     */
+    private SAMFileHeader header = null;
+
     /**
      * The wrapped iterator.  Get reads from here.
      */
@@ -61,7 +67,8 @@ public class MalformedSAMFilteringIterator implements StingSAMIterator {
      * @param wrapped The wrapped iterator to use as backing data.
      * @param violations A structure to hold a breakdown of validator violations.
      */
-    public MalformedSAMFilteringIterator( StingSAMIterator wrapped, SAMReadViolationHistogram violations ) {
+    public MalformedSAMFilteringIterator( SAMFileHeader header, StingSAMIterator wrapped, SAMReadViolationHistogram violations ) {
+        this.header = header;
         this.wrapped = wrapped;
         this.violations = violations;
         seedNext();        
@@ -118,7 +125,7 @@ public class MalformedSAMFilteringIterator implements StingSAMIterator {
         while( wrapped.hasNext() && next == null ) {
             SAMRecord toTest = wrapped.next();
             try {
-                SAMReadValidator.validate(toTest);
+                SAMReadValidator.validate(header,toTest);
                 next = toTest;
             }
             catch ( SAMReadValidationException ex ) {

@@ -25,6 +25,8 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMSequenceRecord;
 
 /**
  * Validates reads against a specific set of criteria.  If it finds a
@@ -41,9 +43,10 @@ public class SAMReadValidator {
      * Throw an exception if the read fails.
      * @param read the read to validate.  Must not be null.
      */
-    public static void validate( SAMRecord read ) throws SAMReadValidationException {
+    public static void validate( SAMFileHeader header, SAMRecord read ) throws SAMReadValidationException {
         checkInvalidAlignmentStart(read);
         checkInvalidAlignmentEnd(read);
+        checkAlignmentDisagreesWithHeader(header,read);
         checkCigarDisagreesWithAlignment(read);
     }
 
@@ -66,6 +69,13 @@ public class SAMReadValidator {
         if( read.getAlignmentEnd() != -1 && read.getAlignmentEnd() < read.getAlignmentStart() )
             throw new SAMReadValidationException("Alignment ends prior to its beginning");
     }
+
+    private static void checkAlignmentDisagreesWithHeader( SAMFileHeader header, SAMRecord read ) {
+        SAMSequenceRecord contigHeader = header.getSequence( read.getReferenceIndex() );
+        if( !read.getReadUnmappedFlag() && read.getAlignmentStart() > contigHeader.getSequenceLength() ) {
+            throw new SAMReadValidationException("Read is aligned to a point after the end of the contig");
+        }
+    }    
 
     /**
      * Check for inconsistencies between the cigar string and the 
