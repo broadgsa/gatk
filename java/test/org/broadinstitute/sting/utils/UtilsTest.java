@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.utils;
 
 import org.junit.Test;
+import org.broadinstitute.sting.BaseTest;
 import junit.framework.Assert;
 
 /**
@@ -34,7 +35,7 @@ import junit.framework.Assert;
  * @version 0.1
  */
 
-public class UtilsTest {
+public class UtilsTest extends BaseTest {
 
     @Test
     public void testDupStringNoChars() {

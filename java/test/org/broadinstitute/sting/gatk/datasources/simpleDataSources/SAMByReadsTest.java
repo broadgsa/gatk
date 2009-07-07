@@ -103,11 +103,6 @@ public class SAMByReadsTest extends BaseTest {
      */
     @Test
     public void testShardingOfReadsEvenSplit() {
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
         ArtificialResourcePool gen = new ArtificialResourcePool(createArtificialSamHeader(1, 1, 10, 50),
                 ArtificialSAMUtils.mappedAndUnmappedReadIterator(1, 1, 10, 10));
         GenomeLocParser.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
