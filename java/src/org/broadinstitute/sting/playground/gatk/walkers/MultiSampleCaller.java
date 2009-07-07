@@ -31,11 +31,10 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
     @Argument(fullName="call_indels", shortName="call_indels", required=false, doc="call indels?") public boolean CALL_INDELS = false;
 
 	// Private state.
-    List<String> sample_names;
-    private SAMFileHeader header;
-	PrintStream individual_output_file;
-	PrintStream discovery_output_file;
-
+    protected List<String> sample_names;
+    protected SAMFileHeader header;
+	protected PrintStream individual_output_file;
+	protected PrintStream discovery_output_file;
 
 	class MultiSampleCallResult
 	{
