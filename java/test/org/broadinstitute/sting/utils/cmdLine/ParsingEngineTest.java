@@ -30,7 +30,7 @@ public class ParsingEngineTest extends BaseTest {
 
     @Before
     public void setUp() {
-        parsingEngine = new ParsingEngine();
+        parsingEngine = new ParsingEngine(null);
     }
 
     private class InputFileArgProvider {
