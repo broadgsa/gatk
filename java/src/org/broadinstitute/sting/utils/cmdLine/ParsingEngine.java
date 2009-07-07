@@ -54,6 +54,13 @@ public class ParsingEngine {
     ArgumentMatches argumentMatches = null;
 
     /**
+     * Stores a custom argument factory for building out arguments of which only
+     * subclasses of CommandLineProgram should be aware.
+     */
+    ArgumentFactory customArgumentFactory = null;
+
+
+    /**
      * Techniques for parsing and for argument lookup.
      */
     private List<ParsingMethod> parsingMethods = new ArrayList<ParsingMethod>();
@@ -63,7 +70,8 @@ public class ParsingEngine {
      */
     protected static Logger logger = Logger.getLogger(ParsingEngine.class);
 
-    public ParsingEngine() {
+    public ParsingEngine( ArgumentFactory customArgumentFactory ) {
+        this.customArgumentFactory = customArgumentFactory;
         parsingMethods.add( ParsingMethod.FullNameParsingMethod );
         parsingMethods.add( ParsingMethod.ShortNameParsingMethod );
     }
@@ -423,10 +431,13 @@ public class ParsingEngine {
      * @return parsed form of String.
      */
     private Object constructSingleElement(Field f, Class type, String str) {
-        // lets go through the types we support
-        if (type == SAMFileReader.class) {
-            return new SAMFileReader(new File(str),true);
+        if( customArgumentFactory != null ) {
+            Object instance = customArgumentFactory.createArgument(type, str);
+            if( instance != null )
+                return instance;
         }
+
+        // lets go through the types we support
         if (type == Boolean.TYPE) {
             boolean b = false;
             if (str.toLowerCase().equals("true")) {

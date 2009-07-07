@@ -4,15 +4,14 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.xReadLines;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
-import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
+import org.broadinstitute.sting.utils.cmdLine.*;
 
 import java.io.FileNotFoundException;
 import java.io.File;
 import java.util.List;
 import java.util.ArrayList;
+
+import net.sf.samtools.SAMFileReader;
 
 /**
  *
@@ -146,6 +145,24 @@ public class CommandLineGATK extends CommandLineProgram {
 
     public void setArgCollection(GATKArgumentCollection argCollection) {
         this.argCollection = argCollection;
+    }
+
+    /**
+     * Get a custom factory for instantiating specialty GATK arguments.
+     * @return An instance of the command-line argument of the specified type.
+     */
+    @Override
+    protected ArgumentFactory getCustomArgumentFactory() {
+        return new ArgumentFactory() {
+            public Object createArgument( Class type, String repr ) {
+                if (type == SAMFileReader.class) {
+                    SAMFileReader samFileReader = new SAMFileReader(new File(repr),true);
+                    samFileReader.setValidationStringency(GenomeAnalysisEngine.getValidationStringency(argCollection));
+                    return samFileReader;
+                }
+                return null;
+            }
+        };
     }
 
 

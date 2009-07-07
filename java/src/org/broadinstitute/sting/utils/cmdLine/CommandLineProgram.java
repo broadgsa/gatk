@@ -142,6 +142,14 @@ public abstract class CommandLineProgram {
      */
     protected abstract int execute();
 
+    /**
+     * Retrieves a factory for custom creation of command-line arguments, specified by the
+     * subclass.
+     * @return
+     */
+    protected ArgumentFactory getCustomArgumentFactory() {
+        return null;
+    }
 
     /**
      * This function is called to start processing the command line, and kick
@@ -160,7 +168,7 @@ public abstract class CommandLineProgram {
             PatternLayout layout = new PatternLayout();
 
             // setup the parser
-            ParsingEngine parser = clp.parser = new ParsingEngine();
+            ParsingEngine parser = clp.parser = new ParsingEngine( clp.getCustomArgumentFactory() );
             parser.addArgumentSource( clp.getClass() );
 
             // process the args

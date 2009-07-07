@@ -125,7 +125,7 @@ public class GenomeAnalysisEngine {
         }
 
         // Determine the validation stringency.  Default to ValidationStringency.STRICT.
-        ValidationStringency strictness = getValidationStringency();
+        ValidationStringency strictness = getValidationStringency(argCollection);
 
         logger.info("Strictness is " + strictness);
 
@@ -219,7 +219,7 @@ public class GenomeAnalysisEngine {
      */
     private Reads extractSourceInfoFromArguments( GATKArgumentCollection argCollection ) {
         return new Reads( argCollection.samFiles,
-                          getValidationStringency(),
+                          getValidationStringency(argCollection),
                           argCollection.downsampleFraction,
                           argCollection.downsampleCoverage,
                           !argCollection.unsafe,
@@ -264,10 +264,10 @@ public class GenomeAnalysisEngine {
 
     /**
      * Default to ValidationStringency.STRICT.
-     *
+     * TODO: Store ValidationStringency as pre-parsed enum in GATKArgumentCollection.
      * @return the validation stringency
      */
-    private ValidationStringency getValidationStringency() {
+    public static ValidationStringency getValidationStringency( GATKArgumentCollection argCollection ) {
         ValidationStringency strictness = ValidationStringency.SILENT;
         try {
             strictness = Enum.valueOf(ValidationStringency.class, argCollection.strictnessLevel.toUpperCase().trim());
