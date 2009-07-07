@@ -63,6 +63,11 @@ while ( <INPUT> ) {
         if ( $pos >= scalar(@fields) );
 
     my $contig = $fields[$pos];
+    if ( $contig =~ m/:/ ) {
+        my @loc = split(/:/, $contig);
+        # print $contig . " " . $loc[0] . "\n";
+        $contig = $loc[0]
+    }
     chomp $contig if ( $pos == scalar(@fields) - 1 ); # if last field in line
 
     my $order;
@@ -76,6 +81,7 @@ while ( <INPUT> ) {
     my $fhandle;
     if ( defined $temp_outputs{$order} ) { $fhandle = $temp_outputs{$order} }
     else {
+        #print "opening $order $$ $_\n";
         open( $fhandle, " > /tmp/sortByRef.$$.$order.tmp" ) or
             die ( "Can not open temporary file $order: $!");
         $temp_outputs{$order} = $fhandle;
