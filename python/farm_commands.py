@@ -22,7 +22,7 @@ def cmd(cmd_str_from_user, farm_queue=False, output_head=None, just_print_comman
             cmd_str += " -o " + farm_stdout
 
         if waitID <> None:
-            cmd_str += " -w \"done(%s)\"" % (str(waitID))
+            cmd_str += " -w \"ended(%s)\"" % (str(waitID))
 
         cmd_str += " \""+cmd_str_from_user + "\""
         

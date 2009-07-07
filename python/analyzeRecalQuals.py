@@ -10,7 +10,7 @@ from itertools import *
 import math
 import operator
 
-MAX_QUAL_SCORE = 50
+MAX_QUAL_SCORE = 40
 
 def phredQScore( nMismatches, nBases ):
     """Calculates a phred-scaled score for nMismatches in nBases"""
@@ -293,19 +293,25 @@ def qReportedVsqEmpiricalStream(readGroup, data):
         yield key, datum
 
 def qReportedVsqEmpirical(readGroup, allData, output):
-    print >> output, 'Qreported    Qempirical   nMismatches     nBases'
+    print >> output, 'Qreported    Qempirical   nMismatches     nBases      PercentBases'
+    rg, allBases = groupRecalData(allData, key=RecalData.readGroup)[0]
     for key, datum in qReportedVsqEmpiricalStream(readGroup, allData):
         #if datum.qReported() > 35:
         #    print datum
-        print >> output, "%2.2f  %2.2f   %12d    %12d" % (datum.qReported(), datum.qEmpirical(), datum.getNMismatches(), datum.getNBases())
+        print >> output, "%2.2f  %2.2f   %12d    %12d       %.2f" % (datum.qReported(), datum.qEmpirical(), datum.getNMismatches(), datum.getNBases(), 100.0*datum.getNBases() / float(allBases.getNBases()))
 
 def analyzeRawData(rawDataFile):
+    nReadGroups = 0
     for readGroup, data in rawDataByReadGroup(rawDataFile):
         if OPTIONS.selectedReadGroups == [] or readGroup in OPTIONS.selectedReadGroups:
-            root, sourceFilename = os.path.split(rawDataFile)
-            if ( OPTIONS.outputDir ): root = OPTIONS.outputDir
-            outputRoot = os.path.join(root, "%s.%s.%s" % ( sourceFilename, readGroup, 'analysis' ))
-            analyzeReadGroup(readGroup, data, outputRoot)
+            nReadGroups += 1
+            if nReadGroups > OPTIONS.maxReadGroups and OPTIONS.maxReadGroups <> -1:
+                break
+            else:
+                root, sourceFilename = os.path.split(rawDataFile)
+                if ( OPTIONS.outputDir ): root = OPTIONS.outputDir
+                outputRoot = os.path.join(root, "%s.%s.%s" % ( sourceFilename, readGroup, 'analysis' ))
+                analyzeReadGroup(readGroup, data, outputRoot)
 
 plottersByFile = {
     "raw_data.csv$" : analyzeRawData,
@@ -344,6 +350,9 @@ def main():
     parser.add_option("-d", "--dir", dest="outputDir",
                         type="string", default=None,
                         help="If provided, analysis output files will be written to this directory")
+    parser.add_option("-m", "--maxReadGroups", dest="maxReadGroups",
+                        type="int", default=-1,
+                        help="Maximum number of read groups to process.  The default of -1 indicates that all read groups will be processed")
     parser.add_option("-c", "--config", dest="configs",
                         action="append", type="string", default=[],
                         help="Configuration file")                        
@@ -371,7 +380,8 @@ def main():
         parser.error("Requires at least one configuration file be provided")
 
     config = gatkConfigParser(OPTIONS.configs)
-  
+
+    if OPTIONS.selectedReadGroups <> []: print 'Analyzing only the following read groups', OPTIONS.selectedReadGroups
     analyzeFiles(args)
 
 import unittest

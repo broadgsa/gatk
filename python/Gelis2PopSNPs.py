@@ -13,7 +13,10 @@ ref = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"
    
 def geli2dbsnpFile(geli):
     root, flowcellDotlane, ext = picard_utils.splitPath(geli)
-    return os.path.join(root, flowcellDotlane) + '.dbsnp_matches'
+    if ext == ".calls":
+        return None
+    else:
+        return os.path.join(root, flowcellDotlane) + '.dbsnp_matches'
 
 def SingleSampleGenotyperCmd(bam, geli, use2bp):
     naid = os.path.split(bam)[1].split(".")[0]
@@ -49,7 +52,7 @@ def gelis2gelisText( gelis ):
         if os.path.splitext(maybeGeli)[1] == ".calls" :
             return maybeGeli
         else:
-            return os.path.split(geli)[1] + '.calls'
+            return os.path.split(maybeGeli)[1] + '.calls'
             
     return map( geli2geliText, gelis)
 
@@ -84,7 +87,7 @@ def main():
     (OPTIONS, args) = parser.parse_args()
     if len(args) != 2:
         parser.error("incorrect number of arguments: " + str(args))
-    lines = [line.split() for line in open(args[0])]
+    lines = [line.strip().split() for line in open(args[0])]
     nIndividuals = int(args[1])
     
     outputFile = open(OPTIONS.output, 'w')
@@ -108,7 +111,7 @@ def main():
 
     for geli, jobid in zip(gelis, jobids):
         dbsnpFile = geli2dbsnpFile(geli)
-        if not os.path.exists(dbsnpFile):
+        if dbsnpFile == None and not os.path.exists(dbsnpFile):
             dbsnpCmd = picard_utils.CollectDbSnpMatchesCmd(geli, dbsnpFile, OPTIONS.lod)
             if jobid == 0: jobid = None
             farm_commands.cmd(dbsnpCmd, OPTIONS.farmQueue, just_print_commands = OPTIONS.dry, waitID = jobid)
@@ -151,14 +154,14 @@ def main():
     sortedCalls = [line.split() for line in open(sortedCallFile)]
     aggregratedCalls = picard_utils.aggregateGeliCalls(sortedCalls)
     
-    print >> outputFile, 'loc ref alt EM_alt_freq discovery_likelihood discovery_null discovery_prior discovery_lod EM_N n_ref n_het n_hom individuals'
+    print >> outputFile, 'loc ref alt EM_alt_freq discovery_likelihood discovery_null discovery_prior discovery_lod EM_N n_ref n_het n_hom'
 
     for snp in map( lambda x: picard_utils.aggregatedGeliCalls2SNP(x, nIndividuals), aggregratedCalls ):
         if snp == None: continue    # ignore bad calls
         #print snp
         #sharedCalls = list(sharedCallsGroup)
         #genotype = list(sharedCalls[0][5])
-        print >> outputFile, '%s   %s %s %.6f -420.0 -420.0 0.000000 100.0 %d %d %d %d NA' % (snp.loc, snp.ref, snp.alt(), snp.q(), nIndividuals, snp.nRefGenotypes(), snp.nHetGenotypes(), snp.nHomVarGenotypes())
+        print >> outputFile, '%s   %s %s %.6f -0.0 -0.0 0.000000 100.0 %d %d %d %d' % (snp.loc, snp.ref, snp.alt(), snp.q(), nIndividuals, snp.nRefGenotypes(), snp.nHetGenotypes(), snp.nHomVarGenotypes())
     outputFile.close()
     
                 

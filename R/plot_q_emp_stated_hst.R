@@ -15,7 +15,7 @@ pdf(outfile, height=7, width=7)
 d.good <- t[t$nMismatches >= 1000,]
 d.100 <- t[t$nMismatches < 100,]
 d.1000 <- t[t$nMismatches < 1000 & t$nMismatches >= 100,]
-plot(d.good$Qreported, d.good$Qempirical, type="p", col="blue", xlim=c(0,45), ylim=c(0,45), pch=16, xlab="Reported quality score", ylab="Empirical quality score", main="Reported vs. empirical quality scores")
+plot(d.good$Qreported, d.good$Qempirical, type="p", col="blue", xlim=c(0,63), ylim=c(0,63), pch=16, xlab="Reported quality score", ylab="Empirical quality score", main="Reported vs. empirical quality scores")
 points(d.100$Qreported, d.100$Qempirical, type="p", col="lightblue", pch=16)
 points(d.1000$Qreported, d.1000$Qempirical, type="p", col="cornflowerblue", pch=16)
 abline(0,1, lty=2)
@@ -26,6 +26,16 @@ dev.off()
 outfile = paste(input, ".quality_emp_hist.pdf", sep="")
 pdf(outfile, height=7, width=7)
 hst=subset(data.frame(t$Qempirical, t$nBases), t.nBases != 0)
-plot(hst$t.Qempirical, hst$t.nBases, type="h", lwd=3, xlim=c(0,45), main="Reported quality score histogram", xlab="Empirical quality score", ylab="Count", yaxt="n")
+plot(hst$t.Qempirical, hst$t.nBases, type="h", lwd=3, xlim=c(0,63), main="Empirical quality score histogram", xlab="Empirical quality score", ylab="Count", yaxt="n")
+axis(2,axTicks(2), format(axTicks(2), scientific=F))
+dev.off()
+
+#
+# Plot Q reported histogram
+#
+outfile = paste(input, ".quality_rep_hist.pdf", sep="")
+pdf(outfile, height=7, width=7)
+hst=subset(data.frame(t$Qreported, t$nBases), t.nBases != 0)
+plot(hst$t.Qreported, hst$t.nBases, type="h", lwd=3, xlim=c(0,63), main="Reported quality score histogram", xlab="Qreported quality score", ylab="Count", yaxt="n")
 axis(2,axTicks(2), format(axTicks(2), scientific=F))
 dev.off()

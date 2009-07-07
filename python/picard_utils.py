@@ -164,7 +164,7 @@ def mergeBAMCmd( output_filename, inputFiles, mergeBin = MERGE_BIN, MSD = True, 
         MSDStr = ''
         if MSD: MSDStr = 'MSD=true'
     
-        return 'java ' + memLimit + ' -jar ' + mergeBin + ' ' + MSDStr + ' AS=true COMPRESSION_LEVEL=' + compression_level + ' SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
+        return 'java ' + memLimit + ' -jar ' + mergeBin + ' ' + MSDStr + ' AS=true COMPRESSION_LEVEL=' + str(compression_level) + ' SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
         #return 'java -Xmx4096m -jar ' + mergeBin + ' AS=true SO=coordinate O=' + output_filename + ' VALIDATION_STRINGENCY=SILENT ' + ' I=' + (' I='.join(inputFiles))
 
 def getPicardPath(lane, picardRoot = '/seq/picard/'):

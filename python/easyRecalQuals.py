@@ -13,7 +13,7 @@ if __name__ == "__main__":
                         type="string", default="",
                         help="arguments to GATK")
     parser.add_option("-m", "--mode", dest="RecalMode",
-                        type="string", default="",
+                        type="string", default="SEQUENTIAL",
                         help="Mode argument to provide to table recalibrator")
     parser.add_option("-q", "--farm", dest="farmQueue",
                         type="string", default=None,
@@ -22,14 +22,14 @@ if __name__ == "__main__":
                         action="append", type="string", default=[],
                         help="Configuration file")                        
     parser.add_option("-d", "--dir", dest="scratchDir",
-                        type="string", default="test",
+                        type="string", default="./",
                         help="Output directory")
+    parser.add_option("-w", "--wait", dest="initialWaitID",
+                        type="string", default=None,
+                        help="If providedm the first job dispatched to LSF will use this id as it ended() prerequisite")
     parser.add_option("", "--dry", dest="dry",
                         action='store_true', default=False,
                         help="If provided, nothing actually gets run, just a dry run")
-    parser.add_option("", "--plot", dest="plot",
-                        action='store_true', default=False,
-                        help="If provided, will call R to generate convenient plots about the Q scores of the pre and post calibrated files")
     parser.add_option("-i", "--ignoreExistingFiles", dest="ignoreExistingFiles",
                         action='store_true', default=False,
                         help="Ignores already written files, if present")
@@ -54,10 +54,10 @@ if __name__ == "__main__":
     
     def covariateCmd(bam, outputDir):
         add = " -I %s --OUTPUT_FILEROOT %s" % (bam, outputDir)
-        return config.gatkCmd('CountCovariates') + add 
+        return config.gatkCmd('CountCovariates', log=outputDir, stdLogName=True) + add 
 
     def recalibrateCmd(inputBAM, dataFile, outputBAM):
-        return config.gatkCmd('TableRecalibration') + " -I %s -params %s -outputBAM %s -mode %s" % (inputBAM, dataFile, outputBAM, OPTIONS.RecalMode)
+        return config.gatkCmd('TableRecalibration', log=outputBAM, stdLogName=True) + " -I %s -params %s -outputBAM %s -mode %s" % (inputBAM, dataFile, outputBAM, OPTIONS.RecalMode)
 
     def runCovariateCmd(inputBAM, dataFile, dir, jobid):
         if OPTIONS.ignoreExistingFiles or not os.path.exists(dataFile):
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     #
     # Actually do some work here
     #
-    jobid = None
+    jobid = OPTIONS.initialWaitID
     if OPTIONS.ignoreExistingFiles or not os.path.exists(initDataFile): 
         jobid = runCovariateCmd(inputBAM, initDataFile, covariateInitial, jobid)
     

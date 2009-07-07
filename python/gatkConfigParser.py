@@ -71,9 +71,16 @@ class gatkConfigParser(ConfigParser.SafeConfigParser):
     def gatk_args(self): return self.getOption(self.GATK, 'args')
     def reference(self): return self.getOption(self.GATK, 'reference')
     
-    def gatkCmd(self, mode):
+    def gatkCmd(self, mode, log = None, stdLogName=False):
         cmd = ' '.join([self.java(), self.jvm_args(), '-jar', self.jar(), self.gatk_args(), '-R', self.reference()])
         cmd += ' ' + ' '.join(['-T', mode, self.getGATKModeOption('args', mode)])
+        if log <> None:
+            if stdLogName:
+                #head, ext = os.path.splitext(log)
+                logName = log + "." + mode + ".log"
+            else:
+                logName = log
+            cmd += ' ' + ' '.join(['-log', logName])
         return cmd
         
 import unittest
