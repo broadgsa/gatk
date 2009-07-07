@@ -153,6 +153,9 @@ public class ArtificialSAMUtils {
         elements.add(new CigarElement(length, CigarOperator.characterToEnum('M')));
         record.setCigar(new Cigar(elements));
         record.setProperPairFlag(false);
+        if (refIndex == -1) {
+            record.setReadUmappedFlag(true);
+        }
         return record;
     }
 
@@ -175,6 +178,9 @@ public class ArtificialSAMUtils {
         SAMRecord rec = createArtificialRead(header, name, refIndex, alignmentStart, bases.length);
         rec.setReadBases(bases);
         rec.setBaseQualities(qual);
+        if (refIndex == -1) {
+            rec.setReadUmappedFlag(true);
+        }
         return rec;
     }
 

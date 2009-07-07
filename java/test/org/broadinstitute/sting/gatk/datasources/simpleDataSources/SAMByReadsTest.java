@@ -63,16 +63,16 @@ public class SAMByReadsTest extends BaseTest {
         // setup the test files
         fl.add(new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/index_test.bam"));
         reads = new Reads(fl);
-
-
     }
 
 
-    /** Test out that we can shard the file and iterate over every read */
+    /**
+     * Test out that we can shard the file and iterate over every read
+     */
     @Test
     public void testToUnmappedReads() {
-        ArtificialResourcePool gen = new ArtificialResourcePool(createArtificialSamHeader(1,10,100,1000),
-                                                                ArtificialSAMUtils.mappedAndUnmappedReadIterator(1, 100, 10, 1000) );
+        ArtificialResourcePool gen = new ArtificialResourcePool(createArtificialSamHeader(1, 1, 1, 50),
+                ArtificialSAMUtils.mappedAndUnmappedReadIterator(1, 1, 1, 10));
 
         GenomeLocParser.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
         try {
@@ -81,94 +81,69 @@ public class SAMByReadsTest extends BaseTest {
 
             SAMDataSource data = new SAMDataSource(reads);
             data.setResourcePool(gen);
-
-            for (int x = 0; x < 10; x++) {
-                ++iterations;
-                StingSAMIterator ret = data.toUnmappedReads(100);
-                // count the reads we've gotten back
-                if (ret == null) {
-                    fail("On iteration " + iterations + " we were returned a null pointer, after seeing " + unmappedReadsSeen + " reads out of a 1000");
-                }
-                while (ret.hasNext()) {
-                    ret.next();
-                    unmappedReadsSeen++;
-                }
+            ++iterations;
+            StingSAMIterator ret = data.toUnmappedReads(100);
+            // count the reads we've gotten back
+            if (ret == null) {
+                fail("On iteration " + iterations + " we were returned a null pointer, after seeing " + unmappedReadsSeen + " reads out of a 1000");
             }
-            assertEquals(1000,unmappedReadsSeen);
-        }
-
-        catch (SimpleDataSourceLoadException e) {
+            while (ret.hasNext()) {
+                ret.next();
+                unmappedReadsSeen++;
+            }
+            assertEquals(10, unmappedReadsSeen);
+        } catch (SimpleDataSourceLoadException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             fail("testLinearBreakIterateAll: We Should not get a SimpleDataSourceLoadException");
         }
-
-
     }
 
-    /** Test out that we can shard the file and iterate over every read */
+    /**
+     * Test out that we can shard the file and iterate over every read
+     */
     @Test
-    public void testShardingOfReadsSize14() {
-        ArtificialResourcePool gen = new ArtificialResourcePool(createArtificialSamHeader(1,10,100,1000),
-                                                                ArtificialSAMUtils.queryReadIterator(1,10,100,1000) );
-        GenomeLocParser.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
-        targetReadCount = 14;
+    public void testShardingOfReadsEvenSplit() {
         try {
-            int iterations = 0;
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        ArtificialResourcePool gen = new ArtificialResourcePool(createArtificialSamHeader(1, 1, 10, 50),
+                ArtificialSAMUtils.mappedAndUnmappedReadIterator(1, 1, 10, 10));
+        GenomeLocParser.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
+        targetReadCount = 5;
+        try {
             int readCount = 0;
             SAMDataSource data = new SAMDataSource(reads);
-
-            ArrayList<Integer> readsPerShard = new ArrayList<Integer>();
 
             data.setResourcePool(gen);
             shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.READS, gen.getHeader().getSequenceDictionary(), targetReadCount);
             while (shardStrategy.hasNext()) {
-                int initialReadCount = readCount;
-
                 StingSAMIterator ret = data.seek(shardStrategy.next());
                 assertTrue(ret != null);
                 while (ret.hasNext()) {
                     ret.next();
                     readCount++;
                 }
-
-                readsPerShard.add(readCount-initialReadCount);
-
                 ret.close();
-                iterations++;
             }
-
-            // assert that we saw 2000 reads
-            assertEquals(2000,readCount);
-
-            /**
-             * this next assertion is based on the following logic:
-             * 14 reads per shard = 8 shards per each 100 read chromosome
-             * 10 chromosomes = 8 * 10 = 80
-             * 1000 unmapped reads / 14 = 72
-             * 1 iteration at the end to know we're done
-             * 80 + 72 + 1 = 153
-             */
-            assertEquals(153,iterations);
-
-        }
-
-        catch (SimpleDataSourceLoadException e) {
+            assertEquals(20, readCount);
+        } catch (SimpleDataSourceLoadException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             fail("testLinearBreakIterateAll: We Should not get a SimpleDataSourceLoadException");
         }
-
-
     }
 
-    /** Test out that we can shard the file and iterate over every read */
+    /**
+     * Test out that we can shard the file and iterate over every read
+     */
     @Test
-    public void testShardingOfReadsSize25() {
-        ArtificialResourcePool gen = new ArtificialResourcePool(createArtificialSamHeader(1,10,100,1000),
-                                                                ArtificialSAMUtils.queryReadIterator(1,10,100,1000) );        
+    public void testShardingOfReadsOddRemainder() {
+        ArtificialResourcePool gen = new ArtificialResourcePool(createArtificialSamHeader(1, 1, 10, 100),
+                ArtificialSAMUtils.mappedAndUnmappedReadIterator(1, 1, 10, 10));
         GenomeLocParser.setupRefContigOrdering(gen.getHeader().getSequenceDictionary());
-        targetReadCount = 25;
+        targetReadCount = 3;
         try {
-            int iterations = 0;
             int readCount = 0;
             SAMDataSource data = new SAMDataSource(reads);
 
@@ -185,36 +160,21 @@ public class SAMByReadsTest extends BaseTest {
                     readCount++;
                 }
                 ret.close();
-                iterations++;
             }
 
             // assert that we saw 2000 reads
-            assertEquals(2000,readCount);
+            assertEquals(20, readCount);
 
-            /**
-             * this next assertion is based on the following logic:
-             * 25 reads per shard = 5 shards (1 on the end to realize we're done)
-             * 10 chromosomes = 5 * 10 = 50
-             * 1000 unmapped reads / 25 = 40
-             * 1 iteration at the end to know we're done
-             * 50 + 40 + 1 = 91
-             */
-            assertEquals(91,iterations);
-
-        }
-
-        catch (SimpleDataSourceLoadException e) {
+        } catch (SimpleDataSourceLoadException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             fail("testLinearBreakIterateAll: We Should not get a SimpleDataSourceLoadException");
         }
-
-
     }
 
     private SAMFileHeader createArtificialSamHeader(int startingChr, int endingChr, int readCount, int readSize) {
-        return ArtificialSAMUtils.createArtificialSamHeader( ( endingChr - startingChr ) + 1,
-                                                             startingChr,
-                                                             readCount + readSize );
+        return ArtificialSAMUtils.createArtificialSamHeader((endingChr - startingChr) + 1,
+                startingChr,
+                readCount + readSize);
     }
 }
 
