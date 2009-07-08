@@ -141,6 +141,55 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     @Test
+    public void enumTest() {
+        final String[] commandLine = new String[] {  "--test_enum", "TWO" };
+
+        parsingEngine.addArgumentSource( EnumArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        EnumArgProvider argProvider = new EnumArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals("Enum value is not correct", TestEnum.TWO, argProvider.testEnum);
+    }
+
+    @Test
+    public void enumMixedCaseTest() {
+        final String[] commandLine = new String[] {  "--test_enum", "oNe" };
+
+        parsingEngine.addArgumentSource( EnumArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        EnumArgProvider argProvider = new EnumArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals("Enum value is not correct", TestEnum.ONE, argProvider.testEnum);
+    }
+    
+    @Test
+    public void enumDefaultTest() {
+        final String[] commandLine = new String[] {};
+
+        parsingEngine.addArgumentSource( EnumArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        EnumArgProvider argProvider = new EnumArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals("Enum value is not correct", TestEnum.THREE, argProvider.testEnum);
+    }
+
+    public enum TestEnum { ONE, TWO, THREE };
+
+    private class EnumArgProvider {
+        @Argument(fullName="test_enum",shortName="ti",doc="test enum",required=false)
+        public TestEnum testEnum = TestEnum.THREE;
+    }
+
+    @Test
     public void typedCollectionTest() {
         final String[] commandLine = new String[] { "-N","2","-N","4","-N","6","-N","8","-N","10" };
 

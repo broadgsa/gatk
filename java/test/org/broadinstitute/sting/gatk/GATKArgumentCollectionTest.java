@@ -10,6 +10,8 @@ import org.junit.Test;
 import java.io.File;
 import java.util.*;
 
+import net.sf.samtools.SAMFileReader;
+
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -79,7 +81,7 @@ public class GATKArgumentCollectionTest extends BaseTest {
         input.add(new File("test.file"));
         collect.samFiles = input;
         collect.maximumEngineIterations = -1;
-        collect.strictnessLevel = "strict";
+        collect.strictnessLevel = SAMFileReader.ValidationStringency.STRICT;
         collect.referenceFile = new File("referenceFile".toLowerCase());
         collect.analysisName = "analysisName".toLowerCase();
         collect.DBSNPFile = "DBSNPFile".toLowerCase();

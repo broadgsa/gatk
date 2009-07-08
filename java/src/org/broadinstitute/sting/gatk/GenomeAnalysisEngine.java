@@ -124,10 +124,7 @@ public class GenomeAnalysisEngine {
             GenomeLocParser.setupRefContigOrdering(refFile);
         }
 
-        // Determine the validation stringency.  Default to ValidationStringency.STRICT.
-        ValidationStringency strictness = getValidationStringency(argCollection);
-
-        logger.info("Strictness is " + strictness);
+        logger.info("Strictness is " + argCollection.strictnessLevel);
 
         // perform validation steps that are common to all the engines
         genericEngineSetup();
@@ -219,7 +216,7 @@ public class GenomeAnalysisEngine {
      */
     private Reads extractSourceInfoFromArguments( GATKArgumentCollection argCollection ) {
         return new Reads( argCollection.samFiles,
-                          getValidationStringency(argCollection),
+                          argCollection.strictnessLevel,
                           argCollection.downsampleFraction,
                           argCollection.downsampleCoverage,
                           !argCollection.unsafe,
@@ -260,22 +257,6 @@ public class GenomeAnalysisEngine {
             if( !WalkerManager.isAllowed(walker,rod) )
                 throw new ArgumentException(String.format("Walker does not allow access to metadata: %s.  If this is correct, change the @Allows metadata",rod.getName()));
         }
-    }
-
-    /**
-     * Default to ValidationStringency.STRICT.
-     * TODO: Store ValidationStringency as pre-parsed enum in GATKArgumentCollection.
-     * @return the validation stringency
-     */
-    public static ValidationStringency getValidationStringency( GATKArgumentCollection argCollection ) {
-        ValidationStringency strictness = ValidationStringency.SILENT;
-        try {
-            strictness = Enum.valueOf(ValidationStringency.class, argCollection.strictnessLevel.toUpperCase().trim());
-        }
-        catch (IllegalArgumentException ex) {
-            logger.debug("Unable to parse strictness from command line.  Assuming SILENT");
-        }
-        return strictness;
     }
 
     /**

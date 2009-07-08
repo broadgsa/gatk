@@ -157,7 +157,7 @@ public class CommandLineGATK extends CommandLineProgram {
             public Object createArgument( Class type, String repr ) {
                 if (type == SAMFileReader.class) {
                     SAMFileReader samFileReader = new SAMFileReader(new File(repr),true);
-                    samFileReader.setValidationStringency(GenomeAnalysisEngine.getValidationStringency(argCollection));
+                    samFileReader.setValidationStringency(argCollection.strictnessLevel);
                     return samFileReader;
                 }
                 return null;

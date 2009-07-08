@@ -468,6 +468,8 @@ public class ParsingEngine {
                 throw new StingException("Unable to parse argument '" + str + "' into a character.");
             Character c = str.trim().charAt(0);
             return c;
+        } else if (type.isEnum()) {
+            return Enum.valueOf(type,str.toUpperCase().trim());
         } else {
             Constructor ctor = null;
             try {
