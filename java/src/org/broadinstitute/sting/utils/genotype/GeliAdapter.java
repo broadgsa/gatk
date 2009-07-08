@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 import edu.mit.broad.picard.genotype.geli.GeliFileWriter;
 import net.sf.samtools.SAMFileHeader;
 
@@ -35,9 +34,9 @@ import java.io.File;
 /**
  * @author aaron
  * @version 1.0
- *
- * Class GeliAdapter
- * Adapts the Geli file writer to the Genotype writer interface
+ *          <p/>
+ *          Class GeliAdapter
+ *          Adapts the Geli file writer to the Genotype writer interface
  */
 public class GeliAdapter implements GenotypeWriter {
 
@@ -47,30 +46,41 @@ public class GeliAdapter implements GenotypeWriter {
 
     /**
      * wrap a GeliFileWriter in the Genotype writer interface
-     * @param writeTo where to write to
+     *
+     * @param writeTo    where to write to
      * @param fileHeader the file header to write out
      */
-    public GeliAdapter( File writeTo, final SAMFileHeader fileHeader ) {
-        this.writer = GeliFileWriter.newInstanceForPresortedRecords(writeTo,fileHeader);
+    public GeliAdapter(File writeTo, final SAMFileHeader fileHeader) {
+        this.writer = GeliFileWriter.newInstanceForPresortedRecords(writeTo, fileHeader);
     }
 
 
     /**
      * add a single point genotype call to the
      *
+     * @param contigName    the name of the contig you're calling in
+     * @param contigLength  the contig length
      * @param position      the position on the contig
      * @param referenceBase the reference base
      * @param readDepth     the read depth at the specified position
      * @param likelihoods   the likelihoods of each of the possible alleles
      */
     @Override
-    public void addGenotypeCall( int position, float rmsMapQuals, char referenceBase, int readDepth, LikelihoodObject likelihoods ) {
-        writer.addGenotypeLikelihoods(likelihoods.convert(writer.getFileHeader(), 1, position, (byte)referenceBase));
+    public void addGenotypeCall(String contigName,
+                                int contigLength,
+                                int position,
+                                float rmsMapQuals,
+                                char referenceBase,
+                                int readDepth,
+                                LikelihoodObject likelihoods) {
+        writer.addGenotypeLikelihoods(likelihoods.convert(writer.getFileHeader(), 1, position, (byte) referenceBase));
     }
 
     /**
      * add a variable length call to the genotyper
      *
+     * @param contigName    the name of the contig you're calling in
+     * @param contigLength  the contig length
      * @param position      the position on the genome
      * @param rmsMapQuals   the root mean square of the mapping qualities
      * @param readDepth     the read depth
@@ -80,7 +90,7 @@ public class GeliAdapter implements GenotypeWriter {
      * @param hetLikelihood the heterozygous likelihood
      */
     @Override
-    public void addVariableLengthCall( int position, float rmsMapQuals, int readDepth, char refBase, IndelLikelihood firstHomZyg, IndelLikelihood secondHomZyg, byte hetLikelihood ) {
+    public void addVariableLengthCall(String contigName, int contigLength, int position, float rmsMapQuals, int readDepth, char refBase, IndelLikelihood firstHomZyg, IndelLikelihood secondHomZyg, byte hetLikelihood) {
         throw new UnsupportedOperationException("Geli format does not support variable length allele calls");
     }
 
@@ -91,7 +101,7 @@ public class GeliAdapter implements GenotypeWriter {
      * @param readDepth
      */
     @Override
-    public void addNoCall( int position, int readDepth ) {
+    public void addNoCall(int position, int readDepth) {
         throw new UnsupportedOperationException("Geli format does not support no-calls");
     }
 

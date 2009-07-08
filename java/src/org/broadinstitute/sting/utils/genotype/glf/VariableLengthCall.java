@@ -53,31 +53,33 @@ class VariableLengthCall extends GLFRecord {
     /**
      * the default constructor
      *
-     * @param refBase           the reference base
-     * @param offset            the location, as an offset from the previous glf record
-     * @param readDepth         the read depth at the specified postion
-     * @param rmsMapQ           the root mean square of the mapping quality
-     * @param lkHom1            the negitive log likelihood of the first homozygous indel allele, from 0 to 255
-     * @param lkHom2            the negitive log likelihood of the second homozygous indel allele, from 0 to 255
-     * @param lkHet             the negitive log likelihood of the heterozygote,  from 0 to 255
-     * @param indelSeq1         the sequence for the first indel allele
-     * @param indelSeq2         the sequence for the second indel allele
+     * @param refBase    the reference base
+     * @param offset     the location, as an offset from the previous glf record
+     * @param readDepth  the read depth at the specified postion
+     * @param rmsMapQ    the root mean square of the mapping quality
+     * @param lkHom1     the negitive log likelihood of the first homozygous indel allele, from 0 to 255
+     * @param lkHom2     the negitive log likelihood of the second homozygous indel allele, from 0 to 255
+     * @param lkHet      the negitive log likelihood of the heterozygote,  from 0 to 255
+     * @param indelSeq1  the sequence for the first indel allele
+     * @param indelSeq2  the sequence for the second indel allele
      */
-    VariableLengthCall( char refBase,
-                        long offset,
-                        int readDepth,
-                        short rmsMapQ,
-                        double lkHom1,
-                        double lkHom2,
-                        double lkHet,
-                        final short indelSeq1[],
-                        final short indelSeq2[] ) {
-        super(refBase, offset, GLFRecord.toCappedShort(findMin(new double []{lkHom1,lkHom2,lkHet})), readDepth, rmsMapQ);
+    VariableLengthCall(char refBase,
+                       long offset,
+                       int readDepth,
+                       short rmsMapQ,
+                       double lkHom1,
+                       double lkHom2,
+                       double lkHet,
+                       int indelOneLength,
+                       final short indelSeq1[],
+                       int indelTwoLength,
+                       final short indelSeq2[]) {
+        super(refBase, offset, GLFRecord.toCappedShort(findMin(new double[]{lkHom1, lkHom2, lkHet})), readDepth, rmsMapQ);
         this.lkHom1 = GLFRecord.toCappedShort(lkHom1);
         this.lkHom2 = GLFRecord.toCappedShort(lkHom2);
         this.lkHet = GLFRecord.toCappedShort(lkHet);
-        this.indelLen1 = indelSeq1.length;
-        this.indelLen2 = indelSeq2.length;
+        this.indelLen1 = indelOneLength;
+        this.indelLen2 = indelTwoLength;
         this.indelSeq1 = indelSeq1;
         this.indelSeq2 = indelSeq2;
         size = 16 + indelSeq1.length + indelSeq2.length;
@@ -89,7 +91,7 @@ class VariableLengthCall extends GLFRecord {
      *
      * @param out the binary codec to write to
      */
-    void write( BinaryCodec out ) {
+    void write(BinaryCodec out) {
         super.write(out);
         out.writeByte(lkHom1);
         out.writeByte(lkHom2);
@@ -109,7 +111,7 @@ class VariableLengthCall extends GLFRecord {
         return RECORD_TYPE.VARIABLE;
     }
 
-    /** @return  the size of the record, which is the size of our fields plus the generic records fields */
+    /** @return the size of the record, which is the size of our fields plus the generic records fields */
     public int getByteSize() {
         return size + super.getByteSize();
     }

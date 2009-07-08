@@ -1,11 +1,10 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
-import org.junit.Test;
-import org.junit.Before;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.genotype.glf.GLFWriter;
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.File;
 
@@ -88,7 +87,7 @@ public class GLFWriterTest extends BaseTest {
 
     @Test
     public void basicWrite() {
-        rec = new GLFWriter(header, referenceSequenceName, refLength, writeTo);
+        rec = new GLFWriter(header, writeTo);
         for (int x = 0; x < 100; x++) {
             addFakeSNP((int) Math.round(Math.random() * 9), 1);
         }

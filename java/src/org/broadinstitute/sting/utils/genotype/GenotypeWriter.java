@@ -1,8 +1,5 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-
-
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -29,22 +26,26 @@ import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
  */
 
 /**
- * 
- * @author aaron 
- * 
- * Class Genotype
- *
- * The interface for storing genotype calls.
+ * @author aaron
+ *         <p/>
+ *         Class Genotype
+ *         <p/>
+ *         The interface for storing genotype calls.
  */
 public interface GenotypeWriter {
     /**
      * add a single point genotype call to the
-     * @param position the position on the contig
+     *
+     * @param contigName    the name of the contig you're calling in
+     * @param contigLength  the contig length
+     * @param position      the position on the contig
      * @param referenceBase the reference base
-     * @param readDepth the read depth at the specified position
-     * @param likelihoods the likelihoods of each of the possible alleles
+     * @param readDepth     the read depth at the specified position
+     * @param likelihoods   the likelihoods of each of the possible alleles
      */
-    public void addGenotypeCall(int position,
+    public void addGenotypeCall(String contigName,
+                                int contigLength,
+                                int position,
                                 float rmsMapQuals,
                                 char referenceBase,
                                 int readDepth,
@@ -52,15 +53,20 @@ public interface GenotypeWriter {
 
     /**
      * add a variable length call to the genotyper
-     * @param position the position on the genome
-     * @param rmsMapQuals the root mean square of the mapping qualities
-     * @param readDepth the read depth
-     * @param refBase the reference base
-     * @param firstHomZyg the first homozygous indel
-     * @param secondHomZyg the second homozygous indel (if present, null if not)
+     *
+     * @param contigName    the name of the contig you're calling in
+     * @param contigLength  the contig length
+     * @param position      the position on the genome
+     * @param rmsMapQuals   the root mean square of the mapping qualities
+     * @param readDepth     the read depth
+     * @param refBase       the reference base
+     * @param firstHomZyg   the first homozygous indel
+     * @param secondHomZyg  the second homozygous indel (if present, null if not)
      * @param hetLikelihood the heterozygous likelihood
      */
-    public void addVariableLengthCall(int position,
+    public void addVariableLengthCall(String contigName,
+                                      int contigLength,
+                                      int position,
                                       float rmsMapQuals,
                                       int readDepth,
                                       char refBase,
@@ -70,15 +76,14 @@ public interface GenotypeWriter {
 
     /**
      * add a no call to the genotype file, if supported.
+     *
      * @param position
      * @param readDepth
      */
     public void addNoCall(int position,
                           int readDepth);
 
-    /**
-     * finish writing, closing any open files.
-     */
+    /** finish writing, closing any open files. */
     public void close();
 
 }

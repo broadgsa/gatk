@@ -43,15 +43,14 @@ class SinglePointCall extends GLFRecord {
     /**
      * create a single
      *
-     * @param refBase   the reference base, as a char
-     * @param offset    the location, as an offset from the previous glf record
-     * @param readDepth the read depth at the specified postion
-     * @param rmsMapQ   the root mean square of the mapping quality
-     * @param likelihoods  the Likelihoods
+     * @param refBase     the reference base, as a char
+     * @param offset      the location, as an offset from the previous glf record
+     * @param readDepth   the read depth at the specified postion
+     * @param rmsMapQ     the root mean square of the mapping quality
+     * @param likelihoods the Likelihoods
      */
-    SinglePointCall( char refBase, int offset, int readDepth, short rmsMapQ, double likelihoods[] ) {
+    SinglePointCall(char refBase, int offset, int readDepth, short rmsMapQ, double likelihoods[]) {
         super(refBase, offset, (short) GLFRecord.findMin(likelihoods), readDepth, rmsMapQ);
-
         this.likelihoods = likelihoods;
     }
 
@@ -61,10 +60,14 @@ class SinglePointCall extends GLFRecord {
      *
      * @param out the codec to write to
      */
-    void write( BinaryCodec out ) {
+    void write(BinaryCodec out) {
         super.write(out);
+        try {
         for (double likelihood : likelihoods) {
             out.writeUByte(GLFRecord.toCappedShort(likelihood));
+        }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

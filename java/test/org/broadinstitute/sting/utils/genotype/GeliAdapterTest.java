@@ -1,13 +1,11 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import org.junit.Test;
+import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+import org.junit.Test;
 
 import java.io.File;
-
-import net.sf.samtools.SAMFileHeader;
 
 
 /*
@@ -58,7 +56,7 @@ public class GeliAdapterTest extends BaseTest {
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(2,1,10);
         adapter = new GeliAdapter(fl,header);
         LikelihoodObject obj = new LikelihoodObject(createFakeLikelihoods());
-        adapter.addGenotypeCall(100,100,'A',100,obj);
+        adapter.addGenotypeCall("chr1",10,100,100,'A',100,obj);
         adapter.close();
     }
 

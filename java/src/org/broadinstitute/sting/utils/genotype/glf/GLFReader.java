@@ -1,14 +1,14 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
 import net.sf.samtools.util.BinaryCodec;
-import net.sf.samtools.util.BlockCompressedOutputStream;
-
-import java.io.File;
-import java.io.DataOutputStream;
-import java.util.Iterator;
-
+import net.sf.samtools.util.BlockCompressedInputStream;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.util.Iterator;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -35,9 +35,7 @@ import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/**
- * an object for reading in GLF files
- */
+/** an object for reading in GLF files */
 public class GLFReader implements Iterator<GLFRecord> {
 
     // our next record
@@ -58,62 +56,87 @@ public class GLFReader implements Iterator<GLFRecord> {
     // reference length
     private int referenceLength;
 
-    GLFReader( File readFrom ) {
-        inputBinaryCodec = new BinaryCodec(new DataOutputStream(new BlockCompressedOutputStream(readFrom)));
+    /**
+     * create a glf reader
+     *
+     * @param readFrom the file to read from
+     */
+    GLFReader(File readFrom) {
+        try {
+            inputBinaryCodec = new BinaryCodec(new DataInputStream(new BlockCompressedInputStream(readFrom)));
+        } catch (IOException e) {
+            throw new StingException("Unable to open " + readFrom.getName(), e);
+        }
         inputBinaryCodec.setInputFileName(readFrom.getName());
 
         // first verify that it's a valid GLF
-        for (short s: glfMagic) {
-            if (inputBinaryCodec.readUByte() != s) throw new StingException("Verification of GLF format failed: magic string doesn't match)");
+        for (short s : glfMagic) {
+            if (inputBinaryCodec.readUByte() != s)
+                throw new StingException("Verification of GLF format failed: magic string doesn't match)");
         }
 
         // get the header string
         headerStr = inputBinaryCodec.readLengthAndString(false);
 
-        // get the reference name
-        referenceName = inputBinaryCodec.readLengthAndString(true);
+        if (advanceContig()) {
+            // setup the next record
+            next();
+        }
 
-        // get the reference length - this may be a problem storing an unsigned int into a signed int.  but screw it.
-        referenceLength = (int)inputBinaryCodec.readUInt();
-
-        // get the next record
-        nextRecord = next();
     }
 
+    /**
+     * read in a single point call
+     *
+     * @param refBase          the reference base
+     * @param inputBinaryCodec the binary codec
+     *
+     * @return a single point call object
+     */
     private SinglePointCall generateSPC(char refBase, BinaryCodec inputBinaryCodec) {
-        int offset = (int)inputBinaryCodec.readUInt();
+        int offset = (int) inputBinaryCodec.readUInt();
         long depth = inputBinaryCodec.readUInt();
-        short min_lk = (short)((depth & 0x00000000ff000000) >> 24);
-        int readDepth = (int)(depth & 0x0000000000ffffff);
+        short min_lk = (short) ((depth & 0x00000000ff000000) >> 24);
+        int readDepth = (int) (depth & 0x0000000000ffffff);
         short rmsMapping = inputBinaryCodec.readUByte();
         double[] lkValues = new double[LikelihoodObject.GENOTYPE.values().length];
         for (int x = 0; x < LikelihoodObject.GENOTYPE.values().length; x++) {
             lkValues[x] = inputBinaryCodec.readUByte();
         }
-        return new SinglePointCall(refBase,offset,readDepth,rmsMapping,lkValues);
+        return new SinglePointCall(refBase, offset, readDepth, rmsMapping, lkValues);
     }
 
-
+    /**
+     * read in a variable length call, and generate a VLC object from the data
+     *
+     * @param refBase          the reference base
+     * @param inputBinaryCodec the input codex
+     *
+     * @return a VariableLengthCall object
+     */
     private VariableLengthCall generateVLC(char refBase, BinaryCodec inputBinaryCodec) {
-        int offset = (int)inputBinaryCodec.readUInt();
-        int depth = (int)inputBinaryCodec.readUInt();
-        short min_lk = (short)((depth & 0x00000000ff000000) >> 24);
+        int offset = (int) inputBinaryCodec.readUInt();
+        int depth = (int) inputBinaryCodec.readUInt();
+        short min_lk = (short) ((depth & 0x00000000ff000000) >> 24);
         int readDepth = (depth & 0x0000000000ffffff);
         short rmsMapping = inputBinaryCodec.readUByte();
         short lkHom1 = inputBinaryCodec.readUByte();
         short lkHom2 = inputBinaryCodec.readUByte();
         short lkHet = inputBinaryCodec.readUByte();
-        int indelLen1 = (int)inputBinaryCodec.readShort();
-        int indelLen2 = (int)inputBinaryCodec.readShort();
-        short[] indelSeq1 = new short[indelLen1];
-        short[] indelSeq2 = new short[indelLen2];
-        for (int x = 0; x < indelLen1; x++) {
+        int indelLen1 = (int) inputBinaryCodec.readShort();
+        int indelLen2 = (int) inputBinaryCodec.readShort();
+
+        int readCnt = Math.abs(indelLen1);
+        short indelSeq1[] = new short[readCnt];
+        for (int x = 0; x < readCnt; x++) {
             indelSeq1[x] = inputBinaryCodec.readUByte();
         }
-        for (int x = 0; x < indelLen2; x++) {
-            indelSeq2[x] = inputBinaryCodec.readUByte();    
+        readCnt = Math.abs(indelLen2);
+        short indelSeq2[] = new short[readCnt];
+        for (int x = 0; x < readCnt; x++) {
+            indelSeq2[x] = inputBinaryCodec.readUByte();
         }
-        return new VariableLengthCall(refBase,offset,readDepth,rmsMapping,lkHom1,lkHom2,lkHet,indelSeq1,indelSeq2);
+        return new VariableLengthCall(refBase, offset, readDepth, rmsMapping, lkHom1, lkHom2, lkHet, indelLen1, indelSeq1, indelLen2, indelSeq2);
     }
 
     @Override
@@ -124,24 +147,69 @@ public class GLFReader implements Iterator<GLFRecord> {
     @Override
     public GLFRecord next() {
         short firstBase = inputBinaryCodec.readUByte();
-        byte recordType = (byte)(firstBase & 0x00f0 >> 4);
-        char refBase = (char)(firstBase & 0x000f);
+        byte recordType = (byte) ((firstBase & 0x0f0) >> 4);
+        char refBase = (char) (firstBase & 0x000f);
 
         GLFRecord ret = nextRecord;
         if (recordType == 1) {
             nextRecord = generateSPC(refBase, inputBinaryCodec);
-        }
-        else if (recordType == 2) {
-            nextRecord =  generateVLC(refBase, inputBinaryCodec);
-        }
-        else if (recordType == 0){
+        } else if (recordType == 2) {
+            nextRecord = generateVLC(refBase, inputBinaryCodec);
+        } else if (recordType == 0) {
+            if (advanceContig()) {
+                return next();
+            }
             nextRecord = null;
+        } else {
+            throw new StingException("Unkonwn GLF record type (type = " + recordType + ")");
         }
+
         return ret;
     }
 
+    /**
+     * advance to the next contig
+     *
+     * @return true if we could advance
+     */
+    private boolean advanceContig() {
+        // try to read the next sequence record
+        try {
+            // get the reference name
+            referenceName = inputBinaryCodec.readLengthAndString(true);
+
+            // get the reference length - this may be a problem storing an unsigned int into a signed int.  but screw it.
+            referenceLength = (int) inputBinaryCodec.readUInt();
+            //System.err.println(referenceName.length());
+            return true;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            // we're out of file space, set the next to null
+            nextRecord = null;
+        }
+        return false;
+    }
+
+
     @Override
     public void remove() {
-        throw new StingException("I'm Sorry Dave, I can't let you do that (also GLFReader doesn't support remove()).");
+        throw new StingException("GLFReader doesn't support remove()");
+    }
+
+
+    /**
+     * getter methods
+     */
+
+    public String getReferenceName() {
+        return referenceName;
+    }
+
+    public int getReferenceLength() {
+        return referenceLength;
+    }
+
+    public String getHeaderStr() {
+        return headerStr;
     }
 }

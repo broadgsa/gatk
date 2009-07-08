@@ -2,13 +2,12 @@ package org.broadinstitute.sting.utils.genotype.glf;
 
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
-
-import java.io.File;
-import java.io.DataOutputStream;
-
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+
+import java.io.DataOutputStream;
+import java.io.File;
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -51,19 +50,17 @@ public class GLFWriter implements GenotypeWriter {
 
     // our header text, reference sequence name (i.e. chr1), and it's length
     private String headerText = "";
-    private String referenceSequenceName = "";
+    private String referenceSequenceName = null;
     private long referenceSequenceLength = 0;
 
     /**
      * The public constructor for creating a GLF object
      *
-     * @param headerText            the header text (currently unclear what the contents are)
-     * @param referenceSequenceName the reference sequence name, i.e. "chr1", "chr2", etc
+     * @param headerText the header text (currently unclear what the contents are)
+     * @param writeTo    the location to write to
      */
-    public GLFWriter( String headerText, String referenceSequenceName, int referenceSequenceLength, File writeTo ) {
+    public GLFWriter(String headerText, File writeTo) {
         this.headerText = headerText;
-        this.referenceSequenceName = referenceSequenceName;
-        this.referenceSequenceLength = referenceSequenceLength;
         outputBinaryCodec = new BinaryCodec(new DataOutputStream(new BlockCompressedOutputStream(writeTo)));
         outputBinaryCodec.setOutputFileName(writeTo.toString());
         this.writeHeader();
@@ -72,21 +69,28 @@ public class GLFWriter implements GenotypeWriter {
     /**
      * add a point genotype to the GLF writer
      *
-     * @param refBase    the reference base, as a char
-     * @param genomicLoc the location, as an offset from the previous glf record
-     * @param readDepth  the read depth at the specified postion
-     * @param rmsMapQ    the root mean square of the mapping quality
-     * @param lhValues   the GenotypeLikelihoods object, representing the genotype likelyhoods
+     * @param contigName   the name of the contig you're calling in
+     * @param contigLength the contig length
+     * @param refBase      the reference base, as a char
+     * @param genomicLoc   the location, as an offset from the previous glf record
+     * @param readDepth    the read depth at the specified postion
+     * @param rmsMapQ      the root mean square of the mapping quality
+     * @param lhValues     the GenotypeLikelihoods object, representing the genotype likelyhoods
      */
     @Override
-    public void addGenotypeCall( int genomicLoc,
-                                 float rmsMapQ,
-                                 char refBase,
-                                 int readDepth,
-                                 LikelihoodObject lhValues ) {
+    public void addGenotypeCall(String contigName,
+                                int contigLength,
+                                int genomicLoc,
+                                float rmsMapQ,
+                                char refBase,
+                                int readDepth,
+                                LikelihoodObject lhValues) {
 
+        // check if we've jumped to a new contig
+        checkSequence(contigName, contigLength);
 
-        SinglePointCall call = new SinglePointCall(refBase, genomicLoc,
+        SinglePointCall call = new SinglePointCall(refBase,
+                genomicLoc,
                 readDepth,
                 (short) rmsMapQ,
                 lhValues.toDoubleArray());
@@ -96,6 +100,8 @@ public class GLFWriter implements GenotypeWriter {
     /**
      * add a variable length (indel, deletion, etc) to the genotype writer
      *
+     * @param contigName    the name of the contig you're calling in
+     * @param contigLength  the contig length
      * @param refBase       the reference base
      * @param genomicLoc    the location, as an offset from the previous glf record
      * @param readDepth     the read depth at the specified postion
@@ -105,23 +111,18 @@ public class GLFWriter implements GenotypeWriter {
      * @param hetLikelihood the negitive log likelihood of the heterozygote,  from 0 to 255
      */
     @Override
-    public void addVariableLengthCall( int genomicLoc,
-                                       float rmsMapQ,
-                                       int readDepth,
-                                       char refBase,
-                                       IndelLikelihood firstHomZyg,
-                                       IndelLikelihood secondHomZyg,
-                                       byte hetLikelihood ) {
+    public void addVariableLengthCall(String contigName,
+                                      int contigLength,
+                                      int genomicLoc,
+                                      float rmsMapQ,
+                                      int readDepth,
+                                      char refBase,
+                                      IndelLikelihood firstHomZyg,
+                                      IndelLikelihood secondHomZyg,
+                                      byte hetLikelihood) {
 
-        // in this context, the minumum likelihood is lowest of the three options
-        double lowestLikelihood = Double.MAX_VALUE;
-        if (firstHomZyg.getLikelihood() < lowestLikelihood) {
-            lowestLikelihood = firstHomZyg.getLikelihood();
-        } else if (secondHomZyg.getLikelihood() < lowestLikelihood) {
-            lowestLikelihood = secondHomZyg.getLikelihood();
-        } else if (hetLikelihood < lowestLikelihood) {
-            lowestLikelihood = hetLikelihood;
-        }
+        // check if we've jumped to a new contig
+        checkSequence(contigName, contigLength);
 
         // normalize the two
         VariableLengthCall call = new VariableLengthCall(refBase,
@@ -131,11 +132,12 @@ public class GLFWriter implements GenotypeWriter {
                 firstHomZyg.getLikelihood(),
                 secondHomZyg.getLikelihood(),
                 hetLikelihood,
+                firstHomZyg.getLengthOfIndel(),
                 firstHomZyg.getIndelSequence(),
+                secondHomZyg.getLengthOfIndel(),
                 secondHomZyg.getIndelSequence());
 
         call.write(this.outputBinaryCodec);
-
     }
 
     /**
@@ -145,7 +147,7 @@ public class GLFWriter implements GenotypeWriter {
      * @param readDepth the read depth
      */
     @Override
-    public void addNoCall( int position, int readDepth ) {
+    public void addNoCall(int position, int readDepth) {
         // glf doesn't support this operation
         throw new UnsupportedOperationException("GLF doesn't support a 'no call' call.");
     }
@@ -155,7 +157,8 @@ public class GLFWriter implements GenotypeWriter {
      *
      * @param rec the GLF record to write.
      */
-    public void addGLFRecord( GLFRecord rec ) {
+    public void addGLFRecord(String contigName, int contigLength, GLFRecord rec) {
+        checkSequence(contigName,contigLength);
         rec.write(this.outputBinaryCodec);
     }
 
@@ -167,16 +170,44 @@ public class GLFWriter implements GenotypeWriter {
      */
     private void writeHeader() {
         for (int x = 0; x < glfMagic.length; x++) {
-            outputBinaryCodec.writeByte(glfMagic[x]);
+            outputBinaryCodec.writeUByte(glfMagic[x]);
         }
-        if (!( headerText.equals("") )) {
+        if (!(headerText.equals(""))) {
             outputBinaryCodec.writeString(headerText, true, true);
         } else {
             outputBinaryCodec.writeInt(0);
         }
+    }
+
+    /**
+     * check to see if we've jumped to a new contig
+     *
+     * @param sequenceName
+     * @param seqLength
+     */
+    private void checkSequence(String sequenceName, int seqLength) {
+        if ((referenceSequenceName == null) || (!referenceSequenceName.equals(sequenceName))) {
+            if (this.referenceSequenceName != null) { // don't write the record the first time
+                this.writeEndRecord();   
+            }
+            referenceSequenceName = sequenceName;
+            referenceSequenceLength = seqLength;
+            addSequence();
+        }
+    }
+
+
+    /** add a sequence definition to the glf */
+    private void addSequence() {
         outputBinaryCodec.writeString(referenceSequenceName, true, true);
         outputBinaryCodec.writeUInt(referenceSequenceLength);
     }
+
+    /** write end record */
+    private void writeEndRecord() {
+        outputBinaryCodec.writeUByte((short) 0);
+    }
+
 
     /**
      * close the file.  You must close the file to ensure any remaining data gets
@@ -184,7 +215,7 @@ public class GLFWriter implements GenotypeWriter {
      */
     @Override
     public void close() {
-        outputBinaryCodec.writeByte((byte) 0);
+        writeEndRecord();
         outputBinaryCodec.close();
     }
 
@@ -195,20 +226,30 @@ public class GLFWriter implements GenotypeWriter {
      *
      * @return a byte array containing the normalized values
      */
-    private byte[] normalizeToByte( double[] values ) {
+    private byte[] normalizeToByte(double[] values) {
         byte ret[] = new byte[values.length];
         double min = Double.MAX_VALUE;
         double max = Double.MIN_VALUE;
         for (double d : values) {
-            min = ( d < min ) ? d : min;
-            max = ( d > max ) ? d : max;
+            min = (d < min) ? d : min;
+            max = (d > max) ? d : max;
         }
         double scale = max / 255.0;
         for (int x = 0; x < values.length; x++) {
-            ret[x] = (byte) ( ( values[x] - min ) / scale );
+            ret[x] = (byte) ((values[x] - min) / scale);
         }
         return ret;
     }
+
+    /**
+     * get the reference sequence
+     *
+     * @return
+     */
+    public String getReferenceSequenceName() {
+        return referenceSequenceName;
+    }
+
 
 }
 

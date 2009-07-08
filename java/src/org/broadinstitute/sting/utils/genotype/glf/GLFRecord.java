@@ -74,9 +74,10 @@ abstract class GLFRecord {
 
         /**
          * private constructor, used by the enum class to makes each enum value
+         *
          * @param value the short values specified in the enum listing
          */
-        REF_BASE( short value ) {
+        REF_BASE(short value) {
             fieldValue = value;
         }
 
@@ -88,7 +89,11 @@ abstract class GLFRecord {
          * @return the corresponding REF_BASE
          * @throws IllegalArgumentException if the value passed can't be converted
          */
-        public static REF_BASE toBase( char value ) {
+        public static REF_BASE toBase(char value) {
+            // for the case where they're passing in the enumated value
+            if (value <= 0x0F && value >= 0) {
+                return REF_BASE.values()[value];
+            }
             String str = String.valueOf(value).toUpperCase();
             for (int x = 0; x < REF_BASE.values().length; x++) {
                 if (REF_BASE.values()[x].toString().equals(str)) {
@@ -111,7 +116,7 @@ abstract class GLFRecord {
 
         private final short fieldValue;   // in kilograms
 
-        RECORD_TYPE( short value ) {
+        RECORD_TYPE(short value) {
             fieldValue = value;
         }
 
@@ -130,7 +135,7 @@ abstract class GLFRecord {
      * @param readDepth         the read depth at this position
      * @param rmsMapQ           the root mean square of the mapping quality
      */
-    public GLFRecord( char base, long offset, short minimumLikelihood, int readDepth, short rmsMapQ ) {
+    public GLFRecord(char base, long offset, short minimumLikelihood, int readDepth, short rmsMapQ) {
         REF_BASE newBase = REF_BASE.toBase(base);
         validateInput(newBase, offset, minimumLikelihood, readDepth, rmsMapQ);
     }
@@ -144,7 +149,7 @@ abstract class GLFRecord {
      * @param readDepth         the read depth at this position
      * @param rmsMapQ           the root mean square of the mapping quality
      */
-    GLFRecord( REF_BASE base, long offset, short minimumLikelihood, int readDepth, short rmsMapQ ) {
+    GLFRecord(REF_BASE base, long offset, short minimumLikelihood, int readDepth, short rmsMapQ) {
         validateInput(base, offset, minimumLikelihood, readDepth, rmsMapQ);
     }
 
@@ -157,7 +162,7 @@ abstract class GLFRecord {
      * @param readDepth         the read depth at this position
      * @param rmsMapQ           the root mean square of the mapping quality
      */
-    private void validateInput( REF_BASE base, long offset, short minimumLikelihood, int readDepth, short rmsMapQ ) {
+    private void validateInput(REF_BASE base, long offset, short minimumLikelihood, int readDepth, short rmsMapQ) {
         this.refBase = base;
         if (offset > 4294967295L || offset < 0) {
             throw new IllegalArgumentException("Offset is out of bounds (0 to 0xffffffff) value passed = " + offset);
@@ -185,9 +190,10 @@ abstract class GLFRecord {
      *
      * @param out the binary codec to write to
      */
-     void write( BinaryCodec out ) {
-        out.writeUByte((short) ( this.getRecordType().getReadTypeValue() << 4 | ( refBase.getBaseHexValue() & 0x0f ) ));
-        out.writeUInt(( (Long) offset ).intValue());
+    void write(BinaryCodec out) {
+        short bite = ((short) (this.getRecordType().getReadTypeValue() << 4 | (refBase.getBaseHexValue() & 0x0f)));
+        out.writeUByte((short) (this.getRecordType().getReadTypeValue() << 4 | (refBase.getBaseHexValue() & 0x0f)));
+        out.writeUInt(((Long) offset).intValue());
         out.writeUInt((new Long(readDepth).intValue()));
         out.writeUByte((short) rmsMapQ);
     }
@@ -210,23 +216,27 @@ abstract class GLFRecord {
 
     /**
      * convert a double to a byte, capping it at the maximum value of 255
+     *
      * @param d a double value
-     * @return a byte, capped at 
+     *
+     * @return a byte, capped at
      */
     protected static short toCappedShort(double d) {
-        return (d > 255.0) ? (byte)255 : (byte)Math.round(d);
+        return (d > 255.0) ? (short) 255 : (short) Math.round(d);
     }
 
     /**
      * find the minimum value in a set of doubles
+     *
      * @param vals
+     *
      * @return
      */
     protected static double findMin(double vals[]) {
         if (vals.length < 1) throw new StingException("findMin: an array of size < 1 was passed in");
 
         double min = vals[0];
-        for (double d: vals) {
+        for (double d : vals) {
             if (d < min) min = d;
         }
         return min;
