@@ -522,8 +522,9 @@ public class GenomeLocParser {
         if (loc.getContigIndex() < 0 || loc.getContigIndex() >= contigInfo.getSequences().size()) {
             throw new StingException("Genome loc passed in to setStart has a contig index outside the range of our current sequence dictionary");
         }
-        if (start > GenomeLocParser.contigInfo.getSequences().get(loc.getContigIndex()).getSequenceLength()) {
-            throw new StingException("start value of " + start + " is greater than the contig length, and is not -1.");
+        int length = GenomeLocParser.contigInfo.getSequences().get(loc.getContigIndex()).getSequenceLength();
+        if (start > length) {
+            throw new StingException("start value of " + start + " is greater than the contig length, and is not -1. (length = " + length + ").");
         }
         return verifyGenomeLoc(new GenomeLoc(loc.getContig(), loc.getContigIndex(), start, loc.getStop()));
     }
