@@ -24,7 +24,7 @@ public class ComparableSAMRecord implements Comparable<ComparableSAMRecord> {
         if ( comparison == 0 )
             comparison = record.getReadName().compareTo(o.getRecord().getReadName());
         // if the read names are the same, use the first of the pair if appropriate
-        if ( comparison == 0 )
+        if ( comparison == 0 && record.getReadPairedFlag() )
             comparison = ( record.getFirstOfPairFlag() ? -1 : 1);
         return comparison;
     }
