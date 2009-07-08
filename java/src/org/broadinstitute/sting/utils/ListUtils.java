@@ -16,13 +16,8 @@ public class ListUtils {
 
     static Random rand = new Random(12321); //System.currentTimeMillis());
 
-    static public ArrayList<Integer> randomSubsetIndices(int n, int k) {
+    static public ArrayList<Integer> sampleIndicesWithReplacement(int n, int k) {
         // Returns n random indices drawn with replacement from the range 1..k
-        
-        /*ArrayList<Integer> balls = new ArrayList<Integer>();
-        for (int i=0; i<k; i++) {
-            balls.add(i);
-        } */
 
         ArrayList<Integer> chosen_balls = new ArrayList <Integer>();
         for (int i=0; i<n; i++) {
@@ -34,8 +29,9 @@ public class ListUtils {
         return chosen_balls;
     }
 
-    static public <T> ArrayList<T> subsetListByIndices(List<Integer> indices, List<T> list) {
-        // Given a list of indices into a list, return those elements of the list list 
+    static public <T> ArrayList<T> sliceListByIndices(List<Integer> indices, List<T> list) {
+        // Given a list of indices into a list, return those elements of the list with the possibility
+        // of drawing list elements multiple times
 
         ArrayList<T> subset = new ArrayList<T>();
 

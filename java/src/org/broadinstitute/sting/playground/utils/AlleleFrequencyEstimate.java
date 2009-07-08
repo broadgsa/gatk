@@ -248,4 +248,14 @@ public class AlleleFrequencyEstimate {
     {
         return this.posteriors[(int)this.qstar * this.N];
     }
+
+    public String callType() {
+        // Returns a string indicating whether the call is homozygous reference, heterozygous SNP, or homozygous SNP
+
+        String[] callTypeString = {"HomozygousSNP", "HeterozygousSNP", "HomozygousReference"};
+        String genotype = genotype();
+        int ref_matches = (genotype.charAt(0) == ref ? 1 : 0) + (genotype.charAt(1) == ref ? 1 : 0);
+        return callTypeString[ref_matches];
+    }
+
 }
