@@ -27,15 +27,16 @@ import java.util.HashSet;
  */
 @Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=rodVariants.class))
 public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
-    @Argument(fullName="features", shortName="F", doc="Feature test (optionally with arguments) to apply to genotype posteriors.  Syntax: 'testname[:arguments]'") public String[] FEATURES;
-    @Argument(fullName="exclusion_criterion", shortName="X", doc="Exclusion test (optionally with arguments) to apply to variant call.  Syntax: 'testname[:arguments]'") public String[] EXCLUSIONS;
-    @Argument(fullName="variants_out", shortName="VO", doc="File to which modified variants should be written") public File VARIANTS_OUT;
+    @Argument(fullName="variants_out_head", shortName="VOH", doc="File to which modified variants should be written") public String VARIANTS_OUT_HEAD;
+    @Argument(fullName="features", shortName="F", doc="Feature test (optionally with arguments) to apply to genotype posteriors.  Syntax: 'testname[:arguments]'", required=false) public String[] FEATURES;
+    @Argument(fullName="exclusion_criterion", shortName="X", doc="Exclusion test (optionally with arguments) to apply to variant call.  Syntax: 'testname[:arguments]'", required=false) public String[] EXCLUSIONS;
     @Argument(fullName="verbose", shortName="V", doc="Show how the variant likelihoods are changing with the application of each feature") public Boolean VERBOSE = false;
     @Argument(fullName="list", shortName="ls", doc="List the available features and exclusion criteria and exit") public Boolean LIST = false;
 
     private ArrayList<Class> featureClasses;
     private ArrayList<Class> exclusionClasses;
     private PrintWriter vwriter;
+    private HashMap<String, PrintWriter> ewriters;
 
     /**
      * Prepare the output file and the list of available features.
@@ -45,17 +46,37 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         exclusionClasses = PackageUtils.getClassesImplementingInterface(VariantExclusionCriterion.class);
 
         if (LIST) {
-            out.println("\nAvailable features: " + getAvailableClasses(featureClasses) + "\n");
-            out.println("\nAvailable exclusion criteria: " + getAvailableClasses(exclusionClasses) + "\n");
+            out.println("\nAvailable features: " + getAvailableClasses(featureClasses));
+            out.println("Available exclusion criteria: " + getAvailableClasses(exclusionClasses) + "\n");
             System.exit(0);
         }
 
         try {
-            vwriter = new PrintWriter(VARIANTS_OUT);
+            vwriter = new PrintWriter(VARIANTS_OUT_HEAD + ".included.geli.calls");
             vwriter.println(AlleleFrequencyEstimate.geliHeaderString());
 
+            ewriters = new HashMap<String, PrintWriter>();
+
+            if (EXCLUSIONS != null) {
+                for (String requestedExclusionString : EXCLUSIONS) {
+                    String[] requestedExclusionPieces = requestedExclusionString.split(":");
+                    String requestedExclusionName = requestedExclusionPieces[0];
+
+                    for ( Class exclusionClass : exclusionClasses ) {
+                        String exclusionClassName = rationalizeClassName(exclusionClass);
+
+                        if (requestedExclusionName.equalsIgnoreCase(exclusionClassName)) {
+                            PrintWriter writer = new PrintWriter(VARIANTS_OUT_HEAD + ".excluded." + exclusionClassName + ".geli.calls");
+                            writer.println(AlleleFrequencyEstimate.geliHeaderString());
+
+                            ewriters.put(exclusionClassName, writer);
+                        }
+                    }
+                }
+            }
         } catch (FileNotFoundException e) {
-            throw new StingException(String.format("Could not open file '%s' for writing", VARIANTS_OUT.getAbsolutePath()));
+            //throw new StingException(String.format("Could not open file '%s' for writing", VARIANTS_OUT.getAbsolutePath()));
+            throw new StingException(String.format("Could not open file(s) for writing"));
         }
     }
 
@@ -111,82 +132,91 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             if (VERBOSE) { out.println("Original:\n  " + variant); }
 
             // Apply features that modify the likelihoods and LOD scores
-            for (String requestedFeatureString : FEATURES) {
-                String[] requestedFeaturePieces = requestedFeatureString.split(":");
-                String requestedFeatureName = requestedFeaturePieces[0];
-                String requestedFeatureArgs = (requestedFeaturePieces.length == 2) ? requestedFeaturePieces[1] : "";
+            if (FEATURES != null) {
+                for (String requestedFeatureString : FEATURES) {
+                    String[] requestedFeaturePieces = requestedFeatureString.split(":");
+                    String requestedFeatureName = requestedFeaturePieces[0];
+                    String requestedFeatureArgs = (requestedFeaturePieces.length == 2) ? requestedFeaturePieces[1] : "";
 
-                int notYetSeenFeature = 0;
-                for ( Class featureClass : featureClasses ) {
-                    String featureClassName = rationalizeClassName(featureClass);
+                    int notYetSeenFeature = 0;
+                    for ( Class featureClass : featureClasses ) {
+                        String featureClassName = rationalizeClassName(featureClass);
 
-                    if (requestedFeatureName.equalsIgnoreCase(featureClassName)) {
-                        try {
-                            IndependentVariantFeature ivf = (IndependentVariantFeature) featureClass.newInstance();
-                            ivf.initialize(requestedFeatureArgs);
+                        if (requestedFeatureName.equalsIgnoreCase(featureClassName)) {
+                            try {
+                                IndependentVariantFeature ivf = (IndependentVariantFeature) featureClass.newInstance();
+                                ivf.initialize(requestedFeatureArgs);
 
-                            variant.adjustLikelihoods(ivf.compute(ref, context));
+                                variant.adjustLikelihoods(ivf.compute(ref, context));
 
-                            if (VERBOSE) { out.println(featureClassName + ":\n  " + variant); }
-                        } catch (InstantiationException e) {
-                            throw new StingException(String.format("Cannot instantiate feature class '%s': must be concrete class", featureClass.getSimpleName()));
-                        } catch (IllegalAccessException e) {
-                            throw new StingException(String.format("Cannot instantiate feature class '%s': must have no-arg constructor", featureClass.getSimpleName()));
+                                if (VERBOSE) { out.println(featureClassName + ":\n  " + variant); }
+                            } catch (InstantiationException e) {
+                                throw new StingException(String.format("Cannot instantiate feature class '%s': must be concrete class", featureClass.getSimpleName()));
+                            } catch (IllegalAccessException e) {
+                                throw new StingException(String.format("Cannot instantiate feature class '%s': must have no-arg constructor", featureClass.getSimpleName()));
+                            }
+                        } else {
+                            notYetSeenFeature++;
                         }
-                    } else {
-                        notYetSeenFeature++;
                     }
-                }
 
-                if (notYetSeenFeature == featureClasses.size()) {
-                    throw new StingException(String.format("Unknown feature '%s'. Valid features are '%s'", requestedFeatureName, getAvailableClasses(featureClasses)));
+                    if (notYetSeenFeature == featureClasses.size()) {
+                        throw new StingException(String.format("Unknown feature '%s'. Valid features are '%s'", requestedFeatureName, getAvailableClasses(featureClasses)));
+                    }
                 }
             }
 
             // Apply exclusion tests that accept or reject the variant call
             ArrayList<String> exclusionResults = new ArrayList<String>();
 
-            for (String requestedExclusionString : EXCLUSIONS) {
-                String[] requestedExclusionPieces = requestedExclusionString.split(":");
-                String requestedExclusionName = requestedExclusionPieces[0];
-                String requestedExclusionArgs = (requestedExclusionPieces.length == 2) ? requestedExclusionPieces[1] : "";
+            if (EXCLUSIONS != null) {
+                for (String requestedExclusionString : EXCLUSIONS) {
+                    String[] requestedExclusionPieces = requestedExclusionString.split(":");
+                    String requestedExclusionName = requestedExclusionPieces[0];
+                    String requestedExclusionArgs = (requestedExclusionPieces.length == 2) ? requestedExclusionPieces[1] : "";
 
-                int notYetSeenExclusion = 0;
-                for ( Class exclusionClass : exclusionClasses ) {
-                    String exclusionClassName = rationalizeClassName(exclusionClass);
+                    int notYetSeenExclusion = 0;
+                    for ( Class exclusionClass : exclusionClasses ) {
+                        String exclusionClassName = rationalizeClassName(exclusionClass);
 
-                    if (requestedExclusionName.equalsIgnoreCase(exclusionClassName)) {
-                        try {
-                            VariantExclusionCriterion vec = (VariantExclusionCriterion) exclusionClass.newInstance();
-                            vec.initialize(requestedExclusionArgs);
+                        if (requestedExclusionName.equalsIgnoreCase(exclusionClassName)) {
+                            try {
+                                VariantExclusionCriterion vec = (VariantExclusionCriterion) exclusionClass.newInstance();
+                                vec.initialize(requestedExclusionArgs);
 
-                            boolean excludeResult = vec.exclude(ref, context, variant);
+                                boolean excludeResult = vec.exclude(ref, context, variant);
 
-                            if (excludeResult) {
-                                exclusionResults.add(exclusionClassName);
+                                if (excludeResult) {
+                                    exclusionResults.add(exclusionClassName);
+                                }
+                            } catch (InstantiationException e) {
+                                throw new StingException(String.format("Cannot instantiate exclusion class '%s': must be concrete class", exclusionClass.getSimpleName()));
+                            } catch (IllegalAccessException e) {
+                                throw new StingException(String.format("Cannot instantiate exclusion class '%s': must have no-arg constructor", exclusionClass.getSimpleName()));
                             }
-
-                        } catch (InstantiationException e) {
-                            throw new StingException(String.format("Cannot instantiate exclusion class '%s': must be concrete class", exclusionClass.getSimpleName()));
-                        } catch (IllegalAccessException e) {
-                            throw new StingException(String.format("Cannot instantiate exclusion class '%s': must have no-arg constructor", exclusionClass.getSimpleName()));
+                        } else {
+                            notYetSeenExclusion++;
                         }
-                    } else {
-                        notYetSeenExclusion++;
                     }
-                }
 
-                if (notYetSeenExclusion == exclusionClasses.size()) {
-                    throw new StingException(String.format("Unknown exclusion '%s'. Valid exclusions are '%s'", requestedExclusionName, getAvailableClasses(exclusionClasses)));
+                    if (notYetSeenExclusion == exclusionClasses.size()) {
+                        throw new StingException(String.format("Unknown exclusion '%s'. Valid exclusions are '%s'", requestedExclusionName, getAvailableClasses(exclusionClasses)));
+                    }
                 }
             }
 
             if (exclusionResults.size() > 0) {
-                if (VERBOSE) {
-                    String exclusions = "";
-                    for (int i = 0; i < exclusionResults.size(); i++) {
-                        exclusions += exclusionResults.get(i) + (i == exclusionResults.size() - 1 ? "" : ",");
+                String exclusions = "";
+                for (int i = 0; i < exclusionResults.size(); i++) {
+                    exclusions += exclusionResults.get(i) + (i == exclusionResults.size() - 1 ? "" : ",");
+
+                    PrintWriter writer = ewriters.get(exclusionResults.get(i));
+                    if (writer != null) {
+                        writer.println(variant);
                     }
+                }
+                
+                if (VERBOSE) {
                     out.printf("Exclusions: %s\n", exclusions);
                 }
             } else {
@@ -221,5 +251,9 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         out.printf("Processed %d loci.\n", result);
 
         vwriter.close();
+
+        for (PrintWriter writer : ewriters.values()) {
+            writer.close();
+        }
     }
 }
