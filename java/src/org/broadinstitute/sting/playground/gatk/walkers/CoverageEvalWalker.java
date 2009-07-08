@@ -88,7 +88,7 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
                     LocusContext subContext = new LocusContext(context.getLocation(), sub_reads, sub_offsets);
                     AlleleFrequencyEstimate alleleFreq = SSG.map(tracker, ref, subContext);
 
-                    if (alleleFreq != null && (alleleFreq.lodVsRef >= LOD_THRESHOLD || alleleFreq.lodVsRef <= LOD_THRESHOLD)) {
+                    if (alleleFreq != null) {
                         GenotypeCalls.add(coverage+"\t"+coverage_available+"\t"+hc_genotype+"\t"+alleleFreq.callType()+"\t"+alleleFreq.asGeliString());
                     }
                 }
