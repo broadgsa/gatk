@@ -10,6 +10,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 
 import net.sf.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.PicardException;
 import net.sf.samtools.util.StringUtil;
 
@@ -122,7 +124,7 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
 
     @Test
     public void testFirstCompleteContigRead() {
-        FastaSequenceFile2 originalSequenceFile = new FastaSequenceFile2(new File(sequenceFileName));
+        ReferenceSequenceFile originalSequenceFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(new File(sequenceFileName));
         ReferenceSequence expectedSequence = originalSequenceFile.nextSequence();
 
         long startTime = System.currentTimeMillis();
@@ -164,9 +166,10 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
 
     @Test
     public void testMiddleCompleteContigRead() {
-        FastaSequenceFile2 originalSequenceFile = new FastaSequenceFile2(new File(sequenceFileName));
-        originalSequenceFile.seekToContig("chrY");
+        ReferenceSequenceFile originalSequenceFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(new File(sequenceFileName));
         ReferenceSequence expectedSequence = originalSequenceFile.nextSequence();
+        while( !expectedSequence.getName().equals("chrY") )
+            expectedSequence = originalSequenceFile.nextSequence();
 
         long startTime = System.currentTimeMillis();
         ReferenceSequence sequence = sequenceFile.getSequence("chrY");
@@ -183,9 +186,10 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
 
     @Test
     public void testLastCompleteContigRead() {
-        FastaSequenceFile2 originalSequenceFile = new FastaSequenceFile2(new File(sequenceFileName));
-        originalSequenceFile.seekToContig("chrX_random");
+        ReferenceSequenceFile originalSequenceFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(new File(sequenceFileName));
         ReferenceSequence expectedSequence = originalSequenceFile.nextSequence();
+        while( !expectedSequence.getName().equals("chrX_random") )
+            expectedSequence = originalSequenceFile.nextSequence();
 
         long startTime = System.currentTimeMillis();
         ReferenceSequence sequence = sequenceFile.getSequence("chrX_random");
@@ -233,7 +237,7 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
 
     @Test
     public void testFirstElementOfIterator() {
-        FastaSequenceFile2 originalSequenceFile = new FastaSequenceFile2(new File(sequenceFileName));
+        ReferenceSequenceFile originalSequenceFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(new File(sequenceFileName));
         ReferenceSequence expectedSequence = originalSequenceFile.nextSequence();
 
         long startTime = System.currentTimeMillis();
@@ -251,7 +255,7 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
 
     @Test
     public void testNextElementOfIterator() {
-        FastaSequenceFile2 originalSequenceFile = new FastaSequenceFile2(new File(sequenceFileName));
+        ReferenceSequenceFile originalSequenceFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(new File(sequenceFileName));
         // Skip past the first one and load the second one.
         originalSequenceFile.nextSequence();
         ReferenceSequence expectedSequence = originalSequenceFile.nextSequence();

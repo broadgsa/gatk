@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.Iterator;

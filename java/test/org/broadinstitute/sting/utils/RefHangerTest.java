@@ -5,15 +5,18 @@ package org.broadinstitute.sting.utils;
 // the imports for unit testing.
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.List;
+
+import net.sf.picard.reference.ReferenceSequenceFile;
 
 /**
  * Basic unit test for RefHanger
@@ -50,7 +53,7 @@ import java.util.List;
 
  */
 public class RefHangerTest extends BaseTest {
-    private static FastaSequenceFile2 seq;
+    private static ReferenceSequenceFile seq;
     private GenomeLoc startLoc;
     private RefHanger<Integer> emptyHanger;
 
@@ -67,9 +70,9 @@ public class RefHangerTest extends BaseTest {
     private static GenomeLoc p1, p2, p3, p4, p5;
 
     @BeforeClass
-    public static void init() {
+    public static void init() throws FileNotFoundException {
         // sequence
-        seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
         GenomeLocParser.setupRefContigOrdering(seq);
 
         System.out.printf("Filled hanger is %n%s%n", makeFilledHanger());

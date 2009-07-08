@@ -12,7 +12,6 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.CountReadsWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import static org.junit.Assert.fail;
 import org.junit.Before;
@@ -25,6 +24,8 @@ import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+
+import net.sf.picard.reference.ReferenceSequenceFile;
 
 /**
  *
@@ -54,7 +55,7 @@ import java.util.List;
  */
 public class TraverseReadsTest extends BaseTest {
 
-    private FastaSequenceFile2 seq;
+    private ReferenceSequenceFile seq;
     private File bam = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/index_test.bam"); // TCGA-06-0188.aligned.duplicates_marked.bam");
     private File refFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/Homo_sapiens_assembly17.fasta");
     private List<File> bamList;

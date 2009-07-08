@@ -17,7 +17,6 @@ import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.io.File;
 import java.util.*;
@@ -54,9 +53,6 @@ public abstract class TraversalEngine {
 
     // The reference data -- filename, refSeqFile, and iterator
     protected File refFileName = null;                        // the name of the reference file
-    //private ReferenceSequenceFile refFile = null;
-    protected FastaSequenceFile2 refFile = null;              // todo: merge FastaSequenceFile2 into picard!
-    protected ReferenceIterator refIter = null;
 
     // Progress tracker for the sam file
     protected FileProgressTracker samReadingTracker = null;
@@ -317,7 +313,6 @@ public abstract class TraversalEngine {
      */
     public boolean initialize() {
         lastProgressPrintTime = startTime = System.currentTimeMillis();
-        initializeReference();
         // Initial the reference ordered data iterators
         initializeRODs();
 
@@ -351,21 +346,6 @@ public abstract class TraversalEngine {
     }
 
     /**
-     * Prepare the reference for stream processing
-     */
-    protected void initializeReference() {
-        if (refFileName != null) {
-            //this.refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFileName);
-            this.refFile = new FastaSequenceFile2(refFileName);   // todo: replace when FastaSequenceFile2 is in picard
-            this.refIter = new ReferenceIterator(this.refFile);
-            if (!GenomeLocParser.setupRefContigOrdering(this.refFile)) {
-              // We couldn't process the reference contig ordering, fail since we need it
-                Utils.scareUser(String.format("We couldn't load the contig dictionary associated with %s.  At the current time we require this dictionary file to efficiently access the FASTA file.  Please use /seq/software/picard/current/bin/CreateSequenceDictionary.jar to create a sequence dictionary for your file", refFileName));
-            }
-        }
-    }
-
-    /**
      * Prepare the list of reference ordered data iterators for each of the rods
      *
      * @return A list of ROD iterators for getting data from each ROD
@@ -375,17 +355,6 @@ public abstract class TraversalEngine {
         rodIters = new ArrayList<Pair<String, RODIterator<? extends ReferenceOrderedDatum>>>();
         for (ReferenceOrderedData<? extends ReferenceOrderedDatum> data : rods) {
             rodIters.add(new Pair<String, RODIterator<? extends ReferenceOrderedDatum>>(data.getName(), data.iterator()));
-        }
-    }
-
-    /**
-     * An inappropriately placed testing of reading the reference
-     */
-    protected void testReference() {
-        while (true) {
-            ReferenceSequence ref = refFile.nextSequence();
-            logger.debug(String.format("%s %d %d", ref.getName(), ref.length(), System.currentTimeMillis()));
-            printProgress(true, "loci", GenomeLocParser.createGenomeLoc("foo", 1));
         }
     }
 

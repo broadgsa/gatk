@@ -3,9 +3,11 @@ package org.broadinstitute.sting.secondarybase;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
+import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -159,7 +161,7 @@ public class BasecallingTrainer {
      * @return a vector of perfect reads, grouped by tile
      */
     private Vector<HashMap<String, SAMRecord>> getPerfectAlignmentsByTile(File samIn, File reference) {
-        FastaSequenceFile2 ref = new FastaSequenceFile2(reference);
+        ReferenceSequenceFile ref = ReferenceSequenceFileFactory.getReferenceSequenceFile(reference);
         String currentContig = "none";
         byte[] refbases = null;
 
@@ -175,9 +177,11 @@ public class BasecallingTrainer {
                 int offset = sr.getAlignmentStart();
 
                 if (!currentContig.matches(sr.getReferenceName())) {
-                    ref.seekToContig(sr.getReferenceName());
+                    ReferenceSequence refSeq = ref.nextSequence();
+                    while( !refSeq.getName().equals(sr.getReferenceName()) )
+                        refSeq = ref.nextSequence();
                     currentContig = sr.getReferenceName();
-                    refbases = ref.nextSequence().getBases();
+                    refbases = refSeq.getBases();
                 }
 
                 int mismatches = 0;

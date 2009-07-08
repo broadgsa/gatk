@@ -8,7 +8,6 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.containers.BoundedScoringSet;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 
 import java.io.File;
 import java.util.ArrayList;

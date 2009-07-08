@@ -7,7 +7,7 @@ package org.broadinstitute.sting.gatk.refdata;
 import org.junit.*;
 import static org.junit.Assert.assertTrue;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.io.File;
@@ -17,20 +17,22 @@ import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.ArrayList;
 
+import net.sf.picard.reference.ReferenceSequenceFile;
+
 /**
  * Basic unit test for TabularROD
  *
  */
 public class TabularRODTest extends BaseTest {
-    private static FastaSequenceFile2 seq;
+    private static ReferenceSequenceFile seq;
     private ReferenceOrderedData ROD;
     private RODIterator iter;
 
 
     @BeforeClass
-    public static void init() {
+    public static void init() throws FileNotFoundException {
         // sequence
-        seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
         GenomeLocParser.setupRefContigOrdering(seq);
     }
 

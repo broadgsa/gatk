@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.iterators;
 
 import static junit.framework.Assert.fail;
 import net.sf.samtools.SAMRecord;
+import net.sf.picard.reference.ReferenceSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
@@ -10,13 +11,14 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SimpleDataSourceLoadException;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,7 +62,7 @@ public class BoundedReadIteratorTest extends BaseTest {
 
     /** the file list and the fasta sequence */
     private List<File> fl;
-    private FastaSequenceFile2 seq;
+    private ReferenceSequenceFile seq;
 
     /**
      * This function does the setup of our parser, before each method call.
@@ -68,11 +70,11 @@ public class BoundedReadIteratorTest extends BaseTest {
      * Called before every test case method.
      */
     @Before
-    public void doForEachTest() {
+    public void doForEachTest() throws FileNotFoundException {
         fl = new ArrayList<File>();
 
         // sequence
-        seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
         GenomeLocParser.setupRefContigOrdering(seq.getSequenceDictionary());
     }
 

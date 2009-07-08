@@ -8,20 +8,23 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+
+import net.sf.picard.reference.ReferenceSequenceFile;
 
 /**
  * Basic unit test for GenomeLoc
  */
 public class GenomeLocTest extends BaseTest {
-    private static FastaSequenceFile2 seq;
+    private static ReferenceSequenceFile seq;
 
     @BeforeClass
-    public static void init() {
+    public static void init() throws FileNotFoundException {
         // sequence
-        seq = new FastaSequenceFile2(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
         GenomeLocParser.setupRefContigOrdering(seq);
     }
 

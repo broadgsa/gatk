@@ -8,9 +8,7 @@ import org.broadinstitute.sting.gatk.refdata.rodGFF;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.fasta.FastaSequenceFile2;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-import net.sf.samtools.SAMRecord;
 import net.sf.picard.reference.ReferenceSequence;
 
 import java.util.List;
