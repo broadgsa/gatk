@@ -10,15 +10,12 @@ import org.broadinstitute.sting.gatk.datasources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.sam.SAMReadValidator;
 import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 
 import java.io.File;
-import java.util.List;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -74,15 +71,20 @@ public class SAMDataSource implements SimpleDataSource {
     private boolean intoUnmappedReads = false;
     private int readsSeenAtLastPos = 0;
 
+    /**
+     * A histogram of exactly what reads were removed from the input stream and why.
+     */
+    private SAMReadViolationHistogram violations = new SAMReadViolationHistogram();    
+
     // A pool of SAM iterators.
-    private SAMIteratorPool iteratorPool = null;
+    private SAMResourcePool resourcePool = null;
 
     /**
      * Returns a histogram of reads that were screened out, grouped by the nature of the error.
      * @return Histogram of reads.  Will not be null.
      */
     public SAMReadViolationHistogram getViolationHistogram() {
-        return iteratorPool.getViolationHistogram();
+        return violations;
     }
 
     /**
@@ -102,7 +104,7 @@ public class SAMDataSource implements SimpleDataSource {
                 throw new SimpleDataSourceLoadException("SAMDataSource: Unable to load file: " + smFile.getName());
             }
         }
-        iteratorPool = new SAMIteratorPool(reads);
+        resourcePool = new SAMResourcePool(reads);
     }
 
     /**
@@ -111,7 +113,7 @@ public class SAMDataSource implements SimpleDataSource {
      * @return SAM file header.
      */
     public SAMFileHeader getHeader() {
-        return iteratorPool.getHeader();
+        return resourcePool.getHeader();
     }
 
     /**
@@ -123,7 +125,7 @@ public class SAMDataSource implements SimpleDataSource {
     public StingSAMIterator seek( Shard shard ) throws SimpleDataSourceLoadException {
         // setup the iterator pool if it's not setup
         boolean queryOverlapping = ( shard.getShardType() == Shard.ShardType.READ ) ? false : true;
-        iteratorPool.setQueryOverlapping(queryOverlapping);
+        resourcePool.setQueryOverlapping(queryOverlapping);
 
         StingSAMIterator iterator = null;
         if (shard.getShardType() == Shard.ShardType.READ) {
@@ -158,7 +160,7 @@ public class SAMDataSource implements SimpleDataSource {
      * @return an iterator for that region
      */
     private StingSAMIterator seekLocus( GenomeLoc location ) throws SimpleDataSourceLoadException {
-        return iteratorPool.iterator(new MappedStreamSegment(location));
+        return createIterator( new MappedStreamSegment(location) );
     }
 
 
@@ -177,11 +179,11 @@ public class SAMDataSource implements SimpleDataSource {
         if (!intoUnmappedReads) {
             if (lastReadPos == null) {
                 lastReadPos = GenomeLocParser.createGenomeLoc(getHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, Integer.MAX_VALUE);
-                iter = iteratorPool.iterator(new MappedStreamSegment(lastReadPos));
+                iter = createIterator(new MappedStreamSegment(lastReadPos));
                 return InitialReadIterator(shard.getSize(), iter);
             } else {
                 lastReadPos = GenomeLocParser.setStop(lastReadPos,-1);
-                iter = fastMappedReadSeek(shard.getSize(), StingSAMIteratorAdapter.adapt(reads, iteratorPool.iterator(new MappedStreamSegment(lastReadPos))));
+                iter = fastMappedReadSeek(shard.getSize(), StingSAMIteratorAdapter.adapt(reads, createIterator(new MappedStreamSegment(lastReadPos))));
             }
 
             if (intoUnmappedReads && !includeUnmappedReads)
@@ -214,10 +216,10 @@ public class SAMDataSource implements SimpleDataSource {
     /**
      * For unit testing, add a custom iterator pool.
      *
-     * @param iteratorPool Custom mock iterator pool.
+     * @param resourcePool Custom mock iterator pool.
      */
-    void setResourcePool( SAMIteratorPool iteratorPool ) {
-        this.iteratorPool = iteratorPool;
+    void setResourcePool( SAMResourcePool resourcePool ) {
+        this.resourcePool = resourcePool;
     }    
 
     /**
@@ -228,7 +230,7 @@ public class SAMDataSource implements SimpleDataSource {
      * @return the bounded iterator that you can use to get the intervaled reads from
      */
     StingSAMIterator toUnmappedReads( long readCount ) {
-        StingSAMIterator iter = iteratorPool.iterator(new UnmappedStreamSegment(readsTaken, readCount));
+        StingSAMIterator iter = createIterator(new UnmappedStreamSegment(readsTaken, readCount));
         readsTaken += readCount;
         return iter;
     }
@@ -277,7 +279,7 @@ public class SAMDataSource implements SimpleDataSource {
                     readsTaken = readCount;
                     readsSeenAtLastPos = 0;
                     lastReadPos = GenomeLocParser.setStop(lastReadPos,-1);
-                    CloseableIterator<SAMRecord> ret = iteratorPool.iterator(new MappedStreamSegment(lastReadPos));
+                    CloseableIterator<SAMRecord> ret = createIterator(new MappedStreamSegment(lastReadPos));
                     return new BoundedReadIterator(StingSAMIteratorAdapter.adapt(reads, ret), readCount);
                 }
             }
@@ -345,6 +347,16 @@ public class SAMDataSource implements SimpleDataSource {
     }
 
     /**
+     * Creates an iterator over the selected segment, from a resource pulled from the pool.
+     * @param segment Segment over which to gather reads.
+     * @return An iterator over just the reads in the given segment.
+     */
+    private StingSAMIterator createIterator( DataStreamSegment segment ) {
+        StingSAMIterator iterator = resourcePool.iterator(segment);
+        return new MalformedSAMFilteringIterator( getHeader(), iterator, violations );
+    }
+
+    /**
      * Filter reads based on user-specified criteria.
      *
      * @param enableVerification Verify the order of reads.
@@ -376,127 +388,10 @@ public class SAMDataSource implements SimpleDataSource {
 
     private static class ZeroMappingQualityReadFilterFunc implements SamRecordFilter {
         public boolean filterOut(SAMRecord rec) {
-            if (rec.getMappingQuality() == 0) {
-                //System.out.printf("Filtering 0 mapping quality read %s%n", rec.format());
-                return true;
-            } else {
-                return false;
-            }
+            return (rec.getMappingQuality() == 0);
         }
     }
     
 }
 
-class SAMIteratorPool extends ResourcePool<ReadStreamPointer, StingSAMIterator> {
-    /** Source information about the reads. */
-    protected Reads reads;
 
-    /**
-     * A histogram of exactly what reads were removed from the input stream and why.
-     */
-    private SAMReadViolationHistogram violations = new SAMReadViolationHistogram();
-
-    /** Is this a by-reads traversal or a by-locus? */
-    protected boolean queryOverlapping;
-
-    /** File header for the combined file. */
-    protected SAMFileHeader header;
-
-    /** our log, which we want to capture anything from this class */
-    protected static Logger logger = Logger.getLogger(SAMIteratorPool.class);
-
-    public SAMIteratorPool( Reads reads ) {
-        this.reads = reads;
-        this.queryOverlapping = true;
-
-        ReadStreamPointer streamPointer = createNewResource();
-        this.header = streamPointer.getHeader();
-        // Add this resource to the pool.
-        this.addNewResource(streamPointer);
-    }
-
-    /** Get the combined header for all files in the iterator pool. */
-    public SAMFileHeader getHeader() {
-        return header;
-    }
-
-    /**
-     * Returns a histogram of reads that were screened out, grouped by the nature of the error.
-     * @return Histogram of reads.  Will not be null.
-     */
-    public SAMReadViolationHistogram getViolationHistogram() {
-        return violations;
-    }
-
-    protected ReadStreamPointer selectBestExistingResource( DataStreamSegment segment, List<ReadStreamPointer> pointers ) {
-        for (ReadStreamPointer pointer : pointers) {
-            if (pointer.canAccessSegmentEfficiently(segment)) {
-                return pointer;
-            }
-        }
-        return null;
-    }
-
-    protected ReadStreamPointer createNewResource() {
-        return new ReadStreamPointer(reads);
-    }
-
-    protected StingSAMIterator createIteratorFromResource( DataStreamSegment segment, ReadStreamPointer streamPointer ) {
-        StingSAMIterator iterator = null;
-
-        if (!queryOverlapping)
-            iterator = streamPointer.getReadsContainedBy(segment);
-        else {
-            if (!( segment instanceof MappedStreamSegment ))
-                throw new StingException("Segment is unmapped; true overlaps cannot be determined.");
-            iterator = streamPointer.getReadsOverlapping((MappedStreamSegment) segment);
-        }
-
-        return new ReleasingIterator(new MalformedSAMFilteringIterator(header, iterator, violations));
-    }
-
-    protected void closeResource( ReadStreamPointer resource ) {
-        resource.close();
-    }
-
-    private class ReleasingIterator implements StingSAMIterator {
-        private final StingSAMIterator wrappedIterator;
-
-        public Reads getSourceInfo() {
-            return wrappedIterator.getSourceInfo();
-        }
-
-        public ReleasingIterator( StingSAMIterator wrapped ) {
-            this.wrappedIterator = wrapped;
-        }
-
-        public ReleasingIterator iterator() {
-            return this;
-        }
-
-        public void remove() {
-            throw new UnsupportedOperationException("Can't remove from a StingSAMIterator");
-        }
-
-        public void close() {
-            wrappedIterator.close();
-            release(this);
-        }
-
-        public boolean hasNext() {
-            return wrappedIterator.hasNext();
-        }
-
-        public SAMRecord next() {
-            return wrappedIterator.next();
-        }
-    }
-
-    public boolean isQueryOverlapping() {
-        return queryOverlapping;
-    }
-
-    public void setQueryOverlapping( boolean queryOverlapping ) {
-        this.queryOverlapping = queryOverlapping;
-    }
-}

@@ -41,7 +41,7 @@ import java.io.File;
 /**
  * use this to inject into SAMDataSource for testing
  */
-public class ArtificialResourcePool extends SAMIteratorPool {
+public class ArtificialResourcePool extends SAMResourcePool {
     // How strict should we be with SAM/BAM parsing?
     protected SAMFileReader.ValidationStringency strictness = SAMFileReader.ValidationStringency.SILENT;
 
