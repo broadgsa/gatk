@@ -49,9 +49,6 @@ public class GenomeAnalysisEngine {
     // our traversal engine
     private TraversalEngine engine = null;
 
-    // the level of debugging we're using
-    public boolean DEBUGGING = false;
-
     // our argument collection
     private final GATKArgumentCollection argCollection;
 
@@ -167,13 +164,14 @@ public class GenomeAnalysisEngine {
 
     /** commands that get executed for each engine, regardless of the type */
     private void genericEngineSetup() {
-        Reads sourceInfo = extractSourceInfoFromArguments(argCollection);
         engine.setMaximumIterations(argCollection.maximumEngineIterations);
         engine.initialize();
     }
 
     /**
      * setup the interval regions, from either the interval file of the genome region string
+     *
+     * @param intervals the list of intervals to parse
      *
      * @return a list of genomeLoc representing the interval file
      */
@@ -198,13 +196,13 @@ public class GenomeAnalysisEngine {
      * @return The reads object providing reads source info.
      */
 
-    private Reads extractSourceInfoFromArguments( GATKArgumentCollection argCollection ) {
-        return new Reads( argCollection.samFiles,
-                          argCollection.strictnessLevel,
-                          argCollection.downsampleFraction,
-                          argCollection.downsampleCoverage,
-                          !argCollection.unsafe,
-                          argCollection.filterZeroMappingQualityReads );
+    private Reads extractSourceInfoFromArguments(GATKArgumentCollection argCollection) {
+        return new Reads(argCollection.samFiles,
+                argCollection.strictnessLevel,
+                argCollection.downsampleFraction,
+                argCollection.downsampleCoverage,
+                !argCollection.unsafe,
+                argCollection.filterZeroMappingQualityReads);
     }
 
     private void validateInputsAgainstWalker(Walker walker,
@@ -258,16 +256,20 @@ public class GenomeAnalysisEngine {
      * Convenience function that binds RODs using the old-style command line parser to the new style list for
      * a uniform processing.
      *
-     * @param name
-     * @param type
-     * @param file
+     * @param name the name of the rod
+     * @param type its type
+     * @param file the file to load the rod from
      */
     private void bindConvenienceRods(final String name, final String type, final String file) {
         argCollection.RODBindings.add(Utils.join(",", new String[]{name, type, file}));
     }
 
 
-    /** Initialize the output streams as specified by the user. */
+    /**
+     * Initialize the output streams as specified by the user.
+     *
+     * @param walker the walker to initialize output streams for
+     */
     private void initializeOutputStreams(Walker walker) {
         outputTracker = (argCollection.outErrFileName != null) ? new OutputTracker(argCollection.outErrFileName, argCollection.outErrFileName)
                 : new OutputTracker(argCollection.outFileName, argCollection.errFileName);
@@ -287,7 +289,11 @@ public class GenomeAnalysisEngine {
         return this.engine;
     }
 
-    /** Gets the collection of GATK main application arguments for enhanced walker validation. */
+    /**
+     * Gets the collection of GATK main application arguments for enhanced walker validation.
+     *
+     * @return the GATK argument collection
+     */
     public GATKArgumentCollection getArguments() {
         return this.argCollection;
     }
