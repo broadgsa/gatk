@@ -17,7 +17,7 @@ public abstract class TraversalEngine {
     private final long N_RECORDS_TO_PRINT = 1000000;
 
     // Maximum number of reads to process before finishing
-    protected long maxReads = -1;
+    protected long maximumIterations = -1;
 
     // the stored header
     private SAMFileHeader myHeader = null;
@@ -25,20 +25,14 @@ public abstract class TraversalEngine {
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
 
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // Manipulating the underlying engine parameters
-    //
-    // --------------------------------------------------------------------------------------------------------------
-    public void setMaxReads(final int maxReads) {
-        this.maxReads = maxReads;
+    /**
+     * set the max number of iterations
+     * @param maximumIterations the number of iterations
+     */
+    public void setMaximumIterations(final int maximumIterations) {
+        this.maximumIterations = maximumIterations;
     }
 
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // functions for dealing locations (areas of the genome we're traversing over)
-    //
-    // --------------------------------------------------------------------------------------------------------------
     /**
      * get the associated SAM header for our run
      *
@@ -58,11 +52,6 @@ public abstract class TraversalEngine {
     public void setSAMHeader(SAMFileHeader myHeader) {
         this.myHeader = myHeader;
     }
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // printing
-    //
-    // --------------------------------------------------------------------------------------------------------------
 
     /**
      * @param curTime (current runtime, in millisecs)
@@ -140,16 +129,9 @@ public abstract class TraversalEngine {
         logger.info(String.format("  -> %d reads with indels", TraversalStatistics.nSkippedIndels));
     }
 
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // Initialization
-    //
-    // --------------------------------------------------------------------------------------------------------------
-
     /** Initialize the traversal engine.  After this point traversals can be run over the data */
     public void initialize() {
         lastProgressPrintTime = startTime = System.currentTimeMillis();
-        // Initial the reference ordered data iterators
     }
 
     /**

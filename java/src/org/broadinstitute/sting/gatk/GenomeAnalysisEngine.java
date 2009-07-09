@@ -168,7 +168,7 @@ public class GenomeAnalysisEngine {
     /** commands that get executed for each engine, regardless of the type */
     private void genericEngineSetup() {
         Reads sourceInfo = extractSourceInfoFromArguments(argCollection);
-        engine.setMaxReads(argCollection.maximumEngineIterations);
+        engine.setMaximumIterations(argCollection.maximumEngineIterations);
         engine.initialize();
     }
 

@@ -80,7 +80,7 @@ public class TraverseLocusWindows extends TraversalEngine {
                 leftmostIndex = read.getAlignmentStart();
             if ( read.getAlignmentEnd() > rightmostIndex )
                 rightmostIndex = read.getAlignmentEnd();
-            if ( this.maxReads > 0 && TraversalStatistics.nRecords > this.maxReads ) {
+            if ( this.maximumIterations > 0 && TraversalStatistics.nRecords > this.maximumIterations) {
                 logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + TraversalStatistics.nRecords));
                 done = true;
             }

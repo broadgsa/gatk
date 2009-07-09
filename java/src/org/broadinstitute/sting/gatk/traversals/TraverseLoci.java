@@ -64,7 +64,7 @@ public class TraverseLoci extends TraversalEngine {
                 sum = locusWalker.reduce(x, sum);
             }
 
-            if (this.maxReads > 0 && TraversalStatistics.nRecords > this.maxReads) {
+            if (this.maximumIterations > 0 && TraversalStatistics.nRecords > this.maximumIterations) {
                 logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + TraversalStatistics.nRecords));
                 break;
             }
