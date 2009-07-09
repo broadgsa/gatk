@@ -1,20 +1,20 @@
 package org.broadinstitute.sting.gatk.traversals;
 
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.datasources.providers.LocusReferenceView;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
+import org.broadinstitute.sting.gatk.datasources.providers.ReferenceOrderedView;
+import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.datasources.providers.*;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
-import java.util.*;
-import java.io.File;
-
-import net.sf.samtools.SAMRecord;
+import java.util.ArrayList;
 
 /**
  * Created by IntelliJ IDEA.
@@ -24,10 +24,6 @@ import net.sf.samtools.SAMRecord;
  * To change this template use File | Settings | File Templates.
  */
 public class TraverseLocusWindows extends TraversalEngine {
-
-    public TraverseLocusWindows(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
-        super(reads, ref, rods);
-    }
 
     public <M,T> T traverse( Walker<M,T> walker,
                              Shard shard,
@@ -70,7 +66,7 @@ public class TraverseLocusWindows extends TraversalEngine {
         return sum;
     }
 
-    private LocusContext getLocusContext(Iterator<SAMRecord> readIter, GenomeLoc interval) {
+    private LocusContext getLocusContext(StingSAMIterator readIter, GenomeLoc interval) {
         ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
         boolean done = false;
         long leftmostIndex = interval.getStart(),
@@ -92,8 +88,8 @@ public class TraverseLocusWindows extends TraversalEngine {
 
         GenomeLoc window = GenomeLocParser.createGenomeLoc(interval.getContig(), leftmostIndex, rightmostIndex);
         LocusContext locus = new LocusContext(window, reads, null);
-        if ( DOWNSAMPLE_BY_COVERAGE )
-            locus.downsampleToCoverage(downsamplingCoverage);
+        if ( readIter.getSourceInfo().getDownsampleToCoverage() != null )
+            locus.downsampleToCoverage(readIter.getSourceInfo().getDownsampleToCoverage());
 
         return locus;
     }

@@ -27,20 +27,18 @@ package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFileReader.ValidationStringency;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.traversals.*;
+import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.io.*;
 
 public class GenomeAnalysisEngine {
 
@@ -100,7 +98,7 @@ public class GenomeAnalysisEngine {
         if (argCollection.HAPMAPChipFile != null)
             bindConvenienceRods("hapmap-chip", "GFF", argCollection.HAPMAPChipFile);
         // TODO: The ROD iterator currently does not understand multiple intervals file.  Fix this by cleaning the ROD system.
-        if ( argCollection.intervals != null && argCollection.intervals.size() == 1) {
+        if (argCollection.intervals != null && argCollection.intervals.size() == 1) {
             bindConvenienceRods("interval", "Intervals", argCollection.intervals.get(0).replaceAll(",", ""));
         }
 
@@ -111,7 +109,7 @@ public class GenomeAnalysisEngine {
         validateInputsAgainstWalker(my_walker, argCollection, rods);
 
         // create the output streams
-        initializeOutputStreams( my_walker );
+        initializeOutputStreams(my_walker);
 
         // our microscheduler, which is in charge of running everything
         MicroScheduler microScheduler = null;
@@ -129,13 +127,10 @@ public class GenomeAnalysisEngine {
         // perform validation steps that are common to all the engines
         genericEngineSetup();
 
-        // parse out any genomic location they've provided
-        //List<GenomeLoc> locationsList = setupIntervalRegion();
-        List<GenomeLoc> locationsList = engine.getLocations();        
         GenomeLocSortedSet locs = null;
-        if (locationsList != null)
-            locs = GenomeLocSortedSet.createSetFromList(locationsList);
-
+        if (argCollection.intervals != null) {
+            locs = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.intervals));
+        }
         // excute the microscheduler, storing the results
         walkerReturn = microScheduler.execute(my_walker, locs, argCollection.maximumEngineIterations);
     }
@@ -145,6 +140,7 @@ public class GenomeAnalysisEngine {
      *
      * @param my_walker our walker of type LocusWalker
      * @param rods      the reference order data
+     *
      * @return a new microscheduler
      */
     private MicroScheduler createMicroscheduler(Walker my_walker, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
@@ -156,38 +152,23 @@ public class GenomeAnalysisEngine {
             // create the MicroScheduler
             microScheduler = MicroScheduler.create(my_walker, extractSourceInfoFromArguments(argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
             engine = microScheduler.getTraversalEngine();
-        }
-        else if (my_walker instanceof ReadWalker || my_walker instanceof DuplicateWalker) {
+        } else if (my_walker instanceof ReadWalker || my_walker instanceof DuplicateWalker) {
             if (argCollection.referenceFile == null)
                 Utils.scareUser(String.format("Read-based traversals require a reference file but none was given"));
             microScheduler = MicroScheduler.create(my_walker, extractSourceInfoFromArguments(argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
             engine = microScheduler.getTraversalEngine();
         } else {
-            Utils.scareUser(String.format("Unable to create the appropriate TraversalEngine for analysis type " + argCollection.analysisName));    
+            Utils.scareUser(String.format("Unable to create the appropriate TraversalEngine for analysis type " + argCollection.analysisName));
         }
 
         return microScheduler;
     }
 
 
-    /**
-     * commands that get executed for each engine, regardless of the type
-     */
+    /** commands that get executed for each engine, regardless of the type */
     private void genericEngineSetup() {
         Reads sourceInfo = extractSourceInfoFromArguments(argCollection);
-
-        engine.setStrictness(sourceInfo.getValidationStringency());
-
         engine.setMaxReads(argCollection.maximumEngineIterations);
-        engine.setFilterZeroMappingQualityReads(argCollection.filterZeroMappingQualityReads);
-
-        // we default interval files over the genome region string
-        if (argCollection.intervals != null) {
-            engine.setLocation(parseIntervalRegion(argCollection.intervals));
-        }
-
-        engine.setReadFilters(sourceInfo);
-
         engine.initialize();
     }
 
@@ -196,9 +177,9 @@ public class GenomeAnalysisEngine {
      *
      * @return a list of genomeLoc representing the interval file
      */
-    public static List<GenomeLoc> parseIntervalRegion(final List<String> intervals ) {
+    public static List<GenomeLoc> parseIntervalRegion(final List<String> intervals) {
         List<GenomeLoc> locs = new ArrayList<GenomeLoc>();
-        for( String interval: intervals ) {
+        for (String interval : intervals) {
             if (new File(interval).exists()) {
                 locs.addAll(GenomeLocParser.intervalFileToList(interval));
             } else {
@@ -211,9 +192,12 @@ public class GenomeAnalysisEngine {
 
     /**
      * Bundles all the source information about the reads into a unified data structure.
+     *
      * @param argCollection The collection of arguments passed to the engine.
+     *
      * @return The reads object providing reads source info.
      */
+
     private Reads extractSourceInfoFromArguments( GATKArgumentCollection argCollection ) {
         return new Reads( argCollection.samFiles,
                           argCollection.strictnessLevel,
@@ -229,33 +213,33 @@ public class GenomeAnalysisEngine {
         String walkerName = WalkerManager.getWalkerName(walker.getClass());
 
         // Check what the walker says is required against what was provided on the command line.
-        if( WalkerManager.isRequired(walker,DataSource.READS) && (arguments.samFiles == null || arguments.samFiles.size() == 0) )
-            throw new ArgumentException(String.format("Walker %s requires reads but none were provided.  If this is incorrect, alter the walker's @Requires annotation.",walkerName));
-        if( WalkerManager.isRequired(walker,DataSource.REFERENCE) && arguments.referenceFile == null )
-            throw new ArgumentException(String.format("Walker %s requires a reference but none was provided.  If this is incorrect, alter the walker's @Requires annotation.",walkerName));
+        if (WalkerManager.isRequired(walker, DataSource.READS) && (arguments.samFiles == null || arguments.samFiles.size() == 0))
+            throw new ArgumentException(String.format("Walker %s requires reads but none were provided.  If this is incorrect, alter the walker's @Requires annotation.", walkerName));
+        if (WalkerManager.isRequired(walker, DataSource.REFERENCE) && arguments.referenceFile == null)
+            throw new ArgumentException(String.format("Walker %s requires a reference but none was provided.  If this is incorrect, alter the walker's @Requires annotation.", walkerName));
 
         // Check what the walker says is allowed against what was provided on the command line.
-        if( (arguments.samFiles != null && arguments.samFiles.size() > 0) && !WalkerManager.isAllowed(walker,DataSource.READS) )
-            throw new ArgumentException(String.format("Walker %s does not allow reads but reads were provided.  If this is incorrect, alter the walker's @Allows annotation",walkerName));
-        if( arguments.referenceFile != null && !WalkerManager.isAllowed(walker,DataSource.REFERENCE) )
-            throw new ArgumentException(String.format("Walker %s does not allow a reference but one was provided.  If this is incorrect, alter the walker's @Allows annotation",walkerName));
+        if ((arguments.samFiles != null && arguments.samFiles.size() > 0) && !WalkerManager.isAllowed(walker, DataSource.READS))
+            throw new ArgumentException(String.format("Walker %s does not allow reads but reads were provided.  If this is incorrect, alter the walker's @Allows annotation", walkerName));
+        if (arguments.referenceFile != null && !WalkerManager.isAllowed(walker, DataSource.REFERENCE))
+            throw new ArgumentException(String.format("Walker %s does not allow a reference but one was provided.  If this is incorrect, alter the walker's @Allows annotation", walkerName));
 
         // Check to make sure that all required metadata is present.
         List<RMD> allRequired = WalkerManager.getRequiredMetaData(walker);
-        for( RMD required: allRequired ) {
+        for (RMD required : allRequired) {
             boolean found = false;
-            for( ReferenceOrderedData<? extends ReferenceOrderedDatum> rod: rods ) {
-                if( rod.matches(required.name(),required.type()) )
+            for (ReferenceOrderedData<? extends ReferenceOrderedDatum> rod : rods) {
+                if (rod.matches(required.name(), required.type()))
                     found = true;
             }
-            if( !found )
-                throw new ArgumentException(String.format("Unable to find reference metadata (%s,%s)",required.name(),required.type()));
+            if (!found)
+                throw new ArgumentException(String.format("Unable to find reference metadata (%s,%s)", required.name(), required.type()));
         }
 
         // Check to see that no forbidden rods are present.
-        for( ReferenceOrderedData<? extends ReferenceOrderedDatum> rod: rods ) {
-            if( !WalkerManager.isAllowed(walker,rod) )
-                throw new ArgumentException(String.format("Walker does not allow access to metadata: %s.  If this is correct, change the @Allows metadata",rod.getName()));
+        for (ReferenceOrderedData<? extends ReferenceOrderedDatum> rod : rods) {
+            if (!WalkerManager.isAllowed(walker, rod))
+                throw new ArgumentException(String.format("Walker does not allow access to metadata: %s.  If this is correct, change the @Allows metadata", rod.getName()));
         }
     }
 
@@ -266,7 +250,7 @@ public class GenomeAnalysisEngine {
      */
     public int getBAMCompression() {
         return (argCollection.BAMcompression == null ||
-                argCollection.BAMcompression < 1     ||
+                argCollection.BAMcompression < 1 ||
                 argCollection.BAMcompression > 8) ? 5 : argCollection.BAMcompression;
     }
 
@@ -284,7 +268,7 @@ public class GenomeAnalysisEngine {
 
 
     /** Initialize the output streams as specified by the user. */
-    private void initializeOutputStreams( Walker walker ) {
+    private void initializeOutputStreams(Walker walker) {
         outputTracker = (argCollection.outErrFileName != null) ? new OutputTracker(argCollection.outErrFileName, argCollection.outErrFileName)
                 : new OutputTracker(argCollection.outFileName, argCollection.errFileName);
         walker.initializeOutputStreams(outputTracker);
@@ -297,17 +281,6 @@ public class GenomeAnalysisEngine {
      */
     public OutputTracker getOutputTracker() {
         return outputTracker;
-    }
-
-    /**
-     * This function is deprecated in the new traversal engines, if you need to get the header
-     * please get the engine and then use the getHeader function
-     *
-     * @return
-     */
-    @Deprecated
-    public SAMFileReader getSamReader() {
-        return this.engine.getSamReader();
     }
 
     public TraversalEngine getEngine() {

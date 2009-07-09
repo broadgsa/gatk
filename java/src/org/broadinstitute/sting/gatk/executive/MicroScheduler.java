@@ -101,13 +101,13 @@ public abstract class MicroScheduler {
      */
     protected MicroScheduler(Walker walker, Reads reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         if (walker instanceof ReadWalker) {
-            traversalEngine = new TraverseReads(reads.getReadsFiles(), refFile, rods);            
+            traversalEngine = new TraverseReads();
         } else if (walker instanceof LocusWalker) {
-            traversalEngine = new TraverseLoci(reads.getReadsFiles(), refFile, rods);
+            traversalEngine = new TraverseLoci();
         } else if (walker instanceof LocusWindowWalker) {
-            traversalEngine = new TraverseLocusWindows(reads.getReadsFiles(), refFile, rods);  
+            traversalEngine = new TraverseLocusWindows();
         } else if (walker instanceof DuplicateWalker) {
-            traversalEngine = new TraverseDuplicates(reads.getReadsFiles(), refFile, rods);
+            traversalEngine = new TraverseDuplicates();
         } else {
             throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
         }

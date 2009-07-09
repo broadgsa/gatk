@@ -4,24 +4,20 @@ import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadReferenceView;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
+import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.shards.IntervalShard;
 import org.broadinstitute.sting.gatk.datasources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.datasources.shards.IntervalShard;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -63,22 +59,9 @@ public class TraverseReads extends TraversalEngine {
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraverseReads.class);
 
-
-    /**
-     * Creates a new, uninitialized TraversalEngine
-     *
-     * @param reads SAM/BAM file of reads
-     * @param ref   Reference file in FASTA format, assumes a .dict file is also available
-     * @param rods  Array of reference ordered data sets
-     */
-    public TraverseReads(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
-        super(reads, ref, rods);
-    }
-
-
     /**
      * Traverse by reads, given the data and the walker
-     * 
+     *
      * @param walker the walker to traverse with
      * @param shard the shard, specifying the range of data to iterate over
      * @param dataProvider the provider of the reads data
@@ -107,7 +90,7 @@ public class TraverseReads extends TraversalEngine {
 
         ReadWalker<M, T> readWalker = (ReadWalker<M, T>) walker;
         boolean needsReferenceBasesP = WalkerManager.isRequired(walker, DataSource.REFERENCE_BASES);
-        
+
         ReadView reads = new ReadView(dataProvider);
         ReadReferenceView reference = new ReadReferenceView(dataProvider);
 

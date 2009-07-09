@@ -1,27 +1,18 @@
 package org.broadinstitute.sting.gatk.traversals;
 
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.WalkerManager;
+import org.broadinstitute.sting.gatk.datasources.providers.*;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.providers.AllLocusView;
-import org.broadinstitute.sting.gatk.datasources.providers.CoveredLocusView;
-import org.broadinstitute.sting.gatk.datasources.providers.LocusView;
-import org.broadinstitute.sting.gatk.datasources.providers.ReferenceOrderedView;
-import org.broadinstitute.sting.gatk.datasources.providers.LocusReferenceView;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
-import org.apache.log4j.Logger;
 
-import java.util.List;
 import java.util.ArrayList;
-import java.io.File;
 
 /**
  * A simple solution to iterating over all reference positions over a series of genomic locations.
@@ -32,10 +23,6 @@ public class TraverseLoci extends TraversalEngine {
      * our log, which we want to capture anything from this class
      */
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
-
-    public TraverseLoci(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
-        super( reads, ref, rods );
-    }
 
     public <M,T> T traverse(Walker<M,T> walker, ArrayList<GenomeLoc> locations) {
         if ( locations.isEmpty() )

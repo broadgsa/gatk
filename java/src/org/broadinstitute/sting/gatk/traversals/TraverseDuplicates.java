@@ -35,15 +35,12 @@ import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Pair;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -70,17 +67,6 @@ public class TraverseDuplicates extends TraversalEngine {
     protected static Logger logger = Logger.getLogger(TraverseDuplicates.class);
 
     private final boolean DEBUG = false;
-
-    /**
-     * Creates a new, uninitialized TraversalEngine
-     *
-     * @param reads SAM/BAM file of reads
-     * @param ref   Reference file in FASTA format, assumes a .dict file is also available
-     * @param rods  Array of reference ordered data sets
-     */
-    public TraverseDuplicates(List<File> reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
-        super(reads, ref, rods);
-    }
 
     private List<SAMRecord> readsAtLoc(final SAMRecord read, PushbackIterator<SAMRecord> iter) {
         GenomeLoc site = GenomeLocParser.createGenomeLoc(read);

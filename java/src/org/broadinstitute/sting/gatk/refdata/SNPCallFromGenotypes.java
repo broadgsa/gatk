@@ -1,19 +1,6 @@
 package org.broadinstitute.sting.gatk.refdata;
 
-import java.util.*;
-import java.util.regex.MatchResult;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.xReadLines;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.apache.log4j.Logger;
+import java.util.List;
 
 /**
  * loc ref alt EM_alt_freq discovery_likelihood discovery_null discovery_prior discovery_lod EM_N n_ref n_het n_hom

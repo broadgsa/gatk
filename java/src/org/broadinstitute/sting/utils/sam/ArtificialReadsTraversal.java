@@ -56,7 +56,6 @@ public class ArtificialReadsTraversal extends TraversalEngine {
 
     /** Creates a new, uninitialized ArtificialReadsTraversal */
     public ArtificialReadsTraversal() {
-        super(null, null, null);
     }
 
     // what read ordering are we using
