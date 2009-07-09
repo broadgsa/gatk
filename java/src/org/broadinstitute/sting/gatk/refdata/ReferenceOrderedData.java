@@ -63,6 +63,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         addModule("dbSNP", rodDbSNP.class);
         addModule("HapMapAlleleFrequencies", HapMapAlleleFrequenciesROD.class);
         addModule("SAMPileup", rodSAMPileup.class);
+        addModule("GELI", rodGELI.class);
         addModule("RefSeq", rodRefSeq.class);
         addModule("Table", TabularROD.class);
         addModule("PooledEM", PooledEMSNPROD.class);
