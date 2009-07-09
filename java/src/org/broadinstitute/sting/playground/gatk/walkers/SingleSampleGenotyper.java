@@ -3,8 +3,10 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.playground.utils.AlleleMetrics;
 import org.broadinstitute.sting.playground.utils.GenotypeLikelihoods;
@@ -20,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.List;
 
+@ReadFilters(ZeroMappingQualityReadFilter.class)
 public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, String> {
     // Control output settings
     @Argument(fullName="variants_out", shortName="varout", doc="File to which variants should be written", required=true) public File VARIANTS_FILE;

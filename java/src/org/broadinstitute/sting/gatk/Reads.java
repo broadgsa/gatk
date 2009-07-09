@@ -1,13 +1,11 @@
 package org.broadinstitute.sting.gatk;
 
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.utils.StingException;
-
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.List;
+import java.util.ArrayList;
 
 import net.sf.samtools.SAMFileReader;
+import net.sf.picard.filter.SamRecordFilter;
 /**
  * User: hanna
  * Date: May 14, 2009
@@ -31,7 +29,7 @@ public class Reads {
     private Double downsamplingFraction = null;
     private Integer downsampleToCoverage = null;
     private Boolean beSafe = null;
-    private Boolean filterZeroMappingQualityReads = null;
+    private List<SamRecordFilter> supplementalFilters = null;
 
     /**
      * Gets a list of the files acting as sources of reads.
@@ -73,8 +71,8 @@ public class Reads {
         return beSafe;
     }
 
-    public Boolean getFilterZeroMappingQualityReads() {
-        return filterZeroMappingQualityReads;
+    public List<SamRecordFilter> getSupplementalFilters() {
+        return supplementalFilters;
     }
 
     /**
@@ -83,6 +81,7 @@ public class Reads {
      */
     public Reads( List<File> readsFiles ) {
         this.readsFiles = readsFiles;
+        this.supplementalFilters = new ArrayList<SamRecordFilter>();
     }
 
     /**
@@ -94,19 +93,19 @@ public class Reads {
      * @param downsampleFraction fraction of reads to downsample.
      * @param downsampleCoverage downsampling per-locus.
      * @param beSafe Whether to enable safety checking.
-     * @param filterZeroMappingQualityReads whether to filter zero mapping quality reads.
+     * @param supplementalFilters additional filters to dynamically apply.
      */
     Reads( List<File> samFiles,
            SAMFileReader.ValidationStringency strictness,
            Double downsampleFraction,
            Integer downsampleCoverage,
            Boolean beSafe,
-           Boolean filterZeroMappingQualityReads ) {
+           List<SamRecordFilter> supplementalFilters ) {
         this.readsFiles = samFiles;
         this.validationStringency = strictness;
         this.downsamplingFraction = downsampleFraction;
         this.downsampleToCoverage = downsampleCoverage;
         this.beSafe = beSafe;
-        this.filterZeroMappingQualityReads = filterZeroMappingQualityReads;
+        this.supplementalFilters = supplementalFilters;
     }
 }

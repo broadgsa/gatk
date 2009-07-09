@@ -16,6 +16,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 
 import java.io.File;
+import java.util.List;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -133,15 +134,15 @@ public class SAMDataSource implements SimpleDataSource {
             iterator = applyDecoratingIterators(true,
                     iterator,
                     reads.getDownsamplingFraction(),
-                    reads.getFilterZeroMappingQualityReads(),
-                    reads.getSafetyChecking());
+                    reads.getSafetyChecking(),
+                    reads.getSupplementalFilters());
         } else if (shard.getShardType() == Shard.ShardType.LOCUS || shard.getShardType() == Shard.ShardType.INTERVAL) {
             iterator = seekLocus(shard.getGenomeLoc());
             iterator = applyDecoratingIterators(false,
                     iterator,
                     reads.getDownsamplingFraction(),
-                    reads.getFilterZeroMappingQualityReads(),
-                    reads.getSafetyChecking());
+                    reads.getSafetyChecking(),
+                    reads.getSupplementalFilters());
         } else {
             throw new StingException("seek: Unknown shard type");
         }
@@ -362,15 +363,15 @@ public class SAMDataSource implements SimpleDataSource {
      * @param enableVerification Verify the order of reads.
      * @param wrappedIterator the raw data source.
      * @param downsamplingFraction whether and how much to downsample the reads themselves (not at a locus).
-     * @param filterZeroMappingQualityReads whether to filter zero mapping quality reads.
      * @param beSafeP Another trigger for the verifying iterator?  TODO: look into this.
+     * @param supplementalFilters additional filters to apply to the reads.
      * @return An iterator wrapped with filters reflecting the passed-in parameters.  Will not be null.
      */
     private StingSAMIterator applyDecoratingIterators(boolean enableVerification,
                                                       StingSAMIterator wrappedIterator,
                                                       Double downsamplingFraction,
-                                                      Boolean filterZeroMappingQualityReads,
-                                                      Boolean beSafeP) {
+                                                      Boolean beSafeP,
+                                                      List<SamRecordFilter> supplementalFilters) {
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away
         if (downsamplingFraction != null)
@@ -379,19 +380,12 @@ public class SAMDataSource implements SimpleDataSource {
         if (beSafeP != null && beSafeP && enableVerification)
             wrappedIterator = new VerifyingSamIterator(wrappedIterator);
 
-        if ( filterZeroMappingQualityReads != null && filterZeroMappingQualityReads )
+        for( SamRecordFilter supplementalFilter: supplementalFilters )
             wrappedIterator = StingSAMIteratorAdapter.adapt(wrappedIterator.getSourceInfo(),
-                    new FilteringIterator(wrappedIterator, new ZeroMappingQualityReadFilterFunc()));
+                                                            new FilteringIterator(wrappedIterator,supplementalFilter));
 
         return wrappedIterator;
     }
-
-    private static class ZeroMappingQualityReadFilterFunc implements SamRecordFilter {
-        public boolean filterOut(SAMRecord rec) {
-            return (rec.getMappingQuality() == 0);
-        }
-    }
-    
 }
 
 

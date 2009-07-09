@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.xReadLines;
 import org.broadinstitute.sting.utils.cmdLine.*;
@@ -49,14 +48,8 @@ public class CommandLineGATK extends CommandLineProgram {
     @ArgumentCollection // our argument collection, the collection of command line args we accept
     public GATKArgumentCollection argCollection = new GATKArgumentCollection();
 
-    public String pluginPathName = null;
-
-    // our genome analysis engine
-    GenomeAnalysisEngine GATKEngine = null;
-
-    // our walker manager
-    private WalkerManager walkerManager = null;
-
+    /** our genome analysis engine */
+    GenomeAnalysisEngine GATKEngine = new GenomeAnalysisEngine();
 
     /** Required main method implementation. */
     public static void main(String[] argv) {
@@ -68,7 +61,6 @@ public class CommandLineGATK extends CommandLineProgram {
         }
     }
 
-
     /**
      * this is the function that the inheriting class can expect to have called
      * when the command line system has initialized.
@@ -76,15 +68,8 @@ public class CommandLineGATK extends CommandLineProgram {
      * @return the return code to exit the program with
      */
     protected int execute() {
-        Walker<?, ?> mWalker = null;
-        try {
-            mWalker = walkerManager.createWalkerByName(analysisName);
-        } catch (InstantiationException ex) {
-            throw new RuntimeException("Unable to instantiate walker.", ex);
-        }
-        catch (IllegalAccessException ex) {
-            throw new RuntimeException("Unable to access walker", ex);
-        }
+        Walker<?,?> mWalker = GATKEngine.getWalkerByName(analysisName);
+
         loadArgumentsIntoObject(argCollection);
         loadArgumentsIntoObject(mWalker);
 
@@ -92,11 +77,11 @@ public class CommandLineGATK extends CommandLineProgram {
 
         this.argCollection.analysisName = this.analysisName;
         try {
-            GATKEngine = new GenomeAnalysisEngine(argCollection, mWalker);
+            GATKEngine.execute(argCollection, mWalker);
         }
         catch (ArgumentException ex) {
             // Rethrow argument exceptions.  Let the command-line argument do what it's designed to do.
-            throw ex;            
+            throw ex;
         }
         catch (StingException exp) {
             System.err.println("Caught StingException. It's message is " + exp.getMessage());
@@ -125,13 +110,7 @@ public class CommandLineGATK extends CommandLineProgram {
     protected Class[] getArgumentSources() {
         // No walker info?  No plugins.
         if (analysisName == null) return new Class[] {};
-
-        walkerManager = new WalkerManager(pluginPathName);
-
-        if (!walkerManager.doesWalkerExist(analysisName))
-            throw new IllegalArgumentException("Invalid analysis name");
-
-        return new Class[]{walkerManager.getWalkerClassByName(analysisName)};
+        return new Class[] { GATKEngine.getWalkerByName(analysisName).getClass() };
     }
 
     @Override

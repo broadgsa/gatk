@@ -151,6 +151,11 @@ public abstract class CommandLineProgram {
         return null;
     }
 
+    static {
+        // setup a basic log configuration
+        BasicConfigurator.configure();
+    }
+
     /**
      * This function is called to start processing the command line, and kick
      * off the execute message of the program.
@@ -161,9 +166,6 @@ public abstract class CommandLineProgram {
     public static void start(CommandLineProgram clp, String[] args) {
 
         try {
-            // setup a basic log configuration
-            BasicConfigurator.configure();
-
             // setup our log layout
             PatternLayout layout = new PatternLayout();
 

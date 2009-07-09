@@ -8,19 +8,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
 
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.WalkerName;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.By;
-import org.broadinstitute.sting.gatk.walkers.Allows;
-import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.RMD;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.utils.JVMUtils;
 import org.broadinstitute.sting.utils.PathUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.apache.log4j.Logger;
+import net.sf.picard.filter.SamRecordFilter;
 
 /**
  * Created by IntelliJ IDEA.
@@ -186,6 +181,30 @@ public class WalkerManager {
     }
 
     /**
+     * Extracts filters that the walker has requested be run on the dataset.
+     * @param walker Walker to inspect for filtering requests.
+     * @return A non-empty list of filters to apply to the reads.
+     */
+    public static List<SamRecordFilter> getReadFilters(Walker walker) {
+        Class<? extends SamRecordFilter>[] filterTypes = getReadFilterTypes(walker);
+        List<SamRecordFilter> filters = new ArrayList<SamRecordFilter>();
+
+        for( Class<? extends SamRecordFilter> filterType: filterTypes ) {
+            try {
+                filters.add(filterType.newInstance());
+            }
+            catch( InstantiationException ex ) {
+                throw new StingException("Unable to instantiate filter: " + filterType, ex);
+            }
+            catch( IllegalAccessException ex ) {
+                throw new StingException("Unable to access filter: " + filterType, ex);                
+            }
+        }
+
+        return filters;
+    }
+
+    /**
      * Load classes internal to the classpath from an arbitrary location.
      *
      * @param location Location from which to load classes.
@@ -279,5 +298,17 @@ public class WalkerManager {
         Class<? extends Walker> walkerClass = walker.getClass();
         Allows allowsDataSource = walkerClass.getAnnotation(Allows.class);
         return allowsDataSource;
+    }
+
+    /**
+     * Gets the list of filtering classes specified as walker annotations.
+     * @param walker The walker to inspect.
+     * @return An array of types extending from SamRecordFilter.  Will never be null.
+     */
+    private static Class<? extends SamRecordFilter>[] getReadFilterTypes(Walker walker) {
+        Class<? extends Walker> walkerClass = walker.getClass();
+        if( !walkerClass.isAnnotationPresent(ReadFilters.class) )
+            return new Class[0];
+        return walkerClass.getAnnotation(ReadFilters.class).value();
     }
 }

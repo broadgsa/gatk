@@ -27,12 +27,14 @@ package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.picard.filter.SamRecordFilter;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 
@@ -50,7 +52,7 @@ public class GenomeAnalysisEngine {
     private TraversalEngine engine = null;
 
     // our argument collection
-    private final GATKArgumentCollection argCollection;
+    private GATKArgumentCollection argCollection;
 
     /** Collection of output streams used by the walker. */
     private OutputTracker outputTracker = null;
@@ -58,8 +60,11 @@ public class GenomeAnalysisEngine {
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(GenomeAnalysisEngine.class);
 
-    /** the return value from our walker */
-    private Object walkerReturn = null;
+    /** our walker manager */
+    private final WalkerManager walkerManager;
+
+    /** plugin path for the walker manager. */
+    public final String pluginPathName = null;
 
     /**
      * our constructor, where all the work is done
@@ -67,21 +72,30 @@ public class GenomeAnalysisEngine {
      * legacy traversal types are sent to legacyTraversal function; as we move more of the traversals to the
      * new MicroScheduler class we'll be able to delete that function.
      *
-     * @param args      the argument collection, where we get all our setup information from
-     * @param my_walker the walker we're running with
      */
-    public GenomeAnalysisEngine(GATKArgumentCollection args, Walker my_walker) {
+    public GenomeAnalysisEngine() {
+        // make sure our instance variable points to this analysis engine
+        instance = this;
+        walkerManager = new WalkerManager(pluginPathName);
+    }
+
+    /**
+     * Actually run the GATK with the specified walker.
+     * @param args      the argument collection, where we get all our setup information from
+     * @param my_walker Walker to run over the dataset.  Must not be null.
+     */
+    public Object execute(GATKArgumentCollection args, Walker<?,?> my_walker) {
+        // validate our parameters
+        if (args == null) {
+            throw new StingException("The GATKArgumentCollection passed to GenomeAnalysisEngine can be null.");
+        }
 
         // validate our parameters
-        if (args == null || my_walker == null) {
-            throw new StingException("Neither the GATKArgumentCollection or the Walker passed to GenomeAnalysisEngine can be null.");
-        }
+        if (my_walker == null)
+            throw new StingException("The walker passed to GenomeAnalysisEngine can be null.");
 
         // save our argument parameter
         this.argCollection = args;
-
-        // make sure our instance variable points to this analysis engine
-        instance = this;
 
         // our reference ordered data collection
         List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum>>();
@@ -129,8 +143,25 @@ public class GenomeAnalysisEngine {
             locs = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.intervals));
         }
         // excute the microscheduler, storing the results
-        walkerReturn = microScheduler.execute(my_walker, locs, argCollection.maximumEngineIterations);
+        return microScheduler.execute(my_walker, locs, argCollection.maximumEngineIterations);
     }
+
+    /**
+     * Retrieves an instance of the walker based on the walker name.
+     * @param walkerName Name of the walker.  Must not be null.  If the walker cannot be instantiated, an exception will be thrown.
+     * @return An instance of the walker.
+     */
+    public Walker<?,?> getWalkerByName( String walkerName ) {
+        try {
+            return walkerManager.createWalkerByName(walkerName);
+        } catch (InstantiationException ex) {
+            throw new StingException("Unable to instantiate walker.", ex);
+        }
+        catch (IllegalAccessException ex) {
+            throw new StingException("Unable to access walker", ex);
+        }
+    }
+
 
     /**
      * setup a microscheduler
@@ -147,12 +178,12 @@ public class GenomeAnalysisEngine {
         // we need to verify different parameter based on the walker type
         if (my_walker instanceof LocusWalker || my_walker instanceof LocusWindowWalker) {
             // create the MicroScheduler
-            microScheduler = MicroScheduler.create(my_walker, extractSourceInfoFromArguments(argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
+            microScheduler = MicroScheduler.create(my_walker, extractSourceInfo(my_walker,argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
             engine = microScheduler.getTraversalEngine();
         } else if (my_walker instanceof ReadWalker || my_walker instanceof DuplicateWalker) {
             if (argCollection.referenceFile == null)
                 Utils.scareUser(String.format("Read-based traversals require a reference file but none was given"));
-            microScheduler = MicroScheduler.create(my_walker, extractSourceInfoFromArguments(argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
+            microScheduler = MicroScheduler.create(my_walker, extractSourceInfo(my_walker,argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
             engine = microScheduler.getTraversalEngine();
         } else {
             Utils.scareUser(String.format("Unable to create the appropriate TraversalEngine for analysis type " + argCollection.analysisName));
@@ -191,18 +222,24 @@ public class GenomeAnalysisEngine {
     /**
      * Bundles all the source information about the reads into a unified data structure.
      *
+     * @param walker The walker for which to extract info.
      * @param argCollection The collection of arguments passed to the engine.
      *
      * @return The reads object providing reads source info.
      */
+    private Reads extractSourceInfo( Walker walker, GATKArgumentCollection argCollection ) {
+        List<SamRecordFilter> filters = new ArrayList<SamRecordFilter>();
 
-    private Reads extractSourceInfoFromArguments(GATKArgumentCollection argCollection) {
-        return new Reads(argCollection.samFiles,
-                argCollection.strictnessLevel,
-                argCollection.downsampleFraction,
-                argCollection.downsampleCoverage,
-                !argCollection.unsafe,
-                argCollection.filterZeroMappingQualityReads);
+        filters.addAll( WalkerManager.getReadFilters(walker) );
+        if( argCollection.filterZeroMappingQualityReads != null && argCollection.filterZeroMappingQualityReads )
+            filters.add( new ZeroMappingQualityReadFilter() );
+
+        return new Reads( argCollection.samFiles,
+                          argCollection.strictnessLevel,
+                          argCollection.downsampleFraction,
+                          argCollection.downsampleCoverage,
+                          !argCollection.unsafe,
+                          filters );
     }
 
     private void validateInputsAgainstWalker(Walker walker,
@@ -297,14 +334,4 @@ public class GenomeAnalysisEngine {
     public GATKArgumentCollection getArguments() {
         return this.argCollection;
     }
-
-    /**
-     * Get's the return value of the walker
-     *
-     * @return an Object representing the return value of the walker
-     */
-    public Object getWalkerReturn() {
-        return walkerReturn;
-    }
-
 }

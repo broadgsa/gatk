@@ -50,13 +50,8 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     /** the type of analysis to run - switch to the type of analysis */
     private String analysisName = "SomaticCoverageWalker";
 
-    // our walker manager
-    private WalkerManager walkerManager = null;
-
     // our genome analysis engine
-    private GenomeAnalysisEngine GATKEngine = null;
-
-    public String pluginPathName = null;
+    private GenomeAnalysisEngine GATKEngine = new GenomeAnalysisEngine();
 
     // get the analysis name
     protected abstract String getAnalysisName();
@@ -71,17 +66,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      * @return the return code to exit the program with
      */
     protected int execute() {
-
-        // create the walker
-        Walker<?, ?> mWalker = null;
-        try {
-            mWalker = walkerManager.createWalkerByName(analysisName);
-        } catch (InstantiationException ex) {
-            throw new RuntimeException("Unable to instantiate walker.", ex);
-        }
-        catch (IllegalAccessException ex) {
-            throw new RuntimeException("Unable to access walker", ex);
-        }
+        Walker<?,?> mWalker = GATKEngine.getWalkerByName(analysisName);
 
         // load the arguments into the walkers
         loadArgumentsIntoObject(argCollection);
@@ -93,7 +78,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         // set the analysis name in the argument collection
         this.argCollection.analysisName = this.analysisName;
         try {
-            GATKEngine = new GenomeAnalysisEngine(argCollection, mWalker);
+            GATKEngine.execute(argCollection, mWalker);
         }
         catch (ArgumentException ex) {
             // Rethrow argument exceptions.  Let the command-line argument do what it's designed to do.
@@ -124,20 +109,9 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      */
     @Override
     protected Class[] getArgumentSources() {
-        // get the analysis name from the overriding class
-        analysisName = this.getAnalysisName();
-        
-        // get any argument overrides they want to present
-        overrideArguments();
         // No walker info?  No plugins.
-        if (analysisName == null) return new Class[]{};
-
-        walkerManager = new WalkerManager(pluginPathName);
-
-        if (!walkerManager.doesWalkerExist(analysisName))
-            throw new IllegalArgumentException("Invalid analysis name");
-
-        return new Class[]{walkerManager.getWalkerClassByName(analysisName)};
+        if (analysisName == null) return new Class[] {};
+        return new Class[] { GATKEngine.getWalkerByName(analysisName).getClass() };
     }
 
 

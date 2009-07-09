@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+
+import java.lang.annotation.*;
 /**
  * User: hanna
  * Date: May 19, 2009
@@ -17,7 +19,10 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 /**
  * A data type representing reference-ordered data.
  */
-
+@Documented
+@Inherited
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
 public @interface RMD {
     String name();    
     Class<? extends ReferenceOrderedDatum> type();
