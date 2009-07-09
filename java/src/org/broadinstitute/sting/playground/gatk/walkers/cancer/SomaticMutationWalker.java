@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.cancer;
 
 import net.sf.picard.reference.ReferenceSequence;
+import net.sf.picard.PicardException;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMRecord;
@@ -13,12 +14,14 @@ import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.playground.indels.SWPairwiseAlignment;
-import org.broadinstitute.sting.playground.utils.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.IOException;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.BufferedWriter;
 import java.util.*;
 
 @By(DataSource.REFERENCE)
@@ -42,19 +45,26 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName = "min_mutant_sum", required = false, doc = "threshold for sum of mutant allele quality scores")
     public int MIN_MUTANT_SUM = 100;
 
-    @Argument(fullName = "mode", required = false, doc="Mode of operation (detect, full)")
-    public String mode = "full";
-
     public float SKEW_LOD_THRESHOLD = 1.5f;
 
     @Argument(fullName = "output_failures", required = false, doc="produce output for failed sites")
     public boolean OUTPUT_FAILURES = false;
 
-    @Argument(fullName = "output_format", shortName = "s3", required = true, doc="Format of output: bed or maf")
-    public String OUTPUT_FORMAT;
+    @Argument(fullName="maf_file", shortName="stats", doc="write out calls in MAF format to this file", required=false)
+    String MAF_FILE = null;
+
+    private FileWriter mafWriter = null;
 
 
     public void initialize() {
+        if ( MAF_FILE != null ) {
+            try {
+                mafWriter = new FileWriter(new File(MAF_FILE));
+            } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+            }
+        }
+
     }
 
     public String walkerType() { return "ByLocus"; }
@@ -210,7 +220,7 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             //     at least 100 or the LOD score for mutant:ref + mutant:mutant vs ref:ref must
             //     be at least 6.3;
             double tumorLod = t2.getAltVsRef(altAllele);
-            if (mode.equals("full") && t2.qualitySums.getQualitySum(altAllele) < MIN_MUTANT_SUM && tumorLod < TUMOR_LOD_THRESHOLD) {
+            if (t2.qualitySums.getQualitySum(altAllele) < MIN_MUTANT_SUM && tumorLod < TUMOR_LOD_THRESHOLD) {
                 if (OUTPUT_FAILURES) {
 
                     String msg = "FAILED  due to MAX MM QSCORE TEST." +
@@ -235,9 +245,22 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
 //                    disaligner(context.getPosition(), tumorReadPile, StringUtil.bytesToString(refSeq.getBases()), refStart);
             Pair<MutantFailureReason,Double> failureReason =
                     readPileSkew(t2, upRef, altAllele, StringUtil.bytesToString(refSeq.getBases()), refStart);
-                    
 
-            if (mode.equals("full") && failureReason.first != null) {
+            // time for the big guns... the realignment!
+//            try {
+//                File f = File.createTempFile("/tmp","RANDOM");
+//                BufferedWriter writer = new BufferedWriter(new FileWriter(f));
+//                for(SAMRecord read : t2.reads) {
+//                    writer.write(convertToFastq(read));
+//                }
+//                out.println("Finished writing realignment to " + f.getCanonicalPath());
+//                writer.flush();
+//                writer.close();
+//            } catch (IOException ioe) {
+//                throw new PicardException("Error performing realignment", ioe);
+//            }
+
+            if (failureReason.first != null) {
                 if (OUTPUT_FAILURES) {
                     String msg = "FAILED due to " + failureReason.first.name() +
                             " mutAllele " + altAllele + "_" +
@@ -263,37 +286,34 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
 
             // if we're still here... we've got a somatic mutation!  Output the results
             // and stop looking for mutants!
-            if ("maf".equalsIgnoreCase(OUTPUT_FORMAT)) {
-                out.println(
-                       "36\t" + //build
-                        context.getContig() + "\t" +
-                        context.getPosition() + "\t" +
-                        context.getPosition() + "\t" +
-                        upRef + "\t" +
-                        upRef + "\t" +
-                        altAllele + "\t" +
-                        tumorSampleName + "\t" +
-                        normalSampleName);
-            } else {
+            writeMafLine(
+                   "36\t" + //build
+                    context.getContig() + "\t" +
+                    context.getPosition() + "\t" +
+                    context.getPosition() + "\t" +
+                    upRef + "\t" +
+                    upRef + "\t" +
+                    altAllele + "\t" +
+                    tumorSampleName + "\t" +
+                    normalSampleName);
 
-                String msg =
-                            (failedMidpointCheck?"__FAILED-MPCHECK":"") +
-                            "TScore:" + tumorLod +
-                            "__TRefSum: " + tumorReadPile.qualitySums.getQualitySum(upRef) +
-                            "__TAltSum: " + tumorReadPile.qualitySums.getQualitySum(altAllele) +
-                            "__NScore:" + normalLod +
-                            "__NRefSum: " + normalReadPile.qualitySums.getQualitySum(upRef) +
-                            "__NAltSum: " + normalReadPile.qualitySums.getQualitySum(altAllele) +
-                            "__maxSkewLod_" + failureReason.second + "_" +
-                            "__MIDP: " + midp.get(altAllele);
+            String msg =
+                        (failedMidpointCheck?"__FAILED-MPCHECK":"") +
+                        "TScore:" + tumorLod +
+                        "__TRefSum: " + tumorReadPile.qualitySums.getQualitySum(upRef) +
+                        "__TAltSum: " + tumorReadPile.qualitySums.getQualitySum(altAllele) +
+                        "__NScore:" + normalLod +
+                        "__NRefSum: " + normalReadPile.qualitySums.getQualitySum(upRef) +
+                        "__NAltSum: " + normalReadPile.qualitySums.getQualitySum(altAllele) +
+                        "__maxSkewLod_" + failureReason.second + "_" +
+                        "__MIDP: " + midp.get(altAllele);
 
-                out.println(
-                        context.getContig() + "\t" +
-                                context.getPosition() + "\t" +
-                                context.getPosition() + "\t"
-                        + msg.replace(' ','_')
-                        );
-            }
+            out.println(
+                    context.getContig() + "\t" +
+                            context.getPosition() + "\t" +
+                            context.getPosition() + "\t"
+                    + msg.replace(' ','_')
+                    );
 
 
 
@@ -304,6 +324,29 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
         }
 
         return -1;
+    }
+
+    private void writeMafLine(String s) {
+        if (mafWriter != null) {
+            try {
+                mafWriter.write(s);
+                mafWriter.write("\n");
+                mafWriter.flush();
+            } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+            }
+        }
+    }
+
+    private String convertToFastq(SAMRecord read) {
+        // output FASTQ @<seqname>\n<seq>\n+[<seqname>]\n<qual>\n
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("@").append(read.getReadName()).append("\n");
+        sb.append(read.getReadString()).append("\n");
+        sb.append("+").append("\n");
+        sb.append(read.getBaseQualityString()).append("\n");
+        return sb.toString();
     }
 
 
@@ -317,7 +360,14 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
 
     @Override
     public void onTraversalDone(Integer result) {
-//        out.println(String.format("FINAL - %d %d %d %d", totalSites, tumorCovered, normalCovered, somaticCovered));
+        if (mafWriter != null) {
+            try {
+                mafWriter.flush();
+                mafWriter.close();
+            } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+            }
+        }
     }
 
 
