@@ -67,8 +67,9 @@ public class rodVariants extends BasicReferenceOrderedDatum {
     }
 
     public String toString() {
-        return String.format("%s %c %d %d %s %4.4f %4.4f %f %f %f %f %f %f %f %f %f %f",
-                loc,
+        return String.format("%s\t%d\t%c\t%d\t%d\t%s\t%4.4f\t%4.4f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f",
+                loc.getContig(),
+                loc.getStart(),
                 refBase,
                 depth,
                 maxMappingQuality,
