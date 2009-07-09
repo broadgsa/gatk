@@ -22,6 +22,7 @@ import net.sf.samtools.SAMTextHeaderCodec;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.AsciiLineReader;
+import org.broadinstitute.sting.utils.StingException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -64,7 +65,7 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
     private void loadDictionary( File fastaFile ) {
         // Try and locate the dictionary
         String dictionaryName = fastaFile.getAbsolutePath();
-        dictionaryName = dictionaryName.substring(0, dictionaryName.lastIndexOf(".fasta"));
+        dictionaryName = dictionaryName.substring(0, getFastaFileExtensionStart(dictionaryName));
         dictionaryName += ".dict";
         final File dictionary = new File(dictionaryName);
         if (!dictionary.exists())
@@ -83,6 +84,21 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
             throw new PicardException("Could not open sequence dictionary file: " + dictionaryName, e);
         }
 
+    }
+
+    /**
+     * Gets the index of the first character in the fasta file's extension.
+     * @param filename The filename of the fasta.  Must not be null, and must end with either '.fasta' or '.fa'.
+     * @return The index of the start of the extension within the filename.  If neither '.fasta' nor '.fa' are
+     *         present in the filename, a StingException will be thrown.
+     */
+    private int getFastaFileExtensionStart( String filename ) {
+        if( filename.endsWith(".fasta") )
+            return filename.lastIndexOf(".fasta");
+        else if( filename.endsWith(".fa") )
+            return filename.lastIndexOf(".fa");
+        else
+            throw new StingException("Invalid fasta filename; fasta filename must end with '.fasta' or '.fa'.");
     }
 
     /**
