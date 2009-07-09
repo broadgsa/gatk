@@ -212,7 +212,14 @@ public abstract class MicroScheduler {
      * @param sum The final reduce output.
      */
     protected void printOnTraversalDone(Object sum) {
-        logger.info(String.format("%n%s",reads.getViolationHistogram()));
+        // HACK: The microscheduler should be too dumb to know anything about the data
+        //       it's actually processing; it should just funnel anything it receives
+        //       to the traversal engine.
+        // TODO: Implement code to allow the datasources to print summary info of the
+        //       data they've seen.
+        if( reads != null && reads.getViolationHistogram().getViolationCount() > 0 )
+            logger.warn(String.format("%n%s",reads.getViolationHistogram()));
+
         traversalEngine.printOnTraversalDone(sum);
     }
 
