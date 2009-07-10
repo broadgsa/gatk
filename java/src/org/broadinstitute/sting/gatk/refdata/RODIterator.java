@@ -53,23 +53,28 @@ public class RODIterator<ROD extends ReferenceOrderedDatum> implements Iterator<
         if ( current != null && current.getLocation().containsP(loc) )
             return current;                    
 
-        if ( DEBUG ) System.out.printf("  *** starting seek to %s %d%n", loc.getContig(), loc.getStart());
+        if ( DEBUG ) System.out.printf("  *** starting seek to %s %d (contig %d) from current location %s %d%n", loc.getContig(), loc.getStart(),
+        			loc.getContigIndex(),current==null?"null":current.getLocation().getContig(), current==null?-1:current.getLocation().getStart());
         while ( hasNext() ) {
             ROD proposed = next();
             if( proposed == null )
                 continue;
             //System.out.printf("    -> Seeking to %s %d AT %s %d%n", contigName, pos, current.getContig(), current.getStart());
+            if ( DEBUG ) System.out.println("   proposed at "+proposed.getLocation()+"; contig index="+proposed.getLocation().getContigIndex());
             boolean containedP = proposed.getLocation().containsP(loc);
             //System.out.printf("  %s -> Seeking to %s, at %s => contains = %b%n", current.getName(), loc, current.getLocation(), containedP);
             int cmp = proposed.getLocation().compareTo(loc);
             if ( cmp < 0 ) {
+            	if ( DEBUG ) System.out.println("    we are before...");
                 // current occurs before loc, continue searching
                 continue;
             }
             else if ( cmp == 0 || containedP ) {
+            	if ( DEBUG ) System.out.println("    we found overlap...");
                 result = proposed;
                 break;
             } else {
+            	if ( DEBUG ) System.out.println("    we are after...");
                 // current is after loc
                 it.pushback(proposed);
                 break;
