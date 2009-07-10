@@ -63,6 +63,7 @@ public class RemapAlignments extends CommandLineProgram {
 	private SAMFileWriter writer = null;
 	private SAMFileReader reader = null;
 	
+	private static int [] g_log_n; // copied from bwa
 	
 	
     /** Required main method implementation. */
@@ -72,6 +73,9 @@ public class RemapAlignments extends CommandLineProgram {
     
     protected int doWork() {
     			
+    	g_log_n = new int[256];
+    	for (int i = 1; i < 256; ++i) g_log_n[i] = (int)(4.343 * Math.log(i) + 0.5);
+    	
     	reader = new SAMFileReader(IN);
     	reader.setValidationStringency(ValidationStringency.SILENT);
 		SAMFileHeader oldHeader = reader.getFileHeader();
@@ -139,6 +143,9 @@ public class RemapAlignments extends CommandLineProgram {
 			
 						
 				if ( REDUCE ) {
+					
+					updateCountsAndQuals(remappedReads);
+					
 					for ( SAMRecord r : remappedReads ) {
 						writer.addAlignment(r); // emit non-redundant alignments for previous query
 						writtenRecords++;
@@ -155,6 +162,7 @@ public class RemapAlignments extends CommandLineProgram {
 
 		// write remaining bunch of reads:
 		if ( REDUCE ) {
+			updateCountsAndQuals(remappedReads);
 			for ( SAMRecord r : remappedReads ) {
 				writer.addAlignment(r); // emit non-redundant alignments for previous query
 				writtenRecords++;
@@ -179,7 +187,6 @@ public class RemapAlignments extends CommandLineProgram {
 
     	@Override
     	public int compare(SAMRecord r1, SAMRecord r2) {
-    		// TODO Auto-generated method stub
     		if ( r1.getReferenceIndex() < r2.getReferenceIndex() ) return -1; 
     		if ( r1.getReferenceIndex() > r2.getReferenceIndex() ) return  1;
     		if ( r1.getAlignmentStart() < r2.getAlignmentStart() ) return -1;
@@ -189,6 +196,73 @@ public class RemapAlignments extends CommandLineProgram {
     	
     }
 
+    private void updateCountsAndQuals(Set<SAMRecord> reads) {
+    	if ( reads.size() == 1 ) {
+    		SAMRecord r = reads.iterator().next();
+ 
+        	// technically, if edit distance of the read is equal to max_diff used in alignments, 
+        	// we should have set 25... 
+    		r.setMappingQuality(37);
+    		r.setAttribute("X0", new Integer(1));
+    		r.setAttribute("X1", new Integer(0));
+    		r.setNotPrimaryAlignmentFlag(false);
+    		
+    	} else {
+    		
+    		// we have multiple alignments for the read
+    		// need to figure out how many best vs inferior alignments are there:
+    		int minNM = 1000000;
+    		int cnt = 0; // count of best alignments
+    		for ( SAMRecord r : reads ) {
+    			int nm = (Integer)r.getAttribute("NM"); 
+    			if ( nm < minNM  ) { 
+    				minNM = nm;
+    				cnt = 1;
+    			} else if ( nm == minNM ) cnt++;
+    		}
+    		// now reset counts and quals:
+    		for ( SAMRecord r : reads ) {
+    			
+    			int cnt2 = reads.size() - cnt; // count of inferior alignments
+    			
+    	   		r.setAttribute("X0", new Integer(cnt));
+        		r.setAttribute("X1", new Integer(cnt2));
+    			
+        		if ( cnt2 > 255 ) cnt2 = 255; // otherwise we will be out of bounds in g_log_n
+        		
+    			if ( ((Integer)r.getAttribute("NM")).intValue() == minNM ) { 
+    				
+    				// one of the best alignments:
+
+    				r.setNotPrimaryAlignmentFlag(false);
+    				if ( cnt == 1 ) {    					
+    					// single best alignment; additional inferior alignments will only affect mapping qual
+    					r.setMappingQuality( 23 < g_log_n[cnt2] ? 0 : 23 - g_log_n[cnt2] ); // this recipe for Q is copied from bwa
+    				} else {
+    					r.setMappingQuality(0); // multiple best alignments - mapping quality is 0
+    				}
+    			} else {
+    				
+    				// secondary alignment ( we know we hold a better one)
+    				r.setNotPrimaryAlignmentFlag(true);
+    				r.setMappingQuality(0); // ??? should we set 0 for secondary??
+    			}
+    		}
+    	}
+    	
+    }
+    
+/*    
+    private int bwa_approx_mapQ(SAMRecord r, int max_diff) {
+    	int c1 = (Integer)r.getAttribute("X0");
+    	int c2 = (Integer)r.getAttribute("X1");
+    	int mm = (Integer)r.getAttribute("NM");
+    	if ( c1 > 0 ) return 0;
+    	if ( c1 == 0 ) return 23;
+    	if ( mm == max_diff ) return 25;
+    	return 0;
+    }
+*/
 }
 
 
