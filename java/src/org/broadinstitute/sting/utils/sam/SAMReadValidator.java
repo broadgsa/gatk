@@ -66,23 +66,23 @@ public class SAMReadValidator {
      * @param read The read to validate.
      */
     private static void checkInvalidAlignmentEnd( SAMRecord read ) {
-        if( read.getAlignmentEnd() != -1 && read.getAlignmentEnd() < read.getAlignmentStart() )
+        if( !read.getReadUnmappedFlag() && read.getAlignmentEnd() != -1 && read.getAlignmentEnd() < read.getAlignmentStart() )
             throw new SAMReadValidationException("Alignment ends prior to its beginning");
     }
 
     private static void checkAlignmentDisagreesWithHeader( SAMFileHeader header, SAMRecord read ) {
         SAMSequenceRecord contigHeader = header.getSequence( read.getReferenceIndex() );
-        if( !read.getReadUnmappedFlag() && read.getAlignmentStart() > contigHeader.getSequenceLength() ) {
+        if( !read.getReadUnmappedFlag() && read.getAlignmentStart() > contigHeader.getSequenceLength() )
             throw new SAMReadValidationException("Read is aligned to a point after the end of the contig");
-        }
-    }    
+    }
 
     /**
      * Check for inconsistencies between the cigar string and the 
      * @param read The read to validate.
      */
     private static void checkCigarDisagreesWithAlignment( SAMRecord read ) {
-        if( read.getAlignmentStart() != -1 &&
+        if( !read.getReadUnmappedFlag() &&
+            read.getAlignmentStart() != -1 &&
             read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START &&
             read.getAlignmentBlocks().size() == 0 )
             throw new SAMReadValidationException("Read has a valid alignment start, but the CIGAR string is empty");
