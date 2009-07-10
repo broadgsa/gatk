@@ -151,8 +151,10 @@ class refSeqIterator implements Iterator<rodRefSeq> {
 	@Override
 	public rodRefSeq next() {
 //		if ( z == 0 ) t = System.currentTimeMillis();
+//		System.out.println("NEXT on REFSEQ ITERATOR");
 		curr_position++;
 		if ( curr_position <= max_position ) { 
+		
 			// we still have bases covered by at least one currently loaded transcript;
 			// we have to purge only subset of transcripts, on which we moved past the end
 			Iterator<Transcript> i = records.iterator();
@@ -173,18 +175,23 @@ class refSeqIterator implements Iterator<rodRefSeq> {
 			max_position = t.getLocation().getStop();
 		}
 		
+//		System.out.println("curr pos="+curr_position+"; max pos="+max_position);
+
 		// 'records' only keeps those transcripts now, on which we did not reach the end yet 
 		// (we might have reloaded records completely if it was necessary); current position is correctly set.
 		// lets check if we walked into additional new transcripts so we'd need to load them too:
 		
 		while ( reader.hasNext() ) {
 			Transcript t = reader.peek();
+//			System.out.println("next transcript at "+t.getLocation()+"; curr contig is "+curr_contig_name);
 			int ci1 = GenomeLocParser.getContigIndex(curr_contig_name);
 			int ci2 = GenomeLocParser.getContigIndex( t.getLocation().getContig() );
+//			System.out.println("Contigs: "+ci1+":"+ci2);
 			if ( ci1 > ci2 ) throw new StingException("RefSeq track seems to be not contig-ordered");
 			if ( ci1 < ci2 ) break; // next transcript is on the next contig, we do not need it yet...
 			if ( t.getLocation().getStart() > curr_position ) break; // next transcript is on the same contig but starts after the current position; we are done
 			t = reader.next(); // we do need next record, time to load it for real
+//			System.out.println("loaded next transcript");
 			long stop = t.getLocation().getStop();
 			if ( stop < curr_position ) throw new StingException("DEBUG: encountered contig that should have been loaded earlier");
 			if ( stop > max_position ) max_position = stop;
@@ -194,6 +201,7 @@ class refSeqIterator implements Iterator<rodRefSeq> {
 		// 'records' and current position are fully updated. We can now create new rod and return it (NOTE: this iterator will break if the list
 		// of pre-loaded records is meddled with by the clients between iterations, so we return them as unmodifiable list)
 		rodRefSeq rod = new rodRefSeq(name, GenomeLocParser.parseGenomeLoc(curr_contig_name,curr_position, curr_position),Collections.unmodifiableList(records));
+//		System.out.println("Returning rod at "+rod.getLocation());
 //		if ( (++z) % 1000000 == 0 ) {
 //			System.out.println(rod.getLocation()+": holding "+records.size()+ "; time per 1M ref positions: "+((double)(System.currentTimeMillis()-t)/1000.0)+" s");
 //			z = 0;
