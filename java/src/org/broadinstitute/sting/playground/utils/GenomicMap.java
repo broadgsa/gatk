@@ -146,7 +146,13 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 				while ( p2 < line.length() && line.charAt(p2) != ',') p2++; // next comma or end-of-line
 
 				while ( p2 != p1 ) {
-					segments.add(GenomeLocParser.parseGenomeLoc(line.substring(p1, p2)));
+					GenomeLoc newSegment = GenomeLocParser.parseGenomeLoc(line.substring(p1, p2));
+					if ( segments.size() > 0 &&
+							segments.get(segments.size()-1).getStop()+1 == newSegment.getStart() &&
+							segments.get(segments.size()-1).getContigIndex() == newSegment.getContigIndex())
+						System.out.println("WARNING: strictly adjacent segments found in custom contig "+name);
+
+					segments.add(newSegment);
 				
 					p1 = p2+1; // set p1 after the comma
 					while ( p1 < line.length() && Character.isWhitespace(line.charAt(p1))) p1++; // skip whitespaces
@@ -183,8 +189,8 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 		}
 	}
 	
-	/** Remaps a record (read) aligned to a custom contig back onto the master reference, using the
-	 * mapping of that custom contig to the master reference. If the map does not have mapping information for
+	/** Remaps a record (read) aligned to a custom contig back onto the master reference. 
+	 * If the map does not have mapping information for
 	 * the contig, an exception will be thrown. This method changes read's reference name, start position and 
 	 * cigar, as well as the read's file header (must be provided). 
 	 * 
@@ -276,8 +282,6 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 					
 						if ( refPos < currStop + 1 ) 
 							throw new StingException("Contig "+oldRefName+" has segments that are out of order or strictly adjacent: currently unsupported");
-						if ( refPos == currStop + 1 ) 
-							System.out.println("WARNING: Contig "+oldRefName+" has segments that are strictly adjacent");
 					
 						// add "deletion" w/respect to the master ref over the region between adjacent segments:
 						deletionLength += (int)(refPos-currStop-1);
@@ -327,11 +331,9 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 					if ( refPos < currStop + 1 ) 
 						throw new StingException("Contig "+oldRefName+
 						" has segments that are out of order or strictly adjacent: currently unsupported");
-					if ( refPos == currStop + 1 ) { 
-						System.out.println("WARNING: Contig "+oldRefName+
-						" has segments that are strictly adjacent");
-					} else {
-						// add "deletion" w/respect to the master ref over the region between adjacent segments:
+					if ( refPos > currStop + 1 ) {
+						// add "deletion" w/respect to the master ref over the region between adjacent segments
+						// (and do not add anything if segments are strictly adjacent, i.e. refPos == currStop+1):
 						newCigar.add(new CigarElement((int)(refPos-currStop-1),CigarOperator.D));
 					}
 					currStop = gl.getStop();
