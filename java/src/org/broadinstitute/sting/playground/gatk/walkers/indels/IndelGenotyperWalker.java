@@ -7,6 +7,8 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.Transcript;
 import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.ReadFilters;
+import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.playground.utils.CircularArray;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -23,7 +25,7 @@ import java.util.List;
 import java.util.Set;
 
 
-
+@ReadFilters(Platform454Filter.class)
 public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	@Argument(fullName="bed", shortName="bed", doc="BED output file name", required=true)
 	java.io.File bed_file;
