@@ -77,18 +77,8 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
 
         // set the analysis name in the argument collection
         this.argCollection.analysisName = this.analysisName;
-        try {
-            GATKEngine.execute(argCollection, mWalker);
-        }
-        catch (ArgumentException ex) {
-            // Rethrow argument exceptions.  Let the command-line argument do what it's designed to do.
-            throw ex;
-        }
-        catch (StingException exp) {
-            System.err.println("Caught StingException. It's message is " + exp.getMessage());
-            exp.printStackTrace();
-            return -1;
-        }
+        GATKEngine.execute(argCollection, mWalker);
+
         return 0;
     }
 

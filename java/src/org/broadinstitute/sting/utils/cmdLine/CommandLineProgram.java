@@ -9,6 +9,8 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.EnumSet;
 import java.util.Enumeration;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * User: aaron
@@ -111,6 +113,14 @@ public abstract class CommandLineProgram {
             runningInstructions = getClass().getName();
 
         return runningInstructions;
+    }
+
+    /**
+     * Allows a given application to return a few lines of text describing the application.
+     * @return A few lines of text describing the application.  Should not be null.
+     */
+    protected List<String> getApplicationHeader() {
+        return Collections.singletonList("Program Name: " + getClass().getName());           
     }
 
     /**
@@ -303,8 +313,8 @@ public abstract class CommandLineProgram {
         java.util.Date date = new java.util.Date();
 
         logger.info("-------------------------------------------------------");
-        logger.info("Program Name: " + clp.getClass().getName());
-
+        for( String headerLine: clp.getApplicationHeader() )
+            logger.info(headerLine);
         String output = "";
         for (String str : args) {
             output = output + str + " ";
@@ -354,11 +364,8 @@ public abstract class CommandLineProgram {
      */
     private static void printExitSystemMsg(final String msg) {
         System.out.printf("------------------------------------------------------------------------------------------%n");
-        System.out.printf("An error has occurred%n");
-        System.out.printf("Check your command line arguments for any typos or inconsistencies.%n");
-        System.out.printf("If you think it's because of a bug or a feature in GATK that should work, please report this to gsadevelopers@broad.mit.edu%n");
-        System.out.printf("%n");
-        System.out.printf("%s%n", msg);
+        System.out.printf("An error has occurred.  Please check your command line arguments for any typos or inconsistencies.%n%n");
+        System.out.printf("For assistance, please email us at gsadevelopers@broad.mit.edu, or review our documentation at http://www.broadinstitute.org/gsa/wiki.%n");
     }
 
     /**

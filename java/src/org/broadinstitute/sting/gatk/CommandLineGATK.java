@@ -76,19 +76,23 @@ public class CommandLineGATK extends CommandLineProgram {
         processArguments(argCollection);
 
         this.argCollection.analysisName = this.analysisName;
-        try {
-            GATKEngine.execute(argCollection, mWalker);
-        }
-        catch (ArgumentException ex) {
-            // Rethrow argument exceptions.  Let the command-line argument do what it's designed to do.
-            throw ex;
-        }
-        catch (StingException exp) {
-            System.err.println("Caught StingException. It's message is " + exp.getMessage());
-            exp.printStackTrace();
-            return -1;
-        }
+        GATKEngine.execute(argCollection, mWalker);
         return 0;
+    }
+
+    /**
+     * Get pleasing info about the GATK.
+     * @return
+     */
+    @Override
+    protected List<String> getApplicationHeader() {
+        List<String> header = new ArrayList<String>();
+        header.add("The Genome Analysis Toolkit (GATK)");
+        header.add("Copyright (c) 2009 The Broad Institute");
+        header.add("Please view our documentation at http://www.broadinstitute.org/gsa/wiki");
+        header.add("For support, email gsadevelopers@broadinstitute.org");
+        header.add("");
+        return header;
     }
 
     /**
@@ -143,7 +147,6 @@ public class CommandLineGATK extends CommandLineProgram {
             }
         };
     }
-
 
     /**
      * Preprocess the arguments before submitting them to the GATK engine.
