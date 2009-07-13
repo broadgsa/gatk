@@ -24,6 +24,8 @@
 
 package org.broadinstitute.sting.utils.cmdLine;
 
+import java.util.List;
+
 /**
  * Provides a service whereby the application can provide a mechanism
  * for creating specialty arguments.
@@ -36,5 +38,5 @@ public abstract class ArgumentFactory {
      * @param repr A String representation of the argument.
      * @return
      */
-    public abstract Object createArgument(Class type, String repr);
+    public abstract Object createArgument(Class type, List<String> repr);
 }

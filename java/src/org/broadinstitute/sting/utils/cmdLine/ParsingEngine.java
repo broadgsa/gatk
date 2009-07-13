@@ -270,6 +270,14 @@ public class ParsingEngine {
             return;
 
         if( definition.source.clazz.isAssignableFrom(object.getClass()) ) {
+            if( customArgumentFactory != null ) {
+                Object instance = customArgumentFactory.createArgument(definition.source.field.getType(), match.values());
+                if( instance != null ) {
+                    definition.source.setValue( object, instance );
+                    return;
+                }
+            }
+
             if( !definition.source.isFlag() ) {
                 String[] tokens = match.values().toArray(new String[0]);
                 FieldParser fieldParser = FieldParser.create(definition.source.field);

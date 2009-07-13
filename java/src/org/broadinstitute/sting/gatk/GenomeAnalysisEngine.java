@@ -136,7 +136,8 @@ public class GenomeAnalysisEngine {
         logger.info("Strictness is " + argCollection.strictnessLevel);
 
         // perform validation steps that are common to all the engines
-        genericEngineSetup();
+        engine.setMaximumIterations(argCollection.maximumEngineIterations);
+        engine.initialize();
 
         GenomeLocSortedSet locs = null;
         if (argCollection.intervals != null) {
@@ -190,13 +191,6 @@ public class GenomeAnalysisEngine {
         }
 
         return microScheduler;
-    }
-
-
-    /** commands that get executed for each engine, regardless of the type */
-    private void genericEngineSetup() {
-        engine.setMaximumIterations(argCollection.maximumEngineIterations);
-        engine.initialize();
     }
 
     /**
