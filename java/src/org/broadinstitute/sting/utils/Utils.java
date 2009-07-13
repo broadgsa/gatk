@@ -40,7 +40,7 @@ public class Utils {
         //System.out.printf("* %s%n", msg);
         //System.out.printf("********************************************************************************%n");
         logger.fatal(msg);
-        throw new RuntimeException(msg);
+        throw new StingException(msg);
     }
 
     public static <T> List<T> cons(final T elt, final List<T> l) {
