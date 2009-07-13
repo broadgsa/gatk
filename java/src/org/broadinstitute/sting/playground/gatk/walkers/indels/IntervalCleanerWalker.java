@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.playground.indels.*;
 
@@ -17,7 +18,7 @@ import java.io.File;
 import java.io.FileWriter;
  
 @WalkerName("IntervalCleaner")
-@ReadFilters(Platform454Filter.class)
+@ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class})
 public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> {
     @Argument(fullName="allow454Reads", shortName="454", doc="process 454 reads", required=false)
     boolean allow454 = false;

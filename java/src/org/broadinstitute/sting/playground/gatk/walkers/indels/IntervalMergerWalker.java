@@ -26,10 +26,9 @@ package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.walkers.WalkerName;
-import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.filters.Platform454Filter;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
@@ -39,6 +38,7 @@ import java.util.*;
  */
 @WalkerName("IntervalMerger")
 @Requires({DataSource.READS})
+@ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class})
 public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
 
     @Argument(fullName="intervalsToMerge", shortName="intervals", doc="Intervals to merge", required=true)

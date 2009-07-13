@@ -5,13 +5,17 @@ import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.filters.Platform454Filter;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.*;
 
 @WalkerName("MismatchIntervals")
+@ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class})
 public class MismatchIntervalWalker extends LocusWalker<Pair<GenomeLoc, Boolean>, Pair<LinkedList<Boolean>, GenomeLoc>> {
     @Argument(fullName="windowSize", shortName="window", doc="window size for calculating entropy", required=false)
     int windowSize = 10;

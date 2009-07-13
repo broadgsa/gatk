@@ -2,6 +2,9 @@ package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.gatk.walkers.ReadFilters;
+import org.broadinstitute.sting.gatk.filters.Platform454Filter;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
 import net.sf.samtools.SAMRecord;
@@ -15,6 +18,7 @@ import java.util.List;
 // although this can easily be changed if necessary.
 
 @WalkerName("IndelIntervals")
+@ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class})
 public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval, IndelIntervalWalker.Interval> {
     @Argument(fullName="allow454Reads", shortName="454", doc="process 454 reads", required=false)
     boolean allow454 = false;
