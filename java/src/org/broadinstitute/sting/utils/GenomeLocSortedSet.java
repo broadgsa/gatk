@@ -3,10 +3,7 @@ package org.broadinstitute.sting.utils;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 
-import java.util.AbstractSet;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  *
@@ -47,7 +44,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     /**
      * get an iterator over this collection
      *
-     * @return
+     * @return an iterator<GenomeLoc>
      */
     public Iterator<GenomeLoc> iterator() {
         return mArray.iterator();
@@ -56,7 +53,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     /**
      * return the size of the collection
      *
-     * @return
+     * @return the size of the collection
      */
     public int size() {
         return mArray.size();
@@ -79,19 +76,19 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      * @return true
      */
     public boolean add(GenomeLoc e) {
-        if (mArray.contains(e)) {
-            throw new IllegalArgumentException("attempting to add a duplicate object to the set");
-        }
-        int index = 0;
-        while (index < mArray.size()) {
-            if (!e.isPast(mArray.get(index))) {
-                mArray.add(index, e);
+        // assuming that the intervals coming arrive in order saves us a fair amount of time (and it's most likely true)
+        if (mArray.size() > 0 && e.isPast(mArray.get(mArray.size() - 1))) {
+            mArray.add(e);
+            return true;
+        } else {
+            int loc = Collections.binarySearch(mArray,e);
+            if (loc >= 0) {
+                throw new StingException("Genome Loc Sorted Set already contains the GenomicLoc " + e.toString());
+            } else {
+                mArray.add((loc+1) * -1,e);
                 return true;
             }
-            ++index;
         }
-        this.mArray.add(e);
-        return true;
     }
 
     /**
@@ -237,12 +234,14 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
 
     /**
      * Create a sorted genome location set from a list of GenomeLocs.
+     *
      * @param locs the list<GenomeLoc>
+     *
      * @return the sorted genome loc list
      */
     public static GenomeLocSortedSet createSetFromList(List<GenomeLoc> locs) {
         GenomeLocSortedSet set = new GenomeLocSortedSet();
-        for (GenomeLoc l: locs) {
+        for (GenomeLoc l : locs) {
             set.add(l);
         }
         return set;

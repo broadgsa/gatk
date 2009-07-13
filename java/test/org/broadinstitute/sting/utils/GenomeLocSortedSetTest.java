@@ -78,7 +78,7 @@ public class GenomeLocSortedSetTest extends BaseTest {
     }
 
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = StingException.class)
     public void testAddDupplicate() {
         assertTrue(mSortedSet.size() == 0);
         GenomeLoc g = GenomeLocParser.createGenomeLoc(1, 0, 0);
