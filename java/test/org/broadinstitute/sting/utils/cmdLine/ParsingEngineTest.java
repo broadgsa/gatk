@@ -101,6 +101,25 @@ public class ParsingEngineTest extends BaseTest {
     }
 
     @Test
+    public void primitiveArgumentTest() {
+        final String[] commandLine = new String[] {"--foo", "5"};
+
+        parsingEngine.addArgumentSource( PrimitiveArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        PrimitiveArgProvider argProvider = new PrimitiveArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals("Argument is not correctly initialized", 5, argProvider.foo );
+    }
+
+    private class PrimitiveArgProvider {
+        @Argument(doc="simple integer")
+        int foo;
+    }
+
+    @Test
     public void flagTest() {
         final String[] commandLine = new String[] {"--all_loci"};
 

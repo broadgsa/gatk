@@ -4,23 +4,8 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Pair;
 import org.apache.log4j.Logger;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Collection;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.io.File;
-
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMFileWriterFactory;
-import net.sf.samtools.SAMFileHeader;
+import java.lang.reflect.*;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -40,6 +25,11 @@ import net.sf.samtools.SAMFileHeader;
  * A parser for Sting command-line arguments.
  */
 public class ParsingEngine {
+    /**
+     * A collection of all the source fields which define command-line arguments.
+     */
+    List<ArgumentSource> argumentSources = new ArrayList<ArgumentSource>();
+
     /**
      * A list of defined arguments against which command lines are matched.
      * Package protected for testing access.
@@ -90,22 +80,12 @@ public class ParsingEngine {
      * any number of fields with an @Argument annotation attached.
      * @param sourceName name for this argument source.  'Null' indicates that this source should be treated
      *                   as the main module.
-     * @param source     An argument source from which to extract command-line arguments.
+     * @param sourceClass A class containing argument sources from which to extract command-line arguments.
      */
-    public void addArgumentSource( String sourceName, Class source ) {
+    public void addArgumentSource( String sourceName, Class sourceClass ) {
         List<ArgumentDefinition> argumentsFromSource = new ArrayList<ArgumentDefinition>();
-        while( source != null ) {
-            Field[] fields = source.getDeclaredFields();
-            for( Field field: fields ) {
-                Argument argument = field.getAnnotation(Argument.class);
-                if(argument != null)
-                    argumentsFromSource.add( new ArgumentDefinition(argument,source,field) );
-                ArgumentCollection argumentCollection = field.getAnnotation(ArgumentCollection.class);
-                if(argumentCollection != null)
-                    addArgumentSource(sourceName, field.getType());
-            }
-            source = source.getSuperclass();
-        }
+        for( ArgumentSource argumentSource: extractArgumentSources(sourceClass,true) )
+            argumentsFromSource.add( new ArgumentDefinition(argumentSource) );
         argumentDefinitions.add( new ArgumentDefinitionGroup(sourceName, argumentsFromSource) );
     }
 
@@ -131,8 +111,30 @@ public class ParsingEngine {
      *         an empty object, but will never return null.
      */
     public void parse( String[] tokens ) {
-        argumentMatches = parseArguments( tokens );
-        fitValuesToArguments( argumentMatches, tokens );
+        argumentMatches = new ArgumentMatches();
+
+        int lastArgumentMatchSite = -1;
+
+        for( int i = 0; i < tokens.length; i++ ) {
+            String token = tokens[i];
+            // If the token is of argument form, parse it into its own argument match.
+            // Otherwise, pair it with the most recently used argument discovered.
+            if( isArgumentForm(token) ) {
+                ArgumentMatch argumentMatch = parseArgument( token, i );
+                if( argumentMatch != null ) {
+                    argumentMatches.mergeInto( argumentMatch );
+                    lastArgumentMatchSite = i;
+                }
+            }
+            else {
+                if( argumentMatches.hasMatch(lastArgumentMatchSite) &&
+                    !argumentMatches.getMatch(lastArgumentMatchSite).hasValueAtSite(lastArgumentMatchSite))
+                    argumentMatches.getMatch(lastArgumentMatchSite).addValue( lastArgumentMatchSite, token );
+                else
+                    argumentMatches.MissingArgument.addValue( i, token );
+
+            }
+        }
     }
 
     public enum ValidationType { MissingRequiredArgument,
@@ -140,7 +142,7 @@ public class ParsingEngine {
                                  InvalidArgumentValue,
                                  ValueMissingArgument,
                                  TooManyValuesForArgument,
-                                 MutuallyExclusive };
+                                 MutuallyExclusive }
 
     /**
      * Validates the list of command-line argument matches.
@@ -171,7 +173,7 @@ public class ParsingEngine {
 
         // Find invalid arguments.  Invalid arguments will have a null argument definition.
         if( !skipValidationOf.contains(ValidationType.InvalidArgument) ) {
-            Collection<ArgumentMatch> invalidArguments = argumentMatches.findMatches(null);
+            Collection<ArgumentMatch> invalidArguments = argumentMatches.findUnmatched();
             if( invalidArguments.size() > 0 )
                 throw new InvalidArgumentException( invalidArguments );
         }
@@ -206,7 +208,7 @@ public class ParsingEngine {
             Collection<ArgumentMatch> overvaluedArguments = new ArrayList<ArgumentMatch>();
             for( ArgumentMatch argumentMatch: argumentMatches.findSuccessfulMatches() ) {
                 // Warning: assumes that definition is not null (asserted by checks above).
-                if( !argumentMatch.definition.isMultiValued() && argumentMatch.values().size() > 1 )
+                if( !argumentMatch.definition.source.isMultiValued() && argumentMatch.values().size() > 1 )
                     overvaluedArguments.add(argumentMatch);
             }
 
@@ -240,35 +242,41 @@ public class ParsingEngine {
      * @param object Object into which to add arguments.
      */
     public void loadArgumentsIntoObject( Object object ) {
-        for( ArgumentMatch match: argumentMatches )
-            loadArgumentIntoObject( match, object );
+        // Get a list of argument sources, not including the children of this argument.  For now, skip loading
+        // arguments into the object recursively.
+        List<ArgumentSource> argumentSources = extractArgumentSources( object.getClass(), false );
+        for( ArgumentSource argumentSource: argumentSources ) {
+            Collection<ArgumentMatch> argumentsMatchingSource = argumentMatches.findMatches( argumentSource );
+            if( argumentsMatchingSource.size() != 0 )
+                loadMatchesIntoObject( argumentsMatchingSource, object );
+        }
     }
 
     /**
      * Loads a single argument into the object.
-     * @param argument Argument to load into the object.
+     * @param argumentMatches Argument matches to load into the object.
      * @param object Target for the argument.
      */
-    public void loadArgumentIntoObject( ArgumentMatch argument, Object object ) {
-        ArgumentDefinition definition = argument.definition;
+    private void loadMatchesIntoObject( Collection<ArgumentMatch> argumentMatches, Object object ) {
+        if( argumentMatches.size() > 1 )
+            throw new StingException("Too many matches");
+
+        ArgumentMatch match = argumentMatches.iterator().next();
+        ArgumentDefinition definition = match.definition;
 
         // A null definition might be in the list if some invalid arguments were passed in but we
         // want to load in a subset of data for better error reporting.  Ignore null definitions.
         if( definition == null )
             return;
 
-        if( definition.sourceClass.isAssignableFrom(object.getClass()) ) {
-            try {
-                definition.sourceField.setAccessible(true);
-                if( !isArgumentFlag(definition) )
-                    definition.sourceField.set( object, constructFromString( definition.sourceField, argument.values() ) );
-                else
-                    definition.sourceField.set( object, true );
+        if( definition.source.clazz.isAssignableFrom(object.getClass()) ) {
+            if( !definition.source.isFlag() ) {
+                String[] tokens = match.values().toArray(new String[0]);
+                FieldParser fieldParser = FieldParser.create(definition.source.field);
+                definition.source.setValue( object, fieldParser.parse(tokens) );
             }
-            catch( IllegalAccessException ex ) {
-                //logger.fatal("processArgs: cannot convert field " + field.toString());
-                throw new StingException("processArgs: Failed conversion " + ex.getMessage(), ex);
-            }
+            else
+                definition.source.setValue( object, true );
         }
     }
 
@@ -280,13 +288,25 @@ public class ParsingEngine {
     }
 
     /**
-     * Returns true if the argument is a flag (a 0-valued argument).
-     * @param definition Argument definition.
-     * @return True if argument is a flag; false otherwise.
+     * Extract all the argument sources from a given object.
+     * @param sourceClass class to act as sources for other arguments.
+     * @param recursive Whether to recursively look for argument collections and add their contents.
+     * @return A list of sources associated with this object and its aggregated objects.
      */
-    private boolean isArgumentFlag( ArgumentDefinition definition ) {
-        return (definition.sourceField.getType() == Boolean.class) || (definition.sourceField.getType() == Boolean.TYPE);
-    }
+    private List<ArgumentSource> extractArgumentSources( Class sourceClass, boolean recursive ) {
+        List<ArgumentSource> argumentSources = new ArrayList<ArgumentSource>();
+        while( sourceClass != null ) {
+            Field[] fields = sourceClass.getDeclaredFields();
+            for( Field field: fields ) {
+                if( field.isAnnotationPresent(Argument.class) )
+                    argumentSources.add( new ArgumentSource(sourceClass,field) );
+                if( field.isAnnotationPresent(ArgumentCollection.class) && recursive )
+                    argumentSources.addAll( extractArgumentSources(field.getType(),recursive) );
+            }
+            sourceClass = sourceClass.getSuperclass();
+        }
+        return argumentSources;
+    }    
 
     /**
      * Determines whether a token looks like the name of an argument.
@@ -321,174 +341,14 @@ public class ParsingEngine {
     }
 
     /**
-     * Extracts the argument portions of the string and assemble them into a data structure.
-     * @param tokens List of tokens from which to find arguments.
-     * @return Set of argument matches.
-     */
-    private ArgumentMatches parseArguments( String[] tokens ) {
-        ArgumentMatches argumentMatches = new ArgumentMatches();
-
-        for( int i = 0; i < tokens.length; i++ ) {
-            String token = tokens[i];
-            if( isArgumentForm(token) ) {
-                ArgumentMatch argumentMatch = parseArgument( token, i );
-                if( argumentMatch != null )
-                    argumentMatches.mergeInto( argumentMatch );
-            }
-        }
-
-        return argumentMatches;
-    }
-
-    /**
-     * Fit the options presented on the command line to the given arguments.
-     * @param argumentMatches List of arguments already matched to data.
-     * @param tokens The command-line input.
-     */
-    private void fitValuesToArguments( ArgumentMatches argumentMatches, String[] tokens ) {
-        for( int i = 0; i < tokens.length; i++ ) {
-            // If this is the site of a successfully matched argument, pass it over.
-            if( argumentMatches.hasMatch(i) )
-                continue;
-
-            // tokens[i] must be an argument value.  Match it with the previous argument.
-            String value = tokens[i];
-            int argumentSite = i - 1;
-
-            // If the argument is present and doesn't already have a value associated with the given site, add the value.
-            if( argumentMatches.hasMatch(argumentSite) && !argumentMatches.getMatch(argumentSite).hasValueAtSite(argumentSite))
-                argumentMatches.getMatch(argumentSite).addValue( argumentSite, value );
-            else
-                argumentMatches.MissingArgument.addValue( i, value );
-        }
-    }
-
-    /**
      * Constructs a command-line argument given a string and field.
      * @param f Field type from which to infer the type.
      * @param strs Collection of parameter strings to parse.
      * @return Parsed object of the inferred type.
      */
     private Object constructFromString(Field f, List<String> strs) {
-        Class type = f.getType();
-
-        if( Collection.class.isAssignableFrom(type) ) {
-            Collection collection = null;
-            Class containedType = null;
-
-            // If this is a parameterized collection, find the contained type.  If blow up if only one type exists.
-            if( f.getGenericType() instanceof ParameterizedType) {
-                ParameterizedType parameterizedType = (ParameterizedType)f.getGenericType();
-                if( parameterizedType.getActualTypeArguments().length > 1 )
-                    throw new IllegalArgumentException("Unable to determine collection type of field: " + f.toString());
-                containedType = (Class)parameterizedType.getActualTypeArguments()[0];
-            }
-            else
-                containedType = String.class;
-
-            // If this is a generic interface, pick a concrete implementation to create and pass back.
-            // Because of type erasure, don't worry about creating one of exactly the correct type.
-            if( Modifier.isInterface(type.getModifiers()) || Modifier.isAbstract(type.getModifiers()) )
-            {
-                if( java.util.List.class.isAssignableFrom(type) ) type = ArrayList.class;
-                else if( java.util.Queue.class.isAssignableFrom(type) ) type = java.util.ArrayDeque.class;
-                else if( java.util.Set.class.isAssignableFrom(type) ) type = java.util.TreeSet.class;
-            }
-
-            try
-            {
-                collection = (Collection)type.newInstance();
-            }
-            catch( Exception ex ) {
-                // Runtime exceptions are definitely unexpected parsing simple collection classes.
-                throw new IllegalArgumentException(ex);
-            }
-
-            for( String str: strs )
-                collection.add( constructSingleElement(f,containedType,str) );
-
-            return collection;
-        }
-        else if( type.isArray() ) {
-            Class containedType = type.getComponentType();
-
-            Object arr = Array.newInstance(containedType,strs.size());
-            for( int i = 0; i < strs.size(); i++ )
-                Array.set( arr,i,constructSingleElement(f,containedType,strs.get(i)) );
-            return arr;
-        }
-        else  {
-            if( strs.size() != 1 )
-                throw new IllegalArgumentException("Passed multiple arguments to an object expecting a single value.");
-            return constructSingleElement(f,type,strs.get(0));
-        }
-    }
-
-    /**
-     * Builds a single element of the given type.
-     * @param f Implies type of data to construct.
-     * @param str String representation of data.
-     * @return parsed form of String.
-     */
-    private Object constructSingleElement(Field f, Class type, String str) {
-        if( customArgumentFactory != null ) {
-            Object instance = customArgumentFactory.createArgument(type, str);
-            if( instance != null )
-                return instance;
-        }
-
-        // lets go through the types we support
-        if (type == Boolean.TYPE) {
-            boolean b = false;
-            if (str.toLowerCase().equals("true")) {
-                b = true;
-            }
-            Boolean bool = new Boolean(b);
-            return bool;
-        } else if (type == Byte.TYPE) {
-            Byte b = Byte.valueOf(str);
-            return b;
-        } else if (type == Short.TYPE) {
-            Short s = Short.valueOf(str);
-            return s;
-        } else if (type == Integer.TYPE) {
-            Integer in = Integer.valueOf(str);
-            return in;
-        } else if (type == Long.TYPE) {
-            Long l = Long.valueOf(str);
-            return l;
-        } else if (type == Float.TYPE) {
-            Float fl = Float.valueOf(str);
-            return fl;
-        } else if (type == Double.TYPE) {
-            Double db = Double.valueOf(str);
-            return db;
-        } else if (type == Character.TYPE) {
-            if( str.trim().length() != 1 )
-                throw new StingException("Unable to parse argument '" + str + "' into a character.");
-            Character c = str.trim().charAt(0);
-            return c;
-        } else if (type.isEnum()) {
-            return Enum.valueOf(type,str.toUpperCase().trim());
-        } else {
-            Constructor ctor = null;
-            try {
-                ctor = type.getConstructor(String.class);
-                return ctor.newInstance(str);
-            } catch (NoSuchMethodException e) {
-                logger.fatal("constructFromString:NoSuchMethodException: cannot convert field " + f.toString());
-                throw new RuntimeException("constructFromString:NoSuchMethodException: Failed conversion " + e.getMessage());
-            } catch (IllegalAccessException e) {
-                logger.fatal("constructFromString:IllegalAccessException: cannot convert field " + f.toString());
-                throw new RuntimeException("constructFromString:IllegalAccessException: Failed conversion " + e.getMessage());
-            } catch (InvocationTargetException e) {
-                logger.fatal("constructFromString:InvocationTargetException: cannot convert field " + f.toString());
-                throw new RuntimeException("constructFromString:InvocationTargetException: Failed conversion " + e.getMessage());
-            } catch (InstantiationException e) {
-                logger.fatal("constructFromString:InstantiationException: cannot convert field " + f.toString());
-                throw new RuntimeException("constructFromString:InstantiationException: Failed conversion " + e.getMessage());
-            }
-        }
+        FieldParser fieldParser = FieldParser.create(f);
+        return fieldParser.parse( strs.toArray(new String[0]) );
     }
 }
 

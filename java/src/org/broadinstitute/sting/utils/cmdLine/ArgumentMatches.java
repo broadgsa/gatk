@@ -41,25 +41,6 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      */
     public ArgumentMatch MissingArgument = new ArgumentMatch();    
 
-    void mergeInto( ArgumentMatch match ) {
-        boolean definitionExists = false;
-
-        // Clone the list of argument matches to avoid ConcurrentModificationExceptions.
-        for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
-            if( argumentMatch.definition == match.definition ) {
-                argumentMatch.mergeInto( match );
-                for( int index: match.indices.keySet() )
-                    argumentMatches.put( index, argumentMatch );
-                definitionExists = true;
-            }
-        }
-
-        if( !definitionExists ) {
-            for( int index: match.indices.keySet() )
-                argumentMatches.put( index, match );
-        }
-    }
-
     /**
      * Get an iterator cycling through *unique* command-line argument <-> definition matches.
      * @return Iterator over all argument matches.
@@ -90,20 +71,27 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
     }
 
     /**
-     * Determines, of the argument matches by position, which are unique and returns that list.
-     * @return A unique set of matches.
-     */
-    private Set<ArgumentMatch> getUniqueMatches() {
-        return new HashSet<ArgumentMatch>( argumentMatches.values() );
-    }
-
-    /**
      * Does the match collection have a match for this argument definition.
      * @param definition Definition to match.
      * @return True if a match exists; false otherwise.
      */
     public boolean hasMatch( ArgumentDefinition definition ) {
         return findMatches( definition ).size() > 0;
+    }
+
+    /**
+     * Return all argument matches of this source.
+     * @param argumentSource Argument source to match.
+     * @return List of all matches.
+     */
+
+    public Collection<ArgumentMatch> findMatches( ArgumentSource argumentSource ) {
+        Collection<ArgumentMatch> matches = new HashSet<ArgumentMatch>();            
+        for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
+            if( argumentMatch.definition != null && argumentMatch.definition.source.equals( argumentSource ) )
+                matches.add( argumentMatch );
+        }
+        return matches;
     }
 
     /**
@@ -131,6 +119,52 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
         }
         return matches;
     }
+
+    /**
+     * Find arguments that are unmatched to any definition.
+     * @return Set of matches that have no associated definition.
+     */
+    public Collection<ArgumentMatch> findUnmatched() {
+        Collection<ArgumentMatch> matches = new HashSet<ArgumentMatch>();
+        for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
+            if( argumentMatch.definition == null )
+                matches.add( argumentMatch );
+        }
+        return matches;
+    }
+
+    /**
+     * Merges the given argument match into the set of existing argument matches.
+     * If multiple arguments are present, those arguments will end up grouped.
+     * @param match The match to merge into.
+     * @return The merged match.
+     */
+    void mergeInto( ArgumentMatch match ) {
+        boolean definitionExists = false;
+
+        // Clone the list of argument matches to avoid ConcurrentModificationExceptions.
+        for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
+            if( argumentMatch.definition == match.definition ) {
+                argumentMatch.mergeInto( match );
+                for( int index: match.indices.keySet() )
+                    argumentMatches.put( index, argumentMatch );
+                definitionExists = true;
+            }
+        }
+
+        if( !definitionExists ) {
+            for( int index: match.indices.keySet() )
+                argumentMatches.put( index, match );
+        }
+    }    
+
+    /**
+     * Determines, of the argument matches by position, which are unique and returns that list.
+     * @return A unique set of matches.
+     */
+    private Set<ArgumentMatch> getUniqueMatches() {
+        return new HashSet<ArgumentMatch>( argumentMatches.values() );
+    }    
 }
 
 /**
@@ -215,6 +249,6 @@ class ArgumentMatch {
      * @return True if definition is known to be a flag; false if not known to be a flag.
      */
     private boolean isArgumentFlag() {
-        return definition != null && definition.isFlag();    
+        return definition != null && definition.source.isFlag();
     }
 }

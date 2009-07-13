@@ -2,7 +2,6 @@ package org.broadinstitute.sting.utils.cmdLine;
 
 import org.broadinstitute.sting.utils.StingException;
 
-import java.lang.reflect.Field;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Collection;
@@ -262,42 +261,24 @@ class ArgumentDefinition {
      */
     public final String validation;
 
-    public final Class sourceClass;
-    public final Field sourceField;
+    /**
+     * The target into which to inject arguments meeting this definition.
+     */
+    public final ArgumentSource source;
 
     /**
      * Creates a new argument definition.
-     * @param argument Attributes of the argument, read from the source field.
-     * @param sourceClass Source class for the argument, provided to the ParsingEngine.
-     * @param sourceField Source field for the argument, extracted from the sourceClass.
+     * @param source Source information for defining the argument.
      */
-    public ArgumentDefinition( Argument argument, Class sourceClass, Field sourceField ) {
-        this.sourceClass = sourceClass;
-        this.sourceField = sourceField;
+    public ArgumentDefinition( ArgumentSource source ) {
+        this.source = source;
 
-        fullName = argument.fullName().trim().length() > 0 ? argument.fullName().trim() : sourceField.getName().toLowerCase();
-        shortName = argument.shortName().trim().length() > 0 ? argument.shortName().trim() : null;
-        doc = argument.doc();
-        required = argument.required() && !isFlag();
-        exclusiveOf = argument.exclusiveOf().trim().length() > 0 ? argument.exclusiveOf().trim() : null;
-        validation = argument.validation().trim().length() > 0 ? argument.validation().trim() : null;
-    }
-
-    /**
-     * Can this argument support multiple values, or just one?
-     * @return True if the argument supports multiple values.
-     */
-    public boolean isMultiValued() {
-        Class argumentType = sourceField.getType();
-        return Collection.class.isAssignableFrom(argumentType) || sourceField.getType().isArray();         
-    }
-
-    /**
-     * Is this argument a flag (meaning a boolean value whose presence indicates 'true').
-     * @return True if this argument is a flag.
-     */
-    public boolean isFlag() {
-        return (sourceField.getType() == Boolean.class) || (sourceField.getType() == Boolean.TYPE);
+        fullName = source.getFullName();
+        shortName = source.getShortName();
+        doc = source.getDoc();
+        required = source.isRequired();
+        exclusiveOf = source.getExclusiveOf();
+        validation = source.getValidationRegex();
     }
 }
 
