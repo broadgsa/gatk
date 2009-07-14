@@ -150,19 +150,20 @@ def main():
     sortedCallFile = 'all.sorted.calls'
     cmd = ("~/dev/GenomeAnalysisTK/trunk/perl/sortByRef.pl -k 1 tmp.calls ~/work/humanref/Homo_sapiens_assembly18.fasta.fai > %s"  % ( sortedCallFile ) )    
     jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, just_print_commands = OPTIONS.dry, waitID = jobid)
-     
-    sortedCalls = [line.split() for line in open(sortedCallFile)]
-    aggregratedCalls = picard_utils.aggregateGeliCalls(sortedCalls)
-    
-    print >> outputFile, 'loc ref alt EM_alt_freq discovery_likelihood discovery_null discovery_prior discovery_lod EM_N n_ref n_het n_hom'
 
-    for snp in map( lambda x: picard_utils.aggregatedGeliCalls2SNP(x, nIndividuals), aggregratedCalls ):
-        if snp == None: continue    # ignore bad calls
-        #print snp
-        #sharedCalls = list(sharedCallsGroup)
-        #genotype = list(sharedCalls[0][5])
-        print >> outputFile, '%s   %s %s %.6f -0.0 -0.0 0.000000 100.0 %d %d %d %d' % (snp.loc, snp.ref, snp.alt(), snp.q(), nIndividuals, snp.nRefGenotypes(), snp.nHetGenotypes(), snp.nHomVarGenotypes())
-    outputFile.close()
+    if not OPTIONS.dry:    
+        sortedCalls = [line.split() for line in open(sortedCallFile)]
+        aggregratedCalls = picard_utils.aggregateGeliCalls(sortedCalls)
+
+        print >> outputFile, 'loc ref alt EM_alt_freq discovery_likelihood discovery_null discovery_prior discovery_lod EM_N n_ref n_het n_hom'
+    
+        for snp in map( lambda x: picard_utils.aggregatedGeliCalls2SNP(x, nIndividuals), aggregratedCalls ):
+            if snp == None: continue    # ignore bad calls
+            #print snp
+            #sharedCalls = list(sharedCallsGroup)
+            #genotype = list(sharedCalls[0][5])
+            print >> outputFile, '%s   %s %s %.6f -0.0 -0.0 0.000000 100.0 %d %d %d %d' % (snp.loc, snp.ref, snp.alt(), snp.q(), nIndividuals, snp.nRefGenotypes(), snp.nHetGenotypes(), snp.nHomVarGenotypes())
+        outputFile.close()
     
                 
 if __name__ == "__main__":

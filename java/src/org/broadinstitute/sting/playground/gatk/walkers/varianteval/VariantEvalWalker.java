@@ -133,14 +133,6 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
             updateAnalysisSet(s, eval, tracker, ref, context);
         }
 
-        if ( eval instanceof SNPCallFromGenotypes ) {
-            SNPCallFromGenotypes call = (SNPCallFromGenotypes)eval;
-            int nVarGenotypes = call.nHetGenotypes() + call.nHomVarGenotypes();
-            //System.out.printf("%d variant genotypes at %s%n", nVarGenotypes, calls);
-            final String s = nVarGenotypes == 1 ? SINGLETON_SNPS : TWOHIT_SNPS;
-            updateAnalysisSet(s, eval, tracker, ref, context);
-        }
-
         return 1;
     }
 

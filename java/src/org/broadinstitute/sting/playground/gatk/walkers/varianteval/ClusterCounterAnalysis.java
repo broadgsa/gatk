@@ -74,13 +74,11 @@ public class ClusterCounterAnalysis extends BasicVariantAnalysis {
     public List<String> done() {
         List<String> s = new ArrayList<String>();
         s.add(String.format("snps_counted_for_neighbor_distances %d", nSeen));
-        int cumulative = 0;
-        s.add(String.format("description        maxDist count cumulative"));
+        s.add(String.format("description        maxDist count"));
         for ( int i = 0; i < neighborWiseBoundries.length; i++ ) {
             int maxDist = neighborWiseBoundries[i];
             int count = variantsWithClusters.get(i).size();
-            cumulative += count;
-            s.add(String.format("snps_within_clusters_of_size %10d %10d %10d", maxDist, count, cumulative));
+            s.add(String.format("snps_within_clusters_of_size %10d %10d", maxDist, count));
         }
 
         return s;

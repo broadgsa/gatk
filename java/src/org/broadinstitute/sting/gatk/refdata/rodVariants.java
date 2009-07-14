@@ -4,6 +4,8 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Arrays;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -30,7 +32,7 @@ import java.io.IOException;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-public class rodVariants extends BasicReferenceOrderedDatum {
+public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVariant {
     private enum Genotype { AA, AC, AG, AT, CC, CG, CT, GG, GT, TT }
 
     private GenomeLoc loc;
@@ -140,4 +142,29 @@ public class rodVariants extends BasicReferenceOrderedDatum {
         this.lodBtr = (float) (bestLikelihood - refLikelihood);
         this.lodBtnb = (float) (bestLikelihood - nextBestLikelihood);
     }
+
+    public String getRefBasesFWD() {
+        char[] b = { getReferenceBase() };
+        return new String( b );
+    }
+
+    public char getRefSnpFWD() throws IllegalStateException { return 0; }
+    public String getAltBasesFWD() { return null; }
+    public char getAltSnpFWD() throws IllegalStateException { return 0; }
+    public boolean isReference() { return ! isSNP(); }
+    public boolean isSNP() { return getLodBtr() > 5; }
+    public boolean isInsertion() { return false; }
+    public boolean isDeletion() { return false; }
+    public boolean isIndel() { return false; }
+    public double getMAF() { return 0; }
+    public double getHeterozygosity() { return 0; }
+    public boolean isGenotype() { return true; }
+    public double getVariationConfidence() { return getLodBtr(); }
+    public double getConsensusConfidence() { return getLodBtnb(); }
+    public List<String> getGenotype() throws IllegalStateException {
+        return Arrays.asList(getBestGenotype());
+    }
+     
+    public int getPloidy() throws IllegalStateException { return 2; }
+    public boolean isBiallelic() { return true; }
 }
