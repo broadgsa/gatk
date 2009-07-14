@@ -156,6 +156,8 @@ public class GLFWriter implements GenotypeWriter {
     /**
      * add a GLF record to the output file
      *
+     * @param contigName the contig name
+     * @param contigLength the contig length
      * @param rec the GLF record to write.
      */
     public void addGLFRecord(String contigName, int contigLength, GLFRecord rec) {
@@ -183,8 +185,8 @@ public class GLFWriter implements GenotypeWriter {
     /**
      * check to see if we've jumped to a new contig
      *
-     * @param sequenceName
-     * @param seqLength
+     * @param sequenceName the name for the sequence
+     * @param seqLength the sequence length
      */
     private void checkSequence(String sequenceName, int seqLength) {
         if ((referenceSequenceName == null) || (!referenceSequenceName.equals(sequenceName))) {
@@ -193,6 +195,7 @@ public class GLFWriter implements GenotypeWriter {
             }
             referenceSequenceName = sequenceName;
             referenceSequenceLength = seqLength;
+            lastPos = 1;
             addSequence();
         }
     }
@@ -218,28 +221,6 @@ public class GLFWriter implements GenotypeWriter {
     public void close() {
         writeEndRecord();
         outputBinaryCodec.close();
-    }
-
-    /**
-     * normalize the values to the range of a byte (0 - 255)
-     *
-     * @param values the floating point values to normalize
-     *
-     * @return a byte array containing the normalized values
-     */
-    private byte[] normalizeToByte(double[] values) {
-        byte ret[] = new byte[values.length];
-        double min = Double.MAX_VALUE;
-        double max = Double.MIN_VALUE;
-        for (double d : values) {
-            min = (d < min) ? d : min;
-            max = (d > max) ? d : max;
-        }
-        double scale = max / 255.0;
-        for (int x = 0; x < values.length; x++) {
-            ret[x] = (byte) ((values[x] - min) / scale);
-        }
-        return ret;
     }
 
     /**
