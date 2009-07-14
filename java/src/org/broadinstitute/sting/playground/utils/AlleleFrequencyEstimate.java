@@ -1,26 +1,12 @@
 package org.broadinstitute.sting.playground.utils;
 
 import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
-import java.util.Arrays;
-import java.lang.Math;
 import org.broadinstitute.sting.utils.GenomeLoc;
+
+import java.util.Arrays;
 
 public class AlleleFrequencyEstimate {
 
-    /*
-        static 
-        {
-	        boolean assertsEnabled = false;
-	        assert assertsEnabled = true; // Intentional side effect!!!
-	        if (!assertsEnabled)
-            {
-                System.err.printf("\n\n\nERROR: You must run with asserts enabled. \"java -ea\".\n\n\n");
-	            throw new RuntimeException("Asserts must be enabled!");
-            }
-        }
-    */
-
-    //AlleleFrequencyEstimate();
     public GenomeLoc location;
     public char ref;
     public char alt;
@@ -34,7 +20,7 @@ public class AlleleFrequencyEstimate {
     public int depth;
     public String notes;
     public String bases;
-    public double[][] quals;
+    //public double[][] quals;
     public double[] posteriors;
 	public String sample_name;
 	public int n_ref;
@@ -48,43 +34,6 @@ public class AlleleFrequencyEstimate {
 
     public AlleleFrequencyEstimate(GenomeLoc location, char ref, char alt, int N, double qhat, double qstar, double lodVsRef, double lodVsNextBest, double pBest, double pRef, int depth, String bases, double[][] quals, double[] posteriors, String sample_name)
     {
-        /*
-        if( Double.isNaN(lodVsRef)) { System.out.printf("%s: lodVsRef is NaN\n", location.toString()); }
-        if( Double.isNaN(lodVsNextBest)) { System.out.printf("%s lodVsNextBest is NaN\n", location.toString()); }
-        if( Double.isNaN(qhat)) { System.out.printf("%s qhat is NaN\n", location.toString()); }
-        if( Double.isNaN(qstar)) { System.out.printf("%s qstar is NaN\n", location.toString()); }
-        if( Double.isNaN(pBest)) { System.out.printf("%s pBest is NaN\n", location.toString()); }
-        if( Double.isNaN(pRef)) { System.out.printf("%s pRef is NaN (%c %s)\n", location.toString(), ref, bases); }
-
-        if( Double.isInfinite(lodVsRef)) 
-        { 
-            System.out.printf("lodVsRef is Infinite: %s %c %s\n", location.toString(), ref, bases); 
-            for (int i = 0; i < posteriors.length; i++)
-            {
-                System.out.printf("POSTERIOR %d %f\n", i, posteriors[i]);
-            }
-        }
-        if( Double.isInfinite(lodVsNextBest)) { System.out.printf("lodVsNextBest is Infinite\n"); }
-        if( Double.isInfinite(qhat)) { System.out.printf("qhat is Infinite\n"); }
-        if( Double.isInfinite(qstar)) { System.out.printf("qstar is Infinite\n"); }
-        if( Double.isInfinite(pBest)) { System.out.printf("pBest is Infinite\n"); }
-        if( Double.isInfinite(pRef)) { System.out.printf("pRef is Infinite\n"); }
-
-        assert(! Double.isNaN(lodVsRef));
-        assert(! Double.isNaN(lodVsNextBest));
-        assert(! Double.isNaN(qhat));
-        assert(! Double.isNaN(qstar));
-        assert(! Double.isNaN(pBest));
-        assert(! Double.isNaN(pRef));
-
-        assert(! Double.isInfinite(lodVsRef));
-        assert(! Double.isInfinite(lodVsNextBest));
-        assert(! Double.isInfinite(qhat));
-        assert(! Double.isInfinite(qstar));
-        assert(! Double.isInfinite(pBest));
-        assert(! Double.isInfinite(pRef));
-        */
-
         this.location = location;
         this.ref = ref;
         this.alt = alt;
@@ -98,7 +47,7 @@ public class AlleleFrequencyEstimate {
         this.depth = depth;
         this.notes = "";
         this.bases = bases;
-        this.quals = quals;
+        //this.quals = quals;
         this.posteriors = posteriors;
 		this.sample_name = sample_name;
     }

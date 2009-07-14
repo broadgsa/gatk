@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.genotype;
 
+import net.sf.samtools.SAMSequenceRecord;
+
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -33,18 +35,17 @@ package org.broadinstitute.sting.utils.genotype;
  *         The interface for storing genotype calls.
  */
 public interface GenotypeWriter {
+
     /**
      * add a single point genotype call to the
      *
-     * @param contigName    the name of the contig you're calling in
-     * @param contigLength  the contig length
+     * @param contig        the contig you're calling in
      * @param position      the position on the contig
      * @param referenceBase the reference base
      * @param readDepth     the read depth at the specified position
      * @param likelihoods   the likelihoods of each of the possible alleles
      */
-    public void addGenotypeCall(String contigName,
-                                int contigLength,
+    public void addGenotypeCall(SAMSequenceRecord contig,
                                 int position,
                                 float rmsMapQuals,
                                 char referenceBase,
@@ -54,8 +55,7 @@ public interface GenotypeWriter {
     /**
      * add a variable length call to the genotyper
      *
-     * @param contigName    the name of the contig you're calling in
-     * @param contigLength  the contig length
+     * @param contig        the contig you're calling in
      * @param position      the position on the genome
      * @param rmsMapQuals   the root mean square of the mapping qualities
      * @param readDepth     the read depth
@@ -64,8 +64,7 @@ public interface GenotypeWriter {
      * @param secondHomZyg  the second homozygous indel (if present, null if not)
      * @param hetLikelihood the heterozygous likelihood
      */
-    public void addVariableLengthCall(String contigName,
-                                      int contigLength,
+    public void addVariableLengthCall(SAMSequenceRecord contig,
                                       int position,
                                       float rmsMapQuals,
                                       int readDepth,

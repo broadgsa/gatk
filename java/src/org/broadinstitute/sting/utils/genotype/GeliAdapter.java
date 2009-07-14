@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils.genotype;
 
 import edu.mit.broad.picard.genotype.geli.GeliFileWriter;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMSequenceRecord;
 
 import java.io.File;
 
@@ -56,18 +57,16 @@ public class GeliAdapter implements GenotypeWriter {
 
 
     /**
-     * add a single point genotype call to the
+     * add a single point genotype call to the genotype likelihood file
      *
-     * @param contigName    the name of the contig you're calling in
-     * @param contigLength  the contig length
+     * @param contig        the contig you're calling in
      * @param position      the position on the contig
      * @param referenceBase the reference base
      * @param readDepth     the read depth at the specified position
      * @param likelihoods   the likelihoods of each of the possible alleles
      */
     @Override
-    public void addGenotypeCall(String contigName,
-                                int contigLength,
+    public void addGenotypeCall(SAMSequenceRecord contig,
                                 int position,
                                 float rmsMapQuals,
                                 char referenceBase,
@@ -79,8 +78,7 @@ public class GeliAdapter implements GenotypeWriter {
     /**
      * add a variable length call to the genotyper
      *
-     * @param contigName    the name of the contig you're calling in
-     * @param contigLength  the contig length
+     * @param contig        the contig you're calling in
      * @param position      the position on the genome
      * @param rmsMapQuals   the root mean square of the mapping qualities
      * @param readDepth     the read depth
@@ -90,7 +88,7 @@ public class GeliAdapter implements GenotypeWriter {
      * @param hetLikelihood the heterozygous likelihood
      */
     @Override
-    public void addVariableLengthCall(String contigName, int contigLength, int position, float rmsMapQuals, int readDepth, char refBase, IndelLikelihood firstHomZyg, IndelLikelihood secondHomZyg, byte hetLikelihood) {
+    public void addVariableLengthCall(SAMSequenceRecord contig, int position, float rmsMapQuals, int readDepth, char refBase, IndelLikelihood firstHomZyg, IndelLikelihood secondHomZyg, byte hetLikelihood) {
         throw new UnsupportedOperationException("Geli format does not support variable length allele calls");
     }
 

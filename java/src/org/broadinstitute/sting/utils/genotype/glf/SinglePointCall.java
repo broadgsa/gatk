@@ -37,7 +37,7 @@ import net.sf.samtools.util.BinaryCodec;
  */
 class SinglePointCall extends GLFRecord {
 
-    // our likelihood object
+    // our likelihoods object
     private double likelihoods[];
 
     /**

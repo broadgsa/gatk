@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import edu.mit.broad.picard.genotype.DiploidGenotype;
+import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
+import net.sf.samtools.SAMFileHeader;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.HashMap;
-
-import net.sf.samtools.SAMFileHeader;
 
 
 /*
@@ -35,43 +35,52 @@ import net.sf.samtools.SAMFileHeader;
 
 /**
  * @author aaron
- *
- * Class LikelyhoodObject
- *
- * An object used to store likelyhood information for genotypes.  Genotype
- * likelihoods are assumed to be infinite (negitive log likelihood), unless set.
- * This allows the consumer to make an empty LikelihoodObject, and just set
- * those values which have associated likelihood values.
- * 
+ *         <p/>
+ *         Class LikelyhoodObject
+ *         <p/>
+ *         An object used to store likelyhood information for genotypes.  Genotype
+ *         likelihoods are assumed to be infinite (negitive log likelihood), unless set.
+ *         This allows the consumer to make an empty LikelihoodObject, and just set
+ *         those values which have associated likelihood values.
  */
 public class LikelihoodObject {
+
 
     // our possible genotypes, in order according to GLFv3
     public enum GENOTYPE {
         AA, AT, AC, AG, CC, CT, CG, GG, GT, TT
     }
 
+    // our pileup of bases
+    //final private String basePileup;
+
     // possible types of likihoods to store
+
     public enum LIKELIHOOD_TYPE {
         NEGITIVE_LOG, LOG, RAW;
     }
 
+    // our qhet and qstar values; wait, what?
+    // TODO: are these really needed here? We have them to support the tabular output format only.
+    //private double qhat;
+    //private double qstar;
+
     // our liklihood storage type
     protected LIKELIHOOD_TYPE mLikelihoodType = LIKELIHOOD_TYPE.NEGITIVE_LOG;
 
-    // default the bestGenotype likelihood to the allele AA
+    // default the bestGenotype likelihoods to the allele AA
     protected GENOTYPE bestGenotype = GENOTYPE.AA;
 
     // how many genotypes we're storing
     public static final int genoTypeCount = GENOTYPE.values().length;
 
     // the associated negitive log likelihoods for each genotype
-    protected final HashMap<GENOTYPE, Double> likelihood = new HashMap<GENOTYPE, Double>();
+    protected final HashMap<GENOTYPE, Double> likelihoods = new HashMap<GENOTYPE, Double>();
 
     /** create a blank likelihood object */
     public LikelihoodObject() {
         for (GENOTYPE type : GENOTYPE.values()) {
-            likelihood.put(type, Double.MAX_VALUE);
+            likelihoods.put(type, Double.MAX_VALUE);
         }
     }
 
@@ -82,15 +91,18 @@ public class LikelihoodObject {
      *
      * @param lk the likelihood object
      */
-    public LikelihoodObject( GenotypeLikelihoods lk ) {
+    public LikelihoodObject(GenotypeLikelihoods lk) {
+        mLikelihoodType = LIKELIHOOD_TYPE.LOG;
         Double minValue = Double.MAX_VALUE;
         for (GENOTYPE type : GENOTYPE.values()) {
             byte[] bases = new byte[2];
             bases[0] = (byte) type.toString().charAt(0);
             bases[1] = (byte) type.toString().charAt(1);
             double val = -1.0d * lk.getLikelihood(DiploidGenotype.fromBases(bases));
-            likelihood.put(type, val);
-            if (val < minValue) { bestGenotype = type; }
+            likelihoods.put(type, val);
+            if (val < minValue) {
+                bestGenotype = type;
+            }
         }
     }
 
@@ -98,18 +110,28 @@ public class LikelihoodObject {
      * create a likelyhood object, given an array of genotype scores in GLFv3 ordering
      *
      * @param values an array of int's from 0 to 255, representing the negitive log likelihoods.
+     * @param type   the likelihood storage type
      */
-    public LikelihoodObject( double[] values ) {
+    public LikelihoodObject(double[] values, LIKELIHOOD_TYPE type) {
+        mLikelihoodType = type;
         if (values.length != GENOTYPE.values().length) {
             throw new IllegalArgumentException("invalid array passed to LikelihoodObject, should be size " + GENOTYPE.values().length);
         }
+        findBestLikelihood(values);
+    }
+
+    /**
+     * find the best likelihood
+     * @param values
+     */
+    private void findBestLikelihood(double[] values) {
         int index = 0;
         double lowestScore = Double.MAX_VALUE;
-        for (GENOTYPE type : GENOTYPE.values()) {
-            likelihood.put(type, values[index]);
+        for (GENOTYPE t : GENOTYPE.values()) {
+            likelihoods.put(t, values[index]);
             if (values[index] < lowestScore) {
                 lowestScore = values[index];
-                bestGenotype = type;
+                bestGenotype = t;
             }
             ++index;
         }
@@ -119,11 +141,11 @@ public class LikelihoodObject {
      * set the likelihood, given it's probability and the genotype
      *
      * @param type the genotype
-     * @param lh   the likelihood as a double between 0 and 1, which is converted to a byte
+     * @param lh   the likelihood as a double
      */
-    public void setLikelihood( GENOTYPE type, double lh ) {
-        likelihood.put(type, lh);
-        if (lh < likelihood.get(this.bestGenotype)) {
+    public void setLikelihood(GENOTYPE type, double lh) {
+        likelihoods.put(type, lh);
+        if (lh < likelihoods.get(this.bestGenotype)) {
             this.bestGenotype = type;
         }
     }
@@ -135,7 +157,7 @@ public class LikelihoodObject {
      * @return the min value
      */
     public double getBestLikelihood() {
-        return likelihood.get(this.bestGenotype);
+        return likelihoods.get(this.bestGenotype);
     }
 
     /**
@@ -149,7 +171,7 @@ public class LikelihoodObject {
         short ret[] = new short[GENOTYPE.values().length];
         int index = 0;
         for (GENOTYPE type : GENOTYPE.values()) {
-            ret[index] = ( likelihood.get(type).intValue() > 254 ) ? 255 : (short) likelihood.get(type).intValue();
+            ret[index] = (likelihoods.get(type).intValue() > 254) ? 255 : (short) likelihoods.get(type).intValue();
             ++index;
         }
         return ret;
@@ -166,7 +188,8 @@ public class LikelihoodObject {
         double[] ft = new double[10];
         int index = 0;
         for (GENOTYPE T : GENOTYPE.values()) {
-            ft[index] = this.likelihood.get(T).floatValue();
+            ft[index] = this.likelihoods.get(T).doubleValue();
+            index++;
         }
         return ft;
     }
@@ -177,16 +200,16 @@ public class LikelihoodObject {
      *
      * @return a GenotypeLikelihoods object representing our data
      */
-    public GenotypeLikelihoods convert( SAMFileHeader samHeader, int seqIndex, int seqPosition, byte refBase ) {
+    public GenotypeLikelihoods convert(SAMFileHeader samHeader, int seqIndex, int seqPosition, byte refBase) {
         double[] ft = toDoubleArray();
         float[] db = new float[ft.length];
         int index = 0;
         if (this.mLikelihoodType == LIKELIHOOD_TYPE.NEGITIVE_LOG) {
-            for (;index < ft.length; index++) {
-                db[index] = ((float)ft[index] * -1.0f);
+            for (; index < ft.length; index++) {
+                db[index] = ((float) ft[index] * -1.0f);
             }
         } else if (this.mLikelihoodType == LIKELIHOOD_TYPE.RAW) {
-            for (;index < ft.length; index++) {
+            for (; index < ft.length; index++) {
                 db[index] = (float) Math.log(ft[index]);
             }
         }
@@ -195,18 +218,45 @@ public class LikelihoodObject {
 
     /**
      * getter for the likelihood type
+     *
      * @return our likelihood storage type
      */
-     public LIKELIHOOD_TYPE getLikelihoodType() {
+    public LIKELIHOOD_TYPE getLikelihoodType() {
         return mLikelihoodType;
     }
 
+
+    /**
+     * validate a genotype score
+     *
+     * @param score the score to validate
+     */
+    public void validateScore(double score) {
+        int x = 0;
+        switch (mLikelihoodType) {
+            case NEGITIVE_LOG:
+                if (score < 0)
+                    throw new StingException("Likelikhood score of " + score + " is invalid, for NEGITIVE_LOG it must be greater than or equal to 0");
+                break;
+            case LOG:
+                if (score > 0)
+                    throw new StingException("Likelikhood score of " + score + " is invalid, for LOG it must be less than or equal to 0");
+                break;
+            case RAW:
+                if (score < 0 || score > 1)
+                    throw new StingException("Likelikhood score of " + score + " is invalid, for RAW it must be [0,1]");
+                break;
+        }
+    }
+
+
     /**
      * set our likelihood storage type, and adjust our current likelihood values to reflect
-     * the new setting.  
+     * the new setting.
+     *
      * @param likelihood the type to set the values to.
      */
-    public void setLikelihoodType( LIKELIHOOD_TYPE likelihood ) {
+    public void setLikelihoodType(LIKELIHOOD_TYPE likelihood) {
         if (likelihood == mLikelihoodType)
             return;
         if (mLikelihoodType == LIKELIHOOD_TYPE.RAW) {
@@ -214,25 +264,27 @@ public class LikelihoodObject {
             if (likelihood == LIKELIHOOD_TYPE.NEGITIVE_LOG) {
                 mult = -1.0;
             }
-            for (Double d : this.likelihood.values()) {
-                d = mult * Math.log(d);
+            // one of us in log, the other negitive log, it doesn't matter which
+            for (GENOTYPE g : likelihoods.keySet()) {
+                likelihoods.put(g, -1.0 * Math.log(likelihoods.get(g)));
             }
-        }
-        else if (likelihood == LIKELIHOOD_TYPE.RAW) {
+        } else if (likelihood == LIKELIHOOD_TYPE.RAW) {
             double mult = 1.0;
             if (mLikelihoodType == LIKELIHOOD_TYPE.NEGITIVE_LOG) {
                 mult = -1.0;
             }
-            for (Double d : this.likelihood.values()) {
-                d = Math.pow(d*mult,10);
-            }
-        }
-        else {
             // one of us in log, the other negitive log, it doesn't matter which
-            for (Double d : this.likelihood.values()) {
-                d = -1.0 * Math.log(d);
+            for (GENOTYPE g : likelihoods.keySet()) {
+                likelihoods.put(g, Math.pow(likelihoods.get(g) * mult, 10));
+            }
+        } else {
+            // one of us in log, the other negitive log, it doesn't matter which
+            for (GENOTYPE g : likelihoods.keySet()) {
+                likelihoods.put(g, -1.0 * likelihoods.get(g));
             }
         }
         this.mLikelihoodType = likelihood;
     }
 }
+
+

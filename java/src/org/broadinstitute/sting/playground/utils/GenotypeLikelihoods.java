@@ -37,7 +37,19 @@ public class GenotypeLikelihoods {
     }
 
     public double[] likelihoods;
-    public String[] genotypes;
+    public static String[] genotypes = new String[10];
+    static {
+        genotypes[0] = "AA";
+        genotypes[1] = "AC";
+        genotypes[2] = "AG";
+        genotypes[3] = "AT";
+        genotypes[4] = "CC";
+        genotypes[5] = "CG";
+        genotypes[6] = "CT";
+        genotypes[7] = "GG";
+        genotypes[8] = "GT";
+        genotypes[9] = "TT";
+    }
 	public int coverage;
 
     // The genotype priors;
@@ -75,21 +87,12 @@ public class GenotypeLikelihoods {
         this.priorHomVar = priorHomVar;
 
         likelihoods = new double[10];
-        genotypes = new String[10];
+
 		coverage = 0;
 
 		for (int i = 0; i < likelihoods.length; i++) { likelihoods[i] = Math.log10(0.1); }
 
-        genotypes[0] = "AA";
-        genotypes[1] = "AC";
-        genotypes[2] = "AG";
-        genotypes[3] = "AT";
-        genotypes[4] = "CC";
-        genotypes[5] = "CG";
-        genotypes[6] = "CT";
-        genotypes[7] = "GG";
-        genotypes[8] = "GT";
-        genotypes[9] = "TT";
+
 
         for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
             onNextBestBasePriors.put(genotypes[genotypeIndex], p2ndon[genotypeIndex]);
@@ -405,4 +408,17 @@ public class GenotypeLikelihoods {
 	public void addIndelLikelihood(IndelLikelihood indel_likelihood) { this.indel_likelihood = indel_likelihood; }
 	public IndelLikelihood getIndelLikelihood() { return this.indel_likelihood; }
 
+    // TODO: this is bad, but the formats disagree now.  
+    public static void toGLFGenotypePattern() {
+        genotypes[0] = "AA";
+        genotypes[1] = "AT";
+        genotypes[2] = "AC";
+        genotypes[3] = "AG";
+        genotypes[4] = "CC";
+        genotypes[5] = "CT";
+        genotypes[6] = "CG";
+        genotypes[7] = "GG";
+        genotypes[8] = "GT";
+        genotypes[9] = "TT";
+    }
 }

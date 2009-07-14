@@ -52,7 +52,7 @@ public class LikelihoodObjectTest extends BaseTest {
     @Test
     public void testBlankConstruction() {
         mLO = new LikelihoodObject();
-        assertTrue(mLO.likelihood.size() == LikelihoodObject.GENOTYPE.values().length);
+        assertTrue(mLO.likelihoods.size() == LikelihoodObject.GENOTYPE.values().length);
     }
 
     @Test
@@ -61,12 +61,12 @@ public class LikelihoodObjectTest extends BaseTest {
         for (int x = 0; x < 10; x++) {
             ray[x] = ( x * 25 );
         }
-        mLO = new LikelihoodObject(ray);
-        assertTrue(mLO.likelihood.size() == LikelihoodObject.GENOTYPE.values().length);
+        mLO = new LikelihoodObject(ray,LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);
+        assertTrue(mLO.likelihoods.size() == LikelihoodObject.GENOTYPE.values().length);
 
         int index = 0;
         for (LikelihoodObject.GENOTYPE t : LikelihoodObject.GENOTYPE.values()) {
-            assertTrue(ray[index] == mLO.likelihood.get(t));
+            assertTrue(ray[index] == mLO.likelihoods.get(t));
             ++index;
         }
     }
@@ -77,8 +77,8 @@ public class LikelihoodObjectTest extends BaseTest {
         for (int x = 0; x < 10; x++) {
             ray[x] = ( x * 25.0 );
         }
-        mLO = new LikelihoodObject(ray);
-        assertTrue(mLO.likelihood.size() == LikelihoodObject.GENOTYPE.values().length);
+        mLO = new LikelihoodObject(ray,LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);
+        assertTrue(mLO.likelihoods.size() == LikelihoodObject.GENOTYPE.values().length);
 
         int index = 0;
         short[] ret = mLO.toByteArray();
@@ -104,8 +104,8 @@ public class LikelihoodObjectTest extends BaseTest {
             ray[x] = ( 240.0 );
         }
         ray [5] = 0;
-        mLO = new LikelihoodObject(ray);
-        assertTrue(mLO.likelihood.size() == LikelihoodObject.GENOTYPE.values().length);
+        mLO = new LikelihoodObject(ray, LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);
+        assertTrue(mLO.likelihoods.size() == LikelihoodObject.GENOTYPE.values().length);
         short smallest = (short)mLO.getBestLikelihood();
         assertTrue(smallest == 0);
         int index = 0;
@@ -122,7 +122,7 @@ public class LikelihoodObjectTest extends BaseTest {
         for (LikelihoodObject.GENOTYPE t : LikelihoodObject.GENOTYPE.values()) {
             mLO.setLikelihood(t,128);
         }
-        assertTrue(mLO.likelihood.size() == LikelihoodObject.GENOTYPE.values().length);
+        assertTrue(mLO.likelihoods.size() == LikelihoodObject.GENOTYPE.values().length);
 
         int index = 0;
         short[] ret = mLO.toByteArray();

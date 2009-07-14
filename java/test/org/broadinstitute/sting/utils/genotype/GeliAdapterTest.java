@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype;
 
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.junit.Test;
@@ -55,8 +56,9 @@ public class GeliAdapterTest extends BaseTest {
         File fl = new File("testFile.txt");
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(2,1,10);
         adapter = new GeliAdapter(fl,header);
-        LikelihoodObject obj = new LikelihoodObject(createFakeLikelihoods());
-        adapter.addGenotypeCall("chr1",10,100,100,'A',100,obj);
+        LikelihoodObject obj = new LikelihoodObject(createFakeLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
+        SAMSequenceRecord rec = new SAMSequenceRecord("chr1",10);
+        adapter.addGenotypeCall(rec,100,100,'A',100,obj);
         adapter.close();
     }
 
