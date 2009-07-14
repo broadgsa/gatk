@@ -3,7 +3,6 @@ package org.broadinstitute.sting.playground.gatk.walkers.variants;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.ReadBackedPileup;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
@@ -11,8 +10,13 @@ import java.util.List;
 import cern.jet.math.Arithmetic;
 
 public class VECFisherStrand implements VariantExclusionCriterion {
+
+    private double pvalueLimit = 0.0001;
+
     public void initialize(String arguments) {
-        //if (arguments != null && !arguments.isEmpty()) {}
+        if (arguments != null && !arguments.isEmpty()) {
+            pvalueLimit = Double.valueOf(arguments);
+        }
     }
 
     public boolean exclude(char ref, LocusContext context, rodVariants variant) {
@@ -20,48 +24,62 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         int allele2 = BaseUtils.simpleBaseToBaseIndex(variant.getBestGenotype().charAt(1));
 
         if (allele1 != allele2) {
-            int[][] table = getContingencyTable(context, variant);
-
-            double pCutoff = computePValue(table);
-            //printTable(table, pCutoff);
-
-            double pValue = 0.0;
-            while (rotateTable(table)) {
-                double pValuePiece = computePValue(table);
-
-                //printTable(table, pValuePiece);
-
-                if (pValuePiece <= pCutoff) {
-                    pValue += pValuePiece;
-                }
-            }
-
-            table = getContingencyTable(context, variant);
-
-            while (unrotateTable(table)) {
-                double pValuePiece = computePValue(table);
-
-                //printTable(table, pValuePiece);
-
-                if (pValuePiece <= pCutoff) {
-                    pValue += pValuePiece;
-                }
-            }
-
-            //System.out.printf("P-cutoff: %f\n", pCutoff);
-            //System.out.printf("P-value: %f\n\n", pValue);
-
-            return pValue < 0.05;
+            return strandTest(ref, context, allele1, allele2, pvalueLimit, null);
         }
 
         return false;
+    }
+
+    public static boolean strandTest(char ref, LocusContext context, int allele1, int allele2, double threshold, StringBuffer out) {
+        int[][] table = getContingencyTable(context, allele1, allele2);
+
+        double pCutoff = computePValue(table);
+        //printTable(table, pCutoff);
+
+        double pValue = 0.0;
+        while (rotateTable(table)) {
+            double pValuePiece = computePValue(table);
+
+            //printTable(table, pValuePiece);
+
+            if (pValuePiece <= pCutoff) {
+                pValue += pValuePiece;
+            }
+        }
+
+        table = getContingencyTable(context, allele1, allele2);
+
+        while (unrotateTable(table)) {
+            double pValuePiece = computePValue(table);
+
+            //printTable(table, pValuePiece);
+
+            if (pValuePiece <= pCutoff) {
+                pValue += pValuePiece;
+            }
+        }
+
+        //System.out.printf("P-cutoff: %f\n", pCutoff);
+        //System.out.printf("P-value: %f\n\n", pValue);
+
+        // optionally print out the pvalue and the alternate allele counts
+        if ( out != null ) {
+            int refBase = BaseUtils.simpleBaseToBaseIndex(ref);
+            table = getContingencyTable(context, allele1, allele2);
+            if ( allele1 != refBase )
+                out.append(pValue + "\t" + table[0][0] + "\t" + table[0][1] + "\t");
+            else
+                out.append(pValue + "\t" + table[1][0] + "\t" + table[1][1] + "\t");
+        }
+
+        return pValue < threshold;
     }
 
     private void printTable(int[][] table, double pValue) {
         System.out.printf("%d %d; %d %d : %f\n", table[0][0], table[0][1], table[1][0], table[1][1], pValue);
     }
 
-    private boolean rotateTable(int[][] table) {
+    private static boolean rotateTable(int[][] table) {
         table[0][0] -= 1;
         table[1][0] += 1;
 
@@ -71,7 +89,7 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         return (table[0][0] >= 0 && table[1][1] >= 0) ? true : false;
     }
 
-    private boolean unrotateTable(int[][] table) {
+    private static boolean unrotateTable(int[][] table) {
         table[0][0] += 1;
         table[1][0] -= 1;
 
@@ -81,7 +99,7 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         return (table[0][1] >= 0 && table[1][0] >= 0) ? true : false;
     }
 
-    private double computePValue(int[][] table) {
+    private static double computePValue(int[][] table) {
         double pCutoff = 1.0;
 
         int[] rowSums = { sumRow(table, 0), sumRow(table, 1) };
@@ -102,7 +120,7 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         return pCutoff;
     }
 
-    private int sumRow(int[][] table, int column) {
+    private static int sumRow(int[][] table, int column) {
         int sum = 0;
         for (int r = 0; r < table.length; r++) {
             sum += table[r][column];
@@ -111,7 +129,7 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         return sum;
     }
 
-    private int sumColumn(int[][] table, int row) {
+    private static int sumColumn(int[][] table, int row) {
         int sum = 0;
         for (int c = 0; c < table[row].length; c++) {
             sum += table[row][c];
@@ -126,15 +144,13 @@ public class VECFisherStrand implements VariantExclusionCriterion {
      *   allele1   #       #
      *   allele2   #       #
      * @param context  the context for the locus
-     * @param variant  information for the called variant
+     * @param allele1  information for the called variant
+     * @param allele2  information for the called variant
      * @return a 2x2 contingency table
      */
-    private int[][] getContingencyTable(LocusContext context, rodVariants variant) {
+    private static int[][] getContingencyTable(LocusContext context, int allele1, int allele2) {
 
         int[][] table = new int[2][2];
-
-        int allele1 = BaseUtils.simpleBaseToBaseIndex(variant.getBestGenotype().charAt(0));
-        int allele2 = BaseUtils.simpleBaseToBaseIndex(variant.getBestGenotype().charAt(1));
 
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
