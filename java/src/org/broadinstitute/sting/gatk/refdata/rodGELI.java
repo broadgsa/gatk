@@ -1,13 +1,12 @@
 package org.broadinstitute.sting.gatk.refdata;
 
-import java.util.Iterator;
+import java.util.*;
 import java.io.IOException;
 import java.io.File;
 
 import edu.mit.broad.picard.genotype.geli.GeliFileReader;
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import edu.mit.broad.picard.genotype.DiploidGenotype;
-import edu.mit.broad.picard.variation.KnownVariant;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
@@ -18,7 +17,7 @@ import net.sf.samtools.util.CloseableIterator;
  *  This class wraps Picard Geli CHiP data and presents it as a ROD.
  */
 
-public class rodGELI extends BasicReferenceOrderedDatum {
+public class rodGELI extends BasicReferenceOrderedDatum implements Genotype {
 	// ----------------------------------------------------------------------
 	//
 	// Constructors
@@ -30,8 +29,6 @@ public class rodGELI extends BasicReferenceOrderedDatum {
 	public rodGELI(final String name, GenotypeLikelihoods gh) {
 		super(name);
         this.gh = gh;
-	    if ( true )
-            throw new RuntimeException("This class is no longer supported because of issues with GELIs");
     }
 
 	@Override
@@ -96,6 +93,39 @@ public class rodGELI extends BasicReferenceOrderedDatum {
 		return new rodGELI.rodGELIIterator(name,file);
 	}
 
+    public List<String> getFWDAlleles() {
+        return new ArrayList<String>();
+    }
+
+    public String getFWDRefBases() {
+        return "";
+    }
+
+    public char getRef() {
+        return (char)(gh.getReferenceBase() & 0xff);
+    }
+
+    public boolean isPointGenotype() { return true; }
+    public boolean isIndelGenotype() { return false; }
+    public boolean isSNP() { return true; }
+    public boolean isReference() { return gh.isHomozygousReference(); }
+    public boolean isInsertion() { return false; }
+    public boolean isDeletion() { return false; }
+    public boolean isIndel() { return false; }
+    public boolean isBiallelic() { return false; }
+    public boolean isHom() { return gh.isHomozyous(); }
+    public boolean isHet() { return !isHom(); }
+
+    public double getVariantConfidence() {
+        return gh.getBestToReferenceLod();
+    }
+
+    public double getConsensusConfidence() {
+        return gh.getBestToSecondBestLod();
+    }
+
+
+
     public static void main(String argv[]) {
         String testFile = "NA12878.geli";
 
@@ -115,24 +145,6 @@ public class rodGELI extends BasicReferenceOrderedDatum {
         while ( it.hasNext() && counter < 500 ) {
             rodGELI rg = it.next();
             System.out.println(rg.toString());
-/*
-			System.out.print(p.getLocation().toString());
-			System.out.print('\t');
-
-			if ( p.isIndel() && p.isSNP() ) { System.out.print("Indel+SNP"); }
-			else {
-				if ( p.isSNP() ) { System.out.print("SNP"); }
-				else {
-					if ( p.isIndel() ) { System.out.print("Indel"); }
-					else { System.out.print("REF"); }
-				}
-			}
-
-			System.out.print('\t');
-			System.out.print(p.getFWDAlleles().get(0)+"/"+p.getFWDAlleles().get(1));
-			System.out.print('\t');
-			System.out.println(p.getConsensusConfidence()+"\t"+p.getVariantConfidence());
-			*/
             counter++;
         }
     }
