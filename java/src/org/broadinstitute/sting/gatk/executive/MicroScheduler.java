@@ -326,9 +326,10 @@ public abstract class MicroScheduler {
             Utils.scareUser("No overlap exists between sequence dictionary of the reads and the sequence dictionary of the reference.");
         }
 
-        // If one data source isn't a strict subset of the other or the match is of fewer than x% of the smaller,
-        // issue a warning.
-        if( !readsSequenceNames.equals(referenceSequenceNames) ) {
+        // If the two datasets are not equal and neither is a strict subset of the other, warn the user.
+        if( !readsSequenceNames.equals(referenceSequenceNames) &&
+            !readsSequenceNames.containsAll(referenceSequenceNames) &&
+            !referenceSequenceNames.containsAll(readsSequenceNames)) {
             StringBuilder warning = new StringBuilder();
             warning.append("Limited overlap exists between sequence dictionary of the reads and the sequence dictionary of the reference.  Perhaps you're using the wrong reference?\n");
             warning.append(System.getProperty("line.separator"));
