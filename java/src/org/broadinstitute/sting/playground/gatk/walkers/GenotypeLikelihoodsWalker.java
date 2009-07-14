@@ -31,7 +31,6 @@ import java.util.List;
 @ReadFilters(ZeroMappingQualityReadFilter.class)
 public class GenotypeLikelihoodsWalker extends LocusWalker<LikelihoodWrapper, GenotypeWriter> {
     @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = true) public File VARIANTS_FILE;
-    @Argument(fullName = "metrics_out", shortName = "metout", doc = "File to which metrics should be written", required = false) public File METRICS_FILE = new File("/dev/stderr");
     @Argument(fullName = "variant_output_format", shortName = "vf", doc = "File to which metrics should be written", required = false) public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.GLF;
 
 
