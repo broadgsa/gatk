@@ -11,8 +11,8 @@
     <class>org.broadinstitute.sting.gatk.walkers.ValidatingPileupWalker</class>
   </dependencies>
   <resources>
-    <file>java/src/org/broadinstitute/sting/gatk/walkers/CountReads.java</file>
-    <file>java/src/org/broadinstitute/sting/gatk/walkers/CountLoci.java</file>
+    <file>java/src/org/broadinstitute/sting/gatk/walkers/CountReadsWalker.java</file>
+    <file>java/src/org/broadinstitute/sting/gatk/walkers/CountLociWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/walkers/DepthOfCoverageWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/walkers/PileupWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/walkers/PrintReadsWalker.java</file>
