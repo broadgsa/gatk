@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.playground.utils;
 
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.QualityUtils;
 
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
@@ -408,17 +408,4 @@ public class GenotypeLikelihoods {
 	public void addIndelLikelihood(IndelLikelihood indel_likelihood) { this.indel_likelihood = indel_likelihood; }
 	public IndelLikelihood getIndelLikelihood() { return this.indel_likelihood; }
 
-    // TODO: this is bad, but the formats disagree now.  
-    public static void toGLFGenotypePattern() {
-        genotypes[0] = "AA";
-        genotypes[1] = "AT";
-        genotypes[2] = "AC";
-        genotypes[3] = "AG";
-        genotypes[4] = "CC";
-        genotypes[5] = "CT";
-        genotypes[6] = "CG";
-        genotypes[7] = "GG";
-        genotypes[8] = "GT";
-        genotypes[9] = "TT";
-    }
 }

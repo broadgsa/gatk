@@ -55,7 +55,7 @@ public class GLFWriter implements GenotypeWriter {
     private long referenceSequenceLength = 0;
 
     // the last position written
-    private int lastPos = 0;
+    private int lastPos = 1;
 
     /**
      * The public constructor for creating a GLF object

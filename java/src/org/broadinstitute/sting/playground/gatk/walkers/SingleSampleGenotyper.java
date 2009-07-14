@@ -9,7 +9,6 @@ import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
-import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.playground.utils.AlleleMetrics;
 import org.broadinstitute.sting.playground.utils.GenotypeLikelihoods;
@@ -21,8 +20,8 @@ import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.List;
 
 @ReadFilters(ZeroMappingQualityReadFilter.class)
@@ -106,10 +105,8 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
     /** Initialize the walker with some sensible defaults */
     public void initialize() {
-        metricsOut = new AlleleMetrics(METRICS_FILE, LOD_THRESHOLD);
-
         if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.GLF) {
-            GenotypeLikelihoods.toGLFGenotypePattern();
+            metricsOut = new AlleleMetrics(METRICS_FILE, LOD_THRESHOLD);
             mGenotypeWriter = GenotypeWriterFactory.create(GenotypeWriterFactory.GENOTYPE_FORMAT.GLF, GenomeAnalysisEngine.instance.getEngine().getSAMHeader(), VARIANTS_FILE);
         } else {
             try {

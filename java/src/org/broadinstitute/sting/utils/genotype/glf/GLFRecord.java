@@ -194,7 +194,7 @@ abstract class GLFRecord {
         short bite = ((short) (this.getRecordType().getReadTypeValue() << 4 | (refBase.getBaseHexValue() & 0x0f)));
         out.writeUByte((short) (this.getRecordType().getReadTypeValue() << 4 | (refBase.getBaseHexValue() & 0x0f)));
         out.writeUInt(((Long) offset).intValue());
-        int write = ((new Long(readDepth).intValue()) | this.minimumLikelihood << 24);
+        int write = ((new Long(readDepth).intValue() & 0xffffff) | this.minimumLikelihood & 0xff << 24);
         out.writeUInt(write);
         out.writeUByte((short) rmsMapQ);
     }
@@ -233,14 +233,14 @@ abstract class GLFRecord {
      *
      * @return
      */
-    protected static double findMin(double vals[]) {
+    protected static short findMin(double vals[]) {
         if (vals.length < 1) throw new StingException("findMin: an array of size < 1 was passed in");
 
         double min = vals[0];
         for (double d : vals) {
             if (d < min) min = d;
         }
-        return min;
+        return (min > 255) ? 255 : (short)min;
     }
 
 }

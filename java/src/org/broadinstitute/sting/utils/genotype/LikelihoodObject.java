@@ -48,7 +48,7 @@ public class LikelihoodObject {
 
     // our possible genotypes, in order according to GLFv3
     public enum GENOTYPE {
-        AA, AT, AC, AG, CC, CT, CG, GG, GT, TT
+        AA, AC, AG, AT, CC, CG, CT, GG, GT, TT
     }
 
     // our pileup of bases

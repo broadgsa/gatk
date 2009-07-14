@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype;
 
 import net.sf.samtools.SAMFileHeader;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.glf.GLFWriter;
 
 import java.io.File;
@@ -32,7 +33,8 @@ public class GenotypeWriterFactory {
                 return new GLFWriter(header.toString(), destination);
             case GELI:
                 return new GeliAdapter(destination, header);
+            default:
+                throw new StingException("Genotype writer " + format.toString() + " is not implemented");
         }
-        return null;
     }
 }
