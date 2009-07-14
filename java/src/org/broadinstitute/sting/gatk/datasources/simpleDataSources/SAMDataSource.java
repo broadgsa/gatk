@@ -161,6 +161,8 @@ public class SAMDataSource implements SimpleDataSource {
      * @return an iterator for that region
      */
     private StingSAMIterator seekLocus( GenomeLoc location ) throws SimpleDataSourceLoadException {
+        if( getHeader().getSequenceDictionary().getSequences().size() == 0 )
+            throw new StingException("Unable to seek to the given locus; reads data source has no alignment information.");
         return createIterator( new MappedStreamSegment(location) );
     }
 
