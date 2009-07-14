@@ -154,7 +154,17 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         }
         final SAMRecordComparator comparator = getComparator();
         for (final SAMFileReader reader : samHeaderMerger.getReaders()) {
-            Iterator<SAMRecord> recordIter = reader.queryUnmapped();
+            Iterator<SAMRecord> recordIter = null;
+            if( reader.hasIndex() ) {
+                recordIter = reader.queryUnmapped();
+            }
+            else {
+                // HACK: Supporting completely unmapped BAM files is easy.  Let's do a quick check to make sure
+                //       these BAMs aren't partially indexed.
+                if( reader.getFileHeader().getSequenceDictionary().size() > 0 )
+                    throw new StingException("Partially mapped BAM files without indices are not supported");
+                recordIter = reader.iterator();
+            }
             final ComparableSamRecordIterator iterator = new ComparableSamRecordIterator(reader, recordIter, comparator);
             addIfNotEmpty(iterator);
         }

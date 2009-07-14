@@ -177,6 +177,10 @@ public class SAMDataSource implements SimpleDataSource {
     private StingSAMIterator seekRead( ReadShard shard ) throws SimpleDataSourceLoadException {
         StingSAMIterator iter = null;
 
+        // If there are no entries in the sequence dictionary, there can't possibly be any unmapped reads.  Force state to 'unmapped'.
+        if( isSequenceDictionaryEmpty() )
+            intoUnmappedReads = true;
+
         if (!intoUnmappedReads) {
             if (lastReadPos == null) {
                 lastReadPos = GenomeLocParser.createGenomeLoc(getHeader().getSequenceDictionary().getSequence(0).getSequenceIndex(), 0, Integer.MAX_VALUE);
@@ -310,6 +314,14 @@ public class SAMDataSource implements SimpleDataSource {
 
         // return the iterator
         return bound;
+    }
+
+    /**
+     * Determines whether the BAM file is completely unsequenced.  Requires that the resource pool be initialized.
+     * @return True if the sequence dictionary is completely empty.  False otherwise.
+     */
+    private boolean isSequenceDictionaryEmpty() {
+        return getHeader().getSequenceDictionary().isEmpty();
     }
 
     /**
