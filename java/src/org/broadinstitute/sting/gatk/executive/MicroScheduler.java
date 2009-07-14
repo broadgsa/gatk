@@ -308,6 +308,11 @@ public abstract class MicroScheduler {
         for( SAMSequenceRecord dictionaryEntry: referenceDictionary.getSequences() )
             referenceSequenceNames.add(dictionaryEntry.getSequenceName());
 
+        if( readsSequenceNames.size() == 0 ) {
+            logger.info("Reads file is unmapped.  Skipping validation against reference.");
+            return;
+        }
+
         // If there's no overlap between reads and reference, data will be bogus.  Throw an exception.
         Set<String> intersectingSequenceNames = new HashSet<String>(readsSequenceNames);
         intersectingSequenceNames.retainAll(referenceSequenceNames);
