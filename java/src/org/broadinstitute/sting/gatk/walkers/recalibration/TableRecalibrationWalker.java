@@ -49,12 +49,15 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     @Argument(shortName="outputBAM", doc="output BAM file", required=false)
     public String outputBamFile = null;
 
-    @Argument(shortName="rawQempirical", doc="If provide, we will use raw Qempirical scores calculated from the # mismatches and # bases, rather than the more conservative estimate of # mismatches + 1 / # bases + 1", required=false)
+    @Argument(shortName="rawQempirical", doc="If provided, we will use raw Qempirical scores calculated from the # mismatches and # bases, rather than the more conservative estimate of # mismatches + 1 / # bases + 1", required=false)
     public boolean rawQempirical = false;
+
+    @Argument(shortName="adjustQ0Bases", doc="If provided, Q0 bases will have their quality scores modified, otherwise they will be left as Q0 in the output", required=false)
+    public boolean adjustQ0Bases = false;
 
     private static Logger logger = Logger.getLogger(TableRecalibrationWalker.class);
 
-    private static String VERSION = "0.2.2";
+    private static String VERSION = "0.2.3";
 
     private final static boolean DEBUG = false;
 
@@ -249,10 +252,26 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
             if (read.getReadNegativeStrandFlag())               // reverse the quals for the neg strand read
                 recalQuals = BaseUtils.reverse(recalQuals);
+
+            // special case the first and last bases in SOLID reads, which are always 0
+            // We actually just never change Q0 bases
+            preserveQ0Bases(quals, recalQuals, read);
             read.setBaseQualities(recalQuals);
             return read;
         } catch ( StingException e ) {
             throw new RuntimeException(String.format("Bug found while processing read %s: %s", read.format(), e.getMessage()));
+        }
+    }
+
+    private void preserveQ0Bases( byte[] originalQuals, byte[] recalQuals, SAMRecord read ) {
+        if ( ! adjustQ0Bases ) {
+            for ( int i = 0; i < recalQuals.length; i++ ) {
+                //System.out.printf("Original qual %d => %d%n", originalQuals[i], recalQuals[i]);
+                if ( originalQuals[i] == 0 ) {
+                    //System.out.printf("Preserving Q0 base at %d in read %s%n", i, read.getReadName());
+                    recalQuals[i] = 0;
+                }
+            }
         }
     }
 
