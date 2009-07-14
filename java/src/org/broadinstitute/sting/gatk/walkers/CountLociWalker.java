@@ -13,14 +13,14 @@ import java.util.List;
  * Time: 3:22:14 PM
  * To change this template use File | Settings | File Templates.
  */
-public class CountLociWalker extends LocusWalker<Integer, Integer> implements TreeReducible<Integer> {
+public class CountLociWalker extends LocusWalker<Integer, Long> implements TreeReducible<Long> {
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         return 1;
     }
 
-    public Integer reduceInit() { return 0; }
+    public Long reduceInit() { return 0l; }
 
-    public Integer reduce(Integer value, Integer sum) {
+    public Long reduce(Integer value, Long sum) {
         return value + sum;
     }
 
@@ -28,7 +28,7 @@ public class CountLociWalker extends LocusWalker<Integer, Integer> implements Tr
      * Reduces two subtrees together.  In this case, the implementation of the tree reduce
      * is exactly the same as the implementation of the single reduce.
      */
-    public Integer treeReduce(Integer lhs, Integer rhs) {
+    public Long treeReduce(Long lhs, Long rhs) {
         return lhs + rhs;
     }
 }
