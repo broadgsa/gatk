@@ -72,8 +72,7 @@ public final class HardyWeinbergCalculation {
 
        //make sure numbers aren't screwy
        if (hets > rare) {
-           throw new IllegalArgumentException("HW test: " + hets + " heterozygotes but only " +
-               rare + " rare alleles.");
+           return -1;
        }
 
        double[] tailProbs = new double[rare + 1];
