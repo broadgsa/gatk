@@ -16,8 +16,8 @@ Because many tools to analyze next-generation sequencing data access
 the data in a very similar way, the GATK can provide a small but
 nearly comprehensive set of traversal types that satisfying the data
 access needs of the majority of analysis tools.  For example,
-traversals -Y´by each sequencer read¡ and ´by every read covering
-each locus in a genome¡ are common throughout many tools such as
+traversals "by each sequencer read" and "by every read covering
+each locus in a genome" are common throughout many tools such as
 counting reads, building base quality histograms, reporting average
 coverage of the genome, and calling SNPs.  The small number of these
 traversals, shared among many tools enables the core GATK development
@@ -52,28 +52,27 @@ intervals on the genome (ByWindow traversal).
 Dependencies
 ------------
 The GATK relies on a Java 6-compatible JRE.  At the time of this writing,
-the GATK team tests with Sun JRE version 1.6.0_12-b04.  
+the GATK team tests with Sun JRE version 1.6.0_12-b04.  Additionally, the
+GATK requires as inputs a sorted, indexed BAM file containing aligned reads 
+and a fasta-format reference with associated dictionary file (.dict)and 
+index (.fasta.fai).  
 
-Additionally, a sorted, indexed BAM file containing aligned reads and a 
-fasta-format reference with associated dictionary file (.dict) and 
-index (.fasta.fai) are required inputs to the tool.  
-
-Instructions for preparing input files are available at the site below:
+Instructions for preparing input files are available here:
 
 http://www.broadinstitute.org/gsa/wiki/index.php/Preparing_input_files
 
-An example BAM and fasta are provided in the 'resources' directory of
-the GATK.
+The bundled 'resources' directory  contains an example BAM and fasta.
 
 Getting Started
 ---------------
 The GATK is distributed with a few standard analyses, including PrintReads,
 Pileup, and DepthOfCoverage.  More information on the included walkers is
-available on the following wiki page:
+available here:
 
 http://www.broadinstitute.org/gsa/wiki/index.php/Built-in_walkers
 
-To run PrintReads on the included sample data, run the following command:
+To print the reads of the included sample data, untar the package into
+the GenomeAnalysisTK directory and run the following command:
 
 java -jar GenomeAnalysisTK/GenomeAnalysisTK.jar \
      -T PrintReads \
@@ -82,7 +81,6 @@ java -jar GenomeAnalysisTK/GenomeAnalysisTK.jar \
 
 Support
 -------
-Documentation for the GATK is available at
-http://www.broadinstitute.org/gsa/wiki.  For help using or developing
-for the GATK, bug reports, or feature requests, please email
-gsadevelopers@broadinstitute.org.
+Documentation for the GATK is available at http://www.broadinstitute.org/gsa/wiki.  
+For help using the GATK, developing analyses with the GATK, bug reports, 
+or feature requests, please email gsadevelopers@broadinstitute.org.
