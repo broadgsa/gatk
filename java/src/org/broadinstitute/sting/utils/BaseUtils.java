@@ -47,6 +47,67 @@ public class BaseUtils {
 
 
     /**
+     * Converts a IUPAC nucleotide code to a pair of bases
+     *
+     * @param code
+     * @return 0, 1, 2, 3, or -1 if the base can't be understood
+     */
+    static public char[] iupacToBases(char code) {
+        char[] bases = new char[2];
+        switch (code) {
+            case '*':               // the wildcard character counts as an A
+            case 'A':
+            case 'a':
+                bases[0] = bases[1] = 'A';
+                break;
+            case 'C':
+            case 'c':
+                bases[0] = bases[1] = 'C';
+                break;
+            case 'G':
+            case 'g':
+                bases[0] = bases[1] = 'G';
+                break;
+            case 'T':
+            case 't':
+                bases[0] = bases[1] = 'T';
+                break;
+            case 'R':
+            case 'r':
+                bases[0] = 'A';
+                bases[1] = 'G';
+                break;
+            case 'Y':
+            case 'y':
+                bases[0] = 'C';
+                bases[1] = 'T';
+                break;
+            case 'S':
+            case 's':
+                bases[0] = 'G';
+                bases[1] = 'C';
+                break;
+            case 'W':
+            case 'w':
+                bases[0] = 'A';
+                bases[1] = 'T';
+                break;
+            case 'K':
+            case 'k':
+                bases[0] = 'G';
+                bases[1] = 'T';
+                break;
+            case 'M':
+            case 'm':
+                bases[0] = 'A';
+                bases[1] = 'C';
+                break;
+            default:
+                bases[0] = bases[1] = 'N';
+        }
+        return bases;
+    }
+    /**
      * Converts a simple base to a base index
      *
      * @param base  [AaCcGgTt]
