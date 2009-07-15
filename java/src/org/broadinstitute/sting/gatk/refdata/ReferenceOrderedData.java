@@ -1,18 +1,21 @@
 package org.broadinstitute.sting.gatk.refdata;
 
-import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.MalformedGenomeLocException;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.xReadLines;
-
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.FileNotFoundException;
+import java.util.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.*;
+
+import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
+import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.xReadLines;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.MalformedGenomeLocException;
+import org.apache.log4j.Logger;
 
 /**
  * Class for representing arbitrary reference ordered data sets
@@ -61,6 +64,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         addModule("HapMapAlleleFrequencies", HapMapAlleleFrequenciesROD.class);
         addModule("SAMPileup", rodSAMPileup.class);
         addModule("GELI", rodGELI.class);
+        addModule("FLT", rodFLT.class);
         addModule("RefSeq", rodRefSeq.class);
         addModule("Table", TabularROD.class);
         addModule("PooledEM", PooledEMSNPROD.class);
@@ -69,7 +73,6 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         addModule("HapMapGenotype", HapMapGenotypeROD.class);
         addModule("Intervals", IntervalRod.class);
         addModule("Variants", rodVariants.class);
-        addModule("GFF", RodGLF.class);
     }
 
 
