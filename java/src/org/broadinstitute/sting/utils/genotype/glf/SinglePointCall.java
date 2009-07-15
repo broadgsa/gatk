@@ -35,7 +35,7 @@ import net.sf.samtools.util.BinaryCodec;
  *         <p/>
  *         This class represents a single point geneotype call in GLF vernacular
  */
-class SinglePointCall extends GLFRecord {
+public class SinglePointCall extends GLFRecord {
 
     // our likelihoods object
     private double likelihoods[];
@@ -49,7 +49,7 @@ class SinglePointCall extends GLFRecord {
      * @param rmsMapQ     the root mean square of the mapping quality
      * @param likelihoods the Likelihoods
      */
-    SinglePointCall(char refBase, int offset, int readDepth, short rmsMapQ, double likelihoods[]) {
+    public SinglePointCall(char refBase, int offset, int readDepth, short rmsMapQ, double likelihoods[]) {
         super(refBase, offset, (short) GLFRecord.findMin(likelihoods), readDepth, rmsMapQ);
         this.likelihoods = likelihoods;
     }
@@ -89,4 +89,7 @@ class SinglePointCall extends GLFRecord {
         return likelihoods.length + super.getByteSize();
     }
 
+    public double[] getLikelihoods() {
+        return likelihoods;
+    }
 }

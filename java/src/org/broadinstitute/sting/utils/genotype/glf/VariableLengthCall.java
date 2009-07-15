@@ -36,7 +36,7 @@ import net.sf.samtools.util.BinaryCodec;
  *         Currently a lot of parameters need to be provided, but we may be able to thin
  *         those down as we understand what we have to specify and what we can infer.
  */
-class VariableLengthCall extends GLFRecord {
+public class VariableLengthCall extends GLFRecord {
     // our fields, corresponding to the glf spec
     private short lkHom1 = 0;
     private short lkHom2 = 0;
@@ -63,7 +63,7 @@ class VariableLengthCall extends GLFRecord {
      * @param indelSeq1  the sequence for the first indel allele
      * @param indelSeq2  the sequence for the second indel allele
      */
-    VariableLengthCall(char refBase,
+    public VariableLengthCall(char refBase,
                        long offset,
                        int readDepth,
                        short rmsMapQ,
@@ -116,4 +116,31 @@ class VariableLengthCall extends GLFRecord {
         return size + super.getByteSize();
     }
 
+    public short getLkHom1() {
+        return lkHom1;
+    }
+
+    public short getLkHom2() {
+        return lkHom2;
+    }
+
+    public short getLkHet() {
+        return lkHet;
+    }
+
+    public short[] getIndelSeq1() {
+        return indelSeq1;
+    }
+
+    public short[] getIndelSeq2() {
+        return indelSeq2;
+    }
+
+    public int getIndelLen2() {
+        return indelLen2;
+    }
+
+    public int getIndelLen1() {
+        return indelLen1;
+    }
 }

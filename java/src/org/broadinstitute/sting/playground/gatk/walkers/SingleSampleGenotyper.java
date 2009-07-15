@@ -325,7 +325,11 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
                 variantsOut.println(alleleFreq.asTabularString());
             } else if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.GLF) {
                 SAMSequenceRecord rec = GenomeLocParser.getContigInfo(alleleFreq.location.getContig());
+                for (int x = 0; x < alleleFreq.posteriors.length; x++) {
+                    alleleFreq.posteriors[x] *= 10;
+                }
                 LikelihoodObject obj = new LikelihoodObject(alleleFreq.posteriors, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
+
                 obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);
                 this.mGenotypeWriter.addGenotypeCall(rec,(int)alleleFreq.location.getStart(),0.0f,alleleFreq.ref,alleleFreq.depth,obj);
             }

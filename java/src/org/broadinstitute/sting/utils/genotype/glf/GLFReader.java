@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils.genotype.glf;
 
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedInputStream;
+import net.sf.samtools.util.RuntimeEOFException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 
@@ -56,12 +57,18 @@ public class GLFReader implements Iterator<GLFRecord> {
     // reference length
     private int referenceLength;
 
+    // the current location, keeping track of the offsets
+    private int currentLocation = 1;
+
+    // we have this variable becuase there is no eof for glf's
+    private int lastRecordType = -1;
+
     /**
      * create a glf reader
      *
      * @param readFrom the file to read from
      */
-    GLFReader(File readFrom) {
+    public GLFReader(File readFrom) {
         try {
             inputBinaryCodec = new BinaryCodec(new DataInputStream(new BlockCompressedInputStream(readFrom)));
         } catch (IOException e) {
@@ -146,11 +153,15 @@ public class GLFReader implements Iterator<GLFRecord> {
 
     @Override
     public GLFRecord next() {
-        short firstBase = inputBinaryCodec.readUByte();
+        GLFRecord ret = nextRecord;
+        short firstBase = protectedByteReadForFile();
+        if (firstBase == -1) return ret;
+
+        // parse out the record type and reference base
         byte recordType = (byte) ((firstBase & 0x0f0) >> 4);
         char refBase = (char) (firstBase & 0x000f);
+        lastRecordType = recordType;
 
-        GLFRecord ret = nextRecord;
         if (recordType == 1) {
             nextRecord = generateSPC(refBase, inputBinaryCodec);
         } else if (recordType == 2) {
@@ -159,12 +170,29 @@ public class GLFReader implements Iterator<GLFRecord> {
             if (advanceContig()) {
                 return next();
             }
-            nextRecord = null;
+            //nextRecord = null;
         } else {
             throw new StingException("Unkonwn GLF record type (type = " + recordType + ")");
         }
-
+        if (ret != null) currentLocation += ret.getOffset();
         return ret;
+    }
+
+    /**
+     * read a short, and if we see an exception only throw it if it's unexpected (not after a zero)
+     * @return a short
+     */
+    private short protectedByteReadForFile() {
+        short st = -1;
+        try {
+            st = inputBinaryCodec.readUByte();
+        } catch (RuntimeEOFException exp) {
+            nextRecord = null;
+            if (lastRecordType != 0) {
+                throw exp; // if the last record was a zero, this is an ok condition.  Otherwise throw an exception
+            }
+        }
+        return st;
     }
 
     /**
@@ -181,21 +209,21 @@ public class GLFReader implements Iterator<GLFRecord> {
             // get the reference length - this may be a problem storing an unsigned int into a signed int.  but screw it.
             referenceLength = (int) inputBinaryCodec.readUInt();
             //System.err.println(referenceName.length());
+            currentLocation = 1;
             return true;
         } catch (RuntimeException e) {
-            e.printStackTrace();
-            // we're out of file space, set the next to null
+            if (lastRecordType != 0) {
+                throw e; // if the last record was a zero, this is an ok condition.  Otherwise throw an exception
+            }
             nextRecord = null;
         }
         return false;
     }
 
-
     @Override
     public void remove() {
         throw new StingException("GLFReader doesn't support remove()");
     }
-
 
     /**
      * getter methods
@@ -211,5 +239,9 @@ public class GLFReader implements Iterator<GLFRecord> {
 
     public String getHeaderStr() {
         return headerStr;
+    }
+
+    public int getCurrentLocation() {
+        return currentLocation;
     }
 }

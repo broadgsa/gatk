@@ -39,7 +39,7 @@ import org.broadinstitute.sting.utils.StingException;
  *         which represents the accepted FASTA nucleotide symbols and their assocated GLF
  *         field values.
  */
-abstract class GLFRecord {
+public abstract class GLFRecord {
 
     // fields common to all records
     protected REF_BASE refBase;
@@ -110,7 +110,7 @@ abstract class GLFRecord {
     }
 
     /** the record type enum, which enumerates the different records we can have in a GLF */
-    enum RECORD_TYPE {
+    public enum RECORD_TYPE {
         SINGLE((short) 1),
         VARIABLE((short) 2);
 
@@ -243,5 +243,24 @@ abstract class GLFRecord {
         return (min > 255) ? 255 : (short)min;
     }
 
+    public REF_BASE getRefBase() {
+        return refBase;
+    }
+
+    public long getOffset() {
+        return offset;
+    }
+
+    public short getMinimumLikelihood() {
+        return minimumLikelihood;
+    }
+
+    public int getReadDepth() {
+        return readDepth;
+    }
+
+    public short getRmsMapQ() {
+        return rmsMapQ;
+    }
 }
 
