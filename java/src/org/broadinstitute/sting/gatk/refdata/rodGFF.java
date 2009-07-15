@@ -4,9 +4,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 
@@ -18,7 +16,7 @@ import java.util.regex.Pattern;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class rodGFF extends BasicReferenceOrderedDatum {
+public class rodGFF extends BasicReferenceOrderedDatum implements AllelicVariant {
     private String contig, source, feature, strand, frame;
     private long start, stop;
     private double score;
@@ -154,4 +152,25 @@ public class rodGFF extends BasicReferenceOrderedDatum {
         setValues(contig, source, feature, start, stop, score, strand, frame, attributes);
         return true;
     }
+
+    public String getRefBasesFWD() { return null; }
+    public char getRefSnpFWD() throws IllegalStateException { return 0; }
+    public String getAltBasesFWD() { return null; }
+    public char getAltSnpFWD() throws IllegalStateException { return 0; }
+    public boolean isReference() { return ! isSNP(); }
+    public boolean isSNP() { return score == Double.NaN || score > 5.0; }
+    public boolean isInsertion() { return false; }
+    public boolean isDeletion() { return false; }
+    public boolean isIndel() { return false; }
+    public double getMAF() { return 0; }
+    public double getHeterozygosity() { return 0; }
+    public boolean isGenotype() { return true; }
+    public double getVariationConfidence() { return score; }
+    public double getConsensusConfidence() { return score; }
+    public List<String> getGenotype() throws IllegalStateException {
+        return Arrays.asList(feature);
+    }
+
+    public int getPloidy() throws IllegalStateException { return 2; }
+    public boolean isBiallelic() { return true; }
 }
