@@ -119,9 +119,13 @@ class MappedReadStreamPointer extends ReadStreamPointer {
     @Override
     public StingSAMIterator getReadsOverlapping( MappedStreamSegment segment ) {
         MergingSamRecordIterator2 mergingIterator = new MergingSamRecordIterator2( headerMerger, sourceInfo );
+
+        // The getStop() + 1 is a hack to work around an old bug in the way Picard created SAM files where queries
+        // over a given interval would occasionally not pick up the last read in that interval.
         mergingIterator.queryOverlapping( segment.locus.getContig(),
                                           (int)segment.locus.getStart(),
-                                          (int)segment.locus.getStop());
+                                          (int)segment.locus.getStop()+1);
+
         return StingSAMIteratorAdapter.adapt(sourceInfo,mergingIterator);
     }
 
@@ -134,9 +138,11 @@ class MappedReadStreamPointer extends ReadStreamPointer {
             throw new StingException("Trying to access unmapped content from a mapped read stream pointer");
         MappedStreamSegment mappedSegment = (MappedStreamSegment)segment;
         MergingSamRecordIterator2 mergingIterator = new MergingSamRecordIterator2( headerMerger, sourceInfo );
+        // NOTE: explicitly not using the queryOverlapping hack above since, according to the above criteria,
+        //       we'd only miss reads that are one base long when performing a contained query.
         mergingIterator.queryContained( mappedSegment.locus.getContig(),
                 (int)mappedSegment.locus.getStart(),
-                (int)mappedSegment.locus.getStop());
+                (int)mappedSegment.locus.getStop()+1);
         return StingSAMIteratorAdapter.adapt(sourceInfo,mergingIterator);
     }
 

@@ -193,7 +193,7 @@ def main():
             cmd = "java -ea -Xmx1024m -jar " + OPTIONS.gatkPath + " -T " + analysis + " -I " + subBAM + " -R " + ref + " -l INFO -S SILENT -U " + OPTIONS.extraArgs
 
             if isIntervalFile(region):
-                cmd += " --intervals_file " + region
+                cmd += " --intervals " + region
 
             cmd += " -B pileup,SAMPileup," + pileup
             print cmd
