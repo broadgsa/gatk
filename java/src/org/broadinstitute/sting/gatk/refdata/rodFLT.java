@@ -37,7 +37,10 @@ public class rodFLT extends TabularROD implements SNPCallFromGenotypes {
     public double getMAF()         { return 0.0; }
     public double getHeterozygosity() { return 0.0; }
     public boolean isGenotype()    { return false; }
-    public double getVariationConfidence() { return Double.parseDouble(this.get("6")); }
+    public double getVariationConfidence() {
+        double value = Double.parseDouble(this.get("6"));
+        return (value > 0.0 ? value : 1.0);
+    }
     public double getConsensusConfidence() { return -1; }
     public List<String> getGenotype() throws IllegalStateException { throw new IllegalStateException(); }
     public int getPloidy() throws IllegalStateException { return 2; }

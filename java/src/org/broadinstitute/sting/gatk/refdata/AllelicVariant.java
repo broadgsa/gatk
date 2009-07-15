@@ -12,7 +12,7 @@ import java.util.List;
  * Time: 11:02:03 AM
  * To change this template use File | Settings | File Templates.
  */
-public interface AllelicVariant extends Comparable<ReferenceOrderedDatum> {
+public interface AllelicVariant extends ReferenceOrderedDatum {
     // ----------------------------------------------------------------------
     //
     // manipulating the SNP information
