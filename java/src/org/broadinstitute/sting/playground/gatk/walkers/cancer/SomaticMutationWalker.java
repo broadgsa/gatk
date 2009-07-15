@@ -50,8 +50,10 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName = "output_failures", required = false, doc="produce output for failed sites")
     public boolean OUTPUT_FAILURES = false;
 
-    @Argument(fullName="maf_file", shortName="stats", doc="write out calls in MAF format to this file", required=false)
-    String MAF_FILE = null;
+    @Argument(fullName="maf_file", shortName="maf", doc="write out calls in MAF format to this file", required=false)
+    public String MAF_FILE = null;
+
+    public boolean USE_MAPQ0_IN_NORMAL_QSCORE = true;
 
     private FileWriter mafWriter = null;
 
@@ -115,9 +117,7 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
 
             if (read.getNotPrimaryAlignmentFlag() ||
                 read.getDuplicateReadFlag() ||
-                read.getReadUnmappedFlag() ||
-                read.getMappingQuality() <= 0
-
+                read.getReadUnmappedFlag()
                || (read.getReadPairedFlag() && (!read.getProperPairFlag() || read.getInferredInsertSize() >= MAX_INSERT_SIZE))
                     ) {
                 continue;
@@ -136,11 +136,12 @@ public class  SomaticMutationWalker extends LocusWalker<Integer, Integer> {
             // constructor for the normalGL class
             // that way, we can build a different pile of reads later on and extract the genotype
             if (normalSampleName.equals(sample)) {
-                normalReadPile.add(read, offset);
+                normalReadPile.add(read, offset, USE_MAPQ0_IN_NORMAL_QSCORE);
 
             } else if (tumorSampleName.equals(sample)) {
-                tumorReadPile.add(read, offset);
-
+                if (read.getMappingQuality() > 0) {
+                    tumorReadPile.add(read, offset);
+                }
 
                 int midDist = Math.abs((int)(read.getReadLength() / 2) - offset);
                 if (midDist < midp.get(base)) { midp.put(base, midDist); }

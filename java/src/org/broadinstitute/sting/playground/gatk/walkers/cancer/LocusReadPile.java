@@ -32,6 +32,10 @@ public class LocusReadPile {
     }
 
     public void add(SAMRecord read, int offset) {
+        add(read, offset, false);
+    }
+
+    public void add(SAMRecord read, int offset, boolean allowMapq0ForQualSum) {
         char base = read.getReadString().charAt(offset);
         byte qual = read.getBaseQualities()[offset];
 
@@ -42,8 +46,10 @@ public class LocusReadPile {
 
 
         likelihoods.add(refBase, base, qual);
-        if (qual > this.minQualityScore) qualitySums.incrementSum(base, qual);
 
+        if (read.getMappingQuality() == 0 && !allowMapq0ForQualSum) { return; }
+
+        if (qual > this.minQualityScore) qualitySums.incrementSum(base, qual);
     }
 
     public String getLocusBases() {
