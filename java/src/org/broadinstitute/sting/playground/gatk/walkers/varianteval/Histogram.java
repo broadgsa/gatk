@@ -3,11 +3,14 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 import java.util.ArrayList;
 
 /**
- * Created by IntelliJ IDEA.
- * User: depristo
- * Date: May 27, 2009
- * Time: 2:37:56 PM
- * To change this template use File | Settings | File Templates.
+ * The Broad Institute
+ * SOFTWARE COPYRIGHT NOTICE AGREEMENT
+ * This software and its documentation are copyright 2009 by the
+ * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
+ *
+ * This software is supplied without any warranty or guaranteed support whatsoever. Neither
+ * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
+ *
  */
 public class Histogram<T> {
     ArrayList<T> data;

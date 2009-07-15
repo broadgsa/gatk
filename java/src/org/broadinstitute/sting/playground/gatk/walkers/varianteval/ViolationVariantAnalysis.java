@@ -39,11 +39,14 @@ import java.io.File;
 import java.io.FileNotFoundException;
 
 /**
- * Created by IntelliJ IDEA.
- * User: depristo
- * Date: Jun 4, 2009
- * Time: 4:38:19 PM
- * To change this template use File | Settings | File Templates.
+ * The Broad Institute
+ * SOFTWARE COPYRIGHT NOTICE AGREEMENT
+ * This software and its documentation are copyright 2009 by the
+ * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
+ *
+ * This software is supplied without any warranty or guaranteed support whatsoever. Neither
+ * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
+ *
  */
 public abstract class ViolationVariantAnalysis extends BasicVariantAnalysis {
     PrintStream violationsOut = null;

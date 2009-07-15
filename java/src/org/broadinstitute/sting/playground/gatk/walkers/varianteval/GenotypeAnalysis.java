@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import java.io.PrintStream;
 import java.util.List;
 
+
 /**
  * The Broad Institute
  * SOFTWARE COPYRIGHT NOTICE AGREEMENT
@@ -16,14 +17,13 @@ import java.util.List;
  * This software is supplied without any warranty or guaranteed support whatsoever. Neither
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  *
+ * If an analysis implements this interface, it asserts that it performs a genotype based analysis, as
+ * opposed a straight variant analysis.  The difference here is that variants are not asserted to be
+ * the actual genotype of a particular person, but are really just variation "out-there" in a population.
+ * A genotype analysis would be something like covered bases, confidently called bases, genotyping
+ * concordance, etc.
+ *
  */
-public interface VariantAnalysis {
-    public String getName();
-    public PrintStream getSummaryPrintStream();
-    public PrintStream getCallPrintStream();
-    public List<String> getParams();
-    public void initialize(VariantEvalWalker master, PrintStream out, String filename);
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context);
-    public void finalize(long nSites);
-    public List<String> done();
+public interface GenotypeAnalysis {
+    
 }

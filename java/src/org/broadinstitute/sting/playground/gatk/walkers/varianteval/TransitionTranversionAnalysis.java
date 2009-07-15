@@ -10,13 +10,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by IntelliJ IDEA.
- * User: depristo
- * Date: Jun 4, 2009
- * Time: 4:38:00 PM
- * To change this template use File | Settings | File Templates.
+ * The Broad Institute
+ * SOFTWARE COPYRIGHT NOTICE AGREEMENT
+ * This software and its documentation are copyright 2009 by the
+ * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
+ *
+ * This software is supplied without any warranty or guaranteed support whatsoever. Neither
+ * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
+ *
  */
-public class TransitionTranversionAnalysis extends BasicVariantAnalysis {
+public class TransitionTranversionAnalysis extends BasicVariantAnalysis implements GenotypeAnalysis, PopulationAnalysis {
     int N_TRANSITION_TRANVERSION_BINS = 100;
     Histogram<Integer> transitions;
     Histogram<Integer> transversions;

@@ -10,6 +10,16 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import java.util.*;
 import java.io.*;
 
+/**
+ * The Broad Institute
+ * SOFTWARE COPYRIGHT NOTICE AGREEMENT
+ * This software and its documentation are copyright 2009 by the
+ * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
+ *
+ * This software is supplied without any warranty or guaranteed support whatsoever. Neither
+ * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
+ *
+ */
 @By(DataSource.REFERENCE)
 @Requires(DataSource.REFERENCE)
 @Allows(DataSource.REFERENCE)
@@ -23,11 +33,15 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     @Argument(shortName="badHWEThreshold", doc="XXX", required=false)
     public double badHWEThreshold = 1e-3;
 
+    @Argument(shortName="evalContainsGenotypes", doc="If true, the input list of variants will be treated as a genotyping file, containing assertions of actual genotype values for a particular person.  Analyses that only make sense on at the population level will be disabled, while those operating on genotypes will be enabled", required=false)
+    public boolean evalContainsGenotypes = false;
+
     String analysisFilenameBase = null;
 
     String COMMENT_STRING = "";
 
     final String knownSNPDBName = "dbSNP";
+    final String genotypeChipName = "hapmap-chip";
 
     HashMap<String, ArrayList<VariantAnalysis>> analysisSets;
 
@@ -38,12 +52,16 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     final String TWOHIT_SNPS = "2plus_hit";
     final String KNOWN_SNPS = "known";
     final String NOVEL_SNPS = "novel";
-    final String[] ALL_ANALYSIS_NAMES = { ALL_SNPS, SINGLETON_SNPS, TWOHIT_SNPS, KNOWN_SNPS, NOVEL_SNPS };
+    final String[] POPULATION_ANALYSIS_NAMES = { ALL_SNPS, SINGLETON_SNPS, TWOHIT_SNPS, KNOWN_SNPS, NOVEL_SNPS };
+    final String[] GENOTYPE_ANALYSIS_NAMES = { ALL_SNPS, KNOWN_SNPS, NOVEL_SNPS };
+    String[] ALL_ANALYSIS_NAMES = null;
 
     public void initialize() {
+        ALL_ANALYSIS_NAMES = evalContainsGenotypes ? GENOTYPE_ANALYSIS_NAMES : POPULATION_ANALYSIS_NAMES;
+
         // setup the path to the analysis
         if ( this.getToolkit().getArguments().outFileName != null ) {
-            analysisFilenameBase = this.getToolkit().getArguments().outFileName + ".analysis.";
+            analysisFilenameBase = this.getToolkit().getArguments().outFileName + "."; // + ".analysis.";
         }
 
         analysisSets = new HashMap<String, ArrayList<VariantAnalysis>>();
@@ -64,10 +82,28 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         //
         analyses.add(new VariantCounter());
         analyses.add(new VariantDBCoverage(knownSNPDBName));
+        analyses.add(new GenotypeConcordance(genotypeChipName));
         analyses.add(new TransitionTranversionAnalysis());
         analyses.add(new NeighborDistanceAnalysis());
         analyses.add(new HardyWeinbergEquilibrium(badHWEThreshold));
         analyses.add(new ClusterCounterAnalysis());
+
+        //
+        // Filter out analyzes inappropriate for our evaluation type Population or Genotype
+        //
+        Iterator<VariantAnalysis> iter = analyses.iterator();
+        while ( iter.hasNext() ) {
+            VariantAnalysis analysis = iter.next();
+            boolean disableForGenotyping = evalContainsGenotypes && ! (analysis instanceof GenotypeAnalysis);
+            boolean disableForPopulation = ! evalContainsGenotypes && ! (analysis instanceof PopulationAnalysis);
+            boolean disable = disableForGenotyping | disableForPopulation;
+            String causeName = disableForGenotyping ? "genotype" : (disableForPopulation ? "population" : null);
+            if ( disable ) {
+                logger.info(String.format("Disabling %s-only analysis %s in set %s", causeName, analysis, setName));
+                iter.remove();
+            }
+        }
+
 
         if ( printVariants ) analyses.add(new VariantMatcher(knownSNPDBName));
 

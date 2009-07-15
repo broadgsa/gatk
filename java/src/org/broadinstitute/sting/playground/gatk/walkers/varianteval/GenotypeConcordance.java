@@ -19,14 +19,14 @@ import java.util.ArrayList;
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  *
  */
-public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeAnalysis, PopulationAnalysis {
+public class GenotypeConcordance extends BasicVariantAnalysis implements GenotypeAnalysis {
     private String dbName;
     private int nDBObs = 0;
     private int nEvalObs = 0;
     private int nOverlapping = 0;
 
-    public VariantDBCoverage(final String name) {
-        super("db_coverage");
+    public GenotypeConcordance(final String name) {
+        super("genotype_concordance");
         dbName = name;
     }
 
