@@ -41,11 +41,12 @@ public class LocusReadPile {
 
         if (base == 'N' || base == 'n') { return; }
 
-        reads.add(read);
-        offsets.add(offset);
+        if (read.getMappingQuality() > 0) {
+            reads.add(read);
+            offsets.add(offset);
 
-
-        likelihoods.add(refBase, base, qual);
+            likelihoods.add(refBase, base, qual);
+        }
 
         if (read.getMappingQuality() == 0 && !allowMapq0ForQualSum) { return; }
 
