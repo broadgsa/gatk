@@ -8,7 +8,7 @@ defaultCommands = ['CountReads', 'Pileup']
 
 def indexBAM(reads, queue=None):
     cmd = "samtools index " + reads
-    farm_commands.cmd(cmd, queue, None)    
+    farm_commands.cmd(cmd, queue, None, just_print_commands=OPTIONS.justPrint)    
 
 def readIntervalFile(file):
     def notHeaderP(line):
@@ -112,8 +112,6 @@ def main():
                         action='store_true', default=False,
                         help="Don't actually run GATK, just setup data files")
 
-
-
     (OPTIONS, args) = parser.parse_args()
     if len(args) != 0:
         parser.error("incorrect number of arguments")
@@ -157,22 +155,22 @@ def main():
 
         #print 'reads', reads
         if not os.path.exists(reads) or OPTIONS.rebuildAllFiles:
-            farm_commands.cmd("ln -s " + os.path.abspath(originalReads) + " " + reads)
+            farm_commands.cmd("ln -s " + os.path.abspath(originalReads) + " " + reads, just_print_commands=OPTIONS.justPrint)
 
         if not os.path.exists(readsIndex) or OPTIONS.rebuildAllFiles:
             indexBAM(reads)
             
         if not os.path.exists(subBAM) or OPTIONS.rebuildAllFiles:
             if region == '*' or isIntervalFile(region):
-                farm_commands.cmd("ln -s " + os.path.abspath(reads) + " " + subBAM)
+                farm_commands.cmd("ln -s " + os.path.abspath(reads) + " " + subBAM, just_print_commands=OPTIONS.justPrint)
             else:
                 cmd = "samtools view -b " + reads + " " + region + " > " + subBAM
-                farm_commands.cmd(cmd, None, None)
+                farm_commands.cmd(cmd, None, None, just_print_commands=OPTIONS.justPrint)
 
         subBAMIndex =  subBAM+'.bai'
         if not os.path.exists(subBAMIndex) or OPTIONS.rebuildAllFiles:
             if region == '*' or isIntervalFile(region):
-                farm_commands.cmd("ln -s " + os.path.abspath(readsIndex) + " " + subBAMIndex)
+                farm_commands.cmd("ln -s " + os.path.abspath(readsIndex) + " " + subBAMIndex, just_print_commands=OPTIONS.justPrint)
             else:
                 indexBAM(subBAM)
 
@@ -185,7 +183,7 @@ def main():
                 filterByInterval(readIntervalFile(region), filteredPileup, pileup)
             else:
                 cmd = "samtools pileup -cf " + ref + " " + subBAM + " > " + pileup
-                farm_commands.cmd(cmd, None, None)
+                farm_commands.cmd(cmd, None, None, just_print_commands=OPTIONS.justPrint)
  
         if not OPTIONS.dontValidate and (not os.path.exists(validationOutput) or OPTIONS.ignoreExistingFiles):
             print validationOutput, 'does not exist'
