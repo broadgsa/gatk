@@ -17,7 +17,7 @@ import net.sf.samtools.util.CloseableIterator;
  *  This class wraps Picard Geli CHiP data and presents it as a ROD.
  */
 
-public class rodGELI extends BasicReferenceOrderedDatum implements Genotype {
+public class rodGELI extends BasicReferenceOrderedDatum {
 	// ----------------------------------------------------------------------
 	//
 	// Constructors
@@ -93,6 +93,9 @@ public class rodGELI extends BasicReferenceOrderedDatum implements Genotype {
 		return new rodGELI.rodGELIIterator(name,file);
 	}
 
+    /****
+     * We no longer want to use this class as truth data (sigh)
+     *
     public List<String> getFWDAlleles() {
         return new ArrayList<String>();
     }
@@ -123,8 +126,8 @@ public class rodGELI extends BasicReferenceOrderedDatum implements Genotype {
     public double getConsensusConfidence() {
         return gh.getBestToSecondBestLod();
     }
-
-
+    *
+    */
 
     public static void main(String argv[]) {
         String testFile = "NA12878.geli";
