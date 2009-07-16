@@ -8,6 +8,8 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.By;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.playground.utils.*;
 import org.broadinstitute.sting.utils.*;
@@ -21,6 +23,7 @@ import java.io.*;
 // Plot a histogram of depth of coverage
 // j.maguire 6-11-2009
 
+@By(DataSource.REFERENCE)
 public class CoverageHistogram extends LocusWalker<Integer,Integer>
 {
 	//@Argument(fullName="start", shortName="start", required=false, doc="start") public Integer START = 0;
@@ -59,10 +62,11 @@ public class CoverageHistogram extends LocusWalker<Integer,Integer>
     public void onTraversalDone(Integer sum) 
 	{
 		double mean_coverage = (double)sum_coverage / (double)num_sites;
-		out.printf("# mean:%f num_sites:%d\n\n", mean_coverage, num_sites);
+		out.printf("# all_sites                  : mean:%f num_sites:%d\n\n", mean_coverage, num_sites);
+        out.printf("# sites with at least 1 read : mean:%f num_sites:%d\n\n", sum_coverage / ((double)(num_sites - coverage_hist[0])), num_sites - coverage_hist[0]);
 
 		out.println("depth count");
-		for (int i = 1; i < max_depth; i++)
+		for (int i = 0; i < max_depth; i++)
 		{
 			out.printf("%d %d\n", i, coverage_hist[i]);
 		}
