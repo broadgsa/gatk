@@ -2,6 +2,10 @@ package org.broadinstitute.sting.utils.genotype.glf;
 
 import net.sf.samtools.util.BinaryCodec;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
+
+import java.util.List;
+import java.util.Arrays;
 
 
 /*
@@ -40,6 +44,8 @@ import org.broadinstitute.sting.utils.StingException;
  *         field values.
  */
 public abstract class GLFRecord {
+    public final static double LIKELIHOOD_SCALE_FACTOR = 1;                    
+
 
     // fields common to all records
     protected REF_BASE refBase;

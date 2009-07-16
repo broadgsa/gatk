@@ -20,7 +20,7 @@ import java.util.Iterator;
  *         the rod class for GLF data.
  */
 public class RodGLF extends BasicReferenceOrderedDatum {
-    protected GLFRecord mRecord;
+    public GLFRecord mRecord;
     private GenomeLoc mLoc;
     private static GLFRODIterator mWrap;
     private String contig;

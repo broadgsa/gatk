@@ -33,16 +33,15 @@ import java.util.Arrays;
  */
 
 public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVariant {
-    private enum Genotype { AA, AC, AG, AT, CC, CG, CT, GG, GT, TT }
-
-    private GenomeLoc loc;
-    private char refBase = 'N';
-    private int depth;
-    private int maxMappingQuality;
-    private String bestGenotype = "NN";
-    private float lodBtr;
-    private float lodBtnb;
-    private float[] genotypeLikelihoods = new float[10];
+    public enum Genotype { AA, AC, AG, AT, CC, CG, CT, GG, GT, TT }
+    public GenomeLoc loc;
+    public char refBase = 'N';
+    public int depth;
+    public int maxMappingQuality;
+    public String bestGenotype = "NN";
+    public double lodBtr;
+    public double lodBtnb;
+    public double[] genotypeLikelihoods = new double[10];
     
     public rodVariants(final String name) { super(name); }
 
@@ -55,11 +54,11 @@ public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVa
             depth = Integer.valueOf(parts[3]);
             maxMappingQuality = Integer.valueOf(parts[4]);
             bestGenotype = parts[5];
-            lodBtr = Float.valueOf(parts[6]);
-            lodBtnb = Float.valueOf(parts[7]);
+            lodBtr = Double.valueOf(parts[6]);
+            lodBtnb = Double.valueOf(parts[7]);
 
             for (int pieceIndex = 8, offset = 0; pieceIndex < 18; pieceIndex++, offset++) {
-                genotypeLikelihoods[offset] = Float.valueOf(parts[pieceIndex]);
+                genotypeLikelihoods[offset] = Double.valueOf(parts[pieceIndex]);
             }
 
             return true;
@@ -101,11 +100,11 @@ public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVa
 
     public String getBestGenotype() { return bestGenotype; }
 
-    public float getLodBtr() { return lodBtr; }
+    public double getLodBtr() { return lodBtr; }
 
-    public float getLodBtnb() { return lodBtnb; }
+    public double getLodBtnb() { return lodBtnb; }
 
-    public float[] getGenotypeLikelihoods() { return genotypeLikelihoods; }
+    public double[] getGenotypeLikelihoods() { return genotypeLikelihoods; }
 
     public void adjustLikelihoods(double[] likelihoods) {
         for (int likelihoodIndex = 0; likelihoodIndex < likelihoods.length; likelihoodIndex++) {
@@ -139,8 +138,8 @@ public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVa
         }
 
         this.bestGenotype = bestGenotype;
-        this.lodBtr = (float) (bestLikelihood - refLikelihood);
-        this.lodBtnb = (float) (bestLikelihood - nextBestLikelihood);
+        this.lodBtr = (bestLikelihood - refLikelihood);
+        this.lodBtnb = (bestLikelihood - nextBestLikelihood);
     }
 
     public String getRefBasesFWD() {
