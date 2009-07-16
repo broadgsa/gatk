@@ -1,12 +1,10 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.utils.StingException;
 
-import java.io.PrintStream;
 import java.util.List;
-import java.util.Arrays;
 import java.util.ArrayList;
 
 /**
@@ -21,61 +19,78 @@ import java.util.ArrayList;
  */
 public class GenotypeConcordance extends BasicVariantAnalysis implements GenotypeAnalysis {
     private String dbName;
-    private int nDBObs = 0;
-    private int nEvalObs = 0;
-    private int nOverlapping = 0;
+
+    private static final int TRUTH_REF = 0;
+    private static final int TRUTH_VAR_HET = 1;
+    private static final int TRUTH_VAR_HOM = 2;
+    private static final int TRUTH_UNKNOWN = 3;
+
+    private static final int CALL_REF = 0;
+    private static final int CALL_VAR_HET = 1;
+    private static final int CALL_VAR_HOM = 2;
+    private static final int CALL_NO_CONF = 3;
+    private static final int UNCALLABLE = 4;
+
+    private int[][] table = new int[4][5];
 
     public GenotypeConcordance(final String name) {
         super("genotype_concordance");
         dbName = name;
     }
 
-    public void inc(boolean inDB, boolean inEval) {
-        if (inDB) nDBObs++;
-        if (inEval) nEvalObs++;
-        if (inDB && inEval) nOverlapping++;
-    }
+    public void inc(AllelicVariant chip, AllelicVariant eval) {
+        if ( (chip != null && !chip.isGenotype()) || (eval != null && !eval.isGenotype()) )
+            throw new StingException("Failure: trying to analyze genotypes of non-genotype data");
 
-    public int nDBSites()           { return nDBObs; }
-    public int nEvalSites()         { return nEvalObs; }
-    public int nOverlappingSites()  { return nOverlapping; }
-    public int nNovelSites()        { return Math.abs(nEvalSites() - nOverlappingSites()); }
+        int truthIndex, callIndex;
+        if ( chip == null )
+            truthIndex = TRUTH_UNKNOWN;
+        else if ( chip.isReference() )
+            truthIndex = TRUTH_REF;
+        else if ( isHet(chip) )
+            truthIndex = TRUTH_VAR_HET;
+        else
+            truthIndex = TRUTH_VAR_HOM;
 
-    /**
-     * What fraction of the evaluated site variants were also found in the db?
-     *
-     * @return
-     */
-    public double fractionEvalSitesCoveredByDB() {
-        return nOverlappingSites() / (1.0 * nEvalSites());
+        if ( eval == null )
+            callIndex = UNCALLABLE;
+        else if ( eval.getVariationConfidence() < 5.0 )
+            callIndex = CALL_NO_CONF;
+        else if ( eval.isReference() )
+            callIndex = CALL_REF;
+        else if ( isHet(eval) )
+            callIndex = CALL_VAR_HET;
+        else
+            callIndex = CALL_VAR_HOM;
+
+        table[truthIndex][callIndex]++;
     }
 
     public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
-        // There are four cases here:
-        AllelicVariant dbsnp = (AllelicVariant)tracker.lookup(dbName, null);
-        inc(dbsnp != null, eval != null);
-        return dbsnp == null && eval != null ? "Novel " + eval : null;
-    }
-
-    /**
-     * What fraction of the DB sites were discovered in the evalution calls?
-     *
-     * @return
-     */
-    public double fractionDBSitesDiscoveredInEval() {
-        return nOverlappingSites() / (1.0 * nDBSites());
+        AllelicVariant chip = (AllelicVariant)tracker.lookup(dbName, null);
+        inc(chip, eval);
+        return chip == null && eval != null ? "Novel " + eval : null;
     }
 
     public List<String> done() {
         List<String> s = new ArrayList<String>();
-        s.add(String.format("%d\t%d\t%d\t%.2f\t%.2f", nDBSites(), nEvalSites(), nOverlappingSites(), fractionEvalSitesCoveredByDB(), fractionDBSitesDiscoveredInEval()));
         s.add(String.format("name                 %s", dbName));
-        s.add(String.format("n_db_sites           %d", nDBSites()));
-        s.add(String.format("n_eval_sites         %d", nEvalSites()));
-        s.add(String.format("n_overlapping_sites  %d", nOverlappingSites()));
-        s.add(String.format("n_novel_sites        %d", nNovelSites()));
-        s.add(String.format("per_eval_sites_in_db %.2f", 100*fractionEvalSitesCoveredByDB()));
-        s.add(String.format("per_db_sites_in_eval %.2f", 100*fractionDBSitesDiscoveredInEval()));
+        s.add(String.format("\t\tCALLED REF\tCALLED VAR_HET\tCALLED_VAR_HOM\tNO CONF\tUNCALLABLE"));
+        s.add(String.format("IS REF\t%d\t%d\t%d\t%d\t%d", table[TRUTH_REF][CALL_REF], table[TRUTH_REF][CALL_VAR_HET], table[TRUTH_REF][CALL_VAR_HOM], table[TRUTH_REF][CALL_NO_CONF], table[TRUTH_REF][UNCALLABLE]));
+        s.add(String.format("IS VAR_HET\t%d\t%d\t%d\t%d\t%d", table[TRUTH_VAR_HET][CALL_REF], table[TRUTH_VAR_HET][CALL_VAR_HET], table[TRUTH_VAR_HET][CALL_VAR_HOM], table[TRUTH_VAR_HET][CALL_NO_CONF], table[TRUTH_VAR_HET][UNCALLABLE]));
+        s.add(String.format("IS VAR_HOM\t%d\t%d\t%d\t%d\t%d", table[TRUTH_VAR_HOM][CALL_REF], table[TRUTH_VAR_HOM][CALL_VAR_HET], table[TRUTH_VAR_HOM][CALL_VAR_HOM], table[TRUTH_VAR_HOM][CALL_NO_CONF], table[TRUTH_VAR_HOM][UNCALLABLE]));
+        s.add(String.format("UNKNOWN\t%d\t%d\t%d\t%d\t%d", table[TRUTH_UNKNOWN][CALL_REF], table[TRUTH_UNKNOWN][CALL_VAR_HET], table[TRUTH_UNKNOWN][CALL_VAR_HOM], table[TRUTH_UNKNOWN][CALL_NO_CONF], table[TRUTH_UNKNOWN][UNCALLABLE]));
         return s;
+    }
+
+    private static boolean isHet(AllelicVariant var) {
+        if ( var instanceof Genotype )
+            return ((Genotype)var).isHet();
+
+        List<String> genotype = var.getGenotype();
+        if ( genotype.size() < 2 )
+            return false;
+
+        return (genotype.get(0) != genotype.get(1));
     }
 }
