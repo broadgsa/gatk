@@ -18,6 +18,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+import org.broadinstitute.sting.utils.genotype.glf.GLFRecord;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -29,10 +30,12 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     // Control output settings
     @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = true) public File VARIANTS_FILE;
     @Argument(fullName = "metrics_out", shortName = "metout", doc = "File to which metrics should be written", required = false) public File METRICS_FILE = new File("/dev/stderr");
-    @Argument(fullName = "variant_output_format", shortName = "vf", doc = "File to which metrics should be written", required = false) public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.GLF;
+    @Argument(fullName = "variant_output_format", shortName = "vf", doc = "File to which metrics should be written", required = false) public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
 
     // Control what goes into the variants file and what format that file should have
     @Argument(fullName = "lod_threshold", shortName = "lod", doc = "The lod threshold on which variants should be filtered", required = false)public Double LOD_THRESHOLD = Double.MIN_VALUE;
+    @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confidient genotypes or just the variants?", required = false)
+    public boolean GENOTYPE = false;
 
     // Control periodic reporting features
     @Argument(fullName = "metrics_interval", shortName = "metint", doc = "Number of loci to process between metrics reports", required = false) public Integer METRICS_INTERVAL = 50000;
@@ -105,8 +108,8 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
     /** Initialize the walker with some sensible defaults */
     public void initialize() {
+        metricsOut = new AlleleMetrics(METRICS_FILE, LOD_THRESHOLD);
         if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.GLF) {
-            metricsOut = new AlleleMetrics(METRICS_FILE, LOD_THRESHOLD);
             mGenotypeWriter = GenotypeWriterFactory.create(GenotypeWriterFactory.GENOTYPE_FORMAT.GLF, GenomeAnalysisEngine.instance.getEngine().getSAMHeader(), VARIANTS_FILE);
         } else {
             try {
@@ -235,12 +238,12 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
             G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset]);
         }
-        if (this.VAR_FORMAT != GenotypeWriterFactory.GENOTYPE_FORMAT.GLF) {
-            G.ApplyPrior(ref, this.alt_allele, this.allele_frequency_prior);
-            if (!IGNORE_SECONDARY_BASES && pileup.getBases().length() < 750) {
-                G.applySecondBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
-            }
+
+        G.ApplyPrior(ref, this.alt_allele, this.allele_frequency_prior);
+        if (!IGNORE_SECONDARY_BASES && pileup.getBases().length() < 750) {
+            G.applySecondBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
         }
+
         return G;
     }
 
@@ -318,17 +321,21 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
      * @return an empty string
      */
     public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) {
-        if (alleleFreq != null && alleleFreq.lodVsRef >= LOD_THRESHOLD) {
+        //System.out.printf("AlleleFreqEstimate %s %f %f %f%n", alleleFreq,alleleFreq.lodVsNextBest, alleleFreq.lodVsRef, LOD_THRESHOLD );
+        if (alleleFreq != null && (GENOTYPE ? alleleFreq.lodVsNextBest : alleleFreq.lodVsRef) >= LOD_THRESHOLD) {
             if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.GELI) {
-                       variantsOut.println(alleleFreq.asGeliString());
+                variantsOut.println(alleleFreq.asGeliString());
             } else if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.TABULAR) {
                 variantsOut.println(alleleFreq.asTabularString());
             } else if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.GLF) {
                 SAMSequenceRecord rec = GenomeLocParser.getContigInfo(alleleFreq.location.getContig());
+
+                double[] likelihoods = new double[10];
                 for (int x = 0; x < alleleFreq.posteriors.length; x++) {
-                    alleleFreq.posteriors[x] *= 10;
+                    likelihoods[x] = GLFRecord.LIKELIHOOD_SCALE_FACTOR * alleleFreq.genotypeLikelihoods.likelihoods[x];
                 }
-                LikelihoodObject obj = new LikelihoodObject(alleleFreq.posteriors, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
+
+                LikelihoodObject obj = new LikelihoodObject(likelihoods, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
 
                 obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);
                 this.mGenotypeWriter.addGenotypeCall(rec,(int)alleleFreq.location.getStart(),0.0f,alleleFreq.ref,alleleFreq.depth,obj);
@@ -339,7 +346,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     }
 
     /** Close the variant file. */
-    public void onTraversalDone() {
+    public void onTraversalDone(String sum) { 
         if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.GLF) {
             mGenotypeWriter.close();
         } else {
