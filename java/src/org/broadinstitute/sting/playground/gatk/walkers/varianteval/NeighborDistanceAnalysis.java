@@ -39,7 +39,7 @@ public class NeighborDistanceAnalysis extends ViolationVariantAnalysis implement
     public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
         String r = null;
 
-        if ( eval != null ) {
+        if ( eval != null && eval.isSNP() ) {
             IntervalRod intervalROD = (IntervalRod)tracker.lookup("interval", null);
             GenomeLoc interval = intervalROD == null ? null : intervalROD.getLocation();
 

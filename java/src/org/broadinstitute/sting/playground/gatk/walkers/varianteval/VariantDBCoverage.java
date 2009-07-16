@@ -53,8 +53,8 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
     public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
         // There are four cases here:
         AllelicVariant dbsnp = (AllelicVariant)tracker.lookup(dbName, null);
-        inc(dbsnp != null, eval != null);
-        return dbsnp == null && eval != null ? "Novel " + eval : null;
+        inc(dbsnp != null, eval != null && eval.isSNP());
+        return dbsnp == null && eval != null && eval.isSNP() ? "Novel " + eval : null;
     }
 
     /**
