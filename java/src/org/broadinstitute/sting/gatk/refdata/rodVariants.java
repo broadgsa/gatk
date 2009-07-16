@@ -148,9 +148,16 @@ public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVa
         return new String( b );
     }
 
-    public char getRefSnpFWD() throws IllegalStateException { return 0; }
-    public String getAltBasesFWD() { return null; }
-    public char getAltSnpFWD() throws IllegalStateException { return 0; }
+    public char getRefSnpFWD() throws IllegalStateException { return getReferenceBase(); }
+    public String getAltBasesFWD() { return getBestGenotype(); }
+    public char getAltSnpFWD() throws IllegalStateException {
+        String bases = getBestGenotype();
+        if ( bases.charAt(0) != getRefSnpFWD() )
+            return bases.charAt(0);
+        else
+            return bases.charAt(1);
+
+    }
     public boolean isReference() { return ! isSNP(); }
     public boolean isSNP() { return getLodBtr() > 5; }
     public boolean isInsertion() { return false; }
