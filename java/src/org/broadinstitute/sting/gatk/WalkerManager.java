@@ -90,6 +90,8 @@ public class WalkerManager {
     public Walker createWalkerByName(String walkerName)
             throws InstantiationException, IllegalAccessException {
         Class<? extends Walker> walker = walkersByName.get(walkerName);
+        if( walker == null )
+            throw new StingException(String.format("Could not find walker with name: %s", walkerName));
         return walker.newInstance();
     }
 

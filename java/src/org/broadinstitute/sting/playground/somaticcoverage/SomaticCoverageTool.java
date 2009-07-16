@@ -47,7 +47,6 @@ public class SomaticCoverageTool extends CommandLineExecutable {
     @Argument(fullName = "bam_file", shortName = "I", doc = "The bam files, one for the tumor one for the normal", required = true)
     public List<File> samFiles = new ArrayList<File>();
 
-
     /** Required main method implementation. */
     public static void main( String[] argv ) {
         try {
@@ -69,8 +68,9 @@ public class SomaticCoverageTool extends CommandLineExecutable {
     }
 
     /** override any arguments we see fit. */
-    protected void overrideArguments() {
-        this.argCollection = GATKArgumentCollection.unmarshal(getClass().getClassLoader().getResourceAsStream("SomaticCoverage.xml"));
-        this.argCollection.samFiles = samFiles;
+    protected GATKArgumentCollection getArgumentCollection() {
+        GATKArgumentCollection argCollection = GATKArgumentCollection.unmarshal(getClass().getClassLoader().getResourceAsStream("SomaticCoverage.xml"));
+        argCollection.samFiles = samFiles;
+        return argCollection;
     }
 }

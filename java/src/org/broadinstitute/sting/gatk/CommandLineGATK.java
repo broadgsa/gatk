@@ -1,12 +1,7 @@
 package org.broadinstitute.sting.gatk;
 
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.xReadLines;
 import org.broadinstitute.sting.utils.cmdLine.*;
 
-import java.io.FileNotFoundException;
-import java.io.File;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -40,49 +35,18 @@ import net.sf.samtools.SAMFileReader;
  * gatk all the parsed out information.  Pretty much anything dealing with the underlying system should go here,
  * the gatk engine should  deal with any data related information.
  */
-public class CommandLineGATK extends CommandLineProgram {
+public class CommandLineGATK extends CommandLineExecutable {
 
     @Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
     public String analysisName = null;
 
-    @ArgumentCollection // our argument collection, the collection of command line args we accept
-    public GATKArgumentCollection argCollection = new GATKArgumentCollection();
-
-    /** our genome analysis engine */
-    GenomeAnalysisEngine GATKEngine = new GenomeAnalysisEngine();
-
-    /** Required main method implementation. */
-    public static void main(String[] argv) {
-        try {
-            CommandLineGATK instance = new CommandLineGATK();
-            start(instance, argv);
-        } catch (Exception e) {
-            exitSystemWithError(e);
-        }
-    }
-
-    /**
-     * this is the function that the inheriting class can expect to have called
-     * when the command line system has initialized.
-     *
-     * @return the return code to exit the program with
-     */
-    protected int execute() {
-        Walker<?,?> mWalker = GATKEngine.getWalkerByName(analysisName);
-
-        loadArgumentsIntoObject(argCollection);
-        loadArgumentsIntoObject(mWalker);
-
-        processArguments(argCollection);
-
-        this.argCollection.analysisName = this.analysisName;
-        GATKEngine.execute(argCollection, mWalker);
-        return 0;
-    }
+    // our argument collection, the collection of command line args we accept
+    @ArgumentCollection
+    protected GATKArgumentCollection argCollection = new GATKArgumentCollection();    
 
     /**
      * Get pleasing info about the GATK.
-     * @return
+     * @return A list of Strings that contain pleasant info about the GATK.
      */
     @Override
     protected List<String> getApplicationHeader() {
@@ -95,90 +59,23 @@ public class CommandLineGATK extends CommandLineProgram {
         return header;
     }
 
-    /**
-     * GATK can add arguments dynamically based on analysis type.
-     *
-     * @return true
-     */
     @Override
-    protected boolean canAddArgumentsDynamically() {
-        return true;
-    }
-
-    /**
-     * GATK provides the walker as an argument source.  As a side-effect, initializes the walker variable.
-     *
-     * @return List of walkers to load dynamically.
-     */
-    @Override
-    protected Class[] getArgumentSources() {
-        // No walker info?  No plugins.
-        if (analysisName == null) return new Class[] {};
-        return new Class[] { GATKEngine.getWalkerByName(analysisName).getClass() };
+    protected String getAnalysisName() {
+        return analysisName;
     }
 
     @Override
-    protected String getArgumentSourceName(Class argumentSource) {
-        return WalkerManager.getWalkerName((Class<Walker>) argumentSource);
-    }
-
-    public GATKArgumentCollection getArgCollection() {
+    protected GATKArgumentCollection getArgumentCollection() {
         return argCollection;
     }
 
-    public void setArgCollection(GATKArgumentCollection argCollection) {
-        this.argCollection = argCollection;
-    }
-
-    /**
-     * Get a custom factory for instantiating specialty GATK arguments.
-     * @return An instance of the command-line argument of the specified type.
-     */
-    @Override
-    protected ArgumentFactory getCustomArgumentFactory() {
-        return new ArgumentFactory() {
-            public Object createArgument( Class type, List<String> repr ) {
-                if (type == SAMFileReader.class && repr.size() == 1) {
-                    SAMFileReader samFileReader = new SAMFileReader(new File(repr.get(0)),true);
-                    samFileReader.setValidationStringency(argCollection.strictnessLevel);
-                    return samFileReader;
-                }
-                return null;
-            }
-        };
-    }
-
-    /**
-     * Preprocess the arguments before submitting them to the GATK engine.
-     * @param argCollection Collection of arguments to preprocess.
-     */
-    private void processArguments( GATKArgumentCollection argCollection ) {
-        argCollection.samFiles = unpackReads( argCollection.samFiles );    
-    }
-
-    /**
-     * Unpack the files to be processed, given a list of files.  That list of files can
-     * itself contain lists of other files to be read.
-     * @param inputFiles
-     * @return
-     */
-    private List<File> unpackReads( List<File> inputFiles ) {
-        List<File> unpackedReads = new ArrayList<File>();
-        for( File inputFile: inputFiles ) {
-            if( inputFile.getName().endsWith(".list") ) {
-                try {
-                    for( String fileName : new xReadLines(inputFile) )
-                        unpackedReads.add( new File(fileName) );
-                }
-                catch( FileNotFoundException ex ) {
-                    throw new StingException("Unable to find file while unpacking reads", ex);
-                }
-            }
-            else
-                unpackedReads.add( inputFile );
+    /** Required main method implementation. */
+    public static void main(String[] argv) {
+        try {
+            CommandLineGATK instance = new CommandLineGATK();
+            start(instance, argv);
+        } catch (Exception e) {
+            exitSystemWithError(e);
         }
-        return unpackedReads;
     }
-
-
 }
