@@ -63,9 +63,6 @@ public class GenomeAnalysisEngine {
     /** our walker manager */
     private final WalkerManager walkerManager;
 
-    /** plugin path for the walker manager. */
-    public final String pluginPathName = null;
-
     /**
      * our constructor, where all the work is done
      * <p/>
@@ -73,7 +70,7 @@ public class GenomeAnalysisEngine {
      * new MicroScheduler class we'll be able to delete that function.
      *
      */
-    public GenomeAnalysisEngine() {
+    public GenomeAnalysisEngine( String pluginPathName ) {
         // make sure our instance variable points to this analysis engine
         instance = this;
         walkerManager = new WalkerManager(pluginPathName);

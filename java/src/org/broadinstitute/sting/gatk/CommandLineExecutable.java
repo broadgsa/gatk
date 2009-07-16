@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk;
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentFactory;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.xReadLines;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -42,17 +43,22 @@ import net.sf.samtools.SAMFileReader;
 
 /**
  * @author aaron
- *         <p/>
- *         Generate a executable class for the SomaticCoverageWalker
  */
 public abstract class CommandLineExecutable extends CommandLineProgram {
 
-    // our genome analysis engine
-    private GenomeAnalysisEngine GATKEngine = new GenomeAnalysisEngine();
+    /**
+     * Get an instance of the GATK engine.
+     * @return The GATK engine that will power the requested traversal.
+     */
+    protected abstract GenomeAnalysisEngine getGATKEngine();
 
     // get the analysis name
     protected abstract String getAnalysisName();
 
+    /**
+     * Gets the GATK argument bundle.
+     * @return A structure consisting of whatever arguments should be used to initialize the GATK engine.
+     */
     protected abstract GATKArgumentCollection getArgumentCollection();
 
     // override select arguments
@@ -65,9 +71,10 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      * @return the return code to exit the program with
      */
     protected int execute() {
-        Walker<?,?> mWalker = GATKEngine.getWalkerByName(getAnalysisName());
-
+        GenomeAnalysisEngine GATKEngine = getGATKEngine();
         GATKArgumentCollection arguments = getArgumentCollection();
+
+        Walker<?,?> mWalker = GATKEngine.getWalkerByName(getAnalysisName());
 
         // load the arguments into the walkers
         loadArgumentsIntoObject(arguments);
@@ -101,7 +108,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     protected Class[] getArgumentSources() {
         // No walker info?  No plugins.
         if (getAnalysisName() == null) return new Class[] {};
-        return new Class[] { GATKEngine.getWalkerByName(getAnalysisName()).getClass() };
+        return new Class[] { getGATKEngine().getWalkerByName(getAnalysisName()).getClass() };
     }
 
     @Override

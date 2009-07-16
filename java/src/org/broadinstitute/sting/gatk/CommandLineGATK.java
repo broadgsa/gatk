@@ -36,13 +36,18 @@ import net.sf.samtools.SAMFileReader;
  * the gatk engine should  deal with any data related information.
  */
 public class CommandLineGATK extends CommandLineExecutable {
+    // our genome analysis engine
+    private GenomeAnalysisEngine GATKEngine = null;
 
     @Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
-    public String analysisName = null;
+    private String analysisName = null;
+
+    @Argument(fullName = "plugin_path", doc = "Which path will the GATK search for plugin walkers.", required = false)
+    private String pluginPath = null;            
 
     // our argument collection, the collection of command line args we accept
     @ArgumentCollection
-    protected GATKArgumentCollection argCollection = new GATKArgumentCollection();    
+    private GATKArgumentCollection argCollection = new GATKArgumentCollection();    
 
     /**
      * Get pleasing info about the GATK.
@@ -58,6 +63,19 @@ public class CommandLineGATK extends CommandLineExecutable {
         header.add("");
         return header;
     }
+
+    /**
+     * Lazy load the GATK engine.  This current CANNOT happen until after the command-line arguments are populated.
+     * TODO: Make this chain of events more explicit.  Perhaps an abstract initialize method after clp arguments are parsed?
+     * @return The GATK engine that will power the requested traversal.
+     */
+    @Override
+    protected GenomeAnalysisEngine getGATKEngine() {
+        if( GATKEngine == null )
+            GATKEngine = new GenomeAnalysisEngine( pluginPath );
+        return GATKEngine;
+    }
+
 
     @Override
     protected String getAnalysisName() {
