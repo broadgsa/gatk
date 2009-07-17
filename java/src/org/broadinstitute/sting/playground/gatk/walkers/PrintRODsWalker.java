@@ -44,4 +44,6 @@ public class PrintRODsWalker extends RefWalker<Integer, Integer> {
     public Integer reduce(Integer value, Integer sum) {
         return sum + value;
     }
+
+    public void onTraversalDone(Integer result) {}    
 }
