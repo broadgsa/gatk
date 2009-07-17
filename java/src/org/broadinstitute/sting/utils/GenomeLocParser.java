@@ -51,6 +51,11 @@ import java.util.regex.Pattern;
 public class GenomeLocParser {
     private static Logger logger = Logger.getLogger(GenomeLocParser.class);
 
+    private static final Pattern regex1 = Pattern.compile("([\\w&&[^:]]+)$");                      // matches case 1
+    private static final Pattern regex2 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)$");            // matches case 2
+    private static final Pattern regex3 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)-([\\d,]+)$");  // matches case 3
+    private static final Pattern regex4 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)\\+");          // matches case 4
+
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -138,10 +143,6 @@ public class GenomeLocParser {
         // 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
         //System.out.printf("Parsing location '%s'%n", str);
 
-        final Pattern regex1 = Pattern.compile("([\\w&&[^:]]+)$");                      // matches case 1
-        final Pattern regex2 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)$");            // matches case 2
-        final Pattern regex3 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)-([\\d,]+)$");  // matches case 3
-        final Pattern regex4 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)\\+");          // matches case 4
 
         String contig = null;
         long start = 1;
