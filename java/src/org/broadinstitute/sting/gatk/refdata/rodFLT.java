@@ -29,6 +29,17 @@ public class rodFLT extends TabularROD implements SNPCallFromGenotypes {
         else
             return bases[1];
     }
+
+    public String toString() {
+        StringBuffer sb = new StringBuffer();
+        sb.append(loc.getContig() + "\t" + loc.getStart() + "\t");
+        sb.append(getRefSnpFWD() + "\t-1\t-1\t" + getAltBasesFWD());
+        for (int i=0; i < 12; i++)
+            sb.append("\t0");
+        sb.append("\n");
+        return sb.toString();
+    }
+
     public boolean isReference()   { return false; }
     public boolean isSNP()         { return true; }
     public boolean isInsertion()   { return false; }
