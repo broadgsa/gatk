@@ -36,7 +36,6 @@ public class rodFLT extends TabularROD implements SNPCallFromGenotypes {
         sb.append(getRefSnpFWD() + "\t-1\t-1\t" + getAltBasesFWD());
         for (int i=0; i < 12; i++)
             sb.append("\t0");
-        sb.append("\n");
         return sb.toString();
     }
 
