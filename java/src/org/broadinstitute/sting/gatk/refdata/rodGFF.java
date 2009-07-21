@@ -158,7 +158,7 @@ public class rodGFF extends BasicReferenceOrderedDatum implements AllelicVariant
     public String getAltBasesFWD() { return null; }
     public char getAltSnpFWD() throws IllegalStateException { return 0; }
     public boolean isReference() { return ! isSNP(); }
-    public boolean isSNP() { return score == Double.NaN || score > 5.0; }
+    public boolean isSNP() { return false; }
     public boolean isInsertion() { return false; }
     public boolean isDeletion() { return false; }
     public boolean isIndel() { return false; }
@@ -168,6 +168,7 @@ public class rodGFF extends BasicReferenceOrderedDatum implements AllelicVariant
     public double getVariationConfidence() { return score; }
     public double getConsensusConfidence() { return score; }
     public List<String> getGenotype() throws IllegalStateException {
+        //System.out.printf("feature = %s%n", feature);
         return Arrays.asList(feature);
     }
 

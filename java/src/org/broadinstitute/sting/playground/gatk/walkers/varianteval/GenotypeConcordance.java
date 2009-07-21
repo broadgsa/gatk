@@ -3,6 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -36,50 +37,58 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
     public GenotypeConcordance(final String name) {
         super("genotype_concordance");
         dbName = name;
+        for ( int i = 0; i < 4; i++ ) {
+            for ( int j = 0; j < 5; j++ ) {
+                table[i][j] = 0;
+            }
+        }
     }
 
-    public void inc(AllelicVariant chip, AllelicVariant eval) {
+    public void inc(AllelicVariant chip, AllelicVariant eval, char ref) {
         if ( (chip != null && !chip.isGenotype()) || (eval != null && !eval.isGenotype()) )
             throw new StingException("Failure: trying to analyze genotypes of non-genotype data");
 
         int truthIndex, callIndex;
         if ( chip == null )
             truthIndex = TRUTH_UNKNOWN;
-        else if ( chip.isReference() )
+        else if ( chip.isReference() && Utils.countOccurrences(ref, chip.getGenotype().get(0)) == chip.getGenotype().get(0).length() )
             truthIndex = TRUTH_REF;
         else if ( isHet(chip) )
             truthIndex = TRUTH_VAR_HET;
         else
             truthIndex = TRUTH_VAR_HOM;
 
+        // todo -- FIXME on countOccurences
         if ( eval == null )
             callIndex = UNCALLABLE;
-        else if ( eval.getVariationConfidence() < 5.0 )
-            callIndex = CALL_NO_CONF;
-        else if ( eval.isReference() )
+        else if ( eval.isReference() && Utils.countOccurrences(ref, eval.getGenotype().get(0)) == eval.getGenotype().get(0).length() )
             callIndex = CALL_REF;
         else if ( isHet(eval) )
             callIndex = CALL_VAR_HET;
         else
             callIndex = CALL_VAR_HOM;
 
-        table[truthIndex][callIndex]++;
+        if ( chip != null || eval != null ) {
+            System.out.printf("TESTING ME: %d/%d %s vs. %s%n", truthIndex, callIndex, chip, eval);
+
+            table[truthIndex][callIndex]++;
+        }
     }
 
     public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
         AllelicVariant chip = (AllelicVariant)tracker.lookup(dbName, null);
-        inc(chip, eval);
-        return chip == null && eval != null ? "Novel " + eval : null;
+        inc(chip, eval, ref);
+        return null;
     }
 
     public List<String> done() {
         List<String> s = new ArrayList<String>();
         s.add(String.format("name                 %s", dbName));
-        s.add(String.format("\t\tCALLED REF\tCALLED VAR_HET\tCALLED_VAR_HOM\tNO CONF\tUNCALLABLE"));
-        s.add(String.format("IS REF\t%d\t%d\t%d\t%d\t%d", table[TRUTH_REF][CALL_REF], table[TRUTH_REF][CALL_VAR_HET], table[TRUTH_REF][CALL_VAR_HOM], table[TRUTH_REF][CALL_NO_CONF], table[TRUTH_REF][UNCALLABLE]));
-        s.add(String.format("IS VAR_HET\t%d\t%d\t%d\t%d\t%d", table[TRUTH_VAR_HET][CALL_REF], table[TRUTH_VAR_HET][CALL_VAR_HET], table[TRUTH_VAR_HET][CALL_VAR_HOM], table[TRUTH_VAR_HET][CALL_NO_CONF], table[TRUTH_VAR_HET][UNCALLABLE]));
-        s.add(String.format("IS VAR_HOM\t%d\t%d\t%d\t%d\t%d", table[TRUTH_VAR_HOM][CALL_REF], table[TRUTH_VAR_HOM][CALL_VAR_HET], table[TRUTH_VAR_HOM][CALL_VAR_HOM], table[TRUTH_VAR_HOM][CALL_NO_CONF], table[TRUTH_VAR_HOM][UNCALLABLE]));
-        s.add(String.format("UNKNOWN\t%d\t%d\t%d\t%d\t%d", table[TRUTH_UNKNOWN][CALL_REF], table[TRUTH_UNKNOWN][CALL_VAR_HET], table[TRUTH_UNKNOWN][CALL_VAR_HOM], table[TRUTH_UNKNOWN][CALL_NO_CONF], table[TRUTH_UNKNOWN][UNCALLABLE]));
+        s.add(String.format("\t\tCALLED_REF\tCALLED_VAR_HET\tCALLED_VAR_HOM\tNO_CONF\tUNCALLABLE"));
+        s.add(String.format("IS_REF\t\t%d\t\t%d\t\t%d\t\t%d\t\t%d", table[TRUTH_REF][CALL_REF], table[TRUTH_REF][CALL_VAR_HET], table[TRUTH_REF][CALL_VAR_HOM], table[TRUTH_REF][CALL_NO_CONF], table[TRUTH_REF][UNCALLABLE]));
+        s.add(String.format("IS_VAR_HET\t\t%d\t\t%d\t\t%d\t\t%d\t\t%d", table[TRUTH_VAR_HET][CALL_REF], table[TRUTH_VAR_HET][CALL_VAR_HET], table[TRUTH_VAR_HET][CALL_VAR_HOM], table[TRUTH_VAR_HET][CALL_NO_CONF], table[TRUTH_VAR_HET][UNCALLABLE]));
+        s.add(String.format("IS_VAR_HOM\t\t%d\t\t%d\t\t%d\t\t%d\t\t%d", table[TRUTH_VAR_HOM][CALL_REF], table[TRUTH_VAR_HOM][CALL_VAR_HET], table[TRUTH_VAR_HOM][CALL_VAR_HOM], table[TRUTH_VAR_HOM][CALL_NO_CONF], table[TRUTH_VAR_HOM][UNCALLABLE]));
+        s.add(String.format("UNKNOWN\t\t%d\t\t%d\t\t%d\t\t%d\t\t%d", table[TRUTH_UNKNOWN][CALL_REF], table[TRUTH_UNKNOWN][CALL_VAR_HET], table[TRUTH_UNKNOWN][CALL_VAR_HOM], table[TRUTH_UNKNOWN][CALL_NO_CONF], table[TRUTH_UNKNOWN][UNCALLABLE]));
         return s;
     }
 
@@ -88,9 +97,12 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
             return ((Genotype)var).isHet();
 
         List<String> genotype = var.getGenotype();
-        if ( genotype.size() < 2 )
+        if ( genotype.size() < 1 )
             return false;
 
-        return (genotype.get(0) != genotype.get(1));
+
+        boolean het = genotype.get(0).charAt(0) != genotype.get(0).charAt(1);
+        System.out.printf("********* Genotype %s is het = %b%n", genotype, het);
+        return het;        
     }
 }

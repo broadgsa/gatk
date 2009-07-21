@@ -1,12 +1,3 @@
-package org.broadinstitute.sting.gatk.refdata;
-
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Arrays;
-
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -32,6 +23,15 @@ import java.util.Arrays;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+package org.broadinstitute.sting.gatk.refdata;
+
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Arrays;
+
 public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVariant {
     public enum Genotype { AA, AC, AG, AT, CC, CG, CT, GG, GT, TT }
     public GenomeLoc loc;
@@ -43,7 +43,9 @@ public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVa
     public double lodBtnb;
     public double[] genotypeLikelihoods = new double[10];
     
-    public rodVariants(final String name) { super(name); }
+    public rodVariants(final String name) {
+        super(name);
+    }
 
     public String delimiterRegex() { return "\\s+"; }
 
@@ -90,7 +92,80 @@ public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVa
         );
     }
 
+    public int compareTo(ReferenceOrderedDatum referenceOrderedDatum) {
+        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
     public GenomeLoc getLocation() { return loc; }
+
+    public String getRefBasesFWD() {
+        return String.format("%c", getRefSnpFWD());
+    }
+
+    public char getRefSnpFWD() throws IllegalStateException {
+        return refBase;
+    }
+
+    public String getAltBasesFWD() {
+        return String.format("%c", getAltSnpFWD());
+    }
+
+    public char getAltSnpFWD() throws IllegalStateException {
+        return (bestGenotype.charAt(0) == refBase) ? bestGenotype.charAt(1) : bestGenotype.charAt(0);
+    }
+
+    public boolean isReference() {
+        return refBase == bestGenotype.charAt(0);
+    }
+
+    public boolean isSNP() {
+        return !isReference();
+    }
+
+    public boolean isInsertion() {
+        return false;
+    }
+
+    public boolean isDeletion() {
+        return false;
+    }
+
+    public boolean isIndel() {
+        return false;
+    }
+
+    public double getMAF() {
+        return 0;
+    }
+
+    public double getHeterozygosity() {
+        return 0;
+    }
+
+    public boolean isGenotype() {
+        return true;
+    }
+
+    public double getVariationConfidence() {
+        return lodBtr;
+    }
+
+    public double getConsensusConfidence() {
+        return lodBtnb;
+    }
+
+    public List<String> getGenotype() throws IllegalStateException {
+        return Arrays.asList(getBestGenotype());
+        //throw new IllegalStateException("huh?");
+    }
+
+    public int getPloidy() throws IllegalStateException {
+        return 2;
+    }
+
+    public boolean isBiallelic() {
+        return true;
+    }
 
     public char getReferenceBase() { return refBase; }
 
@@ -142,6 +217,7 @@ public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVa
         this.lodBtnb = (bestLikelihood - nextBestLikelihood);
     }
 
+    /*
     public String getRefBasesFWD() {
         char[] b = { getReferenceBase() };
         return new String( b );
@@ -173,4 +249,5 @@ public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVa
      
     public int getPloidy() throws IllegalStateException { return 2; }
     public boolean isBiallelic() { return true; }
+    */
 }
