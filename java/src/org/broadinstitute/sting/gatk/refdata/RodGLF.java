@@ -273,7 +273,7 @@ public class RodGLF implements ReferenceOrderedDatum, AllelicVariant, Iterator<R
      */
     @Override
     public double getMAF() {
-        throw new UnsupportedOperationException("getMAF is unsupported");
+        return 0;
     }
 
     /**
@@ -283,7 +283,7 @@ public class RodGLF implements ReferenceOrderedDatum, AllelicVariant, Iterator<R
      */
     @Override
     public double getHeterozygosity() {
-        throw new UnsupportedOperationException("getHeterozygosity is unsupported");
+        return 0;
     }
 
     /**
