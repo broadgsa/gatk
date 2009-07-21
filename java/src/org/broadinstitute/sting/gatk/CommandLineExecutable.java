@@ -13,7 +13,6 @@ import java.util.ArrayList;
 
 import net.sf.samtools.SAMFileReader;
 
-
 /*
  * Copyright (c) 2009 The Broad Institute
  *

@@ -291,8 +291,8 @@ public class ParsingEngine {
     /**
      * Prints out the help associated with these command-line argument definitions.
      */
-    public void printHelp( String runningInstructions ) {
-        new HelpFormatter().printHelp(runningInstructions,argumentDefinitions);
+    public void printHelp( ApplicationDetails applicationDetails ) {
+        new HelpFormatter().printHelp(applicationDetails,argumentDefinitions);
     }
 
     /**

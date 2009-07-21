@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.utils;
 
 import java.lang.reflect.Modifier;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,6 +18,25 @@ public class JVMUtils {
      * Constructor access disallowed...static utility methods only!
      */
     private JVMUtils() { }
+
+    /**
+     * Determines which location contains the specified class.
+     *
+     * @return Location (either jar file or directory) of path containing class.
+     */
+    public static File getLocationFor( Class clazz ) throws IOException {
+        try {
+            java.net.URI locationURI = clazz.getProtectionDomain().getCodeSource().getLocation().toURI();
+            return new File(locationURI);
+        }
+        catch (java.net.URISyntaxException ex) {
+            // a URISyntaxException here must be an IO error; wrap as such.
+            throw new IOException(ex);
+        }
+        catch ( NullPointerException ne ) {
+        	throw new IOException("Can not extract code source location for "+clazz.getName());
+        }
+    }    
 
     /**
      * Is the specified class a concrete implementation of baseClass?

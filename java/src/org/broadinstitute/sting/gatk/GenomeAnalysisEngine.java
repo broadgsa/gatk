@@ -41,6 +41,7 @@ import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class GenomeAnalysisEngine {
 
@@ -145,19 +146,20 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Gets a set of the names of all walkers that the GATK has discovered.
+     * @return A set of the names of all discovered walkers.
+     */
+    public Set<String> getWalkerNames() {
+        return walkerManager.getWalkerNames();
+    }
+
+    /**
      * Retrieves an instance of the walker based on the walker name.
      * @param walkerName Name of the walker.  Must not be null.  If the walker cannot be instantiated, an exception will be thrown.
      * @return An instance of the walker.
      */
     public Walker<?,?> getWalkerByName( String walkerName ) {
-        try {
-            return walkerManager.createWalkerByName(walkerName);
-        } catch (InstantiationException ex) {
-            throw new StingException("Unable to instantiate walker.", ex);
-        }
-        catch (IllegalAccessException ex) {
-            throw new StingException("Unable to access walker", ex);
-        }
+        return walkerManager.createWalkerByName(walkerName);
     }
 
 

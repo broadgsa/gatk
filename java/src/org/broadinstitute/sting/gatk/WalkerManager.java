@@ -1,3 +1,28 @@
+/*
+ * Copyright (c) 2009 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk;
 
 import java.util.*;
@@ -47,12 +72,27 @@ public class WalkerManager {
      * @param walkerName Name of the walker to retrieve.
      * @return The walker object if found; null otherwise.
      */
-    public Walker createWalkerByName(String walkerName)
-            throws InstantiationException, IllegalAccessException {
-        Class<? extends Walker> walker = walkersByName.get(walkerName);
-        if( walker == null )
-            throw new StingException(String.format("Could not find walker with name: %s", walkerName));
-        return walker.newInstance();
+    public Walker createWalkerByName(String walkerName) {
+        try {
+            Class<? extends Walker> walker = walkersByName.get(walkerName);
+            if( walker == null )
+                throw new StingException(String.format("Could not find walker with name: %s", walkerName));
+            return walker.newInstance();
+        }
+        catch( InstantiationException ex ) {
+            throw new StingException("Unable to instantiate walker " + walkerName, ex);            
+        }
+        catch( IllegalAccessException ex ) {
+            throw new StingException("Unable to access walker " + walkerName, ex);
+        }
+    }
+
+    /**
+     * Get the list of walkers currently available to the GATK.
+     * @return Names of currently available walkers.
+     */
+    public Set<String> getWalkerNames() {
+        return Collections.unmodifiableSet( walkersByName.keySet() );
     }
 
     /**
@@ -177,7 +217,6 @@ public class WalkerManager {
 
         for (Class<? extends Walker> walkerClass : walkerClasses) {
             String walkerName = getWalkerName(walkerClass);
-            logger.info(String.format("* Adding module %s", walkerName));
             walkers.put(walkerName, walkerClass);
         }
 

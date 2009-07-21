@@ -1,16 +1,12 @@
 package org.broadinstitute.sting.utils.cmdLine;
 
 import org.apache.log4j.*;
-import org.broadinstitute.sting.utils.JVMUtils;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.EnumSet;
 import java.util.Enumeration;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * User: aaron
@@ -91,30 +87,12 @@ public abstract class CommandLineProgram {
     private static String debugPatternString = "%n[level] %p%n[date]\t\t %d{dd MMM yyyy HH:mm:ss,SSS} %n[class]\t\t %C %n[location]\t %l %n[line number]\t %L %n[message]\t %m %n";
 
     /**
-     * Retrieves text from the application regarding what parameters to put on the
-     * JVM command line to run this application.
-     * @return helpful instructions on the class / jar to run.
+     * Allows a given application to return a brief description of itself.
+     * @return An ApplicationDetails object describing the current application.  Should not be null. 
      */
-    protected String getRunningInstructions() {
-        // Default implementation to find a command line that makes sense.
-        // If the user is running from a jar, return '-jar <jarname>'; otherwise
-        // return the full class name.
-        String runningInstructions = getClass().getName();
-
-        if( runningInstructions.endsWith(".jar") )
-            runningInstructions = String.format("-jar %s", runningInstructions);
-        else
-            runningInstructions = getClass().getName();
-
-        return runningInstructions;
-    }
-
-    /**
-     * Allows a given application to return a few lines of text describing the application.
-     * @return A few lines of text describing the application.  Should not be null.
-     */
-    protected List<String> getApplicationHeader() {
-        return Collections.singletonList("Program Name: " + getClass().getName());           
+    protected ApplicationDetails getApplicationDetails() {
+        return new ApplicationDetails( ApplicationDetails.createDefaultHeader(getClass()),
+                                       ApplicationDetails.createDefaultRunningInstructions(getClass()) );
     }
 
     /**
@@ -260,7 +238,7 @@ public abstract class CommandLineProgram {
             System.exit(result);
         }
         catch (ArgumentException e) {
-            clp.parser.printHelp( clp.getRunningInstructions() );
+            clp.parser.printHelp( clp.getApplicationDetails() );
             // Rethrow the exception to exit with an error.
             throw e;
         }
@@ -307,7 +285,7 @@ public abstract class CommandLineProgram {
         java.util.Date date = new java.util.Date();
 
         logger.info("-------------------------------------------------------");
-        for( String headerLine: clp.getApplicationHeader() )
+        for( String headerLine: clp.getApplicationDetails().applicationHeader )
             logger.info(headerLine);
         String output = "";
         for (String str : args) {
@@ -378,7 +356,7 @@ public abstract class CommandLineProgram {
      * @param parser True if help is present; false otherwise.
      */
     private static void printHelpAndExit( CommandLineProgram clp, ParsingEngine parser ) {
-        parser.printHelp( clp.getRunningInstructions() );
+        parser.printHelp( clp.getApplicationDetails() );
         System.exit(0);
     }
 

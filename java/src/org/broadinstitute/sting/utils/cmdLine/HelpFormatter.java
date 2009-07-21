@@ -30,16 +30,21 @@ public class HelpFormatter {
     /**
      * Target this line width.
      */
-    private static final int LINE_WIDTH = 100;
-    private static final int ARG_DOC_SEPARATION_WIDTH = 3;
+    public static final int LINE_WIDTH = 100;
+    public static final int FIELD_SEPARATION_WIDTH = 3;
 
     /**
      * Prints the help, given a collection of argument definitions.
      * @param argumentDefinitions Argument definitions for which help should be printed.
      */
-    public void printHelp( String runningInstructions, ArgumentDefinitions argumentDefinitions ) {
+    public void printHelp( ApplicationDetails applicationDetails, ArgumentDefinitions argumentDefinitions ) {
         List<ArgumentDefinitionGroup> argumentGroups = prepareArgumentGroups( argumentDefinitions );
-        System.out.printf("%s%s%n",getSynopsis(runningInstructions,argumentGroups),getDetailed(argumentGroups) );
+
+        String synopsis = getSynopsis(applicationDetails.runningInstructions,argumentGroups);
+        String additionalDetails = applicationDetails.additionalHelp != null ? applicationDetails.additionalHelp : "";
+        String detailedDescription = getDetailed(argumentGroups);
+
+        System.out.printf("%s%n%s%n%s%n",synopsis,detailedDescription,additionalDetails );
     }
 
     /**
@@ -114,8 +119,8 @@ public class HelpFormatter {
 
         // Try to fit the entire argument definition across the screen, but impose an arbitrary cap of 3/4 *
         // LINE_WIDTH in case the length of the arguments gets out of control.
-        int argWidth = Math.min( findLongestArgumentCallingInfo(argumentDefinitions), (LINE_WIDTH*3)/4 - ARG_DOC_SEPARATION_WIDTH );
-        int docWidth = LINE_WIDTH - argWidth - ARG_DOC_SEPARATION_WIDTH;
+        int argWidth = Math.min( findLongestArgumentCallingInfo(argumentDefinitions), (LINE_WIDTH*3)/4 - FIELD_SEPARATION_WIDTH );
+        int docWidth = LINE_WIDTH - argWidth - FIELD_SEPARATION_WIDTH;
 
         for( ArgumentDefinition argumentDefinition: argumentDefinitions ) {
             Iterator<String> wordWrappedArgs = wordWrap( getArgumentCallingInfo(argumentDefinition), argWidth ).iterator();
@@ -125,7 +130,7 @@ public class HelpFormatter {
                 String arg = wordWrappedArgs.hasNext() ? wordWrappedArgs.next() : "";
                 String doc = wordWrappedDoc.hasNext() ? wordWrappedDoc.next() : "";
 
-                String formatString = "%-" + argWidth + "s%" + ARG_DOC_SEPARATION_WIDTH + "s%s%n";
+                String formatString = "%-" + argWidth + "s%" + FIELD_SEPARATION_WIDTH + "s%s%n";
                 formatter.format( formatString, arg, "", doc );
             }
         }
