@@ -42,9 +42,6 @@ public class CommandLineGATK extends CommandLineExecutable {
     @Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
     private String analysisName = null;
 
-    @Argument(fullName = "plugin_path", doc = "Which path will the GATK search for plugin walkers.", required = false)
-    private String pluginPath = null;            
-
     // our argument collection, the collection of command line args we accept
     @ArgumentCollection
     private GATKArgumentCollection argCollection = new GATKArgumentCollection();    
@@ -72,7 +69,7 @@ public class CommandLineGATK extends CommandLineExecutable {
     @Override
     protected GenomeAnalysisEngine getGATKEngine() {
         if( GATKEngine == null )
-            GATKEngine = new GenomeAnalysisEngine( pluginPath );
+            GATKEngine = new GenomeAnalysisEngine();
         return GATKEngine;
     }
 

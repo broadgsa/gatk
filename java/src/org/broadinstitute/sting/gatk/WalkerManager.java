@@ -1,19 +1,12 @@
 package org.broadinstitute.sting.gatk;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Arrays;
+import java.util.*;
 
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.utils.JVMUtils;
-import org.broadinstitute.sting.utils.PathUtils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.PackageUtils;
 import org.apache.log4j.Logger;
 import net.sf.picard.filter.SamRecordFilter;
 
@@ -33,42 +26,9 @@ public class WalkerManager {
 
     private Map<String, Class<? extends Walker>> walkersByName;
 
-    public WalkerManager(String pluginDirectory) {
-        try {
-            List<Class> walkerCandidates = new ArrayList<Class>();
-
-            // Load all classes that live in this jar.
-            final File location = JVMUtils.getLocationFor( getClass() );
-            walkerCandidates.addAll(loadClassesFromLocation(location));
-
-            // Load all classes that live in the extension path.
-            if (pluginDirectory == null)
-                pluginDirectory = location.getParent() + File.separator + "walkers";
-            logger.info("plugin directory: " + pluginDirectory);
-
-            File extensionPath = new File(pluginDirectory);
-            if (extensionPath.exists()) {
-                List<String> classFilesInPath = PathUtils.findFilesInPath(extensionPath, "", "class", false);
-                walkerCandidates.addAll(JVMUtils.loadExternalClasses(extensionPath, classFilesInPath));
-                List<String> jarsInPath = PathUtils.findFilesInPath(extensionPath, "", "jar", false);
-                for( String jarFileName: jarsInPath ) {
-                    File jarFile = new File( extensionPath, jarFileName );
-                    walkerCandidates.addAll(JVMUtils.loadExternalClassesFromJar(jarFile) );
-                }
-            }
-
-            List<Class<? extends Walker>> walkers = filterWalkers(walkerCandidates);
-
-            if (walkerCandidates.isEmpty())
-                throw new RuntimeException("No walkers were found.");
-
-            walkersByName = createWalkerDatabase(walkers);
-        }
-        // IOExceptions here are suspect; they indicate that the WalkerManager can't open its containing jar.
-        // Wrap in a RuntimeException.
-        catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
+    public WalkerManager() {
+        List<Class<? extends Walker>> walkers = PackageUtils.getClassesImplementingInterface(Walker.class);
+        walkersByName = createWalkerDatabase(walkers);
     }
 
     /**
@@ -204,38 +164,6 @@ public class WalkerManager {
         }
 
         return filters;
-    }
-
-    /**
-     * Load classes internal to the classpath from an arbitrary location.
-     *
-     * @param location Location from which to load classes.
-     * @return List of classes.
-     * @throws IOException Problem occurred reading classes.
-     */
-    private List<Class> loadClassesFromLocation(File location)
-            throws IOException {
-        if (location.getAbsolutePath().endsWith(".jar"))
-            return JVMUtils.loadInternalClassesFromJar(location);
-        else {
-            List<String> classFileNames = PathUtils.findFilesInPath(location, "", "class", true);
-            return JVMUtils.loadInternalClasses(classFileNames);
-        }
-    }
-
-    /**
-     * Given a list of classes, return a list of those classes which extend from the Walker base interface.
-     *
-     * @param classes Arbitrary list of classes.
-     * @return List of classes extending from Walker.
-     */
-    private List<Class<? extends Walker>> filterWalkers(List<Class> classes) {
-        List<Class<? extends Walker>> walkerClasses = new ArrayList<Class<? extends Walker>>();
-        for( Class clazz: classes ) {
-            if( JVMUtils.isConcreteImplementationOf(clazz,Walker.class) )
-                walkerClasses.add( (Class<? extends Walker>)clazz );
-        }
-        return walkerClasses;
     }
 
     /**

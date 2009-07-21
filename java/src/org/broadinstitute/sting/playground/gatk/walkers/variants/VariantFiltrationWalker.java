@@ -16,9 +16,7 @@ import org.broadinstitute.sting.playground.gatk.walkers.variants.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
 /**
  * VariantFiltrationWalker applies specified conditionally independent features to pre-called variants, thus modifying
@@ -33,8 +31,8 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="list", shortName="ls", doc="List the available features and exclusion criteria and exit") public Boolean LIST = false;
     @Argument(fullName="truth", shortName="truth", doc="Operate on truth set only") public Boolean TRUTH = false;
 
-    private ArrayList<Class> featureClasses;
-    private ArrayList<Class> exclusionClasses;
+    private List<Class<? extends IndependentVariantFeature>> featureClasses;
+    private List<Class<? extends VariantExclusionCriterion>> exclusionClasses;
     private PrintWriter vwriter;
     private HashMap<String, PrintWriter> ewriters;
 
@@ -143,7 +141,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
      * @param classes an ArrayList of classes
      * @return String of available classes 
      */
-    private String getAvailableClasses(ArrayList<Class> classes) {
+    private <T> String getAvailableClasses(List<Class<? extends T>> classes) {
         String availableString = "";
 
         for (int classIndex = 0; classIndex < classes.size(); classIndex++) {

@@ -63,7 +63,7 @@ public class SomaticCoverageTool extends CommandLineExecutable {
     @Override
     protected GenomeAnalysisEngine getGATKEngine() {
         if( GATKEngine == null )
-            GATKEngine = new GenomeAnalysisEngine( null );
+            GATKEngine = new GenomeAnalysisEngine();
         return GATKEngine;
     }
 

@@ -12,5 +12,6 @@
     <module organisation="edu.mit.broad" resolver="projects" />
     <module organisation="net.sf" module="functionalj" resolver="projects" />
     <module organisation="net.sf" module="samtools" resolver="projects" />
+    <module organisation="org.reflections" module="reflections" resolver="projects" />
   </modules>
 </ivysettings>

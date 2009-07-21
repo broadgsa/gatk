@@ -70,10 +70,10 @@ public class GenomeAnalysisEngine {
      * new MicroScheduler class we'll be able to delete that function.
      *
      */
-    public GenomeAnalysisEngine( String pluginPathName ) {
+    public GenomeAnalysisEngine() {
         // make sure our instance variable points to this analysis engine
         instance = this;
-        walkerManager = new WalkerManager(pluginPathName);
+        walkerManager = new WalkerManager();
     }
 
     /**

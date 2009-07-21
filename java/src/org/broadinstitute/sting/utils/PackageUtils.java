@@ -1,56 +1,55 @@
 package org.broadinstitute.sting.utils;
 
-import java.util.List;
+import org.reflections.Reflections;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.util.AbstractConfiguration;
+import org.reflections.util.ClasspathHelper;
+
+import java.util.Set;
 import java.util.ArrayList;
-import java.io.File;
-import java.io.IOException;
+import java.util.List;
 
 /**
  * PackageUtils contains some useful methods for package introspection.
  */
 public class PackageUtils {
     /**
+     * A reference into our introspection utility.
+     */
+    private static Reflections reflections = null;
+
+    static {
+        // Initialize general-purpose source tree reflector.
+        reflections = new Reflections( new AbstractConfiguration() {
+            {
+                setUrls(ClasspathHelper.getUrlsForCurrentClasspath());
+                setScanners(new SubTypesScanner());
+            }
+        });
+    }
+
+    /**
      * Private constructor.  No instantiating this class!
      */
     private PackageUtils() {}
+    {
+    }
 
     /**
      * Return the classes that implement the specified interface.
      *
      * @param iface  the interface which returned classes should implement.
-     * @return       the list of classes that implement the interface.  How is that not clear by now?!!!!111one!!
+     * @return       the list of classes that implement the interface.
      */
-    public static ArrayList<Class> getClassesImplementingInterface(Class iface) {
-        try {
-            final File location = JVMUtils.getLocationFor(iface);
-
-            List<Class> potentialClasses = getClassesFromLocation(location);
-            ArrayList<Class> implementingClasses = new ArrayList<Class>();
-
-            for (Class potentialClass : potentialClasses) {
-                if (JVMUtils.isConcreteImplementationOf(potentialClass, iface)) {
-                    implementingClasses.add(potentialClass);
-                }
-            }
-
-            return implementingClasses;
-        } catch (IOException e) {
-            throw new StingException(String.format("Unable to inspect package containing '%s'", iface.getName()));
+    public static <T> List<Class<? extends T>> getClassesImplementingInterface(Class<T> iface) {
+        // Load all classes implementing the given interface, then filter out any class that isn't concrete.
+        Set<Class<? extends T>> allTypes = reflections.getSubTypesOf(iface);
+        List<Class<? extends T>> concreteTypes = new ArrayList<Class<? extends T>>();
+        for( Class<? extends T> type: allTypes ) {
+            if( JVMUtils.isConcrete(type) )
+                concreteTypes.add(type);
         }
-    }
 
-    /**
-     * Return a list of classes at the specified location
-     * @param location      the location  where we should start searching (as returned by JVMUtils.getLocationFor(Class))
-     * @return              a list of classes at this location
-     * @throws IOException  thrown if the jar or directory cannot be inspected
-     */
-    public static List<Class> getClassesFromLocation(File location) throws IOException {
-        if (location.getAbsolutePath().endsWith(".jar"))
-            return JVMUtils.loadInternalClassesFromJar(location);
-        else {
-            List<String> classFileNames = PathUtils.findFilesInPath(location, "", "class", true);
-            return JVMUtils.loadInternalClasses(classFileNames);
-        }
+        return concreteTypes;
     }
 }

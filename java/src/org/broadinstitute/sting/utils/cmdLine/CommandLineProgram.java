@@ -99,13 +99,7 @@ public abstract class CommandLineProgram {
         // Default implementation to find a command line that makes sense.
         // If the user is running from a jar, return '-jar <jarname>'; otherwise
         // return the full class name.
-        String runningInstructions = null;
-        try {
-            runningInstructions = JVMUtils.getLocationFor( getClass() ).getName();
-        }
-        catch( IOException ex ) {
-            throw new StingException("Unable to determine running instructions", ex);
-        }
+        String runningInstructions = getClass().getName();
 
         if( runningInstructions.endsWith(".jar") )
             runningInstructions = String.format("-jar %s", runningInstructions);
