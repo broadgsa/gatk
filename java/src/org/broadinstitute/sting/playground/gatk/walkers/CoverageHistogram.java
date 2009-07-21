@@ -29,7 +29,7 @@ public class CoverageHistogram extends LocusWalker<Integer,Integer>
 	//@Argument(fullName="start", shortName="start", required=false, doc="start") public Integer START = 0;
 
 	// Private state.
-	int[] coverage_hist;
+	long[] coverage_hist;
 	int max_depth;
 
 	long sum_coverage;
@@ -39,7 +39,8 @@ public class CoverageHistogram extends LocusWalker<Integer,Integer>
 	// Walker Interface Functions 
     public void initialize() 
 	{
-		coverage_hist = new int[1000000];
+		coverage_hist = new long[1000000];
+        Arrays.fill(coverage_hist, 0);
 		max_depth = 0;
 
 		sum_coverage = 0;
@@ -62,13 +63,13 @@ public class CoverageHistogram extends LocusWalker<Integer,Integer>
     public void onTraversalDone(Integer sum) 
 	{
 		double mean_coverage = (double)sum_coverage / (double)num_sites;
-		out.printf("# all_sites                  : mean:%f num_sites:%d\n\n", mean_coverage, num_sites);
-        out.printf("# sites with at least 1 read : mean:%f num_sites:%d\n\n", sum_coverage / ((double)(num_sites - coverage_hist[0])), num_sites - coverage_hist[0]);
+		out.printf("# all_sites                  : mean:%f num_sites:%d%n", mean_coverage, num_sites);
+        out.printf("# sites with at least 1 read : mean:%f num_sites:%d%n%n", sum_coverage / ((double)(num_sites - coverage_hist[0])), num_sites - coverage_hist[0]);
 
-		out.println("depth count");
-		for (int i = 0; i < max_depth; i++)
+		out.println("depth count freq");
+		for (int i = 0; i <= max_depth; i++)
 		{
-			out.printf("%d %d\n", i, coverage_hist[i]);
+			out.printf("%d %d %f\n", i, coverage_hist[i], (100.0*coverage_hist[i]) / num_sites);
 		}
 		return;
 	}
