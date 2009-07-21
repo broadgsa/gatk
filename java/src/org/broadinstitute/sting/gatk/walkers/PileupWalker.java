@@ -32,6 +32,8 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 
+import java.util.ArrayList;
+
 /**
  * samtools pileup [-f in.ref.fasta] [-t in.ref_list] [-l in.site_list] [-iscg] [-T theta] [-N nHap] [-r pairDiffRate] <in.alignment>
  *
@@ -125,12 +127,13 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
      * @return String representation of the reference-ordered data.
      */
     private String getReferenceOrderedData( RefMetaDataTracker tracker ) {
-        String rodString = "";
+        ArrayList<String> rodStrings = new ArrayList<String>();
         for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
             if ( datum != null && ! (datum instanceof rodDbSNP)) {
-                rodString += datum.toSimpleString();
+                rodStrings.add(datum.toSimpleString());
             }
         }
+        String rodString = Utils.join(", ", rodStrings);
 
         rodDbSNP dbsnp = (rodDbSNP)tracker.lookup("dbSNP", null);
         if ( dbsnp != null )
