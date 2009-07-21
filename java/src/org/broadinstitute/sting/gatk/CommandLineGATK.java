@@ -5,8 +5,6 @@ import org.broadinstitute.sting.utils.cmdLine.*;
 import java.util.List;
 import java.util.ArrayList;
 
-import net.sf.samtools.SAMFileReader;
-
 /**
  *
  * User: aaron
@@ -60,19 +58,6 @@ public class CommandLineGATK extends CommandLineExecutable {
         header.add("");
         return header;
     }
-
-    /**
-     * Lazy load the GATK engine.  This current CANNOT happen until after the command-line arguments are populated.
-     * TODO: Make this chain of events more explicit.  Perhaps an abstract initialize method after clp arguments are parsed?
-     * @return The GATK engine that will power the requested traversal.
-     */
-    @Override
-    protected GenomeAnalysisEngine getGATKEngine() {
-        if( GATKEngine == null )
-            GATKEngine = new GenomeAnalysisEngine();
-        return GATKEngine;
-    }
-
 
     @Override
     protected String getAnalysisName() {

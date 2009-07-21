@@ -2,11 +2,9 @@ package org.broadinstitute.sting.playground.somaticcoverage;
 
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.GATKArgumentCollection;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -43,9 +41,6 @@ import java.util.ArrayList;
  * a executable command line for the Somatic Coverage Walker.
  */
 public class SomaticCoverageTool extends CommandLineExecutable {    
-    // our genome analysis engine
-    private GenomeAnalysisEngine GATKEngine = null;
-
     // the two sam/bam files, one for cancer, one for normal
     @Argument(fullName = "bam_file", shortName = "I", doc = "The bam files, one for the tumor one for the normal", required = true)
     public List<File> samFiles = new ArrayList<File>();
@@ -59,14 +54,6 @@ public class SomaticCoverageTool extends CommandLineExecutable {
             exitSystemWithError(e);
         }
     }
-
-    @Override
-    protected GenomeAnalysisEngine getGATKEngine() {
-        if( GATKEngine == null )
-            GATKEngine = new GenomeAnalysisEngine();
-        return GATKEngine;
-    }
-
 
     /**
      * a required method, returns the analysis name.  This is usually the walker

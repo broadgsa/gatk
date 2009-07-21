@@ -2,8 +2,6 @@ package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentFactory;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.xReadLines;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -47,10 +45,9 @@ import net.sf.samtools.SAMFileReader;
 public abstract class CommandLineExecutable extends CommandLineProgram {
 
     /**
-     * Get an instance of the GATK engine.
-     * @return The GATK engine that will power the requested traversal.
+     * The actual engine which performs the analysis.
      */
-    protected abstract GenomeAnalysisEngine getGATKEngine();
+    protected GenomeAnalysisEngine GATKEngine = new GenomeAnalysisEngine();
 
     // get the analysis name
     protected abstract String getAnalysisName();
@@ -71,7 +68,6 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      * @return the return code to exit the program with
      */
     protected int execute() {
-        GenomeAnalysisEngine GATKEngine = getGATKEngine();
         GATKArgumentCollection arguments = getArgumentCollection();
 
         Walker<?,?> mWalker = GATKEngine.getWalkerByName(getAnalysisName());
@@ -108,7 +104,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     protected Class[] getArgumentSources() {
         // No walker info?  No plugins.
         if (getAnalysisName() == null) return new Class[] {};
-        return new Class[] { getGATKEngine().getWalkerByName(getAnalysisName()).getClass() };
+        return new Class[] { GATKEngine.getWalkerByName(getAnalysisName()).getClass() };
     }
 
     @Override
