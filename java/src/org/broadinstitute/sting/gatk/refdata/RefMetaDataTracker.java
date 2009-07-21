@@ -2,9 +2,8 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.apache.log4j.Logger;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Collection;
+import java.util.HashMap;
 
 /**
  * This class represents the Reference Metadata available at a particular site in the genome.  It can be
@@ -70,10 +69,10 @@ public class RefMetaDataTracker {
     /**
      * Is there a binding at this site to a ROD with name?
      *
-     * @param name
-     * @return
+     * @param name the name of the rod
+     * @return true if it has the rod
      */
-    public Object hasROD(final String name) {
+    public boolean hasROD(final String name) {
        return map.containsKey(canonicalName(name));
     }
 

@@ -2,10 +2,6 @@ package org.broadinstitute.sting.utils.genotype.glf;
 
 import net.sf.samtools.util.BinaryCodec;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
-
-import java.util.List;
-import java.util.Arrays;
 
 
 /*
@@ -85,6 +81,14 @@ public abstract class GLFRecord {
          */
         REF_BASE(short value) {
             fieldValue = value;
+        }
+
+        /**
+         * return the character representation
+         * @return the char for the reference base
+         */
+        public char toChar() {
+            return this.toString().charAt(0);
         }
 
         /**

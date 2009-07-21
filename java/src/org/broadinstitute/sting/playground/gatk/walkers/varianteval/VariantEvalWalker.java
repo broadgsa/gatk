@@ -1,18 +1,19 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.SNPCallFromGenotypes;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.genotype.glf.GLFRecord;
-import org.broadinstitute.sting.utils.genotype.glf.SinglePointCall;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.util.*;
-import java.io.*;
 
 /**
  * The Broad Institute
@@ -146,49 +147,8 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         }
     }
 
-    // OMG this is painful
-    private rodVariants glf2geli(char ref, RodGLF glf) {
-        SinglePointCall rec = (SinglePointCall)glf.mRecord;
-        // contig pos refBase depth maxMappingQ bestGenotype lodBtr lodBtnb genotypes
-        Integer[] sorted = Utils.SortPermutation(rec.getLikelihoods());
-        int bestIndex = sorted[0];
-        char[] refs = {ref, ref};
-        String homRef = new String(refs);
-        int refIndex = rodVariants.Genotype.valueOf(homRef).ordinal();
-        double refLikelihood = rec.getLikelihoods()[refIndex];
-        double bestLikelihood = rec.getLikelihoods()[bestIndex];
-        double secondBestLikelihood = rec.getLikelihoods()[sorted[1]];
-
-        rodVariants var = new rodVariants("eval");
-        var.loc = glf.getLocation();
-        var.refBase = ref;
-        var.depth = rec.getReadDepth();
-        var.maxMappingQuality = rec.getRmsMapQ();
-        var.bestGenotype = rodVariants.Genotype.values()[bestIndex].toString();
-        var.lodBtr = Math.abs((bestLikelihood - refLikelihood) / GLFRecord.LIKELIHOOD_SCALE_FACTOR);
-        var.lodBtnb = Math.abs((bestLikelihood - secondBestLikelihood) / GLFRecord.LIKELIHOOD_SCALE_FACTOR);
-        var.genotypeLikelihoods = rec.getLikelihoods();
-        for ( int i = 0; i < var.genotypeLikelihoods.length; i++ )
-            var.genotypeLikelihoods[i] /= GLFRecord.LIKELIHOOD_SCALE_FACTOR;
-
-        if ( false ) {
-            System.out.printf("Converting : %s%n", glf);
-            System.out.printf("    homRef: %s%n", homRef);
-            System.out.printf("    refindex : %d%n", refIndex);
-            System.out.printf("    bestIndex : %d%n", sorted[0]);
-            System.out.printf("    2ndindex  : %d%n", sorted[1]);
-            System.out.printf("    => %s%n", var);
-        }
-        
-        return var;
-    }
-
     public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         nSites++;
-
-        if ( tracker.lookup("eval", null) instanceof RodGLF) {
-            tracker.bind("eval", glf2geli(ref, (RodGLF)tracker.lookup("eval", null)));
-        }
 
         // Iterate over each analysis, and update it
         AllelicVariant eval = (AllelicVariant)tracker.lookup("eval", null);
