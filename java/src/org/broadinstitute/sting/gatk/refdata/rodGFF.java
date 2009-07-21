@@ -110,7 +110,7 @@ public class rodGFF extends BasicReferenceOrderedDatum implements AllelicVariant
     }
 
     public String toSimpleString() {
-        return String.format("%s", feature);
+        return String.format("chip-genotype: %s", feature);
     }
 
 
