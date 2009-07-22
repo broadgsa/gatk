@@ -70,9 +70,16 @@ public class SAMReadValidator {
             throw new SAMReadValidationException("Alignment ends prior to its beginning");
     }
 
+    /**
+     * Check to ensure that the alignment makes sense based on the contents of the header.
+     * @param header The SAM file header.
+     * @param read The read to verify.
+     */
     private static void checkAlignmentDisagreesWithHeader( SAMFileHeader header, SAMRecord read ) {
+        if( read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START )
+            throw new SAMReadValidationException("Read is aligned to nonexistent contig");
         SAMSequenceRecord contigHeader = header.getSequence( read.getReferenceIndex() );
-        if( !read.getReadUnmappedFlag() && read.getAlignmentStart() > contigHeader.getSequenceLength() )
+        if( read.getReadUnmappedFlag() && read.getAlignmentStart() > contigHeader.getSequenceLength() )
             throw new SAMReadValidationException("Read is aligned to a point after the end of the contig");
     }
 
