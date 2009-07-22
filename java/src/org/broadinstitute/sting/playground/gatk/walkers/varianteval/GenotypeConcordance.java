@@ -25,22 +25,26 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
     private static final int TRUTH_VAR_HET = 1;
     private static final int TRUTH_VAR_HOM = 2;
     private static final int TRUTH_UNKNOWN = 3;
+    private static final String[] TRUTH_NAMES = {"IS_REF", "IS_VAR_HET", "IS_VAR_HOM", "UNKNOWN"};
 
     private static final int CALL_REF = 0;
     private static final int CALL_VAR_HET = 1;
     private static final int CALL_VAR_HOM = 2;
-    private static final int CALL_NO_CONF = 3;
-    private static final int UNCALLABLE = 4;
+    private static final int NO_CALL = 3;
+    private static final String[] CALL_NAMES = {"CALLED_REF", "CALLED_VAR_HET", "CALLED_VAR_HOM", "NO_CALL"};
 
-    private int[][] table = new int[4][5];
+    private int[][] table = new int[4][4];
+    private int[] truth_totals = new int[4];
+    private int[] calls_totals = new int[4];
 
     public GenotypeConcordance(final String name) {
         super("genotype_concordance");
         dbName = name;
         for ( int i = 0; i < 4; i++ ) {
-            for ( int j = 0; j < 5; j++ ) {
+            truth_totals[i] = 0;
+            calls_totals[i] = 0;
+            for ( int j = 0; j < 4; j++ )
                 table[i][j] = 0;
-            }
         }
     }
 
@@ -60,7 +64,7 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
 
         // todo -- FIXME on countOccurences
         if ( eval == null )
-            callIndex = UNCALLABLE;
+            callIndex = NO_CALL;
         else if ( eval.isReference() && Utils.countOccurrences(ref, eval.getGenotype().get(0)) == eval.getGenotype().get(0).length() )
             callIndex = CALL_REF;
         else if ( isHet(eval) )
@@ -69,9 +73,10 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
             callIndex = CALL_VAR_HOM;
 
         if ( chip != null || eval != null ) {
-            System.out.printf("TESTING ME: %d/%d %s vs. %s%n", truthIndex, callIndex, chip, eval);
-
+            //System.out.printf("TEST: %d/%d %s vs. %s%n", truthIndex, callIndex, chip, eval);
             table[truthIndex][callIndex]++;
+            truth_totals[truthIndex]++;
+            calls_totals[callIndex]++;
         }
     }
 
@@ -84,12 +89,37 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
     public List<String> done() {
         List<String> s = new ArrayList<String>();
         s.add(String.format("name                 %s", dbName));
-        s.add(String.format("\t\tCALLED_REF\tCALLED_VAR_HET\tCALLED_VAR_HOM\tNO_CONF\tUNCALLABLE"));
-        s.add(String.format("IS_REF\t\t%d\t\t%d\t\t%d\t\t%d\t\t%d", table[TRUTH_REF][CALL_REF], table[TRUTH_REF][CALL_VAR_HET], table[TRUTH_REF][CALL_VAR_HOM], table[TRUTH_REF][CALL_NO_CONF], table[TRUTH_REF][UNCALLABLE]));
-        s.add(String.format("IS_VAR_HET\t\t%d\t\t%d\t\t%d\t\t%d\t\t%d", table[TRUTH_VAR_HET][CALL_REF], table[TRUTH_VAR_HET][CALL_VAR_HET], table[TRUTH_VAR_HET][CALL_VAR_HOM], table[TRUTH_VAR_HET][CALL_NO_CONF], table[TRUTH_VAR_HET][UNCALLABLE]));
-        s.add(String.format("IS_VAR_HOM\t\t%d\t\t%d\t\t%d\t\t%d\t\t%d", table[TRUTH_VAR_HOM][CALL_REF], table[TRUTH_VAR_HOM][CALL_VAR_HET], table[TRUTH_VAR_HOM][CALL_VAR_HOM], table[TRUTH_VAR_HOM][CALL_NO_CONF], table[TRUTH_VAR_HOM][UNCALLABLE]));
-        s.add(String.format("UNKNOWN\t\t%d\t\t%d\t\t%d\t\t%d\t\t%d", table[TRUTH_UNKNOWN][CALL_REF], table[TRUTH_UNKNOWN][CALL_VAR_HET], table[TRUTH_UNKNOWN][CALL_VAR_HOM], table[TRUTH_UNKNOWN][CALL_NO_CONF], table[TRUTH_UNKNOWN][UNCALLABLE]));
+        s.add(String.format("\t\tCALLED_REF\tCALLED_VAR_HET\tCALLED_VAR_HOM\tNO_CALL\t\t\tTOTALS"));
+        for (int i=0; i < 4; i++) {
+            StringBuffer sb = new StringBuffer();
+            sb.append(TRUTH_NAMES[i] + "\t");
+            for (int j=0; j < 4; j++)
+                sb.append(cellToString(table[i][j], truth_totals[i]) + "\t\t");
+            sb.append(truth_totals[i]);
+            s.add(sb.toString());
+        }
+        s.add("\n");
+        s.add(String.format("\t\tCALLED_REF\tCALLED_VAR_HET\tCALLED_VAR_HOM\tNO_CALL"));
+        for (int i=0; i < 4; i++) {
+            StringBuffer sb = new StringBuffer();
+            sb.append(TRUTH_NAMES[i] + "\t");
+            for (int j=0; j < 4; j++)
+                sb.append(cellToString(table[i][j], truth_totals[i]) + "\t\t");
+            s.add(sb.toString());
+        }
+        s.add(String.format("TOTALS\t%d\t\t%d\t\t%d\t\t%d", calls_totals[CALL_REF], calls_totals[CALL_VAR_HET], calls_totals[CALL_VAR_HOM], calls_totals[NO_CALL]));
         return s;
+    }
+
+    private static String cellToString(int count, int total) {
+        StringBuffer sb = new StringBuffer();
+        sb.append(count + " (");
+        if ( total == 0 )
+            sb.append(0);
+        else
+            sb.append(100*count/total);
+        sb.append("%)");
+        return sb.toString();
     }
 
     private static boolean isHet(AllelicVariant var) {
@@ -100,9 +130,6 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
         if ( genotype.size() < 1 )
             return false;
 
-
-        boolean het = genotype.get(0).charAt(0) != genotype.get(0).charAt(1);
-        System.out.printf("********* Genotype %s is het = %b%n", genotype, het);
-        return het;        
+        return genotype.get(0).charAt(0) != genotype.get(0).charAt(1);
     }
 }
