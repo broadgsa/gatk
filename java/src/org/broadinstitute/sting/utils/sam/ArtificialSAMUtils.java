@@ -143,7 +143,8 @@ public class ArtificialSAMUtils {
      * @return the artificial read
      */
     public static SAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, int length ) {
-        if (alignmentStart == 0)
+        if( (refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart != SAMRecord.NO_ALIGNMENT_START) ||
+            (refIndex != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart == SAMRecord.NO_ALIGNMENT_START) )
             throw new StingException("Invalid alignment start for artificial read, start = " + alignmentStart);
         SAMRecord record = new SAMRecord(header);
         record.setReadName(name);
@@ -153,7 +154,7 @@ public class ArtificialSAMUtils {
         elements.add(new CigarElement(length, CigarOperator.characterToEnum('M')));
         record.setCigar(new Cigar(elements));
         record.setProperPairFlag(false);
-        if (refIndex == -1) {
+        if (refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
             record.setReadUmappedFlag(true);
         }
         return record;

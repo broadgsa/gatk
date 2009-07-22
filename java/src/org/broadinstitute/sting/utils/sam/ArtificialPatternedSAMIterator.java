@@ -113,7 +113,11 @@ public class ArtificialPatternedSAMIterator extends ArtificialSAMIterator {
                 return false;
             } else {
                 ++totalReadCount;
-                this.next = ArtificialSAMUtils.createArtificialRead(this.header, String.valueOf(totalReadCount), -1, -1, 50);
+                this.next = ArtificialSAMUtils.createArtificialRead(this.header,
+                        String.valueOf(totalReadCount),
+                        SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX,
+                        SAMRecord.NO_ALIGNMENT_START,
+                        50);
                 --unmappedRemaining;
                 return true;
             }

@@ -79,7 +79,7 @@ public class SAMReadValidator {
         if( read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START )
             throw new SAMReadValidationException("Read is aligned to nonexistent contig");
         SAMSequenceRecord contigHeader = header.getSequence( read.getReferenceIndex() );
-        if( read.getReadUnmappedFlag() && read.getAlignmentStart() > contigHeader.getSequenceLength() )
+        if( !read.getReadUnmappedFlag() && read.getAlignmentStart() > contigHeader.getSequenceLength() )
             throw new SAMReadValidationException("Read is aligned to a point after the end of the contig");
     }
 
