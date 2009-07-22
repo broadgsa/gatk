@@ -50,6 +50,8 @@ public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVa
     public String delimiterRegex() { return "\\s+"; }
 
     public boolean parseLine(Object header, String[] parts) throws IOException {
+        if ( parts.length < 18 )
+            throw new IOException("Invalid rodVariant row found -- too few elements.  Expected 18+, got " + parts.length);
         if (!parts[0].startsWith("#")) {
             loc = GenomeLocParser.createGenomeLoc(parts[0], Long.valueOf(parts[1]));
             refBase = parts[2].charAt(0);

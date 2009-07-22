@@ -347,12 +347,35 @@ abstract public class BasicPileup implements Pileup {
         return null;
     }
 
-    public static byte consensusBase(String bases) {
+    public static class BaseCounts {
+        int a, c, t, g;
+
+        public BaseCounts(int a, int c, int t, int g) {
+            this.a = a;
+            this.c = c;
+            this.t = t;
+            this.g = g;
+        }
+    }
+
+    public static int countBase(final char base, final String bases) {
+        return Utils.countOccurrences(base, bases);
+    }
+
+    public static BaseCounts countBases(final String bases) {
         String canon = bases.toUpperCase();
-        int ACount = Utils.countOccurrences('A', bases);
-        int CCount = Utils.countOccurrences('C', bases);
-        int TCount = Utils.countOccurrences('T', bases);
-        int GCount = Utils.countOccurrences('G', bases);
+        return new BaseCounts(Utils.countOccurrences('A', canon),
+                Utils.countOccurrences('C', canon),
+                Utils.countOccurrences('T', canon),
+                Utils.countOccurrences('G', canon));
+    }
+
+    public static byte consensusBase(String bases) {
+        BaseCounts counts = countBases( bases );
+        int ACount = counts.a;
+        int CCount = counts.c;
+        int TCount = counts.t;
+        int GCount = counts.g;
 
         int m = Math.max(ACount, Math.max(CCount, Math.max(TCount, GCount)));
         if ( ACount == m ) return 'A';
@@ -362,3 +385,5 @@ abstract public class BasicPileup implements Pileup {
         return 0;
     }
 }
+
+

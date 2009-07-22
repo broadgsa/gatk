@@ -6,6 +6,7 @@ import java.util.Random;
  * BaseUtils contains some basic utilities for manipulating nucleotides.
  */
 public class BaseUtils {
+    public final static char[] BASES = { 'A', 'C', 'G', 'T' };
 
     /// In genetics, a transition is a mutation changing a purine to another purine nucleotide (A <-> G) or
     // a pyrimidine to another pyrimidine nucleotide (C <-> T).

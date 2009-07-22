@@ -110,6 +110,11 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
         attributes = new HashMap<String, String>();
     }
 
+    public TabularROD(final String name, ArrayList<String> header) {
+        this(name);
+        this.header = header;
+    }
+
     /**
      * Make a new TabularROD with name, using header columns header, at loc, without any bound data.  Data
      * must be bound to each corresponding header[i] field before the object is really usable.
@@ -155,7 +160,11 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
      * @return
      */
     public Object initialize(final File source) throws FileNotFoundException {
-        List<String> header = null;
+        return readHeader(source);
+    }
+
+    public static ArrayList<String> readHeader(final File source) throws FileNotFoundException {
+        ArrayList<String> header = null;
         int linesLookedAt = 0;
         xReadLines reader = new xReadLines(source);
 
@@ -186,8 +195,15 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
                 header.add(Integer.toString(i));
         }
 
+        try {
+            reader.close();
+        } catch ( IOException e ) {
+            throw new RuntimeException(e);
+        }
+
         return header;
     }
+
 
     // ----------------------------------------------------------------------
     //
