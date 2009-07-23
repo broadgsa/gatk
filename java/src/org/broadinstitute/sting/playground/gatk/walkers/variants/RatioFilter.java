@@ -267,7 +267,7 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         if ( applyToVariant(variant) ) {
             Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
-            GenotypeFeatureData gfd = dataTable.get(variant.getBestGenotype());
+            GenotypeFeatureData gfd = dataTable.get(orderedBases(variant.getBestGenotype()));
 
             if (integrateOverSamplingProbabilities)
                 exclude = integralExclude(gfd, counts);
@@ -313,5 +313,11 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
         double value = counts.first / (1.0 * counts.first + counts.second);
         //double value = counts.first / (1.0 * Math.max(counts.second, 1.0));
         return ! gfd.passesThreshold(value);
+    }
+
+    private String orderedBases(String s) {
+        char[] charArray = s.toCharArray();
+        java.util.Arrays.sort(charArray);
+        return new String(charArray);
     }
 }
