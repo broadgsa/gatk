@@ -6,7 +6,6 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
@@ -83,7 +82,7 @@ public class VennCallSetsWalker extends RefWalker<Integer, Integer> {
             writer.println(variant.getLocation().getContig() + "\t"
                     + variant.getLocation().getStart() + "\t"
                     + variant.getRefSnpFWD() + "\t"
-                    + variant.getAltSnpFWD() + "\t"
+                    + variant.getGenotype().get(0) + "\t"
                     + variant.getMAF() + "\t0\t0\t0\t"
                     + variant.getVariationConfidence());
     }

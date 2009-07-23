@@ -52,7 +52,7 @@ public class rodFLT extends TabularROD implements SNPCallFromGenotypes {
         return (value > 0.0 ? value : 1.0);
     }
     public double getConsensusConfidence() { return -1; }
-    public List<String> getGenotype() throws IllegalStateException { throw new IllegalStateException(); }
+    public List<String> getGenotype() throws IllegalStateException { return Arrays.asList(getAltBasesFWD()); }
     public int getPloidy() throws IllegalStateException { return 2; }
     public boolean isBiallelic()   { return true; }
 
