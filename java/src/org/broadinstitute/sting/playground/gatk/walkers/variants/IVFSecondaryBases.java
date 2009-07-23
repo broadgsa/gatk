@@ -75,7 +75,10 @@ public class IVFSecondaryBases implements IndependentVariantFeature {
             double offPrior = MathUtils.binomialProbability(offIsGenotypic, offTotal, p2off[genotypeIndex]);
             double onPrior = MathUtils.binomialProbability(onIsGenotypic, onTotal, p2on[genotypeIndex]);
 
-            likelihoods[genotypeIndex] = Math.log10(offPrior) + Math.log10(onPrior);
+            double logOffPrior = MathUtils.compareDoubles(offPrior, 0.0, 1e-10) == 0 ? Math.log10(Double.MIN_VALUE) : Math.log10(offPrior);
+            double logOnPrior = MathUtils.compareDoubles(onPrior, 0.0, 1e-10) == 0 ? Math.log10(Double.MIN_VALUE) : Math.log10(onPrior);
+
+            likelihoods[genotypeIndex] += logOffPrior + logOnPrior;
         }
 
         return likelihoods;

@@ -173,6 +173,10 @@ public class GenotypeLikelihoods {
 			double likelihood = calculateAlleleLikelihood(ref, read, genotypes[i], qual); 
             likelihoods[i] += likelihood;
 			coverage += 1;
+
+//            if (i == 8) {
+//                System.out.println(genotypes[8] + " " + likelihood + " " + likelihoods[8] + " " + coverage);
+//            }
         }
     }
 
@@ -325,7 +329,10 @@ public class GenotypeLikelihoods {
             double offPrior = MathUtils.binomialProbability(offIsGenotypic, offTotal, offNextBestBasePriors.get(genotypes[genotypeIndex]));
             double onPrior = MathUtils.binomialProbability(onIsGenotypic, onTotal, onNextBestBasePriors.get(genotypes[genotypeIndex]));
 
-            likelihoods[genotypeIndex] += Math.log10(offPrior) + Math.log10(onPrior);
+            double logOffPrior = MathUtils.compareDoubles(offPrior, 0.0, 1e-10) == 0 ? Math.log10(Double.MIN_VALUE) : Math.log10(offPrior);
+            double logOnPrior = MathUtils.compareDoubles(onPrior, 0.0, 1e-10) == 0 ? Math.log10(Double.MIN_VALUE) : Math.log10(onPrior);
+
+            likelihoods[genotypeIndex] += logOffPrior + logOnPrior;
         }
         this.sort();
     }
