@@ -190,10 +190,10 @@ public class Utils {
         return new String(basesAsbytes);
     }
 
-    public static boolean is454Read(SAMRecord read, SAMFileHeader header) {
+    public static boolean is454Read(SAMRecord read) {
         Object readGroupAttr = read.getAttribute("RG");
         if ( readGroupAttr != null ) {
-            SAMReadGroupRecord readGroup = header.getReadGroup(readGroupAttr.toString());
+            SAMReadGroupRecord readGroup = read.getHeader().getReadGroup(readGroupAttr.toString());
             if ( readGroup != null ) {
             Object readPlatformAttr = readGroup.getAttribute("PL");
             if ( readPlatformAttr != null )

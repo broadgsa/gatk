@@ -31,7 +31,7 @@ public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval
         return ( !read.getReadUnmappedFlag() &&            // mapped
                  read.getMappingQuality() != 0 &&          // positive mapping quality
                  read.getAlignmentBlocks().size() > 1 &&   // indel
-                 (allow454 || !Utils.is454Read(read, getToolkit().getEngine().getSAMHeader())) );
+                 (allow454 || !Utils.is454Read(read)) );
     }
 
     public Interval map(char[] ref, SAMRecord read) {

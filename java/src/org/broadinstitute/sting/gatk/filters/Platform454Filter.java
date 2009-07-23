@@ -38,6 +38,6 @@ import org.broadinstitute.sting.utils.Utils;
 
 public class Platform454Filter implements SamRecordFilter {
     public boolean filterOut(SAMRecord rec) {
-        return (Utils.is454Read(rec, rec.getHeader()));
+        return (Utils.is454Read(rec));
     }
 }

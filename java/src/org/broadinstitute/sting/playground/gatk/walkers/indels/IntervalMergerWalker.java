@@ -60,7 +60,7 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
     @Override
     public Integer map(char[] ref, SAMRecord read) {
         if ( firstInterval == null ||
-             (!allow454 && Utils.is454Read(read, getToolkit().getEngine().getSAMHeader())) )
+             (!allow454 && Utils.is454Read(read)) )
             return 0;
 
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(read);

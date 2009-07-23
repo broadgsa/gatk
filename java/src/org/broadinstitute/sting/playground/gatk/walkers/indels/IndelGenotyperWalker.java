@@ -28,9 +28,11 @@ import java.util.Set;
 
 @ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class})
 public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
-	@Argument(fullName="bed", shortName="bed", doc="BED output file name", required=true)
-	java.io.File bed_file;
-	@Argument(fullName="somatic", shortName="somatic", 
+    @Argument(fullName="outputFile", shortName="O", doc="output file name (defaults to BED format)", required=true)
+    java.io.File bed_file;
+    @Argument(fullName="1kg_format", shortName="1kg", doc="output in 1000 genomes format", required=false)
+    boolean FORMAT_1KG;
+	@Argument(fullName="somatic", shortName="somatic",
 			doc="Perform somatic calls; two input alignment files must be specified", required=false)
 	boolean call_somatic = false;
 	@Argument(fullName="verbose", shortName="verbose", 
@@ -318,19 +320,23 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	private String makeBedLine(Pair<IndelVariant,Integer> p, int coverage, long pos, java.io.Writer bedOutput) {
 		int event_length = p.first.lengthOnRef();
 		if ( event_length < 0 ) event_length = 0;
-		String message = refName+"\t"+(pos-1)+"\t"+(pos-1+event_length)+
-		"\t"+(event_length>0? "-":"+")+p.first.getBases() +":"+p.second+"/"+coverage;
+		StringBuffer message = new StringBuffer();
+        message.append(refName+"\t"+(pos-1)+"\t");
+        if ( FORMAT_1KG )
+            message.append(p.first.getBases().length() + "\t" + (event_length > 0 ? "D" : "I") + "\t" + p.first.getBases() + "\t" + p.first.getSamples());
+        else
+            message.append((pos-1+event_length)+"\t"+(event_length>0? "-":"+")+p.first.getBases() +":"+p.second+"/"+coverage);
 
 		if ( bedOutput != null ) {
 			try {
-				bedOutput.write(message+"\n");
+				bedOutput.write(message.toString()+"\n");
 			} catch (IOException e) {
 				System.out.println(e.getMessage());
 				e.printStackTrace();
 				throw new StingException("Error encountered while writing into output BED file");
 			}
 		}
-		return message;
+		return message.toString();
 	}
 
 	/** Same as makeBedLine(Pair,int,long,Writer), but only builds and returns the line without writing it anywhere.
@@ -556,7 +562,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		private String bases;
 		private Type type;
 		private int count;
-		
+        private HashSet<String> samples = new HashSet<String>();
+
 		public IndelVariant(Type type, String bases) {
 			this.type = type;
 			this.bases = bases;
@@ -578,6 +585,22 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		
 		public void increment() { count+=1; }
 		
+        public void addSample(String sample) {
+            if ( sample != null )
+                samples.add(sample);
+        }
+
+        public String getSamples() {
+            StringBuffer sb = new StringBuffer();
+            Iterator i = samples.iterator();
+            while ( i.hasNext() ) {
+                sb.append(i.next());
+                if ( i.hasNext() )
+                    sb.append(",");
+            }
+            return sb.toString();
+        }
+
 		public int getCount() { return count; }
 		
 		public String getBases() { return bases; }
@@ -723,7 +746,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	            try {
 	            	// note that here we will be assigning indels to the first deleted base or to the first
 	            	// base after insertion, not to the last base before the event!
-	            	updateCount(localStart+eventPosition, type, bases);
+	            	updateCount(localStart+eventPosition, type, bases, r);
 	            } catch (IndexOutOfBoundsException e) {
 					System.out.println("Read "+r.getReadName()+": out of coverage window bounds.Probably window is too small.\n"+
 							"Read length="+r.getReadLength()+"; cigar="+r.getCigarString()+"; start="+
@@ -748,25 +771,41 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		 * @param type
 		 * @param bases
 		 */
-		private void updateCount(int pos, IndelVariant.Type type, String bases) {
+		private void updateCount(int pos, IndelVariant.Type type, String bases, SAMRecord r) {
             List<IndelVariant> indelsAtSite = indels.get(pos);
             if ( indelsAtSite == null ) {
             	indelsAtSite = new ArrayList<IndelVariant>();
             	indels.set(pos, indelsAtSite);
             }
             
+            String sample = null;
+            Object readGroupAttr = r.getAttribute("RG");
+            if ( readGroupAttr != null ) {
+                SAMReadGroupRecord readGroup = r.getHeader().getReadGroup(readGroupAttr.toString());
+                if ( readGroup != null ) {
+                    Object readSampleAttr = readGroup.getAttribute("SM");
+                    if ( readSampleAttr != null )
+                        sample = readSampleAttr.toString();
+                }
+            }
+
             boolean found = false;
             for ( IndelVariant v : indelsAtSite ) {
             	if ( ! v.equals(type, bases) ) continue;
 
-            	v.increment();
+                v.increment();
+                v.addSample(sample);
             	found = true;
             	break;
             }
             
-            if ( ! found ) indelsAtSite.add(new IndelVariant(type, bases));
-			
-		}
+            if ( ! found ) {
+                IndelVariant v = new IndelVariant(type, bases);
+                v.addSample(sample);
+                indelsAtSite.add(v);
+
+            }
+        }
 		
 		/** Resets reference start position to 0 and sets all coverage counts in the window to 0.
 		 * 

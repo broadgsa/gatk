@@ -40,7 +40,7 @@ public class MismatchIntervalWalker extends LocusWalker<Pair<GenomeLoc, Boolean>
             SAMRecord read = reads.get(i);
             if ( read.getMappingQuality() == 0 ||
                  read.getAlignmentBlocks().size() > 1 ||
-		 (!allow454 && Utils.is454Read(read, getToolkit().getEngine().getSAMHeader())) )
+		 (!allow454 && Utils.is454Read(read)) )
                  continue;
 
             goodReads++;
