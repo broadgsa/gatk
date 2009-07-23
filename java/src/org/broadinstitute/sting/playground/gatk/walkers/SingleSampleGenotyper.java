@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.ArrayList;
 
 @ReadFilters(ZeroMappingQualityReadFilter.class)
 public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, String> {
@@ -42,7 +43,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     @Argument(fullName = "suppress_metrics", shortName = "printmets", doc = "If specified, don't display metrics", required = false) public Boolean SUPPRESS_METRICS = false;
 
     // Control what features we use in calling variants
-    @Argument(fullName = "ignore_secondary_bases", shortName = "nosb", doc = "Ignore secondary base examination", required = false) public Boolean IGNORE_SECONDARY_BASES = false;
+    //@Argument(fullName = "ignore_secondary_bases", shortName = "nosb", doc = "Ignore secondary base examination", required = false) public Boolean IGNORE_SECONDARY_BASES = false;
     @Argument(fullName = "call_indels", shortName = "indels", doc = "Call indels as well as point mutations", required = false) public Boolean CALL_INDELS = false;
 
     // Control how the genotype hypotheses are weighed
@@ -203,9 +204,11 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
         // Handle indels, but don't do anything with the result yet.
         IndelLikelihood I = (CALL_INDELS) ? callIndel(context, reads, offsets) : null;
+        //IndelLikelihood I = (CALL_INDELS) ? callIndel(context, context.getReads(), context.getOffsets()) : null;
 
         // Handle single-base polymorphisms.
         GenotypeLikelihoods G = callGenotype(tracker, ref, pileup, reads, offsets);
+        //GenotypeLikelihoods G = callGenotype(tracker, ref, context);
 
         return G.toAlleleFrequencyEstimate(context.getLocation(), ref, bases.length(), bases, G.likelihoods, sample_name);
     }
@@ -240,9 +243,12 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         }
 
         G.ApplyPrior(ref, this.alt_allele, this.allele_frequency_prior);
-        if (!IGNORE_SECONDARY_BASES && pileup.getBases().length() < 750) {
-            G.applySecondBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
-        }
+
+        //if (!IGNORE_SECONDARY_BASES && pileup.getBases().length() < 750) {
+        //    G.applySecondBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
+        //}
+
+        G.applySecondBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
 
         return G;
     }
