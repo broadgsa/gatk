@@ -3,6 +3,7 @@
 
     <property name="source.dir" value="java/src" />
     <property name="single" value="*Test" />
+    <property name="dist" value="dist" />
 
     <!-- If running the 'package' task, this property controls the name of the xml file to package -->
     <property name="executable" value="GenomeAnalysisTK" />
@@ -52,7 +53,7 @@
     <!-- where to put reports and tests-->
     <property name="report" value="build/report"/>
     <property name="test.classes" value="build/testclasses"/>
-    <property name="test.output" value="dist/test"/>
+    <property name="test.output" value="${dist}/test"/>
     <property name="test.sources" value="java/test"/>
     <property name="classes" value="classes"/>
 
@@ -81,27 +82,27 @@
 
     <target name="dist" depends="compile"
             description="generate the distribution">
-        <mkdir dir="dist"/>
+        <mkdir dir="${dist}"/>
         <delete>
-          <fileset dir="dist" includes="*.jar" />
+          <fileset dir="${dist}" includes="*.jar" />
         </delete>
 
-        <copy todir="dist">
+        <copy todir="${dist}">
             <fileset dir="lib" includes="*.jar"/>
         </copy>
 
-        <jar jarfile="dist/StingUtils.jar">
+        <jar jarfile="${dist}/StingUtils.jar">
             <fileset dir="build" includes="**/utils/**/*.class"/>
         </jar>
 
-        <jar jarfile="dist/GenomeAnalysisTK.jar">
+        <jar jarfile="${dist}/GenomeAnalysisTK.jar">
             <fileset dir="build" includes="**/gatk/**/*.class"/>
             <manifest>
                 <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.CommandLineGATK"/>
             </manifest>
         </jar>
 
-        <jar jarfile="dist/FourBaseRecaller.jar" whenmanifestonly="skip">
+        <jar jarfile="${dist}/FourBaseRecaller.jar" whenmanifestonly="skip">
           <fileset dir="build">
             <include name="**/secondarybase/**/*.class" />
           </fileset>
@@ -110,7 +111,7 @@
           </manifest>
         </jar>
     
-        <jar jarfile="dist/Playground.jar" whenmanifestonly="skip">
+        <jar jarfile="${dist}/Playground.jar" whenmanifestonly="skip">
             <fileset dir="build">
                 <include name="**/*.class"/>
                 <exclude name="**/utils/**"/>
@@ -120,28 +121,28 @@
 
         <pathconvert property="jar.classpath" pathsep=" ">
             <flattenmapper/>
-            <fileset dir="dist" includes="*.jar"/>
+            <fileset dir="${dist}" includes="*.jar"/>
         </pathconvert>
 
-        <jar jarfile="dist/StingUtils.jar" update="true">
+        <jar jarfile="${dist}/StingUtils.jar" update="true">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
             </manifest>
         </jar>
 
-        <jar jarfile="dist/GenomeAnalysisTK.jar" update="true">
+        <jar jarfile="${dist}/GenomeAnalysisTK.jar" update="true">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
             </manifest>
         </jar>
 
-        <jar jarfile="dist/FourBaseRecaller.jar" update="true" whenmanifestonly="skip">
+        <jar jarfile="${dist}/FourBaseRecaller.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
         </jar>
 
-        <jar jarfile="dist/Playground.jar" update="true" whenmanifestonly="skip">
+        <jar jarfile="${dist}/Playground.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
             </manifest>
@@ -160,7 +161,7 @@
 	</antcall>
     </target>
 
-    <target name="test.compile" depends="compile">
+    <target name="test.compile" depends="playground">
         <echo message="Sting: Compiling test cases!"/>
         <mkdir dir="${test.classes}"/>
         <javac destdir="${test.classes}" debug="true" optimize="on">
@@ -226,7 +227,7 @@
     <target name="stage" description="stage files for distribution">
         <mkdir dir="staging"/>
         <unjar dest="staging" overwrite="false">
-          <fileset dir="dist">
+          <fileset dir="${dist}">
             <patternset refid="dependency.mask" />
           </fileset>
         </unjar>
@@ -234,15 +235,15 @@
 
     <!-- Build a package consisting of all supporting files -->
     <target name="package" depends="dist,stage" description="bundle up an executable for distribution">
-        <mkdir dir="dist/packages" />
-        <xslt in="packages/${executable}.xml" out="dist/packages/Build${executable}.xml" style="packages/CreatePackager.xsl" />
-        <ant antfile="dist/packages/Build${executable}.xml" />
+        <mkdir dir="${dist}/packages" />
+        <xslt in="packages/${executable}.xml" out="${dist}/packages/Build${executable}.xml" style="packages/CreatePackager.xsl" />
+        <ant antfile="${dist}/packages/Build${executable}.xml" />
     </target>
 
     <target name="clean" description="clean up">
         <delete dir="out"/>
         <delete dir="build"/>
-        <delete dir="dist"/>
+        <delete dir="${dist}"/>
         <delete dir="lib"/>
         <delete dir="staging"/>
     </target>
