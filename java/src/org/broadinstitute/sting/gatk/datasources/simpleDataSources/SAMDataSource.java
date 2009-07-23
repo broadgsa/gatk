@@ -52,7 +52,6 @@ import java.util.List;
  */
 public class SAMDataSource implements SimpleDataSource {
 
-
     /** Backing support for reads. */
     private final Reads reads;
 
@@ -63,7 +62,7 @@ public class SAMDataSource implements SimpleDataSource {
     long readsTaken = 0;
 
     // our last genome loc position
-    GenomeLoc lastReadPos = null;
+    protected GenomeLoc lastReadPos = null;
 
     // do we take unmapped reads
     private boolean includeUnmappedReads = true;
