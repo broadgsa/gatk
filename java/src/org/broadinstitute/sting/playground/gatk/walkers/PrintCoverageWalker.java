@@ -12,7 +12,7 @@ import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.playground.indels.SWPairwiseAlignment;
+import org.broadinstitute.sting.utils.SWPairwiseAlignment;
 import org.broadinstitute.sting.playground.utils.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.cmdLine.Argument;

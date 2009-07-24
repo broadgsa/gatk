@@ -14,8 +14,7 @@ import net.sf.picard.reference.ReferenceSequenceFileWalker;
 import net.sf.picard.reference.ReferenceSequence;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.*;
 
 public class IndelInspectorMain extends CommandLineProgram {
 

@@ -5,7 +5,7 @@ import net.sf.samtools.*;
 import java.util.*;
 import java.io.File;
 
-import org.broadinstitute.sting.utils.PrimitivePair;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.playground.utils.CountedObject;
 import org.broadinstitute.sting.playground.utils.CountedObjectComparatorAdapter;
 
@@ -167,7 +167,7 @@ public class PileBuilder implements RecordPileReceiver {
                            r.getCigar(), r.getAlignmentStart() - startOnRef );
                }
                totalMismatches += AlignmentUtils.numMismatches(r,referenceSequence);
-               AlignmentUtils.collectAndCountIndels(r,all_indels);
+               //AlignmentUtils.collectAndCountIndels(r,all_indels);
            }
 
            if ( mVerbosityLevel >= ALIGNMENTS ) {
@@ -249,7 +249,7 @@ public class PileBuilder implements RecordPileReceiver {
                     rtest.setReadString(r.getReadString());
                     rtest.setReadUmappedFlag(r.getReadUnmappedFlag());
                     rtest.setCigar(cig);
-                    AlignmentUtils.collectAndCountIndels(rtest,new_indels);
+                    //AlignmentUtils.collectAndCountIndels(rtest,new_indels);
                     new_mismatches += AlignmentUtils.numMismatches(rtest,referenceSequence);
                 }
  //           pileAligns.colorprint(true);
