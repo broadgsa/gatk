@@ -270,21 +270,8 @@ public class ParsingEngine {
             return;
 
         if( definition.source.clazz.isAssignableFrom(object.getClass()) ) {
-            if( customArgumentFactory != null ) {
-                Object instance = customArgumentFactory.createArgument(definition.source.field.getType(), match.values());
-                if( instance != null ) {
-                    definition.source.setValue( object, instance );
-                    return;
-                }
-            }
-
-            if( !definition.source.isFlag() ) {
-                String[] tokens = match.values().toArray(new String[0]);
-                ArgumentTypeDescriptor fieldParser = ArgumentTypeDescriptor.create(definition.source.field);
-                definition.source.setValue( object, fieldParser.parse(tokens) );
-            }
-            else
-                definition.source.setValue( object, true );
+            String[] tokens = match.values().toArray(new String[0]);
+            definition.source.inject( customArgumentFactory, object, tokens );
         }
     }
 
@@ -346,17 +333,6 @@ public class ParsingEngine {
 
         // No parse results found.
         return null;
-    }
-
-    /**
-     * Constructs a command-line argument given a string and field.
-     * @param f Field type from which to infer the type.
-     * @param strs Collection of parameter strings to parse.
-     * @return Parsed object of the inferred type.
-     */
-    private Object constructFromString(Field f, List<String> strs) {
-        ArgumentTypeDescriptor fieldParser = ArgumentTypeDescriptor.create(f);
-        return fieldParser.parse( strs.toArray(new String[0]) );
     }
 }
 

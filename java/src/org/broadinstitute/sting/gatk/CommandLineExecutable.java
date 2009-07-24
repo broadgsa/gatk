@@ -153,9 +153,9 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     @Override
     protected ArgumentFactory getCustomArgumentFactory() {
         return new ArgumentFactory() {
-            public Object createArgument( Class type, List<String> repr ) {
-                if (type == SAMFileReader.class && repr.size() == 1) {
-                    SAMFileReader samFileReader = new SAMFileReader(new File(repr.get(0)),true);
+            public Object createArgument( Class type, String... repr ) {
+                if (type == SAMFileReader.class && repr.length == 1) {
+                    SAMFileReader samFileReader = new SAMFileReader(new File(repr[0]),true);
                     samFileReader.setValidationStringency(getArgumentCollection().strictnessLevel);
                     return samFileReader;
                 }

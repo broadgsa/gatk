@@ -119,11 +119,26 @@ public class ArgumentSource {
     }
 
     /**
-     * Set the value of the field in the passed object to <code>value</code>
-     * @param targetInstance Instance in which to find the field.
-     * @param value Value to which to set the field.
+     * Injects the specified value into the selected field of the instance.
+     * @param targetInstance Instance into which to inject the parsed value.
+     * @param values String representation of all values passed.
      */
-    public void setValue( Object targetInstance, Object value ) {
+    public void inject( ArgumentFactory customArgumentFactory, Object targetInstance, String... values ) {
+        Object value = null;
+
+        if( customArgumentFactory != null ) {
+            value = customArgumentFactory.createArgument(field.getType(), values);
+        }
+
+        if( value == null ) {
+            if( !isFlag() ) {
+                ArgumentTypeDescriptor typeDescriptor = ArgumentTypeDescriptor.create( field.getType() );
+                value = typeDescriptor.parse( field, field.getType(), values );
+            }
+            else
+                value = true;
+        }
+
         try {
             field.setAccessible(true);
             field.set(targetInstance, value);
@@ -132,7 +147,6 @@ public class ArgumentSource {
             //logger.fatal("processArgs: cannot convert field " + field.toString());
             throw new StingException("processArgs: Failed conversion " + ex.getMessage(), ex);
         }
-
     }
 
     /**
@@ -151,6 +165,4 @@ public class ArgumentSource {
         Class argumentType = field.getType();
         return Collection.class.isAssignableFrom(argumentType) || field.getType().isArray();
     }
-
-
 }

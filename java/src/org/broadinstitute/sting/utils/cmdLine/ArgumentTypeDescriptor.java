@@ -44,53 +44,46 @@ public abstract class ArgumentTypeDescriptor {
      * our log, which we want to capture anything from org.broadinstitute.sting
      */
     protected static Logger logger = Logger.getLogger(ArgumentTypeDescriptor.class);
-
-    /**
-     * Name of the field which should be parsed by this argument.
-     */
-    protected final String fieldName;
-
-    public static ArgumentTypeDescriptor create( Field field ) {
-        Class type = field.getType();
-
-        if( Collection.class.isAssignableFrom(type) || type.isArray() )
-            return new CompoundArgumentTypeDescriptor( field );
-        else
-            return new SimpleArgumentTypeDescriptor( field );
-    }
-
-    static ArgumentTypeDescriptor create( String fieldName, Class type ) {
-        if( Collection.class.isAssignableFrom(type) || type.isArray() )
-            return new CompoundArgumentTypeDescriptor( fieldName, type );
-        else
-            return new SimpleArgumentTypeDescriptor( fieldName, type );
-    }
-
-    protected ArgumentTypeDescriptor( Field field ) {
-        fieldName = field.toString();
-    }
-
-    protected ArgumentTypeDescriptor( String fieldName ) {
-        this.fieldName = fieldName;
-    }
     
-    public abstract Object parse( String... values );
+    /**
+     * Class reference to the different types of descriptors that the create method can create.
+     */
+    private static List<ArgumentTypeDescriptor> descriptors = Arrays.asList( new SimpleArgumentTypeDescriptor(),                                                                                
+                                                                             new CompoundArgumentTypeDescriptor() );
+
+    public static ArgumentTypeDescriptor create( Class type ) {
+        for( ArgumentTypeDescriptor descriptor: descriptors ) {
+            if( descriptor.supports(type) )
+                return descriptor;
+        }
+        throw new StingException("Can't process command-line arguments of type: " + type.getName());
+    }
+
+    public abstract boolean supports( Class type );
+    
+    public abstract Object parse( Field field, Class type, String... values );
 }
 
 class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
-    private final Class type;
+    @Override
+    public boolean supports( Class type ) {
+        if( type.isPrimitive() ) return true;
+        if( type.isEnum() ) return true;
+        if( primitiveToWrapperMap.containsValue(type) ) return true;
 
-    public SimpleArgumentTypeDescriptor( Field field ) {
-        super( field );
-        this.type = field.getType();
+        try {
+            type.getConstructor(String.class);
+            return true;
+        }
+        catch( Exception ex ) {
+            // An exception thrown above means that the String constructor either doesn't
+            // exist or can't be accessed.  In either case, this descriptor doesn't support this type.
+            return false;
+        }
     }
 
-    public SimpleArgumentTypeDescriptor( String fieldName, Class type ) {
-        super( fieldName );
-        this.type = type;
-    }
-
-    public Object parse( String... values ) {
+    @Override
+    public Object parse( Field field, Class type, String... values ) {
         if( values.length > 1 )
             throw new StingException("Simple argument parser is unable to parse multiple arguments.");
 
@@ -109,16 +102,12 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             }
         }
         catch (NoSuchMethodException e) {
-            logger.fatal("ArgumentParser: NoSuchMethodException: cannot convert field " + fieldName);
             throw new StingException("constructFromString:NoSuchMethodException: Failed conversion " + e.getMessage());
         } catch (IllegalAccessException e) {
-            logger.fatal("ArgumentParser: IllegalAccessException: cannot convert field " + fieldName);
             throw new StingException("constructFromString:IllegalAccessException: Failed conversion " + e.getMessage());
         } catch (InvocationTargetException e) {
-            logger.fatal("ArgumentParser: InvocationTargetException: cannot convert field " + fieldName);
             throw new StingException("constructFromString:InvocationTargetException: Failed conversion " + e.getMessage());
         } catch (InstantiationException e) {
-            logger.fatal("ArgumentParser: InstantiationException: cannot convert field " + fieldName);
             throw new StingException("constructFromString:InstantiationException: Failed conversion " + e.getMessage());
         }
 
@@ -143,26 +132,27 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 }
 
 class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
-    private final Class type;
-    private final Class componentType;
-    private final ArgumentTypeDescriptor componentArgumentParser;
+    @Override
+    public boolean supports( Class type ) {
+        return ( Collection.class.isAssignableFrom(type) || type.isArray() );
+    }
+    
+    @Override
+    public Object parse( Field field, Class type, String... values )
+    {
+        Class componentType = null;
+        ArgumentTypeDescriptor componentArgumentParser;        
 
-    public CompoundArgumentTypeDescriptor( Field field ) {
-        super( field );
-        Class candidateType = field.getType();
-
-        if( Collection.class.isAssignableFrom(candidateType) ) {
+        if( Collection.class.isAssignableFrom(type) ) {
 
             // If this is a generic interface, pick a concrete implementation to create and pass back.
             // Because of type erasure, don't worry about creating one of exactly the correct type.
-            if( Modifier.isInterface(candidateType.getModifiers()) || Modifier.isAbstract(candidateType.getModifiers()) )
+            if( Modifier.isInterface(type.getModifiers()) || Modifier.isAbstract(type.getModifiers()) )
             {
-                if( java.util.List.class.isAssignableFrom(candidateType) ) candidateType = ArrayList.class;
-                else if( java.util.Queue.class.isAssignableFrom(candidateType) ) candidateType = java.util.ArrayDeque.class;
-                else if( java.util.Set.class.isAssignableFrom(candidateType) ) candidateType = java.util.TreeSet.class;
+                if( java.util.List.class.isAssignableFrom(type) ) type = ArrayList.class;
+                else if( java.util.Queue.class.isAssignableFrom(type) ) type = java.util.ArrayDeque.class;
+                else if( java.util.Set.class.isAssignableFrom(type) ) type = java.util.TreeSet.class;
             }
-
-            this.type = candidateType;
 
             // If this is a parameterized collection, find the contained type.  If blow up if only one type exists.
             if( field.getGenericType() instanceof ParameterizedType) {
@@ -174,52 +164,30 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             else
                 componentType = String.class;
         }
-        else if( candidateType.isArray() ) {
-            this.type = candidateType;
-            this.componentType = candidateType.getComponentType();
-        }
-        else
-            throw new StingException("Unsupported compound argument type: " + candidateType);
-
-        componentArgumentParser = ArgumentTypeDescriptor.create( fieldName, componentType );
-    }
-
-    public CompoundArgumentTypeDescriptor( String fieldName, Class type ) {
-        super(fieldName);
-
-        this.type = type;
-
-        if( Collection.class.isAssignableFrom(type) ) {
-            this.componentType = String.class;
-        }
         else if( type.isArray() ) {
-            this.componentType = type.getComponentType();
+            componentType = type.getComponentType();
         }
         else
             throw new StingException("Unsupported compound argument type: " + type);
 
-        componentArgumentParser = ArgumentTypeDescriptor.create( fieldName, componentType );
-    }
+        componentArgumentParser = ArgumentTypeDescriptor.create( componentType );
 
-    @Override
-    public Object parse( String... values ) 
-    {
         if( Collection.class.isAssignableFrom(type) ) {
             Collection collection = null;
             try {
                 collection = (Collection)type.newInstance();
             }
             catch (InstantiationException e) {
-                logger.fatal("ArgumentParser: InstantiationException: cannot convert field " + fieldName);
+                logger.fatal("ArgumentParser: InstantiationException: cannot convert field " + field.getName());
                 throw new StingException("constructFromString:InstantiationException: Failed conversion " + e.getMessage());
             }
             catch (IllegalAccessException e) {
-                logger.fatal("ArgumentParser: IllegalAccessException: cannot convert field " + fieldName);
+                logger.fatal("ArgumentParser: IllegalAccessException: cannot convert field " + field.getName());
                 throw new StingException("constructFromString:IllegalAccessException: Failed conversion " + e.getMessage());
             }
 
             for( String value: values )
-                collection.add( componentArgumentParser.parse(value) );
+                collection.add( componentArgumentParser.parse(field,componentType,value) );
 
             return collection;
         }
@@ -227,7 +195,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             Object arr = Array.newInstance(componentType,values.length);
 
             for( int i = 0; i < values.length; i++ )
-                Array.set( arr,i,componentArgumentParser.parse(values[i]));
+                Array.set( arr,i,componentArgumentParser.parse(field,componentType,values[i]));
             
             return arr;
         }

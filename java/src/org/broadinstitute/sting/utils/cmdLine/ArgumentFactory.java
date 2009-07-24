@@ -38,5 +38,5 @@ public abstract class ArgumentFactory {
      * @param repr A String representation of the argument.
      * @return
      */
-    public abstract Object createArgument(Class type, List<String> repr);
+    public abstract Object createArgument(Class type, String... repr);
 }
