@@ -11,7 +11,6 @@ import org.junit.Test;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.playground.gatk.walkers.indels.CleanedReadInjector;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;

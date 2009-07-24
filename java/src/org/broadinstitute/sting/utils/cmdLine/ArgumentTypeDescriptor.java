@@ -38,54 +38,54 @@ import java.util.*;
  * @author mhanna
  * @version 0.1
  */
-public abstract class FieldParser {
+public abstract class ArgumentTypeDescriptor {
 
     /**
      * our log, which we want to capture anything from org.broadinstitute.sting
      */
-    protected static Logger logger = Logger.getLogger(FieldParser.class);
+    protected static Logger logger = Logger.getLogger(ArgumentTypeDescriptor.class);
 
     /**
      * Name of the field which should be parsed by this argument.
      */
     protected final String fieldName;
 
-    public static FieldParser create( Field field ) {
+    public static ArgumentTypeDescriptor create( Field field ) {
         Class type = field.getType();
 
         if( Collection.class.isAssignableFrom(type) || type.isArray() )
-            return new JRECompoundFieldParser( field );
+            return new CompoundArgumentTypeDescriptor( field );
         else
-            return new JRESimpleFieldParser( field );
+            return new SimpleArgumentTypeDescriptor( field );
     }
 
-    static FieldParser create( String fieldName, Class type ) {
+    static ArgumentTypeDescriptor create( String fieldName, Class type ) {
         if( Collection.class.isAssignableFrom(type) || type.isArray() )
-            return new JRECompoundFieldParser( fieldName, type );
+            return new CompoundArgumentTypeDescriptor( fieldName, type );
         else
-            return new JRESimpleFieldParser( fieldName, type );        
+            return new SimpleArgumentTypeDescriptor( fieldName, type );
     }
 
-    protected FieldParser( Field field ) {
+    protected ArgumentTypeDescriptor( Field field ) {
         fieldName = field.toString();
     }
 
-    protected FieldParser( String fieldName ) {
+    protected ArgumentTypeDescriptor( String fieldName ) {
         this.fieldName = fieldName;
     }
     
     public abstract Object parse( String... values );
 }
 
-class JRESimpleFieldParser extends FieldParser {
+class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     private final Class type;
 
-    public JRESimpleFieldParser( Field field ) {
+    public SimpleArgumentTypeDescriptor( Field field ) {
         super( field );
         this.type = field.getType();
     }
 
-    public JRESimpleFieldParser( String fieldName, Class type ) {
+    public SimpleArgumentTypeDescriptor( String fieldName, Class type ) {
         super( fieldName );
         this.type = type;
     }
@@ -142,12 +142,12 @@ class JRESimpleFieldParser extends FieldParser {
     };    
 }
 
-class JRECompoundFieldParser extends FieldParser {
+class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     private final Class type;
     private final Class componentType;
-    private final FieldParser componentArgumentParser;
+    private final ArgumentTypeDescriptor componentArgumentParser;
 
-    public JRECompoundFieldParser( Field field ) {
+    public CompoundArgumentTypeDescriptor( Field field ) {
         super( field );
         Class candidateType = field.getType();
 
@@ -181,10 +181,10 @@ class JRECompoundFieldParser extends FieldParser {
         else
             throw new StingException("Unsupported compound argument type: " + candidateType);
 
-        componentArgumentParser = FieldParser.create( fieldName, componentType );
+        componentArgumentParser = ArgumentTypeDescriptor.create( fieldName, componentType );
     }
 
-    public JRECompoundFieldParser( String fieldName, Class type ) {
+    public CompoundArgumentTypeDescriptor( String fieldName, Class type ) {
         super(fieldName);
 
         this.type = type;
@@ -198,7 +198,7 @@ class JRECompoundFieldParser extends FieldParser {
         else
             throw new StingException("Unsupported compound argument type: " + type);
 
-        componentArgumentParser = FieldParser.create( fieldName, componentType );        
+        componentArgumentParser = ArgumentTypeDescriptor.create( fieldName, componentType );
     }
 
     @Override

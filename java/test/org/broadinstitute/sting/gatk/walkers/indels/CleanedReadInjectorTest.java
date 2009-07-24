@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.indels;
+package org.broadinstitute.sting.gatk.walkers.indels;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.OutputTracker;

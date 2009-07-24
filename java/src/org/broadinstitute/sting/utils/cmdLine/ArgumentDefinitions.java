@@ -270,15 +270,21 @@ class ArgumentDefinition {
      * Creates a new argument definition.
      * @param source Source information for defining the argument.
      */
-    public ArgumentDefinition( ArgumentSource source ) {
+    public ArgumentDefinition( ArgumentSource source,
+                               String fullName,
+                               String shortName,
+                               String doc,
+                               boolean required,
+                               String exclusiveOf, 
+                               String validation ) {
         this.source = source;
 
-        fullName = source.getFullName();
-        shortName = source.getShortName();
-        doc = source.getDoc();
-        required = source.isRequired();
-        exclusiveOf = source.getExclusiveOf();
-        validation = source.getValidationRegex();
+        this.fullName = fullName;
+        this.shortName = shortName;
+        this.doc = doc;
+        this.required = required;
+        this.exclusiveOf = exclusiveOf;
+        this.validation = validation;
     }
 }
 

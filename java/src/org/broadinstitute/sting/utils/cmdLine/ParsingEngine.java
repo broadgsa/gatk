@@ -85,7 +85,7 @@ public class ParsingEngine {
     public void addArgumentSource( String sourceName, Class sourceClass ) {
         List<ArgumentDefinition> argumentsFromSource = new ArrayList<ArgumentDefinition>();
         for( ArgumentSource argumentSource: extractArgumentSources(sourceClass,true) )
-            argumentsFromSource.add( new ArgumentDefinition(argumentSource) );
+            argumentsFromSource.addAll( argumentSource.createArgumentDefinitions() );
         argumentDefinitions.add( new ArgumentDefinitionGroup(sourceName, argumentsFromSource) );
     }
 
@@ -280,7 +280,7 @@ public class ParsingEngine {
 
             if( !definition.source.isFlag() ) {
                 String[] tokens = match.values().toArray(new String[0]);
-                FieldParser fieldParser = FieldParser.create(definition.source.field);
+                ArgumentTypeDescriptor fieldParser = ArgumentTypeDescriptor.create(definition.source.field);
                 definition.source.setValue( object, fieldParser.parse(tokens) );
             }
             else
@@ -355,7 +355,7 @@ public class ParsingEngine {
      * @return Parsed object of the inferred type.
      */
     private Object constructFromString(Field f, List<String> strs) {
-        FieldParser fieldParser = FieldParser.create(f);
+        ArgumentTypeDescriptor fieldParser = ArgumentTypeDescriptor.create(f);
         return fieldParser.parse( strs.toArray(new String[0]) );
     }
 }

@@ -29,6 +29,8 @@ import org.broadinstitute.sting.utils.StingException;
 
 import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.List;
+import java.util.Collections;
 
 /**
  * Describes the source field which defines a command-line argument.
@@ -94,53 +96,26 @@ public class ArgumentSource {
     }
 
     /**
-     * Retrieves the full name of the argument, specifiable with the '--' prefix.  The full name can be
-     * either specified explicitly with the fullName annotation parameter or implied by the field name.
-     * @return full name of the argument.  Never null.
+     * Generate a list of all argument definitions to which this argument source maps.
+     * @return A non-null, non-empty list of argument definitions.
      */
-    public String getFullName() {
-        return descriptor.fullName().trim().length() > 0 ? descriptor.fullName().trim() : field.getName().toLowerCase();
-    }
+    public List<ArgumentDefinition> createArgumentDefinitions() {
+        String fullName = descriptor.fullName().trim().length() > 0 ? descriptor.fullName().trim() : field.getName().toLowerCase();
+        String shortName = descriptor.shortName().trim().length() > 0 ? descriptor.shortName().trim() : null;
+        String doc = descriptor.doc();
+        boolean required = descriptor.required() && !isFlag();
+        String exclusiveOf = descriptor.exclusiveOf().trim().length() > 0 ? descriptor.exclusiveOf().trim() : null;
+        String validation = descriptor.validation().trim().length() > 0 ? descriptor.validation().trim() : null;
 
-    /**
-     * Retrieves the short name of the argument, specifiable with the '-' prefix.  The short name can
-     * be specified or not; if left unspecified, no short name will be present.
-     * @return short name of the argument.  Null if no short name exists.
-     */
-    public String getShortName() {
-        return descriptor.shortName().trim().length() > 0 ? descriptor.shortName().trim() : null;
-    }
-
-    /**
-     * Documentation for this argument.  Mandatory field.
-     * @return Documentation for this argument.
-     */
-    public String getDoc() {
-        return descriptor.doc();    
-    }
-
-    /**
-     * Returns whether this field is required.  Note that flag fields are always forced to 'not required'.
-     * @return True if the field is mandatory and not a boolean flag.  False otherwise.
-     */
-    public boolean isRequired() {
-        return descriptor.required() && !isFlag();    
-    }
-
-    /**
-     * Specifies other arguments which cannot be used in conjunction with tihs argument.  Comma-separated list.
-     * @return A comma-separated list of exclusive arguments, or null if none are present.
-     */
-    public String getExclusiveOf() {
-        return descriptor.exclusiveOf().trim().length() > 0 ? descriptor.exclusiveOf().trim() : null;    
-    }
-
-    /**
-     * A regular expression which can be used for validation.
-     * @return a JVM regex-compatible regular expression, or null to permit any possible value.
-     */
-    public String getValidationRegex() {
-        return descriptor.validation().trim().length() > 0 ? descriptor.validation().trim() : null;    
+        ArgumentDefinition argumentDefinition = new ArgumentDefinition( this,
+                                                                        fullName,
+                                                                        shortName,
+                                                                        doc,
+                                                                        required,
+                                                                        exclusiveOf,
+                                                                        validation );
+        
+        return Collections.singletonList(argumentDefinition);
     }
 
     /**
