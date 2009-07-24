@@ -1,13 +1,16 @@
 package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
+import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.*;
 
+import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.refdata.RODIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.Transcript;
 import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.playground.utils.CircularArray;
@@ -135,6 +138,53 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	}
 	
 	void assignReadGroups(final SAMFileHeader mergedHeader) {
+		
+		Set<String> normal = new HashSet<String>(); // list normal samples here
+		Set<String> tumor = new HashSet<String>(); // list tumor samples here
+		
+		SAMFileReader rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(0));
+		for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
+			normal.add(new String(rec.getSample()));
+		}
+		rn.close();
+		rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(1));
+		for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
+			tumor.add(new String(rec.getSample()));
+		}
+		rn.close();		
+
+		// now we know what samples are normal, and what are tumor; let's assign dynamic read groups we get in merged header:
+		for ( SAMReadGroupRecord mr : mergedHeader.getReadGroups() ) {
+			if ( normal.contains(mr.getSample() ) ) {
+				normal_samples.add( new String(mr.getReadGroupId()) );
+				System.out.println("Read group "+ mr.getReadGroupId() + "--> Sample "+ mr.getSample() + " (normal)");
+			} else if ( tumor.contains(mr.getSample() ) ) {
+				tumor_samples.add( new String(mr.getReadGroupId()) );
+				System.out.println("Read group "+ mr.getReadGroupId() + "--> Sample "+ mr.getSample() + " (tumor)");
+			} else throw new StingException("Unrecognized sample "+mr.getSample() +" in merged SAM stream");
+		}
+		System.out.println();
+		
+	}
+	
+
+	void assignReadGroups1(final SAMFileHeader mergedHeader) {
+		
+		SAMDataSource d = getToolkit().getDataSource();
+		
+		Reads reads = d.getReadsInfo();
+		
+		System.out.println(reads.getReadsFiles().size() + " input files");
+
+		System.out.println(d.getHeaderMerger().getReaders().size() +" readers instantiated");
+		for ( SAMFileReader r : d.getHeaderMerger().getReaders() ) {
+			System.out.print("----------\nread groups:");
+			for ( SAMReadGroupRecord g : r.getFileHeader().getReadGroups() ) {
+				System.out.print(" "+g.getReadGroupId()+ " ("+g.getSample()+":"+g.getLibrary()+")");
+			}
+		}
+		
+		System.exit(1);
 		
 		Set<String> normal = new HashSet<String>(); // list normal samples here
 		Set<String> tumor = new HashSet<String>(); // list tumor samples here
@@ -357,13 +407,15 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	 */
 	private void emit(long position, boolean force) {
 		
-		long stop_at = position; // we will shift to this position instead of passed 'position'
-					     // argument if we did not cover MISMATCH_WIDTH bases around the last indel yet
+		long move_to = position; // we will shift to position move_to; it's initialized with 'position',
+								 // but it may end up being smaller (delayed shift), if we have not
+			                     // covered MISMATCH_WIDTH bases to the right of the last indel yet.
 		
+		// walk along the coverage window and emit indels up to the position we are trying ot shift the window to
 		for ( long pos = coverage.getStart() ; pos < Math.min(position,coverage.getStop()+1) ; pos++ ) {
 			
 			List<IndelVariant> variants = coverage.indelsAt(pos);
-			if ( variants.size() == 0 ) continue; // no indels
+			if ( variants.size() == 0 ) continue; // no indels at current position
 			
 			// if we are here, we got a variant
 
@@ -371,20 +423,27 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			
 			if ( cov < minCoverage ) continue; // low coverage
 			
+//			System.out.println("indel at "+pos);
+			
+			// region around the current indel we need to have covered in order to compute mismatch rate:
 			long left = Math.max( pos-MISMATCH_WIDTH, coverage.getStart() );
 			long right = pos+MISMATCH_WIDTH;
 			
-			if ( right > coverage.getStop() ) { // we do not have enough bases in the current window
-					                            // in order to assess mismatch rate
-				if( force ) { // if we were asked to force-shift, then, well, shift anyway
-					right = coverage.getStop()  ;
-				} else {			
-					// shift to the position prior to the last indel so that we could get all the mismatch counts around it later 
-					stop_at = left; 
-					break;
-				}
+			// if right < position we are shifting to, we already have all the coverage within MISMATCH_WINDOW bases around the indel,
+			// so we can proceed with counting mismatches and emitting the indel
+			
+			if ( right >= position && ! force) { 
+				// we are not asked to force-shift, and there is more coverage around the current indel that we need to collect
+					                            
+				// we are not asked to force-shift, and there's still additional coverage to the right of current indel, so its too early to emit it;
+				// instead we shift only up to current indel pos - MISMATCH_WIDTH, so that we could keep collecting that coverage
+				move_to = left; 
+//				System.out.println("right="+right+" requested="+position+" stopped at="+left);
+				break;
 			}
 
+			if ( right > coverage.getStop() ) right = coverage.getStop(); // if indel is too close to the end of the window but we need to emit anyway 
+			
 			// count mismatches around the current indel, inside specified window (MISMATCH_WIDTH on each side):
 			int total_mismatches = 0;
 			for ( long k = left; k <= right ; k++ ) total_mismatches+=coverage.mismatchesAt(k);
@@ -404,13 +463,15 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 				String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotation));
 				
 				if ( verbose ) out.println(message + "\t"+ annotationString);
-			}
+			} 
+//			else { System.out.println("not a call: count="+p.first.count+" total_count="+p.second+" cov="+cov+
+//					" minConsensusF="+((double)p.first.count)/p.second+" minF="+((double)p.first.count)/cov); }
 //			for ( IndelVariant var : variants ) {
 //				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
 //			}
 		}
-		
-		coverage.shift((int)(stop_at - coverage.getStart() ) );
+//		System.out.println("Shifting to " + move_to+" ("+position+")");
+		coverage.shift((int)(move_to - coverage.getStart() ) );
 	}
 
 	/** Output somatic indel calls up to the specified position and shift the coverage array(s): after this method is executed
@@ -420,7 +481,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	 */
 	private void emit_somatic(long position, boolean force) {
 		
-		long stop_at = position;
+		long move_to = position;
 		
 		for ( long pos = coverage.getStart() ; pos < Math.min(position,coverage.getStop()+1) ; pos++ ) {
 			
@@ -440,16 +501,16 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			long left = Math.max( pos-MISMATCH_WIDTH, coverage.getStart() );
 			long right = pos+MISMATCH_WIDTH;
 			
-			if ( right > coverage.getStop() ) { // we do not have enough bases in the current window
-					                            // in order to assess mismatch rate
-				if( force ) { // if we were asked to force-shift, then, well, shift anyway
-					right = coverage.getStop()  ;
-				} else {			
-					// shift to the position prior to the last indel so that we could get all the mismatch counts around it later 
-					stop_at = left; 
-					break;
-				}
+			if ( right >= position && ! force) { 
+				// we are not asked to force-shift, and there is more coverage around the current indel that we need to collect
+					                            
+				// we are not asked to force-shift, and there's still additional coverage to the right of current indel, so its too early to emit it;
+				// instead we shift only up to current indel pos - MISMATCH_WIDTH, so that we could keep collecting that coverage
+				move_to = left; 
+				break;
 			}
+
+			if ( right > coverage.getStop() ) right = coverage.getStop(); // if indel is too close to the end of the window but we need to emit anyway 
 
 			// count mismatches around the current indel, inside specified window (MISMATCH_WIDTH on each side):
 			int total_mismatches_normal = 0;
@@ -500,8 +561,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 //			}
 		}
 		
-		coverage.shift((int)(stop_at - coverage.getStart() ) );
-		normal_coverage.shift((int)(stop_at - normal_coverage.getStart() ) );
+		coverage.shift((int)(move_to - coverage.getStart() ) );
+		normal_coverage.shift((int)(move_to - normal_coverage.getStart() ) );
 	}
 
 
