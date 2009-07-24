@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.indels;
+package org.broadinstitute.sting.gatk.walkers.indels;
 
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.refdata.*;
@@ -9,7 +9,6 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.playground.indels.*;
 
 import net.sf.samtools.*;
 
@@ -338,7 +337,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                     } catch (Exception e) {}
                 }
             } else {
-                logger.debug("CLEAN: " + cigarToString(bestConsensus.cigar) + " " + bestConsensus.str );
+                logger.debug("CLEAN: " + AlignmentUtils.cigarToString(bestConsensus.cigar) + " " + bestConsensus.str );
                 if ( indelOutput != null && bestConsensus.cigar.numCigarElements() > 1 ) {
                     // NOTE: indels are printed out in the format specified for the low-coverage pilot1
                     //  indel calls (tab-delimited): chr position size type sequence
@@ -421,7 +420,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         // create the new consensus
         StringBuffer sb = new StringBuffer();
         sb.append(reference.substring(0, indexOnRef));
-        logger.debug("CIGAR = " + cigarToString(c));
+        logger.debug("CIGAR = " + AlignmentUtils.cigarToString(c));
 
         int indelCount = 0;
         int altIdx = 0;
@@ -673,7 +672,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         int difference = 0; // we can move indel 'difference' bases left
         final int indel_length = ce2.getLength();
 
-        String indelString = null; // inserted or deleted sequence
+        String indelString; // inserted or deleted sequence
         int period = 0; // period of the inserted/deleted sequence
         int indelIndexOnRef = refIndex+ce1.getLength() ; // position of the indel on the REF (first deleted base or first base after insertion)
         int indelIndexOnRead = readIndex+ce1.getLength(); // position of the indel on the READ (first insterted base, of first base after deletion)
@@ -753,7 +752,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             //            if ( ce2.getLength() >=2 )
             //                System.out.println("  REALIGNED TO:\n"+AlignmentUtils.alignmentToString(newCigar,readSeq,refSeq,refIndex,readIndex)+"\n");
 
-            logger.debug("Realigning indel: " + cigarToString(cigar) + " to " + cigarToString(newCigar));
+            logger.debug("Realigning indel: " + AlignmentUtils.cigarToString(cigar) + " to " + AlignmentUtils.cigarToString(newCigar));
             cigar = newCigar;
 
         }
@@ -794,7 +793,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             if ( getCigar().equals(cigar) )
                 return false;
 
-            String str = cigarToString(cigar);
+            String str = AlignmentUtils.cigarToString(cigar);
             if ( !str.contains("D") && !str.contains("I") )
                 return false;
 
@@ -991,24 +990,5 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         reads.add(r7);
         reads.add(r8);
         clean(reads, reference, GenomeLocParser.createGenomeLoc(0,0));
-    }
-
-    public static String cigarToString(Cigar cig) {
-        if ( cig == null )
-            return "null";
-
-        StringBuilder b = new StringBuilder();
-
-        for ( int i = 0 ; i < cig.numCigarElements() ; i++ ) {
-            char c='?';
-            switch ( cig.getCigarElement(i).getOperator() ) {            
-                case M : c = 'M'; break;
-                case D : c = 'D'; break;
-                case I : c = 'I'; break;
-            }
-            b.append(cig.getCigarElement(i).getLength());
-            b.append(c);
-        }
-        return b.toString(); 
     }
 }

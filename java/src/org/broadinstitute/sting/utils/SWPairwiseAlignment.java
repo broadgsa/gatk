@@ -1,6 +1,5 @@
-package org.broadinstitute.sting.playground.indels;
+package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.sting.utils.PrimitivePair;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.Cigar;
