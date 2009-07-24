@@ -1,16 +1,13 @@
 package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
-import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.*;
 
-import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.refdata.RODIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.Transcript;
 import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.playground.utils.CircularArray;
@@ -69,8 +66,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	
 	private RODIterator<rodRefSeq> refseqIterator=null;
 
-	private Set<String> normal_samples = new HashSet<String>();
-	private Set<String> tumor_samples = new HashSet<String>();
+	private Set<String> normalReadGroups;
+	private Set<String> tumorReadGroups ;
 	
 	private int MISMATCH_WIDTH = 5; // 5 bases on each side of the indel
 	private int MISMATCH_CUTOFF = 1000000;
@@ -105,6 +102,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		
 		location = GenomeLocParser.createGenomeLoc(0,1);
 		
+		List<Set<String>> readGroupSets = getToolkit().getMergedReadGroupsByReaders();
+
 		if ( call_somatic ) {
 			if ( nSams != 2 ) {
 				System.out.println("In --somatic mode two input bam files must be specified (normal/tumor)");
@@ -112,31 +111,43 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			}
 			normal_coverage = new RunningCoverage(0,WINDOW_SIZE);
 			
-			// this is an ugly hack: we want to be able to tell what file (tumor/normal sample) each read came from,
-			// but reads do not carry this information!
-			
-//			SAMFileReader rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(0));
-//			for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
-//				normal_samples.add(rec.getSample());
-//			}
-//			rn.close();
-//			rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(1));
-//			for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
-//				tumor_samples.add(rec.getSample());
-//			}
-//			rn.close();
-			
+			normalReadGroups = readGroupSets.get(0); // first -I option must specify normal.bam
+			tumorReadGroups = readGroupSets.get(1); // second -I option must specify tumor.bam
 		} else {
 			if ( nSams != 1 ) System.out.println("WARNING: multiple input files specified. \n"+
 					"WARNING: Without --somatic option they will be merged and processed as a single sample");
 		}
+/*
+		List<Set<String>> sample_sets = getToolkit().getSamplesByReaders();
+		for ( int i = 0 ; i < sample_sets.size() ; i++ ) {
+			System.out.print("Reader "+i);
+			for ( String s : sample_sets.get(i) ) System.out.print(" " + s);
+			System.out.println();
+		}
+
+		List<Set<String>> lib_sets = getToolkit().getLibrariesByReaders();
+		for ( int i = 0 ; i < lib_sets.size() ; i++ ) {
+			System.out.print("Reader "+i);
+			for ( String s : lib_sets.get(i) ) System.out.print(" " + s);
+			System.out.println();
+		}
+*/
+/*		
+		for ( int i = 0 ; i < readGroupSets.size() ; i++ ) {
+			System.out.print("Reader "+i);
+			for ( String s : readGroupSets.get(i) ) System.out.print(" " + s);
+			System.out.println();
+		}
+		assignReadGroups1();
+*/
 		try {
 			output = new java.io.FileWriter(bed_file);
 		} catch (IOException e) {
 			throw new StingException("Failed to open file for writing BED output");
 		}
 	}
-	
+
+	/*
 	void assignReadGroups(final SAMFileHeader mergedHeader) {
 		
 		Set<String> normal = new HashSet<String>(); // list normal samples here
@@ -167,74 +178,19 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		
 	}
 	
-
-	void assignReadGroups1(final SAMFileHeader mergedHeader) {
-		
-		SAMDataSource d = getToolkit().getDataSource();
-		
-		Reads reads = d.getReadsInfo();
-		
-		System.out.println(reads.getReadsFiles().size() + " input files");
-
-		System.out.println(d.getHeaderMerger().getReaders().size() +" readers instantiated");
-		for ( SAMFileReader r : d.getHeaderMerger().getReaders() ) {
-			System.out.print("----------\nread groups:");
-			for ( SAMReadGroupRecord g : r.getFileHeader().getReadGroups() ) {
-				System.out.print(" "+g.getReadGroupId()+ " ("+g.getSample()+":"+g.getLibrary()+")");
-			}
-		}
-		
-		System.exit(1);
-		
-		Set<String> normal = new HashSet<String>(); // list normal samples here
-		Set<String> tumor = new HashSet<String>(); // list tumor samples here
-		
-		SAMFileReader rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(0));
-		for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
-			normal.add(new String(rec.getSample()));
-		}
-		rn.close();
-		rn = new SAMFileReader(getToolkit().getArguments().samFiles.get(1));
-		for ( SAMReadGroupRecord rec : rn.getFileHeader().getReadGroups() ) {
-			tumor.add(new String(rec.getSample()));
-		}
-		rn.close();		
-
-		// now we know what samples are normal, and what are tumor; let's assign dynamic read groups we get in merged header:
-		for ( SAMReadGroupRecord mr : mergedHeader.getReadGroups() ) {
-			if ( normal.contains(mr.getSample() ) ) {
-				normal_samples.add( new String(mr.getReadGroupId()) );
-				System.out.println("Read group "+ mr.getReadGroupId() + "--> Sample "+ mr.getSample() + " (normal)");
-			} else if ( tumor.contains(mr.getSample() ) ) {
-				tumor_samples.add( new String(mr.getReadGroupId()) );
-				System.out.println("Read group "+ mr.getReadGroupId() + "--> Sample "+ mr.getSample() + " (tumor)");
-			} else throw new StingException("Unrecognized sample "+mr.getSample() +" in merged SAM stream");
-		}
-		System.out.println();
-		
-	}
+*/
+	
 	
 	@Override
 	public Integer map(char[] ref, SAMRecord read) {
 		
-//		if ( read.getReadUnmappedFlag() && read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX &&
-//				read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ) {
-//			System.out.println("I think I reached unmapped reads at the end of the file(s) and I am done...");
-//			return 0;
-//		}
-		
-//		if ( read.getAlignmentStart() < 112337549 && read.getAlignmentEnd() > 112337550 ) {
-//			System.out.print("adding "+read.getReadString()+" "+read.getCigarString());
-//		}
 
 		if ( read.getReadUnmappedFlag() ||
 			 read.getDuplicateReadFlag() ||
 			 read.getNotPrimaryAlignmentFlag() ||
 			 read.getMappingQuality() == 0 ) { 
-//			System.out.println(" ignored");
 			return 0; // we do not need those reads!
 		}
-//		System.out.print(" added");
 		
 		if ( read.getReferenceIndex() != currentContigIndex ) { 
 			// we just jumped onto a new contig
@@ -249,7 +205,6 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			refName = new String(read.getReferenceName());
 
 			location = GenomeLocParser.setContig(location,refName);
-//			location.setContigIndex(read.getReferenceIndex());
 			
 			coverage.clear(); // reset coverage window; this will also set reference position to 0
 			if ( call_somatic) normal_coverage.clear();
@@ -305,20 +260,13 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		}
 		
 		if ( call_somatic ) {
-			
-			// this is a hack. currently we can get access to the merged header only through the read,
-			// so below we figure out which of the reassigned read groups in the merged stream are normal
-			// and which are tumor, and we make sure we do it only once:
-			if ( normal_samples.size() == 0 ) assignReadGroups(read.getHeader()); 
-			
+						
 			String rg = (String)read.getAttribute("RG");
 			if ( rg == null ) throw new StingException("Read "+read.getReadName()+" has no read group in merged stream");
 			
-			if ( normal_samples.contains(rg) ) {
-//				System.out.println(" TO NORMAL");
+			if ( normalReadGroups.contains(rg) ) {
 				normal_coverage.add(read,ref);
-			} else if ( tumor_samples.contains(rg) ) {
-//				System.out.println(" TO TUMOR");
+			} else if ( tumorReadGroups.contains(rg) ) {
 				coverage.add(read,ref);
 			} else {
 				throw new StingException("Unrecognized read group in merged stream: "+rg);
@@ -653,7 +601,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 
         public String getSamples() {
             StringBuffer sb = new StringBuffer();
-            Iterator i = samples.iterator();
+            Iterator<String> i = samples.iterator();
             while ( i.hasNext() ) {
                 sb.append(i.next());
                 if ( i.hasNext() )
