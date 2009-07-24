@@ -114,7 +114,7 @@ public abstract class MicroScheduler {
         } else {
             throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
         }
-        this.reads = getReadsDataSource(reads);
+        this.reads = setupReadsDataSource(reads);
         this.reference = openReferenceSequenceFile(refFile);
         this.rods = getReferenceOrderedDataSources(rods);
 
@@ -235,7 +235,7 @@ public abstract class MicroScheduler {
      *
      * @return A data source for the given set of reads.
      */
-    private SAMDataSource getReadsDataSource(Reads reads) {
+    private SAMDataSource setupReadsDataSource(Reads reads) {
         // By reference traversals are happy with no reads.  Make sure that case is handled.
         if (reads.getReadsFiles().size() == 0)
             return null;
@@ -249,6 +249,12 @@ public abstract class MicroScheduler {
 
         return dataSource;
     }
+    
+    /**
+     * Returns data source maintained by this scheduler
+     * @return
+     */
+    public SAMDataSource getSAMDataSource() { return reads; }
 
     /**
      * Open the reference-ordered data sources.

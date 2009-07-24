@@ -5,6 +5,8 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.picard.filter.FilteringIterator;
 import net.sf.picard.filter.SamRecordFilter;
+import net.sf.picard.sam.SamFileHeaderMerger;
+
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.shards.ReadShard;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
@@ -115,6 +117,22 @@ public class SAMDataSource implements SimpleDataSource {
     public SAMFileHeader getHeader() {
         return resourcePool.getHeader();
     }
+
+    
+    /**
+     * Returns Reads data structure containing information about the reads data sources placed in this pool as well as
+     * information about how they are downsampled, sorted, and filtered
+     * @return
+     */
+    public Reads getReadsInfo() { return reads; }
+    
+    /** 
+     * Returns header merger: a class that keeps the mapping between original read groups and read groups
+     * of the merged stream; merger also provides access to the individual file readers (and hence headers
+     * prior to the merging too) maintained by the system. 
+     * @return
+     */
+    public SamFileHeaderMerger getHeaderMerger() { return resourcePool.getHeaderMerger(); }
 
     /**
      * 

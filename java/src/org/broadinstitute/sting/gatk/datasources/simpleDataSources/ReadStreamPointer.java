@@ -67,7 +67,26 @@ abstract class ReadStreamPointer {
         for (SAMFileReader reader : headerMerger.getReaders())
             reader.close();
     }
+    
+    /**
+     * Returns Reads data structure containing information about the reads data sources as well as
+     * information about how they are downsampled, sorted, and filtered
+     * @return
+     */
+    public Reads getReadsInfo() {
+    	return sourceInfo;
+    }
 
+    /** 
+     * Returns header merger: a class that keeps the mapping between original read groups and read groups
+     * of the merged stream; merger also provides access to the individual file readers (and hence headers
+     * too) maintained by the system. 
+     * @return
+     */
+    public SamFileHeaderMerger getHeaderMerger() {
+    	return headerMerger;
+    }
+    
     /**
      * Remove an iterator from service.
      * @param iterator The iterator to remove from service.  Must not be null.

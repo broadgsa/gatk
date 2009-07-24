@@ -4,6 +4,7 @@ import net.sf.samtools.SAMFileHeader;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -52,6 +53,7 @@ public abstract class TraversalEngine {
     public void setSAMHeader(SAMFileHeader myHeader) {
         this.myHeader = myHeader;
     }
+
 
     /**
      * @param curTime (current runtime, in millisecs)

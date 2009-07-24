@@ -27,8 +27,13 @@ package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.picard.filter.SamRecordFilter;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMReadGroupRecord;
+
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
@@ -40,6 +45,7 @@ import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -51,6 +57,7 @@ public class GenomeAnalysisEngine {
 
     // our traversal engine
     private TraversalEngine engine = null;
+    private SAMDataSource dataSource = null;
 
     // our argument collection
     private GATKArgumentCollection argCollection;
@@ -189,6 +196,8 @@ public class GenomeAnalysisEngine {
             Utils.scareUser(String.format("Unable to create the appropriate TraversalEngine for analysis type " + argCollection.analysisName));
         }
 
+        dataSource = microScheduler.getSAMDataSource();
+        
         return microScheduler;
     }
 
@@ -212,6 +221,92 @@ public class GenomeAnalysisEngine {
         return locs;
     }
 
+	/**
+	 * Returns sets of samples present in the (merged) input SAM stream, grouped by readers (i.e. underlying
+	 * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
+	 * returned by this method will contain 3 elements (one for each reader), with each element being a set of sample names
+	 * found in the corresponding bam file.
+	 * @return
+	 */
+	public List< Set<String> > getSamplesByReaders() {
+		
+		
+		SamFileHeaderMerger hm = getDataSource().getHeaderMerger(); 
+		
+		List< Set<String> > sample_sets = new ArrayList<Set<String>>(hm.getReaders().size()); 
+		
+		for ( SAMFileReader r : hm.getReaders() ) {
+			
+			Set<String> samples = new HashSet<String>(1);
+			sample_sets.add(samples);
+			
+			for ( SAMReadGroupRecord g : r.getFileHeader().getReadGroups() ) {
+				samples.add(g.getSample());
+			}
+		}
+		
+		return sample_sets;
+		
+	}
+
+	/**
+	 * Returns sets of libraries present in the (merged) input SAM stream, grouped by readers (i.e. underlying
+	 * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
+	 * returned by this method will contain 3 elements (one for each reader), with each element being a set of library names
+	 * found in the corresponding bam file.
+	 * @return
+	 */
+	public List< Set<String> > getLibrariesByReaders() {
+		
+		
+		SamFileHeaderMerger hm = getDataSource().getHeaderMerger(); 
+		
+		List< Set<String> > lib_sets = new ArrayList<Set<String>>(hm.getReaders().size()); 
+		
+		for ( SAMFileReader r : hm.getReaders() ) {
+			
+			Set<String> libs = new HashSet<String>(2);
+			lib_sets.add(libs);
+			
+			for ( SAMReadGroupRecord g : r.getFileHeader().getReadGroups() ) {
+				libs.add(g.getLibrary());
+			}
+		}
+		
+		return lib_sets;
+		
+	}
+
+	/**
+	 * Returns sets of (remapped) read groups in input SAM stream, grouped by readers (i.e. underlying
+	 * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
+	 * returned by this method will contain 3 elements (one for each reader), with each element being a set of remapped read groups
+	 * (i.e. as seen by read.getReadGroup().getReadGroupId() in the merged stream) that come from the corresponding bam file.
+	 * @return
+	 */
+	public List< Set<String> > getMergedReadGroupsByReaders() {
+		
+		
+		SamFileHeaderMerger hm = getDataSource().getHeaderMerger(); 
+		
+		List< Set<String> > rg_sets = new ArrayList<Set<String>>(hm.getReaders().size()); 
+		
+		for ( SAMFileReader r : hm.getReaders() ) {
+			
+			Set<String> groups = new HashSet<String>(5);
+			rg_sets.add(groups);
+			
+			for ( SAMReadGroupRecord g : r.getFileHeader().getReadGroups() ) {
+				// use HeaderMerger to translate original read group id from the reader into the read group id in the 
+				// merged stream, and save that remapped read group id to associate it with specific reader
+				groups.add( hm.getReadGroupId(r, g.getReadGroupId()) );
+			}
+		}
+		
+		return rg_sets;
+		
+	}
+    
     /**
      * Bundles all the source information about the reads into a unified data structure.
      *
@@ -317,6 +412,15 @@ public class GenomeAnalysisEngine {
 
     public TraversalEngine getEngine() {
         return this.engine;
+    }
+
+    /**
+     * Returns data source object encapsulating all essential info and handlers used to traverse
+     * reads; header merger, individual file readers etc can be accessed through the returned data source object.
+     * @return
+     */
+    public SAMDataSource getDataSource() {
+        return this.dataSource;
     }
 
     /**

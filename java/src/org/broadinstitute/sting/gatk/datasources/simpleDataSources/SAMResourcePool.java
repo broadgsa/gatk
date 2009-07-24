@@ -29,6 +29,8 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.StingException;
 import org.apache.log4j.Logger;
+
+import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 
@@ -44,6 +46,7 @@ import java.util.List;
 class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator> {
     /** Source information about the reads. */
     protected Reads reads;
+    protected SamFileHeaderMerger headerMerger;
 
     /** Is this a by-reads traversal or a by-locus? */
     protected boolean queryOverlapping;
@@ -60,6 +63,7 @@ class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator>
 
         ReadStreamResource streamResource = createNewResource();
         this.header = streamResource.getHeader();
+        this.headerMerger = streamResource.getHeaderMerger();
         // Add this resource to the pool.
         this.addNewResource(streamResource);
     }
@@ -68,6 +72,21 @@ class SAMResourcePool extends ResourcePool<ReadStreamResource, StingSAMIterator>
     public SAMFileHeader getHeader() {
         return header;
     }
+
+    /**
+     * Returns Reads data structure containing information about the reads data sources placed in this pool as well as
+     * information about how they are downsampled, sorted, and filtered
+     * @return
+     */
+    public Reads getReadsInfo() { return reads; }
+    
+    /** 
+     * Returns header merger: a class that keeps the mapping between original read groups and read groups
+     * of the merged stream; merger also provides access to the individual file readers (and hence headers
+     * too) maintained by the system. 
+     * @return
+     */
+   public SamFileHeaderMerger getHeaderMerger() { return headerMerger; }
 
     protected ReadStreamResource selectBestExistingResource( DataStreamSegment segment, List<ReadStreamResource> resources ) {
         for (ReadStreamResource resource : resources) {

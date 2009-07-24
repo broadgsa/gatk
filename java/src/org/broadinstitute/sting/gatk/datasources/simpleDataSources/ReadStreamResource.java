@@ -72,6 +72,21 @@ class ReadStreamResource {
     public SAMFileHeader getHeader() {
         return header;
     }
+    
+    /**
+     * Returns Reads data structure containing information about the reads data sources as well as
+     * information about how they are downsampled, sorted, and filtered
+     * @return
+     */
+    public Reads getReadsInfo() { return readStreamPointer.getReadsInfo(); }
+    
+    /** 
+     * Returns header merger: a class that keeps the mapping between original read groups and read groups
+     * of the merged stream; merger also provides access to the individual file readers (and hence headers
+     * too) maintained by the system. 
+     * @return
+     */
+   public SamFileHeaderMerger getHeaderMerger() { return readStreamPointer.getHeaderMerger(); }
 
     public boolean canAccessSegmentEfficiently(DataStreamSegment segment) {
         return readStreamPointer.canAccessSegmentEfficiently(segment);
