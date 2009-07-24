@@ -5,7 +5,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 
 public class IVFSecondaryBases implements IndependentVariantFeature {
-    private double[] p2on = { 0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000 };
+    private double[] p2on  = { 0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000 };
     private double[] p2off = { 0.480, 0.769, 0.744, 0.538, 0.575, 0.727, 0.768, 0.589, 0.762, 0.505 };
 
     /**
@@ -25,6 +25,29 @@ public class IVFSecondaryBases implements IndependentVariantFeature {
                 p2off[genotypeIndex] = Double.valueOf(argOffPieces[genotypeIndex]);
             }
         }
+    }
+
+    private double scaleObservation(int k, int N, double p) {
+        int i = 0;
+        double likelihood = 0.0, logLikelihood = 0.0, scale = 1.0;
+
+        do {
+            scale = 1.0 - ((double) i)*0.10;
+
+            int scaledK = (int) (scale * ((double) k));
+            int scaledN = (int) (scale * ((double) N));
+
+            likelihood = MathUtils.binomialProbability(scaledK, scaledN, p);
+            logLikelihood = Math.log10(likelihood);
+
+            //System.out.printf("  %d %f: %d->%d, %d->%d, %f => %f %f\n", i, scale, k, scaledK, N, scaledN, p, likelihood, logLikelihood);
+
+            i++;
+        } while (i < 10 && (Double.isInfinite(logLikelihood) || Double.isNaN(logLikelihood)));
+
+        //System.out.println();
+
+        return likelihood;
     }
 
     /**
@@ -72,13 +95,19 @@ public class IVFSecondaryBases implements IndependentVariantFeature {
                 }
             }
 
-            double offPrior = MathUtils.binomialProbability(offIsGenotypic, offTotal, p2off[genotypeIndex]);
-            double onPrior = MathUtils.binomialProbability(onIsGenotypic, onTotal, p2on[genotypeIndex]);
+            //System.out.printf(Genotype.values()[genotypeIndex].toString() + " on:\n");
+            double offPrior = scaleObservation(offIsGenotypic, offTotal, p2off[genotypeIndex]);
+
+            //System.out.printf(Genotype.values()[genotypeIndex].toString() + " off:\n");
+            double onPrior = scaleObservation(onIsGenotypic, onTotal, p2on[genotypeIndex]);
+
+            //System.out.printf("%s: off: %d/%d %f %f%n", Genotype.values()[genotypeIndex].toString(), offIsGenotypic, offTotal, p2off[genotypeIndex], offPrior);
+            //System.out.printf("%s: on: %d/%d %f %f%n", Genotype.values()[genotypeIndex].toString(), onIsGenotypic, onTotal, p2on[genotypeIndex], onPrior);
 
             double logOffPrior = MathUtils.compareDoubles(offPrior, 0.0, 1e-10) == 0 ? Math.log10(Double.MIN_VALUE) : Math.log10(offPrior);
             double logOnPrior = MathUtils.compareDoubles(onPrior, 0.0, 1e-10) == 0 ? Math.log10(Double.MIN_VALUE) : Math.log10(onPrior);
 
-            likelihoods[genotypeIndex] += logOffPrior + logOnPrior;
+            likelihoods[genotypeIndex] = logOffPrior + logOnPrior;
         }
 
         return likelihoods;
