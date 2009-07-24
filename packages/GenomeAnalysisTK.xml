@@ -3,12 +3,23 @@
   <name>GenomeAnalysisTK</name>
   <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
   <dependencies>
+    <package>org.broadinstitute.sting.gatk.filters</package>
     <class>org.broadinstitute.sting.gatk.walkers.CountLociWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.CountReadsWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.DepthOfCoverageWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.PileupWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.PrintReadsWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.ValidatingPileupWalker</class>
+    <!-- Quality scores recalibration -->
+    <class>org.broadinstitute.sting.gatk.walkers.recalibration.CovariateCounterWalker</class>
+    <class>org.broadinstitute.sting.gatk.walkers.recalibration.TableRecalibrationWalker</class>
+    <!-- Local realignment around indels -->
+    <class>org.broadinstitute.sting.gatk.walkers.indels.CleanedReadInjector</class>
+    <class>org.broadinstitute.sting.gatk.walkers.indels.IndelIntervalWalker</class>
+    <class>org.broadinstitute.sting.gatk.walkers.indels.IntervalCleanerWalker</class>
+    <class>org.broadinstitute.sting.gatk.walkers.indels.IntervalMergerWalker</class>
+    <class>org.broadinstitute.sting.gatk.walkers.indels.MismatchIntervalWalker</class>
+    <class>org.broadinstitute.sting.gatk.walkers.indels.SNPClusterWalker</class>
   </dependencies>
   <resources>
     <file>java/src/org/broadinstitute/sting/gatk/walkers/CountReadsWalker.java</file>

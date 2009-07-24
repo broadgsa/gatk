@@ -22,6 +22,9 @@
       <jar jarfile="{concat($package.dir,$project.name,'.jar')}">
         <classfileset dir="{$staging.dir}">
           <root classname="{main-class}"/>
+          <xsl:for-each select="dependencies/package">
+            <rootfileset dir="{$staging.dir}" includes="{concat(translate(current(),'.','/'),'/','*.class')}" />
+          </xsl:for-each>
           <xsl:for-each select="dependencies/class">
             <root classname="{current()}" />
           </xsl:for-each>
