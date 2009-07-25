@@ -81,6 +81,8 @@ public class SAMDataSource implements SimpleDataSource {
     // A pool of SAM iterators.
     private SAMResourcePool resourcePool = null;
 
+    private GenomeLoc mLastInterval = null;
+
     /**
      * Returns a histogram of reads that were screened out, grouped by the nature of the error.
      * @return Histogram of reads.  Will not be null.
@@ -153,14 +155,26 @@ public class SAMDataSource implements SimpleDataSource {
                     reads.getDownsamplingFraction(),
                     reads.getSafetyChecking(),
                     reads.getSupplementalFilters());
-        } else if (shard.getShardType() == Shard.ShardType.LOCUS || shard.getShardType() == Shard.ShardType.INTERVAL) {
+        } else if (shard.getShardType() == Shard.ShardType.LOCUS) {
             iterator = seekLocus(shard.getGenomeLoc());
             iterator = applyDecoratingIterators(false,
                     iterator,
                     reads.getDownsamplingFraction(),
                     reads.getSafetyChecking(),
                     reads.getSupplementalFilters());
+        } else if (shard.getShardType() == Shard.ShardType.INTERVAL) {
+            iterator = seekLocus(shard.getGenomeLoc());
+            iterator = applyDecoratingIterators(false,
+                    iterator,
+                    reads.getDownsamplingFraction(),
+                    reads.getSafetyChecking(),
+                    reads.getSupplementalFilters());
+
+            // add the new overlapping detection iterator, if we have a last interval
+            if (mLastInterval != null && queryOverlapping) iterator = new IntervalOverlapIterator(iterator,mLastInterval,false);
+            mLastInterval = shard.getGenomeLoc();
         } else {
+
             throw new StingException("seek: Unknown shard type");
         }
 

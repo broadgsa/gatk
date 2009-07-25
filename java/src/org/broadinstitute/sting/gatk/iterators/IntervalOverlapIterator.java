@@ -4,6 +4,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.Iterator;
 
@@ -103,7 +104,10 @@ public class IntervalOverlapIterator implements StingSAMIterator {
      * @return true if it overlaps, false otherwise
      */
     private boolean isOverlaping(SAMRecord rec) {
-        return mLoc.overlapsP(GenomeLocParser.createGenomeLoc(rec));
+        boolean overlap = mLoc.overlapsP(GenomeLocParser.createGenomeLoc(rec));
+        if (overlap && this.throwException)
+            throw new StingException("IntervalOverlapIterator found a overlapping read " + rec.getReadName() + " with overlap " + this.mLoc.toString());
+        return overlap;
     }
 
 }
