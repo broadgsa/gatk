@@ -32,6 +32,8 @@ public class VECFisherStrand implements VariantExclusionCriterion {
 
     public static boolean strandTest(char ref, LocusContext context, int allele1, int allele2, double threshold, StringBuffer out) {
         int[][] table = getContingencyTable(context, allele1, allele2);
+        if ( !variantIsHet(table) )
+            return false;
 
         double pCutoff = computePValue(table);
         //printTable(table, pCutoff);
@@ -73,6 +75,10 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         }
 
         return pValue < threshold;
+    }
+
+    private static boolean variantIsHet(int[][] table) {
+        return ((table[0][1] != 0 || table[0][1] != 0) && (table[1][0] != 0 || table[1][1] != 0));
     }
 
     private void printTable(int[][] table, double pValue) {
