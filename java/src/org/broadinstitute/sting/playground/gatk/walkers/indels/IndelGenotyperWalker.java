@@ -117,29 +117,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			if ( nSams != 1 ) System.out.println("WARNING: multiple input files specified. \n"+
 					"WARNING: Without --somatic option they will be merged and processed as a single sample");
 		}
-/*
-		List<Set<String>> sample_sets = getToolkit().getSamplesByReaders();
-		for ( int i = 0 ; i < sample_sets.size() ; i++ ) {
-			System.out.print("Reader "+i);
-			for ( String s : sample_sets.get(i) ) System.out.print(" " + s);
-			System.out.println();
-		}
 
-		List<Set<String>> lib_sets = getToolkit().getLibrariesByReaders();
-		for ( int i = 0 ; i < lib_sets.size() ; i++ ) {
-			System.out.print("Reader "+i);
-			for ( String s : lib_sets.get(i) ) System.out.print(" " + s);
-			System.out.println();
-		}
-*/
-/*		
-		for ( int i = 0 ; i < readGroupSets.size() ; i++ ) {
-			System.out.print("Reader "+i);
-			for ( String s : readGroupSets.get(i) ) System.out.print(" " + s);
-			System.out.println();
-		}
-		assignReadGroups1();
-*/
 		try {
 			output = new java.io.FileWriter(bed_file);
 		} catch (IOException e) {
@@ -252,7 +230,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 
 			if ( read.getAlignmentEnd() > coverage.getStop()) {
 				// ooops, looks like the read does not fit into the current window!!
-				throw new StingException("Read "+read.getReadName()+": out of coverage window bounds.Probably window is too small.\n"+
+				throw new StingException("Read "+read.getReadName()+": out of coverage window bounds. Probably window is too small.\n"+
 					"Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
 					read.getAlignmentStart()+"; end="+read.getAlignmentEnd()+"; window start="+coverage.getStart()+
 					"; window end="+coverage.getStop());
@@ -359,6 +337,11 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 								 // but it may end up being smaller (delayed shift), if we have not
 			                     // covered MISMATCH_WIDTH bases to the right of the last indel yet.
 		
+		boolean debug = false;
+//		if ( coverage.getStart() <= 19661504 && coverage.getStop() >= 19661504 ) debug = true;
+		
+		if ( debug ) System.out.println("Window: ["+coverage.getStart()+", "+coverage.getStop()+"]; shifting to: "+position); 
+		
 		// walk along the coverage window and emit indels up to the position we are trying ot shift the window to
 		for ( long pos = coverage.getStart() ; pos < Math.min(position,coverage.getStop()+1) ; pos++ ) {
 			
@@ -371,11 +354,11 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			
 			if ( cov < minCoverage ) continue; // low coverage
 			
-//			System.out.println("indel at "+pos);
-			
 			// region around the current indel we need to have covered in order to compute mismatch rate:
 			long left = Math.max( pos-MISMATCH_WIDTH, coverage.getStart() );
 			long right = pos+MISMATCH_WIDTH;
+			
+			if ( debug) System.out.println("  Indel at "+pos);
 			
 			// if right < position we are shifting to, we already have all the coverage within MISMATCH_WINDOW bases around the indel,
 			// so we can proceed with counting mismatches and emitting the indel
@@ -386,7 +369,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 				// we are not asked to force-shift, and there's still additional coverage to the right of current indel, so its too early to emit it;
 				// instead we shift only up to current indel pos - MISMATCH_WIDTH, so that we could keep collecting that coverage
 				move_to = left; 
-//				System.out.println("right="+right+" requested="+position+" stopped at="+left);
+				if ( debug ) System.out.println("  waiting for coverage; shifting to "+ left);
 				break;
 			}
 
@@ -399,6 +382,10 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			if ( total_mismatches > MISMATCH_CUTOFF || total_mismatches > ((double)cov)*AV_MISMATCHES_PER_READ) {
 				out.println(refName+"\t"+(pos-1)+"\t"+
 				"\tTOO DIRTY\t"+total_mismatches);
+				coverage.indelsAt(pos).clear(); // we dealt with this indel; don't want to see it again 
+					                            // (we might otherwise in the case when 1) there is another indel that follows
+												// within MISMATCH_WIDTH bases and 2) we'd need to wait for more coverage for that next indel)
+					                            
 				continue; // too dirty
 			}
 			
@@ -407,18 +394,25 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 
 			Pair<IndelVariant,Integer> p = findConsensus(variants);
 			if ( isCall(p,cov) ) { 	
+				if ( debug ) System.out.println("  is a CALL (printed)");
 				String message = makeBedLine(p,cov,pos,output);
 				String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotation));
 				
 				if ( verbose ) out.println(message + "\t"+ annotationString);
-			} 
-//			else { System.out.println("not a call: count="+p.first.count+" total_count="+p.second+" cov="+cov+
-//					" minConsensusF="+((double)p.first.count)/p.second+" minF="+((double)p.first.count)/cov); }
+			} else {
+				if ( debug ) System.out.println("  NOT a call: count="+p.first.count+" total_count="+p.second+" cov="+cov+
+					" minConsensusF="+((double)p.first.count)/p.second+" minF="+((double)p.first.count)/cov); 
+			}
+			
+			coverage.indelsAt(pos).clear(); // we dealt with this indel; don't want to see it again 
+                                            // (we might otherwise in the case when 1) there will be another indel that follows
+			                                // within MISMATCH_WIDTH bases and 2) we'd need to wait for more coverage for that next indel)
+
 //			for ( IndelVariant var : variants ) {
 //				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
 //			}
 		}
-//		System.out.println("Shifting to " + move_to+" ("+position+")");
+		if ( debug ) System.out.println("  --> Actual shift to " + move_to+" ("+position+")");
 		coverage.shift((int)(move_to - coverage.getStart() ) );
 	}
 
@@ -471,11 +465,21 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			if ( total_mismatches_normal > MISMATCH_CUTOFF || total_mismatches_normal > ((double)normal_cov)*AV_MISMATCHES_PER_READ) {
 				out.println(refName+"\t"+(pos-1)+"\t"+
 				"\tNORMAL TOO DIRTY\t"+total_mismatches_normal);
+				coverage.indelsAt(pos).clear(); 
+				normal_coverage.indelsAt(pos).clear(); 
+					// we dealt with this indel; don't want to see it again 
+                	// (we might otherwise in the case when 1) there is another indel that follows
+					// within MISMATCH_WIDTH bases and 2) we'd need to wait for more coverage for that next indel)
 				continue; // too dirty
 			}
 			if ( total_mismatches_tumor > MISMATCH_CUTOFF || total_mismatches_tumor > ((double)tumor_cov)*AV_MISMATCHES_PER_READ) {
 				out.println(refName+"\t"+(pos-1)+"\t"+
 				"\tTUMOR TOO DIRTY\t"+total_mismatches_tumor);
+				coverage.indelsAt(pos).clear(); 
+				normal_coverage.indelsAt(pos).clear(); 
+					// we dealt with this indel; don't want to see it again 
+                	// (we might otherwise in the case when 1) there is another indel that follows
+					// within MISMATCH_WIDTH bases and 2) we'd need to wait for more coverage for that next indel)
 				continue; // too dirty
 			}
 			location = GenomeLocParser.setStart(location,pos); location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
@@ -504,6 +508,13 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 				}
 				if ( verbose ) out.println(message + "\t"+ annotationString);
 			}
+			
+			coverage.indelsAt(pos).clear(); 
+			normal_coverage.indelsAt(pos).clear(); 
+				// we dealt with this indel; don't want to see it again 
+            	// (we might otherwise in the case when 1) there is another indel that follows
+				// within MISMATCH_WIDTH bases and 2) we'd need to wait for more coverage for that next indel)
+			
 //			for ( IndelVariant var : variants ) {
 //				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
 //			}
