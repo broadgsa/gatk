@@ -9,16 +9,24 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.List;
+import java.util.Collection;
 import java.io.IOException;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
+import edu.mit.broad.picard.util.Interval;
+import edu.mit.broad.picard.util.OverlapDetector;
 
 public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerformanceWalker.TargetInfo> {
-    @Argument(fullName="min_mapq", shortName="mmq", required=false, doc="Minimum mapping quality of reads to consider") public Integer MIN_MAPQ = 1;
+    @Argument(fullName="min_mapq", shortName="mmq", required=false, doc="Minimum mapping quality of reads to consider")
+    public Integer MIN_MAPQ = 1;
+
     @Argument(fullName="include_duplicates", shortName="idup", required=false, doc="consider duplicate reads")
     public boolean INCLUDE_DUPLICATE_READS = false;
+
+    @Argument(fullName="free_standing_distance", shortName="fsd", required=false, doc="minimum distance to next interval to consider freestanding")
+    public Integer FREE_STANDING_DISTANCE = 500;
 
     public static class TargetInfo {
         public int counts = 0;
@@ -80,9 +88,19 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
     @Override
     public void onTraversalDone(List<Pair<GenomeLoc, TargetInfo>> results) {
-        out.println("location\tlength\tgc\tavg_coverage\tnormalized_coverage\thit_twice");
+        out.println("location\tlength\tgc\tavg_coverage\tnormalized_coverage\thit_twice\tfreestanding");
 
-        // first zip through and calculate the total average coverage
+        // first zip through and build an overlap detector of all the intervals, so later
+        // we can calculate if this interval is free-standing
+        OverlapDetector<Interval> od = new OverlapDetector<Interval>(-FREE_STANDING_DISTANCE,0);
+        for(Pair<GenomeLoc, TargetInfo> pair : results) {
+            GenomeLoc target = pair.getFirst();
+            Interval interval = makeInterval(target);
+            od.addLhs(interval, interval);
+        }
+
+
+        // now zip through and calculate the total average coverage
         long totalCoverage = 0;
         long basesConsidered = 0;
         for(Pair<GenomeLoc, TargetInfo> pair : results) {
@@ -110,13 +128,21 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
             // calculate gc for the target
             double gc = calculateGC(target);
 
-            out.printf("%s:%d-%d\t%d\t%6.4f\t%6.4f\t%6.4f\t%d\n",
+            // if there is more than one hit on the overlap detector, it's not freestanding
+            Collection<Interval> hits = od.getOverlaps(makeInterval(target));
+            boolean freestanding = (hits.size() == 1);
+
+            out.printf("%s:%d-%d\t%d\t%6.4f\t%6.4f\t%6.4f\t%d\t%d\n",
                        target.getContig(), target.getStart(), target.getStop(), length, gc,
-                        avgCoverage, normCoverage, ((ti.hitTwice)?1:0)
+                        avgCoverage, normCoverage, ((ti.hitTwice)?1:0), ((freestanding)?1:0)
                     );
 
 
         }
+    }
+
+    private Interval makeInterval(GenomeLoc target) {
+        return new Interval(target.getContig(), (int) target.getStart(), (int) target.getStop());
     }
 
     private double calculateGC(GenomeLoc target) {
