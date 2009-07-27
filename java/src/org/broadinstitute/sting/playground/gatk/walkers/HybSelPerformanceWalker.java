@@ -2,6 +2,8 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.By;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Pair;
@@ -18,6 +20,7 @@ import net.sf.picard.reference.ReferenceSequence;
 import edu.mit.broad.picard.util.Interval;
 import edu.mit.broad.picard.util.OverlapDetector;
 
+@By(DataSource.REFERENCE)
 public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerformanceWalker.TargetInfo> {
     @Argument(fullName="min_mapq", shortName="mmq", required=false, doc="Minimum mapping quality of reads to consider")
     public Integer MIN_MAPQ = 1;
