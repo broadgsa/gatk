@@ -94,7 +94,7 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
             StringBuffer sb = new StringBuffer();
             sb.append(TRUTH_NAMES[i] + "\t");
             for (int j=0; j < 4; j++)
-                sb.append(cellToString(table[i][j], truth_totals[i]) + "\t\t");
+                sb.append(table[i][j] +" (" + cellPercent(table[i][j], truth_totals[i]) + ")\t\t");
             sb.append(truth_totals[i]);
             s.add(sb.toString());
         }
@@ -104,21 +104,28 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
             StringBuffer sb = new StringBuffer();
             sb.append(TRUTH_NAMES[i] + "\t");
             for (int j=0; j < 4; j++)
-                sb.append(cellToString(table[i][j], truth_totals[i]) + "\t\t");
+                sb.append(table[i][j] + " (" + cellPercent(table[i][j], calls_totals[j]) + ")\t\t");
             s.add(sb.toString());
         }
         s.add(String.format("TOTALS\t%d\t\t%d\t\t%d\t\t%d", calls_totals[CALL_REF], calls_totals[CALL_VAR_HET], calls_totals[CALL_VAR_HOM], calls_totals[NO_CALL]));
+        s.add("\n");
+        for (int i=0; i < 4; i++) {
+            for (int j=0; j < 4; j++) {
+                s.add(TRUTH_NAMES[i]+"_"+CALL_NAMES[j]+"_COUNT "+table[i][j]);
+                s.add(TRUTH_NAMES[i]+"_"+CALL_NAMES[j]+"_PERCENT_OF_TRUTH "+cellPercent(table[i][j], truth_totals[i]));
+                s.add(TRUTH_NAMES[i]+"_"+CALL_NAMES[j]+"_PERCENT_OF_CALLS "+cellPercent(table[i][j], calls_totals[j]));
+            }
+        }
         return s;
     }
 
-    private static String cellToString(int count, int total) {
+    private static String cellPercent(int count, int total) {
         StringBuffer sb = new StringBuffer();
-        sb.append(count + " (");
         if ( total == 0 )
             sb.append(0);
         else
             sb.append(100*count/total);
-        sb.append("%)");
+        sb.append("%");
         return sb.toString();
     }
 

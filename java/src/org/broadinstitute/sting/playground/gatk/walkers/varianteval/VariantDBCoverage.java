@@ -4,9 +4,7 @@ import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.LocusContext;
 
-import java.io.PrintStream;
 import java.util.List;
-import java.util.Arrays;
 import java.util.ArrayList;
 
 /**
@@ -53,8 +51,8 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
     public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
         // There are four cases here:
         AllelicVariant dbsnp = (AllelicVariant)tracker.lookup(dbName, null);
-        inc(dbsnp != null, eval != null && eval.isSNP());
-        return dbsnp == null && eval != null && eval.isSNP() ? "Novel " + eval : null;
+        inc(dbsnp != null, eval != null);
+        return dbsnp == null && eval != null ? "Novel " + eval : null;
     }
 
     /**
