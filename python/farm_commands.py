@@ -15,7 +15,8 @@ def cmd(cmd_str_from_user, farm_queue=False, output_head=None, just_print_comman
         elif output_head <> None:
             farm_stdout = output_head+".stdout"
         else:
-            farm_stdout = None
+            #farm_stdout = None
+            farm_stdout = "%J.lsf.output"
             
         cmd_str = "bsub -q "+farm_queue 
         if farm_stdout <> None:
