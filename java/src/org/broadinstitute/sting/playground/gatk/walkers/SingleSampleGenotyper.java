@@ -38,6 +38,9 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confidient genotypes or just the variants?", required = false)
     public boolean GENOTYPE = false;
 
+    @Argument(fullName = "3BaseErrors", shortName = "3BaseErrors", doc = "Should we use a 3-base error mode (so that P(b_true != b_called | e) == e / 3?", required = false)
+    public boolean THREE_BASE_ERRORS = false;
+
     // Control periodic reporting features
     @Argument(fullName = "metrics_interval", shortName = "metint", doc = "Number of loci to process between metrics reports", required = false) public Integer METRICS_INTERVAL = 50000;
     @Argument(fullName = "suppress_metrics", shortName = "printmets", doc = "If specified, don't display metrics", required = false) public Boolean SUPPRESS_METRICS = false;
@@ -47,7 +50,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     @Argument(fullName = "call_indels", shortName = "indels", doc = "Call indels as well as point mutations", required = false) public Boolean CALL_INDELS = false;
 
     // Control how the genotype hypotheses are weighed
-    @Argument(fullName = "priors_any_locus", shortName = "plocus", doc = "Comma-separated prior likelihoods for any locus (homref,het,homvar)", required = false) public String PRIORS_ANY_LOCUS = "0.999,1e-3,1e-5";
+    @Argument(fullName = "priors_locus", shortName = "plocus", doc = "Comma-separated prior likelihoods for any locus (homref,het,homvar)", required = false) public String PRIORS_ANY_LOCUS = "0.999,1e-3,1e-5";
     @Argument(fullName = "priors_hapmap", shortName = "phapmap", doc = "Comma-separated prior likelihoods for Hapmap loci (homref,het,homvar)", required = false) public String PRIORS_HAPMAP = "0.999,1e-3,1e-5";
     @Argument(fullName = "priors_dbsnp", shortName = "pdbsnp", doc = "Comma-separated prior likelihoods for dbSNP loci (homref,het,homvar)", required = false) public String PRIORS_DBSNP = "0.999,1e-3,1e-5";
     @Argument(fullName = "priors_2nd_on", shortName = "p2ndon", doc = "Comma-separated prior likelihoods for the secondary bases of primary on-genotype bases (AA,AC,AG,AT,CC,CG,CT,GG,GT,TT)", required = false) public String PRIORS_2ND_ON = "0.000,0.302,0.366,0.142,0.000,0.548,0.370,0.000,0.319,0.000";
@@ -55,6 +58,9 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
     // Control various sample-level settings
     @Argument(fullName = "sample_name_regex", shortName = "sample_name_regex", doc = "Replaces the sample name specified in the BAM read group with the value supplied here", required = false) public String SAMPLE_NAME_REGEX = null;
+
+    @Argument(fullName = "keepQ0Bases", shortName = "keepQ0Bases", doc = "If true, then Q0 bases will be included in the genotyping calculation, and treated as Q1 -- this is really not a good idea", required = false)
+    public boolean keepQ0Bases = false;
 
     public AlleleMetrics metricsOut;
     public PrintStream variantsOut;
@@ -66,6 +72,8 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     public double[] pdbsnp;
     public double[] p2ndon;
     public double[] p2ndoff;
+
+    public long nFilteredQ0Bases = 0;
 
     /**
      * Specify that this walker requires reads.
@@ -225,21 +233,30 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
      * @return the likelihoods per genotype
      */
     private GenotypeLikelihoods callGenotype(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup, List<SAMRecord> reads, List<Integer> offsets) {
-        GenotypeLikelihoods G;
+        GenotypeLikelihoods G = null;
 
         if (isHapmapSite(tracker)) {
-            G = new GenotypeLikelihoods(phapmap[0], phapmap[1], phapmap[2], p2ndon, p2ndoff);
+            G = new GenotypeLikelihoods(THREE_BASE_ERRORS, phapmap[0], phapmap[1], phapmap[2], p2ndon, p2ndoff);
         } else if (isDbSNPSite(tracker)) {
-            G = new GenotypeLikelihoods(pdbsnp[0], pdbsnp[1], pdbsnp[2], p2ndon, p2ndoff);
+            G = new GenotypeLikelihoods(THREE_BASE_ERRORS, pdbsnp[0], pdbsnp[1], pdbsnp[2], p2ndon, p2ndoff);
         } else {
-            G = new GenotypeLikelihoods(plocus[0], plocus[1], plocus[2], p2ndon, p2ndoff);
+            G = new GenotypeLikelihoods(THREE_BASE_ERRORS, plocus[0], plocus[1], plocus[2], p2ndon, p2ndoff);
         }
 
+        G.filterQ0Bases(! keepQ0Bases); // Set the filtering / keeping flag
+        
         for (int i = 0; i < reads.size(); i++) {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
 
-            G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset]);
+            char base = read.getReadString().charAt(offset);
+            byte qual = read.getBaseQualities()[offset];
+            int nBasesAdded = G.add(ref, base, qual);
+            if ( nBasesAdded == 0 ) {
+                nFilteredQ0Bases++;
+                //System.out.printf("Filtering Q0 base from %s at %s %d: %c %c %d%n",
+                //        read.getReadName(), GenomeLocParser.createGenomeLoc(read), offset, ref, base, qual);
+            }
         }
 
         G.ApplyPrior(ref, this.alt_allele, this.allele_frequency_prior);
@@ -352,7 +369,8 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     }
 
     /** Close the variant file. */
-    public void onTraversalDone(String sum) { 
+    public void onTraversalDone(String sum) {
+        logger.info(String.format("SingleSampleGenotyper filtered %d Q0 bases", nFilteredQ0Bases));
         if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.GLF) {
             mGenotypeWriter.close();
         } else {
