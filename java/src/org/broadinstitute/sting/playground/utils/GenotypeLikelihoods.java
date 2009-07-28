@@ -10,12 +10,23 @@ import java.util.HashMap;
 
 public class GenotypeLikelihoods {
     // precalculate these for performance (pow/log10 is expensive!)
+
+    /**
+     * SOLID data uses Q0 bases to represent reference-fixed bases -- they shouldn't be counted
+     * during GL calculations.  If this field is true, Q0 bases will be removed in add().
+     */
+    private boolean filterQ0Bases = true;
+
     private static final double[] oneMinusData = new double[Byte.MAX_VALUE];
+    private static final double[] oneHalfMinusDataArachne = new double[Byte.MAX_VALUE];
+    private static final double[] oneHalfMinusData3Base = new double[Byte.MAX_VALUE];
+
+    private static final double log10Of1_3 = log10(1.0 / 3);
+    private static final double log10Of2_3 = log10(2.0 / 3);
 
     static {
         for (int qual = 0; qual < Byte.MAX_VALUE; qual++) {
             oneMinusData[qual] = log10(1.0 - pow(10, (qual / -10.0)));
-            //oneMinusData[qual] = log10(1.0 - QualityUtils.qualToProb(qual));
         }
     }
 
@@ -23,16 +34,17 @@ public class GenotypeLikelihoods {
         return oneMinusData[qual];
     }
 
-    private static final double[] oneHalfMinusData = new double[Byte.MAX_VALUE];
 
     static {
         for (int qual = 0; qual < Byte.MAX_VALUE; qual++) {
-            oneHalfMinusData[qual] = log10(0.5 - pow(10, (qual / -10.0)) / 2.0);
-            //oneHalfMinusData[qual] = log10(0.5 - QualityUtils.qualToProb(qual) / 2.0);
+            double e = pow(10, (qual / -10.0));
+            oneHalfMinusDataArachne[qual] = log10(0.5 - e / 2.0);
+            oneHalfMinusData3Base[qual] = log10(0.5 - e / 2.0 + e / 6.0);
+            //System.out.printf("qual=%d, e=%f, oneHalfMinusDataArachne=%f, oneHalfMinusData3Base=%f%n", qual, e, oneHalfMinusDataArachne[qual], oneHalfMinusData3Base[qual]);
         }
     }
 
-    private static double getOneHalfMinusQual(final byte qual) {
+    private double getOneHalfMinusQual(final byte qual) {
         return oneHalfMinusData[qual];
     }
 
@@ -56,6 +68,8 @@ public class GenotypeLikelihoods {
     private double priorHomRef;
     private double priorHet;
     private double priorHomVar;
+    private double[] oneHalfMinusData;
+    private boolean threeBaseErrors = false;
 
     // Store the 2nd-best base priors for on-genotype primary bases
     private HashMap<String, Double> onNextBestBasePriors = new HashMap<String, Double>();
@@ -67,21 +81,41 @@ public class GenotypeLikelihoods {
         double[] p2ndon = {0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000};
         double[] p2ndoff = {0.480, 0.769, 0.744, 0.538, 0.575, 0.727, 0.768, 0.589, 0.762, 0.505};
 
-        initialize(1.0 - 1e-3, 1e-3, 1e-5, p2ndon, p2ndoff);
+        initialize(false, 1.0 - 1e-3, 1e-3, 1e-5, p2ndon, p2ndoff);
     }
 
-    public GenotypeLikelihoods(double priorHomRef, double priorHet, double priorHomVar) {
+    public GenotypeLikelihoods(boolean threeBaseErrors , double priorHomRef, double priorHet, double priorHomVar) {
         double[] p2ndon = {0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000};
         double[] p2ndoff = {0.480, 0.769, 0.744, 0.538, 0.575, 0.727, 0.768, 0.589, 0.762, 0.505};
 
-        initialize(priorHomRef, priorHet, priorHomVar, p2ndon, p2ndoff);
+        initialize(threeBaseErrors, priorHomRef, priorHet, priorHomVar, p2ndon, p2ndoff);
     }
 
-    public GenotypeLikelihoods(double priorHomRef, double priorHet, double priorHomVar, double[] p2ndon, double[] p2ndoff) {
-        initialize(priorHomRef, priorHet, priorHomVar, p2ndon, p2ndoff);
+    public GenotypeLikelihoods(boolean threeBaseErrors , double priorHomRef, double priorHet, double priorHomVar, double[] p2ndon, double[] p2ndoff) {
+        initialize(threeBaseErrors, priorHomRef, priorHet, priorHomVar, p2ndon, p2ndoff);
     }
 
-    private void initialize(double priorHomRef, double priorHet, double priorHomVar, double[] p2ndon, double[] p2ndoff) {
+    /**
+     * Are we ignoring Q0 bases during calculations?
+     * @return
+     */
+    public boolean isFilteringQ0Bases() {
+        return filterQ0Bases;
+    }
+
+    /**
+     * Enable / disable filtering of Q0 bases.  Enabled by default
+     *
+     * @param filterQ0Bases
+     */
+    public void filterQ0Bases(boolean filterQ0Bases) {
+        this.filterQ0Bases = filterQ0Bases;
+    }
+
+    private void initialize(boolean threeBaseErrors , double priorHomRef, double priorHet, double priorHomVar, double[] p2ndon, double[] p2ndoff) {
+        this.threeBaseErrors  = threeBaseErrors ;
+        this.oneHalfMinusData = threeBaseErrors ? oneHalfMinusData3Base : oneHalfMinusDataArachne;
+
         this.priorHomRef = priorHomRef;
         this.priorHet = priorHet;
         this.priorHomVar = priorHomVar;
@@ -91,8 +125,6 @@ public class GenotypeLikelihoods {
 		coverage = 0;
 
 		for (int i = 0; i < likelihoods.length; i++) { likelihoods[i] = Math.log10(0.1); }
-
-
 
         for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
             onNextBestBasePriors.put(genotypes[genotypeIndex], p2ndon[genotypeIndex]);
@@ -156,9 +188,15 @@ public class GenotypeLikelihoods {
         }
     }
 
-    public void add(char ref, char read, byte qual) 
-	{ 
-		if (qual <= 0) { qual = 1; }
+    public int add(char ref, char read, byte qual)
+	{
+        if (qual <= 0) {
+            if ( isFilteringQ0Bases() ) {
+                return 0;
+            } else {
+                qual = 1;
+            }
+        }
 
 		if (coverage == 0)
 		{
@@ -167,23 +205,23 @@ public class GenotypeLikelihoods {
 				likelihoods[i] = 0;
 			}
 		}
-		double sum = 0.0;
-        for (int i = 0; i < genotypes.length; i++) 
+
+		for (int i = 0; i < genotypes.length; i++)
 		{
-			double likelihood = calculateAlleleLikelihood(ref, read, genotypes[i], qual); 
+			double likelihood = calculateAlleleLikelihood(ref, read, genotypes[i], qual);
+            //if ( originalQual == 0 ) System.out.printf("Likelihood is %f for %c %c %d %s%n", likelihood, ref, read, qual, genotypes[i]);
             likelihoods[i] += likelihood;
 			coverage += 1;
-
-//            if (i == 8) {
-//                System.out.println(genotypes[8] + " " + likelihood + " " + likelihoods[8] + " " + coverage);
-//            }
         }
+
+        return 1;
     }
 
     private double calculateAlleleLikelihood(char ref, char read, String genotype, byte qual) {
         if (qual == 0) {
-            qual = 1;
-        } // zero quals are wrong.
+            // zero quals are wrong
+            throw new RuntimeException(String.format("Unexpected Q0 base discovered in calculateAlleleLikelihood: %c %c %d", ref, read, qual));
+        }
 
         char h1 = genotype.charAt(0);
         char h2 = genotype.charAt(1);
@@ -193,9 +231,13 @@ public class GenotypeLikelihoods {
         if ((h1 == h2) && (h1 == read)) {
             // hom
             p_base = getOneMinusQual(qual);
-        } else if ((h1 != h2) && ((h1 == read) || (h2 == read))) {
+        } else if ( (h1 != h2) && ((h1 == read) || (h2 == read)) ) {
             // het
             p_base = getOneHalfMinusQual(qual);
+        } else if ( this.threeBaseErrors ) {
+            // error
+            //System.out.printf("%s %b %f %f%n", genotype, h1 != h2, log10Of2_3, log10Of1_3 );
+            p_base = qual / -10.0 + ( h1 != h2 ? log10Of1_3 : log10Of1_3 );
         } else {
             // error
             p_base = qual / -10.0;
