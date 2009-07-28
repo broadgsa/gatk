@@ -50,7 +50,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     @Argument(fullName = "call_indels", shortName = "indels", doc = "Call indels as well as point mutations", required = false) public Boolean CALL_INDELS = false;
 
     // Control how the genotype hypotheses are weighed
-    @Argument(fullName = "priors_locus", shortName = "plocus", doc = "Comma-separated prior likelihoods for any locus (homref,het,homvar)", required = false) public String PRIORS_ANY_LOCUS = "0.999,1e-3,1e-5";
+    @Argument(fullName = "priors_locus", shortName = "plocus", doc = "Comma-separated prior likelihoods for any locus (homref,het,homvar)", required = false) public String PRIORS_ANY_LOCUS = "0.999,0.000333,0.000667";
     @Argument(fullName = "priors_hapmap", shortName = "phapmap", doc = "Comma-separated prior likelihoods for Hapmap loci (homref,het,homvar)", required = false) public String PRIORS_HAPMAP = "0.999,1e-3,1e-5";
     @Argument(fullName = "priors_dbsnp", shortName = "pdbsnp", doc = "Comma-separated prior likelihoods for dbSNP loci (homref,het,homvar)", required = false) public String PRIORS_DBSNP = "0.999,1e-3,1e-5";
     @Argument(fullName = "priors_2nd_on", shortName = "p2ndon", doc = "Comma-separated prior likelihoods for the secondary bases of primary on-genotype bases (AA,AC,AG,AT,CC,CG,CT,GG,GT,TT)", required = false) public String PRIORS_2ND_ON = "0.000,0.302,0.366,0.142,0.000,0.548,0.370,0.000,0.319,0.000";
