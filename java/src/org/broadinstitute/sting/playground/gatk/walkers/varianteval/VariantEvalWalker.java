@@ -83,7 +83,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         ArrayList<VariantAnalysis> analyses = new ArrayList<VariantAnalysis>();
 
         //
-        // Add new analyzes here!
+        // Add new analyses here!
         //
         analyses.add(new VariantCounter());
         analyses.add(new VariantDBCoverage(knownSNPDBName));
@@ -93,9 +93,10 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         analyses.add(new HardyWeinbergEquilibrium(badHWEThreshold));
         analyses.add(new ClusterCounterAnalysis());
         analyses.add(new CallableBasesAnalysis());
+        analyses.add(new IndelMetricsAnalysis());
 
         //
-        // Filter out analyzes inappropriate for our evaluation type Population or Genotype
+        // Filter out analyses inappropriate for our evaluation type Population or Genotype
         //
         Iterator<VariantAnalysis> iter = analyses.iterator();
         while ( iter.hasNext() ) {

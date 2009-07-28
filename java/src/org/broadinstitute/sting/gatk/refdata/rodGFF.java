@@ -174,4 +174,5 @@ public class rodGFF extends BasicReferenceOrderedDatum implements AllelicVariant
 
     public int getPloidy() throws IllegalStateException { return 2; }
     public boolean isBiallelic() { return true; }
+    public int length() { return 1; }
 }

@@ -139,5 +139,9 @@ public interface AllelicVariant extends ReferenceOrderedDatum {
      * two allelic variants, 'A' and 'T' <i>in addition</i> to the (known) reference variant 'C'). 
      * @return
      */
-    boolean isBiallelic() ;
+    boolean isBiallelic();
+
+    /** returns the length of the variant.  For SNPs this is just 1.
+     */
+    int length();
 }

@@ -169,6 +169,8 @@ public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVa
         return true;
     }
 
+    public int length() { return 1; }
+
     public char getReferenceBase() { return refBase; }
 
     public int getPileupDepth() { return depth; }

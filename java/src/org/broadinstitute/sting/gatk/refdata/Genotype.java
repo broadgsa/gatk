@@ -161,7 +161,7 @@ public interface Genotype extends Comparable<ReferenceOrderedDatum> {
      */
   //  char getAltSnpFWD() throws IllegalStateException;
     
-
+  int length();
 
 
     /** Return actual number of observed alleles (chromosomes) in the genotype.

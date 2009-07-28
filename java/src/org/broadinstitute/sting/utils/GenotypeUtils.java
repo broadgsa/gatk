@@ -187,6 +187,11 @@ public class GenotypeUtils {
 			return false;
 		}
 
+        @Override
+        public int length() {
+            return (int)(location.getStop() - location.getStart() + 1);
+        }
+
 		@Override
 		public int compareTo(ReferenceOrderedDatum o) {
 			return location.compareTo(o.getLocation());

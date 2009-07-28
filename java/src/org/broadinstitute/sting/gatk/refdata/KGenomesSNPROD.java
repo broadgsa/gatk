@@ -45,4 +45,5 @@ public class KGenomesSNPROD extends TabularROD implements SNPCallFromGenotypes {
     public int nHetGenotypes()     { return -1; }
     public int nHomVarGenotypes()  { return -1; }
     public List<Genotype> getGenotypes() { return null; }
+    public int length() { return 1; }
 }

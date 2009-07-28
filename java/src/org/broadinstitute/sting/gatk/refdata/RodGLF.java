@@ -362,6 +362,8 @@ public class RodGLF implements ReferenceOrderedDatum, AllelicVariant, Iterator<R
         return false;
     }
 
+    public int length() { return 1; }
+
     @Override
     public int compareTo(ReferenceOrderedDatum that) {
         return this.mLoc.compareTo(that.getLocation());

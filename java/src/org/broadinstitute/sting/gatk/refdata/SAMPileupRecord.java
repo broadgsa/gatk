@@ -490,10 +490,15 @@ class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
         return nNonref  < 2;
     }
 
-	@Override
-	public double getConsensusConfidence() {
-		return consensusScore;
-	}
+    @Override
+    public double getConsensusConfidence() {
+        return consensusScore;
+    }
+
+    @Override
+    public int length() {
+        return eventLength;
+    }
 
 	@Override
 	public boolean isIndelGenotype() {

@@ -55,6 +55,7 @@ public class rodFLT extends TabularROD implements SNPCallFromGenotypes {
     public List<String> getGenotype() throws IllegalStateException { return Arrays.asList(getAltBasesFWD()); }
     public int getPloidy() throws IllegalStateException { return 2; }
     public boolean isBiallelic()   { return true; }
+    public int length() { return 1; }
 
     // SNPCallFromGenotypes interface
     public int nIndividuals()      { return -1; }

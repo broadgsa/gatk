@@ -246,4 +246,6 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
 		// TODO Auto-generated method stub
 		return observed.indexOf('/')==observed.lastIndexOf('/');
 	}
+
+    public int length() { return (int)(loc.getStop() - loc.getStart() + 1); }
 }
