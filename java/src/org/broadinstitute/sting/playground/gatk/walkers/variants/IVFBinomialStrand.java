@@ -10,14 +10,16 @@ import java.util.List;
 public class IVFBinomialStrand implements IndependentVariantFeature {
     private double strandBalance = 0.5;
 
+    private double[] likelihoods;
+
     public void initialize(String arguments) {
         if (arguments != null && !arguments.isEmpty()) {
             strandBalance = Double.valueOf(arguments);
         }
     }
 
-    public double[] compute(char ref, LocusContext context) {
-        double[] likelihoods = new double[10];
+    public void compute(char ref, LocusContext context) {
+        likelihoods = new double[10];
         
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         List<SAMRecord> reads = context.getReads();
@@ -43,7 +45,17 @@ public class IVFBinomialStrand implements IndependentVariantFeature {
 
             likelihoods[genotypeIndex] = Math.log10(MathUtils.binomialProbability(strandCounts[0], strandCounts[0] + strandCounts[1], strandBalance));
         }
+    }
 
+    public double[] getLikelihoods() {
         return likelihoods;
+    }
+
+    public String getStudyHeader() {
+        return "";
+    }
+
+    public String getStudyInfo() {
+        return "";
     }
 }

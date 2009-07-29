@@ -10,8 +10,8 @@ import java.util.List;
 import cern.jet.math.Arithmetic;
 
 public class VECFisherStrand implements VariantExclusionCriterion {
-
     private double pvalueLimit = 0.0001;
+    private boolean exclude;
 
     public void initialize(String arguments) {
         if (arguments != null && !arguments.isEmpty()) {
@@ -19,15 +19,27 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         }
     }
 
-    public boolean exclude(char ref, LocusContext context, rodVariants variant) {
+    public void compute(char ref, LocusContext context, rodVariants variant) {
         int allele1 = BaseUtils.simpleBaseToBaseIndex(variant.getBestGenotype().charAt(0));
         int allele2 = BaseUtils.simpleBaseToBaseIndex(variant.getBestGenotype().charAt(1));
 
         if (allele1 != allele2) {
-            return strandTest(ref, context, allele1, allele2, pvalueLimit, null);
+            exclude = strandTest(ref, context, allele1, allele2, pvalueLimit, null);
+        } else {
+            exclude = false;
         }
+    }
 
-        return false;
+    public boolean isExcludable() {
+        return exclude;
+    }
+
+    public String getStudyHeader() {
+        return "";
+    }
+
+    public String getStudyInfo() {
+        return "";
     }
 
     public boolean useZeroQualityReads() { return false; }

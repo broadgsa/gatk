@@ -207,6 +207,7 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
     protected String name = null;
     protected GenotypeFeatureData.Tail tail = null;
 
+    protected boolean exclude = false;
 
     /**
      * A short-term hack to stop the systme from rejecting poorly covered sites, under the assumption
@@ -256,7 +257,7 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
 
     public boolean useZeroQualityReads() { return false; }
 
-    public boolean exclude(char ref, LocusContext context, rodVariants variant) {
+    public void compute(char ref, LocusContext context, rodVariants variant) {
         boolean exclude = false;
 
         //
@@ -285,8 +286,18 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
                     name, counts.first, counts.first / (0.01 * n), counts.second, counts.second / (0.01 * n), n, 
                     value, gfd, exclude, pileup.getBases()));
         }
+    }
 
+    public boolean isExcludable() {
         return exclude;
+    }
+
+    public String getStudyHeader() {
+        return "";
+    }
+
+    public String getStudyInfo() {
+        return "";
     }
 
     private final static double SEARCH_INCREMENT = 0.01;

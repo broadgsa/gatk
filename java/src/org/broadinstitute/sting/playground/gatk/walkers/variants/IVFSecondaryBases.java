@@ -8,6 +8,8 @@ public class IVFSecondaryBases implements IndependentVariantFeature {
     private double[] p2on  = { 0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000 };
     private double[] p2off = { 0.480, 0.769, 0.744, 0.538, 0.575, 0.727, 0.768, 0.589, 0.762, 0.505 };
 
+    private double[] likelihoods;
+
     /**
      * Method so that features can initialize themselves based on a short argument string. At the moment, each feature is
      * responsible for interpreting their own argument string.
@@ -58,8 +60,8 @@ public class IVFSecondaryBases implements IndependentVariantFeature {
      * @param context the context for the given locus
      * @return a ten-element array of log-likelihood result of the feature applied to each genotype
      */
-    public double[] compute(char ref, LocusContext context) {
-        double[] likelihoods = new double[10];
+    public void compute(char ref, LocusContext context) {
+        likelihoods = new double[10];
 
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         String primaryBases = pileup.getBases();
@@ -109,7 +111,17 @@ public class IVFSecondaryBases implements IndependentVariantFeature {
 
             likelihoods[genotypeIndex] = logOffPrior + logOnPrior;
         }
+    }
 
+    public double[] getLikelihoods() {
         return likelihoods;
+    }
+
+    public String getStudyHeader() {
+        return "";
+    }
+
+    public String getStudyInfo() {
+        return "";
     }
 }

@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
+import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.*;
 
 public class VECOnOffGenotypeRatio extends RatioFilter {

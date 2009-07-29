@@ -21,8 +21,9 @@ import java.util.*;
 import net.sf.samtools.SAMRecord;
 
 /**
- * VariantFiltrationWalker applies specified conditionally independent features to pre-called variants, thus modifying
- * the likelihoods of each genotype.  At the moment, the variants are expected to be in gelitext format.
+ * VariantFiltrationWalker applies specified conditionally independent features and filters to pre-called variants.
+ * The former modifiesthe likelihoods of each genotype, while the latter makes a decision to include or exclude a
+ * variant outright.  At the moment, the variants are expected to be in gelitext format.
  */
 @Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=rodVariants.class))
 public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
@@ -31,12 +32,15 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="exclusion_criterion", shortName="X", doc="Exclusion test (optionally with arguments) to apply to variant call.  Syntax: 'testname[:arguments]'", required=false) public String[] EXCLUSIONS;
     @Argument(fullName="verbose", shortName="V", doc="Show how the variant likelihoods are changing with the application of each feature") public Boolean VERBOSE = false;
     @Argument(fullName="list", shortName="ls", doc="List the available features and exclusion criteria and exit") public Boolean LIST = false;
+    @Argument(fullName="learning_mode", shortName="LM", doc="Output parseable information on each filter that can then be fed back to the filter as a training set") public Boolean LEARNING = false;
     @Argument(fullName="truth", shortName="truth", doc="Operate on truth set only") public Boolean TRUTH = false;
 
     private List<Class<? extends IndependentVariantFeature>> featureClasses;
     private List<Class<? extends VariantExclusionCriterion>> exclusionClasses;
+
     private PrintWriter vwriter;
     private HashMap<String, PrintWriter> ewriters;
+    private HashMap<String, PrintWriter> swriters;
 
     private ArrayList<IndependentVariantFeature> requestedFeatures;
     private ArrayList<VariantExclusionCriterion> requestedExclusions;
@@ -61,6 +65,8 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             requestedFeatures = new ArrayList<IndependentVariantFeature>();
             requestedExclusions = new ArrayList<VariantExclusionCriterion>();
 
+            swriters = new HashMap<String, PrintWriter>();
+
             // Initialize requested features
             if (FEATURES != null) {
                 for (String requestedFeatureString : FEATURES) {
@@ -75,6 +81,13 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                             try {
                                 IndependentVariantFeature ivf = (IndependentVariantFeature) featureClass.newInstance();
                                 ivf.initialize(requestedFeatureArgs);
+
+                                if (LEARNING) {
+                                    PrintWriter studyWriter = new PrintWriter(VARIANTS_OUT_HEAD + "." + featureClassName + ".study");
+                                    studyWriter.println(ivf.getStudyHeader());
+
+                                    swriters.put(featureClassName, studyWriter);
+                                }
 
                                 requestedFeatures.add(ivf);
                             } catch (InstantiationException e) {
@@ -103,6 +116,13 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                             try {
                                 VariantExclusionCriterion vec = (VariantExclusionCriterion) exclusionClass.newInstance();
                                 vec.initialize(requestedExclusionArgs);
+
+                                if (LEARNING) {
+                                    PrintWriter studyWriter = new PrintWriter(VARIANTS_OUT_HEAD + "." + exclusionClassName + ".study");
+                                    studyWriter.println(vec.getStudyHeader());
+
+                                    swriters.put(exclusionClassName, studyWriter);
+                                }
 
                                 requestedExclusions.add(vec);
 
@@ -185,9 +205,22 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
 
             // Apply features that modify the likelihoods and LOD scores
             for ( IndependentVariantFeature ivf : requestedFeatures ) {
-                variant.adjustLikelihoods(ivf.compute(ref, context));
+                ivf.compute(ref, context);
+
+                String featureClassName = rationalizeClassName(ivf.getClass());
+
+                double[] weights = ivf.getLikelihoods();
+
+                variant.adjustLikelihoods(weights);
 
                 if (VERBOSE) { out.println(rationalizeClassName(ivf.getClass()) + ":\n  " + variant); }
+
+                if (LEARNING) {
+                    PrintWriter swriter = swriters.get(featureClassName);
+                    if (swriter != null) {
+                        swriter.println(ivf.getStudyInfo());
+                    }
+                }
             }
 
             // Apply exclusion tests that accept or reject the variant call
@@ -198,10 +231,21 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             LocusContext Q0freeContext = removeQ0reads(context);
 
             for ( VariantExclusionCriterion vec : requestedExclusions ) {
-                boolean excludeResult = vec.exclude(ref, (vec.useZeroQualityReads() ? context : Q0freeContext), variant);
+                vec.compute(ref, (vec.useZeroQualityReads() ? context : Q0freeContext), variant);
 
-                if (excludeResult) {
-                    exclusionResults.add(rationalizeClassName(vec.getClass()));
+                String exclusionClassName = rationalizeClassName(vec.getClass());
+
+                if (vec.isExcludable()) {
+                    exclusionResults.add(exclusionClassName);
+                }
+
+                if (LEARNING) {
+                    PrintWriter swriter = swriters.get(exclusionClassName);
+
+                    if (swriter != null) {
+                        swriter.println(vec.getStudyInfo());
+                        swriter.flush();
+                    }
                 }
             }
 
@@ -272,8 +316,12 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
 
         vwriter.close();
 
-        for (PrintWriter writer : ewriters.values()) {
-            writer.close();
+        for (PrintWriter ewriter : ewriters.values()) {
+            ewriter.close();
+        }
+
+        for (PrintWriter swriter : swriters.values()) {
+            swriter.close();
         }
     }
 }

@@ -25,7 +25,12 @@ public interface IndependentVariantFeature {
      * 
      * @param ref      the reference base
      * @param context  the context for the given locus
-     * @return a ten-element array of log-likelihood result of the feature applied to each genotype
      */
-    public double[] compute(char ref, LocusContext context);
+    public void compute(char ref, LocusContext context);
+
+    public double[] getLikelihoods();
+
+    public String getStudyHeader();
+
+    public String getStudyInfo();
 }

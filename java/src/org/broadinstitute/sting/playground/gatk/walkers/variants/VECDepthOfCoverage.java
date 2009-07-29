@@ -13,15 +13,32 @@ import org.broadinstitute.sting.gatk.refdata.rodVariants;
 public class VECDepthOfCoverage implements VariantExclusionCriterion {
     private int maximum = 200;
 
+    private boolean exclude = false;
+    private int depth;
+
     public void initialize(String arguments) {
         if (arguments != null && !arguments.isEmpty()) {
             maximum = Integer.valueOf(arguments);
         }
     }
 
-    public boolean useZeroQualityReads() { return false; }
+    public void compute(char ref, LocusContext context, rodVariants variant) {
+        exclude = context.getReads().size() > maximum;
 
-    public boolean exclude(char ref, LocusContext context, rodVariants variant) {
-        return context.getReads().size() > maximum;
+        depth = context.getReads().size();
     }
+
+    public boolean isExcludable() {
+        return exclude;
+    }
+
+    public String getStudyHeader() {
+        return "#depth";
+    }
+
+    public String getStudyInfo() {
+        return Integer.toString(depth);
+    }
+
+    public boolean useZeroQualityReads() { return false; }
 }

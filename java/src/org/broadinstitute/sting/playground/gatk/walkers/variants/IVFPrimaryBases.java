@@ -7,6 +7,8 @@ import org.broadinstitute.sting.utils.ReadBackedPileup;
 public class IVFPrimaryBases implements IndependentVariantFeature {
     private double[] p = { 0.933, 0.972, 0.970, 0.960, 0.945, 0.990, 0.971, 0.943, 0.978, 0.928 };
 
+    private double[] likelihoods;
+
     /**
      * Method so that features can initialize themselves based on a short argument string. At the moment, each feature is
      * responsible for interpreting their own argument string.
@@ -31,8 +33,8 @@ public class IVFPrimaryBases implements IndependentVariantFeature {
      * @param context the context for the given locus
      * @return a ten-element array of log-likelihood result of the feature applied to each genotype
      */
-    public double[] compute(char ref, LocusContext context) {
-        double[] likelihoods = new double[10];
+    public void compute(char ref, LocusContext context) {
+        likelihoods = new double[10];
 
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         String primaryBases = pileup.getBases();
@@ -62,7 +64,17 @@ public class IVFPrimaryBases implements IndependentVariantFeature {
 
             likelihoods[genotypeIndex] = Math.log10(Prior);
         }
+    }
 
+    public double[] getLikelihoods() {
         return likelihoods;
+    }
+
+    public String getStudyHeader() {
+        return "";
+    }
+
+    public String getStudyInfo() {
+        return "";
     }
 }
