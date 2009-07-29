@@ -89,13 +89,15 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
     public List<String> done() {
         List<String> s = new ArrayList<String>();
         s.add(String.format("name                 %s", dbName));
-        s.add(String.format("\t\tCALLED_REF\tCALLED_VAR_HET\tCALLED_VAR_HOM\tNO_CALL\t\t\tTOTALS"));
+        s.add(String.format("\t\tCALLED_REF\tCALLED_VAR_HET\tCALLED_VAR_HOM\tNO_CALL\t\t\tTOTALS\tDISCOVERY_ACCURACY\tGENOTYPE_ACCURACY"));
         for (int i=0; i < 4; i++) {
             StringBuffer sb = new StringBuffer();
             sb.append(TRUTH_NAMES[i] + "\t");
             for (int j=0; j < 4; j++)
                 sb.append(table[i][j] +" (" + cellPercent(table[i][j], truth_totals[i]) + ")\t\t");
             sb.append(truth_totals[i]);
+            if ( i == TRUTH_VAR_HET || i == TRUTH_VAR_HOM )
+                sb.append("\t"+cellPercent(table[i][CALL_VAR_HET]+table[i][CALL_VAR_HOM], truth_totals[i]) + "\t\t\t" + cellPercent(table[i][i], truth_totals[i]));                        
             s.add(sb.toString());
         }
         s.add("\n");
@@ -115,7 +117,10 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
                 s.add(TRUTH_NAMES[i]+"_"+CALL_NAMES[j]+"_PERCENT_OF_TRUTH "+cellPercent(table[i][j], truth_totals[i]));
                 s.add(TRUTH_NAMES[i]+"_"+CALL_NAMES[j]+"_PERCENT_OF_CALLS "+cellPercent(table[i][j], calls_totals[j]));
             }
-        }
+            if ( i == TRUTH_VAR_HET || i == TRUTH_VAR_HOM ) {
+                s.add(TRUTH_NAMES[i]+"_DISCOVERY_ACCURACY "+cellPercent(table[i][CALL_VAR_HET]+table[i][CALL_VAR_HOM], truth_totals[i]));
+                s.add(TRUTH_NAMES[i]+"_GENOTYPE_ACCURACY "+cellPercent(table[i][i], truth_totals[i]));
+            }        }
         return s;
     }
 
