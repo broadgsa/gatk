@@ -173,8 +173,6 @@ public class CleanedReadInjectorTest extends BaseTest {
         walker.cleanedReadsSource = cleanedReads;
         walker.outputBAM = output;
 
-        walker.initializeOutputStreams( new OutputTracker(null,null) );
-
         return walker;
     }
 

@@ -26,29 +26,19 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
-import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.*;
 
 
@@ -62,15 +52,13 @@ import java.util.*;
 
 /** Shards and schedules data in manageable chunks. */
 public abstract class MicroScheduler {
-    private static long SHARD_SIZE = 100000L;
-
     protected static Logger logger = Logger.getLogger(MicroScheduler.class);
 
     protected final TraversalEngine traversalEngine;
     protected final IndexedFastaSequenceFile reference;
 
     private final SAMDataSource reads;
-    private final List<ReferenceOrderedDataSource> rods;
+    private final Collection<ReferenceOrderedDataSource> rods;
 
     /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
@@ -78,19 +66,19 @@ public abstract class MicroScheduler {
      *
      * @param walker        Which walker to use.
      * @param reads         the informations associated with the reads
-     * @param ref           the reference file
+     * @param reference     the reference file
      * @param rods          the rods to include in the traversal
      * @param nThreadsToUse Number of threads to utilize.
      *
      * @return The best-fit microscheduler.
      */
-    public static MicroScheduler create(Walker walker, Reads reads, File ref, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods, int nThreadsToUse) {
+    public static MicroScheduler create(Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse) {
         if (walker instanceof TreeReducible && nThreadsToUse > 1) {
             logger.info("Creating hierarchical microscheduler");
-            return new HierarchicalMicroScheduler(walker, reads, ref, rods, nThreadsToUse);
+            return new HierarchicalMicroScheduler(walker, reads, reference, rods, nThreadsToUse);
         } else {
             logger.info("Creating linear microscheduler");
-            return new LinearMicroScheduler(walker, reads, ref, rods);
+            return new LinearMicroScheduler(walker, reads, reference, rods);
         }
     }
 
@@ -99,10 +87,10 @@ public abstract class MicroScheduler {
      *
      * @param walker  the walker to execute with
      * @param reads   The reads.
-     * @param refFile File pointer to the reference.
+     * @param reference The reference.
      * @param rods    the rods to include in the traversal
      */
-    protected MicroScheduler(Walker walker, Reads reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+    protected MicroScheduler(Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
         if (walker instanceof ReadWalker) {
             traversalEngine = new TraverseReads();
         } else if (walker instanceof LocusWalker) {
@@ -114,11 +102,17 @@ public abstract class MicroScheduler {
         } else {
             throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
         }
-        this.reads = setupReadsDataSource(reads);
-        this.reference = openReferenceSequenceFile(refFile);
-        this.rods = getReferenceOrderedDataSources(rods);
+        this.reads = reads;
+        this.reference = reference;
+        this.rods = rods;
 
         validate(this.reads,this.reference);
+
+        // Side effect: initialize the traversal engine with reads data.
+        // TODO: Give users a dedicated way of getting the header so that the MicroScheduler
+        //       doesn't have to bend over backward providing legacy getters and setters.
+        traversalEngine.setSAMHeader(reads.getHeader());        
+        traversalEngine.initialize();                
     }
 
     /**
@@ -129,77 +123,18 @@ public abstract class MicroScheduler {
      */
     public TraversalEngine getTraversalEngine() {
         return traversalEngine;
-    }
+    }    
 
     /**
      * Walks a walker over the given list of intervals.
      *
      * @param walker        Computation to perform over dataset.
-     * @param intervals     A list of intervals over which to walk.  Null for whole dataset.
-     * @param maxIterations the maximum number of iterations we're to perform
+     * @param shardStrategy A strategy for sharding the data.
      *
      * @return the return type of the walker
      */
-    public abstract Object execute(Walker walker, GenomeLocSortedSet intervals, Integer maxIterations);
+    public abstract Object execute(Walker walker, ShardStrategy shardStrategy);
 
-    /**
-     * Get the sharding strategy given a driving data source.
-     *
-     * @param walker            Walker for which to infer sharding strategy.
-     * @param drivingDataSource Data on which to shard.
-     * @param intervals         Intervals to use when limiting sharding.
-     * @param maxIterations     the maximum number of iterations to run through
-     *
-     * @return Sharding strategy for this driving data source.
-     */
-    protected ShardStrategy getShardStrategy(Walker walker,
-                                             ReferenceSequenceFile drivingDataSource,
-                                             GenomeLocSortedSet intervals,
-                                             Integer maxIterations) {
-        ShardStrategy shardStrategy = null;
-        ShardStrategyFactory.SHATTER_STRATEGY shardType;
-        if (walker instanceof LocusWalker) {
-            if (intervals != null) {
-                shardType = (walker.isReduceByInterval()) ?
-                        ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL :
-                        ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
-
-                shardStrategy = ShardStrategyFactory.shatter(shardType,
-                        drivingDataSource.getSequenceDictionary(),
-                        SHARD_SIZE,
-                        intervals, maxIterations);
-            } else
-                shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
-                        drivingDataSource.getSequenceDictionary(),
-                        SHARD_SIZE, maxIterations);
-
-        } else if (walker instanceof ReadWalker ||
-                walker instanceof DuplicateWalker) {
-
-            shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS;
-
-            if (intervals != null) {
-                shardStrategy = ShardStrategyFactory.shatter(shardType,
-                        drivingDataSource.getSequenceDictionary(),
-                        SHARD_SIZE,
-                        intervals, maxIterations);
-            } else {
-                shardStrategy = ShardStrategyFactory.shatter(shardType,
-                        drivingDataSource.getSequenceDictionary(),
-                        SHARD_SIZE, maxIterations);
-            }
-        } else if (walker instanceof LocusWindowWalker) {
-            if( intervals == null )
-                throw new StingException("Unable to shard: walker is of type LocusWindow, but no intervals were provided");
-            shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL,
-                    drivingDataSource.getSequenceDictionary(),
-                    SHARD_SIZE,
-                    intervals, maxIterations);
-        } else
-            throw new StingException("Unable to support walker of type" + walker.getClass().getName());
-
-        return shardStrategy;
-    }
 
     /**
      * Gets an window into all the data that can be viewed as a single shard.
@@ -229,65 +164,16 @@ public abstract class MicroScheduler {
     }
 
     /**
-     * Gets a data source for the given set of reads.
-     *
-     * @param reads   the read source information
-     *
-     * @return A data source for the given set of reads.
-     */
-    private SAMDataSource setupReadsDataSource(Reads reads) {
-        // By reference traversals are happy with no reads.  Make sure that case is handled.
-        if (reads.getReadsFiles().size() == 0)
-            return null;
-
-        SAMDataSource dataSource = new SAMDataSource(reads);
-
-        // Side effect: initialize the traversal engine with reads data.
-        // TODO: Give users a dedicated way of getting the header so that the MicroScheduler
-        //       doesn't have to bend over backward providing legacy getters and setters.
-        traversalEngine.setSAMHeader(dataSource.getHeader());
-
-        return dataSource;
-    }
-    
-    /**
      * Returns data source maintained by this scheduler
      * @return
      */
     public SAMDataSource getSAMDataSource() { return reads; }
 
     /**
-     * Open the reference-ordered data sources.
-     *
-     * @param rods the reference order data to execute using
-     *
-     * @return A list of reference-ordered data sources.
+     * Returns the reference maintained by this scheduler.
+     * @return The reference maintained by this scheduler.
      */
-    private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
-        List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
-        for (ReferenceOrderedData<? extends ReferenceOrderedDatum> rod : rods)
-            dataSources.add(new ReferenceOrderedDataSource(rod));
-        return dataSources;
-    }
-
-    /**
-     * Opens a reference sequence file paired with an index.
-     *
-     * @param refFile Handle to a reference sequence file.  Non-null.
-     *
-     * @return A thread-safe file wrapper.
-     */
-    private IndexedFastaSequenceFile openReferenceSequenceFile(File refFile) {
-        IndexedFastaSequenceFile ref = null;
-        try {
-            ref = new IndexedFastaSequenceFile(refFile);
-        }
-        catch (FileNotFoundException ex) {
-            throw new StingException("I/O error while opening fasta file: " + ex.getMessage(), ex);
-        }
-        GenomeLocParser.setupRefContigOrdering(ref);
-        return ref;
-    }
+    public IndexedFastaSequenceFile getReference() { return reference; }
 
     /**
      * Now that all files are open, validate the sequence dictionaries of the reads vs. the reference.

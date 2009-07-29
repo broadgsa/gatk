@@ -1,9 +1,11 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentFactory;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentSource;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.xReadLines;
+import org.broadinstitute.sting.utils.sam.SAMFileWriterBuilder;
+import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 
 import java.io.File;
@@ -11,7 +13,7 @@ import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.ArrayList;
 
-import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMFileWriter;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -106,6 +108,24 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         return new Class[] { GATKEngine.getWalkerByName(getAnalysisName()).getClass() };
     }
 
+    /**
+     * Allows arguments to be hijacked by subclasses of the program before being placed
+     * into plugin classes.
+     * @return True if the particular field should be hijacked; false otherwise.
+     */
+    protected boolean intercept( ArgumentSource source, Object targetInstance, Object value ) {
+        if( !(Walker.class.isAssignableFrom(source.clazz)) )
+            return false;
+
+        if( value instanceof SAMFileReaderBuilder || value instanceof SAMFileWriterBuilder ) {
+            GATKEngine.setAdditionalIO( source.field, value );
+            return true;
+        }
+
+        return false;
+    }
+
+
     @Override
     protected String getArgumentSourceName( Class argumentSource ) {
         return WalkerManager.getWalkerName((Class<Walker>) argumentSource);
@@ -144,23 +164,5 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
                 unpackedReads.add( inputFile );
         }
         return unpackedReads;
-    }
-
-    /**
-     * Get a custom factory for instantiating specialty GATK arguments.
-     * @return An instance of the command-line argument of the specified type.
-     */
-    @Override
-    protected ArgumentFactory getCustomArgumentFactory() {
-        return new ArgumentFactory() {
-            public Object createArgument( Class type, String... repr ) {
-                if (type == SAMFileReader.class && repr.length == 1) {
-                    SAMFileReader samFileReader = new SAMFileReader(new File(repr[0]),true);
-                    samFileReader.setValidationStringency(getArgumentCollection().strictnessLevel);
-                    return samFileReader;
-                }
-                return null;
-            }
-        };
     }
 }

@@ -42,7 +42,8 @@ public class OutputTrackerTest extends BaseTest {
 
     @Test
     public void testNullInputs() {
-        OutputTracker ot = new OutputTracker(null,null);
+        OutputTracker ot = new OutputTracker();
+        ot.initializeCoreIO(null,null);
 
         Assert.assertTrue("OutputTracker: Output stream is of wrong type.", ot.getOutStream() instanceof RedirectingOutputStream );
         Assert.assertTrue("OutputTracker: Error stream is of wrong type.", ot.getErrStream() instanceof RedirectingOutputStream );
@@ -56,7 +57,8 @@ public class OutputTrackerTest extends BaseTest {
 
     @Test
     public void testOutputStreamAlone() throws FileNotFoundException {
-        OutputTracker ot = new OutputTracker(OUTPUT_FILENAME,null);
+        OutputTracker ot = new OutputTracker();
+        ot.initializeCoreIO(OUTPUT_FILENAME,null);
 
         final String OUTPUT_TEXT = "out stream test";
         PrintWriter outWriter = new PrintWriter(ot.getOutStream());
@@ -76,7 +78,8 @@ public class OutputTrackerTest extends BaseTest {
 
     @Test
     public void testErrorStreamAlone() throws FileNotFoundException {
-        OutputTracker ot = new OutputTracker(null,ERROR_FILENAME);
+        OutputTracker ot = new OutputTracker();
+        ot.initializeCoreIO(null,ERROR_FILENAME);
 
         final String ERROR_TEXT = "err stream test";
         PrintWriter errWriter = new PrintWriter(ot.getErrStream());
@@ -95,7 +98,8 @@ public class OutputTrackerTest extends BaseTest {
 
     @Test
     public void testIndependentStreams() throws FileNotFoundException {
-        OutputTracker ot = new OutputTracker(OUTPUT_FILENAME,ERROR_FILENAME);
+        OutputTracker ot = new OutputTracker();
+        ot.initializeCoreIO(OUTPUT_FILENAME,ERROR_FILENAME);
 
         final String OUTPUT_TEXT = "out stream test";
         PrintWriter outWriter = new PrintWriter(ot.getOutStream());
@@ -121,7 +125,8 @@ public class OutputTrackerTest extends BaseTest {
 
     @Test
     public void testIdenticalInputsGetIdenticalResults() {
-        OutputTracker ot = new OutputTracker(OUTPUT_FILENAME,OUTPUT_FILENAME);
+        OutputTracker ot = new OutputTracker();
+        ot.initializeCoreIO(OUTPUT_FILENAME,OUTPUT_FILENAME);
 
         Assert.assertTrue("OutputTracker: Output stream is of wrong type.", ot.getOutStream() instanceof RedirectingOutputStream );
         Assert.assertTrue("OutputTracker: Error stream is of wrong type.", ot.getErrStream() instanceof RedirectingOutputStream );

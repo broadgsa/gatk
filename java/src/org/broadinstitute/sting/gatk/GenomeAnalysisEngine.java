@@ -34,6 +34,9 @@ import net.sf.samtools.SAMReadGroupRecord;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
+import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
@@ -41,13 +44,13 @@ import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.io.FileNotFoundException;
+import java.util.*;
+import java.lang.reflect.Field;
 
 public class GenomeAnalysisEngine {
 
@@ -63,7 +66,7 @@ public class GenomeAnalysisEngine {
     private GATKArgumentCollection argCollection;
 
     /** Collection of output streams used by the walker. */
-    private OutputTracker outputTracker = null;
+    private OutputTracker outputTracker = new OutputTracker();
 
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(GenomeAnalysisEngine.class);
@@ -124,13 +127,11 @@ public class GenomeAnalysisEngine {
         // Validate the walker inputs against the walker.
         validateInputsAgainstWalker(my_walker, argCollection, rods);
 
+        // our microscheduler, which is in charge of running everything
+        MicroScheduler microScheduler = createMicroscheduler(my_walker, rods);
+
         // create the output streams
         initializeOutputStreams(my_walker);
-
-        // our microscheduler, which is in charge of running everything
-        MicroScheduler microScheduler = null;
-
-        microScheduler = createMicroscheduler(my_walker, rods);
 
         // Prepare the sort ordering w.r.t. the sequence dictionary
         if (argCollection.referenceFile != null) {
@@ -148,8 +149,20 @@ public class GenomeAnalysisEngine {
         if (argCollection.intervals != null) {
             locs = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.intervals));
         }
-        // excute the microscheduler, storing the results
-        return microScheduler.execute(my_walker, locs, argCollection.maximumEngineIterations);
+
+        ShardStrategy shardStrategy = this.getShardStrategy(my_walker, microScheduler.getReference(), locs, argCollection.maximumEngineIterations);
+
+        // execute the microscheduler, storing the results
+        return microScheduler.execute(my_walker, shardStrategy);
+    }
+
+    /**
+     * Add additional, externally managed IO streams for walker consumption.
+     * @param walkerField Field in the walker into which to inject the value.
+     * @param value Instance to inject.
+     */
+    public void setAdditionalIO( Field walkerField, Object value ) {
+        outputTracker.addAdditionalOutput( walkerField, value );    
     }
 
     /**
@@ -182,21 +195,29 @@ public class GenomeAnalysisEngine {
         // the mircoscheduler to return
         MicroScheduler microScheduler = null;
 
+        SAMDataSource readsDataSource = createReadsDataSource(extractSourceInfo(my_walker,argCollection));
+        IndexedFastaSequenceFile referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
+        List<ReferenceOrderedDataSource> rodDataSources = getReferenceOrderedDataSources(rods);
+
+        GenomeLocSortedSet locs = null;
+        if (argCollection.intervals != null) {
+            locs = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.intervals));
+        }
+
         // we need to verify different parameter based on the walker type
         if (my_walker instanceof LocusWalker || my_walker instanceof LocusWindowWalker) {
             // create the MicroScheduler
-            microScheduler = MicroScheduler.create(my_walker, extractSourceInfo(my_walker,argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
-            engine = microScheduler.getTraversalEngine();
+            microScheduler = MicroScheduler.create(my_walker, readsDataSource, referenceDataSource, rodDataSources, argCollection.numberOfThreads);
         } else if (my_walker instanceof ReadWalker || my_walker instanceof DuplicateWalker) {
             if (argCollection.referenceFile == null)
                 Utils.scareUser(String.format("Read-based traversals require a reference file but none was given"));
-            microScheduler = MicroScheduler.create(my_walker, extractSourceInfo(my_walker,argCollection), argCollection.referenceFile, rods, argCollection.numberOfThreads);
-            engine = microScheduler.getTraversalEngine();
+            microScheduler = MicroScheduler.create(my_walker, readsDataSource, referenceDataSource, rodDataSources, argCollection.numberOfThreads);
         } else {
             Utils.scareUser(String.format("Unable to create the appropriate TraversalEngine for analysis type " + argCollection.analysisName));
         }
 
         dataSource = microScheduler.getSAMDataSource();
+        engine = microScheduler.getTraversalEngine();
         
         return microScheduler;
     }
@@ -367,17 +388,6 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Default to 5 (based on research by Alec Wysoker)
-     *
-     * @return the BAM compression
-     */
-    public int getBAMCompression() {
-        return (argCollection.BAMcompression == null ||
-                argCollection.BAMcompression < 1 ||
-                argCollection.BAMcompression > 8) ? 5 : argCollection.BAMcompression;
-    }
-
-    /**
      * Convenience function that binds RODs using the old-style command line parser to the new style list for
      * a uniform processing.
      *
@@ -389,6 +399,116 @@ public class GenomeAnalysisEngine {
         argCollection.RODBindings.add(Utils.join(",", new String[]{name, type, file}));
     }
 
+    /**
+     * Get the sharding strategy given a driving data source.
+     *
+     * @param walker            Walker for which to infer sharding strategy.
+     * @param drivingDataSource Data on which to shard.
+     * @param intervals         Intervals to use when limiting sharding.
+     * @param maxIterations     the maximum number of iterations to run through
+     *
+     * @return Sharding strategy for this driving data source.
+     */
+    protected ShardStrategy getShardStrategy(Walker walker,
+                                             ReferenceSequenceFile drivingDataSource,
+                                             GenomeLocSortedSet intervals,
+                                             Integer maxIterations) {
+        final long SHARD_SIZE = 100000L;
+
+        ShardStrategy shardStrategy = null;
+        ShardStrategyFactory.SHATTER_STRATEGY shardType;
+        if (walker instanceof LocusWalker) {
+            if (intervals != null) {
+                shardType = (walker.isReduceByInterval()) ?
+                        ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL :
+                        ShardStrategyFactory.SHATTER_STRATEGY.LINEAR;
+
+                shardStrategy = ShardStrategyFactory.shatter(shardType,
+                        drivingDataSource.getSequenceDictionary(),
+                        SHARD_SIZE,
+                        intervals, maxIterations);
+            } else
+                shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
+                        drivingDataSource.getSequenceDictionary(),
+                        SHARD_SIZE, maxIterations);
+
+        } else if (walker instanceof ReadWalker ||
+                walker instanceof DuplicateWalker) {
+
+            shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS;
+
+            if (intervals != null) {
+                shardStrategy = ShardStrategyFactory.shatter(shardType,
+                        drivingDataSource.getSequenceDictionary(),
+                        SHARD_SIZE,
+                        intervals, maxIterations);
+            } else {
+                shardStrategy = ShardStrategyFactory.shatter(shardType,
+                        drivingDataSource.getSequenceDictionary(),
+                        SHARD_SIZE, maxIterations);
+            }
+        } else if (walker instanceof LocusWindowWalker) {
+            if( intervals == null )
+                throw new StingException("Unable to shard: walker is of type LocusWindow, but no intervals were provided");
+            shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL,
+                    drivingDataSource.getSequenceDictionary(),
+                    SHARD_SIZE,
+                    intervals, maxIterations);
+        } else
+            throw new StingException("Unable to support walker of type" + walker.getClass().getName());
+
+        return shardStrategy;
+    }
+
+    /**
+     * Gets a data source for the given set of reads.
+     *
+     * @param reads   the read source information
+     *
+     * @return A data source for the given set of reads.
+     */
+    private SAMDataSource createReadsDataSource(Reads reads) {
+        // By reference traversals are happy with no reads.  Make sure that case is handled.
+        if (reads.getReadsFiles().size() == 0)
+            return null;
+
+        SAMDataSource dataSource = new SAMDataSource(reads);
+
+        return dataSource;
+    }
+
+    /**
+     * Opens a reference sequence file paired with an index.
+     *
+     * @param refFile Handle to a reference sequence file.  Non-null.
+     *
+     * @return A thread-safe file wrapper.
+     */
+    private IndexedFastaSequenceFile openReferenceSequenceFile(File refFile) {
+        IndexedFastaSequenceFile ref = null;
+        try {
+            ref = new IndexedFastaSequenceFile(refFile);
+        }
+        catch (FileNotFoundException ex) {
+            throw new StingException("I/O error while opening fasta file: " + ex.getMessage(), ex);
+        }
+        GenomeLocParser.setupRefContigOrdering(ref);
+        return ref;
+    }
+
+    /**
+     * Open the reference-ordered data sources.
+     *
+     * @param rods the reference order data to execute using
+     *
+     * @return A list of reference-ordered data sources.
+     */
+    private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+        List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
+        for (ReferenceOrderedData<? extends ReferenceOrderedDatum> rod : rods)
+            dataSources.add(new ReferenceOrderedDataSource(rod));
+        return dataSources;
+    }
 
     /**
      * Initialize the output streams as specified by the user.
@@ -396,9 +516,11 @@ public class GenomeAnalysisEngine {
      * @param walker the walker to initialize output streams for
      */
     private void initializeOutputStreams(Walker walker) {
-        outputTracker = (argCollection.outErrFileName != null) ? new OutputTracker(argCollection.outErrFileName, argCollection.outErrFileName)
-                : new OutputTracker(argCollection.outFileName, argCollection.errFileName);
-        walker.initializeOutputStreams(outputTracker);
+        if( argCollection.outErrFileName != null )
+            outputTracker.initializeCoreIO( argCollection.outErrFileName, argCollection.outErrFileName );
+        else
+            outputTracker.initializeCoreIO( argCollection.outFileName, argCollection.errFileName );
+        outputTracker.prepareWalker(walker);
     }
 
     /**

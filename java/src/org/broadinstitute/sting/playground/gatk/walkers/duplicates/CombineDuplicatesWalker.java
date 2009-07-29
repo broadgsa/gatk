@@ -23,7 +23,7 @@ import net.sf.samtools.SAMFileHeader;
  */
 public class CombineDuplicatesWalker extends DuplicateWalker<SAMRecord, SAMFileWriter> {
     @Argument(fullName="outputBAM", shortName="outputBAM", required=false, doc="BAM File to write combined duplicates to")
-    public String outputFilename = null;
+    public SAMFileWriter outputBAM = null;
 
     @Argument(fullName="includeUniqueReads", shortName="includeUniqueReads", required=false, doc="If true, also writes out non-duplicate reads in file")
     public boolean INCLUDE_UNIQUE_READS = true;
@@ -48,13 +48,7 @@ public class CombineDuplicatesWalker extends DuplicateWalker<SAMRecord, SAMFileW
     }
 
     public SAMFileWriter reduceInit() {
-        if ( outputFilename != null ) {
-            SAMFileHeader header = this.getToolkit().getEngine().getSAMHeader();
-            return Utils.createSAMFileWriterWithCompression(header, true, outputFilename, getToolkit().getBAMCompression());
-        }
-        else {
-            return null;
-        }
+        return outputBAM;
     }
 
     /**

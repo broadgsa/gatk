@@ -28,7 +28,7 @@ public class ReplaceQuals extends ReadWalker<SAMRecord, SAMFileWriter> {
     public String inputQualsBAM;
 
     @Argument(shortName="outputBAM", required=false, doc="output BAM file for reads with replaced quals")
-    public String outputFilename = null;
+    public SAMFileWriter outputBAM = null;
 
     public int MAX_READS_TO_LOAD = -1;
 
@@ -108,13 +108,7 @@ public class ReplaceQuals extends ReadWalker<SAMRecord, SAMFileWriter> {
     }
 
     public SAMFileWriter reduceInit() {
-        if ( outputFilename != null ) { // ! outputBamFile.equals("") ) {
-            SAMFileHeader header = this.getToolkit().getEngine().getSAMHeader();
-            return Utils.createSAMFileWriterWithCompression(header, true, outputFilename, getToolkit().getBAMCompression());
-        }
-        else {
-            return null;
-        }
+        return outputBAM;
     }
 
     /**

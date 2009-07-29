@@ -38,7 +38,7 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
      * Target file for BAM output.
      */
     @Argument(fullName="output_bam",shortName="ob",doc="Output BAM file",required=true)
-    String outputBAMFileName = null;
+    SAMFileWriter outputBAM = null;
 
     /**
      * The set of (sorted) cleaned reads
@@ -49,11 +49,6 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
      * A fast lookup table for uniquified read info
      */
     private HashSet<String> cleanedReadHash = new HashSet<String>();
-
-    /**
-     * The writer that handles writing of SAM files. 
-     */
-    SAMFileWriter outputBAM = null;
 
     @Override
     public void initialize() {
@@ -68,15 +63,6 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
             cleanedReadHash.add(getUniquifiedReadName(read));
         }
         allReads.close();
-
-        // HACK: The unit tests create their own output files.  Make sure this walker doesn't step
-        //       on any toes.
-        if( outputBAM == null ) {
-            outputBAM = Utils.createSAMFileWriterWithCompression(getToolkit().getEngine().getSAMHeader(),
-                                                                 true,
-                                                                 outputBAMFileName,
-                                                                 getToolkit().getBAMCompression());
-        }
     }
 
     /**

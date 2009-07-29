@@ -1,12 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.OutputTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
 import org.apache.log4j.Logger;
@@ -34,11 +31,6 @@ public abstract class Walker<MapType, ReduceType> {
     protected PrintStream err = null;
 
     protected Walker() {
-    }
-
-    public void initializeOutputStreams( OutputTracker outputTracker ) {
-        out = new PrintStream( outputTracker.getOutStream() );
-        err = new PrintStream( outputTracker.getErrStream() );
     }
 
     /**

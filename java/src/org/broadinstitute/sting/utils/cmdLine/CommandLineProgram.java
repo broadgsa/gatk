@@ -110,6 +110,16 @@ public abstract class CommandLineProgram {
     protected Class[] getArgumentSources() { return new Class[] {}; }
 
     /**
+     * Allows arguments to be hijacked by subclasses of the program before being placed
+     * into plugin classes.
+     * @param source Source class for the argument.
+     * @param targetInstance Instance into which the value should be ultimately injected.
+     * @param value Value to inject.
+     * @return True if the particular field has been hijacked; false otherwise.
+     */
+    protected boolean intercept( ArgumentSource source, Object targetInstance, Object value ) { return false; }
+
+    /**
      * Name this argument source.  Provides the (full) class name as a default.
      * @param source The argument source.
      * @return a name for the argument source.
@@ -123,15 +133,6 @@ public abstract class CommandLineProgram {
      * @return the return code to exit the program with
      */
     protected abstract int execute();
-
-    /**
-     * Retrieves a factory for custom creation of command-line arguments, specified by the
-     * subclass.
-     * @return
-     */
-    protected ArgumentFactory getCustomArgumentFactory() {
-        return null;
-    }
 
     static {
         // setup a basic log configuration
@@ -152,7 +153,7 @@ public abstract class CommandLineProgram {
             PatternLayout layout = new PatternLayout();
 
             // setup the parser
-            ParsingEngine parser = clp.parser = new ParsingEngine( clp.getCustomArgumentFactory() );
+            ParsingEngine parser = clp.parser = new ParsingEngine(clp);
             parser.addArgumentSource( clp.getClass() );
 
             // process the args

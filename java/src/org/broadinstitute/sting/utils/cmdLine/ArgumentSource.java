@@ -100,22 +100,8 @@ public class ArgumentSource {
      * @return A non-null, non-empty list of argument definitions.
      */
     public List<ArgumentDefinition> createArgumentDefinitions() {
-        String fullName = descriptor.fullName().trim().length() > 0 ? descriptor.fullName().trim() : field.getName().toLowerCase();
-        String shortName = descriptor.shortName().trim().length() > 0 ? descriptor.shortName().trim() : null;
-        String doc = descriptor.doc();
-        boolean required = descriptor.required() && !isFlag();
-        String exclusiveOf = descriptor.exclusiveOf().trim().length() > 0 ? descriptor.exclusiveOf().trim() : null;
-        String validation = descriptor.validation().trim().length() > 0 ? descriptor.validation().trim() : null;
-
-        ArgumentDefinition argumentDefinition = new ArgumentDefinition( this,
-                                                                        fullName,
-                                                                        shortName,
-                                                                        doc,
-                                                                        required,
-                                                                        exclusiveOf,
-                                                                        validation );
-        
-        return Collections.singletonList(argumentDefinition);
+        ArgumentTypeDescriptor typeDescriptor = ArgumentTypeDescriptor.create( field.getType() );
+        return typeDescriptor.createArgumentDefinitions( this, descriptor );
     }
 
     /**
@@ -123,30 +109,16 @@ public class ArgumentSource {
      * @param targetInstance Instance into which to inject the parsed value.
      * @param values String representation of all values passed.
      */
-    public void inject( ArgumentFactory customArgumentFactory, Object targetInstance, String... values ) {
+    public Object parse( ArgumentSource source, Object targetInstance, ArgumentMatch... values ) {
         Object value = null;
+        if( !isFlag() ) {
+            ArgumentTypeDescriptor typeDescriptor = ArgumentTypeDescriptor.create( field.getType() );
+            value = typeDescriptor.parse( source, values );
+        }
+        else
+            value = true;
 
-        if( customArgumentFactory != null ) {
-            value = customArgumentFactory.createArgument(field.getType(), values);
-        }
-
-        if( value == null ) {
-            if( !isFlag() ) {
-                ArgumentTypeDescriptor typeDescriptor = ArgumentTypeDescriptor.create( field.getType() );
-                value = typeDescriptor.parse( field, field.getType(), values );
-            }
-            else
-                value = true;
-        }
-
-        try {
-            field.setAccessible(true);
-            field.set(targetInstance, value);
-        }
-        catch( IllegalAccessException ex ) {
-            //logger.fatal("processArgs: cannot convert field " + field.toString());
-            throw new StingException("processArgs: Failed conversion " + ex.getMessage(), ex);
-        }
+        return value;
     }
 
     /**

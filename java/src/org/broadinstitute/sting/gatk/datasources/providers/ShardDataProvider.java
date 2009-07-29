@@ -54,7 +54,7 @@ public class ShardDataProvider {
     /**
      * Sources of reference-ordered data.
      */
-    private final List<ReferenceOrderedDataSource> referenceOrderedData;
+    private final Collection<ReferenceOrderedDataSource> referenceOrderedData;
 
     /**
      * Retrieves the shard associated with this data provider.
@@ -101,7 +101,7 @@ public class ShardDataProvider {
      * views can access it.
      * @return List of reference-ordered data sources.
      */
-    List<ReferenceOrderedDataSource> getReferenceOrderedData() {
+    Collection<ReferenceOrderedDataSource> getReferenceOrderedData() {
         return referenceOrderedData;        
     }
 
@@ -111,7 +111,7 @@ public class ShardDataProvider {
      * @param reads A window into the reads for a given region.
      * @param reference A getter for a section of the reference.
      */
-    public ShardDataProvider( Shard shard, SAMDataSource reads, IndexedFastaSequenceFile reference, List<ReferenceOrderedDataSource> rods) {
+    public ShardDataProvider( Shard shard, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
         this.shard = shard;
         // Provide basic reads information.
         this.reads = (reads != null) ? reads.seek( shard ) : new NullSAMIterator(new Reads(new ArrayList<File>()));

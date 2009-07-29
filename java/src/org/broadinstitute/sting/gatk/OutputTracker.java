@@ -1,13 +1,22 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.JVMUtils;
+import org.broadinstitute.sting.utils.sam.SAMFileWriterBuilder;
+import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
 import org.broadinstitute.sting.utils.io.RedirectingOutputStream;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
+import java.util.Map;
+import java.util.HashMap;
+
+import net.sf.samtools.SAMFileWriter;
 /**
  * User: hanna
  * Date: Apr 30, 2009
@@ -39,13 +48,15 @@ public class OutputTracker {
     protected ThreadLocal<OutputStream> localOut = new ThreadLocal<OutputStream>();
     protected ThreadLocal<OutputStream> localErr = new ThreadLocal<OutputStream>();
 
+    protected Map<Field,Object> additionalIO = new HashMap<Field,Object>();
+
     /**
      * Create an object to manage output given filenames for the output and error files.
      * If no files are specified, returns null.
      * @param outFileName Name of the output file.
      * @param errFileName Name of the error file.
      */
-    public OutputTracker( String outFileName, String errFileName ) {
+    public void initializeCoreIO( String outFileName, String errFileName ) {
         // If the two output streams match and are non-null, initialize them identically.
         // Otherwise, initialize them separately.
         if( outFileName != null && outFileName.equals(errFileName) ) {
@@ -55,6 +66,35 @@ public class OutputTracker {
         else {
             globalOut = (outFileName != null) ? prepareOutputFile( outFileName ) : System.out;
             globalErr = (errFileName != null) ? prepareOutputFile( errFileName ) : System.err;
+        }        
+    }
+
+    public void prepareWalker( Walker walker ) {
+        Field out = JVMUtils.findField( walker.getClass(), "out" );
+        Field err = JVMUtils.findField( walker.getClass(), "err" );
+
+        JVMUtils.setField( out, walker, new PrintStream(getOutStream()) );
+        JVMUtils.setField( err, walker, new PrintStream(getErrStream()) );
+
+        for( Map.Entry<Field,Object> io: additionalIO.entrySet() ) {
+            Field targetField = io.getKey();
+            Object targetValue = io.getValue();
+
+            // Ghastly hacks: reaches in and finishes building out the SAMFileReader / SAMFileWriter.
+            // TODO: Generalize this, and move it to its own initialization step.
+            if( targetValue instanceof SAMFileReaderBuilder) {
+                SAMFileReaderBuilder builder = (SAMFileReaderBuilder)targetValue;
+                builder.setValidationStringency(GenomeAnalysisEngine.instance.getArguments().strictnessLevel);
+                targetValue = builder.build();
+            }
+
+            if( targetValue instanceof SAMFileWriterBuilder ) {
+                SAMFileWriterBuilder builder = (SAMFileWriterBuilder)targetValue;
+                builder.setSAMFileHeader(GenomeAnalysisEngine.instance.getDataSource().getHeader());
+                targetValue = builder.build();
+            }
+
+            JVMUtils.setField( targetField, walker, targetValue );
         }
     }
 
@@ -113,6 +153,15 @@ public class OutputTracker {
     public void setLocalStreams( OutputStream out, OutputStream err ) {
         localOut.set( out );
         localErr.set( err );
+    }
+
+    /**
+     * Provide a mechanism for injecting supplemental streams for external management.
+     * @param field Field into which to inject this stream.
+     * @param stream Stream to manage.
+     */
+    public void addAdditionalOutput( Field field, Object stream ) {
+        additionalIO.put(field,stream);   
     }
 
     /**

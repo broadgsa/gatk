@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils;
 
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Field;
 import java.io.File;
 import java.io.IOException;
 
@@ -46,6 +47,42 @@ public class JVMUtils {
     public static boolean isConcrete( Class clazz ) {
         return !Modifier.isAbstract(clazz.getModifiers()) &&
                !Modifier.isInterface(clazz.getModifiers());
+    }
+
+    /**
+     * Find the field with the given name in the class.  Will inspect all fields, independent
+     * of access level.
+     * @param type Class in which to search for the given field.
+     * @param fieldName Name of the field for which to search.
+     * @return The field, or null if no such field exists.
+     */
+    public static Field findField( Class type, String fieldName ) {
+        while( type != null ) {
+            Field[] fields = type.getDeclaredFields();
+            for( Field field: fields ) {
+                if( field.getName().equals(fieldName) )
+                    return field;
+            }
+            type = type.getSuperclass();
+        }
+        return null;
+    }
+
+    /**
+     * Sets the provided field in the given instance to the given value.  Circumvents access restrictions:
+     * a field can be private and still set successfully by this function.
+     * @param field Field to set in the given object.
+     * @param instance Instance in which to set the field.
+     * @param value The value to which to set the given field in the given instance.
+     */
+    public static void setField( Field field, Object instance, Object value ) {
+        try {
+            field.setAccessible(true);
+            field.set(instance, value);
+        }
+        catch( IllegalAccessException ex ) {
+            throw new StingException(String.format("Could not set %s in instance %s to %s",field.getName(),instance.getClass().getName(),value.toString()));
+        }
     }
 
 }

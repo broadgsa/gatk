@@ -47,6 +47,9 @@ public class SplitSamFileWalker extends ReadWalker<SAMRecord, Map<String, SAMFil
     @Argument(fullName="outputRoot", doc="output BAM file", required=false)
     public String outputRoot = null;
 
+    @Argument(fullName = "bam_compression", shortName = "compress", doc = "Compression level to use for writing BAM files", required = false)
+    public Integer BAMcompression = 5;    
+
     private static Logger logger = Logger.getLogger(SplitSamFileWalker.class);
     private static String VERSION = "0.0.1";
 
@@ -92,7 +95,7 @@ public class SplitSamFileWalker extends ReadWalker<SAMRecord, Map<String, SAMFil
             final String sample = elt.getKey();
             final String filename = outputRoot + sample + ".bam";
             logger.info(String.format("Creating BAM output file %s for sample %s", filename, sample));
-            SAMFileWriter output = Utils.createSAMFileWriterWithCompression(elt.getValue(), true, filename, getToolkit().getBAMCompression());
+            SAMFileWriter output = Utils.createSAMFileWriterWithCompression(elt.getValue(), true, filename, BAMcompression);
             outputs.put(sample, output);
         }
 

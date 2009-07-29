@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils.cmdLine;
 
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.JVMUtils;
 import org.apache.log4j.Logger;
 
 import java.lang.reflect.*;
@@ -26,6 +27,11 @@ import java.util.*;
  */
 public class ParsingEngine {
     /**
+     * The command-line program at the heart of this parsing engine.
+     */
+    CommandLineProgram clp = null;
+
+    /**
      * A collection of all the source fields which define command-line arguments.
      */
     List<ArgumentSource> argumentSources = new ArrayList<ArgumentSource>();
@@ -44,13 +50,6 @@ public class ParsingEngine {
     ArgumentMatches argumentMatches = null;
 
     /**
-     * Stores a custom argument factory for building out arguments of which only
-     * subclasses of CommandLineProgram should be aware.
-     */
-    ArgumentFactory customArgumentFactory = null;
-
-
-    /**
      * Techniques for parsing and for argument lookup.
      */
     private List<ParsingMethod> parsingMethods = new ArrayList<ParsingMethod>();
@@ -60,8 +59,8 @@ public class ParsingEngine {
      */
     protected static Logger logger = Logger.getLogger(ParsingEngine.class);
 
-    public ParsingEngine( ArgumentFactory customArgumentFactory ) {
-        this.customArgumentFactory = customArgumentFactory;
+    public ParsingEngine( CommandLineProgram clp ) {
+        this.clp = clp;
         parsingMethods.add( ParsingMethod.FullNameParsingMethod );
         parsingMethods.add( ParsingMethod.ShortNameParsingMethod );
     }
@@ -245,33 +244,27 @@ public class ParsingEngine {
         // Get a list of argument sources, not including the children of this argument.  For now, skip loading
         // arguments into the object recursively.
         List<ArgumentSource> argumentSources = extractArgumentSources( object.getClass(), false );
-        for( ArgumentSource argumentSource: argumentSources ) {
-            Collection<ArgumentMatch> argumentsMatchingSource = argumentMatches.findMatches( argumentSource );
-            if( argumentsMatchingSource.size() != 0 )
-                loadMatchesIntoObject( argumentsMatchingSource, object );
-        }
+        for( ArgumentSource argumentSource: argumentSources )
+            loadMatchesIntoObject( argumentSource, object, argumentMatches.findMatches(argumentSource) );
     }
 
     /**
      * Loads a single argument into the object.
      * @param argumentMatches Argument matches to load into the object.
-     * @param object Target for the argument.
+     * @param target
      */
-    private void loadMatchesIntoObject( Collection<ArgumentMatch> argumentMatches, Object object ) {
-        if( argumentMatches.size() > 1 )
-            throw new StingException("Too many matches");
-
-        ArgumentMatch match = argumentMatches.iterator().next();
-        ArgumentDefinition definition = match.definition;
-
-        // A null definition might be in the list if some invalid arguments were passed in but we
-        // want to load in a subset of data for better error reporting.  Ignore null definitions.
-        if( definition == null )
+    private void loadMatchesIntoObject( ArgumentSource source, Object target, Collection<ArgumentMatch> argumentMatches ) {
+        // Nothing to load
+        if( argumentMatches.size() == 0 )
             return;
 
-        if( definition.source.clazz.isAssignableFrom(object.getClass()) ) {
-            String[] tokens = match.values().toArray(new String[0]);
-            definition.source.inject( customArgumentFactory, object, tokens );
+        if( argumentMatches.size() > 1 )
+            throw new StingException("Too many values matched argument: " + source.field.getName());
+
+        if( source.clazz.isAssignableFrom(target.getClass()) ) {
+            Object value = source.parse( source, target, argumentMatches.toArray(new ArgumentMatch[0]) );
+            if( clp == null || !clp.intercept(source, target, value) )
+                JVMUtils.setField( source.field, target, value );
         }
     }
 

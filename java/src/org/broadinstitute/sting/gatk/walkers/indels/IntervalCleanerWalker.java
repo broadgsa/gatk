@@ -22,7 +22,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     @Argument(fullName="allow454Reads", shortName="454", doc="process 454 reads", required=false)
     boolean allow454 = false;
     @Argument(fullName="OutputCleaned", shortName="O", required=false, doc="Output file (sam or bam) for improved (realigned) reads")
-    String OUT = null;
+    SAMFileWriter writer = null;
     @Argument(fullName="OutputIndels", shortName="indels", required=false, doc="Output file (text) for the indels found")
     String OUT_INDELS = null;
     @Argument(fullName="OutputCleanedReadsOnly", shortName="cleanedOnly", doc="print out cleaned reads only (otherwise, all reads within the intervals)", required=false)
@@ -45,7 +45,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     // fraction of mismatches that need to no longer mismatch for a column to be considered cleaned
     private static final double MISMATCH_COLUMN_CLEANED_FRACTION = 0.75;
 
-    private SAMFileWriter writer = null;
     private FileWriter indelOutput = null;
     private FileWriter statsOutput = null;
     private FileWriter snpsOutput = null;
@@ -63,12 +62,11 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             throw new RuntimeException("Entropy threshold must be a fraction between 0 and 1");
 
         SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
-        if ( OUT != null ) {
-	    writer = Utils.createSAMFileWriterWithCompression(header, true, OUT, getToolkit().getBAMCompression());
+        if ( writer != null ) {
             readsToWrite = new TreeSet<ComparableSAMRecord>();
         }
 
-        logger.info("Writing into output BAM file at compression level " + getToolkit().getBAMCompression());
+        logger.info("Writing into output BAM file");
         logger.info("Temporary space used: "+System.getProperty("java.io.tmpdir"));
         generator = new Random();
 

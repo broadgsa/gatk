@@ -19,8 +19,8 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
     @Argument(shortName="logisticParams", doc="logistic params file", required=true)
     public String logisticParamsFile;
 
-    @Argument(shortName="outputBAM", doc="output BAM file", required=false)
-    public String outputBamFile = null;
+    @Argument(fullName="outputBamFile",shortName="outputBAM", doc="output BAM file", required=false)
+    public SAMFileWriter outputBamFile = null;
 
     @Argument(shortName="useCache", doc="If true, uses high-performance caching of logistic regress results.  Experimental", required=false)
     public boolean useLogisticCache = true;
@@ -308,13 +308,7 @@ public class LogisticRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWr
     }
 
     public SAMFileWriter reduceInit() {
-        if ( outputBamFile != null ) { // ! outputBamFile.equals("") ) {
-            SAMFileHeader header = this.getToolkit().getEngine().getSAMHeader();
-            return Utils.createSAMFileWriterWithCompression(header, true, outputBamFile, getToolkit().getBAMCompression());
-        }
-        else {
-            return null;
-        }
+        return outputBamFile;
     }
 
     /**

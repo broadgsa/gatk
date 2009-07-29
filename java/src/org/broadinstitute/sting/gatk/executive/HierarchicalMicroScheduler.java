@@ -4,6 +4,8 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.OutputTracker;
 import org.broadinstitute.sting.gatk.Reads;
@@ -11,6 +13,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import javax.management.MBeanServer;
@@ -20,6 +23,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Queue;
 import java.util.LinkedList;
+import java.util.Collection;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -74,11 +78,11 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
      * Create a new hierarchical microscheduler to process the given reads and reference.
      *
      * @param reads         Reads file(s) to process.
-     * @param refFile       Reference for driving the traversal.
+     * @param reference     Reference for driving the traversal.
      * @param nThreadsToUse maximum number of threads to use to do the work
      */
-    protected HierarchicalMicroScheduler( Walker walker, Reads reads, File refFile, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods, int nThreadsToUse ) {
-        super(walker, reads, refFile, rods);
+    protected HierarchicalMicroScheduler( Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse ) {
+        super(walker, reads, reference, rods);
         this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
 
         try {
@@ -91,12 +95,11 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         }
     }
 
-    public Object execute( Walker walker, GenomeLocSortedSet intervals, Integer maxIterations ) {
+    public Object execute( Walker walker, ShardStrategy shardStrategy ) {
         // Fast fail for walkers not supporting TreeReducible interface.
         if (!( walker instanceof TreeReducible ))
             throw new IllegalArgumentException("Hierarchical microscheduler only works with TreeReducible walkers");
 
-        ShardStrategy shardStrategy = getShardStrategy(walker, reference, intervals, maxIterations);
         ReduceTree reduceTree = new ReduceTree(this);
 
         walker.initialize();
@@ -258,7 +261,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         OutputMerger outputMerger = new OutputMerger();
 
         ShardTraverser traverser = new ShardTraverser(this,
-                getTraversalEngine(),
+                traversalEngine,
                 walker,
                 shard,
                 getShardDataProvider(shard),

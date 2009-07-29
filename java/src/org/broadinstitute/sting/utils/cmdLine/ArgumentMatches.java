@@ -1,14 +1,6 @@
 package org.broadinstitute.sting.utils.cmdLine;
 
-import java.util.Iterator;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.TreeMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Collection;
-import java.util.HashMap;
+import java.util.*;
 /**
  * Created by IntelliJ IDEA.
  * User: mhanna
@@ -170,7 +162,7 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
 /**
  * A mapping of all the sites where an argument definition maps to a site on the command line.
  */
-class ArgumentMatch {
+class ArgumentMatch implements Iterable<ArgumentMatch> {
     /**
      * The argument definition that's been matched.
      */
@@ -184,20 +176,123 @@ class ArgumentMatch {
     /**
      * Maps indicies of command line arguments to values paired with that argument.
      */
-    public final Map<Integer,List<String>> indices = new HashMap<Integer,List<String>>();
+    public final SortedMap<Integer,List<String>> indices = new TreeMap<Integer,List<String>>();
 
     /**
      * Create a new argument match, defining its properties later.  Used to create invalid arguments.
      */
     public ArgumentMatch() {
-        definition = null;
-        label = null;
+        this.label = null;
+        this.definition = null;
     }
 
+    /**
+     * A simple way of indicating that an argument with the given label and definition exists at this index.
+     * @param label Label of the argument match.  Must not be null.
+     * @param definition The associated definition, if one exists.  May be null.
+     * @param index Position of the argument.  Must not be null.
+     */
     public ArgumentMatch( String label, ArgumentDefinition definition, int index ) {
+        this( label, definition, index, null );
+    }
+
+    private ArgumentMatch( String label, ArgumentDefinition definition, int index, String value ) {
         this.label = label;
         this.definition = definition;
-        indices.put(index,null);
+
+        ArrayList<String> values = new ArrayList<String>();
+        if( value != null )
+            values.add(value);
+        indices.put(index,values );
+    }
+
+    /**
+     * Creates an iterator that walks over each individual match at each position of a given argument.
+     * @return An iterator over the individual matches in this argument.  Will not be null.
+     */
+    public Iterator<ArgumentMatch> iterator() {
+        return new Iterator<ArgumentMatch>() {
+            /**
+             * Iterate over each the available index.
+             */
+            private Iterator<Integer> indexIterator = null;
+
+            /**
+             * Iterate over each available token.
+             */
+            private Iterator<String> tokenIterator = null;
+
+            /**
+             * The next index to return.  Null if none remain.
+             */
+            Integer nextIndex = null;
+
+            /**
+             * The next token to return.  Null if none remain.
+             */
+            String nextToken = null;
+
+            {
+                indexIterator = indices.keySet().iterator();
+                prepareNext();
+            }
+
+            /**
+             * Is there a nextToken available to return?
+             * @return True if there's another token waiting in the wings.  False otherwise.
+             */
+            public boolean hasNext() {
+                return nextToken != null;    
+            }
+
+            /**
+             * Get the next token, if one exists.  If not, throw an IllegalStateException.
+             * @return The next ArgumentMatch in the series.  Should never be null.
+             */
+            public ArgumentMatch next() {
+                if( nextIndex == null || nextToken == null )
+                    throw new IllegalStateException( "No more ArgumentMatches are available" );
+
+                ArgumentMatch match = new ArgumentMatch( label, definition, nextIndex, nextToken );
+                prepareNext();
+                return match;
+            }
+
+            /**
+             * Initialize the next ArgumentMatch to return.  If no ArgumentMatches are available,
+             * initialize nextIndex / nextToken to null.
+             */
+            private void prepareNext() {
+                if( tokenIterator != null && tokenIterator.hasNext() ) {
+                    nextToken = tokenIterator.next();
+                }
+                else {
+                    nextIndex = null;
+                    nextToken = null;
+
+                    // Do a nested loop.  While more data is present in the inner loop, grab that data.
+                    // Otherwise, troll the outer iterator looking for more data.
+                    while( indexIterator.hasNext() ) {
+                        nextIndex = indexIterator.next();
+                        if( indices.get(nextIndex) != null ) {
+                            tokenIterator = indices.get(nextIndex).iterator();
+                            if( tokenIterator.hasNext() ) {
+                                nextToken = tokenIterator.next();
+                                break;
+                            }
+                        }
+                    }
+                }
+
+            }
+
+            /**
+             * Remove is unsupported in this context.
+             */
+            public void remove() {
+                throw new UnsupportedOperationException("Cannot remove an argument match from the collection while iterating.");
+            }
+        };
     }
 
     /**

@@ -46,8 +46,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     @Argument(shortName="params", doc="CountCovariates params file", required=true)
     public String paramsFile;
 
-    @Argument(shortName="outputBAM", doc="output BAM file", required=false)
-    public String outputBamFile = null;
+    @Argument(fullName="outputBamFile", shortName="outputBAM", doc="output BAM file", required=false)
+    public SAMFileWriter outputBamFile = null;
 
     @Argument(shortName="rawQempirical", doc="If provided, we will use raw Qempirical scores calculated from the # mismatches and # bases, rather than the more conservative estimate of # mismatches + 1 / # bases + 1", required=false)
     public boolean rawQempirical = false;
@@ -321,13 +321,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     }
 
     public SAMFileWriter reduceInit() {
-        if ( outputBamFile != null ) {
-            SAMFileHeader header = this.getToolkit().getEngine().getSAMHeader();
-            return Utils.createSAMFileWriterWithCompression(header, true, outputBamFile, getToolkit().getBAMCompression());
-        }
-        else {
-            return null;
-        }
+        return outputBamFile;
     }
 
     /**
