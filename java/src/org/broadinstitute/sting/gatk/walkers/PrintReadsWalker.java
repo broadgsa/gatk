@@ -75,7 +75,7 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
         if  ( platform != null ) {
             Object readGroupAttr = read.getAttribute("RG");
             if ( readGroupAttr != null ) {
-                SAMReadGroupRecord readGroup = getToolkit().getEngine().getSAMHeader().getReadGroup(readGroupAttr.toString());
+                SAMReadGroupRecord readGroup = getToolkit().getSAMFileHeader().getReadGroup(readGroupAttr.toString());
                 if ( readGroup != null ) {
                     Object readPlatformAttr = readGroup.getAttribute("PL");
                     if ( readPlatformAttr != null )

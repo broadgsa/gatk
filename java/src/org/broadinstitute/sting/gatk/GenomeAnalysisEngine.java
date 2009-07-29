@@ -26,11 +26,9 @@
 package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.picard.filter.SamRecordFilter;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMReadGroupRecord;
+import net.sf.samtools.*;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
@@ -40,7 +38,6 @@ import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.utils.*;
@@ -58,9 +55,20 @@ public class GenomeAnalysisEngine {
     // TODO: public static without final tends to indicate we're thinking about this the wrong way
     public static GenomeAnalysisEngine instance;
 
-    // our traversal engine
-    private TraversalEngine engine = null;
-    private SAMDataSource dataSource = null;
+    /**
+     * Accessor for sharded read data.
+     */
+    private SAMDataSource readsDataSource = null;
+
+    /**
+     * Accessor for sharded reference data.
+     */
+    private IndexedFastaSequenceFile referenceDataSource = null;
+
+    /**
+     * Accessor for sharded reference-ordered data.
+     */
+    private List<ReferenceOrderedDataSource> rodDataSources;
 
     // our argument collection
     private GATKArgumentCollection argCollection;
@@ -105,55 +113,24 @@ public class GenomeAnalysisEngine {
         // save our argument parameter
         this.argCollection = args;
 
-        // our reference ordered data collection
-        List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum>>();
-
-        //
-        // please don't use these in the future, use the new syntax <- if we're not using these please remove them
-        //
-        if (argCollection.DBSNPFile != null) bindConvenienceRods("dbSNP", "dbsnp", argCollection.DBSNPFile);
-        if (argCollection.HAPMAPFile != null)
-            bindConvenienceRods("hapmap", "HapMapAlleleFrequencies", argCollection.HAPMAPFile);
-        if (argCollection.HAPMAPChipFile != null)
-            bindConvenienceRods("hapmap-chip", "GFF", argCollection.HAPMAPChipFile);
-        // TODO: The ROD iterator currently does not understand multiple intervals file.  Fix this by cleaning the ROD system.
-        if (argCollection.intervals != null && argCollection.intervals.size() == 1) {
-            bindConvenienceRods("interval", "Intervals", argCollection.intervals.get(0).replaceAll(",", ""));
-        }
-
-        // parse out the rod bindings
-        ReferenceOrderedData.parseBindings(logger, argCollection.RODBindings, rods);
-
-        // Validate the walker inputs against the walker.
-        validateInputsAgainstWalker(my_walker, argCollection, rods);
+        // Prepare the data for traversal.
+        initializeDataSources( my_walker, argCollection );
 
         // our microscheduler, which is in charge of running everything
-        MicroScheduler microScheduler = createMicroscheduler(my_walker, rods);
+        MicroScheduler microScheduler = createMicroscheduler(my_walker);
 
         // create the output streams
         initializeOutputStreams(my_walker);
-
-        // Prepare the sort ordering w.r.t. the sequence dictionary
-        if (argCollection.referenceFile != null) {
-            final ReferenceSequenceFile refFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(argCollection.referenceFile);
-            GenomeLocParser.setupRefContigOrdering(refFile);
-        }
-
-        logger.info("Strictness is " + argCollection.strictnessLevel);
-
-        // perform validation steps that are common to all the engines
-        engine.setMaximumIterations(argCollection.maximumEngineIterations);
-        engine.initialize();
 
         GenomeLocSortedSet locs = null;
         if (argCollection.intervals != null) {
             locs = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.intervals));
         }
 
-        ShardStrategy shardStrategy = this.getShardStrategy(my_walker, microScheduler.getReference(), locs, argCollection.maximumEngineIterations);
+        ShardStrategy shardStrategy = getShardStrategy(my_walker, microScheduler.getReference(), locs, argCollection.maximumEngineIterations);
 
         // execute the microscheduler, storing the results
-        return microScheduler.execute(my_walker, shardStrategy);
+        return microScheduler.execute(my_walker, shardStrategy, argCollection.maximumEngineIterations);
     }
 
     /**
@@ -182,27 +159,48 @@ public class GenomeAnalysisEngine {
         return walkerManager.createWalkerByName(walkerName);
     }
 
+    private void initializeDataSources( Walker my_walker, GATKArgumentCollection argCollection ) {
+        validateSuppliedReadsAgainstWalker( my_walker, argCollection );        
+        logger.info("Strictness is " + argCollection.strictnessLevel);
+        readsDataSource = createReadsDataSource(extractSourceInfo(my_walker,argCollection));
+
+        validateSuppliedReferenceAgainstWalker( my_walker, argCollection );
+        referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
+
+        validateReadsAndReferenceAreCompatible(readsDataSource, referenceDataSource);
+
+        // our reference ordered data collection
+        List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods = new ArrayList<ReferenceOrderedData<? extends ReferenceOrderedDatum>>();
+
+        //
+        // please don't use these in the future, use the new syntax <- if we're not using these please remove them
+        //
+        if (argCollection.DBSNPFile != null) bindConvenienceRods("dbSNP", "dbsnp", argCollection.DBSNPFile);
+        if (argCollection.HAPMAPFile != null)
+            bindConvenienceRods("hapmap", "HapMapAlleleFrequencies", argCollection.HAPMAPFile);
+        if (argCollection.HAPMAPChipFile != null)
+            bindConvenienceRods("hapmap-chip", "GFF", argCollection.HAPMAPChipFile);
+        // TODO: The ROD iterator currently does not understand multiple intervals file.  Fix this by cleaning the ROD system.
+        if (argCollection.intervals != null && argCollection.intervals.size() == 1) {
+            bindConvenienceRods("interval", "Intervals", argCollection.intervals.get(0).replaceAll(",", ""));
+        }
+
+        // parse out the rod bindings
+        ReferenceOrderedData.parseBindings(logger, argCollection.RODBindings, rods);
+
+        validateSuppliedReferenceOrderedDataAgainstWalker( my_walker, rods );
+
+        rodDataSources = getReferenceOrderedDataSources(rods);
+    }
 
     /**
      * setup a microscheduler
-     *
      * @param my_walker our walker of type LocusWalker
-     * @param rods      the reference order data
-     *
      * @return a new microscheduler
      */
-    private MicroScheduler createMicroscheduler(Walker my_walker, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
+    private MicroScheduler createMicroscheduler(Walker my_walker) {
         // the mircoscheduler to return
         MicroScheduler microScheduler = null;
-
-        SAMDataSource readsDataSource = createReadsDataSource(extractSourceInfo(my_walker,argCollection));
-        IndexedFastaSequenceFile referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
-        List<ReferenceOrderedDataSource> rodDataSources = getReferenceOrderedDataSources(rods);
-
-        GenomeLocSortedSet locs = null;
-        if (argCollection.intervals != null) {
-            locs = GenomeLocSortedSet.createSetFromList(parseIntervalRegion(argCollection.intervals));
-        }
 
         // we need to verify different parameter based on the walker type
         if (my_walker instanceof LocusWalker || my_walker instanceof LocusWindowWalker) {
@@ -216,9 +214,6 @@ public class GenomeAnalysisEngine {
             Utils.scareUser(String.format("Unable to create the appropriate TraversalEngine for analysis type " + argCollection.analysisName));
         }
 
-        dataSource = microScheduler.getSAMDataSource();
-        engine = microScheduler.getTraversalEngine();
-        
         return microScheduler;
     }
 
@@ -351,23 +346,43 @@ public class GenomeAnalysisEngine {
                           filters );
     }
 
-    private void validateInputsAgainstWalker(Walker walker,
-                                             GATKArgumentCollection arguments,
-                                             List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
-        String walkerName = WalkerManager.getWalkerName(walker.getClass());
-
+    /**
+     * Verifies that the supplied set of reads files mesh with what the walker says it requires.
+     * @param walker Walker to test.
+     * @param arguments Supplied reads files.
+     */
+    private void validateSuppliedReadsAgainstWalker( Walker walker, GATKArgumentCollection arguments ) {
         // Check what the walker says is required against what was provided on the command line.
         if (WalkerManager.isRequired(walker, DataSource.READS) && (arguments.samFiles == null || arguments.samFiles.size() == 0))
-            throw new ArgumentException(String.format("Walker %s requires reads but none were provided.  If this is incorrect, alter the walker's @Requires annotation.", walkerName));
-        if (WalkerManager.isRequired(walker, DataSource.REFERENCE) && arguments.referenceFile == null)
-            throw new ArgumentException(String.format("Walker %s requires a reference but none was provided.  If this is incorrect, alter the walker's @Requires annotation.", walkerName));
+            throw new ArgumentException("Walker requires reads but none were provided.  If this is incorrect, alter the walker's @Requires annotation.");
 
         // Check what the walker says is allowed against what was provided on the command line.
         if ((arguments.samFiles != null && arguments.samFiles.size() > 0) && !WalkerManager.isAllowed(walker, DataSource.READS))
-            throw new ArgumentException(String.format("Walker %s does not allow reads but reads were provided.  If this is incorrect, alter the walker's @Allows annotation", walkerName));
-        if (arguments.referenceFile != null && !WalkerManager.isAllowed(walker, DataSource.REFERENCE))
-            throw new ArgumentException(String.format("Walker %s does not allow a reference but one was provided.  If this is incorrect, alter the walker's @Allows annotation", walkerName));
+            throw new ArgumentException("Walker does not allow reads but reads were provided.  If this is incorrect, alter the walker's @Allows annotation");
+    }
 
+    /**
+     * Verifies that the supplied reference file mesh with what the walker says it requires.
+     * @param walker Walker to test.
+     * @param arguments Supplied reads files.
+     */
+    private void validateSuppliedReferenceAgainstWalker( Walker walker, GATKArgumentCollection arguments ) {
+        // Check what the walker says is required against what was provided on the command line.
+        if (WalkerManager.isRequired(walker, DataSource.REFERENCE) && arguments.referenceFile == null)
+            throw new ArgumentException("Walker requires a reference but none was provided.  If this is incorrect, alter the walker's @Requires annotation.");
+
+        // Check what the walker says is allowed against what was provided on the command line.
+        if (arguments.referenceFile != null && !WalkerManager.isAllowed(walker, DataSource.REFERENCE))
+            throw new ArgumentException("Walker does not allow a reference but one was provided.  If this is incorrect, alter the walker's @Allows annotation");
+    }
+
+    /**
+     * Verifies that all required reference-ordered data has been supplied, and any reference-ordered data that was not
+     * 'allowed' is still present.
+     * @param walker Walker to test.
+     * @param rods Reference-ordered data to load.
+     */
+    private void validateSuppliedReferenceOrderedDataAgainstWalker( Walker walker, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods ) {
         // Check to make sure that all required metadata is present.
         List<RMD> allRequired = WalkerManager.getRequiredMetaData(walker);
         for (RMD required : allRequired) {
@@ -383,9 +398,72 @@ public class GenomeAnalysisEngine {
         // Check to see that no forbidden rods are present.
         for (ReferenceOrderedData<? extends ReferenceOrderedDatum> rod : rods) {
             if (!WalkerManager.isAllowed(walker, rod))
-                throw new ArgumentException(String.format("Walker does not allow access to metadata: %s.  If this is correct, change the @Allows metadata", rod.getName()));
+                throw new ArgumentException(String.format("Walker does not allow access to metadata: %s.  If this is incorrect, change the @Allows metadata", rod.getName()));
         }
     }
+
+    /**
+     * Now that all files are open, validate the sequence dictionaries of the reads vs. the reference.
+     * @param reads Reads data source.
+     * @param reference Reference data source.
+     */
+    private void validateReadsAndReferenceAreCompatible( SAMDataSource reads, ReferenceSequenceFile reference ) {
+        if( reads == null || reference == null )
+            return;
+
+        // Compile a set of sequence names that exist in the BAM files.
+        SAMSequenceDictionary readsDictionary = reads.getHeader().getSequenceDictionary();
+
+        Set<String> readsSequenceNames = new TreeSet<String>();
+        for( SAMSequenceRecord dictionaryEntry: readsDictionary.getSequences() )
+            readsSequenceNames.add(dictionaryEntry.getSequenceName());
+
+        // Compile a set of sequence names that exist in the reference file.
+        SAMSequenceDictionary referenceDictionary = reference.getSequenceDictionary();
+
+        Set<String> referenceSequenceNames = new TreeSet<String>();
+        for( SAMSequenceRecord dictionaryEntry: referenceDictionary.getSequences() )
+            referenceSequenceNames.add(dictionaryEntry.getSequenceName());
+
+        if( readsSequenceNames.size() == 0 ) {
+            logger.info("Reads file is unmapped.  Skipping validation against reference.");
+            return;
+        }
+
+        // If there's no overlap between reads and reference, data will be bogus.  Throw an exception.
+        Set<String> intersectingSequenceNames = new HashSet<String>(readsSequenceNames);
+        intersectingSequenceNames.retainAll(referenceSequenceNames);
+        if( intersectingSequenceNames.size() == 0 ) {
+            StringBuilder error = new StringBuilder();
+            error.append("No overlap exists between sequence dictionary of the reads and the sequence dictionary of the reference.  Perhaps you're using the wrong reference?\n");
+            error.append(System.getProperty("line.separator"));
+            error.append(String.format("Reads contigs:     %s%n", prettyPrintSequenceRecords(readsDictionary)));
+            error.append(String.format("Reference contigs: %s%n", prettyPrintSequenceRecords(referenceDictionary)));
+            logger.error(error.toString());
+            Utils.scareUser("No overlap exists between sequence dictionary of the reads and the sequence dictionary of the reference.");
+        }
+
+        // If the two datasets are not equal and neither is a strict subset of the other, warn the user.
+        if( !readsSequenceNames.equals(referenceSequenceNames) &&
+            !readsSequenceNames.containsAll(referenceSequenceNames) &&
+            !referenceSequenceNames.containsAll(readsSequenceNames)) {
+            StringBuilder warning = new StringBuilder();
+            warning.append("Limited overlap exists between sequence dictionary of the reads and the sequence dictionary of the reference.  Perhaps you're using the wrong reference?\n");
+            warning.append(System.getProperty("line.separator"));
+            warning.append(String.format("Reads contigs:     %s%n", prettyPrintSequenceRecords(readsDictionary)));
+            warning.append(String.format("Reference contigs: %s%n", prettyPrintSequenceRecords(referenceDictionary)));
+            logger.warn(warning.toString());
+        }
+    }
+
+    private String prettyPrintSequenceRecords( SAMSequenceDictionary sequenceDictionary ) {
+        String[] sequenceRecordNames = new String[ sequenceDictionary.size() ];
+        int sequenceRecordIndex = 0;
+        for( SAMSequenceRecord sequenceRecord: sequenceDictionary.getSequences() )
+            sequenceRecordNames[sequenceRecordIndex++] = sequenceRecord.getSequenceName();
+        return Arrays.deepToString(sequenceRecordNames);
+    }
+
 
     /**
      * Convenience function that binds RODs using the old-style command line parser to the new style list for
@@ -532,8 +610,8 @@ public class GenomeAnalysisEngine {
         return outputTracker;
     }
 
-    public TraversalEngine getEngine() {
-        return this.engine;
+    public SAMFileHeader getSAMFileHeader() {
+        return readsDataSource.getHeader();
     }
 
     /**
@@ -542,7 +620,7 @@ public class GenomeAnalysisEngine {
      * @return
      */
     public SAMDataSource getDataSource() {
-        return this.dataSource;
+        return this.readsDataSource;
     }
 
     /**

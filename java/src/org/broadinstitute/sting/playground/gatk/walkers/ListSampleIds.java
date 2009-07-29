@@ -16,7 +16,7 @@ public class ListSampleIds extends LocusWalker<Boolean, Boolean>
     public void initialize() 
     { 
         GenomeAnalysisEngine toolkit = this.getToolkit();
-        SAMFileHeader header = toolkit.getEngine().getSAMHeader();
+        SAMFileHeader header = toolkit.getSAMFileHeader();
         List<SAMReadGroupRecord> read_groups = header.getReadGroups();
 
         for (int i = 0; i < read_groups.size(); i++)

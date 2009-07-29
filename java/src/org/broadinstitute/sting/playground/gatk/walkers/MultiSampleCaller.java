@@ -90,7 +90,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 
 
         GenomeAnalysisEngine toolkit = this.getToolkit();
-        this.header = toolkit.getEngine().getSAMHeader();
+        this.header = toolkit.getSAMFileHeader();
         List<SAMReadGroupRecord> read_groups = header.getReadGroups();
 
         sample_names    = new ArrayList<String>();

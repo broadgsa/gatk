@@ -259,7 +259,7 @@ public class SingleSampleGenotyper extends LocusWalker<GenotypeCall, GenotypeWri
      * @return an empty string
      */
     public GenotypeWriter reduceInit() {
-        return GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getEngine().getSAMHeader(), VARIANTS_FILE);
+        return GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE);
 
     }
 

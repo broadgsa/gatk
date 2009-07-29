@@ -1,10 +1,8 @@
 package org.broadinstitute.sting.gatk.traversals;
 
-import net.sf.samtools.SAMFileHeader;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -20,9 +18,6 @@ public abstract class TraversalEngine {
     // Maximum number of reads to process before finishing
     protected long maximumIterations = -1;
 
-    // the stored header
-    private SAMFileHeader myHeader = null;
-
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
 
@@ -33,27 +28,6 @@ public abstract class TraversalEngine {
     public void setMaximumIterations(final int maximumIterations) {
         this.maximumIterations = maximumIterations;
     }
-
-    /**
-     * get the associated SAM header for our run
-     *
-     * @return the header if it's stored, null if not
-     */
-    public SAMFileHeader getSAMHeader() {
-        return myHeader;
-    }
-
-    /**
-     * set's the SAM header for this traversal, which should
-     * be the merged header in the multiple BAM file case.
-     *
-     * @param myHeader the passed in header
-     */
-
-    public void setSAMHeader(SAMFileHeader myHeader) {
-        this.myHeader = myHeader;
-    }
-
 
     /**
      * @param curTime (current runtime, in millisecs)

@@ -95,10 +95,14 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         }
     }
 
-    public Object execute( Walker walker, ShardStrategy shardStrategy ) {
+    public Object execute( Walker walker, ShardStrategy shardStrategy, int maxIterations ) {
         // Fast fail for walkers not supporting TreeReducible interface.
         if (!( walker instanceof TreeReducible ))
             throw new IllegalArgumentException("Hierarchical microscheduler only works with TreeReducible walkers");
+
+        // Having maxiterations in the execute method is a holdover from the old TraversalEngine days.
+        // Lets do something else with this.
+        traversalEngine.setMaximumIterations(maxIterations);
 
         ReduceTree reduceTree = new ReduceTree(this);
 

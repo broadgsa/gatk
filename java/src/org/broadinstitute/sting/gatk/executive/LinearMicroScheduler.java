@@ -6,10 +6,6 @@ import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.Collection;
@@ -35,7 +31,11 @@ public class LinearMicroScheduler extends MicroScheduler {
      * @param walker    Computation to perform over dataset.
      * @param shardStrategy A strategy for sharding the data.
      */
-    public Object execute(Walker walker, ShardStrategy shardStrategy) {
+    public Object execute(Walker walker, ShardStrategy shardStrategy, int maxIterations) {
+        // Having maxiterations in the execute method is a holdover from the old TraversalEngine days.
+        // Lets do something else with this.
+        traversalEngine.setMaximumIterations(maxIterations);
+
         walker.initialize();
         Accumulator accumulator = Accumulator.create(walker);
 

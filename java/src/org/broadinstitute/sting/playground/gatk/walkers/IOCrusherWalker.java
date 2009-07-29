@@ -53,7 +53,7 @@ public class IOCrusherWalker extends ReadWalker<SAMRecord, ArrayList<SAMFileWrit
     public ArrayList<SAMFileWriter> reduceInit() {
         ArrayList<SAMFileWriter> outputs = new ArrayList<SAMFileWriter>(nWaysOut);
         for ( int i = 0; i < nWaysOut; i++ ) {
-            SAMFileHeader header = this.getToolkit().getEngine().getSAMHeader();
+            SAMFileHeader header = this.getToolkit().getSAMFileHeader();
             outputs.add(Utils.createSAMFileWriterWithCompression(header, true, outputBase + "." + i + ".bam", BAMcompression));
         }
         return outputs;

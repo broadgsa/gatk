@@ -61,7 +61,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         if ( MISMATCH_THRESHOLD <= 0.0 || MISMATCH_THRESHOLD > 1.0 )
             throw new RuntimeException("Entropy threshold must be a fraction between 0 and 1");
 
-        SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
         if ( writer != null ) {
             readsToWrite = new TreeSet<ComparableSAMRecord>();
         }
@@ -888,7 +887,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         String reference = "AAAAAACCCCCCAAAAAA";
         // the alternate reference is: "AAAAAACCCTTCCCAAAAAA";
         ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
-        SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
+        SAMFileHeader header = getToolkit().getSAMFileHeader();
         SAMRecord r1 = new SAMRecord(header);
         r1.setReadName("1");
         r1.setReadString("AACCCCCC");
@@ -938,7 +937,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         String reference = "AAAAAACCCTTCCCAAAAAA";
         // the alternate reference is: "AAAAAACCCCCCAAAAAA";
         ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
-        SAMFileHeader header = getToolkit().getEngine().getSAMHeader();
+        SAMFileHeader header = getToolkit().getSAMFileHeader();
         SAMRecord r1 = new SAMRecord(header);
         r1.setReadName("1");
         r1.setReadString("ACCCTTCC");

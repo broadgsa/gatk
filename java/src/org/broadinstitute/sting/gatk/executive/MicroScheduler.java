@@ -25,9 +25,6 @@
 
 package org.broadinstitute.sting.gatk.executive;
 
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
@@ -36,7 +33,6 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrde
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.*;
@@ -91,6 +87,10 @@ public abstract class MicroScheduler {
      * @param rods    the rods to include in the traversal
      */
     protected MicroScheduler(Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
+        this.reads = reads;
+        this.reference = reference;
+        this.rods = rods;
+
         if (walker instanceof ReadWalker) {
             traversalEngine = new TraverseReads();
         } else if (walker instanceof LocusWalker) {
@@ -101,29 +101,10 @@ public abstract class MicroScheduler {
             traversalEngine = new TraverseDuplicates();
         } else {
             throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
-        }
-        this.reads = reads;
-        this.reference = reference;
-        this.rods = rods;
+        }        
 
-        validate(this.reads,this.reference);
-
-        // Side effect: initialize the traversal engine with reads data.
-        // TODO: Give users a dedicated way of getting the header so that the MicroScheduler
-        //       doesn't have to bend over backward providing legacy getters and setters.
-        traversalEngine.setSAMHeader(reads.getHeader());        
         traversalEngine.initialize();                
     }
-
-    /**
-     * A temporary getter for the traversal engine.  In the future, clients
-     * of the microscheduler shouldn't need to know anything about the traversal engine.
-     *
-     * @return The traversal engine.
-     */
-    public TraversalEngine getTraversalEngine() {
-        return traversalEngine;
-    }    
 
     /**
      * Walks a walker over the given list of intervals.
@@ -133,7 +114,7 @@ public abstract class MicroScheduler {
      *
      * @return the return type of the walker
      */
-    public abstract Object execute(Walker walker, ShardStrategy shardStrategy);
+    public abstract Object execute(Walker walker, ShardStrategy shardStrategy, int iterations );
 
 
     /**
@@ -174,68 +155,4 @@ public abstract class MicroScheduler {
      * @return The reference maintained by this scheduler.
      */
     public IndexedFastaSequenceFile getReference() { return reference; }
-
-    /**
-     * Now that all files are open, validate the sequence dictionaries of the reads vs. the reference.
-     * TODO: Doing this in the MicroScheduler is a bit late, but this is where data sources are initialized.
-     * TODO: Move the initialization of data sources back to the GenomeAnalysisEngine.
-     * @param reads Reads data source.
-     * @param reference Reference data source.
-     */
-    private void validate( SAMDataSource reads, ReferenceSequenceFile reference ) {
-        if( reads == null || reference == null )
-            return;
-        
-        // Compile a set of sequence names that exist in the BAM files.
-        SAMSequenceDictionary readsDictionary = reads.getHeader().getSequenceDictionary();
-
-        Set<String> readsSequenceNames = new TreeSet<String>();
-        for( SAMSequenceRecord dictionaryEntry: readsDictionary.getSequences() )
-            readsSequenceNames.add(dictionaryEntry.getSequenceName());
-
-        // Compile a set of sequence names that exist in the reference file.
-        SAMSequenceDictionary referenceDictionary = reference.getSequenceDictionary();
-
-        Set<String> referenceSequenceNames = new TreeSet<String>();
-        for( SAMSequenceRecord dictionaryEntry: referenceDictionary.getSequences() )
-            referenceSequenceNames.add(dictionaryEntry.getSequenceName());
-
-        if( readsSequenceNames.size() == 0 ) {
-            logger.info("Reads file is unmapped.  Skipping validation against reference.");
-            return;
-        }
-
-        // If there's no overlap between reads and reference, data will be bogus.  Throw an exception.
-        Set<String> intersectingSequenceNames = new HashSet<String>(readsSequenceNames);
-        intersectingSequenceNames.retainAll(referenceSequenceNames);
-        if( intersectingSequenceNames.size() == 0 ) {
-            StringBuilder error = new StringBuilder();
-            error.append("No overlap exists between sequence dictionary of the reads and the sequence dictionary of the reference.  Perhaps you're using the wrong reference?\n");
-            error.append(System.getProperty("line.separator"));
-            error.append(String.format("Reads contigs:     %s%n", prettyPrintSequenceRecords(readsDictionary)));
-            error.append(String.format("Reference contigs: %s%n", prettyPrintSequenceRecords(referenceDictionary)));
-            logger.error(error.toString());
-            Utils.scareUser("No overlap exists between sequence dictionary of the reads and the sequence dictionary of the reference.");
-        }
-
-        // If the two datasets are not equal and neither is a strict subset of the other, warn the user.
-        if( !readsSequenceNames.equals(referenceSequenceNames) &&
-            !readsSequenceNames.containsAll(referenceSequenceNames) &&
-            !referenceSequenceNames.containsAll(readsSequenceNames)) {
-            StringBuilder warning = new StringBuilder();
-            warning.append("Limited overlap exists between sequence dictionary of the reads and the sequence dictionary of the reference.  Perhaps you're using the wrong reference?\n");
-            warning.append(System.getProperty("line.separator"));
-            warning.append(String.format("Reads contigs:     %s%n", prettyPrintSequenceRecords(readsDictionary)));
-            warning.append(String.format("Reference contigs: %s%n", prettyPrintSequenceRecords(referenceDictionary)));
-            logger.warn(warning.toString());
-        }
-    }
-
-    private String prettyPrintSequenceRecords( SAMSequenceDictionary sequenceDictionary ) {
-        String[] sequenceRecordNames = new String[ sequenceDictionary.size() ];
-        int sequenceRecordIndex = 0;
-        for( SAMSequenceRecord sequenceRecord: sequenceDictionary.getSequences() )
-            sequenceRecordNames[sequenceRecordIndex++] = sequenceRecord.getSequenceName();
-        return Arrays.deepToString(sequenceRecordNames);
-    }
 }

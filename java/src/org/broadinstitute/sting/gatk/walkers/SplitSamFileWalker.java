@@ -26,20 +26,11 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.walkers.WalkerName;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.recalibration.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
 import org.apache.log4j.Logger;
 
 import java.util.*;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-import java.io.File;
-import java.io.FileNotFoundException;
 
 @WalkerName("SplitSamFile")
 @Requires({DataSource.READS})
@@ -74,10 +65,10 @@ public class SplitSamFileWalker extends ReadWalker<SAMRecord, Map<String, SAMFil
 
     public Map<String, SAMFileWriter> reduceInit() {
         HashMap<String, SAMFileHeader> headers = new HashMap<String, SAMFileHeader>();
-        for ( SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
+        for ( SAMReadGroupRecord readGroup : this.getToolkit().getSAMFileHeader().getReadGroups()) {
             final String sample = readGroup.getSample();
             if ( ! headers.containsKey(sample) ) {
-                SAMFileHeader header = Utils.copySAMFileHeader(this.getToolkit().getEngine().getSAMHeader());
+                SAMFileHeader header = Utils.copySAMFileHeader(this.getToolkit().getSAMFileHeader());
                 logger.debug(String.format("Creating BAM header for sample %s", sample));
                 ArrayList<SAMReadGroupRecord> readGroups = new ArrayList<SAMReadGroupRecord>();
                 header.setReadGroups(readGroups);

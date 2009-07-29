@@ -50,7 +50,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     public void initialize() {
         Set<String> readGroups = new HashSet<String>();
-        for (SAMReadGroupRecord readGroup : this.getToolkit().getEngine().getSAMHeader().getReadGroups()) {
+        for (SAMReadGroupRecord readGroup : this.getToolkit().getSAMFileHeader().getReadGroups()) {
             if( readGroup.getAttribute("PL") == null )
                 Utils.warnUser(String.format("PL attribute for read group %s is unset; assuming all reads are supported",readGroup.getReadGroupId()));
             if( !isSupportedReadGroup(readGroup) )
