@@ -7,4 +7,5 @@ public interface VariantExclusionCriterion {
     public void initialize(String arguments);
 
     public boolean exclude(char ref, LocusContext context, rodVariants variant);
+    public boolean useZeroQualityReads();
 }

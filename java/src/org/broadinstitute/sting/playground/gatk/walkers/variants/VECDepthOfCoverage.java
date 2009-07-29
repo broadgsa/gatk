@@ -19,6 +19,8 @@ public class VECDepthOfCoverage implements VariantExclusionCriterion {
         }
     }
 
+    public boolean useZeroQualityReads() { return false; }
+
     public boolean exclude(char ref, LocusContext context, rodVariants variant) {
         return context.getReads().size() > maximum;
     }

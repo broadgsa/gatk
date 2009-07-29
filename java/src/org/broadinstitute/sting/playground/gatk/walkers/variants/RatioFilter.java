@@ -254,6 +254,8 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
     protected abstract boolean applyToVariant(rodVariants variant);
     protected abstract Pair<Integer, Integer> scoreVariant(char ref, ReadBackedPileup pileup, rodVariants variant);
 
+    public boolean useZeroQualityReads() { return false; }
+
     public boolean exclude(char ref, LocusContext context, rodVariants variant) {
         boolean exclude = false;
 

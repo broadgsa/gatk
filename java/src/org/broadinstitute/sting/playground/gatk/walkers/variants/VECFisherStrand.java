@@ -30,6 +30,8 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         return false;
     }
 
+    public boolean useZeroQualityReads() { return false; }
+
     public static boolean strandTest(char ref, LocusContext context, int allele1, int allele2, double threshold, StringBuffer out) {
         int[][] table = getContingencyTable(context, allele1, allele2);
         if ( !variantIsHet(table) )
@@ -81,7 +83,7 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         return ((table[0][1] != 0 || table[0][1] != 0) && (table[1][0] != 0 || table[1][1] != 0));
     }
 
-    private void printTable(int[][] table, double pValue) {
+    private static void printTable(int[][] table, double pValue) {
         System.out.printf("%d %d; %d %d : %f\n", table[0][0], table[0][1], table[1][0], table[1][1], pValue);
     }
 

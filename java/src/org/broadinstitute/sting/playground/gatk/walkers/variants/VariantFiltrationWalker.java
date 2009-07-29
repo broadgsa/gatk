@@ -18,6 +18,8 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.*;
 
+import net.sf.samtools.SAMRecord;
+
 /**
  * VariantFiltrationWalker applies specified conditionally independent features to pre-called variants, thus modifying
  * the likelihoods of each genotype.  At the moment, the variants are expected to be in gelitext format.
@@ -191,8 +193,12 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             // Apply exclusion tests that accept or reject the variant call
             ArrayList<String> exclusionResults = new ArrayList<String>();
 
+            // we need to provide an alternative context without mapping quality 0 reads
+            // for those exclusion criterion that don't want them
+            LocusContext Q0freeContext = removeQ0reads(context);
+
             for ( VariantExclusionCriterion vec : requestedExclusions ) {
-                boolean excludeResult = vec.exclude(ref, context, variant);
+                boolean excludeResult = vec.exclude(ref, (vec.useZeroQualityReads() ? context : Q0freeContext), variant);
 
                 if (excludeResult) {
                     exclusionResults.add(rationalizeClassName(vec.getClass()));
@@ -221,6 +227,28 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         }
 
         return 0;
+    }
+
+    private LocusContext removeQ0reads(LocusContext context) {
+        // set up the variables
+        List<SAMRecord> reads = context.getReads();
+        List<Integer> offsets = context.getOffsets();
+        Iterator<SAMRecord> readIter = reads.iterator();
+        Iterator<Integer> offsetIter = offsets.iterator();
+        ArrayList<SAMRecord> Q0freeReads = new ArrayList<SAMRecord>();
+        ArrayList<Integer> Q0freeOffsets = new ArrayList<Integer>();
+
+        // copy over good reads/offsets
+        while ( readIter.hasNext() ) {
+            SAMRecord read = readIter.next();
+            Integer offset = offsetIter.next();
+            if ( read.getMappingQuality() > 0 ) {
+                Q0freeReads.add(read);
+                Q0freeOffsets.add(offset);
+            }                       
+        }
+        
+        return new LocusContext(context.getLocation(), Q0freeReads, Q0freeOffsets);    
     }
 
     /**
