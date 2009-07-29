@@ -21,16 +21,12 @@ import java.util.ArrayList;
 public class GenotypeConcordance extends BasicVariantAnalysis implements GenotypeAnalysis {
     private String dbName;
 
-    private static final int TRUTH_REF = 0;
-    private static final int TRUTH_VAR_HET = 1;
-    private static final int TRUTH_VAR_HOM = 2;
-    private static final int TRUTH_UNKNOWN = 3;
+    private static final int REF = 0;
+    private static final int VAR_HET = 1;
+    private static final int VAR_HOM = 2;
+    private static final int UNKNOWN = 3;
+    private static final int NO_CALL = 3;   // synonym
     private static final String[] TRUTH_NAMES = {"IS_REF", "IS_VAR_HET", "IS_VAR_HOM", "UNKNOWN"};
-
-    private static final int CALL_REF = 0;
-    private static final int CALL_VAR_HET = 1;
-    private static final int CALL_VAR_HOM = 2;
-    private static final int NO_CALL = 3;
     private static final String[] CALL_NAMES = {"CALLED_REF", "CALLED_VAR_HET", "CALLED_VAR_HOM", "NO_CALL"};
 
     private int[][] table = new int[4][4];
@@ -54,29 +50,29 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
 
         int truthIndex, callIndex;
         if ( chip == null )
-            truthIndex = TRUTH_UNKNOWN;
+            truthIndex = UNKNOWN;
         else if ( chip.isReference() && Utils.countOccurrences(ref, chip.getGenotype().get(0)) == chip.getGenotype().get(0).length() )
-            truthIndex = TRUTH_REF;
+            truthIndex = REF;
         else if ( isHet(chip) )
-            truthIndex = TRUTH_VAR_HET;
+            truthIndex = VAR_HET;
         else
-            truthIndex = TRUTH_VAR_HOM;
+            truthIndex = VAR_HOM;
 
         // todo -- FIXME on countOccurences
         if ( eval == null )
             callIndex = NO_CALL;
         else if ( eval.isReference() && Utils.countOccurrences(ref, eval.getGenotype().get(0)) == eval.getGenotype().get(0).length() )
-            callIndex = CALL_REF;
+            callIndex = REF;
         else if ( isHet(eval) )
-            callIndex = CALL_VAR_HET;
+            callIndex = VAR_HET;
         else
-            callIndex = CALL_VAR_HOM;
+            callIndex = VAR_HOM;
 
         if ( chip != null || eval != null ) {
             //System.out.printf("TEST: %d/%d %s vs. %s%n", truthIndex, callIndex, chip, eval);
             table[truthIndex][callIndex]++;
             truth_totals[truthIndex]++;
-            calls_totals[callIndex]++;
+            if ( callIndex != NO_CALL ) calls_totals[callIndex]++;
         }
     }
 
@@ -86,53 +82,84 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
         return null;
     }
 
+    private void addCalledGenotypeConcordance(List<String> s) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("CALLED_GENOTYPE_CONCORDANCE\t");
+        for ( int i = 0; i < 4; i++ ) {
+            int nConcordantCallsI = table[i][i];
+            String value = "N/A";
+            if ( i != UNKNOWN )
+    	        value = String.format("%s\t", cellPercent(nConcordantCallsI, calls_totals[i]-table[UNKNOWN][i]));
+            sb.append(value);
+    	}
+    	s.add(sb.toString());
+    }
+    
+    /**
+     * How many overall calls where made that aren't NO_CALLS or UNKNOWNS?
+     */
+    private int getNCalled() {
+        int n = 0;
+        for ( int i = 0; i < 4; i++ )
+            for ( int j = 0; j < 4; j++ )
+                if ( i != NO_CALL && j != NO_CALL ) n += table[i][j];
+        return n;
+    }
+
+    private void addOverallStats(List<String> s) {
+        int nConcordantRefCalls = table[REF][REF];
+        int nConcordantHetCalls = table[VAR_HET][VAR_HET];
+        int nConcordantVarHomCalls = table[VAR_HOM][VAR_HOM];
+        int nVarCalls = table[VAR_HOM][VAR_HET] + table[VAR_HOM][VAR_HOM] + table[VAR_HET][VAR_HET] + table[VAR_HET][VAR_HOM]; 
+        int nConcordantVarCalls = nConcordantHetCalls + nConcordantVarHomCalls;
+        int nConcordantCalls = nConcordantRefCalls + nConcordantVarCalls;
+        int nTrueVar = truth_totals[VAR_HET] + truth_totals[VAR_HOM];
+        int nCalled = getNCalled();
+        s.add(String.format("VARIANT_SENSITIVITY %s", cellPercent(nVarCalls, nTrueVar)));
+	    s.add(String.format("VARIANT_CONCORDANCE %s", cellPercent(nConcordantVarCalls, nVarCalls)));
+	    s.add(String.format("OVERALL_CONCORDANCE %s", cellPercent(nConcordantCalls, nCalled)));
+    }
+
     public List<String> done() {
         List<String> s = new ArrayList<String>();
         s.add(String.format("name                 %s", dbName));
-        s.add(String.format("\t\tCALLED_REF\tCALLED_VAR_HET\tCALLED_VAR_HOM\tNO_CALL\t\t\tTOTALS\tTRUE_GENOTYPE_CONCORDANCE\tGENOTYPE_SENSITIVITY"));
+        s.add(String.format("TRUTH_STATE\tCALLED_REF\tCALLED_VAR_HET\tCALLED_VAR_HOM\tNO_CALL\t\tTOTALS\tTRUE_GENOTYPE_CONCORDANCE\tGENOTYPE_SENSITIVITY"));
         for (int i=0; i < 4; i++) {
             StringBuffer sb = new StringBuffer();
-            sb.append(TRUTH_NAMES[i] + "\t");
+            sb.append(String.format("%15s ", TRUTH_NAMES[i]));
             for (int j=0; j < 4; j++)
-                sb.append(table[i][j] +" (" + cellPercent(table[i][j], truth_totals[i]) + ")\t\t");
-            sb.append(truth_totals[i]);
-            if ( i == TRUTH_VAR_HET || i == TRUTH_VAR_HOM ) {
-                sb.append("\t"+cellPercent(table[i][i], table[i][CALL_REF]+table[i][CALL_VAR_HET]+table[i][CALL_VAR_HOM]) + "\t\t\t");
-                sb.append(cellPercent(truth_totals[i]-table[i][NO_CALL], truth_totals[i]));
+                sb.append(String.format("%9d ", table[i][j]));
+            sb.append(String.format("%9d ", truth_totals[i]));
+            if ( i == VAR_HET || i == VAR_HOM ) {
+                sb.append(String.format("\t%s\t\t", cellPercent(table[i][i], table[i][REF]+table[i][VAR_HET]+table[i][VAR_HOM])));
+                sb.append(String.format("%s", cellPercent(truth_totals[i]-table[i][NO_CALL], truth_totals[i])));
+            } else { 
+                sb.append("\tN/A\t\t\tN/A");
             }
             s.add(sb.toString());
         }
-	    s.add("VARIANT_SENSITIVITY: " + cellPercent(table[TRUTH_VAR_HET][CALL_VAR_HET]+table[TRUTH_VAR_HET][CALL_VAR_HOM]+table[TRUTH_VAR_HOM][CALL_VAR_HET]+table[TRUTH_VAR_HOM][CALL_VAR_HOM], truth_totals[TRUTH_VAR_HET]+truth_totals[TRUTH_VAR_HOM]));
-        s.add("\n");
-        s.add(String.format("\t\tCALLED_REF\tCALLED_VAR_HET\tCALLED_VAR_HOM\tNO_CALL"));
-        for (int i=0; i < 4; i++) {
-            StringBuffer sb = new StringBuffer();
-            sb.append(TRUTH_NAMES[i] + "\t");
-            for (int j=0; j < 4; j++)
-                sb.append(table[i][j] + " (" + cellPercent(table[i][j], calls_totals[j]) + ")\t\t");
-            s.add(sb.toString());
-        }
-        s.add(String.format("TOTALS\t%d\t\t%d\t\t%d\t\t%d", calls_totals[CALL_REF], calls_totals[CALL_VAR_HET], calls_totals[CALL_VAR_HOM], calls_totals[NO_CALL]));
-        s.add("\n");
+
+        addCalledGenotypeConcordance(s);
+        addOverallStats(s);
+        
         for (int i=0; i < 4; i++) {
             for (int j=0; j < 4; j++) {
-                s.add(TRUTH_NAMES[i]+"_"+CALL_NAMES[j]+"_COUNT "+table[i][j]);
-                s.add(TRUTH_NAMES[i]+"_"+CALL_NAMES[j]+"_PERCENT_OF_TRUTH "+cellPercent(table[i][j], truth_totals[i]));
-                s.add(TRUTH_NAMES[i]+"_"+CALL_NAMES[j]+"_PERCENT_OF_CALLS "+cellPercent(table[i][j], calls_totals[j]));
+                s.add(String.format("%s_%s_%s %d", TRUTH_NAMES[i], CALL_NAMES[j], "NO_SITES", table[i][j]));
+                s.add(String.format("%s_%s_%s %s", TRUTH_NAMES[i], CALL_NAMES[j], "PERCENT_OF_TRUTH", cellPercent(table[i][j], truth_totals[i])));
+                s.add(String.format("%s_%s_%s %s", TRUTH_NAMES[i], CALL_NAMES[j], "PERCENT_OF_CALLS", cellPercent(table[i][j], calls_totals[j])));
             }
-            if ( i == TRUTH_VAR_HET || i == TRUTH_VAR_HOM ) {
-                s.add(TRUTH_NAMES[i]+"_TRUE_GENOTYPE_CONCORDANCE "+cellPercent(table[i][i], table[i][CALL_REF]+table[i][CALL_VAR_HET]+table[i][CALL_VAR_HOM]));
-                s.add(TRUTH_NAMES[i]+"_GENOTYPE_SENSITIVITY "+cellPercent(truth_totals[i]-table[i][NO_CALL], truth_totals[i]));
-            }        }
+            if ( i == VAR_HET || i == VAR_HOM ) {
+                s.add(String.format("%s_%s %s", TRUTH_NAMES[i], "TRUE_GENOTYPE_CONCORDANCE", cellPercent(table[i][i], table[i][REF]+table[i][VAR_HET]+table[i][VAR_HOM])));
+                s.add(String.format("%s_%s %s", TRUTH_NAMES[i], "GENOTYPE_SENSITIVITY", cellPercent(truth_totals[i]-table[i][NO_CALL], truth_totals[i])));
+            }
+        }
         return s;
     }
 
     private static String cellPercent(int count, int total) {
         StringBuffer sb = new StringBuffer();
-        if ( total == 0 )
-            sb.append(0);
-        else
-            sb.append(100*count/total);
+        total = Math.max(total, 0);
+        sb.append(String.format("%.2f", (100.0*count)/total));
         sb.append("%");
         return sb.toString();
     }

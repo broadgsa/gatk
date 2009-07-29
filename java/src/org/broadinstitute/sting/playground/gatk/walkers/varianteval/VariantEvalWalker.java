@@ -217,7 +217,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
             stream.printf("%sAnalysis class     %s%n", COMMENT_STRING, analysis );
             stream.printf("%sAnalysis time      %s%n", COMMENT_STRING, now );
             for ( String line : analysis.done()) {
-                stream.printf("%s  %s%n", COMMENT_STRING, line);
+                stream.printf("%s%s%n", COMMENT_STRING, line);
             }
         }
     }
