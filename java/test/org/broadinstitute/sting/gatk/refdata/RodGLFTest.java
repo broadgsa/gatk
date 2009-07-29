@@ -5,9 +5,7 @@ import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import org.broadinstitute.sting.utils.genotype.glf.GLFWriter;
 import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -190,7 +188,7 @@ public class RodGLFTest extends BaseTest {
     /**
      * create the example glf file for the test, you can uncomment the above test line to have this
      * test run, regenerating the file.
-     */
+     *
     public void createRodFile() {
         GenotypeWriter writer = new GLFWriter("", new File("glfTestFile.glf"));
         int location = 1;
@@ -199,7 +197,7 @@ public class RodGLFTest extends BaseTest {
         writer.addGenotypeCall(r.getSequenceDictionary().getSequence(0), 2, 20, 'A', 5, createLikelihood('T'));
         writer.addGenotypeCall(r.getSequenceDictionary().getSequence(0), 3, 20, 'A', 5, createLikelihood('C'));
         writer.close();
-    }
+    }*/
 
     /**
      * create a likelihood object, given the appropriate reference base

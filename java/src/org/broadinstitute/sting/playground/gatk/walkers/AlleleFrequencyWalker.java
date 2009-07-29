@@ -1,22 +1,21 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 //import org.broadinstitute.sting.gatk.iterators.LocusIterator;
+import net.sf.samtools.SAMRecord;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.playground.utils.AlleleMetrics;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
-import org.apache.log4j.Logger;
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.util.List;
-import java.util.Arrays;
-import java.util.Random;
 import java.io.PrintStream;
-import java.io.DataInputStream;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
 
 public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, String>// implements AllelicVariant
 {
@@ -140,7 +139,7 @@ public class AlleleFrequencyWalker extends LocusWalker<AlleleFrequencyEstimate, 
 
         logger.debug(String.format(" => result is %s", alleleFreq));
 
-        if (LOG_METRICS) metrics.nextPosition(alleleFreq, tracker);
+        //if (LOG_METRICS) metrics.nextPosition(alleleFreq, tracker);
 
         return alleleFreq;
     }

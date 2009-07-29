@@ -1,15 +1,17 @@
 package org.broadinstitute.sting.playground.utils;
 
-import org.broadinstitute.sting.gatk.refdata.rodGFF;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
+import org.broadinstitute.sting.gatk.refdata.rodGFF;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.genotype.ConfidenceScore;
+import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.GenotypeCall;
 
-import java.util.List;
-import java.io.PrintStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 
 public class AlleleMetrics {
     private double LOD_cutoff = 5;
@@ -54,7 +56,7 @@ public class AlleleMetrics {
         this.LOD_cutoff = lodThresold;
     }
 
-    public void nextPosition(AlleleFrequencyEstimate alleleFreq, RefMetaDataTracker tracker) {
+    public void nextPosition(GenotypeCall call, RefMetaDataTracker tracker) {
         num_loci_total += 1;
 
         boolean is_dbSNP_SNP = false;
@@ -78,10 +80,10 @@ public class AlleleMetrics {
                 }
             }
         }
+        Pair<Genotype, ConfidenceScore> result = call.getBestVrsRef();
+        if (Math.abs(call.getBestVrsNext().second.getScore()) >= LOD_cutoff) { num_loci_confident += 1; }
 
-        if (Math.abs(alleleFreq.lodVsRef) >= LOD_cutoff) { num_loci_confident += 1; }
-
-        if (alleleFreq.qstar > 0.0 && alleleFreq.lodVsRef >= LOD_cutoff)
+        if (call.isVariation() && result.second.getScore() >= LOD_cutoff)
         {
             // Confident variant.
 
@@ -99,10 +101,12 @@ public class AlleleMetrics {
             String hapmap_genotype = hapmap_chip_genotype.getFeature();
             long refs=0, alts=0;
             double hapmap_q;
-
+            String str = call.getBestVrsRef().first.getBases();
+            char alt = str.charAt(0);
+            if (str.charAt(0) == call.getReferencebase()) alt = str.charAt(1);
             for (char c : hapmap_genotype.toCharArray()) {
-                if (c == alleleFreq.ref) { refs++; }
-                if (c == alleleFreq.alt) { alts++; }
+                if (c == call.getReferencebase()) { refs++; }
+                if (c == alt) { alts++; }
             }
 
             if (refs+alts > 0) {
@@ -117,7 +121,7 @@ public class AlleleMetrics {
             //out.format("%s %s %c %c", hapmap_genotype, called_genotype, alleleFreq.ref, alleleFreq.alt);
 
             //System.out.printf("DBG %f %s\n", LOD_cutoff, alleleFreq.asTabularString());
-            if (alleleFreq.lodVsNextBest >= LOD_cutoff) {
+            if (call.getBestVrsNext().second.getScore() >= LOD_cutoff) {
 
                 /*
                 System.out.printf("DBG %f %f %f %f\n",
@@ -129,22 +133,22 @@ public class AlleleMetrics {
 
                 // Calculate genotyping performance - did we get the correct genotype of the N+1 choices?
                 //if (hapmap_q != -1 && hapmap_q == alleleFreq.qstar) {
-                if (Math.abs(hapmap_q - -1.0) > dbl_cmp_precision && Math.abs(hapmap_q - alleleFreq.qstar) <= dbl_cmp_precision) {
+                /*if (Math.abs(hapmap_q - -1.0) > dbl_cmp_precision && Math.abs(hapmap_q - alleleFreq.qstar) <= dbl_cmp_precision) {
                     hapmap_genotype_correct++;
                 }else{
                     hapmap_genotype_incorrect++;
                     //System.out.printf(" INCORRECT GENOTYPE    Bases: %s", AlleleFrequencyWalker.getBases(context));
                     //out.printf(" INCORRECT GENOTYPE");
                     //AlleleFrequencyWalker.print_base_qual_matrix(AlleleFrequencyWalker.getOneBaseQuals(context));
-                }
+                }*/
             }
 
-            if (alleleFreq.lodVsRef >= LOD_cutoff || -1 * alleleFreq.lodVsRef >= LOD_cutoff) {
+            if (result.second.getScore() >= LOD_cutoff || -1 * result.second.getScore() >= LOD_cutoff) {
 
                 // Now calculate ref / var performance - did we correctly classify the site as
                 // reference or variant without regard to genotype; i.e. het/hom "miscalls" don't matter here
                 boolean hapmap_var = hapmap_q != 0.0;
-                boolean called_var = alleleFreq.qstar != 0.0;
+                boolean called_var = call.isVariation();
                 //if (hapmap_q != -1 && hapmap_var != called_var) {
                 if (Math.abs(hapmap_q - -1.0) > dbl_cmp_precision && hapmap_var != called_var) {
                     hapmap_refvar_incorrect++;

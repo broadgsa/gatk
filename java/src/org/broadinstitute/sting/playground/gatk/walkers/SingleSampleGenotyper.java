@@ -2,32 +2,27 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
-import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.playground.utils.AlleleMetrics;
 import org.broadinstitute.sting.playground.utils.GenotypeLikelihoods;
 import org.broadinstitute.sting.playground.utils.IndelLikelihood;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.BasicPileup;
+import org.broadinstitute.sting.utils.ReadBackedPileup;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import org.broadinstitute.sting.utils.genotype.glf.GLFRecord;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.util.List;
-import java.util.ArrayList;
 
 @ReadFilters(ZeroMappingQualityReadFilter.class)
-public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, String> {
+public class SingleSampleGenotyper extends LocusWalker<GenotypeCall, GenotypeWriter> {
     // Control output settings
     @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = true) public File VARIANTS_FILE;
     @Argument(fullName = "metrics_out", shortName = "metout", doc = "File to which metrics should be written", required = false) public File METRICS_FILE = new File("/dev/stderr");
@@ -35,11 +30,9 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
 
     // Control what goes into the variants file and what format that file should have
     @Argument(fullName = "lod_threshold", shortName = "lod", doc = "The lod threshold on which variants should be filtered", required = false)public Double LOD_THRESHOLD = Double.MIN_VALUE;
-    @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confidient genotypes or just the variants?", required = false)
-    public boolean GENOTYPE = false;
+    @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confidient genotypes or just the variants?", required = false) public boolean GENOTYPE = false;
 
-    @Argument(fullName = "3BaseErrors", shortName = "3BaseErrors", doc = "Should we use a 3-base error mode (so that P(b_true != b_called | e) == e / 3?", required = false)
-    public boolean THREE_BASE_ERRORS = false;
+    @Argument(fullName = "3BaseErrors", shortName = "3BaseErrors", doc = "Should we use a 3-base error mode (so that P(b_true != b_called | e) == e / 3?", required = false) public boolean THREE_BASE_ERRORS = false;
 
     // Control periodic reporting features
     @Argument(fullName = "metrics_interval", shortName = "metint", doc = "Number of loci to process between metrics reports", required = false) public Integer METRICS_INTERVAL = 50000;
@@ -63,9 +56,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     public boolean keepQ0Bases = false;
 
     public AlleleMetrics metricsOut;
-    public PrintStream variantsOut;
     public String sampleName;
-    private GenotypeWriter mGenotypeWriter;
 
     public double[] plocus;
     public double[] phapmap;
@@ -118,23 +109,7 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
     /** Initialize the walker with some sensible defaults */
     public void initialize() {
         metricsOut = new AlleleMetrics(METRICS_FILE, LOD_THRESHOLD);
-        if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.GLF) {
-            mGenotypeWriter = GenotypeWriterFactory.create(GenotypeWriterFactory.GENOTYPE_FORMAT.GLF, GenomeAnalysisEngine.instance.getEngine().getSAMHeader(), VARIANTS_FILE);
-        } else {
-            try {
-                variantsOut = new PrintStream(VARIANTS_FILE);
-		    } catch (FileNotFoundException e) {
-                err.format("Unable to open file '%s'. Perhaps the parent directory does not exist or is read-only.\n", VARIANTS_FILE.getAbsolutePath());
-			    System.exit(-1);
-		    }
-            if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.GELI) {
-                variantsOut.println(AlleleFrequencyEstimate.geliHeaderString());
-            } else if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.TABULAR) {
-                variantsOut.println(AlleleFrequencyEstimate.asTabularStringHeader());
-            } else {
-                throw new StingException("Unsupported single sample genotyper output format: " + this.VAR_FORMAT.toString());
-            }
-        }
+
         plocus = priorsArray(PRIORS_ANY_LOCUS);
         phapmap = priorsArray(PRIORS_HAPMAP);
         pdbsnp = priorsArray(PRIORS_DBSNP);
@@ -151,19 +126,22 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
      *
      * @return an AlleleFrequencyEstimate object
      */
-    public AlleleFrequencyEstimate map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public GenotypeCall map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         rationalizeSampleName(context.getReads().get(0));
-
-        AlleleFrequencyEstimate freq = getAlleleFrequency(tracker, Character.toUpperCase(ref), context, sampleName);
-
-        if (freq != null) {
-            metricsOut.nextPosition(freq, tracker);
+        if (context.getLocation().getStart() == 73) {
+            int stop = 1;
+        }
+        GenotypeLocus genotype = getGenotype(tracker, Character.toUpperCase(ref), context, sampleName);
+        GenotypeCall call = null;
+        if (genotype != null) {
+            call = new GenotypeCallImpl(genotype, ref,
+                    new ConfidenceScore(this.LOD_THRESHOLD, (GENOTYPE ? ConfidenceScore.SCORE_METHOD.BEST_NEXT : ConfidenceScore.SCORE_METHOD.BEST_REF)));
+            metricsOut.nextPosition(call, tracker);
         }
         if (!SUPPRESS_METRICS) {
             metricsOut.printMetricsAtLocusIntervals(METRICS_INTERVAL);
         }
-
-        return freq;
+        return call;
     }
 
     /**
@@ -204,69 +182,32 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
      *
      * @return the allele frequency estimate
      */
-    private AlleleFrequencyEstimate getAlleleFrequency(RefMetaDataTracker tracker, char ref, LocusContext context, String sample_name) {
+    private GenotypeLocus getGenotype(RefMetaDataTracker tracker, char ref, LocusContext context, String sample_name) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-        String bases = pileup.getBases();
-        List<SAMRecord> reads = context.getReads();
-        List<Integer> offsets = context.getOffsets();
-
-        // Handle indels, but don't do anything with the result yet.
-        IndelLikelihood I = (CALL_INDELS) ? callIndel(context, reads, offsets) : null;
-        //IndelLikelihood I = (CALL_INDELS) ? callIndel(context, context.getReads(), context.getOffsets()) : null;
-
         // Handle single-base polymorphisms.
-        GenotypeLikelihoods G = callGenotype(tracker, ref, pileup, reads, offsets);
-        //GenotypeLikelihoods G = callGenotype(tracker, ref, context);
+        GenotypeLikelihoods G = callGenotype(tracker);
+        GenotypeLocus geno = G.callGenotypes(tracker, ref, pileup);
 
-        return G.toAlleleFrequencyEstimate(context.getLocation(), ref, bases.length(), bases, G.likelihoods, sample_name);
+        return geno;
     }
 
     /**
      * Calls the underlying, single locus genotype of the sample
      *
      * @param tracker the meta data tracker
-     * @param ref     the reference base
-     * @param pileup  the pileup object for the given locus
-     * @param reads   the reads that overlap this locus
-     * @param offsets the offsets per read that identify the base at this locus
      *
      * @return the likelihoods per genotype
      */
-    private GenotypeLikelihoods callGenotype(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup, List<SAMRecord> reads, List<Integer> offsets) {
+    private GenotypeLikelihoods callGenotype(RefMetaDataTracker tracker) {
         GenotypeLikelihoods G = null;
 
         if (isHapmapSite(tracker)) {
-            G = new GenotypeLikelihoods(THREE_BASE_ERRORS, phapmap[0], phapmap[1], phapmap[2], p2ndon, p2ndoff);
+            G = new GenotypeLikelihoods(THREE_BASE_ERRORS, phapmap[0], phapmap[1], phapmap[2], p2ndon, p2ndoff, keepQ0Bases);
         } else if (isDbSNPSite(tracker)) {
-            G = new GenotypeLikelihoods(THREE_BASE_ERRORS, pdbsnp[0], pdbsnp[1], pdbsnp[2], p2ndon, p2ndoff);
+            G = new GenotypeLikelihoods(THREE_BASE_ERRORS, pdbsnp[0], pdbsnp[1], pdbsnp[2], p2ndon, p2ndoff, keepQ0Bases);
         } else {
-            G = new GenotypeLikelihoods(THREE_BASE_ERRORS, plocus[0], plocus[1], plocus[2], p2ndon, p2ndoff);
+            G = new GenotypeLikelihoods(THREE_BASE_ERRORS, plocus[0], plocus[1], plocus[2], p2ndon, p2ndoff, keepQ0Bases);
         }
-
-        G.filterQ0Bases(! keepQ0Bases); // Set the filtering / keeping flag
-        
-        for (int i = 0; i < reads.size(); i++) {
-            SAMRecord read = reads.get(i);
-            int offset = offsets.get(i);
-
-            char base = read.getReadString().charAt(offset);
-            byte qual = read.getBaseQualities()[offset];
-            int nBasesAdded = G.add(ref, base, qual);
-            if ( nBasesAdded == 0 ) {
-                nFilteredQ0Bases++;
-                //System.out.printf("Filtering Q0 base from %s at %s %d: %c %c %d%n",
-                //        read.getReadName(), GenomeLocParser.createGenomeLoc(read), offset, ref, base, qual);
-            }
-        }
-
-        G.ApplyPrior(ref, this.alt_allele, this.allele_frequency_prior);
-
-        //if (!IGNORE_SECONDARY_BASES && pileup.getBases().length() < 750) {
-        //    G.applySecondBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
-        //}
-
-        G.applySecondBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
-
         return G;
     }
 
@@ -312,69 +253,38 @@ public class SingleSampleGenotyper extends LocusWalker<AlleleFrequencyEstimate, 
         return tracker.lookup("dbsnp", null) != null;
     }
 
-    double allele_frequency_prior = -1;
-    char alt_allele;
-
-    /**
-     * Accessor for PoolCaller to set the allele frequency prior for this sample.
-     *
-     * @param freq the allele frequency
-     * @param alt  the alternate allele
-     */
-    public void setAlleleFrequencyPrior(double freq, char alt) {
-        this.allele_frequency_prior = freq;
-        this.alt_allele = alt;
-    }
-
     /**
      * Initialize values appropriately for the reduce step.
      *
      * @return an empty string
      */
-    public String reduceInit() {
-        return "";
+    public GenotypeWriter reduceInit() {
+        return GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getEngine().getSAMHeader(), VARIANTS_FILE);
+
     }
 
     /**
      * If we've found a LOD >= 5 variant, output it to disk.
      *
-     * @param alleleFreq an AlleleFrequencyEstimage object for the variant.
-     * @param sum        accumulator for the reduce.
+     * @param call an GenotypeCall object for the variant.
+     * @param sum  accumulator for the reduce.
      *
      * @return an empty string
      */
-    public String reduce(AlleleFrequencyEstimate alleleFreq, String sum) {
-        //System.out.printf("AlleleFreqEstimate %s %f %f %f%n", alleleFreq,alleleFreq.lodVsNextBest, alleleFreq.lodVsRef, LOD_THRESHOLD );
-        if (alleleFreq != null && (GENOTYPE ? alleleFreq.lodVsNextBest : alleleFreq.lodVsRef) >= LOD_THRESHOLD) {
-            if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.GELI) {
-                variantsOut.println(alleleFreq.asGeliString());
-            } else if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.TABULAR) {
-                variantsOut.println(alleleFreq.asTabularString());
-            } else if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.GLF) {
-                SAMSequenceRecord rec = GenomeLocParser.getContigInfo(alleleFreq.location.getContig());
-
-                double[] likelihoods = new double[10];
-                for (int x = 0; x < alleleFreq.posteriors.length; x++) {
-                    likelihoods[x] = GLFRecord.LIKELIHOOD_SCALE_FACTOR * alleleFreq.genotypeLikelihoods.likelihoods[x];
-                }
-
-                LikelihoodObject obj = new LikelihoodObject(likelihoods, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
-
-                obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);
-                this.mGenotypeWriter.addGenotypeCall(rec,(int)alleleFreq.location.getStart(),0.0f,alleleFreq.ref,alleleFreq.depth,obj);
-            }
+    public GenotypeWriter reduce(GenotypeCall call, GenotypeWriter sum) {
+        if (call != null && call.isVariation()) {
+            if ((GENOTYPE && call.getBestVrsNext().second.getScore() > LOD_THRESHOLD) ||
+                    (call.getBestVrsRef().second.getScore() > LOD_THRESHOLD))
+                sum.addGenotypeCall(call);
         }
-
-        return "";
+        return sum;
     }
 
     /** Close the variant file. */
-    public void onTraversalDone(String sum) {
+    public void onTraversalDone(GenotypeWriter sum) {
         logger.info(String.format("SingleSampleGenotyper filtered %d Q0 bases", nFilteredQ0Bases));
-        if (this.VAR_FORMAT == GenotypeWriterFactory.GENOTYPE_FORMAT.GLF) {
-            mGenotypeWriter.close();
-        } else {
-            this.variantsOut.close();
-        }
+        sum.close();
     }
 }
+
+

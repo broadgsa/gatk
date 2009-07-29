@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
@@ -37,55 +36,33 @@ public class TabularLFWriter implements GenotypeWriter {
     }
 
     /**
-     * add a single point genotype call to the
+     * Add a genotype, given a genotype locus
      *
-     * @param contig        the contig you're calling in
-     * @param position      the position on the contig
-     * @param referenceBase the reference base
-     * @param readDepth     the read depth at the specified position
-     * @param likelihoods   the likelihoods of each of the possible alleles
+     * @param locus the locus to add
      */
     @Override
-    public void addGenotypeCall(SAMSequenceRecord contig, int position, float rmsMapQuals, char referenceBase, int readDepth, LikelihoodObject likelihoods) {
-         /**return String.format("%s %s %c %c %s %f %f %f %f %d %s",
-	                                        location,
-											contig.getSpecies(),
-	                                        ref,
-	                                        alt,
+    public void addGenotypeCall(GenotypeCall locus) {
+        /*outStream.println(String.format("%s %s %c %s %s %f %f %f %f %d %s",
+	                                        locus.getLocation(),
+											"NOT OUTPUTED",
+	                                        locus.getReferencebase(),
+	                                        locus.getGenotypes().get(1).getBases().,
 											genotype(),
 	                                        qhat,
 	                                        qstar,
                                             lodVsRef,
                                             lodVsNextBest,
 	                                        depth,
-											bases);*/        
-    }
-
-    /**
-     * add a variable length call to the genotyper
-     *
-     * @param contig        the contig you're calling in
-     * @param position      the position on the genome
-     * @param rmsMapQuals   the root mean square of the mapping qualities
-     * @param readDepth     the read depth
-     * @param refBase       the reference base
-     * @param firstHomZyg   the first homozygous indel
-     * @param secondHomZyg  the second homozygous indel (if present, null if not)
-     * @param hetLikelihood the heterozygous likelihood
-     */
-    @Override
-    public void addVariableLengthCall(SAMSequenceRecord contig, int position, float rmsMapQuals, int readDepth, char refBase, IndelLikelihood firstHomZyg, IndelLikelihood secondHomZyg, byte hetLikelihood) {
-        throw new StingException("TabularLFWriter doesn't support variable length calls");
+											bases);   */
     }
 
     /**
      * add a no call to the genotype file, if supported.
      *
      * @param position
-     * @param readDepth
      */
     @Override
-    public void addNoCall(int position, int readDepth) {
+    public void addNoCall(int position) {
         throw new StingException("TabularLFWriter doesn't support no-calls");
     }
 

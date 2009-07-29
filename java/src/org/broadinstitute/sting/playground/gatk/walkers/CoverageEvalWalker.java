@@ -1,19 +1,21 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodGFF;
-import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.ListUtils;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.GenotypeCall;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.io.PrintStream;
-import java.io.FileNotFoundException;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -49,7 +51,7 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
             System.exit(-1);
         }
                 
-        String header = GELI_OUTPUT_FORMAT ? AlleleFrequencyEstimate.geliHeaderString() : AlleleFrequencyEstimate.asTabularStringHeader();
+        String header = "#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod dbSNP   AA      AC      AG      AT      CC      CG      CT      GG      GT      TT";
         variantsOut.println("DownsampledCoverage\tAvailableCoverage\tHapmapChipGenotype\tGenotypeCallType\t"+header.substring(1));
     }
 
@@ -86,10 +88,11 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
                     List<Integer> sub_offsets = ListUtils.sliceListByIndices(subset_indices, offsets);
 
                     LocusContext subContext = new LocusContext(context.getLocation(), sub_reads, sub_offsets);
-                    AlleleFrequencyEstimate alleleFreq = SSG.map(tracker, ref, subContext);
+                    GenotypeCall call = SSG.map(tracker, ref, subContext);
 
-                    if (alleleFreq != null) {
-                        GenotypeCalls.add(coverage+"\t"+coverage_available+"\t"+hc_genotype+"\t"+alleleFreq.callType()+"\t"+alleleFreq.asGeliString());
+                    String callType = (call.isVariation()) ? ((call.getBestVrsRef().first.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
+                    if (call != null) {
+                        GenotypeCalls.add(coverage+"\t"+coverage_available+"\t"+hc_genotype+"\t"+callType+"\t"+toGeliString(call));
                     }
                 }
             }
@@ -110,6 +113,41 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
 
         return "";
 	}
+
+    // a method to support getting the geli string, since the AlleleFrequencyEstimate is going away
+    public String toGeliString (GenotypeCall locus) {
+        if (locus.getPosteriors().size() != 10) throw new IllegalArgumentException("Geli text only supports SNP calls, with a diploid organism (i.e. posterior array size of 10)");
+
+
+        // this is to perserve the format string that we used to use
+        double[] likelihoods = new double[10];
+        int index = 0;
+        List<Genotype> lt = locus.getLexigraphicallySortedGenotypes();
+        for (Genotype G: lt) {
+            likelihoods[index] = G.getLikelihood();
+            index++;
+        }
+
+        return String.format("%s    %16d  %c  %8d  %d  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
+	                                        locus.getLocation().getContig(),
+                                            locus.getLocation().getStart(),
+											locus.getReferencebase(),
+                                            locus.getReadDepth(),
+                                            -1,
+	                                        locus.getGenotypes().get(0).getBases(),
+	                                        locus.getBestVrsRef().second.getScore(),
+	                                        locus.getBestVrsNext().second.getScore(),
+                                            likelihoods[0],
+                                            likelihoods[1],
+                                            likelihoods[2],
+                                            likelihoods[3],
+                                            likelihoods[4],
+                                            likelihoods[5],
+                                            likelihoods[6],
+                                            likelihoods[7],
+                                            likelihoods[8],
+                                            likelihoods[9]);
+    }
 }
 
 

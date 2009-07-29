@@ -1,14 +1,15 @@
 package org.broadinstitute.sting.playground.utils;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.Utils;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
 import java.util.HashMap;
 
-public class GenotypeLikelihoods {
+public class GenotypeLikelihoods implements GenotypeGenerator {
     // precalculate these for performance (pow/log10 is expensive!)
 
     /**
@@ -20,7 +21,7 @@ public class GenotypeLikelihoods {
     private static final double[] oneMinusData = new double[Byte.MAX_VALUE];
     private static final double[] oneHalfMinusDataArachne = new double[Byte.MAX_VALUE];
     private static final double[] oneHalfMinusData3Base = new double[Byte.MAX_VALUE];
-
+    private final boolean keepQ0Bases;
     private static final double log10Of1_3 = log10(1.0 / 3);
     private static final double log10Of2_3 = log10(2.0 / 3);
 
@@ -62,7 +63,7 @@ public class GenotypeLikelihoods {
         genotypes[8] = "GT";
         genotypes[9] = "TT";
     }
-	public int coverage;
+    public int coverage;
 
     // The genotype priors;
     private double priorHomRef;
@@ -80,18 +81,19 @@ public class GenotypeLikelihoods {
     public GenotypeLikelihoods() {
         double[] p2ndon = {0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000};
         double[] p2ndoff = {0.480, 0.769, 0.744, 0.538, 0.575, 0.727, 0.768, 0.589, 0.762, 0.505};
-
+        keepQ0Bases = true;
         initialize(false, 1.0 - 1e-3, 1e-3, 1e-5, p2ndon, p2ndoff);
     }
 
     public GenotypeLikelihoods(boolean threeBaseErrors , double priorHomRef, double priorHet, double priorHomVar) {
         double[] p2ndon = {0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000};
         double[] p2ndoff = {0.480, 0.769, 0.744, 0.538, 0.575, 0.727, 0.768, 0.589, 0.762, 0.505};
-
+        keepQ0Bases = true;
         initialize(threeBaseErrors, priorHomRef, priorHet, priorHomVar, p2ndon, p2ndoff);
     }
 
-    public GenotypeLikelihoods(boolean threeBaseErrors , double priorHomRef, double priorHet, double priorHomVar, double[] p2ndon, double[] p2ndoff) {
+    public GenotypeLikelihoods(boolean threeBaseErrors , double priorHomRef, double priorHet, double priorHomVar, double[] p2ndon, double[] p2ndoff, boolean keepQ0Bases) {
+        this.keepQ0Bases = keepQ0Bases;
         initialize(threeBaseErrors, priorHomRef, priorHet, priorHomVar, p2ndon, p2ndoff);
     }
 
@@ -276,62 +278,35 @@ public class GenotypeLikelihoods {
         return s;
     }
 
-    public void ApplyPrior(char ref, double[] allele_likelihoods)
-	{
-		int k = 0;
-		for (int i = 0; i < 4; i++)
-		{ 
-			for (int j = i; j < 4; j++)
-			{
-				if (i == j) 
-				{
-					this.likelihoods[k] += Math.log10(allele_likelihoods[i]) + Math.log10(allele_likelihoods[j]);
-				}
-				else
-				{
-					this.likelihoods[k] += Math.log10(allele_likelihoods[i]) + Math.log10(allele_likelihoods[j]) + Math.log10(2);
-				}
-				k++;
-			}
-		}
-		this.sort();
-	}
+    public void ApplyPrior(char ref, double[] allele_likelihoods) {
+        int k = 0;
+        for (int i = 0; i < 4; i++) {
+            for (int j = i; j < 4; j++) {
+                if (i == j) {
+                    this.likelihoods[k] += Math.log10(allele_likelihoods[i]) + Math.log10(allele_likelihoods[j]);
+                } else {
+                    this.likelihoods[k] += Math.log10(allele_likelihoods[i]) + Math.log10(allele_likelihoods[j]) + Math.log10(2);
+                }
+                k++;
+            }
+        }
+        this.sort();
+    }
 
-    public void ApplyPrior(char ref, char alt, double p_alt) {
+    public void ApplyPrior(char ref) {
         for (int i = 0; i < genotypes.length; i++) {
-            if ((p_alt == -1) || (p_alt <= 1e-6)) {
-                if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) {
-                    // hom-ref
-                    likelihoods[i] += Math.log10(priorHomRef);
-                } else if ((genotypes[i].charAt(0) != ref) && (genotypes[i].charAt(1) != ref)) {
-                    // hom-nonref
-                    likelihoods[i] += Math.log10(priorHomVar);
-                } else {
-                    // het
-                    likelihoods[i] += Math.log10(priorHet);
-                }
-                if (Double.isInfinite(likelihoods[i])) {
-                    likelihoods[i] = -1000;
-                }
+            if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) {
+                // hom-ref
+                likelihoods[i] += Math.log10(priorHomRef);
+            } else if ((genotypes[i].charAt(0) != ref) && (genotypes[i].charAt(1) != ref)) {
+                // hom-nonref
+                likelihoods[i] += Math.log10(priorHomVar);
             } else {
-                if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) {
-                    // hom-ref
-                    likelihoods[i] += 2.0 * Math.log10(1.0 - p_alt);
-                } else if ((genotypes[i].charAt(0) == alt) && (genotypes[i].charAt(1) == alt)) {
-                    // hom-nonref
-                    likelihoods[i] += 2.0 * Math.log10(p_alt);
-                } else if (((genotypes[i].charAt(0) == alt) && (genotypes[i].charAt(1) == ref)) ||
-                        ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == alt))) {
-                    // het
-                    likelihoods[i] += Math.log10((1.0 - p_alt) * p_alt * 2.0);
-                } else {
-                    // something else (noise!)
-                    likelihoods[i] += Math.log10(1e-5);
-                }
-
-                if (Double.isInfinite(likelihoods[i])) {
-                    likelihoods[i] = -1000;
-                }
+                // het
+                likelihoods[i] += Math.log10(priorHet);
+            }
+            if (Double.isInfinite(likelihoods[i])) {
+                likelihoods[i] = -1000;
             }
         }
         this.sort();
@@ -410,51 +385,66 @@ public class GenotypeLikelihoods {
         return this.sorted_likelihoods[0];
     }
 
-	public double RefPosterior(char ref)
-	{
-		this.LodVsRef(ref);
-		return this.ref_likelihood;
-	}
-
-    public AlleleFrequencyEstimate toAlleleFrequencyEstimate(GenomeLoc location, char ref, int depth, String bases, double[] posteriors, String sample_name) {
-        this.sort();
-        double qhat = Double.NaN;
-        double qstar = Double.NaN;
-        char alt = 'N';
-
-        if ((sorted_genotypes[0].charAt(0) == ref) && (sorted_genotypes[0].charAt(1) == ref)) {
-            // hom-ref
-            qhat = 0.0;
-            qstar = 0.0;
-            alt = 'N';
-        } else if ((sorted_genotypes[0].charAt(0) != ref) && (sorted_genotypes[0].charAt(1) != ref)) {
-            // hom-nonref
-            qhat = 1.0;
-            qstar = 1.0;
-            alt = sorted_genotypes[0].charAt(0);
-        } else {
-            // het
-            qhat = 0.5;
-            qstar = 0.5;
-
-            if (sorted_genotypes[0].charAt(0) != ref) {
-                alt = sorted_genotypes[0].charAt(0);
-            }
-            if (sorted_genotypes[0].charAt(1) != ref) {
-                alt = sorted_genotypes[0].charAt(1);
-            }
-        }
-
-        this.LodVsRef(ref); //HACK
-        //System.out.printf("DBG: %f %f\n", sorted_likelihoods[0], ref_likelihood);
-
-        AlleleFrequencyEstimate AFE = new AlleleFrequencyEstimate(location, ref, alt, 2, qhat, qstar, this.LodVsRef(ref), this.LodVsNextBest(), sorted_likelihoods[0], ref_likelihood, depth, bases, (double[][]) null, this.likelihoods, sample_name);
-		AFE.genotypeLikelihoods = this;
-		return AFE;
+    public double RefPosterior(char ref) {
+        this.LodVsRef(ref);
+        return this.ref_likelihood;
     }
 
-	private IndelLikelihood indel_likelihood;
-	public void addIndelLikelihood(IndelLikelihood indel_likelihood) { this.indel_likelihood = indel_likelihood; }
-	public IndelLikelihood getIndelLikelihood() { return this.indel_likelihood; }
+    private IndelLikelihood indel_likelihood;
 
+    public void addIndelLikelihood(IndelLikelihood indel_likelihood) {
+        this.indel_likelihood = indel_likelihood;
+    }
+
+    public IndelLikelihood getIndelLikelihood() {
+        return this.indel_likelihood;
+    }
+
+    /**
+     * given all the data associated with a locus, make a genotypeLocus object containing the likelihoods and posterior probs
+     *
+     * @param tracker contains the reference meta data for this location, which may contain relevent information like dpSNP or hapmap information
+     * @param ref     the reference base
+     * @param pileup  a pileup of the reads, containing the reads and their offsets
+     *
+     * @return a GenotypeLocus, containing each of the genotypes and their associated likelihood and posterior prob values
+     */
+    @Override
+    public GenotypeLocus callGenotypes(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup) {
+        //filterQ0Bases(!keepQ0Bases); // Set the filtering / keeping flag
+
+
+        // for calculating the rms of the mapping qualities
+        double squared = 0.0;
+        for (int i = 0; i < pileup.getReads().size(); i++) {
+            SAMRecord read = pileup.getReads().get(i);
+            squared += read.getMappingQuality() * read.getMappingQuality();
+            int offset = pileup.getOffsets().get(i);
+            char base = read.getReadString().charAt(offset);
+            byte qual = read.getBaseQualities()[offset];
+            add(ref, base, qual);            
+        }
+        // save off the likelihoods
+        if (likelihoods == null || likelihoods.length == 0) return null;
+
+        double lklihoods[] = new double[likelihoods.length];
+
+        System.arraycopy(likelihoods, 0, lklihoods, 0, likelihoods.length);
+        
+
+        ApplyPrior(ref);
+
+        applySecondBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
+
+        // lets setup the locus
+        GenotypeLocus locus = new GenotypeLocusImpl(pileup.getLocation(), pileup.getReads().size(),Math.sqrt(squared/pileup.getReads().size()));
+        for (int x = 0; x < this.likelihoods.length; x++) {
+            try {
+                locus.addGenotype(new Genotype(this.genotypes[x],lklihoods[x],this.likelihoods[x]));
+            } catch (InvalidGenotypeException e) {
+                throw new StingException("Invalid Genotype value",e);
+            }
+        }
+        return locus;
+    }
 }

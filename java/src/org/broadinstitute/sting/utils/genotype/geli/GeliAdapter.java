@@ -1,8 +1,12 @@
-package org.broadinstitute.sting.utils.genotype;
+package org.broadinstitute.sting.utils.genotype.geli;
 
 import edu.mit.broad.picard.genotype.geli.GeliFileWriter;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
+import org.broadinstitute.sting.utils.genotype.GenotypeCall;
+import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
+import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 
 import java.io.File;
 
@@ -65,7 +69,6 @@ public class GeliAdapter implements GenotypeWriter {
      * @param readDepth     the read depth at the specified position
      * @param likelihoods   the likelihoods of each of the possible alleles
      */
-    @Override
     public void addGenotypeCall(SAMSequenceRecord contig,
                                 int position,
                                 float rmsMapQuals,
@@ -87,19 +90,27 @@ public class GeliAdapter implements GenotypeWriter {
      * @param secondHomZyg  the second homozygous indel (if present, null if not)
      * @param hetLikelihood the heterozygous likelihood
      */
-    @Override
     public void addVariableLengthCall(SAMSequenceRecord contig, int position, float rmsMapQuals, int readDepth, char refBase, IndelLikelihood firstHomZyg, IndelLikelihood secondHomZyg, byte hetLikelihood) {
         throw new UnsupportedOperationException("Geli format does not support variable length allele calls");
+    }
+
+    /**
+     * Add a genotype, given a genotype locus
+     *
+     * @param locus the locus to add
+     */
+    @Override
+    public void addGenotypeCall(GenotypeCall locus) {
+        //To change body of implemented methods use File | Settings | File Templates.
     }
 
     /**
      * add a no call to the genotype file, if supported.
      *
      * @param position
-     * @param readDepth
      */
     @Override
-    public void addNoCall(int position, int readDepth) {
+    public void addNoCall(int position) {
         throw new UnsupportedOperationException("Geli format does not support no-calls");
     }
 

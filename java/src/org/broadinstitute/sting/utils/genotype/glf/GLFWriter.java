@@ -1,14 +1,14 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
+import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
-import net.sf.samtools.SAMSequenceRecord;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.DataOutputStream;
 import java.io.File;
+import java.util.List;
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -80,7 +80,6 @@ public class GLFWriter implements GenotypeWriter {
      * @param rmsMapQ      the root mean square of the mapping quality
      * @param lhValues     the GenotypeLikelihoods object, representing the genotype likelyhoods
      */
-    @Override
     public void addGenotypeCall(SAMSequenceRecord contig,
                                 int genomicLoc,
                                 float rmsMapQ,
@@ -101,6 +100,27 @@ public class GLFWriter implements GenotypeWriter {
     }
 
     /**
+     * Add a genotype, given a genotype locus
+     *
+     * @param locus
+     */
+    @Override
+    public void addGenotypeCall(GenotypeCall locus) {
+        //TODO: CODEWORD
+        // this is to perserve the format string that we used to use
+               double[] posteriors = new double[10];
+               int index = 0;
+               List<Genotype> lt = locus.getLexigraphicallySortedGenotypes();
+               for (Genotype G: lt) {
+                   posteriors[index] = G.getLikelihood();
+                   index++;
+               }
+
+        LikelihoodObject obj = new LikelihoodObject(posteriors, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
+        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),(int)locus.getLocation().getStart(),(float)locus.getRMSMappingQuals(),locus.getReferencebase(),locus.getReadDepth(),obj);
+    }
+
+    /**
      * add a variable length (indel, deletion, etc) to the genotype writer
      *
      * @param contig    the name of the contig you're calling in
@@ -112,7 +132,6 @@ public class GLFWriter implements GenotypeWriter {
      * @param secondHomZyg  the second homozygous call
      * @param hetLikelihood the negitive log likelihood of the heterozygote,  from 0 to 255
      */
-    @Override
     public void addVariableLengthCall(SAMSequenceRecord contig,
                                       int genomicLoc,
                                       float rmsMapQ,
@@ -145,10 +164,10 @@ public class GLFWriter implements GenotypeWriter {
      * add a no call to the genotype file, if supported.
      *
      * @param position  the position
-     * @param readDepth the read depth
+     * 
      */
     @Override
-    public void addNoCall(int position, int readDepth) {
+    public void addNoCall(int position) {
         // glf doesn't support this operation
         throw new UnsupportedOperationException("GLF doesn't support a 'no call' call.");
     }
