@@ -50,4 +50,12 @@ public class KGenomesSNPROD extends TabularROD implements SNPCallFromGenotypes {
     public int nHomVarGenotypes()  { return -1; }
     public List<Genotype> getGenotypes() { return null; }
     public int length() { return 1; }
+
+    public String toString() {
+        StringBuffer sb = new StringBuffer();
+        sb.append(getLocation().getContig() + "\t" + getLocation().getStart() + "\t");
+        sb.append(getRefSnpFWD() + "\t" + getGenotype().get(0) + "\t");
+        sb.append(getMAF() + "\t0\t0\t0\t" + getVariationConfidence());
+        return sb.toString();
+    }
 }

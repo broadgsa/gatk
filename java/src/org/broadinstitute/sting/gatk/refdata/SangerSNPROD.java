@@ -39,4 +39,11 @@ public class SangerSNPROD extends TabularROD implements SNPCallFromGenotypes {
     public int nHetGenotypes()     { return -1; }
     public int nHomVarGenotypes()  { return -1; }
     public List<Genotype> getGenotypes() { return null; }
+
+    public String toString() {
+        StringBuffer sb = new StringBuffer();
+        sb.append(getLocation().getContig() + "\t" + getLocation().getStart() + "\t");
+        sb.append(getRefBasesFWD() + "\t" + getAltBasesFWD());
+        return sb.toString();
+    }
 }

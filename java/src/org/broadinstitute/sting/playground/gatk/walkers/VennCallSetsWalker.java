@@ -79,12 +79,7 @@ public class VennCallSetsWalker extends RefWalker<Integer, Integer> {
 
     static void printVariant(PrintWriter writer, AllelicVariant variant) {
         if ( variant != null )
-            writer.println(variant.getLocation().getContig() + "\t"
-                    + variant.getLocation().getStart() + "\t"
-                    + variant.getRefSnpFWD() + "\t"
-                    + variant.getGenotype().get(0) + "\t"
-                    + variant.getMAF() + "\t0\t0\t0\t"
-                    + variant.getVariationConfidence());
+            writer.println(variant.toString());
     }
 
     /**
