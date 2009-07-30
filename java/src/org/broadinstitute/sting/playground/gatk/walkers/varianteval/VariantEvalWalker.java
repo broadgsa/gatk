@@ -155,8 +155,16 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         AllelicVariant eval = (AllelicVariant)tracker.lookup("eval", null);
 
         //if ( eval!=null ) System.out.printf("Eval: %f %d %b%n", eval.getVariationConfidence(), minDiscoveryQ, eval.getVariationConfidence() < minDiscoveryQ);
-        if ( eval != null && eval.getVariationConfidence() < minDiscoveryQ )
-            eval = null;
+        if ( eval != null ) {
+            out.println(eval);
+            if ( evalContainsGenotypes ) {
+                // Genotyping - use best vs. next best lod
+                if ( eval.getConsensusConfidence() < minDiscoveryQ ) eval = null;
+            } else {
+                // Variant discovery - use best vs. reference lod
+                if ( Math.abs(eval.getVariationConfidence()) < minDiscoveryQ ) eval = null;
+            }
+        }
 
         // update stats about all of the SNPs
         updateAnalysisSet(ALL_SNPS, eval, tracker, ref, context);
