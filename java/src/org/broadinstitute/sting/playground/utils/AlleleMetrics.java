@@ -4,11 +4,8 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.rodGFF;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.genotype.confidence.ConfidenceScore;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.GenotypeCall;
-import org.broadinstitute.sting.utils.genotype.SSGGenotypeCall;
+import org.broadinstitute.sting.utils.genotype.calls.GenotypeCall;
+import org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall;
 
 import java.io.File;
 import java.io.FileNotFoundException;

@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.genotype.calls.GenotypeCall;
 
 import java.io.File;
 import java.io.FileNotFoundException;

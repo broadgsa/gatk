@@ -6,12 +6,11 @@ import org.broadinstitute.sting.utils.genotype.confidence.ConfidenceScore;
 
 
 /**
- * 
- * @author aaron 
- * 
- * Class BasicGenotype
- *
- * A basic implementation of the genotype interface
+ * @author aaron
+ *         <p/>
+ *         Class BasicGenotype
+ *         <p/>
+ *         A basic implementation of the genotype interface
  */
 public class BasicGenotype implements Genotype {
 
@@ -30,7 +29,7 @@ public class BasicGenotype implements Genotype {
     /**
      * construct a genotypeLikelihood, given the bases, the confidence score, and the ploidy
      *
-     * @param loc the location of the genotype
+     * @param loc    the location of the genotype
      * @param bases  the bases that make up this genotype
      * @param ploidy the ploidy of this genotype
      * @param score  the confidence score
@@ -49,7 +48,7 @@ public class BasicGenotype implements Genotype {
      * construct a genotypeLikelihood, given the bases and the confidence score, and assume the
      * ploidy is 2.
      *
-     * @param loc the location of the genotype
+     * @param loc   the location of the genotype
      * @param bases the bases that make up this genotype
      * @param score the confidence score
      */
@@ -64,6 +63,7 @@ public class BasicGenotype implements Genotype {
 
     /**
      * get the confidence score
+     *
      * @return get the confidence score that we're based on
      */
     public ConfidenceScore getConfidenceScore() {
@@ -81,6 +81,7 @@ public class BasicGenotype implements Genotype {
 
     /**
      * get the ploidy
+     *
      * @return the ploidy value
      */
     public int getPloidy() {
@@ -117,6 +118,7 @@ public class BasicGenotype implements Genotype {
 
     /**
      * get the genotype's location
+     *
      * @return a GenomeLoc representing the location
      */
     public GenomeLoc getLocation() {
@@ -142,7 +144,7 @@ public class BasicGenotype implements Genotype {
      */
     @Override
     public boolean isVariant(char ref) {
-        String ret = Utils.dupString(ref,this.getPloidy());
+        String ret = Utils.dupString(ref, this.getPloidy());
         return !this.getBases().equals(ret);
     }
 
@@ -155,4 +157,13 @@ public class BasicGenotype implements Genotype {
     public Variant toVariant() {
         return null;
     }
+
+    /**
+     * set the confidence score
+     * @param confidenceScore
+     */
+    public void setConfidenceScore(ConfidenceScore confidenceScore) {
+        this.mConfidenceScore = confidenceScore;
+    }
+
 }

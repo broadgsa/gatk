@@ -2,15 +2,21 @@ package org.broadinstitute.sting.playground.utils;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.ReadBackedPileup;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.genotype.BasicGenotype;
+import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.GenotypeGenerator;
+import org.broadinstitute.sting.utils.genotype.calls.GenotypeCall;
+import org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall;
 import org.broadinstitute.sting.utils.genotype.confidence.BayesianConfidenceScore;
 
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ArrayList;
 
 public class GenotypeLikelihoods implements GenotypeGenerator {
     // precalculate these for performance (pow/log10 is expensive!)

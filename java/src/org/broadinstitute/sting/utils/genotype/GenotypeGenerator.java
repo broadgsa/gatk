@@ -22,5 +22,5 @@ public interface GenotypeGenerator {
      * @param pileup a pileup of the reads, containing the reads and their offsets
      * @return a GenotypeLocus, containing each of the genotypes and their associated likelihood and posterior prob values
      */
-    public GenotypeCall callGenotypes(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup);
+    public org.broadinstitute.sting.utils.genotype.calls.GenotypeCall callGenotypes(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup);
 }

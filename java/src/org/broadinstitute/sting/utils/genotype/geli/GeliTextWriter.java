@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.utils.genotype.geli;
 
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.GenotypeCall;
+import org.broadinstitute.sting.utils.genotype.calls.GenotypeCall;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.SSGGenotypeCall;
+import org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -50,8 +50,8 @@ public class GeliTextWriter implements GenotypeWriter {
                                             call.getReadDepth(),
                                             -1,
 	                                        locus.getBases(),
-	                                        call.getConfidenceScore().getScore(),
-	                                        locus.getConfidenceScore().getScore(),
+	                                        call.getBestRef(),
+	                                        call.getBestNext(),
                                             call.getLikelihoods()[0],
                                             call.getLikelihoods()[1],
                                             call.getLikelihoods()[2],

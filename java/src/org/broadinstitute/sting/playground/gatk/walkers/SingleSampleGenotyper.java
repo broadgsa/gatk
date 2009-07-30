@@ -19,7 +19,7 @@ import org.broadinstitute.sting.utils.genotype.*;
 import java.io.File;
 
 @ReadFilters(ZeroMappingQualityReadFilter.class)
-public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, GenotypeWriter> {
+public class SingleSampleGenotyper extends LocusWalker<org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall, GenotypeWriter> {
     // Control output settings
     @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = true) public File VARIANTS_FILE;
     @Argument(fullName = "metrics_out", shortName = "metout", doc = "File to which metrics should be written", required = false) public File METRICS_FILE = new File("/dev/stderr");
@@ -123,14 +123,14 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
      *
      * @return an AlleleFrequencyEstimate object
      */
-    public SSGGenotypeCall map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         rationalizeSampleName(context.getReads().get(0));
         if (context.getLocation().getStart() == 73) {
             int stop = 1;
         }
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         GenotypeLikelihoods G = callGenotype(tracker);
-        SSGGenotypeCall geno = (SSGGenotypeCall)G.callGenotypes(tracker, ref, pileup);
+        org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall geno = (org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall)G.callGenotypes(tracker, ref, pileup);
         if (geno != null) {
             metricsOut.nextPosition(geno, tracker);
         }
@@ -228,7 +228,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
      *
      * @return an empty string
      */
-    public GenotypeWriter reduce(SSGGenotypeCall call, GenotypeWriter sum) {
+    public GenotypeWriter reduce(org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall call, GenotypeWriter sum) {
         if (call != null && call.isVariation()) {
             if (call.getConfidenceScore().getScore() > LOD_THRESHOLD)
                 sum.addGenotypeCall(call);

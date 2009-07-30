@@ -1,8 +1,8 @@
-package org.broadinstitute.sting.utils.genotype;
+package org.broadinstitute.sting.utils.genotype.calls;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -50,20 +50,4 @@ public interface GenotypeCall extends Genotype {
      */
     public List<Genotype> getLexigraphicallySortedGenotypes();
 
-}
-
-class LexigraphicalComparator implements Comparator<Genotype> {
-    private final Double EPSILON = 1.0e-15;
-
-    @Override
-    public int compare(Genotype genotype, Genotype genotype1) {
-        return genotype.getBases().compareTo(genotype1.getBases());
-    }
-}
-
-class ConfidenceScoreSort implements Comparator<Genotype> {
-    @Override
-    public int compare(Genotype genotype, Genotype genotype1) {
-        return genotype.getConfidenceScore().compareTo(genotype1.getConfidenceScore());
-    }
 }

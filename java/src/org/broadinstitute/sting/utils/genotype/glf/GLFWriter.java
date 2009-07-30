@@ -4,7 +4,11 @@ import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
+import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+import org.broadinstitute.sting.utils.genotype.calls.GenotypeCall;
+import org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall;
 
 import java.io.DataOutputStream;
 import java.io.File;

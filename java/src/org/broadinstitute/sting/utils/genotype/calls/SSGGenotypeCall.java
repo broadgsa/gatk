@@ -1,14 +1,20 @@
-package org.broadinstitute.sting.utils.genotype;
+package org.broadinstitute.sting.utils.genotype.calls;
 
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.genotype.confidence.ConfidenceScore;
+import org.broadinstitute.sting.utils.genotype.BasicGenotype;
+import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.LexigraphicalComparator;
+import org.broadinstitute.sting.utils.genotype.Variant;
 import org.broadinstitute.sting.utils.genotype.confidence.BayesianConfidenceScore;
+import org.broadinstitute.sting.utils.genotype.confidence.ConfidenceScore;
 
-import java.util.*;
-
-import net.sf.samtools.SAMRecord;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.TreeMap;
 
 
 /**
@@ -22,7 +28,7 @@ import net.sf.samtools.SAMRecord;
 public class SSGGenotypeCall implements GenotypeCall {
     // TODO: make SSG into a more robust Genotype call interface
     // our stored genotype locus
-    private final char mRefBase;
+    private final String mRefBase;
     private final int mPloidy;
     private final GenomeLoc mLoc;
     private TreeMap<Double, Genotype> mGenotypes = new TreeMap();
@@ -34,7 +40,7 @@ public class SSGGenotypeCall implements GenotypeCall {
     private double rmsMapping;
 
     public SSGGenotypeCall(char mRefBase, int mPloidy, GenomeLoc mLoc, List<Genotype> genotypes, double likelihoods[], ReadBackedPileup pileup) {
-        this.mRefBase = mRefBase;
+        this.mRefBase = String.valueOf(mRefBase).toUpperCase();
         this.mPloidy = mPloidy;
         this.mLoc = mLoc;
         if (genotypes.size() < 1) throw new IllegalArgumentException("Genotypes list size must be greater than 0");
@@ -56,7 +62,7 @@ public class SSGGenotypeCall implements GenotypeCall {
         mLikelihoods = likelihoods;
         index = 0;
         for (Genotype g : genotypes) {
-            ((BasicGenotype)g).mConfidenceScore = new BayesianConfidenceScore(Math.abs(likelihoods[index] - ref));
+            ((BasicGenotype)g).setConfidenceScore( new BayesianConfidenceScore(Math.abs(likelihoods[index] - ref)));
             mGenotypes.put(likelihoods[index],g);
             index++;            
         }
@@ -80,7 +86,7 @@ public class SSGGenotypeCall implements GenotypeCall {
      */
     @Override
     public char getReferencebase() {
-        return mRefBase;
+        return mRefBase.charAt(0);
     }
 
     /**
@@ -90,7 +96,7 @@ public class SSGGenotypeCall implements GenotypeCall {
      */
     @Override
     public boolean isVariation() {
-        return mGenotypes.get(mGenotypes.descendingKeySet().first()).isVariant(mRefBase);
+        return mGenotypes.get(mGenotypes.descendingKeySet().first()).isVariant(mRefBase.charAt(0));
     }
 
     /**

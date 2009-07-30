@@ -3,10 +3,10 @@ package org.broadinstitute.sting.utils.genotype.geli;
 import edu.mit.broad.picard.genotype.geli.GeliFileWriter;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
-import org.broadinstitute.sting.utils.genotype.GenotypeCall;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+import org.broadinstitute.sting.utils.genotype.calls.GenotypeCall;
 
 import java.io.File;
 
@@ -101,7 +101,7 @@ public class GeliAdapter implements GenotypeWriter {
      */
     @Override
     public void addGenotypeCall(GenotypeCall locus) {
-        //To change body of implemented methods use File | Settings | File Templates.
+        // TODO: add code here
     }
 
     /**

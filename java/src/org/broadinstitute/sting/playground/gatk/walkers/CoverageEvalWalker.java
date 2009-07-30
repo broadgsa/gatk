@@ -8,9 +8,8 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.ListUtils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.GenotypeCall;
-import org.broadinstitute.sting.utils.genotype.SSGGenotypeCall;
+import org.broadinstitute.sting.utils.genotype.calls.GenotypeCall;
+import org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall;
 
 import java.io.File;
 import java.io.FileNotFoundException;
