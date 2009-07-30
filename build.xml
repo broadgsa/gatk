@@ -116,6 +116,7 @@
                 <include name="**/*.class"/>
                 <exclude name="**/utils/**"/>
                 <exclude name="**/gatk/**"/>
+                <exclude name="**/secondarybase/**" />
             </fileset>
         </jar>
 
