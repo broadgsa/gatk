@@ -24,7 +24,7 @@ public class GeliTextWriter implements GenotypeWriter {
 
     /**
      * create a geli text writer
-     * @param file
+     * @param file the file to write to
      */
     public GeliTextWriter(File file) {
         try {
@@ -32,7 +32,7 @@ public class GeliTextWriter implements GenotypeWriter {
         } catch (FileNotFoundException e) {
             throw new StingException("Unable to open file " + file.toURI());
         }
-        mWriter.println("#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod dbSNP   AA      AC      AG      AT      CC      CG      CT      GG      GT      TT");
+        mWriter.println("#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod    AA      AC      AG      AT      CC      CG      CT      GG      GT      TT");
     }
 
     /**
