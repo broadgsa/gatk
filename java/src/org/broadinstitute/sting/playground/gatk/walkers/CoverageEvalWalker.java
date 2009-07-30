@@ -30,29 +30,18 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
     @Argument(fullName="lod_threshold", shortName="lod", doc="The lod threshold on which variants should be filtered", required=false) public Double LOD_THRESHOLD = 5.0;
     @Argument(fullName="format_geli", shortName="geli", doc="Output variant calls in Geli/Picard format", required=false) public boolean GELI_OUTPUT_FORMAT = false;
 
-    @Argument(fullName="variants_out", shortName="varout", doc="File to which variants should be written", required=true) public File VARIANTS_FILE;
     @Argument(fullName="min_coverage", shortName="mincov", doc="Mininum coverage to downsample to", required=false) public int min_coverage=1;
-    @Argument(fullName="max_coverage", shortName="maxcov", doc="Maximum coverage to downsample to", required=false) public int max_coverage=20;
-    @Argument(fullName="downsampling_repeats", shortName="repeat", doc="Number of times to repeat downsampling at each coverage level", required=false) public int downsampling_repeats=20;
-
-    public PrintStream variantsOut;
+    @Argument(fullName="max_coverage", shortName="maxcov", doc="Maximum coverage to downsample to", required=false) public int max_coverage=Integer.MAX_VALUE;
+    @Argument(fullName="downsampling_repeats", shortName="repeat", doc="Number of times to repeat downsampling at each coverage level", required=false) public int downsampling_repeats=1;
 
     SingleSampleGenotyper SSG;
 
     public void initialize() {
         SSG = new SingleSampleGenotyper();
-        SSG.VARIANTS_FILE = VARIANTS_FILE;
         SSG.initialize();
 
-        try {
-            variantsOut = new PrintStream(VARIANTS_FILE);
-        } catch (FileNotFoundException e) {
-            err.format("Unable to open file '%s'. Perhaps the parent directory does not exist or is read-only.\n", VARIANTS_FILE.getAbsolutePath());
-            System.exit(-1);
-        }
-                
-        String header = "#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod dbSNP   AA      AC      AG      AT      CC      CG      CT      GG      GT      TT";
-        variantsOut.println("DownsampledCoverage\tAvailableCoverage\tHapmapChipGenotype\tGenotypeCallType\t"+header.substring(1));
+        String header = "#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod AA      AC      AG      AT      CC      CG      CT      GG      GT      TT";
+        out.println("DownsampledCoverage\tAvailableCoverage\tHapmapChipGenotype\tGenotypeCallType\t"+header.substring(1));
     }
 
     public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) {
@@ -74,10 +63,11 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
 
             int coverage_available = reads.size();
             List<Integer> coverage_levels = new ArrayList<Integer>();// = {4, 7, 10, 20, Integer.MAX_VALUE};
-            for (int coverage = min_coverage; coverage <= max_coverage; coverage++) {
+            Integer this_max_coverage = Math.min(max_coverage, coverage_available); 
+            for (int coverage = min_coverage; coverage <= this_max_coverage; coverage++) {
                 coverage_levels.add(coverage);
             }
-            coverage_levels.add(coverage_available); // Run on all available reads
+            //coverage_levels.add(coverage_available); // Run on all available reads
 
             // Iterate over coverage levels
             for (int coverage : coverage_levels) {
@@ -108,7 +98,7 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
 
     public String reduce(List<String> alleleFreqLines, String sum) {
         for (String line : alleleFreqLines) {
-            variantsOut.println(line);
+            out.println(line);
         }
 
         return "";
