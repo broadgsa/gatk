@@ -111,7 +111,7 @@ public class GLFWriter implements GenotypeWriter {
     public void addGenotypeCall(GenotypeCall locus) {
         SSGGenotypeCall call = (SSGGenotypeCall)locus;
         LikelihoodObject obj = new LikelihoodObject(call.getLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
-        // TODO: fix me aaron
+        obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);  // transform! ... to negitive log likelihoods
         this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),(int)locus.getLocation().getStart(),(float)0.0,locus.getReferencebase(),0,obj);
     }
 

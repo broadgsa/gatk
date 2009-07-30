@@ -8,7 +8,6 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.playground.utils.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
@@ -167,7 +166,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
             int offset = offsets.get(i);
             G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset]);
         }
-        G.ApplyPrior(ref, allele_likelihoods);
+        G.applyPrior(ref, allele_likelihoods);
 
 		// Handle indels
 		if (CALL_INDELS)

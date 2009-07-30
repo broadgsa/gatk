@@ -22,32 +22,55 @@ import java.util.TreeMap;
  *         <p/>
  *         Class GenotypeCallImpl
  *         <p/>
- *         The single sample genotypers implementation of the genotype call, plus
- *         some extra booty for the genotype writers of this world
+ *         The single sample genotypers implementation of the genotype call, which contains
+ *          extra information for the various genotype outputs
  */
 public class SSGGenotypeCall implements GenotypeCall {
-    // TODO: make SSG into a more robust Genotype call interface
     // our stored genotype locus
     private final String mRefBase;
     private final int mPloidy;
-    private final GenomeLoc mLoc;
     private TreeMap<Double, Genotype> mGenotypes = new TreeMap();
     private double mLikelihoods[];
     private double bestNext = 0;
     private double bestRef = 0;
 
-    private int readDepth;
-    private double rmsMapping;
+    private int readDepth = 0;
+    private double rmsMapping = 0;
 
-    public SSGGenotypeCall(char mRefBase, int mPloidy, GenomeLoc mLoc, List<Genotype> genotypes, double likelihoods[], ReadBackedPileup pileup) {
+    /**
+     * Generate a single sample genotype object, containing everything we need to represent calls out of a genotyper object
+     *
+     * @param discoveryMode are we in discovery mode or genotyping mode
+     * @param mRefBase      the ref base
+     * @param mPloidy       the ploidy
+     * @param genotypes     the genotype
+     * @param likelihoods   the likelihood
+     * @param pileup        the pile-up of reads at the specified locus
+     */
+    public SSGGenotypeCall(boolean discoveryMode, char mRefBase, int mPloidy, List<Genotype> genotypes, double likelihoods[], ReadBackedPileup pileup) {
         this.mRefBase = String.valueOf(mRefBase).toUpperCase();
         this.mPloidy = mPloidy;
-        this.mLoc = mLoc;
         if (genotypes.size() < 1) throw new IllegalArgumentException("Genotypes list size must be greater than 0");
-        int index = 0;
         String refStr = Utils.dupString(mRefBase, mPloidy).toUpperCase();
+        calculateBestNext(discoveryMode, genotypes, likelihoods, refStr);
+
+        this.readDepth = pileup.getReads().size();
+        rmsMapping = Math.sqrt(calculateRMS(pileup) / readDepth);
+    }
+
+
+    /**
+     * calculate the best and next best, and update the stored confidence scores based on these values
+     *
+     * @param discoveryMode are we in discovery mode?
+     * @param genotypes     the genotypes
+     * @param likelihoods   the likelihoods corresponding to the genotypes
+     * @param refStr        the reference string, i.e. reb base[ploidy]
+     */
+    private void calculateBestNext(boolean discoveryMode, List<Genotype> genotypes, double[] likelihoods, String refStr) {
+        int index = 0;
         double ref = 0.0;
-        double best = Double.NEGATIVE_INFINITY; // plus one
+        double best = Double.NEGATIVE_INFINITY;
         double next = Double.NEGATIVE_INFINITY;
         for (Genotype g : genotypes) {
             if (g.getBases().toUpperCase().equals(refStr)) ref = likelihoods[index];
@@ -61,16 +84,23 @@ public class SSGGenotypeCall implements GenotypeCall {
         bestRef = Math.abs(best - ref);
         mLikelihoods = likelihoods;
         index = 0;
-        for (Genotype g : genotypes) {
-            ((BasicGenotype)g).setConfidenceScore( new BayesianConfidenceScore(Math.abs(likelihoods[index] - ref)));
-            mGenotypes.put(likelihoods[index],g);
-            index++;            
-        }
 
-        this.readDepth = pileup.getReads().size();
-        rmsMapping = Math.sqrt(calculateRMS(pileup) / readDepth);
+        // reset the confidence based on either the discovery mode or the genotype mode
+        for (Genotype g : genotypes) {
+            double val = (discoveryMode) ? Math.abs(likelihoods[index] - best) : Math.abs(likelihoods[index] - ref);
+            ((BasicGenotype) g).setConfidenceScore(new BayesianConfidenceScore(val));
+            mGenotypes.put(likelihoods[index], g);
+            index++;
+        }
     }
 
+    /**
+     * calculate the rms , given the read pileup
+     *
+     * @param pileup
+     *
+     * @return
+     */
     private double calculateRMS(ReadBackedPileup pileup) {
         double rms = 0.0;
         for (SAMRecord r : pileup.getReads()) {
@@ -174,6 +204,7 @@ public class SSGGenotypeCall implements GenotypeCall {
      * given the reference, are we a variant? (non-ref)
      *
      * @param ref the reference base or bases
+     *
      * @return true if we're a variant
      */
     @Override

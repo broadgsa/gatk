@@ -80,7 +80,15 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
     private double priorHomVar;
     private double[] oneHalfMinusData;
     private boolean threeBaseErrors = false;
+    private boolean discoveryMode = false;
 
+    /**
+     * set the mode to discovery
+     * @param isInDiscoveryMode
+     */
+    public void setDiscovery(boolean isInDiscoveryMode) {
+       discoveryMode = isInDiscoveryMode;
+    }
     // Store the 2nd-best base priors for on-genotype primary bases
     private HashMap<String, Double> onNextBestBasePriors = new HashMap<String, Double>();
 
@@ -287,7 +295,7 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
         return s;
     }
 
-    public void ApplyPrior(char ref, double[] allele_likelihoods) {
+    public void applyPrior(char ref, double[] allele_likelihoods) {
         int k = 0;
         for (int i = 0; i < 4; i++) {
             for (int j = i; j < 4; j++) {
@@ -302,7 +310,7 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
         this.sort();
     }
 
-    public void ApplyPrior(char ref) {
+    public void applyPrior(char ref) {
         for (int i = 0; i < genotypes.length; i++) {
             if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) {
                 // hom-ref
@@ -420,8 +428,7 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
      */
     @Override
     public GenotypeCall callGenotypes(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup) {
-        //filterQ0Bases(!keepQ0Bases); // Set the filtering / keeping flag
-
+        filterQ0Bases(!keepQ0Bases); // Set the filtering / keeping flag
 
         // for calculating the rms of the mapping qualities
         double squared = 0.0;
@@ -436,13 +443,8 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
         // save off the likelihoods
         if (likelihoods == null || likelihoods.length == 0) return null;
 
-        double lklihoods[] = new double[likelihoods.length];
-
-        System.arraycopy(likelihoods, 0, lklihoods, 0, likelihoods.length);
-        
-
-        ApplyPrior(ref);
-
+        // Apply the two calculations
+        applyPrior(ref);
         applySecondBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
 
         // lets setup the locus
@@ -450,11 +452,7 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
         for (int x = 0; x < this.likelihoods.length; x++) {
                 lst.add(new BasicGenotype(pileup.getLocation(),this.genotypes[x],new BayesianConfidenceScore(this.likelihoods[x])));
         }
-        return new SSGGenotypeCall(ref,2,pileup.getLocation(),lst,likelihoods,pileup);
+        return new SSGGenotypeCall(discoveryMode,ref,2,lst,likelihoods,pileup);
     }
-    //TODO: add this to the above code
-    boolean discovery = false;
-    public void setDiscovery(boolean isInDiscoveryMode) {
-       discovery = isInDiscoveryMode; 
-    }
+
 }
