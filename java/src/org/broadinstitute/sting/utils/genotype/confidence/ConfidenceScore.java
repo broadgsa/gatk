@@ -1,5 +1,4 @@
-package org.broadinstitute.sting.utils.genotype;
-
+package org.broadinstitute.sting.utils.genotype.confidence;
 
 /**
  * @author aaron
@@ -8,32 +7,19 @@ package org.broadinstitute.sting.utils.genotype;
  *         <p/>
  *         this class represents the confidence in a genotype, and the method we used to obtain it
  */
-public class ConfidenceScore implements Comparable<ConfidenceScore> {
+public abstract class ConfidenceScore implements Comparable<ConfidenceScore> {
 
+    // the general error of a floating point value
     private static final Double EPSILON = 1.0e-15;
 
     public enum SCORE_METHOD {
-        BEST_NEXT, BEST_REF, OTHER;
+        LOD_SCORE, UNKNOWN;
     }
 
     private Double mScore;
-    private SCORE_METHOD mMethod;
 
-    public ConfidenceScore(double score, SCORE_METHOD method) {
+    public ConfidenceScore(double score) {
         this.mScore = score;
-        this.mMethod = method;
-    }
-
-    /**
-     * generate a confidence score, given the two likelihoods, and the method used
-     *
-     * @param likelihoodOne the first likelihood
-     * @param likelihoodTwo the second likelihood
-     * @param method        the method used to determine the likelihood
-     */
-    public ConfidenceScore(double likelihoodOne, double likelihoodTwo, SCORE_METHOD method) {
-        this.mScore = likelihoodOne / likelihoodTwo;
-        this.mMethod = method;
     }
 
     /**
@@ -43,7 +29,7 @@ public class ConfidenceScore implements Comparable<ConfidenceScore> {
      */
     @Override
     public int compareTo(ConfidenceScore o) {
-        if (o.mMethod != this.mMethod) {
+        if (o.getConfidenceType() != this.getConfidenceType()) {
             throw new UnsupportedOperationException("Attemped to compare Confidence scores with different methods");
         }
         double diff = mScore - o.mScore;
@@ -55,11 +41,23 @@ public class ConfidenceScore implements Comparable<ConfidenceScore> {
             return 1;
     }
 
+    /**
+     * get the score
+     * @return a double representing the genotype score
+     */
     public Double getScore() {
         return mScore;
     }
 
-    public SCORE_METHOD getMethod() {
-        return mMethod;
-    }
+    /**
+     * return the confidence method we're employing, UNKNOWN is an option
+     * @return the method of confidence we represent
+     */
+    public abstract SCORE_METHOD getConfidenceType();
+
+    /**
+     * get the confidence score, normalized to the range of [0-1]
+     * @return a confidence score
+     */
+    public abstract double normalizedConfidenceScore();
 }

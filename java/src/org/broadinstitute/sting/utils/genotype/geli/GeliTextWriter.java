@@ -1,14 +1,13 @@
 package org.broadinstitute.sting.utils.genotype.geli;
 
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.GenotypeCall;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.broadinstitute.sting.utils.genotype.SSGGenotypeCall;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.List;
 
 
 /**
@@ -42,37 +41,27 @@ public class GeliTextWriter implements GenotypeWriter {
      * @param locus the locus to add
      */
     public void addGenotypeCall(GenotypeCall locus) {
-        if (locus.getPosteriors().size() != 10) throw new IllegalArgumentException("Geli text only supports SNP calls, with a diploid organism (i.e. posterior array size of 10)");
-
-
-        // this is to perserve the format string that we used to use
-        double[] likelihoods = new double[10];
-        int index = 0;
-        List<Genotype> lt = locus.getLexigraphicallySortedGenotypes();
-        for (Genotype G: lt) {
-            likelihoods[index] = G.getLikelihood();
-            index++;
-        }
+        SSGGenotypeCall call = (SSGGenotypeCall)locus;
 
         mWriter.println( String.format("%s    %16d  %c  %8d  %d  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
 	                                        locus.getLocation().getContig(),
                                             locus.getLocation().getStart(),
 											locus.getReferencebase(),
-                                            locus.getReadDepth(),
+                                            call.getReadDepth(),
                                             -1,
-	                                        locus.getGenotypes().get(0).getBases(),
-	                                        locus.getBestVrsRef().second.getScore(),
-	                                        locus.getBestVrsNext().second.getScore(),
-                                            likelihoods[0],
-                                            likelihoods[1],
-                                            likelihoods[2],
-                                            likelihoods[3],
-                                            likelihoods[4],
-                                            likelihoods[5],
-                                            likelihoods[6],
-                                            likelihoods[7],
-                                            likelihoods[8],
-                                            likelihoods[9]));
+	                                        locus.getBases(),
+	                                        call.getConfidenceScore().getScore(),
+	                                        locus.getConfidenceScore().getScore(),
+                                            call.getLikelihoods()[0],
+                                            call.getLikelihoods()[1],
+                                            call.getLikelihoods()[2],
+                                            call.getLikelihoods()[3],
+                                            call.getLikelihoods()[4],
+                                            call.getLikelihoods()[5],
+                                            call.getLikelihoods()[6],
+                                            call.getLikelihoods()[7],
+                                            call.getLikelihoods()[8],
+                                            call.getLikelihoods()[9]));
     }
 
     /**

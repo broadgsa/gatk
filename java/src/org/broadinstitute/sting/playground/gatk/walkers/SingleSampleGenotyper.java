@@ -10,19 +10,16 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.playground.utils.AlleleMetrics;
 import org.broadinstitute.sting.playground.utils.GenotypeLikelihoods;
-import org.broadinstitute.sting.playground.utils.IndelLikelihood;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.BasicPileup;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.File;
-import java.util.List;
 
 @ReadFilters(ZeroMappingQualityReadFilter.class)
-public class SingleSampleGenotyper extends LocusWalker<GenotypeCall, GenotypeWriter> {
+public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, GenotypeWriter> {
     // Control output settings
     @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = true) public File VARIANTS_FILE;
     @Argument(fullName = "metrics_out", shortName = "metout", doc = "File to which metrics should be written", required = false) public File METRICS_FILE = new File("/dev/stderr");
@@ -126,22 +123,21 @@ public class SingleSampleGenotyper extends LocusWalker<GenotypeCall, GenotypeWri
      *
      * @return an AlleleFrequencyEstimate object
      */
-    public GenotypeCall map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public SSGGenotypeCall map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         rationalizeSampleName(context.getReads().get(0));
         if (context.getLocation().getStart() == 73) {
             int stop = 1;
         }
-        GenotypeLocus genotype = getGenotype(tracker, Character.toUpperCase(ref), context, sampleName);
-        GenotypeCall call = null;
-        if (genotype != null) {
-            call = new GenotypeCallImpl(genotype, ref,
-                    new ConfidenceScore(this.LOD_THRESHOLD, (GENOTYPE ? ConfidenceScore.SCORE_METHOD.BEST_NEXT : ConfidenceScore.SCORE_METHOD.BEST_REF)));
-            metricsOut.nextPosition(call, tracker);
+        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+        GenotypeLikelihoods G = callGenotype(tracker);
+        SSGGenotypeCall geno = (SSGGenotypeCall)G.callGenotypes(tracker, ref, pileup);
+        if (geno != null) {
+            metricsOut.nextPosition(geno, tracker);
         }
         if (!SUPPRESS_METRICS) {
             metricsOut.printMetricsAtLocusIntervals(METRICS_INTERVAL);
         }
-        return call;
+        return geno;
     }
 
     /**
@@ -173,25 +169,6 @@ public class SingleSampleGenotyper extends LocusWalker<GenotypeCall, GenotypeWri
     }
 
     /**
-     * Compute the allele frequency of the underlying genotype at the given locus.
-     *
-     * @param tracker     the meta data tracker
-     * @param ref         the reference base
-     * @param context     contextual information around the locus
-     * @param sample_name the name of the sample
-     *
-     * @return the allele frequency estimate
-     */
-    private GenotypeLocus getGenotype(RefMetaDataTracker tracker, char ref, LocusContext context, String sample_name) {
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-        // Handle single-base polymorphisms.
-        GenotypeLikelihoods G = callGenotype(tracker);
-        GenotypeLocus geno = G.callGenotypes(tracker, ref, pileup);
-
-        return geno;
-    }
-
-    /**
      * Calls the underlying, single locus genotype of the sample
      *
      * @param tracker the meta data tracker
@@ -209,26 +186,6 @@ public class SingleSampleGenotyper extends LocusWalker<GenotypeCall, GenotypeWri
             G = new GenotypeLikelihoods(THREE_BASE_ERRORS, plocus[0], plocus[1], plocus[2], p2ndon, p2ndoff, keepQ0Bases);
         }
         return G;
-    }
-
-    /**
-     * Compute the likelihood of an indel at this locus.
-     *
-     * @param context contextual information around the locus
-     * @param reads   the reads that overlap this locus
-     * @param offsets the offsets per read that identify the base at this locus
-     *
-     * @return the likelihood of the indel at this location
-     */
-    private IndelLikelihood callIndel(LocusContext context, List<SAMRecord> reads, List<Integer> offsets) {
-        String[] indels = BasicPileup.indelPileup(reads, offsets);
-        IndelLikelihood indelCall = new IndelLikelihood(indels, 1e-4);
-
-        if (!indelCall.getType().equals("ref")) {
-            System.out.printf("INDEL %s %s\n", context.getLocation(), indelCall);
-        }
-
-        return indelCall;
     }
 
     /**
@@ -271,10 +228,9 @@ public class SingleSampleGenotyper extends LocusWalker<GenotypeCall, GenotypeWri
      *
      * @return an empty string
      */
-    public GenotypeWriter reduce(GenotypeCall call, GenotypeWriter sum) {
+    public GenotypeWriter reduce(SSGGenotypeCall call, GenotypeWriter sum) {
         if (call != null && call.isVariation()) {
-            if ((GENOTYPE && call.getBestVrsNext().second.getScore() > LOD_THRESHOLD) ||
-                    (call.getBestVrsRef().second.getScore() > LOD_THRESHOLD))
+            if (call.getConfidenceScore().getScore() > LOD_THRESHOLD)
                 sum.addGenotypeCall(call);
         }
         return sum;

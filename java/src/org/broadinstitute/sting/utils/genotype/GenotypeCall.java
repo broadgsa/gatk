@@ -1,6 +1,9 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.GenomeLoc;
+
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * @author aaron
@@ -10,14 +13,7 @@ import org.broadinstitute.sting.utils.Pair;
  *         Genotype call interface, for indicating that a genotype is
  *         also a genotype call.
  */
-public interface GenotypeCall extends GenotypeLocus{
-    /**
-     * get the confidence
-     *
-     * @return a ConfidenceScore representing the LOD score that this genotype was called with
-     */
-    public ConfidenceScore getConfidence();
-
+public interface GenotypeCall extends Genotype {
     /**
      * gets the reference base
      *
@@ -26,27 +22,48 @@ public interface GenotypeCall extends GenotypeLocus{
     public char getReferencebase();
 
     /**
-     * get the best vrs the next best genotype LOD score
-     * @return the genotype, and a LOD for best - next
-     */
-    public Pair<Genotype,ConfidenceScore> getBestVrsNext();
-
-    /**
-     * get the best vrs the reference allele.
-     * @return the genotype, and a LOD for best - ref.  The best may be ref, unless you've checked
-     * with is variation
-     */
-    public Pair<Genotype,ConfidenceScore> getBestVrsRef();
-
-    /**
-     * check to see if this call is a variant, i.e. not homozygous reference
+     * check to see if this called genotype is a variant, i.e. not homozygous reference
      * @return true if it's not hom ref, false otherwise
      */
     public boolean isVariation();
 
     /**
-     * return genotype locus, with our data
+     * Location of this genotype on the reference (on the forward strand). If the allele is insertion/deletion, the first inserted/deleted base
+     * is located right <i>after</i> the specified location
+     *
+     * @return position on the genome wrapped in GenomeLoc object
      */
-    public GenotypeLocus toGenotypeLocus();
+    public GenomeLoc getLocation();
+
+    /**
+     * get the genotypes, sorted in asscending order by their ConfidenceScores (the best
+     * to the worst ConfidenceScores)
+     *
+     * @return a list of the genotypes, sorted by ConfidenceScores
+     */
+    public List<Genotype> getGenotypes();
+
+    /**
+     * get the genotypes sorted lexigraphically
+     *
+     * @return a list of the genotypes sorted lexi
+     */
+    public List<Genotype> getLexigraphicallySortedGenotypes();
+
 }
 
+class LexigraphicalComparator implements Comparator<Genotype> {
+    private final Double EPSILON = 1.0e-15;
+
+    @Override
+    public int compare(Genotype genotype, Genotype genotype1) {
+        return genotype.getBases().compareTo(genotype1.getBases());
+    }
+}
+
+class ConfidenceScoreSort implements Comparator<Genotype> {
+    @Override
+    public int compare(Genotype genotype, Genotype genotype1) {
+        return genotype.getConfidenceScore().compareTo(genotype1.getConfidenceScore());
+    }
+}

@@ -10,6 +10,7 @@ import org.broadinstitute.sting.utils.ListUtils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.GenotypeCall;
+import org.broadinstitute.sting.utils.genotype.SSGGenotypeCall;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -90,7 +91,7 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
                     LocusContext subContext = new LocusContext(context.getLocation(), sub_reads, sub_offsets);
                     GenotypeCall call = SSG.map(tracker, ref, subContext);
 
-                    String callType = (call.isVariation()) ? ((call.getBestVrsRef().first.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
+                    String callType = (call.isVariation()) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
                     if (call != null) {
                         GenotypeCalls.add(coverage+"\t"+coverage_available+"\t"+hc_genotype+"\t"+callType+"\t"+toGeliString(call));
                     }
@@ -116,37 +117,26 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
 
     // a method to support getting the geli string, since the AlleleFrequencyEstimate is going away
     public String toGeliString (GenotypeCall locus) {
-        if (locus.getPosteriors().size() != 10) throw new IllegalArgumentException("Geli text only supports SNP calls, with a diploid organism (i.e. posterior array size of 10)");
-
-
-        // this is to perserve the format string that we used to use
-        double[] likelihoods = new double[10];
-        int index = 0;
-        List<Genotype> lt = locus.getLexigraphicallySortedGenotypes();
-        for (Genotype G: lt) {
-            likelihoods[index] = G.getLikelihood();
-            index++;
-        }
-
+        SSGGenotypeCall call = (SSGGenotypeCall)locus;
         return String.format("%s    %16d  %c  %8d  %d  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
-	                                        locus.getLocation().getContig(),
-                                            locus.getLocation().getStart(),
-											locus.getReferencebase(),
-                                            locus.getReadDepth(),
+	                                        call.getLocation().getContig(),
+                                            call.getLocation().getStart(),
+											call.getReferencebase(),
+                                            call.getReadDepth(),
                                             -1,
-	                                        locus.getGenotypes().get(0).getBases(),
-	                                        locus.getBestVrsRef().second.getScore(),
-	                                        locus.getBestVrsNext().second.getScore(),
-                                            likelihoods[0],
-                                            likelihoods[1],
-                                            likelihoods[2],
-                                            likelihoods[3],
-                                            likelihoods[4],
-                                            likelihoods[5],
-                                            likelihoods[6],
-                                            likelihoods[7],
-                                            likelihoods[8],
-                                            likelihoods[9]);
+	                                        call.getBases(),
+	                                        call.getBestRef(),
+	                                        call.getBestNext(),
+                                            call.getLikelihoods()[0],
+                                            call.getLikelihoods()[1],
+                                            call.getLikelihoods()[2],
+                                            call.getLikelihoods()[3],
+                                            call.getLikelihoods()[4],
+                                            call.getLikelihoods()[5],
+                                            call.getLikelihoods()[6],
+                                            call.getLikelihoods()[7],
+                                            call.getLikelihoods()[8],
+                                            call.getLikelihoods()[9]);
     }
 }
 

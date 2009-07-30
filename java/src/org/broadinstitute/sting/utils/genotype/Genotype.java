@@ -1,113 +1,71 @@
 package org.broadinstitute.sting.utils.genotype;
 
+import org.broadinstitute.sting.utils.genotype.confidence.ConfidenceScore;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 /**
  * @author aaron
  *         <p/>
  *         Class GenotypeLikelihood
  *         <p/>
- *         This class encompasses all the information that is associated with a genotype
- *         and it's likelihood, mainly:
- *         <p/>
- *         Likelihood value
+ *         This class emcompasses all the basic information about a genotype
  */
-public class Genotype {
-    private double mLikelihood = 0.0;
-    private double mPosteriorProb = 0.0;
-    private String mBases = "";
-    private int mPloidy = 2; // assume diploid
-
+public interface Genotype {
     /**
-     * construct a genotypeLikelihood, given the bases, the posterior, and the likelihood
-     *
-     * @param bases      the bases that make up this genotype
-     * @param posterior  the posterior probability of this genotype
-     * @param likelihood the likelihood of this genotype
-     * @param ploidy     the ploidy of this genotype
+     * get the confidence score
+     * @return get the confidence score that we're based on
      */
-    public Genotype(String bases, double posterior, double likelihood, int ploidy) {
-        this.mPloidy = ploidy;
-        if (bases.length() != ploidy) {
-            throw new IllegalArgumentException("The number of bases should match the ploidy");
-        }
-        this.mLikelihood = likelihood;
-        this.mBases = bases;
-        this.mPosteriorProb = posterior;
-    }
-
-    /**
-     * construct a genotypeLikelihood, given the bases, the posterior, and the likelihood
-     *
-     * @param bases      the bases that make up this genotype
-     * @param posterior  the posterior probability of this genotype
-     * @param likelihood the likelihood of this genotype
-     */
-    public Genotype(String bases, double posterior, double likelihood) {
-        if (bases.length() != mPloidy) {
-            throw new IllegalArgumentException("The number of bases should match the ploidy");
-        }
-        this.mLikelihood = likelihood;
-        this.mBases = bases;
-        this.mPosteriorProb = posterior;
-    }
-
-    /**
-     * get the likelihood value
-     *
-     * @return a double, representing the likelihood
-     */
-    public double getLikelihood() {
-        return mLikelihood;
-    }
-
-    /**
-     * get the posterior value
-     *
-     * @return a double, representing the posterior
-     */
-    public double getPosteriorProb() {
-        return mPosteriorProb;
-    }
+    public ConfidenceScore getConfidenceScore();
 
     /**
      * get the bases that represent this
      *
-     * @return
+     * @return the bases, as a string
      */
-    public String getBases() {
-        return mBases;
-    }
+    public String getBases();
 
-    public int getPloidy() {
-        return mPloidy;
-    }
+    /**
+     * get the ploidy
+     * @return the ploidy value
+     */
+    public int getPloidy();
 
     /**
      * Returns true if both observed alleles are the same (regardless of whether they are ref or alt)
      *
-     * @return
+     * @return true if we're homozygous, false otherwise
      */
-    public boolean isHom() {
-        if (mBases.length() < 1) throw new UnsupportedOperationException("isHom requires at least one stored base");
-        char first = mBases.charAt(0);
-        for (char c: mBases.toCharArray()) {
-            if (c != first) return false;
-        }
-        return true;
-    }
+    public boolean isHom();
 
     /**
      * Returns true if observed alleles differ (regardless of whether they are ref or alt)
      *
+     * @return true if we're het, false otherwise
+     */
+    public boolean isHet();
+
+    /**
+     * get the genotype's location
+     * @return a GenomeLoc representing the location
+     */
+    public GenomeLoc getLocation();
+
+    /**
+     * returns true if the genotype is a point genotype, false if it's a indel / deletion
+     * @return true is a SNP
+     */
+    public boolean isPointGenotype();
+
+    /**
+     * given the reference, are we a variant? (non-ref)
+     * @param ref the reference base or bases
+     * @return true if we're a variant
+     */
+    public boolean isVariant(char ref);
+
+    /**
+     * return this genotype as a variant
      * @return
      */
-    public boolean isHet() {
-         if (mBases.length() < 1) throw new UnsupportedOperationException("isHom requires at least one stored base");
-        char first = mBases.charAt(0);
-        for (char c: mBases.toCharArray()) {
-            if (c != first) return true;
-        }
-        return false;
-    }
-
+    public Variant toVariant();
 }

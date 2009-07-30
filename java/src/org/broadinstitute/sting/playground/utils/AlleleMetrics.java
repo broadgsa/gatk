@@ -5,9 +5,10 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.rodGFF;
 import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.genotype.ConfidenceScore;
+import org.broadinstitute.sting.utils.genotype.confidence.ConfidenceScore;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.GenotypeCall;
+import org.broadinstitute.sting.utils.genotype.SSGGenotypeCall;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -56,8 +57,9 @@ public class AlleleMetrics {
         this.LOD_cutoff = lodThresold;
     }
 
-    public void nextPosition(GenotypeCall call, RefMetaDataTracker tracker) {
-        num_loci_total += 1;
+    public void nextPosition(GenotypeCall cl, RefMetaDataTracker tracker) {
+        SSGGenotypeCall call = (SSGGenotypeCall)cl;
+                num_loci_total += 1;
 
         boolean is_dbSNP_SNP = false;
         boolean has_hapmap_chip_genotype = false;
@@ -80,10 +82,10 @@ public class AlleleMetrics {
                 }
             }
         }
-        Pair<Genotype, ConfidenceScore> result = call.getBestVrsRef();
-        if (Math.abs(call.getBestVrsNext().second.getScore()) >= LOD_cutoff) { num_loci_confident += 1; }
+        double result = call.getBestRef();
+        if (Math.abs(call.getBestNext()) >= LOD_cutoff) { num_loci_confident += 1; }
 
-        if (call.isVariation() && result.second.getScore() >= LOD_cutoff)
+        if (call.isVariation() && result >= LOD_cutoff)
         {
             // Confident variant.
 
@@ -101,7 +103,7 @@ public class AlleleMetrics {
             String hapmap_genotype = hapmap_chip_genotype.getFeature();
             long refs=0, alts=0;
             double hapmap_q;
-            String str = call.getBestVrsRef().first.getBases();
+            String str = call.getBases();
             char alt = str.charAt(0);
             if (str.charAt(0) == call.getReferencebase()) alt = str.charAt(1);
             for (char c : hapmap_genotype.toCharArray()) {
@@ -121,8 +123,8 @@ public class AlleleMetrics {
             //out.format("%s %s %c %c", hapmap_genotype, called_genotype, alleleFreq.ref, alleleFreq.alt);
 
             //System.out.printf("DBG %f %s\n", LOD_cutoff, alleleFreq.asTabularString());
-            if (call.getBestVrsNext().second.getScore() >= LOD_cutoff) {
-
+            if (call.getBestNext() >= LOD_cutoff) {
+                // TODO : should this all be commented out?
                 /*
                 System.out.printf("DBG %f %f %f %f\n",
                                         hapmap_q,
@@ -143,7 +145,7 @@ public class AlleleMetrics {
                 }*/
             }
 
-            if (result.second.getScore() >= LOD_cutoff || -1 * result.second.getScore() >= LOD_cutoff) {
+            if (result >= LOD_cutoff || -1 * result >= LOD_cutoff) {
 
                 // Now calculate ref / var performance - did we correctly classify the site as
                 // reference or variant without regard to genotype; i.e. het/hom "miscalls" don't matter here

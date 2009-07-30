@@ -4,10 +4,13 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.genotype.confidence.BayesianConfidenceScore;
 
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
 import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 
 public class GenotypeLikelihoods implements GenotypeGenerator {
     // precalculate these for performance (pow/log10 is expensive!)
@@ -410,7 +413,7 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
      * @return a GenotypeLocus, containing each of the genotypes and their associated likelihood and posterior prob values
      */
     @Override
-    public GenotypeLocus callGenotypes(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup) {
+    public GenotypeCall callGenotypes(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup) {
         //filterQ0Bases(!keepQ0Bases); // Set the filtering / keeping flag
 
 
@@ -437,14 +440,15 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
         applySecondBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
 
         // lets setup the locus
-        GenotypeLocus locus = new GenotypeLocusImpl(pileup.getLocation(), pileup.getReads().size(),Math.sqrt(squared/pileup.getReads().size()));
+        List<Genotype> lst = new ArrayList<Genotype>();
         for (int x = 0; x < this.likelihoods.length; x++) {
-            try {
-                locus.addGenotype(new Genotype(this.genotypes[x],lklihoods[x],this.likelihoods[x]));
-            } catch (InvalidGenotypeException e) {
-                throw new StingException("Invalid Genotype value",e);
-            }
+                lst.add(new BasicGenotype(pileup.getLocation(),this.genotypes[x],new BayesianConfidenceScore(this.likelihoods[x])));
         }
-        return locus;
+        return new SSGGenotypeCall(ref,2,pileup.getLocation(),lst,likelihoods,pileup);
+    }
+    //TODO: add this to the above code
+    boolean discovery = false;
+    public void setDiscovery(boolean isInDiscoveryMode) {
+       discovery = isInDiscoveryMode; 
     }
 }

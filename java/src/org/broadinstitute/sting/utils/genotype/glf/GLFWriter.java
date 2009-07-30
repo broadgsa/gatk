@@ -8,7 +8,6 @@ import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.DataOutputStream;
 import java.io.File;
-import java.util.List;
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -106,18 +105,10 @@ public class GLFWriter implements GenotypeWriter {
      */
     @Override
     public void addGenotypeCall(GenotypeCall locus) {
-        //TODO: CODEWORD
-        // this is to perserve the format string that we used to use
-               double[] posteriors = new double[10];
-               int index = 0;
-               List<Genotype> lt = locus.getLexigraphicallySortedGenotypes();
-               for (Genotype G: lt) {
-                   posteriors[index] = G.getLikelihood();
-                   index++;
-               }
-
-        LikelihoodObject obj = new LikelihoodObject(posteriors, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
-        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),(int)locus.getLocation().getStart(),(float)locus.getRMSMappingQuals(),locus.getReferencebase(),locus.getReadDepth(),obj);
+        SSGGenotypeCall call = (SSGGenotypeCall)locus;
+        LikelihoodObject obj = new LikelihoodObject(call.getLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
+        // TODO: fix me aaron
+        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),(int)locus.getLocation().getStart(),(float)0.0,locus.getReferencebase(),0,obj);
     }
 
     /**

@@ -22,5 +22,5 @@ public interface GenotypeGenerator {
      * @param pileup a pileup of the reads, containing the reads and their offsets
      * @return a GenotypeLocus, containing each of the genotypes and their associated likelihood and posterior prob values
      */
-    public GenotypeLocus callGenotypes(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup);
+    public GenotypeCall callGenotypes(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup);
 }
