@@ -24,7 +24,11 @@ public class KGenomesSNPROD extends TabularROD implements SNPCallFromGenotypes {
     public String getRefBasesFWD() { return this.get("2"); }
     public char getRefSnpFWD() throws IllegalStateException { return getRefBasesFWD().charAt(0); }
     public String getAltBasesFWD() { return this.get("3"); }
-    public char getAltSnpFWD() throws IllegalStateException { return getAltBasesFWD().charAt(0); }
+    public char getAltSnpFWD() throws IllegalStateException {
+        if ( getAltBasesFWD().charAt(0) != getRefSnpFWD() )
+            return getAltBasesFWD().charAt(0);
+        return getAltBasesFWD().charAt(1);
+    }
     public boolean isReference()   { return getVariationConfidence() < 0.01; }
     public boolean isSNP()         { return ! isReference(); }
     public boolean isInsertion()   { return false; }
