@@ -5,18 +5,20 @@ import org.broadinstitute.sting.gatk.refdata.rodVariants;
 import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.SAMRecord;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import cern.jet.math.Arithmetic;
 
 public class VECFisherStrand implements VariantExclusionCriterion {
-    private double pvalueLimit = 0.0001;
+    private double pvalueLimit = 0.00001;
     private boolean exclude;
+    private ArrayList<Double> factorials = new ArrayList<Double>();
 
     public void initialize(String arguments) {
         if (arguments != null && !arguments.isEmpty()) {
             pvalueLimit = Double.valueOf(arguments);
         }
+        factorials.add(0.0);  // add fact(0)
     }
 
     public void compute(char ref, LocusContext context, rodVariants variant) {
@@ -44,15 +46,17 @@ public class VECFisherStrand implements VariantExclusionCriterion {
 
     public boolean useZeroQualityReads() { return false; }
 
-    public static boolean strandTest(char ref, LocusContext context, int allele1, int allele2, double threshold, StringBuffer out) {
+    public boolean strandTest(char ref, LocusContext context, int allele1, int allele2, double threshold, StringBuffer out) {
         int[][] table = getContingencyTable(context, allele1, allele2);
         if ( !variantIsHet(table) )
             return false;
 
+        updateFactorials(table);
+
         double pCutoff = computePValue(table);
         //printTable(table, pCutoff);
 
-        double pValue = 0.0;
+        double pValue = pCutoff;
         while (rotateTable(table)) {
             double pValuePiece = computePValue(table);
 
@@ -119,25 +123,37 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         return (table[0][1] >= 0 && table[1][0] >= 0) ? true : false;
     }
 
-    private static double computePValue(int[][] table) {
-        double pCutoff = 1.0;
+    private double computePValue(int[][] table) {
 
         int[] rowSums = { sumRow(table, 0), sumRow(table, 1) };
         int[] colSums = { sumColumn(table, 0), sumColumn(table, 1) };
         int N = rowSums[0] + rowSums[1];
 
-        pCutoff *= (double) Arithmetic.factorial(rowSums[0]);
-        pCutoff *= (double) Arithmetic.factorial(rowSums[1]);
-        pCutoff *= (double) Arithmetic.factorial(colSums[0]);
-        pCutoff *= (double) Arithmetic.factorial(colSums[1]);
-        pCutoff /= (double) Arithmetic.factorial(N);
+        // calculate in log space so we don't die with high numbers
+        double pCutoff = factorials.get(rowSums[0])
+                         + factorials.get(rowSums[1])
+                         + factorials.get(colSums[0])
+                         + factorials.get(colSums[1])
+                         - factorials.get(table[0][0])
+                         - factorials.get(table[0][1])
+                         - factorials.get(table[1][0])
+                         - factorials.get(table[1][1])
+                         - factorials.get(N);
+        return Math.exp(pCutoff);
 
-        for (int i = 0; i < 2; i++) {
-            for (int j = 0; j < 2; j++) {
-                pCutoff /= (double) Arithmetic.factorial(table[i][j]);
-            }
-        }
-        return pCutoff;
+        //pCutoff *= (double) Arithmetic.factorial(rowSums[0]);
+        //pCutoff *= (double) Arithmetic.factorial(rowSums[1]);
+        //pCutoff *= (double) Arithmetic.factorial(colSums[0]);
+        //pCutoff *= (double) Arithmetic.factorial(colSums[1]);
+        //pCutoff /= (double) Arithmetic.factorial(N);
+        //
+        //for (int i = 0; i < 2; i++) {
+        //    for (int j = 0; j < 2; j++) {
+        //        pCutoff /= (double) Arithmetic.factorial(table[i][j]);
+        //    }
+        //}
+        //
+        //return pCutoff;
     }
 
     private static int sumRow(int[][] table, int column) {
@@ -191,5 +207,12 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         }
 
         return table;
+    }
+
+    private void updateFactorials(int[][] table) {
+        // calculate in log space so we don't die with high numbers
+        int max = table[0][0] + table[0][1] + table[1][0] + table[1][1];
+        for (int i = factorials.size(); i <= max; i++)
+            factorials.add(factorials.get(i - 1) + Math.log(i));
     }
 }
