@@ -40,7 +40,7 @@ public class SingleSampleGenotyper extends LocusWalker<org.broadinstitute.sting.
     @Argument(fullName = "call_indels", shortName = "indels", doc = "Call indels as well as point mutations", required = false) public Boolean CALL_INDELS = false;
 
     // Control how the genotype hypotheses are weighed
-    @Argument(fullName = "priors_locus", shortName = "plocus", doc = "Comma-separated prior likelihoods for any locus (homref,het,homvar)", required = false) public String PRIORS_ANY_LOCUS = "0.999,0.000333,0.000667";
+    @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false) public Double heterozygosity = 0.001;
     @Argument(fullName = "priors_hapmap", shortName = "phapmap", doc = "Comma-separated prior likelihoods for Hapmap loci (homref,het,homvar)", required = false) public String PRIORS_HAPMAP = "0.999,1e-3,1e-5";
     @Argument(fullName = "priors_dbsnp", shortName = "pdbsnp", doc = "Comma-separated prior likelihoods for dbSNP loci (homref,het,homvar)", required = false) public String PRIORS_DBSNP = "0.999,1e-3,1e-5";
     @Argument(fullName = "priors_2nd_on", shortName = "p2ndon", doc = "Comma-separated prior likelihoods for the secondary bases of primary on-genotype bases (AA,AC,AG,AT,CC,CG,CT,GG,GT,TT)", required = false) public String PRIORS_2ND_ON = "0.000,0.302,0.366,0.142,0.000,0.548,0.370,0.000,0.319,0.000";
@@ -103,11 +103,19 @@ public class SingleSampleGenotyper extends LocusWalker<org.broadinstitute.sting.
         return pdbls;
     }
 
+    private double[] computePriors(double h) {
+        double[] pdbls = new double[3];
+        pdbls[0] = 1.0 - (3.0 * h / 2.0);
+        pdbls[1] = h;
+        pdbls[2] = h / 2.0;
+        return pdbls;
+    }
+
     /** Initialize the walker with some sensible defaults */
     public void initialize() {
         metricsOut = new AlleleMetrics(METRICS_FILE, LOD_THRESHOLD);
 
-        plocus = priorsArray(PRIORS_ANY_LOCUS);
+        plocus = computePriors(heterozygosity);
         phapmap = priorsArray(PRIORS_HAPMAP);
         pdbsnp = priorsArray(PRIORS_DBSNP);
         p2ndon = priorsArray(PRIORS_2ND_ON);
