@@ -3,10 +3,12 @@ package org.broadinstitute.sting.utils.genotype.geli;
 import edu.mit.broad.picard.genotype.geli.GeliFileWriter;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
+import org.broadinstitute.sting.utils.genotype.GenotypeOutput;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import org.broadinstitute.sting.utils.genotype.calls.GenotypeCall;
+import org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.io.File;
 
@@ -100,8 +102,10 @@ public class GeliAdapter implements GenotypeWriter {
      * @param locus the locus to add
      */
     @Override
-    public void addGenotypeCall(GenotypeCall locus) {
-        // TODO: add code here
+    public void addGenotypeCall(GenotypeOutput locus) {
+        SSGGenotypeCall call = (SSGGenotypeCall)locus;
+        LikelihoodObject obj = new LikelihoodObject(call.getLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
+        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),(int)locus.getLocation().getStart(),(float)locus.getRmsMapping(),locus.getReferencebase(),locus.getReadDepth(),obj);        
     }
 
     /**

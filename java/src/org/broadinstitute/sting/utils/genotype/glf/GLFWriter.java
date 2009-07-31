@@ -4,10 +4,10 @@ import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.genotype.GenotypeOutput;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import org.broadinstitute.sting.utils.genotype.calls.GenotypeCall;
 import org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall;
 
 import java.io.DataOutputStream;
@@ -60,6 +60,8 @@ public class GLFWriter implements GenotypeWriter {
     // the last position written
     private int lastPos = 1;
 
+    int getRidOfMe = 0;
+
     /**
      * The public constructor for creating a GLF object
      *
@@ -90,6 +92,11 @@ public class GLFWriter implements GenotypeWriter {
                                 int readDepth,
                                 LikelihoodObject lhValues) {
 
+        getRidOfMe++;
+        if (getRidOfMe == 500) {
+            this.close();
+        } else if (getRidOfMe < 500) {
+                System.err.println(contig.getSequenceName() + ":" + genomicLoc);
         // check if we've jumped to a new contig
         checkSequence(contig.getSequenceName(), contig.getSequenceLength());
 
@@ -100,6 +107,7 @@ public class GLFWriter implements GenotypeWriter {
                 lhValues.toDoubleArray());
         lastPos = genomicLoc;
         call.write(this.outputBinaryCodec);
+        }
     }
 
     /**
@@ -108,11 +116,11 @@ public class GLFWriter implements GenotypeWriter {
      * @param locus
      */
     @Override
-    public void addGenotypeCall(GenotypeCall locus) {
+    public void addGenotypeCall(GenotypeOutput locus) {
         SSGGenotypeCall call = (SSGGenotypeCall)locus;
         LikelihoodObject obj = new LikelihoodObject(call.getLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
         obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);  // transform! ... to negitive log likelihoods
-        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),(int)locus.getLocation().getStart(),(float)0.0,locus.getReferencebase(),0,obj);
+        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),(int)locus.getLocation().getStart(),(float)locus.getRmsMapping(),locus.getReferencebase(),locus.getReadDepth(),obj);
     }
 
     /**

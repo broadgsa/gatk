@@ -6,10 +6,11 @@ import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.GenotypeOutput;
 import org.broadinstitute.sting.utils.genotype.LexigraphicalComparator;
-import org.broadinstitute.sting.utils.genotype.Variant;
 import org.broadinstitute.sting.utils.genotype.confidence.BayesianConfidenceScore;
 import org.broadinstitute.sting.utils.genotype.confidence.ConfidenceScore;
+import org.broadinstitute.sting.utils.genotype.variant.Variant;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,7 +26,7 @@ import java.util.TreeMap;
  *         The single sample genotypers implementation of the genotype call, which contains
  *          extra information for the various genotype outputs
  */
-public class SSGGenotypeCall implements GenotypeCall {
+public class SSGGenotypeCall implements GenotypeCall, GenotypeOutput {
     // our stored genotype locus
     private final String mRefBase;
     private final int mPloidy;

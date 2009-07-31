@@ -38,7 +38,7 @@ public interface GenotypeWriter {
      * Add a genotype, given a genotype locus
      * @param locus the locus to add
      */
-    public void addGenotypeCall(org.broadinstitute.sting.utils.genotype.calls.GenotypeCall locus);
+    public void addGenotypeCall(GenotypeOutput locus);
 
     /**
      * add a no call to the genotype file, if supported.

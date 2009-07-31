@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.geli;
 
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.calls.GenotypeCall;
+import org.broadinstitute.sting.utils.genotype.GenotypeOutput;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall;
 
@@ -40,7 +40,7 @@ public class GeliTextWriter implements GenotypeWriter {
      *
      * @param locus the locus to add
      */
-    public void addGenotypeCall(GenotypeCall locus) {
+    public void addGenotypeCall(GenotypeOutput locus) {
         SSGGenotypeCall call = (SSGGenotypeCall)locus;
 
         mWriter.println( String.format("%s    %16d  %c  %8d  %d  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",

@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.calls.GenotypeCall;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -42,19 +41,23 @@ public class TabularLFWriter implements GenotypeWriter {
      * @param locus the locus to add
      */
     @Override
-    public void addGenotypeCall(GenotypeCall locus) {
-        /*outStream.println(String.format("%s %s %c %s %s %f %f %f %f %d %s",
-	                                        locus.getLocation(),
+    public void addGenotypeCall(GenotypeOutput locus) {
+        /**
+         * This output is not correct, but I don't we even use this format anymore.  If we do, someone
+         * should change this code
+          */
+        outStream.println(String.format("%s %s %c %s %s %f %f %f %f %d %s",
+	                                        locus.getLocation().toString(),
 											"NOT OUTPUTED",
 	                                        locus.getReferencebase(),
-	                                        locus.getGenotypes().get(1).getBases().,
-											genotype(),
-	                                        qhat,
-	                                        qstar,
-                                            lodVsRef,
-                                            lodVsNextBest,
-	                                        depth,
-											bases);   */
+	                                        locus.getBases(),
+											locus.getBases(),
+	                                        -1,
+	                                        -1,
+                                            locus.getBestRef(),
+                                            locus.getBestNext(),
+	                                        locus.getReadDepth(),
+											locus.getBases()));
     }
 
     /**

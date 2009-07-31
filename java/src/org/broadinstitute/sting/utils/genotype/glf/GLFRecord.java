@@ -204,7 +204,7 @@ public abstract class GLFRecord {
         short bite = ((short) (this.getRecordType().getReadTypeValue() << 4 | (refBase.getBaseHexValue() & 0x0f)));
         out.writeUByte((short) (this.getRecordType().getReadTypeValue() << 4 | (refBase.getBaseHexValue() & 0x0f)));
         out.writeUInt(((Long) offset).intValue());
-        int write = ((new Long(readDepth).intValue() & 0xffffff) | this.minimumLikelihood & 0xff << 24);
+        long write = (long) ((long)(readDepth & 0xffffff) | (long)(this.minimumLikelihood & 0xff) << 24);
         out.writeUInt(write);
         out.writeUByte((short) rmsMapQ);
     }
@@ -250,7 +250,7 @@ public abstract class GLFRecord {
         for (double d : vals) {
             if (d < min) min = d;
         }
-        return (min > 255) ? 255 : (short)min;
+        return GLFRecord.toCappedShort(min);
     }
 
     public REF_BASE getRefBase() {
