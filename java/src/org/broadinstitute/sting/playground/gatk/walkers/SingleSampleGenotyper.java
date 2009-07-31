@@ -42,11 +42,9 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
     @Argument(fullName = "call_indels", shortName = "indels", doc = "Call indels as well as point mutations", required = false) public Boolean CALL_INDELS = false;
 
     // Control how the genotype hypotheses are weighed
-    @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false) public Double heterozygosity = 0.001;
+    @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false) public Double heterozygosity = GenotypeLikelihoods.HUMAN_HETEROZYGOSITY;
     @Argument(fullName = "priors_hapmap", shortName = "phapmap", doc = "Comma-separated prior likelihoods for Hapmap loci (homref,het,homvar)", required = false) public String PRIORS_HAPMAP = "0.999,1e-3,1e-5";
     @Argument(fullName = "priors_dbsnp", shortName = "pdbsnp", doc = "Comma-separated prior likelihoods for dbSNP loci (homref,het,homvar)", required = false) public String PRIORS_DBSNP = "0.999,1e-3,1e-5";
-    @Argument(fullName = "priors_2nd_on", shortName = "p2ndon", doc = "Comma-separated prior likelihoods for the secondary bases of primary on-genotype bases (AA,AC,AG,AT,CC,CG,CT,GG,GT,TT)", required = false) public String PRIORS_2ND_ON = "0.000,0.302,0.366,0.142,0.000,0.548,0.370,0.000,0.319,0.000";
-    @Argument(fullName = "priors_2nd_off", shortName = "p2ndoff", doc = "Comma-separated prior likelihoods for the secondary bases of primary off-genotype bases (AA,AC,AG,AT,CC,CG,CT,GG,GT,TT)", required = false) public String PRIORS_2ND_OFF = "0.480,0.769,0.744,0.538,0.575,0.727,0.768,0.589,0.762,0.505";
 
     // Control various sample-level settings
     @Argument(fullName = "sample_name_regex", shortName = "sample_name_regex", doc = "Replaces the sample name specified in the BAM read group with the value supplied here", required = false) public String SAMPLE_NAME_REGEX = null;
@@ -60,8 +58,6 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
     public double[] plocus;
     public double[] phapmap;
     public double[] pdbsnp;
-    public double[] p2ndon;
-    public double[] p2ndoff;
 
     public long nFilteredQ0Bases = 0;
 
@@ -105,23 +101,13 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
         return pdbls;
     }
 
-    private double[] computePriors(double h) {
-        double[] pdbls = new double[3];
-        pdbls[0] = 1.0 - (3.0 * h / 2.0);
-        pdbls[1] = h;
-        pdbls[2] = h / 2.0;
-        return pdbls;
-    }
-
     /** Initialize the walker with some sensible defaults */
     public void initialize() {
         metricsOut = new AlleleMetrics(METRICS_FILE, LOD_THRESHOLD);
 
-        plocus = computePriors(heterozygosity);
+        plocus = GenotypeLikelihoods.computePriors(heterozygosity);
         phapmap = priorsArray(PRIORS_HAPMAP);
         pdbsnp = priorsArray(PRIORS_DBSNP);
-        p2ndon = priorsArray(PRIORS_2ND_ON);
-        p2ndoff = priorsArray(PRIORS_2ND_OFF);
     }
 
     /**
@@ -134,9 +120,12 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
      * @return an AlleleFrequencyEstimate object
      */
     public SSGGenotypeCall map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        rationalizeSampleName(context.getReads().get(0));
+        //rationalizeSampleName(context.getReads().get(0));
+
+        // todo -- totally convoluted code!
+
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-        GenotypeLikelihoods G = callGenotype(tracker);
+        GenotypeLikelihoods G = makeGenotypeLikelihood(tracker);
         G.setDiscovery(GENOTYPE); // set it to discovery mode or variant detection mode
         SSGGenotypeCall geno = (SSGGenotypeCall)G.callGenotypes(tracker, ref, pileup);
         if (geno != null) {
@@ -147,6 +136,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
         }
         return geno;
     }
+
 
     /**
      * Sometimes the sample names in the BAM files get screwed up.  Fix it here if we can.
@@ -183,16 +173,19 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
      *
      * @return the likelihoods per genotype
      */
-    private GenotypeLikelihoods callGenotype(RefMetaDataTracker tracker) {
+    private GenotypeLikelihoods makeGenotypeLikelihood(RefMetaDataTracker tracker) {
         GenotypeLikelihoods G = null;
 
         if (isHapmapSite(tracker)) {
-            G = new GenotypeLikelihoods(THREE_BASE_ERRORS, phapmap[0], phapmap[1], phapmap[2], p2ndon, p2ndoff, keepQ0Bases);
+            G = new GenotypeLikelihoods(GenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
         } else if (isDbSNPSite(tracker)) {
-            G = new GenotypeLikelihoods(THREE_BASE_ERRORS, pdbsnp[0], pdbsnp[1], pdbsnp[2], p2ndon, p2ndoff, keepQ0Bases);
+            G = new GenotypeLikelihoods(pdbsnp[0], pdbsnp[1], pdbsnp[2]);
         } else {
-            G = new GenotypeLikelihoods(THREE_BASE_ERRORS, plocus[0], plocus[1], plocus[2], p2ndon, p2ndoff, keepQ0Bases);
+            G = new GenotypeLikelihoods(plocus[0], plocus[1], plocus[2]);
         }
+
+        G.filterQ0Bases(! keepQ0Bases);
+
         return G;
     }
 

@@ -35,12 +35,6 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
     int[] HLAstoppos;
     int numHLAlleles = 0;
     double[][] Prob; String[][] Alleles;
-    boolean THREE_BASE_ERRORS = false;
-    String PRIORS_2ND_ON  = "0.000,0.302,0.366,0.142,0.000,0.548,0.370,0.000,0.319,0.000";
-    String PRIORS_2ND_OFF = "0.480,0.769,0.744,0.538,0.575,0.727,0.768,0.589,0.762,0.505";
-    double[] p2ndon = priorsArray(PRIORS_2ND_ON);
-    double[] p2ndoff = priorsArray(PRIORS_2ND_OFF);
-    boolean keepQ0Bases = false;
 
     //HLAreads.add("Italian Riviera");
 
@@ -108,7 +102,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             }
             out.printf("%sAs\t%sCs\t%sTs\t%sGs\t",numAs,numCs,numTs,numGs);
 
-            GenotypeLikelihoods G = new GenotypeLikelihoods(THREE_BASE_ERRORS,0.999,0.000333,0.000667, p2ndon, p2ndoff, keepQ0Bases);
+            GenotypeLikelihoods G = new GenotypeLikelihoods(GenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
             SSGGenotypeCall geno = (SSGGenotypeCall)G.callGenotypes(tracker, ref, pileup);
 
             

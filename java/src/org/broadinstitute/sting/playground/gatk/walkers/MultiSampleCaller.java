@@ -150,7 +150,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 
 		if (bases.length() == 0)
 		{
-	        GenotypeLikelihoods G = new GenotypeLikelihoods();
+	        GenotypeLikelihoods G = new GenotypeLikelihoods(GenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
 	        return G;
 		}
 
@@ -159,7 +159,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
         ref = Character.toUpperCase(ref);
         
 		// Handle single-base polymorphisms.
-        GenotypeLikelihoods G = new GenotypeLikelihoods();
+        GenotypeLikelihoods G = new GenotypeLikelihoods(GenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
         for ( int i = 0; i < reads.size(); i++ )  
         {
             SAMRecord read = reads.get(i);
@@ -388,7 +388,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 
 	GenotypeLikelihoods HardyWeinberg(double[] allele_likelihoods)
 	{
-		GenotypeLikelihoods G = new GenotypeLikelihoods();
+		GenotypeLikelihoods G = new GenotypeLikelihoods(GenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
 		int k = 0;
 		for (int i = 0; i < 4; i++)
 		{ 

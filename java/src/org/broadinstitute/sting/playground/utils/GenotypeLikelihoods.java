@@ -30,7 +30,7 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
     private static final double[] oneMinusData = new double[Byte.MAX_VALUE];
     private static final double[] oneHalfMinusDataArachne = new double[Byte.MAX_VALUE];
     private static final double[] oneHalfMinusData3Base = new double[Byte.MAX_VALUE];
-    private final boolean keepQ0Bases;
+    private final boolean keepQ0Bases = false;
     private static final double log10Of1_3 = log10(1.0 / 3);
     private static final double log10Of2_3 = log10(2.0 / 3);
 
@@ -79,8 +79,27 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
     private double priorHet;
     private double priorHomVar;
     private double[] oneHalfMinusData;
-    private boolean threeBaseErrors = false;
+
+    public boolean isThreeStateErrors() {
+        return threeStateErrors;
+    }
+
+    public void setThreeStateErrors(boolean threeStateErrors) {
+        this.threeStateErrors = threeStateErrors;
+    }
+
+    private boolean threeStateErrors = false;
     private boolean discoveryMode = false;
+
+    public static final double HUMAN_HETEROZYGOSITY = 1e-3;
+
+    public static double[] computePriors(double h) {
+        double[] pdbls = new double[3];
+        pdbls[0] = 1.0 - (3.0 * h / 2.0);
+        pdbls[1] = h;
+        pdbls[2] = h / 2.0;
+        return pdbls;
+    }
 
     /**
      * set the mode to discovery
@@ -95,23 +114,13 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
     // Store the 2nd-best base priors for off-genotype primary bases
     private HashMap<String, Double> offNextBestBasePriors = new HashMap<String, Double>();
 
-    public GenotypeLikelihoods() {
-        double[] p2ndon = {0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000};
-        double[] p2ndoff = {0.480, 0.769, 0.744, 0.538, 0.575, 0.727, 0.768, 0.589, 0.762, 0.505};
-        keepQ0Bases = true;
-        initialize(false, 1.0 - 1e-3, 1e-3, 1e-5, p2ndon, p2ndoff);
+    public GenotypeLikelihoods(double heterozygosity) {
+        double[] vals = computePriors(heterozygosity);
+        initialize(vals[0], vals[1], vals[2]);
     }
 
-    public GenotypeLikelihoods(boolean threeBaseErrors , double priorHomRef, double priorHet, double priorHomVar) {
-        double[] p2ndon = {0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000};
-        double[] p2ndoff = {0.480, 0.769, 0.744, 0.538, 0.575, 0.727, 0.768, 0.589, 0.762, 0.505};
-        keepQ0Bases = true;
-        initialize(threeBaseErrors, priorHomRef, priorHet, priorHomVar, p2ndon, p2ndoff);
-    }
-
-    public GenotypeLikelihoods(boolean threeBaseErrors , double priorHomRef, double priorHet, double priorHomVar, double[] p2ndon, double[] p2ndoff, boolean keepQ0Bases) {
-        this.keepQ0Bases = keepQ0Bases;
-        initialize(threeBaseErrors, priorHomRef, priorHet, priorHomVar, p2ndon, p2ndoff);
+    public GenotypeLikelihoods(double priorHomRef, double priorHet, double priorHomVar) {
+        initialize(priorHomRef, priorHet, priorHomVar);
     }
 
     /**
@@ -131,9 +140,8 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
         this.filterQ0Bases = filterQ0Bases;
     }
 
-    private void initialize(boolean threeBaseErrors , double priorHomRef, double priorHet, double priorHomVar, double[] p2ndon, double[] p2ndoff) {
-        this.threeBaseErrors  = threeBaseErrors ;
-        this.oneHalfMinusData = threeBaseErrors ? oneHalfMinusData3Base : oneHalfMinusDataArachne;
+    private void initialize(double priorHomRef, double priorHet, double priorHomVar) {
+        this.oneHalfMinusData = threeStateErrors ? oneHalfMinusData3Base : oneHalfMinusDataArachne;
 
         this.priorHomRef = priorHomRef;
         this.priorHet = priorHet;
@@ -144,11 +152,6 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
 		coverage = 0;
 
 		for (int i = 0; i < likelihoods.length; i++) { likelihoods[i] = Math.log10(0.1); }
-
-        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
-            onNextBestBasePriors.put(genotypes[genotypeIndex], p2ndon[genotypeIndex]);
-            offNextBestBasePriors.put(genotypes[genotypeIndex], p2ndoff[genotypeIndex]);
-        }
     }
 
     public double getHomRefPrior() {
@@ -173,38 +176,6 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
 
     public void setHomVarPrior(double priorHomVar) {
         this.priorHomVar = priorHomVar;
-    }
-
-    public double[] getOnGenotypeSecondaryPriors() {
-        double[] p2ndon = new double[10];
-
-        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
-            p2ndon[genotypeIndex] = onNextBestBasePriors.get(genotypes[genotypeIndex]);
-        }
-
-        return p2ndon;
-    }
-
-    public void setOnGenotypeSecondaryPriors(double[] p2ndon) {
-        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
-            onNextBestBasePriors.put(genotypes[genotypeIndex], p2ndon[genotypeIndex]);
-        }
-    }
-
-    public double[] getOffGenotypeSecondaryPriors() {
-        double[] p2ndoff = new double[10];
-
-        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
-            p2ndoff[genotypeIndex] = offNextBestBasePriors.get(genotypes[genotypeIndex]);
-        }
-
-        return p2ndoff;
-    }
-
-    public void setOffGenotypeSecondaryPriors(double[] p2ndoff) {
-        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
-            offNextBestBasePriors.put(genotypes[genotypeIndex], p2ndoff[genotypeIndex]);
-        }
     }
 
     public int add(char ref, char read, byte qual)
@@ -253,7 +224,7 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
         } else if ( (h1 != h2) && ((h1 == read) || (h2 == read)) ) {
             // het
             p_base = getOneHalfMinusQual(qual);
-        } else if ( this.threeBaseErrors ) {
+        } else if ( threeStateErrors ) {
             // error
             //System.out.printf("%s %b %f %f%n", genotype, h1 != h2, log10Of2_3, log10Of1_3 );
             p_base = qual / -10.0 + ( h1 != h2 ? log10Of1_3 : log10Of1_3 );
@@ -329,48 +300,6 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
         this.sort();
     }
 
-    public void applySecondBaseDistributionPrior(String primaryBases, String secondaryBases) {
-        for (int genotypeIndex = 0; genotypeIndex < genotypes.length; genotypeIndex++) {
-            char firstAllele = genotypes[genotypeIndex].charAt(0);
-            char secondAllele = genotypes[genotypeIndex].charAt(1);
-
-            int offIsGenotypic = 0;
-            int offTotal = 0;
-
-            int onIsGenotypic = 0;
-            int onTotal = 0;
-
-            for (int pileupIndex = 0; pileupIndex < primaryBases.length(); pileupIndex++) {
-                char primaryBase = primaryBases.charAt(pileupIndex);
-
-                if (secondaryBases != null) {
-                    char secondaryBase = secondaryBases.charAt(pileupIndex);
-
-                    if (primaryBase != firstAllele && primaryBase != secondAllele) {
-                        if (secondaryBase == firstAllele || secondaryBase == secondAllele) {
-                            offIsGenotypic++;
-                        }
-                        offTotal++;
-                    } else {
-                        if (secondaryBase == firstAllele || secondaryBase == secondAllele) {
-                            onIsGenotypic++;
-                        }
-                        onTotal++;
-                    }
-                }
-            }
-
-            double offPrior = MathUtils.binomialProbability(offIsGenotypic, offTotal, offNextBestBasePriors.get(genotypes[genotypeIndex]));
-            double onPrior = MathUtils.binomialProbability(onIsGenotypic, onTotal, onNextBestBasePriors.get(genotypes[genotypeIndex]));
-
-            double logOffPrior = MathUtils.compareDoubles(offPrior, 0.0, 1e-10) == 0 ? Math.log10(Double.MIN_VALUE) : Math.log10(offPrior);
-            double logOnPrior = MathUtils.compareDoubles(onPrior, 0.0, 1e-10) == 0 ? Math.log10(Double.MIN_VALUE) : Math.log10(onPrior);
-
-            likelihoods[genotypeIndex] += logOffPrior + logOnPrior;
-        }
-        this.sort();
-    }
-
     public double LodVsNextBest() {
         this.sort();
         return sorted_likelihoods[0] - sorted_likelihoods[1];
@@ -438,14 +367,13 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
             int offset = pileup.getOffsets().get(i);
             char base = read.getReadString().charAt(offset);
             byte qual = read.getBaseQualities()[offset];
-            add(ref, base, qual);            
+            add(ref, base, qual);
         }
         // save off the likelihoods
         if (likelihoods == null || likelihoods.length == 0) return null;
 
         // Apply the two calculations
         applyPrior(ref);
-        applySecondBaseDistributionPrior(pileup.getBases(), pileup.getSecondaryBasePileup());
 
         // lets setup the locus
         List<Genotype> lst = new ArrayList<Genotype>();
@@ -454,5 +382,4 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
         }
         return new SSGGenotypeCall(discoveryMode,ref,2,lst,likelihoods,pileup);
     }
-
 }
