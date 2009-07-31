@@ -92,12 +92,7 @@ public class GLFWriter implements GenotypeWriter {
                                 int readDepth,
                                 LikelihoodObject lhValues) {
 
-        getRidOfMe++;
-        if (getRidOfMe == 500) {
-            this.close();
-        } else if (getRidOfMe < 500) {
-                System.err.println(contig.getSequenceName() + ":" + genomicLoc);
-        // check if we've jumped to a new contig
+       // check if we've jumped to a new contig
         checkSequence(contig.getSequenceName(), contig.getSequenceLength());
 
         SinglePointCall call = new SinglePointCall(refBase,
@@ -107,7 +102,6 @@ public class GLFWriter implements GenotypeWriter {
                 lhValues.toDoubleArray());
         lastPos = genomicLoc;
         call.write(this.outputBinaryCodec);
-        }
     }
 
     /**
