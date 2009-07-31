@@ -135,11 +135,9 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
      */
     public SSGGenotypeCall map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         rationalizeSampleName(context.getReads().get(0));
-        if (context.getLocation().getStart() == 73) {
-            int stop = 1;
-        }
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         GenotypeLikelihoods G = callGenotype(tracker);
+        G.setDiscovery(GENOTYPE); // set it to discovery mode or variant detection mode
         SSGGenotypeCall geno = (SSGGenotypeCall)G.callGenotypes(tracker, ref, pileup);
         if (geno != null) {
             metricsOut.nextPosition(geno, tracker);
@@ -238,8 +236,8 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
      *
      * @return an empty string
      */
-    public GenotypeWriter reduce(org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall call, GenotypeWriter sum) {
-        if (call != null && call.isVariation()) {
+    public GenotypeWriter reduce(SSGGenotypeCall call, GenotypeWriter sum) {
+        if (call != null && (GENOTYPE || call.isVariation())) {
             if (call.getConfidenceScore().getScore() > LOD_THRESHOLD)
                 sum.addGenotypeCall(call);
         }

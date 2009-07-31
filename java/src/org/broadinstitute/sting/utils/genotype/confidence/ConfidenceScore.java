@@ -12,8 +12,11 @@ public abstract class ConfidenceScore implements Comparable<ConfidenceScore> {
     // the general error of a floating point value
     private static final Double EPSILON = 1.0e-15;
 
+    /**
+     * the method we use to generate this confidence
+     */
     public enum SCORE_METHOD {
-        LOD_SCORE, UNKNOWN;
+        LOD_SCORE, CHIP, UNKNOWN;
     }
 
     private Double mScore;

@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.variant;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.genotype.confidence.ConfidenceScore;
 
 /**
  * @author aaron
@@ -12,7 +13,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 public interface Variant {
     // the types of variants we currently allow
     public enum VARIANT_TYPE {
-        SNP, INDEL, DELETION, REFERENCE
+        SNP, INDEL, DELETION, REFERENCE // though reference is not really a variant
     }
 
     /**
@@ -21,6 +22,13 @@ public interface Variant {
      * @return VariantFrequency with the stored frequency
      */
     public VariantFrequency getFrequency();
+
+    /**
+     * get the confidence score for this variance
+     *
+     * @return the confidence score
+     */
+    public ConfidenceScore getConfidenceScore();
 
     /** @return the VARIANT_TYPE of the current variant */
     public VARIANT_TYPE getType();
@@ -57,7 +65,10 @@ public interface Variant {
      * @return a GenomeLoc
      */
     public GenomeLoc getLocation();
-    
 
-
+    /**
+     * get the reference base(s) at this position
+     * @return the reference base or bases, as a string
+     */
+    public String getReference();
 }
