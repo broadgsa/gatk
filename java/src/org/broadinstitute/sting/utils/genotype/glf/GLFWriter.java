@@ -60,8 +60,6 @@ public class GLFWriter implements GenotypeWriter {
     // the last position written
     private int lastPos = 1;
 
-    int getRidOfMe = 0;
-
     /**
      * The public constructor for creating a GLF object
      *

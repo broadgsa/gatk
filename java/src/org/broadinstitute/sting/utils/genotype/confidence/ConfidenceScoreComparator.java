@@ -1,4 +1,6 @@
-package org.broadinstitute.sting.utils.genotype;
+package org.broadinstitute.sting.utils.genotype.confidence;
+
+import org.broadinstitute.sting.utils.genotype.Genotype;
 
 import java.util.Comparator;
 

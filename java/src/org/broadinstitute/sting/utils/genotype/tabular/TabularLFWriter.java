@@ -1,6 +1,8 @@
-package org.broadinstitute.sting.utils.genotype;
+package org.broadinstitute.sting.utils.genotype.tabular;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.broadinstitute.sting.utils.genotype.GenotypeOutput;
 
 import java.io.File;
 import java.io.FileNotFoundException;
