@@ -60,8 +60,9 @@ public class VECAlleleBalance implements VariantExclusionCriterion {  //extends 
     public void compute(char ref, LocusContext context, rodVariants variant) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
-        ratio = (double)counts.first / (double)counts.second;
-        exclude = ratio < lowThreshold || ratio > highThreshold;
+        int n = counts.first + counts.second;
+        ratio = counts.first.doubleValue() / (double)n;
+        exclude = (1.0 - ratio) < lowThreshold || ratio > highThreshold;
     }
 
     public boolean useZeroQualityReads() { return false; }
@@ -71,7 +72,7 @@ public class VECAlleleBalance implements VariantExclusionCriterion {  //extends 
     }
 
     public String getStudyHeader() {
-        return "AlleleBalance("+lowThreshold+","+highThreshold+")\tMajorMinorRatio";
+        return "AlleleBalance("+lowThreshold+","+highThreshold+")\tMajorRatio";
     }
 
     public String getStudyInfo() {

@@ -7,13 +7,11 @@ import org.broadinstitute.sting.utils.*;
 public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // extends RatioFilter {
     //final private static GenotypeFeatureData.Tail tail = GenotypeFeatureData.Tail.LeftTailed;
     private boolean exclude;
-    private double lowThreshold, highThreshold, ratio;
+    private double threshold, ratio;
 
     public void initialize(String arguments) {
         if (arguments != null && !arguments.isEmpty()) {
-            String[] argPieces = arguments.split(",");
-            lowThreshold = Double.valueOf(argPieces[0]);
-            highThreshold = Double.valueOf(argPieces[1]);
+            threshold = Double.valueOf(arguments);
         }
     }
 
@@ -60,8 +58,9 @@ public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // ext
     public void compute(char ref, LocusContext context, rodVariants variant) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
-        ratio = (double)counts.first / (double)counts.second;
-        exclude = ratio < lowThreshold || ratio > highThreshold;
+        int n = counts.first + counts.second;
+        ratio = counts.first.doubleValue() / (double)n;
+        exclude = ratio < threshold;
     }
 
     public boolean useZeroQualityReads() { return false; }
@@ -71,7 +70,7 @@ public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // ext
     }
 
     public String getStudyHeader() {
-        return "OnOffGenotype("+lowThreshold+","+highThreshold+")\tMajorMinorRatio";
+        return "OnOffGenotype("+threshold+")\tOnRatio";
     }
 
     public String getStudyInfo() {

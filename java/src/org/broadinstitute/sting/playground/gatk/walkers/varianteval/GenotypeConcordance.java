@@ -2,8 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.*;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -53,7 +52,7 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
             truthIndex = UNKNOWN;
         else if ( chip.isReference() && Utils.countOccurrences(ref, chip.getGenotype().get(0)) == chip.getGenotype().get(0).length() )
             truthIndex = REF;
-        else if ( isHet(chip) )
+        else if ( GenotypeUtils.isHet(chip) )
             truthIndex = VAR_HET;
         else
             truthIndex = VAR_HOM;
@@ -63,7 +62,7 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
             callIndex = NO_CALL;
         else if ( eval.isReference() && Utils.countOccurrences(ref, eval.getGenotype().get(0)) == eval.getGenotype().get(0).length() )
             callIndex = REF;
-        else if ( isHet(eval) )
+        else if ( GenotypeUtils.isHet(eval) )
             callIndex = VAR_HET;
         else
             callIndex = VAR_HOM;
@@ -162,16 +161,5 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
         sb.append(String.format("%.2f", (100.0*count)/total));
         sb.append("%");
         return sb.toString();
-    }
-
-    private static boolean isHet(AllelicVariant var) {
-        if ( var instanceof Genotype )
-            return ((Genotype)var).isHet();
-
-        List<String> genotype = var.getGenotype();
-        if ( genotype.size() < 1 )
-            return false;
-
-        return genotype.get(0).charAt(0) != genotype.get(0).charAt(1);
     }
 }

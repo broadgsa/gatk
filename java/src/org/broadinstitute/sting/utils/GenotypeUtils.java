@@ -6,6 +6,7 @@ import java.util.List;
 import org.broadinstitute.sting.gatk.refdata.Genotype;
 import org.broadinstitute.sting.gatk.refdata.GenotypeList;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 
 /** Holds useful utility methods and auxiliary default classes for working with Genotype objects
  * 
@@ -76,8 +77,17 @@ public class GenotypeUtils {
 		else throw new StingException("track "+rod.getName()+" is not a Genotype or GenotypeList");
 	}
 
+    public static boolean isHet(AllelicVariant var) {
+        if ( var instanceof Genotype )
+            return ((Genotype)var).isHet();
 
-	
+        List<String> genotype = var.getGenotype();
+        if ( genotype.size() < 1 )
+            return false;
+
+        return genotype.get(0).charAt(0) != genotype.get(0).charAt(1);
+    }
+
 	/** This class represents a "default" indel-type genotype with homozygous reference (i.e. confidently no indel)
 	 * call. All the interface methods are implemented and return consistent values. Use this class when working with
 	 * genotyping data where absence of explicit indel call actually means that no evidence for an indel was observed 

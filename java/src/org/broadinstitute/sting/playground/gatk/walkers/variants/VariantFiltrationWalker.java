@@ -2,18 +2,11 @@ package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.RMD;
-import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.PackageUtils;
-import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.playground.gatk.walkers.variants.*;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.*;
@@ -41,6 +34,8 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     private PrintWriter vwriter;
     private HashMap<String, PrintWriter> ewriters;
     private HashMap<String, PrintWriter> swriters;
+    private final String STUDY_NAME = "study";
+    private final String knownSNPDBName = "dbSNP";
 
     private ArrayList<IndependentVariantFeature> requestedFeatures;
     private ArrayList<VariantExclusionCriterion> requestedExclusions;
@@ -62,10 +57,16 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             vwriter = new PrintWriter(VARIANTS_OUT_HEAD + ".included.geli.calls");
             vwriter.println(AlleleFrequencyEstimate.geliHeaderString());
 
+            swriters = new HashMap<String, PrintWriter>();
+
+            if (LEARNING) {
+                PrintWriter studyWriter = new PrintWriter(VARIANTS_OUT_HEAD + "." + STUDY_NAME);
+                swriters.put(STUDY_NAME, studyWriter);
+                studyWriter.print("#Chr\tPosition\t");
+            }
+
             requestedFeatures = new ArrayList<IndependentVariantFeature>();
             requestedExclusions = new ArrayList<VariantExclusionCriterion>();
-
-            swriters = new HashMap<String, PrintWriter>();
 
             // Initialize requested features
             if (FEATURES != null) {
@@ -81,15 +82,10 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                             try {
                                 IndependentVariantFeature ivf = (IndependentVariantFeature) featureClass.newInstance();
                                 ivf.initialize(requestedFeatureArgs);
-
-                                if (LEARNING) {
-                                    PrintWriter studyWriter = new PrintWriter(VARIANTS_OUT_HEAD + "." + featureClassName + ".study");
-                                    studyWriter.println(ivf.getStudyHeader());
-
-                                    swriters.put(featureClassName, studyWriter);
-                                }
-
                                 requestedFeatures.add(ivf);
+
+                                if (LEARNING)
+                                    swriters.get(STUDY_NAME).print(ivf.getStudyHeader() + "\t");
                             } catch (InstantiationException e) {
                                 throw new StingException(String.format("Cannot instantiate feature class '%s': must be concrete class", featureClass.getSimpleName()));
                             } catch (IllegalAccessException e) {
@@ -116,15 +112,10 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                             try {
                                 VariantExclusionCriterion vec = (VariantExclusionCriterion) exclusionClass.newInstance();
                                 vec.initialize(requestedExclusionArgs);
-
-                                if (LEARNING) {
-                                    PrintWriter studyWriter = new PrintWriter(VARIANTS_OUT_HEAD + "." + exclusionClassName + ".study");
-                                    studyWriter.println(vec.getStudyHeader());
-
-                                    swriters.put(exclusionClassName, studyWriter);
-                                }
-
                                 requestedExclusions.add(vec);
+
+                                if (LEARNING)
+                                    swriters.get(STUDY_NAME).print(vec.getStudyHeader() + "\t");
 
                                 PrintWriter writer = new PrintWriter(VARIANTS_OUT_HEAD + ".excluded." + exclusionClassName + ".geli.calls");
                                 writer.println(AlleleFrequencyEstimate.geliHeaderString());
@@ -139,6 +130,8 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                     }
                 }
             }
+
+            swriters.get(STUDY_NAME).print("inDbSNP\tinHapMap\tisHet\n");
         } catch (FileNotFoundException e) {
             throw new StingException(String.format("Could not open file(s) for writing"));
         }
@@ -203,11 +196,13 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         if (variant != null && (!TRUTH || hapmapSite != null) && BaseUtils.simpleBaseToBaseIndex(ref) != -1) {
             if (VERBOSE) { out.println("Original:\n  " + variant); }
 
+            if (LEARNING) {
+                swriters.get(STUDY_NAME).print(context.getLocation().getContig() + "\t" + context.getLocation().getStart() + "\t");
+            }
+
             // Apply features that modify the likelihoods and LOD scores
             for ( IndependentVariantFeature ivf : requestedFeatures ) {
                 ivf.compute(ref, context);
-
-                String featureClassName = rationalizeClassName(ivf.getClass());
 
                 double[] weights = ivf.getLikelihoods();
 
@@ -216,10 +211,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                 if (VERBOSE) { out.println(rationalizeClassName(ivf.getClass()) + ":\n  " + variant); }
 
                 if (LEARNING) {
-                    PrintWriter swriter = swriters.get(featureClassName);
-                    if (swriter != null) {
-                        swriter.println(ivf.getStudyInfo());
-                    }
+                    swriters.get(STUDY_NAME).print(ivf.getStudyInfo() + "\t");
                 }
             }
 
@@ -240,12 +232,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                 }
 
                 if (LEARNING) {
-                    PrintWriter swriter = swriters.get(exclusionClassName);
-
-                    if (swriter != null) {
-                        swriter.println(vec.getStudyInfo());
-                        swriter.flush();
-                    }
+                    swriters.get(STUDY_NAME).print(vec.getStudyInfo() + "\t");
                 }
             }
 
@@ -266,6 +253,15 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             }
 
             if (VERBOSE) { out.println(); }
+
+            if (LEARNING) {
+                rodDbSNP dbsnp = (rodDbSNP)tracker.lookup(knownSNPDBName, null);
+                if ( dbsnp == null )
+                    swriters.get(STUDY_NAME).print("no\tno\t");
+                else
+                    swriters.get(STUDY_NAME).print(dbsnp.isSNP() + "\t" + dbsnp.isHapmap() + "\t");
+                swriters.get(STUDY_NAME).println(GenotypeUtils.isHet(variant));
+            }
 
             return 1;
         }
