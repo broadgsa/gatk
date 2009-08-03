@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoods;
 import org.broadinstitute.sting.playground.utils.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
@@ -169,7 +170,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
         G.applyPrior(ref, allele_likelihoods);
 
 		// Handle indels
-		if (CALL_INDELS)
+/*		if (CALL_INDELS)
 		{
 			String[] indels = BasicPileup.indelPileup(reads, offsets);
 			IndelLikelihood indel_call = new IndelLikelihood(indels, indel_alt_freq);
@@ -181,7 +182,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 			{
 				G.addIndelLikelihood(null);
 			}
-		}
+		}*/
 
 		/*
 		// Handle 2nd-best base calls.
@@ -229,7 +230,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		return allele_likelihoods;
 	}
 
-	double CountIndelFreq(GenotypeLikelihoods[] genotype_likelihoods)
+/*	double CountIndelFreq(GenotypeLikelihoods[] genotype_likelihoods)
 	{ 
 		HashMap<String, Double> indel_allele_likelihoods = new HashMap<String, Double>();
 
@@ -256,7 +257,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		pAlt = pAlt / (pRef + pAlt);
 
 		return pAlt;
-	}
+	}*/
 
 	// Potential precision error here.
 	double Compute_pD(GenotypeLikelihoods[] genotype_likelihoods)
@@ -346,10 +347,10 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		
 			allele_likelihoods = CountFreqs(G);
 
-			if (CALL_INDELS) 
-			{
-				indel_alt_freq = CountIndelFreq(G);
-			}
+//			if (CALL_INDELS)
+//			{
+//				indel_alt_freq = CountIndelFreq(G);
+//			}
 		}
 
 		return new EM_Result(sample_names, G, allele_likelihoods);

@@ -10,10 +10,11 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
-import org.broadinstitute.sting.playground.utils.GenotypeLikelihoods;
-import org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoods;
+import org.broadinstitute.sting.gatk.walkers.genotyper.SSGGenotypeCall;
+
 import java.io.*;
 import java.util.*;
 /**
@@ -103,7 +104,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             out.printf("%sAs\t%sCs\t%sTs\t%sGs\t",numAs,numCs,numTs,numGs);
 
             GenotypeLikelihoods G = new GenotypeLikelihoods(GenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
-            SSGGenotypeCall geno = (SSGGenotypeCall)G.callGenotypes(tracker, ref, pileup);
+            SSGGenotypeCall geno = G.callGenotypes(tracker, ref, pileup);
 
             
             double mLikelihoods[] = geno.getLikelihoods();

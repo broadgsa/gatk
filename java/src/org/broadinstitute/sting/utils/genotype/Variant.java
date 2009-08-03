@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.genotype.variant;
+package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.confidence.ConfidenceScore;
@@ -21,7 +21,7 @@ public interface Variant {
      *
      * @return VariantFrequency with the stored frequency
      */
-    public VariantFrequency getFrequency();
+    public double getNonRefAlleleFrequency();
 
     /**
      * get the confidence score for this variance

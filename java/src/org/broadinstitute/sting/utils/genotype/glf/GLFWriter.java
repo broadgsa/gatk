@@ -8,7 +8,7 @@ import org.broadinstitute.sting.utils.genotype.GenotypeOutput;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall;
+import org.broadinstitute.sting.gatk.walkers.genotyper.SSGGenotypeCall;
 
 import java.io.DataOutputStream;
 import java.io.File;

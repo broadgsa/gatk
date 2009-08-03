@@ -2,7 +2,7 @@ package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.confidence.ConfidenceScore;
-import org.broadinstitute.sting.utils.genotype.variant.Variant;
+import org.broadinstitute.sting.utils.genotype.Variant;
 
 /**
  * @author aaron

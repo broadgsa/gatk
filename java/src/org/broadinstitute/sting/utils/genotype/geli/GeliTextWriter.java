@@ -3,7 +3,7 @@ package org.broadinstitute.sting.utils.genotype.geli;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.GenotypeOutput;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall;
+import org.broadinstitute.sting.gatk.walkers.genotyper.SSGGenotypeCall;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -32,8 +32,10 @@ public class GeliTextWriter implements GenotypeWriter {
         } catch (FileNotFoundException e) {
             throw new StingException("Unable to open file " + file.toURI());
         }
-        mWriter.println("#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod    AA      AC      AG      AT      CC      CG      CT      GG      GT      TT");
+        mWriter.println(headerLine);
     }
+
+    public static String headerLine = "#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod    AA      AC      AG      AT      CC      CG      CT      GG      GT      TT";
 
     /**
      * Add a genotype, given a genotype locus

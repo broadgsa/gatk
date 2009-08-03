@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.genotype.calls;
+package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.Genotype;

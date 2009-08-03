@@ -1,20 +1,11 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
-import org.broadinstitute.sting.playground.utils.*;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.ReadBackedPileup;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.*;
 import java.util.zip.*;

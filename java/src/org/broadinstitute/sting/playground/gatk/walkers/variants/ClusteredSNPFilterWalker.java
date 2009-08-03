@@ -7,8 +7,8 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.genotype.geli.GeliTextWriter;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.io.*;
@@ -40,10 +40,10 @@ public class ClusteredSNPFilterWalker extends RefWalker<Integer, Integer> {
     public void initialize() {
         try {
             vwriter = new PrintWriter(VARIANTS_OUT);
-            vwriter.println(AlleleFrequencyEstimate.geliHeaderString());
+            vwriter.println(GeliTextWriter.headerLine);
             if ( FILTERED_OUT != null ) {
                 fwriter = new PrintWriter(FILTERED_OUT);
-                fwriter.println(AlleleFrequencyEstimate.geliHeaderString());
+                fwriter.println(GeliTextWriter.headerLine);
             }
         } catch (FileNotFoundException e) {
             throw new StingException(String.format("Could not open file for writing"));

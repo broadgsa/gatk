@@ -1,17 +1,13 @@
-package org.broadinstitute.sting.utils.genotype.calls;
+package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.genotype.BasicGenotype;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.GenotypeOutput;
-import org.broadinstitute.sting.utils.genotype.LexigraphicalComparator;
 import org.broadinstitute.sting.utils.genotype.confidence.BayesianConfidenceScore;
 import org.broadinstitute.sting.utils.genotype.confidence.ConfidenceScore;
-import org.broadinstitute.sting.utils.genotype.variant.Variant;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.*;
 

@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import org.broadinstitute.sting.utils.genotype.calls.GenotypeCall;
-
 /**
  * @author aaron
  *         <p/>

@@ -1,22 +1,16 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
-import org.broadinstitute.sting.playground.utils.AlleleMetrics;
-import org.broadinstitute.sting.playground.utils.GenotypeLikelihoods;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
-import org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall;
 
 import java.io.File;
 
@@ -108,13 +102,11 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
     }
 
     /**
-     * Compute the AlleleFrequencyEstimate at a given locus.
+     * Compute at a given locus.
      *
      * @param tracker the meta data tracker
      * @param ref     the reference base
      * @param context contextual information around the locus
-     *
-     * @return an AlleleFrequencyEstimate object
      */
     public SSGGenotypeCall map(RefMetaDataTracker tracker, char ref, LocusContext context) {
         SSGGenotypeCall oldAndBusted = mapOldAndBusted(tracker, ref, context);

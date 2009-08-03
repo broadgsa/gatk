@@ -3,8 +3,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.variants;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.genotype.geli.GeliTextWriter;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.io.FileNotFoundException;
@@ -55,7 +55,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
 
         try {
             vwriter = new PrintWriter(VARIANTS_OUT_HEAD + ".included.geli.calls");
-            vwriter.println(AlleleFrequencyEstimate.geliHeaderString());
+            vwriter.println(GeliTextWriter.headerLine);
 
             swriters = new HashMap<String, PrintWriter>();
 
@@ -118,7 +118,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                                     swriters.get(STUDY_NAME).print(vec.getStudyHeader() + "\t");
 
                                 PrintWriter writer = new PrintWriter(VARIANTS_OUT_HEAD + ".excluded." + exclusionClassName + ".geli.calls");
-                                writer.println(AlleleFrequencyEstimate.geliHeaderString());
+                                writer.println(GeliTextWriter.headerLine);
 
                                 ewriters.put(exclusionClassName, writer);
                             } catch (InstantiationException e) {

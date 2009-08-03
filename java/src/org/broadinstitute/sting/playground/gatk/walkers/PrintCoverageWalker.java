@@ -1,28 +1,12 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.utils.SWPairwiseAlignment;
-import org.broadinstitute.sting.playground.utils.GenotypeLikelihoods;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @By(DataSource.REFERENCE)
 public class PrintCoverageWalker extends LocusWalker<Integer, Integer> {

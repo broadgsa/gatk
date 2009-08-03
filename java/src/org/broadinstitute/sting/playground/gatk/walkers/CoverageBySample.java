@@ -6,9 +6,6 @@ import org.broadinstitute.sting.gatk.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.playground.gatk.walkers.AlleleFrequencyWalker;
-import org.broadinstitute.sting.playground.utils.AlleleFrequencyEstimate;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.BaseUtils;
 

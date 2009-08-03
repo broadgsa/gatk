@@ -154,7 +154,7 @@ public class BasicGenotype implements Genotype {
      * @return
      */
     @Override
-    public org.broadinstitute.sting.utils.genotype.variant.Variant toVariant() {
+    public Variant toVariant() {
         return null;
     }
 

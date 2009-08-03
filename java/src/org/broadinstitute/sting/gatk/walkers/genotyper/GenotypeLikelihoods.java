@@ -1,15 +1,11 @@
-package org.broadinstitute.sting.playground.utils;
+package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.GenotypeGenerator;
-import org.broadinstitute.sting.utils.genotype.calls.GenotypeCall;
-import org.broadinstitute.sting.utils.genotype.calls.SSGGenotypeCall;
 import org.broadinstitute.sting.utils.genotype.confidence.BayesianConfidenceScore;
 
 import static java.lang.Math.log10;
@@ -18,7 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class GenotypeLikelihoods implements GenotypeGenerator {
+public class GenotypeLikelihoods {
     // precalculate these for performance (pow/log10 is expensive!)
 
     /**
@@ -336,16 +332,6 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
         return this.ref_likelihood;
     }
 
-    private IndelLikelihood indel_likelihood;
-
-    public void addIndelLikelihood(IndelLikelihood indel_likelihood) {
-        this.indel_likelihood = indel_likelihood;
-    }
-
-    public IndelLikelihood getIndelLikelihood() {
-        return this.indel_likelihood;
-    }
-
     /**
      * given all the data associated with a locus, make a genotypeLocus object containing the likelihoods and posterior probs
      *
@@ -355,8 +341,7 @@ public class GenotypeLikelihoods implements GenotypeGenerator {
      *
      * @return a GenotypeLocus, containing each of the genotypes and their associated likelihood and posterior prob values
      */
-    @Override
-    public GenotypeCall callGenotypes(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup) {
+    public SSGGenotypeCall callGenotypes(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup) {
         filterQ0Bases(!keepQ0Bases); // Set the filtering / keeping flag
 
         // for calculating the rms of the mapping qualities
