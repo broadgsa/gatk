@@ -63,4 +63,8 @@ public abstract class ConfidenceScore implements Comparable<ConfidenceScore> {
      * @return a confidence score
      */
     public abstract double normalizedConfidenceScore();
+
+    public String toString() {
+        return String.format("%.2f %s", getScore(), getConfidenceType().toString());
+    }
 }

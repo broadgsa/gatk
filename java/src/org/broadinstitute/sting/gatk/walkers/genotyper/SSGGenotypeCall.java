@@ -82,7 +82,7 @@ public class SSGGenotypeCall implements GenotypeCall, GenotypeOutput {
 
         // reset the confidence based on either the discovery mode or the genotype mode
         for (Genotype g : genotypes) {
-            double val = (discoveryMode) ? Math.abs(likelihoods[index] - next) : Math.abs(likelihoods[index] - ref);
+            double val = (discoveryMode) ? Math.abs(likelihoods[index] - ref) : Math.abs(likelihoods[index] - next);
             ((BasicGenotype) g).setConfidenceScore(new BayesianConfidenceScore(val));
             mGenotypes.put(likelihoods[index], g);
             index++;

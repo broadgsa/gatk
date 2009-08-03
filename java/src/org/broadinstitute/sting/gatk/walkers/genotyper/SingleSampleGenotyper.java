@@ -11,8 +11,15 @@ import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
+import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.BasicGenotype;
+import org.broadinstitute.sting.utils.genotype.confidence.BayesianConfidenceScore;
 
 import java.io.File;
+import java.util.List;
+import java.util.ArrayList;
+
+import net.sf.samtools.SAMRecord;
 
 @ReadFilters(ZeroMappingQualityReadFilter.class)
 public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, GenotypeWriter> {
@@ -112,7 +119,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
         SSGGenotypeCall oldAndBusted = mapOldAndBusted(tracker, ref, context);
         SSGGenotypeCall newHotness = mapNewHotness(tracker, ref, context);
 
-        if ( ! oldAndBusted.equals(newHotness) ) {
+        if ( ! oldAndBusted.equals(newHotness) || true ) {
             System.out.printf("Calls not equal:%nold: %s%nnew: %s%n", oldAndBusted, newHotness);
         }
 
@@ -123,7 +130,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         GenotypeLikelihoods G = makeGenotypeLikelihood(tracker);
         G.setDiscovery(GENOTYPE); // set it to discovery mode or variant detection mode
-        SSGGenotypeCall geno = (SSGGenotypeCall)G.callGenotypes(tracker, ref, pileup);
+        SSGGenotypeCall geno = callGenotypes(G, tracker, ref, pileup);
         return geno;
     }
 
@@ -134,6 +141,43 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
         SSGGenotypeCall geno = (SSGGenotypeCall)G.callGenotypes(tracker, ref, pileup);
         return geno;
     }    
+
+    /**
+     * given all the data associated with a locus, make a genotypeLocus object containing the likelihoods and posterior probs
+     *
+     * @param tracker contains the reference meta data for this location, which may contain relevent information like dpSNP or hapmap information
+     * @param ref     the reference base
+     * @param pileup  a pileup of the reads, containing the reads and their offsets
+     *
+     * @return a GenotypeLocus, containing each of the genotypes and their associated likelihood and posterior prob values
+     */
+    public SSGGenotypeCall callGenotypes(GenotypeLikelihoods G, RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup) {
+        G.filterQ0Bases(!keepQ0Bases); // Set the filtering / keeping flag
+
+        // for calculating the rms of the mapping qualities
+        double squared = 0.0;
+        for (int i = 0; i < pileup.getReads().size(); i++) {
+            SAMRecord read = pileup.getReads().get(i);
+            squared += read.getMappingQuality() * read.getMappingQuality();
+            int offset = pileup.getOffsets().get(i);
+            char base = read.getReadString().charAt(offset);
+            byte qual = read.getBaseQualities()[offset];
+            G.add(ref, base, qual);
+        }
+
+        // save off the likelihoods
+        if (G.likelihoods == null || G.likelihoods.length == 0) return null;
+
+        // Apply the two calculations
+        G.applyPrior(ref);
+
+        // lets setup the locus
+        List<Genotype> lst = new ArrayList<Genotype>();
+        for (int x = 0; x < G.likelihoods.length; x++) {
+                lst.add(new BasicGenotype(pileup.getLocation(),GenotypeLikelihoods.genotypes[x],new BayesianConfidenceScore(G.likelihoods[x])));
+        }
+        return new SSGGenotypeCall(! GENOTYPE,ref,2,lst,G.likelihoods,pileup);
+    }
 
     /**
      * Calls the underlying, single locus genotype of the sample
@@ -200,8 +244,11 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
      */
     public GenotypeWriter reduce(SSGGenotypeCall call, GenotypeWriter sum) {
         if (call != null && (GENOTYPE || call.isVariation())) {
-            if (call.getConfidenceScore().getScore() > LOD_THRESHOLD)
+            System.out.printf("Score %s%n", call.getConfidenceScore());
+            if (call.getConfidenceScore().getScore() > LOD_THRESHOLD) {
+                System.out.printf("Call %s%n", call);                
                 sum.addGenotypeCall(call);
+            }
         }
         return sum;
     }
