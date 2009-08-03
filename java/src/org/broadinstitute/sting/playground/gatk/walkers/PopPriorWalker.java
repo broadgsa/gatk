@@ -34,13 +34,13 @@ public class PopPriorWalker extends LocusWalker<Integer, Integer> {
         return true;    // We are keeping all the reads
     }
 
-    protected class GenotypeLikelihoods
+    protected class OldAndBustedGenotypeLikelihoods
     {
 
         public double[] likelihoods;
         public String[] genotypes;
 
-        GenotypeLikelihoods()
+        OldAndBustedGenotypeLikelihoods()
         {
             likelihoods = new double[10];
             genotypes   = new String[10];
@@ -124,9 +124,9 @@ public class PopPriorWalker extends LocusWalker<Integer, Integer> {
         int cCount = 0;
         int gCount = 0;
         int tCount = 0;
-        GenotypeLikelihoods glAll = new GenotypeLikelihoods();
-        GenotypeLikelihoods glForward = new GenotypeLikelihoods();
-        GenotypeLikelihoods glReverse = new GenotypeLikelihoods();
+        OldAndBustedGenotypeLikelihoods glAll = new OldAndBustedGenotypeLikelihoods();
+        OldAndBustedGenotypeLikelihoods glForward = new OldAndBustedGenotypeLikelihoods();
+        OldAndBustedGenotypeLikelihoods glReverse = new OldAndBustedGenotypeLikelihoods();
         for ( int i = 0; i < reads.size(); i++ )
         {
             SAMRecord read = reads.get(i);
@@ -409,7 +409,7 @@ public class PopPriorWalker extends LocusWalker<Integer, Integer> {
         return (gt.getAllele1() == refAllele)?gt.getAllele2():gt.getAllele1();
     }
 
-    protected String dumpTheories(GenotypeLikelihoods gl) {
+    protected String dumpTheories(OldAndBustedGenotypeLikelihoods gl) {
         StringBuilder sb = new StringBuilder();
         for (int i = gl.genotypes.length-1; i >= 0; i--)
         {

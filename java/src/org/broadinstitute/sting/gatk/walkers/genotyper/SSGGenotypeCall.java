@@ -114,8 +114,8 @@ public class SSGGenotypeCall implements GenotypeCall, GenotypeOutput {
     }
 
     public String toString() {
-        return String.format("ref=%s depth=%d rmsMAPQ=%.2f bestVRef=%.2f bestVNext=%.2f likelihoods=%s",
-                mRefBase, readDepth, rmsMapping, bestRef, bestNext, Arrays.toString(mLikelihoods));
+        return String.format("%s ref=%s depth=%d rmsMAPQ=%.2f bestVRef=%.2f bestVNext=%.2f likelihoods=%s",
+                getLocation(), mRefBase, readDepth, rmsMapping, bestRef, bestNext, Arrays.toString(mLikelihoods));
     }
 
     /**

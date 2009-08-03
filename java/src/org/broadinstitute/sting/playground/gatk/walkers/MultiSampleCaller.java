@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoods;
+import org.broadinstitute.sting.gatk.walkers.genotyper.OldAndBustedGenotypeLikelihoods;
 import org.broadinstitute.sting.playground.utils.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
@@ -144,14 +144,14 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 
 	char ref;
 
-	GenotypeLikelihoods Genotype(LocusContext context, double[] allele_likelihoods, double indel_alt_freq)
+	OldAndBustedGenotypeLikelihoods Genotype(LocusContext context, double[] allele_likelihoods, double indel_alt_freq)
 	{
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         String bases = pileup.getBases();
 
 		if (bases.length() == 0)
 		{
-	        GenotypeLikelihoods G = new GenotypeLikelihoods(GenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
+	        OldAndBustedGenotypeLikelihoods G = new OldAndBustedGenotypeLikelihoods(OldAndBustedGenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
 	        return G;
 		}
 
@@ -160,7 +160,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
         ref = Character.toUpperCase(ref);
         
 		// Handle single-base polymorphisms.
-        GenotypeLikelihoods G = new GenotypeLikelihoods(GenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
+        OldAndBustedGenotypeLikelihoods G = new OldAndBustedGenotypeLikelihoods(OldAndBustedGenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
         for ( int i = 0; i < reads.size(); i++ )  
         {
             SAMRecord read = reads.get(i);
@@ -195,7 +195,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
         return G;
     }
 
-	double[] CountFreqs(GenotypeLikelihoods[] genotype_likelihoods)
+	double[] CountFreqs(OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
 	{
 		double[] allele_likelihoods = new double[4];
 		for (int x = 0; x < genotype_likelihoods.length; x++)
@@ -230,7 +230,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		return allele_likelihoods;
 	}
 
-/*	double CountIndelFreq(GenotypeLikelihoods[] genotype_likelihoods)
+/*	double CountIndelFreq(OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
 	{ 
 		HashMap<String, Double> indel_allele_likelihoods = new HashMap<String, Double>();
 
@@ -260,7 +260,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	}*/
 
 	// Potential precision error here.
-	double Compute_pD(GenotypeLikelihoods[] genotype_likelihoods)
+	double Compute_pD(OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
 	{
 		double pD = 0;
 		for (int i = 0; i < sample_names.size(); i++)
@@ -280,7 +280,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		double[] allele_likelihoods = new double[4];
 		for (int i = 0; i < 4; i++) { allele_likelihoods[i] = 1e-6/3.0; }
 		allele_likelihoods[BaseUtils.simpleBaseToBaseIndex(ref)] = 1.0-1e-6;
-		GenotypeLikelihoods[] G = new GenotypeLikelihoods[sample_names.size()];
+		OldAndBustedGenotypeLikelihoods[] G = new OldAndBustedGenotypeLikelihoods[sample_names.size()];
 		for (int j = 0; j < sample_names.size(); j++)
 		{
 			G[j] = Genotype(contexts[j], allele_likelihoods, 1e-6);
@@ -296,7 +296,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	double LOD(LocusContext[] contexts)
 	{
 		em_result = EM(contexts);
-		GenotypeLikelihoods[] G = em_result.genotype_likelihoods;
+		OldAndBustedGenotypeLikelihoods[] G = em_result.genotype_likelihoods;
 		pD = Compute_pD(G);
 		pNull = Compute_pNull(contexts);
 		lod = pD - pNull;
@@ -306,11 +306,11 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	class EM_Result
 	{
 		String[] sample_names;
-		GenotypeLikelihoods[] genotype_likelihoods;
+		OldAndBustedGenotypeLikelihoods[] genotype_likelihoods;
 		double[] allele_likelihoods;
 		int EM_N;
 
-		public EM_Result(List<String> sample_names, GenotypeLikelihoods[] genotype_likelihoods, double[] allele_likelihoods)
+		public EM_Result(List<String> sample_names, OldAndBustedGenotypeLikelihoods[] genotype_likelihoods, double[] allele_likelihoods)
 		{
 			this.sample_names = new String[1];
 			this.sample_names = sample_names.toArray(this.sample_names);
@@ -337,7 +337,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		}
 		double indel_alt_freq = 1e-4;
 
-		GenotypeLikelihoods[] G = new GenotypeLikelihoods[sample_names.size()];
+		OldAndBustedGenotypeLikelihoods[] G = new OldAndBustedGenotypeLikelihoods[sample_names.size()];
 		for (int i = 0; i < MAX_ITERATIONS; i++)
 		{
 			for (int j = 0; j < sample_names.size(); j++)
@@ -387,9 +387,9 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		return strand_score;
 	}
 
-	GenotypeLikelihoods HardyWeinberg(double[] allele_likelihoods)
+	OldAndBustedGenotypeLikelihoods HardyWeinberg(double[] allele_likelihoods)
 	{
-		GenotypeLikelihoods G = new GenotypeLikelihoods(GenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
+		OldAndBustedGenotypeLikelihoods G = new OldAndBustedGenotypeLikelihoods(OldAndBustedGenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
 		int k = 0;
 		for (int i = 0; i < 4; i++)
 		{ 
@@ -409,7 +409,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		else { return BaseUtils.baseIndexToSimpleBase(perm[2]); }
 	}
 
-	double Compute_discovery_lod(char ref, GenotypeLikelihoods[] genotype_likelihoods)
+	double Compute_discovery_lod(char ref, OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
 	{
 		double pBest = 0;
 		double pRef  = 0;
@@ -427,7 +427,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		return allele_likelihoods[BaseUtils.simpleBaseToBaseIndex(PickAlt(ref, allele_likelihoods))];
 	}
 
-	int Compute_n_ref(char ref, GenotypeLikelihoods[] genotype_likelihoods)
+	int Compute_n_ref(char ref, OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
 	{
 		int n = 0;
 		for (int i = 0; i < genotype_likelihoods.length; i++)
@@ -439,7 +439,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		return n;
 	}
 
-	int Compute_n_het(char ref, GenotypeLikelihoods[] genotype_likelihoods)
+	int Compute_n_het(char ref, OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
 	{
 		int n = 0;
 		for (int i = 0; i < genotype_likelihoods.length; i++)
@@ -452,7 +452,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		return n;
 	}
 
-	int Compute_n_hom(char ref, GenotypeLikelihoods[] genotype_likelihoods)
+	int Compute_n_hom(char ref, OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
 	{
 		int n = 0;
 		for (int i = 0; i < genotype_likelihoods.length; i++)
@@ -474,7 +474,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		double lod = LOD(contexts);		
 		double strand_score = StrandScore(context);
 		//EM_Result em_result = EM(contexts);
-		GenotypeLikelihoods population_genotype_likelihoods = HardyWeinberg(em_result.allele_likelihoods);	
+		OldAndBustedGenotypeLikelihoods population_genotype_likelihoods = HardyWeinberg(em_result.allele_likelihoods);
 
 		//double pD = Compute_pD(em_result.genotype_likelihoods);
 		//double pNull = Compute_pNull(contexts);
