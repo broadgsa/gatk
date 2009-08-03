@@ -107,6 +107,8 @@ public class SSGGenotypeCall implements GenotypeCall, GenotypeOutput {
         for (SAMRecord r : pileup.getReads()) {
             rms += r.getMappingQuality() * r.getMappingQuality();
         }
+        rms /= pileup.getReads().size();
+        rms = Math.sqrt(rms);
         return rms;
     }
 
