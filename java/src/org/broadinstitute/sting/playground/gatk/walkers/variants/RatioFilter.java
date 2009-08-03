@@ -144,7 +144,7 @@ class ObservationTable extends HashMap<String, GenotypeFeatureData> {
     Logger logger = null;
     GenotypeFeatureData.Tail tail;
 
-    public ObservationTable(final File observationsFile, final String statField, Logger logger, GenotypeFeatureData.Tail tail ) throws NoSuchFieldException, FileNotFoundException, IOException {
+    public ObservationTable(final File observationsFile, final String statField, Logger logger, GenotypeFeatureData.Tail tail ) throws NoSuchFieldException, IOException {
         this.observationsFile = observationsFile;
         this.statField = statField;
         this.logger = logger;
@@ -202,7 +202,7 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
     protected double pvalueLimit = -1;
     protected File observationsFile = null;
     protected String statField = null; // "AlleleRatio";
-    protected Logger logger = null; // Logger.getLogger(RatioFilter.class);
+    protected Logger logger = null;    // Logger.getLogger(RatioFilter.class);
     protected ObservationTable dataTable = null;
     protected String name = null;
     protected GenotypeFeatureData.Tail tail = null;
@@ -260,13 +260,6 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
     public void compute(char ref, LocusContext context, rodVariants variant) {
         boolean exclude = false;
 
-        //
-        // todo -- need to calculate a significance value for the chance that the
-        // todo -- observed first and second counts are reliably not passing the threshold
-        // todo -- basically, we need to sample with replacement from all first / second pairs
-        // todo -- and only conclude that the variant fails the test if the probability of failing
-        // todo -- across all samples is greater than some P value, like 0.05
-        //
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         if ( applyToVariant(variant) ) {
             Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);

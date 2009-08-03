@@ -1,17 +1,22 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
+import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Pair;
 
-public class VECAlleleBalance extends RatioFilter {
-    final private static String statField = "AlleleRatio";
+public class VECAlleleBalance implements VariantExclusionCriterion {  //extends RatioFilter {
     final private static GenotypeFeatureData.Tail tail = GenotypeFeatureData.Tail.TwoTailed;
+    private boolean exclude;
+    private double lowThreshold, highThreshold, ratio;
 
-
-    public VECAlleleBalance() {
-        super("AlleleBalance", statField, VECAlleleBalance.class, tail);
+    public void initialize(String arguments) {
+        if (arguments != null && !arguments.isEmpty()) {
+            String[] argPieces = arguments.split(",");
+            lowThreshold = Double.valueOf(argPieces[0]);
+            highThreshold = Double.valueOf(argPieces[1]);
+        }
     }
 
     /**
@@ -50,5 +55,26 @@ public class VECAlleleBalance extends RatioFilter {
         int minor = Math.min(aCount, bCount);
 
         return new Pair(major, minor);
+    }
+
+    public void compute(char ref, LocusContext context, rodVariants variant) {
+        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+        Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
+        ratio = (double)counts.first / (double)counts.second;
+        exclude = ratio < lowThreshold || ratio > highThreshold;
+    }
+
+    public boolean useZeroQualityReads() { return false; }
+
+    public boolean isExcludable() {
+        return exclude;
+    }
+
+    public String getStudyHeader() {
+        return "AlleleBalance("+lowThreshold+","+highThreshold+")\tMajorMinorRatio";
+    }
+
+    public String getStudyInfo() {
+        return (exclude ? "fail" : "pass") + "\t" + ratio;
     }
 }

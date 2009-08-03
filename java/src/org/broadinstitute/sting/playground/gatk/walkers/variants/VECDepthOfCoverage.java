@@ -24,7 +24,6 @@ public class VECDepthOfCoverage implements VariantExclusionCriterion {
 
     public void compute(char ref, LocusContext context, rodVariants variant) {
         exclude = context.getReads().size() > maximum;
-
         depth = context.getReads().size();
     }
 
@@ -33,11 +32,11 @@ public class VECDepthOfCoverage implements VariantExclusionCriterion {
     }
 
     public String getStudyHeader() {
-        return "#depth";
+        return "DepthOfCoverage("+maximum+")\tdepth";
     }
 
     public String getStudyInfo() {
-        return Integer.toString(depth);
+        return (exclude ? "fail" : "pass") + "\t" + depth;
     }
 
     public boolean useZeroQualityReads() { return false; }

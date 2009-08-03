@@ -11,6 +11,7 @@ import java.util.List;
 
 public class VECFisherStrand implements VariantExclusionCriterion {
     private double pvalueLimit = 0.00001;
+    private double pValue;
     private boolean exclude;
     private ArrayList<Double> factorials = new ArrayList<Double>();
 
@@ -37,11 +38,11 @@ public class VECFisherStrand implements VariantExclusionCriterion {
     }
 
     public String getStudyHeader() {
-        return "";
+        return "FisherStrand("+pvalueLimit+")\tpvalue";
     }
 
     public String getStudyInfo() {
-        return "";
+        return (exclude ? "fail" : "pass") + "\t" + pValue;
     }
 
     public boolean useZeroQualityReads() { return false; }
@@ -56,7 +57,7 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         double pCutoff = computePValue(table);
         //printTable(table, pCutoff);
 
-        double pValue = pCutoff;
+        pValue = pCutoff;
         while (rotateTable(table)) {
             double pValuePiece = computePValue(table);
 

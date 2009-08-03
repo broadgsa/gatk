@@ -5,7 +5,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
 
 public class VECLodThreshold implements VariantExclusionCriterion {
     private double lodThreshold = 5.0;
-
+    private double lod;
     private boolean exclude;
 
     public void initialize(String arguments) {
@@ -15,25 +15,22 @@ public class VECLodThreshold implements VariantExclusionCriterion {
     }
 
     public void compute(char ref, LocusContext context, rodVariants variant) {
-        exclude = (variant.getLodBtr() < lodThreshold);
+        lod = variant.getLodBtr();
+        exclude = lod < lodThreshold;
     }
 
     public boolean useZeroQualityReads() { return false; }
-
-    public boolean exclude(char ref, LocusContext context, rodVariants variant) {
-        return (variant.getLodBtr() < lodThreshold);
-    }
 
     public boolean isExcludable() {
         return exclude;
     }
 
     public String getStudyHeader() {
-        return "";
+        return "LodThreshold("+lod+")\tlod";
     }
 
     public String getStudyInfo() {
-        return "";
+        return (exclude ? "fail" : "pass") + "\t" + lod;
     }
 
 }
