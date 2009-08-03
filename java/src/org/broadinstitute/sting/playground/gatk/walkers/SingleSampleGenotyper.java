@@ -23,37 +23,36 @@ import java.io.File;
 @ReadFilters(ZeroMappingQualityReadFilter.class)
 public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, GenotypeWriter> {
     // Control output settings
-    @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = true) public File VARIANTS_FILE;
-    @Argument(fullName = "metrics_out", shortName = "metout", doc = "File to which metrics should be written", required = false) public File METRICS_FILE = new File("/dev/stderr");
-    @Argument(fullName = "variant_output_format", shortName = "vf", doc = "File to which metrics should be written", required = false) public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
+    @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = true)
+    public File VARIANTS_FILE;
+    @Argument(fullName = "variant_output_format", shortName = "vf", doc = "File to which metrics should be written", required = false)
+    public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
 
     // Control what goes into the variants file and what format that file should have
-    @Argument(fullName = "lod_threshold", shortName = "lod", doc = "The lod threshold on which variants should be filtered", required = false)public Double LOD_THRESHOLD = Double.MIN_VALUE;
-    @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confidient genotypes or just the variants?", required = false) public boolean GENOTYPE = false;
+    @Argument(fullName = "lod_threshold", shortName = "lod", doc = "The lod threshold on which variants should be filtered", required = false)
+    public Double LOD_THRESHOLD = Double.MIN_VALUE;
 
-    @Argument(fullName = "3BaseErrors", shortName = "3BaseErrors", doc = "Should we use a 3-base error mode (so that P(b_true != b_called | e) == e / 3?", required = false) public boolean THREE_BASE_ERRORS = false;
+    @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confidient genotypes or just the variants?", required = false)
+    public boolean GENOTYPE = false;
 
-    // Control periodic reporting features
-    @Argument(fullName = "metrics_interval", shortName = "metint", doc = "Number of loci to process between metrics reports", required = false) public Integer METRICS_INTERVAL = 50000;
-    @Argument(fullName = "suppress_metrics", shortName = "printmets", doc = "If specified, don't display metrics", required = false) public Boolean SUPPRESS_METRICS = false;
+    @Argument(fullName = "3BaseErrors", shortName = "3BaseErrors", doc = "Should we use a 3-base error mode (so that P(b_true != b_called | e) == e / 3?", required = false)
+    public boolean THREE_BASE_ERRORS = false;
 
-    // Control what features we use in calling variants
-    //@Argument(fullName = "ignore_secondary_bases", shortName = "nosb", doc = "Ignore secondary base examination", required = false) public Boolean IGNORE_SECONDARY_BASES = false;
-    @Argument(fullName = "call_indels", shortName = "indels", doc = "Call indels as well as point mutations", required = false) public Boolean CALL_INDELS = false;
+    public enum Caller {
+        OLD_AND_BUSTED,
+        NEW_HOTNESS
+    }
+
+    @Argument(fullName = "caller", doc = "", required = false)
+    public Caller caller = Caller.OLD_AND_BUSTED;
 
     // Control how the genotype hypotheses are weighed
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false) public Double heterozygosity = GenotypeLikelihoods.HUMAN_HETEROZYGOSITY;
     @Argument(fullName = "priors_hapmap", shortName = "phapmap", doc = "Comma-separated prior likelihoods for Hapmap loci (homref,het,homvar)", required = false) public String PRIORS_HAPMAP = "0.999,1e-3,1e-5";
     @Argument(fullName = "priors_dbsnp", shortName = "pdbsnp", doc = "Comma-separated prior likelihoods for dbSNP loci (homref,het,homvar)", required = false) public String PRIORS_DBSNP = "0.999,1e-3,1e-5";
 
-    // Control various sample-level settings
-    @Argument(fullName = "sample_name_regex", shortName = "sample_name_regex", doc = "Replaces the sample name specified in the BAM read group with the value supplied here", required = false) public String SAMPLE_NAME_REGEX = null;
-
     @Argument(fullName = "keepQ0Bases", shortName = "keepQ0Bases", doc = "If true, then Q0 bases will be included in the genotyping calculation, and treated as Q1 -- this is really not a good idea", required = false)
     public boolean keepQ0Bases = false;
-
-    public AlleleMetrics metricsOut;
-    public String sampleName;
 
     public double[] plocus;
     public double[] phapmap;
@@ -103,8 +102,6 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
 
     /** Initialize the walker with some sensible defaults */
     public void initialize() {
-        metricsOut = new AlleleMetrics(METRICS_FILE, LOD_THRESHOLD);
-
         plocus = GenotypeLikelihoods.computePriors(heterozygosity);
         phapmap = priorsArray(PRIORS_HAPMAP);
         pdbsnp = priorsArray(PRIORS_DBSNP);
@@ -120,51 +117,31 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
      * @return an AlleleFrequencyEstimate object
      */
     public SSGGenotypeCall map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        //rationalizeSampleName(context.getReads().get(0));
+        SSGGenotypeCall oldAndBusted = mapOldAndBusted(tracker, ref, context);
+        SSGGenotypeCall newHotness = mapNewHotness(tracker, ref, context);
 
-        // todo -- totally convoluted code!
+        if ( ! oldAndBusted.equals(newHotness) ) {
+            System.out.printf("Calls not equal:%nold: %s%nnew: %s%n", oldAndBusted, newHotness);
+        }
 
+        return caller == Caller.OLD_AND_BUSTED ? oldAndBusted : newHotness;
+    }
+
+    private SSGGenotypeCall mapNewHotness(RefMetaDataTracker tracker, char ref, LocusContext context) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         GenotypeLikelihoods G = makeGenotypeLikelihood(tracker);
         G.setDiscovery(GENOTYPE); // set it to discovery mode or variant detection mode
         SSGGenotypeCall geno = (SSGGenotypeCall)G.callGenotypes(tracker, ref, pileup);
-        if (geno != null) {
-            metricsOut.nextPosition(geno, tracker);
-        }
-        if (!SUPPRESS_METRICS) {
-            metricsOut.printMetricsAtLocusIntervals(METRICS_INTERVAL);
-        }
         return geno;
     }
 
-
-    /**
-     * Sometimes the sample names in the BAM files get screwed up.  Fix it here if we can.
-     *
-     * @param read a read from the pileup (assuming all the reads have the same sample name)
-     *
-     * @return a repaired sample name
-     */
-    private String rationalizeSampleName(SAMRecord read) {
-        String RG = (String) (read.getAttribute("RG"));
-        SAMReadGroupRecord read_group_record = read.getHeader().getReadGroup(RG);
-
-        if (read_group_record != null) {
-            String localSampleName = read.getHeader().getReadGroup(RG).getSample();
-            if (SAMPLE_NAME_REGEX != null) {
-                localSampleName = localSampleName.replaceAll(SAMPLE_NAME_REGEX, "$1");
-            }
-            if (sampleName == null) {
-                sampleName = localSampleName;
-            } else {
-                if (!sampleName.equals(localSampleName)) {
-                    throw new StingException(String.format("Samples appear to have been mixed up: expected '%s' but found '%s'.", sampleName, localSampleName));
-                }
-            }
-        }
-
-        return sampleName;
-    }
+    private SSGGenotypeCall mapOldAndBusted(RefMetaDataTracker tracker, char ref, LocusContext context) {
+        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+        GenotypeLikelihoods G = makeGenotypeLikelihood(tracker);
+        G.setDiscovery(GENOTYPE); // set it to discovery mode or variant detection mode
+        SSGGenotypeCall geno = (SSGGenotypeCall)G.callGenotypes(tracker, ref, pileup);
+        return geno;
+    }    
 
     /**
      * Calls the underlying, single locus genotype of the sample

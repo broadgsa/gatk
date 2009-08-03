@@ -76,4 +76,11 @@ public interface Genotype {
      * @return
      */
     public Variant toVariant();
+
+    /**
+     * return a readable string representation of this genotype
+     *
+     * @return
+     */
+    public String toString();
 }

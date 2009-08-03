@@ -13,10 +13,7 @@ import org.broadinstitute.sting.utils.genotype.confidence.BayesianConfidenceScor
 import org.broadinstitute.sting.utils.genotype.confidence.ConfidenceScore;
 import org.broadinstitute.sting.utils.genotype.variant.Variant;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.TreeMap;
+import java.util.*;
 
 
 /**
@@ -96,6 +93,35 @@ public class SSGGenotypeCall implements GenotypeCall, GenotypeOutput {
         }
     }
 
+    @Override
+    public boolean equals(Object other) {
+        if(other == null)
+            return false;
+        if(other instanceof SSGGenotypeCall) {
+            SSGGenotypeCall otherCall = (SSGGenotypeCall)other;
+
+            boolean likelihoodsMatch = true;
+            for ( int i = 0; i < mLikelihoods.length; i++ ) {
+                likelihoodsMatch = likelihoodsMatch && MathUtils.compareDoubles(mLikelihoods[i], otherCall.mLikelihoods[i]) == 0;
+            }
+            //System.out.printf("likelihoodsMatch = %b%n", likelihoodsMatch);
+
+            return this.mRefBase.equals(otherCall.mRefBase) &&
+                   this.mPloidy == otherCall.mPloidy &&
+                   MathUtils.compareDoubles(this.bestNext, otherCall.bestNext) == 0 &&
+                   MathUtils.compareDoubles(this.bestRef, otherCall.bestRef) == 0 &&
+                   this.readDepth == otherCall.readDepth &&
+                   MathUtils.compareDoubles(this.rmsMapping, otherCall.rmsMapping) == 0 &&
+                   likelihoodsMatch;
+        }
+        return false;
+    }
+
+    public String toString() {
+        return String.format("ref=%s depth=%d rmsMAPQ=%.2f bestVRef=%.2f bestVNext=%.2f likelihoods=%s",
+                mRefBase, readDepth, rmsMapping, bestRef, bestNext, Arrays.toString(mLikelihoods));
+    }
+
     /**
      * calculate the rms , given the read pileup
      *
@@ -128,7 +154,7 @@ public class SSGGenotypeCall implements GenotypeCall, GenotypeOutput {
      */
     @Override
     public boolean isVariation() {
-        return mGenotypes.get(mGenotypes.descendingKeySet().first()).isVariant(mRefBase.charAt(0));
+        return mGenotypes.get(mGenotypes.descendingKeySet().first()).isVariant(getReferencebase());
     }
 
     /**
