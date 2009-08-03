@@ -7,7 +7,7 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Pair;
 
 public class VECAlleleBalance implements VariantExclusionCriterion {  //extends RatioFilter {
-    final private static GenotypeFeatureData.Tail tail = GenotypeFeatureData.Tail.TwoTailed;
+    //final private static GenotypeFeatureData.Tail tail = GenotypeFeatureData.Tail.TwoTailed;
     private boolean exclude;
     private double lowThreshold, highThreshold, ratio;
 

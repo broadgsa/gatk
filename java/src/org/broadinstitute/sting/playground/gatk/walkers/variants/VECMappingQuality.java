@@ -2,6 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
 import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
+import org.broadinstitute.sting.utils.MathUtils;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
@@ -20,14 +21,11 @@ public class VECMappingQuality implements VariantExclusionCriterion {
 
     public void compute(char ref, LocusContext context, rodVariants variant) {
         List<SAMRecord> reads = context.getReads();
-
-        rms = 0.0;
-        for (int readIndex = 0; readIndex < reads.size(); readIndex++) {
-            int qual = reads.get(readIndex).getMappingQuality();
-            rms += qual * qual;
-        }
-        rms /= reads.size();
-        rms = Math.sqrt(rms);
+        int[] qualities = new int[reads.size()];
+        for (int i=0; i < reads.size(); i++)
+            qualities[i] = reads.get(i).getMappingQuality();
+        rms = MathUtils.rms(qualities);
+        exclude = rms < minQuality;        
     }
 
     public boolean isExcludable() {

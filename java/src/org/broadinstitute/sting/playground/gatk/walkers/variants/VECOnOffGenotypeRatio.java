@@ -5,7 +5,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.*;
 
 public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // extends RatioFilter {
-    final private static GenotypeFeatureData.Tail tail = GenotypeFeatureData.Tail.LeftTailed;
+    //final private static GenotypeFeatureData.Tail tail = GenotypeFeatureData.Tail.LeftTailed;
     private boolean exclude;
     private double lowThreshold, highThreshold, ratio;
 

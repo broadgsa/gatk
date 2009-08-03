@@ -4,6 +4,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.GenotypeOutput;
@@ -103,13 +104,11 @@ public class SSGGenotypeCall implements GenotypeCall, GenotypeOutput {
      * @return
      */
     private double calculateRMS(ReadBackedPileup pileup) {
-        double rms = 0.0;
-        for (SAMRecord r : pileup.getReads()) {
-            rms += r.getMappingQuality() * r.getMappingQuality();
-        }
-        rms /= pileup.getReads().size();
-        rms = Math.sqrt(rms);
-        return rms;
+        List<SAMRecord> reads = pileup.getReads();
+        int[] qualities = new int[reads.size()];
+        for (int i=0; i < reads.size(); i++)
+            qualities[i] = reads.get(i).getMappingQuality();
+        return MathUtils.rms(qualities);
     }
 
     /**
