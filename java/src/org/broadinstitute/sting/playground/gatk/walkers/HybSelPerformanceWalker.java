@@ -13,12 +13,14 @@ import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import java.util.List;
 import java.util.Collection;
 import java.io.IOException;
+import java.io.File;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
 import edu.mit.broad.picard.util.Interval;
 import edu.mit.broad.picard.util.OverlapDetector;
+import edu.mit.broad.picard.directed.IntervalList;
 
 @By(DataSource.REFERENCE)
 public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerformanceWalker.TargetInfo> {
@@ -30,6 +32,11 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
     @Argument(fullName="free_standing_distance", shortName="fsd", required=false, doc="minimum distance to next interval to consider freestanding")
     public Integer FREE_STANDING_DISTANCE = 500;
+
+    @Argument(fullName="booster", required=false, doc="interval list of booster baits")
+    public File BOOSTER_FILE;
+
+    public Integer BOOSTER_DISTANCE = 250; // how far away can a booster be to "hit" its target?
 
     public static class TargetInfo {
         public int counts = 0;
@@ -91,7 +98,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
     @Override
     public void onTraversalDone(List<Pair<GenomeLoc, TargetInfo>> results) {
-        out.println("location\tlength\tgc\tavg_coverage\tnormalized_coverage\thit_twice\tfreestanding");
+        out.println("location\tlength\tgc\tavg_coverage\tnormalized_coverage\thit_twice\tfreestanding\tboosted");
 
         // first zip through and build an overlap detector of all the intervals, so later
         // we can calculate if this interval is free-standing
@@ -101,6 +108,15 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
             Interval interval = makeInterval(target);
             od.addLhs(interval, interval);
         }
+
+        OverlapDetector<Interval> booster = new OverlapDetector<Interval>(-BOOSTER_DISTANCE,0);
+        if (BOOSTER_FILE != null) {
+            IntervalList il = IntervalList.fromFile(BOOSTER_FILE);
+            List<Interval> l = il.getUniqueIntervals();
+            booster.addAll(l, l);
+        }
+
+
 
 
         // now zip through and calculate the total average coverage
@@ -132,12 +148,16 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
             double gc = calculateGC(target);
 
             // if there is more than one hit on the overlap detector, it's not freestanding
-            Collection<Interval> hits = od.getOverlaps(makeInterval(target));
+            Interval targetInterval = makeInterval(target);
+
+            Collection<Interval> hits = od.getOverlaps(targetInterval);
             boolean freestanding = (hits.size() == 1);
 
-            out.printf("%s:%d-%d\t%d\t%6.4f\t%6.4f\t%6.4f\t%d\t%d\n",
+            boolean boosted = (booster.getOverlaps(targetInterval).size() > 0);
+
+            out.printf("%s:%d-%d\t%d\t%6.4f\t%6.4f\t%6.4f\t%d\t%d\t%d\n",
                        target.getContig(), target.getStart(), target.getStop(), length, gc,
-                        avgCoverage, normCoverage, ((ti.hitTwice)?1:0), ((freestanding)?1:0)
+                        avgCoverage, normCoverage, ((ti.hitTwice)?1:0), ((freestanding)?1:0), ((boosted)?1:0)
                     );
 
 
