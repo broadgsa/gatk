@@ -231,6 +231,8 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             Scores.put("GT", mLikelihoods[8]);
             Scores.put("TT", mLikelihoods[9]);
 
+            
+
             //Update probabilities for combinations of alleles
             //For each HLA allele
             String r1 = "", r2 = "", s1 = "", s2 = "";
