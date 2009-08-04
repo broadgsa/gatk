@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.providers.LocusReferenceView;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
 import org.broadinstitute.sting.gatk.datasources.providers.ReferenceOrderedView;
@@ -41,7 +41,7 @@ public class TraverseLocusWindows extends TraversalEngine {
         LocusReferenceView referenceView = new LocusReferenceView( dataProvider );
         ReferenceOrderedView referenceOrderedDataView = new ReferenceOrderedView( dataProvider );
 
-        LocusContext locus = getLocusContext(readView.iterator(), interval);
+        AlignmentContext locus = getLocusContext(readView.iterator(), interval);
 
         // The TraverseByLocusWindow expands intervals to cover all reads in a non-standard way.
         // TODO: Convert this approach to the standard.
@@ -66,7 +66,7 @@ public class TraverseLocusWindows extends TraversalEngine {
         return sum;
     }
 
-    private LocusContext getLocusContext(StingSAMIterator readIter, GenomeLoc interval) {
+    private AlignmentContext getLocusContext(StingSAMIterator readIter, GenomeLoc interval) {
         ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
         boolean done = false;
         long leftmostIndex = interval.getStart(),
@@ -87,7 +87,7 @@ public class TraverseLocusWindows extends TraversalEngine {
         }
 
         GenomeLoc window = GenomeLocParser.createGenomeLoc(interval.getContig(), leftmostIndex, rightmostIndex);
-        LocusContext locus = new LocusContext(window, reads, null);
+        AlignmentContext locus = new AlignmentContext(window, reads, null);
         if ( readIter.getSourceInfo().getDownsampleToCoverage() != null )
             locus.downsampleToCoverage(readIter.getSourceInfo().getDownsampleToCoverage());
 

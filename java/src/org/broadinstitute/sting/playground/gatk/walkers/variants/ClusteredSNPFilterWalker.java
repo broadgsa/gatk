@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
@@ -65,7 +66,7 @@ public class ClusteredSNPFilterWalker extends RefWalker<Integer, Integer> {
      * @param context  the context for the given locus
      * @return 1 if the locus was successfully processed, 0 if otherwise
      */
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         rodVariants variant = (rodVariants)tracker.lookup("variant", null);
 
         if (variant != null ) {

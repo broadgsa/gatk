@@ -1,24 +1,32 @@
 package org.broadinstitute.sting.gatk.iterators;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
+import net.sf.samtools.util.CloseableIterator;
 
 import java.util.Iterator;
-/**
- * User: hanna
- * Date: May 12, 2009
- * Time: 10:48:56 AM
- * BROAD INSTITUTE SOFTWARE COPYRIGHT NOTICE AND AGREEMENT
- * Software and documentation are copyright 2005 by the Broad Institute.
- * All rights are reserved.
- *
- * Users acknowledge that this software is supplied without any warranty or support.
- * The Broad Institute is not responsible for its use, misuse, or
- * functionality.
- */
+
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 /**
- * An iterator for iterating through loci on a genome.
+ * Iterator that traverses a SAM File, accumulating information on a per-locus basis
  */
+public abstract class LocusIterator implements Iterable<AlignmentContext>, CloseableIterator<AlignmentContext> {
+    // -----------------------------------------------------------------------------------------------------------------
+    //
+    // constructors and other basic operations
+    //
+    // -----------------------------------------------------------------------------------------------------------------
+    public Iterator<AlignmentContext> iterator() {
+        return this;
+    }
 
-public interface LocusIterator extends Iterator<GenomeLoc> {
+    public void close() {
+        //this.it.close();
+    }
+
+    public abstract boolean hasNext();
+    public abstract AlignmentContext next();
+
+    public void remove() {
+        throw new UnsupportedOperationException("Can not remove records from a SAM file via an iterator!");
+    }
 }

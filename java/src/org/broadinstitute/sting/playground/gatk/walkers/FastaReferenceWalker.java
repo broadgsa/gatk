@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
@@ -13,8 +14,8 @@ import org.broadinstitute.sting.utils.Pair;
 @WalkerName("FastaReferenceMaker")
 public class FastaReferenceWalker extends RefWalker<Pair<GenomeLoc, Character>, Pair<GenomeLoc, String>> {
 
-	public Pair<GenomeLoc, Character> map(RefMetaDataTracker rodData, char ref, LocusContext context) {
-        return new Pair<GenomeLoc, Character>(context.getLocation(), ref);
+	public Pair<GenomeLoc, Character> map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
+        return new Pair<GenomeLoc, Character>(context.getLocation(), ref.getBase());
 	}
 
     public Pair<GenomeLoc, String> reduceInit() {

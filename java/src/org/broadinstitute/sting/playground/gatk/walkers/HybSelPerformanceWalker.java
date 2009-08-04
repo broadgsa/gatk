@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
@@ -52,7 +53,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 //    @Argument(fullName="suppressLocusPrinting",required=false,defaultValue="false")
 //    public boolean suppressPrinting;
 
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         List<SAMRecord> reads = context.getReads();
 
         int depth = 0;

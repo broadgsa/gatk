@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.traversals;
 
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadReferenceView;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
@@ -98,7 +98,7 @@ public class TraverseReads extends TraversalEngine {
         for (SAMRecord read : reads) {
 
             // our locus context
-            LocusContext locus = null;
+            AlignmentContext locus = null;
 
             // an array of characters that represent the reference
             char[] refSeq = null;
@@ -108,7 +108,7 @@ public class TraverseReads extends TraversalEngine {
                 GenomeLoc site = GenomeLocParser.createGenomeLoc(read);
 
                 // Jump forward in the reference to this locus location
-                locus = new LocusContext(site, Arrays.asList(read), Arrays.asList(0));
+                locus = new AlignmentContext(site, Arrays.asList(read), Arrays.asList(0));
 
                 // get the array of characters for the reference sequence, since we're a mapped read
                 if( dataProvider.hasReference() )

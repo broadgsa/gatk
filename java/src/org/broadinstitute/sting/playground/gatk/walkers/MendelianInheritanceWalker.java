@@ -1,27 +1,18 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.refdata.GenotypeList;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.BasicReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.rodSAMPileup;
 import org.broadinstitute.sting.gatk.refdata.Genotype;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
-import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.playground.utils.GenotypingCallStats;
 import org.broadinstitute.sting.playground.utils.TrioConcordanceRecord;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenotypeUtils;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenotypeUtils.VariantType;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 //@Requires(value=DataSource.REFERENCE,referenceMetaData={@RMD(name="mother",type=rodSAMPileup.class),
@@ -49,7 +40,7 @@ public class MendelianInheritanceWalker  extends RefWalker<TrioConcordanceRecord
 	private GenotypeUtils.VariantType VARIANT_TYPE;
 	
 	@Override
-	public TrioConcordanceRecord map(RefMetaDataTracker rodData, char ref, LocusContext context) {
+	public TrioConcordanceRecord map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
 				
 //		String outLine = new String(context.getLocation() + " REF: "+ref + " RODS:" + rodData.getAllRods().size());
 		

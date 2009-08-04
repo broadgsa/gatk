@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.*;
 
 import java.util.List;
@@ -75,7 +75,7 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
         }
     }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         AllelicVariant chip = (AllelicVariant)tracker.lookup(dbName, null);
         inc(chip, eval, ref);
         return null;

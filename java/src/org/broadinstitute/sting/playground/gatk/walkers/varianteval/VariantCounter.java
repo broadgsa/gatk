@@ -2,9 +2,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
-import java.io.PrintStream;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -26,7 +25,7 @@ public class VariantCounter extends BasicVariantAnalysis implements GenotypeAnal
         super("variant_counts");
     }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         nSNPs += eval == null ? 0 : 1;
         return null;
     }

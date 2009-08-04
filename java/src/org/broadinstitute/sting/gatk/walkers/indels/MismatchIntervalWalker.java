@@ -4,7 +4,8 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.utils.*;
@@ -31,8 +32,8 @@ public class MismatchIntervalWalker extends LocusWalker<Pair<GenomeLoc, Boolean>
             throw new RuntimeException("Window Size must be a positive integer");
     }
 
-    public Pair<GenomeLoc, Boolean> map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        char upperRef = Character.toUpperCase(ref);
+    public Pair<GenomeLoc, Boolean> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        char upperRef = Character.toUpperCase(ref.getBase());
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
         int goodReads = 0, mismatchQualities = 0, totalQualities = 0;

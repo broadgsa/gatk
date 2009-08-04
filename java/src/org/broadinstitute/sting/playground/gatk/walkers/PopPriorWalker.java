@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
@@ -30,7 +31,7 @@ public class PopPriorWalker extends LocusWalker<Integer, Integer> {
     public String walkerType() { return "ByLocus"; }
 
     // Do we actually want to operate on the context?
-    public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public boolean filter(RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         return true;    // We are keeping all the reads
     }
 
@@ -94,9 +95,9 @@ public class PopPriorWalker extends LocusWalker<Integer, Integer> {
 
     }
 
-    // Map over the org.broadinstitute.sting.gatk.LocusContext
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        char upRef = Character.toUpperCase(ref);
+    // Map over the org.broadinstitute.sting.gatk.contexts.AlignmentContext
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        char upRef = Character.toUpperCase(ref.getBase());
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
 
@@ -151,12 +152,12 @@ public class PopPriorWalker extends LocusWalker<Integer, Integer> {
 
             // System.out.println(read.getReadName() + " " + base + " " + qual );
             
-            glAll.add(ref, base, qual);
+            glAll.add(ref.getBase(), base, qual);
 
             if (read.getReadNegativeStrandFlag()) {
-                glReverse.add(ref, base, qual);
+                glReverse.add(ref.getBase(), base, qual);
             } else {
-                glForward.add(ref, base, qual);
+                glForward.add(ref.getBase(), base, qual);
             }
         }
 

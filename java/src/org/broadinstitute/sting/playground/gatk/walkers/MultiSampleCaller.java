@@ -5,11 +5,11 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.OldAndBustedGenotypeLikelihoods;
-import org.broadinstitute.sting.playground.utils.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -111,11 +111,11 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
     }
 
 
-    public MultiSampleCallResult map(RefMetaDataTracker tracker, char ref, LocusContext context) 
+    public MultiSampleCallResult map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context)
 	{
-		if (ref == 'N') { return null; }
-		this.ref = ref;
-		MultiSampleCallResult result = this.MultiSampleCall(tracker, ref, context, sample_names);
+		if (ref.getBase() == 'N') { return null; }
+		this.ref = ref.getBase();
+		MultiSampleCallResult result = this.MultiSampleCall(tracker, ref.getBase(), context, sample_names);
 		return result;
 	}
 
@@ -144,7 +144,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 
 	char ref;
 
-	OldAndBustedGenotypeLikelihoods Genotype(LocusContext context, double[] allele_likelihoods, double indel_alt_freq)
+	OldAndBustedGenotypeLikelihoods Genotype(AlignmentContext context, double[] allele_likelihoods, double indel_alt_freq)
 	{
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         String bases = pileup.getBases();
@@ -275,7 +275,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		return pD;
 	}
 
-	double Compute_pNull(LocusContext[] contexts)
+	double Compute_pNull(AlignmentContext[] contexts)
 	{
 		double[] allele_likelihoods = new double[4];
 		for (int i = 0; i < 4; i++) { allele_likelihoods[i] = 1e-6/3.0; }
@@ -293,7 +293,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	double pD;
 	double pNull;
 	double lod;
-	double LOD(LocusContext[] contexts)
+	double LOD(AlignmentContext[] contexts)
 	{
 		em_result = EM(contexts);
 		OldAndBustedGenotypeLikelihoods[] G = em_result.genotype_likelihoods;
@@ -325,7 +325,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		}
 	}
 
-	EM_Result EM(LocusContext[] contexts)
+	EM_Result EM(AlignmentContext[] contexts)
 	{
 		double[] allele_likelihoods = new double[4];
 
@@ -357,14 +357,14 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	}
 
 	// Hacky global variables for debugging.
-	double StrandScore(LocusContext context)
+	double StrandScore(AlignmentContext context)
 	{
-		//LocusContext[] contexts = filterLocusContextBySample(context, sample_names, 0);
+		//AlignmentContext[] contexts = filterAlignmentContextBySample(context, sample_names, 0);
 
-		LocusContext fw = filterLocusContextByStrand(context, "+");
-		LocusContext bw = filterLocusContextByStrand(context, "-");
-		LocusContext[] contexts_fw = filterLocusContextBySample(fw, sample_names, 0);
-		LocusContext[] contexts_bw = filterLocusContextBySample(bw, sample_names, 0);
+		AlignmentContext fw = filterAlignmentContextByStrand(context, "+");
+		AlignmentContext bw = filterAlignmentContextByStrand(context, "-");
+		AlignmentContext[] contexts_fw = filterAlignmentContextBySample(fw, sample_names, 0);
+		AlignmentContext[] contexts_bw = filterAlignmentContextBySample(bw, sample_names, 0);
 
 		EM_Result em_fw = EM(contexts_fw);
 		EM_Result em_bw = EM(contexts_bw);
@@ -465,12 +465,12 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	}
 
 	// This should actually return a GLF Record
-	MultiSampleCallResult MultiSampleCall(RefMetaDataTracker tracker, char ref, LocusContext context, List<String> sample_names) 
+	MultiSampleCallResult MultiSampleCall(RefMetaDataTracker tracker, char ref, AlignmentContext context, List<String> sample_names)
 	{
 		String in_dbsnp;
 		if (tracker.lookup("DBSNP", null) != null) { in_dbsnp = "known"; } else { in_dbsnp = "novel"; }
 
-		LocusContext[] contexts = filterLocusContextBySample(context, sample_names, 0);
+		AlignmentContext[] contexts = filterAlignmentContextBySample(context, sample_names, 0);
 		double lod = LOD(contexts);		
 		double strand_score = StrandScore(context);
 		//EM_Result em_result = EM(contexts);
@@ -521,7 +521,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	// Utility Functions
 	
 	/// Filter a locus context by forward and backward
-	private LocusContext filterLocusContextByStrand(LocusContext context, String strand)
+	private AlignmentContext filterAlignmentContextByStrand(AlignmentContext context, String strand)
 	{
 		ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
 		ArrayList<Integer> offsets = new ArrayList<Integer>();
@@ -537,11 +537,11 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 			reads.add(read);
 			offsets.add(offset);
 		}
-		return new LocusContext(context.getLocation(), reads, offsets);
+		return new AlignmentContext(context.getLocation(), reads, offsets);
 	}
 
 	// Filter a locus context by sample ID
-    private LocusContext[] filterLocusContextBySample(LocusContext context, List<String> sample_names, int downsample)
+    private AlignmentContext[] filterAlignmentContextBySample(AlignmentContext context, List<String> sample_names, int downsample)
     {
 		HashMap<String,Integer> index = new HashMap<String,Integer>();
 		for (int i = 0; i < sample_names.size(); i++)
@@ -549,7 +549,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 			index.put(sample_names.get(i), i);
 		}
 
-		LocusContext[] contexts = new LocusContext[sample_names.size()];
+		AlignmentContext[] contexts = new AlignmentContext[sample_names.size()];
 		ArrayList<SAMRecord>[] reads = new ArrayList[sample_names.size()];
 		ArrayList<Integer>[] offsets = new ArrayList[sample_names.size()];
 
@@ -593,14 +593,14 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	
 	            reads[j] = downsampled_reads;
 	            offsets[j] = downsampled_offsets;
-				contexts[j] = new LocusContext(context.getLocation(), reads[j], offsets[j]);
+				contexts[j] = new AlignmentContext(context.getLocation(), reads[j], offsets[j]);
 			}
         }
 		else
 		{
 			for (int j = 0; j < reads.length; j++)
 			{
-				contexts[j] = new LocusContext(context.getLocation(), reads[j], offsets[j]);
+				contexts[j] = new AlignmentContext(context.getLocation(), reads[j], offsets[j]);
 			}
 		}
 

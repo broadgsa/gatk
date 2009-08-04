@@ -4,6 +4,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.NoSuchElementException;
+import java.util.Iterator;
 /**
  * User: hanna
  * Date: May 12, 2009
@@ -20,7 +21,7 @@ import java.util.NoSuchElementException;
 /**
  * Iterates through all of the loci provided in the reference.
  */
-public class GenomeLocusIterator implements LocusIterator {
+public class GenomeLocusIterator implements Iterator<GenomeLoc> {
     /**
      * The entire region over which we're iterating.
      */

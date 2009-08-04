@@ -2,7 +2,8 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -20,7 +21,7 @@ public class SNPClusterWalker extends RefWalker<GenomeLoc, GenomeLoc> {
             throw new RuntimeException("Window Size must be a positive integer");
     }
 
-    public GenomeLoc map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public GenomeLoc map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         AllelicVariant eval = (AllelicVariant)tracker.lookup("eval", null);
         if ( eval instanceof SNPCallFromGenotypes )
             return context.getLocation();

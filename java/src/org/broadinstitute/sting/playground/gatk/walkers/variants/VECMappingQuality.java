@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
 import org.broadinstitute.sting.utils.MathUtils;
 import net.sf.samtools.SAMRecord;
@@ -19,7 +19,7 @@ public class VECMappingQuality implements VariantExclusionCriterion {
         }
     }
 
-    public void compute(char ref, LocusContext context, rodVariants variant) {
+    public void compute(char ref, AlignmentContext context, rodVariants variant) {
         List<SAMRecord> reads = context.getReads();
         int[] qualities = new int[reads.size()];
         for (int i=0; i < reads.size(); i++)

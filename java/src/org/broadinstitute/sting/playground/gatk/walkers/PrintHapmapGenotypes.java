@@ -2,16 +2,9 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.playground.gatk.walkers.varianteval.Histogram;
-
-import java.util.*;
-import java.io.*;
 
 // Sanity check to test HapmapGenotypeROD
 // Compute %dbsnp and transition/transversion rate.
@@ -27,7 +20,7 @@ public class PrintHapmapGenotypes extends RefWalker<Integer, Integer>
 	{
     }
 
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) 
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context)
 	{
         // Iterate over each analysis, and update it
         //rodDbSNP dbsnp =   (rodDbSNP)tracker.lookup("dbsnp", null);

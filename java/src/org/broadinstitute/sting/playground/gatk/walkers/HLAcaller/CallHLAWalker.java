@@ -5,7 +5,8 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Pair;
@@ -77,8 +78,8 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
     }
 
 
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(), context);
         String bases = pileup.getBases();
         long loc = context.getPosition();
         if ( !suppressPrinting )
@@ -104,7 +105,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             out.printf("%sAs\t%sCs\t%sTs\t%sGs\t",numAs,numCs,numTs,numGs);
 
             OldAndBustedGenotypeLikelihoods G = new OldAndBustedGenotypeLikelihoods(OldAndBustedGenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
-            SSGGenotypeCall geno = G.callGenotypes(tracker, ref, pileup);
+            SSGGenotypeCall geno = G.callGenotypes(tracker, ref.getBase(), pileup);
 
             
             double mLikelihoods[] = geno.getLikelihoods();

@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SNPCallFromGenotypes;
@@ -148,7 +149,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         }
     }
 
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         nSites++;
 
         // Iterate over each analysis, and update it
@@ -166,13 +167,13 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         }
 
         // update stats about all of the SNPs
-        updateAnalysisSet(ALL_SNPS, eval, tracker, ref, context);
+        updateAnalysisSet(ALL_SNPS, eval, tracker, ref.getBase(), context);
 
         // update the known / novel set by checking whether the knownSNPDBName track has an entry here
         if ( eval != null ) {
             AllelicVariant dbsnp = (AllelicVariant)tracker.lookup(knownSNPDBName, null);
             String noveltySet = dbsnp == null ? NOVEL_SNPS : KNOWN_SNPS;
-            updateAnalysisSet(noveltySet, eval, tracker, ref, context);
+            updateAnalysisSet(noveltySet, eval, tracker, ref.getBase(), context);
         }
 
         if ( eval instanceof SNPCallFromGenotypes ) {
@@ -180,7 +181,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
             int nVarGenotypes = call.nHetGenotypes() + call.nHomVarGenotypes();
             //System.out.printf("%d variant genotypes at %s%n", nVarGenotypes, calls);
             final String s = nVarGenotypes == 1 ? SINGLETON_SNPS : TWOHIT_SNPS;
-            updateAnalysisSet(s, eval, tracker, ref, context);
+            updateAnalysisSet(s, eval, tracker, ref.getBase(), context);
         }
 
         return 1;
@@ -188,7 +189,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 
 
     public void updateAnalysisSet(final String analysisSetName, AllelicVariant eval,
-                                  RefMetaDataTracker tracker, char ref, LocusContext context) {
+                                  RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         // Iterate over each analysis, and update it
         for ( VariantAnalysis analysis : getAnalysisSet(analysisSetName) ) {
             String s = analysis.update(eval, tracker, ref, context);

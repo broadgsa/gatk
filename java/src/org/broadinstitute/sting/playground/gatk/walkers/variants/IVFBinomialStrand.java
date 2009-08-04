@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 
@@ -18,7 +18,7 @@ public class IVFBinomialStrand implements IndependentVariantFeature {
         }
     }
 
-    public void compute(char ref, LocusContext context) {
+    public void compute(char ref, AlignmentContext context) {
         likelihoods = new double[10];
         
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);

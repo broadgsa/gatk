@@ -24,7 +24,8 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -67,8 +68,8 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     public void initialize() {
     }
 
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(), context);
         String bases = pileup.getBases();
         
         if ( bases.equals("") && !IGNORE_UNCOVERED_BASES ) {

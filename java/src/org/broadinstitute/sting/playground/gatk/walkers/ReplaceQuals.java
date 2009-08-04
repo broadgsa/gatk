@@ -1,16 +1,10 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.Utils;
 import net.sf.samtools.*;
-import net.sf.picard.reference.ReferenceSequence;
 
-import java.util.ArrayList;
-import java.util.Random;
 import java.util.HashMap;
 import java.io.File;
 

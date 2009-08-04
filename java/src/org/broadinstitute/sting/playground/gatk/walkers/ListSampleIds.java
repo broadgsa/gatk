@@ -5,7 +5,8 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 
@@ -26,7 +27,7 @@ public class ListSampleIds extends LocusWalker<Boolean, Boolean>
         } 
     }
 
-    public Boolean map(RefMetaDataTracker tracker, char ref, LocusContext context) 
+    public Boolean map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
     {
         List<SAMRecord> reads = context.getReads();
         StringBuilder readNames = new StringBuilder();

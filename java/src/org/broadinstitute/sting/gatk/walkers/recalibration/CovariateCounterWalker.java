@@ -2,7 +2,8 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
@@ -77,7 +78,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @param context
      * @return
      */
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         rodDbSNP dbsnp = (rodDbSNP)tracker.lookup("dbSNP", null);
         if ( dbsnp == null || !dbsnp.isSNP() ) {
             // We aren't at a dbSNP position that's a SNP, so update the read
@@ -101,7 +102,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 if ((read.getMappingQuality() >= MIN_MAPPING_QUALITY && isSupportedReadGroup(readGroup) )) {
                     int offset = offsets.get(i);
                     if ( offset > 0 && offset < (read.getReadLength() - 1) ) { // skip first and last bases because they suck and they don't have a dinuc count
-                        counted_bases += covariateCounter.updateDataFromRead(readGroupString, read, offset, ref);
+                        counted_bases += covariateCounter.updateDataFromRead(readGroupString, read, offset, ref.getBase());
                     }
                 }
             }

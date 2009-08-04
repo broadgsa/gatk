@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.*;
 
 public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // extends RatioFilter {
@@ -55,7 +55,7 @@ public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // ext
         return new Pair<Integer, Integer>(on, off);
     }
 
-    public void compute(char ref, LocusContext context, rodVariants variant) {
+    public void compute(char ref, AlignmentContext context, rodVariants variant) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
         int n = counts.first + counts.second;

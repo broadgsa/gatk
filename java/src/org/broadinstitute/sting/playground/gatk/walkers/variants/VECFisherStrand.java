@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
 import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.SAMRecord;
@@ -22,7 +22,7 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         factorials.add(0.0);  // add fact(0)
     }
 
-    public void compute(char ref, LocusContext context, rodVariants variant) {
+    public void compute(char ref, AlignmentContext context, rodVariants variant) {
         int allele1 = BaseUtils.simpleBaseToBaseIndex(variant.getBestGenotype().charAt(0));
         int allele2 = BaseUtils.simpleBaseToBaseIndex(variant.getBestGenotype().charAt(1));
 
@@ -47,7 +47,7 @@ public class VECFisherStrand implements VariantExclusionCriterion {
 
     public boolean useZeroQualityReads() { return false; }
 
-    public boolean strandTest(char ref, LocusContext context, int allele1, int allele2, double threshold, StringBuffer out) {
+    public boolean strandTest(char ref, AlignmentContext context, int allele1, int allele2, double threshold, StringBuffer out) {
         int[][] table = getContingencyTable(context, allele1, allele2);
         if ( !variantIsHet(table) )
             return false;
@@ -185,7 +185,7 @@ public class VECFisherStrand implements VariantExclusionCriterion {
      * @param allele2  information for the called variant
      * @return a 2x2 contingency table
      */
-    private static int[][] getContingencyTable(LocusContext context, int allele1, int allele2) {
+    private static int[][] getContingencyTable(AlignmentContext context, int allele1, int allele2) {
 
         int[][] table = new int[2][2];
 

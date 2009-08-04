@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
 import java.util.List;
@@ -15,8 +16,8 @@ import net.sf.samtools.SAMRecord;
  * Time: 11:23:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class PrintLocusContextWalker extends LocusWalker<LocusContext, Integer> implements TreeReducible<Integer> {
-    public LocusContext map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+public class PrintLocusContextWalker extends LocusWalker<AlignmentContext, Integer> implements TreeReducible<Integer> {
+    public AlignmentContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         out.printf( "In map: ref = %s, loc = %s, reads = %s%n", ref,
                                                                 context.getLocation(),
                                                                 Arrays.deepToString( getReadNames(context.getReads()) ) );
@@ -25,7 +26,7 @@ public class PrintLocusContextWalker extends LocusWalker<LocusContext, Integer> 
 
     public Integer reduceInit() { return 0; }
 
-    public Integer reduce(LocusContext context, Integer sum) {
+    public Integer reduce(AlignmentContext context, Integer sum) {
         return sum + 1;
     }
 

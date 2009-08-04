@@ -3,7 +3,6 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
-import org.broadinstitute.sting.gatk.LocusContext;
 
 /**
  * Created by IntelliJ IDEA.
@@ -27,7 +26,6 @@ public class BaseQualityHistoWalker extends ReadWalker<Integer, Integer> {
         return true;    // We are keeping all the reads
     }
 
-    // Map over the org.broadinstitute.sting.gatk.LocusContext
     public Integer map(char[] ref, SAMRecord read) {
         for ( byte qual : read.getBaseQualities() ) {
             if ( qual < 0 || qual > 100 ) {

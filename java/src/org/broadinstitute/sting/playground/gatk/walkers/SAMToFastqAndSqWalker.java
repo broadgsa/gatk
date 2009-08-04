@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import net.sf.samtools.SAMRecord;
 

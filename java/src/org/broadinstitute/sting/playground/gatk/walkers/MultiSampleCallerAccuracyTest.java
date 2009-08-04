@@ -2,7 +2,8 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.playground.indels.Matrix;
@@ -53,7 +54,7 @@ public class MultiSampleCallerAccuracyTest extends MultiSampleCaller
 
 	}
 
-    public MultiSampleCallResult map(RefMetaDataTracker tracker, char ref, LocusContext context) 
+    public MultiSampleCallResult map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
 	{
         HapMapGenotypeROD hapmap = (HapMapGenotypeROD)tracker.lookup("hapmap", null);
 
@@ -83,7 +84,7 @@ public class MultiSampleCallerAccuracyTest extends MultiSampleCaller
 			ArrayList<String> working_samples = new ArrayList<String>();
 			working_samples.addAll(variant_samples);
 			working_samples.addAll(reference_samples);
-			LocusContext working_context = filterLocusContextBySamples(context, working_samples);
+			AlignmentContext working_context = filterAlignmentContextBySamples(context, working_samples);
 
 			// Call.
 			MultiSampleCallResult call_result = super.map(tracker, ref, working_context);
@@ -155,7 +156,7 @@ public class MultiSampleCallerAccuracyTest extends MultiSampleCaller
 
 	// Filter a locus context by sample IDs
 	//   (pulls out only reads from the specified samples, and returns them in one context).
-    private LocusContext filterLocusContextBySamples(LocusContext context, List<String> sample_names)
+    private AlignmentContext filterAlignmentContextBySamples(AlignmentContext context, List<String> sample_names)
     {
 		HashSet<String> index = new HashSet<String>();
 		for (int i = 0; i < sample_names.size(); i++)
@@ -185,7 +186,7 @@ public class MultiSampleCallerAccuracyTest extends MultiSampleCaller
 			}
         }
 
-		return new LocusContext(context.getLocation(), reads, offsets);
+		return new AlignmentContext(context.getLocation(), reads, offsets);
     }
 
 	// END Utility Functions

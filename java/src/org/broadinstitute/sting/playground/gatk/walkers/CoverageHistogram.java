@@ -1,15 +1,14 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 
 import java.util.*;
-import java.util.zip.*;
-import java.io.*;
 
 // Plot a histogram of depth of coverage
 // j.maguire 6-11-2009
@@ -38,9 +37,9 @@ public class CoverageHistogram extends LocusWalker<Integer,Integer>
 		num_sites = 0;
 	}
 
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) 
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context)
 	{
-		if (ref == 'N') { return null; }
+		if (ref.getBase() == 'N') { return null; }
 		int depth = context.getReads().size();
 		coverage_hist[depth] += 1;
 		if (depth > max_depth) { max_depth = depth; }

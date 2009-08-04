@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -11,7 +12,6 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 
-import java.util.List;
 import java.io.File;
 import java.io.IOException;
 
@@ -45,8 +45,8 @@ public class PileupWithContextWalker extends LocusWalker<Integer, Integer> imple
         }
     }
 
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(), context);
         String bases = pileup.getBasesWithStrand();
 
         if ( bases.equals("") && FLAG_UNCOVERED_BASES ) {

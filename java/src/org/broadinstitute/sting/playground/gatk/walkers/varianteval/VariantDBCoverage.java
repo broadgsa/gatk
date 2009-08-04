@@ -2,7 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -48,7 +48,7 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
         return nOverlappingSites() / (1.0 * nEvalSites());
     }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         // There are four cases here:
         AllelicVariant dbsnp = (AllelicVariant)tracker.lookup(dbName, null);
         inc(dbsnp != null, eval != null);

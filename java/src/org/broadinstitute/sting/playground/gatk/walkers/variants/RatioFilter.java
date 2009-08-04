@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
 import org.broadinstitute.sting.gatk.refdata.TabularROD;
 import org.broadinstitute.sting.utils.*;
@@ -12,8 +12,6 @@ import java.util.Set;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-
-import edu.mit.broad.picard.util.MathUtil;
 
 class GenotypeFeatureData extends ArrayList<Double> {
     public enum Tail { LeftTailed, RightTailed, TwoTailed }
@@ -257,7 +255,7 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
 
     public boolean useZeroQualityReads() { return false; }
 
-    public void compute(char ref, LocusContext context, rodVariants variant) {
+    public void compute(char ref, AlignmentContext context, rodVariants variant) {
         boolean exclude = false;
 
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);

@@ -1,18 +1,13 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.picard.reference.ReferenceSequence;
 
 import java.util.ArrayList;
-import java.util.Random;
-import java.io.File;
 
 /**
  * ReadErrorRateWalker assesses the error rate per read position ('cycle') by comparing the

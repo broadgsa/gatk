@@ -1,8 +1,9 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.WalkerManager;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.*;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -49,18 +50,18 @@ public class TraverseLoci extends TraversalEngine {
 
         // We keep processing while the next reference location is within the interval
         while( locusView.hasNext() ) {
-            LocusContext locus = locusView.next();
+            AlignmentContext locus = locusView.next();
 
             TraversalStatistics.nRecords++;
 
             // Iterate forward to get all reference ordered data covering this locus
             final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation());
 
-            char refBase = referenceView.getReferenceBase(locus.getLocation());
+            ReferenceContext refContext = new ReferenceContext( referenceView.getReferenceBase(locus.getLocation()) );
 
-            final boolean keepMeP = locusWalker.filter(tracker, refBase, locus);
+            final boolean keepMeP = locusWalker.filter(tracker, refContext, locus);
             if (keepMeP) {
-                M x = locusWalker.map(tracker, refBase, locus);
+                M x = locusWalker.map(tracker, refContext, locus);
                 sum = locusWalker.reduce(x, sum);
             }
 

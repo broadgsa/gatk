@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.duplicates;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -160,7 +160,7 @@ public class DuplicateQualsWalker extends DuplicateWalker<List<DuplicateComp>, Q
     }
 
     // Print out data for regression
-    public List<DuplicateComp> map(GenomeLoc loc, byte[] refBases, LocusContext context,
+    public List<DuplicateComp> map(GenomeLoc loc, byte[] refBases, AlignmentContext context,
                                    List<SAMRecord> uniqueReads,
                                    List<SAMRecord> duplicateReads) {
         //logger.info(String.format("%s has %d duplicates and %d non-duplicates", loc, duplicateReads.size(), uniqueReads.size()));

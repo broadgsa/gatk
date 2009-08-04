@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.List;
@@ -17,7 +17,7 @@ import net.sf.samtools.SAMRecord;
 @Requires({DataSource.READS,DataSource.REFERENCE})
 public abstract class DuplicateWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
-    public boolean filter(GenomeLoc loc, byte[] refBases, LocusContext context,
+    public boolean filter(GenomeLoc loc, byte[] refBases, AlignmentContext context,
                           List<SAMRecord> uniqueReads,
                           List<SAMRecord> duplicateReads) {
         return true;    // We are keeping all the reads
@@ -31,7 +31,7 @@ public abstract class DuplicateWalker<MapType, ReduceType> extends Walker<MapTyp
      */
     public boolean mapUniqueReadsTooP() { return false; }
 
-    public abstract MapType map(GenomeLoc loc, byte[] refBases, LocusContext context,
+    public abstract MapType map(GenomeLoc loc, byte[] refBases, AlignmentContext context,
                                 List<SAMRecord> uniqueReads,
                                 List<SAMRecord> duplicateReads);
 

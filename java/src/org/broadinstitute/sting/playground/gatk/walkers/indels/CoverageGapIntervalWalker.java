@@ -3,7 +3,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.indels;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 
@@ -16,7 +17,7 @@ public class CoverageGapIntervalWalker extends LocusWalker<Pair<GenomeLoc, Integ
 
     public void initialize() {}
 
-    public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         int goodReads = 0;
         List<SAMRecord> reads = context.getReads();
         for (int i = 0; i < reads.size(); i++ ) {
@@ -26,7 +27,7 @@ public class CoverageGapIntervalWalker extends LocusWalker<Pair<GenomeLoc, Integ
         return goodReads >= minReadsAtInterval;
     }
 
-     public Pair<GenomeLoc, Integer> map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+     public Pair<GenomeLoc, Integer> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         // find the probability that this locus has a statistically significant gap in coverage
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();

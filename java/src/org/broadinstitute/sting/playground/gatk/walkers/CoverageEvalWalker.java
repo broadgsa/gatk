@@ -1,7 +1,8 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodGFF;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
@@ -42,11 +43,11 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
         out.println("DownsampledCoverage\tAvailableCoverage\tHapmapChipGenotype\tGenotypeCallType\t"+header.substring(1));
     }
 
-    public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        return (BaseUtils.simpleBaseToBaseIndex(ref) != -1 && context.getReads().size() != 0);
+    public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        return (BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 && context.getReads().size() != 0);
     }
 
-    public List<String> map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public List<String> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
         rodGFF hapmap_chip = (rodGFF)tracker.lookup("hapmap-chip", null);
         String hc_genotype;
@@ -75,7 +76,7 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
                     List<SAMRecord> sub_reads = ListUtils.sliceListByIndices(subset_indices, reads);
                     List<Integer> sub_offsets = ListUtils.sliceListByIndices(subset_indices, offsets);
 
-                    LocusContext subContext = new LocusContext(context.getLocation(), sub_reads, sub_offsets);
+                    AlignmentContext subContext = new AlignmentContext(context.getLocation(), sub_reads, sub_offsets);
                     GenotypeCall call = SSG.map(tracker, ref, subContext);
 
                     String callType = (call.isVariation()) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";

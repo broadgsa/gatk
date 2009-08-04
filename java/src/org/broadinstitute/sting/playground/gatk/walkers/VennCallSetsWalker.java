@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
@@ -60,7 +61,7 @@ public class VennCallSetsWalker extends RefWalker<Integer, Integer> {
      */
     public Integer reduceInit() { return 0; }
 
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         AllelicVariant call1 = (AllelicVariant)tracker.lookup("callset1", null);
         AllelicVariant call2 = (AllelicVariant)tracker.lookup("callset2", null);
 

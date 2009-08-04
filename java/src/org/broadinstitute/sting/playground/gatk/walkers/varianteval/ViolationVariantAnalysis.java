@@ -25,15 +25,6 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.IntervalRod;
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.utils.GenomeLoc;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.io.PrintStream;
 import java.io.File;
 import java.io.FileNotFoundException;

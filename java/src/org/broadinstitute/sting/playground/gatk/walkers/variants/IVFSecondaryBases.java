@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 
@@ -60,7 +60,7 @@ public class IVFSecondaryBases implements IndependentVariantFeature {
      * @param context the context for the given locus
      * @return a ten-element array of log-likelihood result of the feature applied to each genotype
      */
-    public void compute(char ref, LocusContext context) {
+    public void compute(char ref, AlignmentContext context) {
         likelihoods = new double[10];
 
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);

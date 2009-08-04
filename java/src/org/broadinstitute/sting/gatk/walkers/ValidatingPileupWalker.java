@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodSAMPileup;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -22,8 +23,8 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
     @Argument(fullName="continue_after_error",doc="Continue after an error",required=false)
     public boolean CONTINUE_AFTER_AN_ERROR = false;
 
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        Pileup pileup = new ReadBackedPileup(ref, context);
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        Pileup pileup = new ReadBackedPileup(ref.getBase(), context);
         Pileup truePileup = getTruePileup( tracker );
 
         if ( truePileup == null ) {

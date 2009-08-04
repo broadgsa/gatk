@@ -1,11 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.LocusContext;
-
-import java.io.PrintStream;
-import java.util.List;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 
 /**

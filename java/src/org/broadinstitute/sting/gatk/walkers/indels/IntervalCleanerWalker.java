@@ -5,7 +5,7 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -98,7 +98,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
     }
 
-    public Integer map(RefMetaDataTracker tracker, String ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, String ref, AlignmentContext context) {
         List<SAMRecord> reads = context.getReads();
         ArrayList<SAMRecord> goodReads = new ArrayList<SAMRecord>();
         for ( SAMRecord read : reads ) {

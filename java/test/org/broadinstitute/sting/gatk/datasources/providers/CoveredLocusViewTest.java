@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 import org.junit.Assert;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
@@ -57,7 +57,7 @@ public class CoveredLocusViewTest extends LocusViewTemplate {
 
             Assert.assertTrue("Incorrect number of loci in view",coveredLocusView.hasNext());
 
-            LocusContext locusContext = coveredLocusView.next();
+            AlignmentContext locusContext = coveredLocusView.next();
             Assert.assertEquals("Target locus context location is incorrect", site, locusContext.getLocation() );
             Assert.assertEquals("Found wrong number of reads at site", expectedReadsAtSite, locusContext.getReads().size());
 

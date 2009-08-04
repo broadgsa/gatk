@@ -1,15 +1,12 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SNPCallFromGenotypes;
-import org.broadinstitute.sting.gatk.refdata.PooledEMSNPROD;
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.genotype.HardyWeinbergCalculation;
 
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,7 +32,7 @@ public class HardyWeinbergEquilibrium extends ViolationVariantAnalysis implement
         this.threshold = threshold;
     }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         String r = null;
 
         if ( eval != null &&

@@ -1,18 +1,15 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.duplicates.DupUtils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.List;
-import java.io.File;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMFileHeader;
 
 /**
  * Created by IntelliJ IDEA.
@@ -76,7 +73,7 @@ public class CombineDuplicatesWalker extends DuplicateWalker<SAMRecord, SAMFileW
      * @param duplicateReads
      * @return
      */
-    public SAMRecord map(GenomeLoc loc, byte[] refBases, LocusContext context,
+    public SAMRecord map(GenomeLoc loc, byte[] refBases, AlignmentContext context,
                          List<SAMRecord> uniqueReads,
                          List<SAMRecord> duplicateReads) {
         //logger.info(String.format("%s has %d duplicates and %d non-duplicates", loc, duplicateReads.size(), uniqueReads.size()));

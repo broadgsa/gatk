@@ -3,7 +3,6 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
-import org.broadinstitute.sting.gatk.LocusContext;
 
 /**
  * Created by IntelliJ IDEA.
@@ -28,7 +27,6 @@ public class AlignedReadsHistoWalker extends ReadWalker<Integer, Integer> {
 	    return !read.getReadUnmappedFlag();
     }
 
-    // Map over the org.broadinstitute.sting.atk.LocusContext
     public Integer map(char[] ref, SAMRecord read) {
         //System.out.println(read.getAttribute("NM"));
         int editDist = Integer.parseInt(read.getAttribute("NM").toString());

@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
 
 /**
@@ -22,7 +22,7 @@ public class VECDepthOfCoverage implements VariantExclusionCriterion {
         }
     }
 
-    public void compute(char ref, LocusContext context, rodVariants variant) {
+    public void compute(char ref, AlignmentContext context, rodVariants variant) {
         exclude = context.getReads().size() > maximum;
         depth = context.getReads().size();
     }

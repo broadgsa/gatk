@@ -4,7 +4,7 @@ import java.util.NoSuchElementException;
 import java.util.ArrayList;
 
 import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import net.sf.samtools.SAMRecord;
 /**
@@ -36,7 +36,7 @@ public class AllLocusView extends LocusView {
      * What's the context for the last locus accessed?
      * @param provider
      */
-    private LocusContext nextLocusContext = null;
+    private AlignmentContext nextLocus = null;
 
     /**
      * Create a new queue of locus contexts.
@@ -48,7 +48,7 @@ public class AllLocusView extends LocusView {
         locusIterator = new GenomeLocusIterator( provider.getShard().getGenomeLoc() );
         if( locusIterator.hasNext() ) {
             nextPosition = locusIterator.next();
-            nextLocusContext = hasNextLocusContext() ? nextLocusContext() : createEmptyLocusContext(nextPosition);
+            nextLocus = hasNextLocus() ? nextLocus() : createEmptyLocus(nextPosition);
         }
     }
 
@@ -56,7 +56,7 @@ public class AllLocusView extends LocusView {
         return nextPosition != null;
     }
 
-    public LocusContext next() {
+    public AlignmentContext next() {
         GenomeLoc currentPosition = nextPosition;
         if( currentPosition == null )
             throw new NoSuchElementException("No next is available in the all locus view");
@@ -65,14 +65,14 @@ public class AllLocusView extends LocusView {
         nextPosition = locusIterator.hasNext() ? locusIterator.next() : null;
 
         // Crank the iterator to (if possible) or past the next context.
-        while( nextLocusContext != null && nextLocusContext.getLocation().isBefore(currentPosition) && hasNextLocusContext() )
-            nextLocusContext = nextLocusContext();
+        while( nextLocus != null && nextLocus.getLocation().isBefore(currentPosition) && hasNextLocus() )
+            nextLocus = nextLocus();
 
         // If actual data is present, return it.  Otherwise, return empty data.
-        if( nextLocusContext != null && nextLocusContext.getLocation().equals(currentPosition) )
-            return nextLocusContext;
+        if( nextLocus != null && nextLocus.getLocation().equals(currentPosition) )
+            return nextLocus;
         else
-            return createEmptyLocusContext( currentPosition );
+            return createEmptyLocus( currentPosition );
     }
 
     /**
@@ -80,7 +80,7 @@ public class AllLocusView extends LocusView {
      * @param site Site at which to create the blank locus context.
      * @return empty context.
      */
-    private LocusContext createEmptyLocusContext( GenomeLoc site ) {
-        return new LocusContext(site, new ArrayList<SAMRecord>(), new ArrayList<Integer>());
+    private AlignmentContext createEmptyLocus( GenomeLoc site ) {
+        return new AlignmentContext(site, new ArrayList<SAMRecord>(), new ArrayList<Integer>());
     }
 }

@@ -43,7 +43,7 @@ public abstract class LocusViewTemplate extends BaseTest {
     }
 
     @Test
-    public void emptyLocusContextTest() {
+    public void emptyAlignmentContextTest() {
         SAMRecordIterator iterator = new SAMRecordIterator();
 
         GenomeLoc shardBounds = GenomeLocParser.createGenomeLoc("chr1",1,5);

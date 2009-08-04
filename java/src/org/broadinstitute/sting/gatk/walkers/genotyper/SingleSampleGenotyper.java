@@ -1,7 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
@@ -74,7 +75,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
      *
      * @return true if we should look at this locus, false otherwise
      */
-    public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public boolean filter(RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         return (BaseUtils.simpleBaseToBaseIndex(ref) != -1 && context.getReads().size() != 0);
     }
 
@@ -110,10 +111,10 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
      * @param ref     the reference base
      * @param context contextual information around the locus
      */
-    public SSGGenotypeCall map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public SSGGenotypeCall map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( TESTING_NEW ) {
-            SSGGenotypeCall oldAndBusted = mapOldAndBusted(tracker, ref, context);
-            SSGGenotypeCall newHotness = mapNewHotness(tracker, ref, context);
+            SSGGenotypeCall oldAndBusted = mapOldAndBusted(tracker, ref.getBase(), context);
+            SSGGenotypeCall newHotness = mapNewHotness(tracker, ref.getBase(), context);
 
             if ( ! oldAndBusted.equals(newHotness) ) {
                 System.out.printf("Calls not equal:%nold: %s%nnew: %s%n", oldAndBusted, newHotness);
@@ -122,14 +123,14 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
             return caller == Caller.OLD_AND_BUSTED ? oldAndBusted : newHotness;
         } else {
             switch ( caller ) {
-                case OLD_AND_BUSTED: return mapOldAndBusted(tracker, ref, context);
-                case NEW_HOTNESS: return mapNewHotness(tracker, ref, context);
+                case OLD_AND_BUSTED: return mapOldAndBusted(tracker, ref.getBase(), context);
+                case NEW_HOTNESS: return mapNewHotness(tracker, ref.getBase(), context);
                 default: return null;
             }
         }
     }
 
-    private SSGGenotypeCall mapNewHotness(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    private SSGGenotypeCall mapNewHotness(RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         NewHotnessGenotypeLikelihoods G = makeNewHotnessGenotypeLikelihoods(tracker);
         G.setDiscovery(GENOTYPE); // set it to discovery mode or variant detection mode
@@ -258,7 +259,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
     //
     // TODO -- delete the old and busted routines
     //
-    private SSGGenotypeCall mapOldAndBusted(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    private SSGGenotypeCall mapOldAndBusted(RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         OldAndBustedGenotypeLikelihoods G = makeOldAndBustedGenotypeLikelihoods(tracker);
         G.setDiscovery(GENOTYPE); // set it to discovery mode or variant detection mode

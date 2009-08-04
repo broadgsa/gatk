@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountReadsWalker extends ReadWalker<Integer, Integer> {

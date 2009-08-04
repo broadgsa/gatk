@@ -6,7 +6,7 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.apache.log4j.Logger;
 
 import net.sf.samtools.SAMRecord;
@@ -103,8 +103,8 @@ public class ArtificialReadsTraversal extends TraversalEngine {
         // while we still have more reads
         for (SAMRecord read : iter) {
 
-            // our locus context
-            LocusContext locus = null;
+            // our alignment context
+            AlignmentContext alignment = null;
 
             // an array of characters that represent the reference
             char[] refSeq = null;
@@ -118,7 +118,7 @@ public class ArtificialReadsTraversal extends TraversalEngine {
                 sum = readWalker.reduce(x, sum);
             }
 
-            if (locus != null) { printProgress("loci", locus.getLocation()); }
+            if (alignment != null) { printProgress("loci", alignment.getLocation()); }
         }
         return sum;
     }

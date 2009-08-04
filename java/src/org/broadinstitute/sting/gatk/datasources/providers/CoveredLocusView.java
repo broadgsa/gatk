@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.apache.log4j.Logger;
 /**
@@ -31,7 +31,7 @@ public class CoveredLocusView extends LocusView {
      * What's the context for the last locus accessed?
      * @param provider
      */
-    private LocusContext nextLocusContext = null;
+    private AlignmentContext nextLocusContext = null;
 
     private static Logger logger = Logger.getLogger(CoveredLocusView.class);
 
@@ -44,10 +44,10 @@ public class CoveredLocusView extends LocusView {
     }
 
     public boolean hasNext() {
-        return hasNextLocusContext();
+        return hasNextLocus();
     }
 
-    public LocusContext next() {
-        return nextLocusContext();
+    public AlignmentContext next() {
+        return nextLocus();
     }
 }

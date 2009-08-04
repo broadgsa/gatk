@@ -22,6 +22,6 @@ public abstract class ReadWalker<MapType, ReduceType> extends Walker<MapType, Re
         return true;
     }
 
-    // Map over the org.broadinstitute.sting.gatk.LocusContext
+    // Map over the org.broadinstitute.sting.gatk.contexts.AlignmentContext
     public abstract MapType map(char[] ref, SAMRecord read);
 }

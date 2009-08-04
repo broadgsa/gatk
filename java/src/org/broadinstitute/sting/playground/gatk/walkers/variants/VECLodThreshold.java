@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 public class VECLodThreshold implements VariantExclusionCriterion {
     private double lodThreshold = 5.0;
@@ -14,7 +14,7 @@ public class VECLodThreshold implements VariantExclusionCriterion {
         }
     }
 
-    public void compute(char ref, LocusContext context, rodVariants variant) {
+    public void compute(char ref, AlignmentContext context, rodVariants variant) {
         lod = variant.getLodBtr();
         exclude = lod < lodThreshold;
     }

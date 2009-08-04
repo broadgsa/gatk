@@ -5,15 +5,13 @@ import java.io.FileWriter;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GATKArgumentCollection;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.Genotype;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
-import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.RMD;
-import org.broadinstitute.sting.gatk.refdata.rodRefSeq; 
+import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
 import org.broadinstitute.sting.playground.utils.GenotypingCallStats;
 import org.broadinstitute.sting.utils.GenotypeUtils;
 import org.broadinstitute.sting.utils.StingException;
@@ -56,7 +54,7 @@ public class SomaticMutationFromGenotypeWalker  extends RefWalker<SomaticMutatio
 	private FilterType filter;
 	
 	@Override
-	public SomaticMutationRecord map(RefMetaDataTracker rodData, char ref, LocusContext context) {
+	public SomaticMutationRecord map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
 				
 //		String outLine = new String(context.getLocation() + " REF: "+ref + " RODS:" + rodData.getAllRods().size());
 		

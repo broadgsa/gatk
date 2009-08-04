@@ -1,10 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-
-import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,7 +12,7 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class CountLociWalker extends LocusWalker<Integer, Long> implements TreeReducible<Long> {
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         return 1;
     }
 

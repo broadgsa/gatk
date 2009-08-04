@@ -1,14 +1,10 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.Utils;
-import net.sf.picard.reference.ReferenceSequence;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @WalkerName("CountMismatches")

@@ -5,7 +5,8 @@ import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.BaseUtils;
 
@@ -37,11 +38,11 @@ public class CoverageBySample extends LocusWalker<String, String>
         } 
     }
 
-    public String map(RefMetaDataTracker tracker, char ref, LocusContext context) 
+    public String map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
     {
         String line = context.getLocation().getContig() + " " + context.getLocation().getStart() + " " ;
 
-		LocusContext[] contexts = filterLocusContext(context, sample_names, 0);
+		AlignmentContext[] contexts = filterAlignmentContext(context, sample_names, 0);
 
 		HashMap<String,Integer> counts = countReadsBySample(context);
         for (int i = 0; i < contexts.length; i++)
@@ -84,7 +85,7 @@ public class CoverageBySample extends LocusWalker<String, String>
         return "";
     }
 
-    private HashMap<String,Integer> countReadsBySample(LocusContext context)
+    private HashMap<String,Integer> countReadsBySample(AlignmentContext context)
     {
 		HashMap<String,Integer> counts = new HashMap<String,Integer>();
 		for (int i = 0; i < sample_names.size(); i++)
@@ -101,7 +102,7 @@ public class CoverageBySample extends LocusWalker<String, String>
         return counts;
     }
 
-    private LocusContext[] filterLocusContext(LocusContext context, List<String> sample_names, int downsample)
+    private AlignmentContext[] filterAlignmentContext(AlignmentContext context, List<String> sample_names, int downsample)
     {
 		HashMap<String,Integer> index = new HashMap<String,Integer>();
 		for (int i = 0; i < sample_names.size(); i++)
@@ -109,7 +110,7 @@ public class CoverageBySample extends LocusWalker<String, String>
 			index.put(sample_names.get(i), i);
 		}
 
-		LocusContext[] contexts = new LocusContext[sample_names.size()];
+		AlignmentContext[] contexts = new AlignmentContext[sample_names.size()];
 		ArrayList<SAMRecord>[] reads = new ArrayList[sample_names.size()];
 		ArrayList<Integer>[] offsets = new ArrayList[sample_names.size()];
 
@@ -153,14 +154,14 @@ public class CoverageBySample extends LocusWalker<String, String>
 	
 	            reads[j] = downsampled_reads;
 	            offsets[j] = downsampled_offsets;
-				contexts[j] = new LocusContext(context.getLocation(), reads[j], offsets[j]);
+				contexts[j] = new AlignmentContext(context.getLocation(), reads[j], offsets[j]);
 			}
         }
 		else
 		{
 			for (int j = 0; j < reads.length; j++)
 			{
-				contexts[j] = new LocusContext(context.getLocation(), reads[j], offsets[j]);
+				contexts[j] = new AlignmentContext(context.getLocation(), reads[j], offsets[j]);
 			}
 		}
 

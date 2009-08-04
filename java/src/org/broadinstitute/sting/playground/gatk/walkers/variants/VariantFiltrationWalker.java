@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
@@ -181,7 +182,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
      * @param context  the context for the given locus
      * @return 1 if the locus was successfully processed, 0 if otherwise
      */
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         rodVariants variant = (rodVariants) tracker.lookup("variant", null);
         
         rodGFF hapmapSite = null;
@@ -193,7 +194,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         }
 
         // Ignore places where we don't have a variant or where the reference base is ambiguous.
-        if (variant != null && (!TRUTH || hapmapSite != null) && BaseUtils.simpleBaseToBaseIndex(ref) != -1) {
+        if (variant != null && (!TRUTH || hapmapSite != null) && BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1) {
             if (VERBOSE) { out.println("Original:\n  " + variant); }
 
             if (LEARNING) {
@@ -202,7 +203,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
 
             // Apply features that modify the likelihoods and LOD scores
             for ( IndependentVariantFeature ivf : requestedFeatures ) {
-                ivf.compute(ref, context);
+                ivf.compute(ref.getBase(), context);
 
                 double[] weights = ivf.getLikelihoods();
 
@@ -220,10 +221,10 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
 
             // we need to provide an alternative context without mapping quality 0 reads
             // for those exclusion criterion that don't want them
-            LocusContext Q0freeContext = removeQ0reads(context);
+            AlignmentContext Q0freeContext = removeQ0reads(context);
 
             for ( VariantExclusionCriterion vec : requestedExclusions ) {
-                vec.compute(ref, (vec.useZeroQualityReads() ? context : Q0freeContext), variant);
+                vec.compute(ref.getBase(), (vec.useZeroQualityReads() ? context : Q0freeContext), variant);
 
                 String exclusionClassName = rationalizeClassName(vec.getClass());
 
@@ -269,7 +270,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         return 0;
     }
 
-    private LocusContext removeQ0reads(LocusContext context) {
+    private AlignmentContext removeQ0reads(AlignmentContext context) {
         // set up the variables
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
@@ -288,7 +289,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             }                       
         }
         
-        return new LocusContext(context.getLocation(), Q0freeReads, Q0freeOffsets);    
+        return new AlignmentContext(context.getLocation(), Q0freeReads, Q0freeOffsets);    
     }
 
     /**

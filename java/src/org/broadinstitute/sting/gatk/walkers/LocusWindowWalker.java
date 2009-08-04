@@ -1,9 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.LocusContext;
-
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 /**
  * Created by IntelliJ IDEA.
@@ -15,12 +13,12 @@ import net.sf.samtools.SAMRecord;
 @Requires({DataSource.READS,DataSource.REFERENCE, DataSource.REFERENCE_BASES})
 public abstract class LocusWindowWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
-    public boolean filter(RefMetaDataTracker tracker, String ref, LocusContext context) {
+    public boolean filter(RefMetaDataTracker tracker, String ref, AlignmentContext context) {
         return true;    // We are keeping all the intervals
     }
 
-    // Map over the org.broadinstitute.sting.gatk.LocusContext
-    public abstract MapType map(RefMetaDataTracker tracker, String ref, LocusContext context);
+    // Map over the org.broadinstitute.sting.gatk.contexts.AlignmentContext
+    public abstract MapType map(RefMetaDataTracker tracker, String ref, AlignmentContext context);
 
     // Given result of map function
     public abstract ReduceType reduceInit();

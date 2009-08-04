@@ -3,15 +3,13 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.IntervalRod;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.io.PrintStream;
-import java.io.File;
-import java.io.FileNotFoundException;
 
 /**
  * The Broad Institute
@@ -36,7 +34,7 @@ public class NeighborDistanceAnalysis extends ViolationVariantAnalysis implement
         neighborWiseDistances = new ArrayList<Long>();
     }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         String r = null;
 
         if ( eval != null && eval.isSNP() ) {

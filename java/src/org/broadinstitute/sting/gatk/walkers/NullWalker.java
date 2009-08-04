@@ -1,11 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.LocusContext;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-
-import java.util.List;
 
 // Null traversal. For ATK performance measuring.
 // j.maguire 3-7-2009
@@ -15,12 +13,12 @@ public class NullWalker extends LocusWalker<Integer, Integer> {
     }
 
     // Do we actually want to operate on the context?
-    public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         return true;    // We are keeping all the reads
     }
 
-    // Map over the org.broadinstitute.sting.gatk.LocusContext
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) 
+    // Map over the org.broadinstitute.sting.gatk.contexts.AlignmentContext
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context)
     {
         return 1;
     }

@@ -1,4 +1,29 @@
-package org.broadinstitute.sting.gatk;
+/*
+ * Copyright (c) 2009 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package org.broadinstitute.sting.gatk.contexts;
 
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.SAMRecord;
@@ -15,20 +40,19 @@ import java.util.*;
  * Time: 3:01:34 PM
  * To change this template use File | Settings | File Templates.
  */
-public class LocusContext {
+public class AlignmentContext {
     private GenomeLoc loc = null;
     private List<SAMRecord> reads = null;
     private List<Integer> offsets = null;
-    private ReferenceSequence refContig = null;
 
     /**
-     * Create a new LocusContext object
+     * Create a new AlignmentContext object
      *
      * @param loc
      * @param reads
      * @param offsets
      */
-    public LocusContext(GenomeLoc loc, List<SAMRecord> reads, List<Integer> offsets) {
+    public AlignmentContext(GenomeLoc loc, List<SAMRecord> reads, List<Integer> offsets) {
         //assert loc != null;
         //assert loc.getContig() != null;
         //assert reads != null;
@@ -78,30 +102,6 @@ public class LocusContext {
     public GenomeLoc getLocation() { return loc; }
     public void setLocation(GenomeLoc loc) {
         this.loc = loc.clone();
-    }
-    /**
-     * Returns the entire reference sequence contig associated with these reads
-     *
-     * @return ReferenceSequence object, or null if unavailable
-     */
-    public ReferenceSequence getReferenceContig() {
-        return refContig;
-    }
-
-    /**
-     * @return True if reference sequence contig is available
-     */
-    public boolean hasReferenceContig() {
-        return refContig != null;
-    }
-
-    /**
-     * Sets the reference sequence for this locus to contig
-     * 
-     * @param contig
-     */
-    public void setReferenceContig(final ReferenceSequence contig) {
-        refContig = contig;
     }
 
     public void downsampleToCoverage(int coverage) {

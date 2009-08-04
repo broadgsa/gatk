@@ -1,10 +1,9 @@
 package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
-import java.util.ArrayList;
 
 /**
  * Created by IntelliJ IDEA.
@@ -19,7 +18,7 @@ public class ReadBackedPileup extends BasicPileup {
     List<SAMRecord> reads;
     List<Integer> offsets;
 
-    public ReadBackedPileup(char ref, LocusContext context ) {
+    public ReadBackedPileup(char ref, AlignmentContext context ) {
         this(context.getLocation(), ref, context.getReads(), context.getOffsets());
     }
 

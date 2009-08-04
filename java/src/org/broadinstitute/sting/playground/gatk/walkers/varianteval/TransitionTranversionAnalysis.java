@@ -2,10 +2,9 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,7 +25,7 @@ public class TransitionTranversionAnalysis extends BasicVariantAnalysis implemen
         super("transitions_transversions");
     }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         if ( eval != null && eval.isSNP() ) {
             char refBase = eval.getRefSnpFWD();
             char altBase = eval.getAltSnpFWD();

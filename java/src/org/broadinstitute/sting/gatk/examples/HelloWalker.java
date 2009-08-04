@@ -22,7 +22,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
 /**
@@ -35,12 +36,12 @@ public class HelloWalker extends LocusWalker<Integer,Long> {
      * which they fall, and the base from the reference that overlaps.
      * @param tracker The accessor for reference metadata.
      * @param ref The reference base that lines up with this locus.
-     * @param context Information about reads overlapping this locus.
+     * @param locus Information about reads overlapping this locus.
      * @return In this case, returns a count of how many loci were seen at this site (1).
      */
     @Override
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
-        out.printf("Hello locus %s; your ref base is %c and you have %d reads%n", context.getLocation(), ref, context.getReads().size() );
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        out.printf("Hello locus %s; your ref base is %c and you have %d reads%n", context.getLocation(), ref.getBase(), context.getReads().size() );
         return 1;
     }
 

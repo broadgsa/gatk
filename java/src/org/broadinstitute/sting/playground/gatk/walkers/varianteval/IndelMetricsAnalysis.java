@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.LocusContext;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ public class IndelMetricsAnalysis extends BasicVariantAnalysis implements Genoty
             sizes[0][i] = sizes[1][i] = 0;
     }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         if ( eval != null && eval.isIndel() ) {
             if ( eval.isInsertion() )
                 insertions++;

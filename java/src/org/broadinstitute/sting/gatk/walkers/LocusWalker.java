@@ -1,7 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,10 +15,10 @@ import org.broadinstitute.sting.gatk.LocusContext;
 @Requires({DataSource.READS,DataSource.REFERENCE, DataSource.REFERENCE_BASES})
 public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
-    public boolean filter(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         return true;    // We are keeping all the reads
     }
 
-    // Map over the org.broadinstitute.sting.gatk.LocusContext
-    public abstract MapType map(RefMetaDataTracker tracker, char ref, LocusContext context);
+    // Map over the org.broadinstitute.sting.gatk.contexts.AlignmentContext
+    public abstract MapType map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context);
 }

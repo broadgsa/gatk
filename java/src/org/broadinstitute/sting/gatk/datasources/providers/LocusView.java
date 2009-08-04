@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.iterators.LocusContextIteratorByHanger;
-import org.broadinstitute.sting.gatk.iterators.LocusContextIterator;
+import org.broadinstitute.sting.gatk.iterators.LocusIteratorByHanger;
+import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
 import net.sf.samtools.SAMRecord;
 
@@ -32,7 +32,7 @@ import net.sf.picard.filter.SamRecordFilter;
  * A queue of locus context entries.
  */
 
-public abstract class LocusView extends LocusContextIterator implements View {
+public abstract class LocusView extends LocusIterator implements View {
     /**
      * The shard bounding this view.
      */
@@ -46,13 +46,13 @@ public abstract class LocusView extends LocusContextIterator implements View {
     /**
      * The actual locus context iterator.
      */
-    private LocusContextIterator loci;
+    private LocusIterator loci;
 
     /**
      * The next locus context from the iterator.  This value must always be within
      * the shard; if its null, there's nothing for the consumer to look at. 
      */
-    private LocusContext nextLocusContext = null;
+    private AlignmentContext nextLocus = null;
 
     public LocusView(ShardDataProvider provider) {
         this.shard = provider.getShard();
@@ -60,8 +60,8 @@ public abstract class LocusView extends LocusContextIterator implements View {
         Iterator<SAMRecord> reads = new FilteringIterator(provider.getReadIterator(), new LocusStreamFilterFunc());
         this.sourceInfo = provider.getReadIterator().getSourceInfo();
 
-        this.loci = new LocusContextIteratorByHanger(reads);
-        seedNextLocusContext();
+        this.loci = new LocusIteratorByHanger(reads);
+        seedNextLocus();
 
         provider.register(this);
     }
@@ -97,7 +97,7 @@ public abstract class LocusView extends LocusContextIterator implements View {
      * @return Next covered locus context in the shard.
      * @throw NoSuchElementException if no such element exists.
      */
-    public abstract LocusContext next();
+    public abstract AlignmentContext next();
 
     /**
      * Unsupported.
@@ -111,8 +111,8 @@ public abstract class LocusView extends LocusContextIterator implements View {
      * Is there another locus context bounded by this shard.
      * @return True if another locus context is bounded by this shard.
      */
-    protected boolean hasNextLocusContext() {
-        return nextLocusContext != null && !nextLocusContext.getLocation().isPast(shard.getGenomeLoc());
+    protected boolean hasNextLocus() {
+        return nextLocus != null && !nextLocus.getLocation().isPast(shard.getGenomeLoc());
     }
 
     /**
@@ -120,41 +120,41 @@ public abstract class LocusView extends LocusContextIterator implements View {
      * @return Next locus context bounded by this shard.
      * @throw NoSuchElementException if the next element is missing.
      */
-    protected LocusContext nextLocusContext() {
-        if( nextLocusContext == null || nextLocusContext.getLocation().isPast(shard.getGenomeLoc()) )
+    protected AlignmentContext nextLocus() {
+        if( nextLocus == null || nextLocus.getLocation().isPast(shard.getGenomeLoc()) )
             throw new NoSuchElementException("No more elements remain in locus context queue.");
 
         // Cache the current and apply filtering.
-        LocusContext current = nextLocusContext;
+        AlignmentContext current = nextLocus;
 
         // Find the next.
         if( loci.hasNext() ) {
-            nextLocusContext = loci.next();
+            nextLocus = loci.next();
             if( sourceInfo.getDownsampleToCoverage() != null )
                 current.downsampleToCoverage( sourceInfo.getDownsampleToCoverage() );                                 
-            if( nextLocusContext.getLocation().isPast(shard.getGenomeLoc()) )
-                nextLocusContext = null;
+            if( nextLocus.getLocation().isPast(shard.getGenomeLoc()) )
+                nextLocus = null;
         }
         else
-            nextLocusContext = null;
+            nextLocus = null;
 
         return current;
     }
 
     /**
-     * Seed the nextLocusContext variable with the contents of the next locus context (if one exists).
+     * Seed the nextLocus variable with the contents of the next locus (if one exists).
      */
-    private void seedNextLocusContext() {
+    private void seedNextLocus() {
         if( loci.hasNext() )
-            nextLocusContext = loci.next();
+            nextLocus = loci.next();
 
         // Iterate past cruft at the beginning to the first locus in the shard.
-        while( nextLocusContext != null && nextLocusContext.getLocation().isBefore(shard.getGenomeLoc()) && loci.hasNext() )
-            nextLocusContext = loci.next();
+        while( nextLocus != null && nextLocus.getLocation().isBefore(shard.getGenomeLoc()) && loci.hasNext() )
+            nextLocus = loci.next();
 
-        // If nothing in the shard was found, indicate that by setting nextLocusContext to null.
-        if( nextLocusContext != null && nextLocusContext.getLocation().isBefore(shard.getGenomeLoc()) )
-            nextLocusContext = null;
+        // If nothing in the shard was found, indicate that by setting nextAlignmentContext to null.
+        if( nextLocus != null && nextLocus.getLocation().isBefore(shard.getGenomeLoc()) )
+            nextLocus = null;
     }
 
     /**

@@ -2,11 +2,9 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
-import java.io.PrintStream;
 import java.util.List;
-import java.util.Arrays;
 import java.util.ArrayList;
 
 /**
@@ -38,7 +36,7 @@ public class CallableBasesAnalysis extends BasicVariantAnalysis implements Genot
     public long nGenotypable(int index)     { return genotypable_bases[index]; }
     public double percentGenotypable(int index)     { return (100.0*nGenotypable(index)) / nSites(); }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         all_bases++;
 
         if ( eval == null )                     // no data here!

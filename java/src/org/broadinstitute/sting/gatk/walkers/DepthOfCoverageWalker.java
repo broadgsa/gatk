@@ -24,7 +24,8 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Pair;
@@ -36,7 +37,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
     @Argument(fullName="suppressLocusPrinting",doc="Suppress printing",required=false)
     public boolean suppressPrinting = false;
 
-    public Integer map(RefMetaDataTracker tracker, char ref, LocusContext context) {
+    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( !suppressPrinting )
             out.printf("%s: %d%n", context.getLocation(), context.getReads().size() );
         return context.getReads().size();

@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 import org.junit.Assert;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
@@ -42,7 +42,7 @@ public class AllLocusViewTest extends LocusViewTemplate {
 
         for( long i = bounds.getStart(); i <= bounds.getStop(); i++ ) {
             GenomeLoc site = GenomeLocParser.createGenomeLoc("chr1",i);
-            LocusContext locusContext = allLocusView.next();
+            AlignmentContext locusContext = allLocusView.next();
             Assert.assertEquals("Locus context location is incorrect", site, locusContext.getLocation() );
             int expectedReadsAtSite = 0;
 

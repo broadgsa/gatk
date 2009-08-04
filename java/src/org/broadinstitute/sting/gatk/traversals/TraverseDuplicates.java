@@ -29,7 +29,7 @@ import net.sf.picard.filter.FilteringIterator;
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.ReadShard;
@@ -177,13 +177,13 @@ public class TraverseDuplicates extends TraversalEngine {
                         reads.size(), site.toString(), uniqueReads.size(), duplicateReads.size()));
 
             // Jump forward in the reference to this locus location
-            LocusContext locus = new LocusContext(site, duplicateReads, Arrays.asList(0));
+            AlignmentContext locus = new AlignmentContext(site, duplicateReads, Arrays.asList(0));
 
             // update the number of duplicate sets we've seen
             TraversalStatistics.nRecords++;
 
             // we still have to fix the locus context provider to take care of this problem with > 1 length contexts
-            // LocusContext locus = locusProvider.getLocusContext(site);
+            // AlignmentContext locus = locusProvider.getLocusContext(site);
 
             byte[] refBases = new byte[0];
 
@@ -245,7 +245,7 @@ public class TraverseDuplicates extends TraversalEngine {
                            List<SAMRecord> duplicateReads,
                            GenomeLoc site,
                            byte[] refBases,
-                           LocusContext locus,
+                           AlignmentContext locus,
                            T sum) {
         final boolean keepMeP = dupWalker.filter(site, refBases, locus, uniqueReads, duplicateReads);
         if (keepMeP) {

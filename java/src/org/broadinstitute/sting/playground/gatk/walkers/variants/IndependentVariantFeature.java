@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 /**
  * Interface for conditionally independent variant features.  
@@ -26,7 +26,7 @@ public interface IndependentVariantFeature {
      * @param ref      the reference base
      * @param context  the context for the given locus
      */
-    public void compute(char ref, LocusContext context);
+    public void compute(char ref, AlignmentContext context);
 
     public double[] getLikelihoods();
 

@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.sting.gatk.LocusContext;
 import net.sf.samtools.*;
 
 import java.util.List;

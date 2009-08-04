@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.duplicates;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -55,12 +55,12 @@ public class CountDuplicatesWalker extends DuplicateWalker<DuplicateCount, Dupli
      * the map function, conforming to the duplicates interface
      * @param loc the genomic location
      * @param refBases the reference bases that cover this position, which we turn off
-     * @param context the LocusContext, containing all the reads overlapping this region
+     * @param context the AlignmentContext, containing all the reads overlapping this region
      * @param uniqueReads all the unique reads, bundled together
      * @param duplicateReads all the duplicate reads
      * @return a DuplicateCount object, with the appropriate stats
      */
-    public DuplicateCount map(GenomeLoc loc, byte[] refBases, LocusContext context, List<SAMRecord> uniqueReads, List<SAMRecord> duplicateReads) {
+    public DuplicateCount map(GenomeLoc loc, byte[] refBases, AlignmentContext context, List<SAMRecord> uniqueReads, List<SAMRecord> duplicateReads) {
         DuplicateCount dup = new DuplicateCount();
         dup.count = 1;
         dup.undupDepth = uniqueReads.size();

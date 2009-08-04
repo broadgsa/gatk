@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.LocusContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
@@ -54,7 +54,7 @@ public class VECHomopolymer implements VariantExclusionCriterion {
         return "";
     }
 
-    public void compute(char ref, LocusContext context, rodVariants variant) {
+    public void compute(char ref, AlignmentContext context, rodVariants variant) {
 
         char[] geno = variant.getBestGenotype().toCharArray();
         int[] genotype = {-1,-1};
