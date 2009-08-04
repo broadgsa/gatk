@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.LocusContext;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.GenotypeUtils;
 
 public class VECAlleleBalance implements VariantExclusionCriterion {  //extends RatioFilter {
     //final private static GenotypeFeatureData.Tail tail = GenotypeFeatureData.Tail.TwoTailed;
@@ -62,7 +63,7 @@ public class VECAlleleBalance implements VariantExclusionCriterion {  //extends 
         Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
         int n = counts.first + counts.second;
         ratio = counts.first.doubleValue() / (double)n;
-        exclude = (1.0 - ratio) < lowThreshold || ratio > highThreshold;
+        exclude = GenotypeUtils.isHet(variant) && ((1.0 - ratio) < lowThreshold || ratio > highThreshold);
     }
 
     public boolean useZeroQualityReads() { return false; }

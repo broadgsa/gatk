@@ -62,7 +62,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             if (LEARNING) {
                 PrintWriter studyWriter = new PrintWriter(VARIANTS_OUT_HEAD + "." + STUDY_NAME);
                 swriters.put(STUDY_NAME, studyWriter);
-                studyWriter.print("#Chr\tPosition\t");
+                studyWriter.print("Chr\tPosition\t");
             }
 
             requestedFeatures = new ArrayList<IndependentVariantFeature>();
@@ -257,7 +257,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             if (LEARNING) {
                 rodDbSNP dbsnp = (rodDbSNP)tracker.lookup(knownSNPDBName, null);
                 if ( dbsnp == null )
-                    swriters.get(STUDY_NAME).print("no\tno\t");
+                    swriters.get(STUDY_NAME).print("false\tfalse\t");
                 else
                     swriters.get(STUDY_NAME).print(dbsnp.isSNP() + "\t" + dbsnp.isHapmap() + "\t");
                 swriters.get(STUDY_NAME).println(GenotypeUtils.isHet(variant));
