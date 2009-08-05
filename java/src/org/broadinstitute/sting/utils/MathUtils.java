@@ -11,6 +11,42 @@ public class MathUtils {
     /** Private constructor.  No instantiating this class! */
     private MathUtils() {}
 
+    public static double sum(double[] values) {
+        double s = 0.0;
+        for ( double v : values) s += v;
+        return s;
+    }
+
+    public static double sumLog10(double[] log10values) {
+        double s = 0.0;
+        for ( double v : log10values) s += Math.pow(10.0, v);
+        return s;
+    }
+
+    public static boolean wellFormedDouble(double val) {
+        return ! Double.isInfinite(val) && ! Double.isNaN(val);
+    }
+
+    public static boolean isBounded(double val, double lower, double upper) {
+        return val >= lower && val <= upper;
+    }
+
+    public static boolean isPositive(double val) {
+        return ! isNegativeOrZero(val);
+    }
+
+    public static boolean isPositiveOrZero(double val) {
+        return isBounded(val, 0.0, Double.POSITIVE_INFINITY);
+    }
+
+    public static boolean isNegativeOrZero(double val) {
+        return isBounded(val, Double.NEGATIVE_INFINITY, 0.0);
+    }
+
+    public static boolean isNegative(double val) {
+        return ! isPositiveOrZero(val);
+    }
+
     /**
      * Compares double values for equality (within 1e-6), or inequality.
      *
