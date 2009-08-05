@@ -47,7 +47,7 @@ public class LocusReferenceViewTest extends ReferenceViewTemplate {
         ShardDataProvider dataProvider = new ShardDataProvider(shard, null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
-        view.getReferenceBase(shard.getGenomeLoc());
+        view.getReferenceContext(shard.getGenomeLoc()).getBase();
     }
 
     @Test
@@ -74,7 +74,7 @@ public class LocusReferenceViewTest extends ReferenceViewTemplate {
         ShardDataProvider dataProvider = new ShardDataProvider(shard, null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
-        view.getReferenceBase(GenomeLocParser.createGenomeLoc(0, 51));
+        view.getReferenceContext(GenomeLocParser.createGenomeLoc(0, 51)).getBase();
     }
 
 
@@ -95,7 +95,7 @@ public class LocusReferenceViewTest extends ReferenceViewTemplate {
 
             ReferenceSequence expectedAsSeq = sequenceFile.getSubsequenceAt(locus.getContig(), locus.getStart(), locus.getStop());
             char expected = StringUtil.bytesToString(expectedAsSeq.getBases()).charAt(0);
-            char actual = view.getReferenceBase(locus);
+            char actual = view.getReferenceContext(locus).getBase();
 
             Assert.assertEquals(String.format("Value of base at position %s in shard %s does not match expected", locus.toString(), shard.getGenomeLoc()),
                     expected,

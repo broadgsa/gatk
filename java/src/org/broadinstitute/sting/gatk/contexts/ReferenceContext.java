@@ -25,6 +25,9 @@
 
 package org.broadinstitute.sting.gatk.contexts;
 
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
+
 /**
  * The section of the reference that overlaps with the given
  * read / locus. 
@@ -34,17 +37,65 @@ package org.broadinstitute.sting.gatk.contexts;
  */
 
 public class ReferenceContext {
-    private char base;
+    /**
+     * The locus.
+     */
+    private GenomeLoc locus;
 
-    public ReferenceContext( char base ) {
-        this.base = base;
+    /**
+     * The window of reference information around the current locus.
+     */
+    private GenomeLoc window;
+
+    /**
+     * The bases in the window around the current locus.
+     */
+    private char[] bases;
+
+    /**
+     * Contructor for a simple, windowless reference context.
+     * @param locus locus of interest.
+     * @param base reference base at that locus.
+     */
+    public ReferenceContext( GenomeLoc locus, char base ) {
+        this( locus, locus, new char[] { base } );
+    }
+
+    public ReferenceContext( GenomeLoc locus, GenomeLoc window, char[] bases ) {
+        if( !window.containsP(locus) )
+            throw new StingException("Invalid locus or window; window does not contain locus");
+
+        this.locus = locus;
+        this.window = window;
+        this.bases = bases;
+    }
+
+    /**
+     * The locus currently being examined.
+     * @return The current locus.
+     */
+    public GenomeLoc getLocus() {
+        return locus;
+    }
+
+    public GenomeLoc getWindow() {
+        return window;
     }
 
     /**
      * Get the base at the given locus.
-     * @return The base at the given locus from the reference.§
+     * @return The base at the given locus from the reference.
      */
     public char getBase() {
-        return base;    
+        return bases[(int)(locus.getStart() - window.getStart())];
+    }
+
+    /**
+     * All the bases in the window currently being examined.
+     * @return All bases available.  If the window is of size [0,0], the array will
+     *         contain only the base at the given locus.
+     */
+    public char[] getBases() {
+        return bases;
     }
 }

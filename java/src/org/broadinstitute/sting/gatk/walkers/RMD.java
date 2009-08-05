@@ -22,7 +22,6 @@ import java.lang.annotation.*;
 @Documented
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
 public @interface RMD {
     String name();    
     Class<? extends ReferenceOrderedDatum> type();

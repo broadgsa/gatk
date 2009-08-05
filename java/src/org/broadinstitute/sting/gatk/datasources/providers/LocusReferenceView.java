@@ -1,10 +1,14 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.gatk.walkers.Reference;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
-import net.sf.samtools.SAMSequenceRecord;
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -40,32 +44,84 @@ public class LocusReferenceView extends ReferenceView {
     private final GenomeLoc bounds;
 
     /**
+     * Start of the expanded window for which the reference context should be provided,
+     * relative to the locus in question.
+     */
+    private final int windowStart;
+
+
+    /**
+     * Start of the expanded window for which the reference context should be provided,
+     * relative to the locus in question.
+     */
+    private final int windowStop;
+
+    /**
      * Track the reference sequence and the last point accessed.  Used to
      * track state when traversing over the reference.
      */
     private ReferenceSequence referenceSequence;
 
     /**
-     * Create a new locus reference view.
-     * @param provider source for locus data.
+     * Create a LocusReferenceView given no other contextual information about
+     * the walkers, etc.
+     * @param provider  source for locus data.
      */
     public LocusReferenceView( ShardDataProvider provider ) {
-        super( provider );
+        super(provider);
         bounds = provider.getShard().getGenomeLoc();
-        this.referenceSequence = reference.getSubsequenceAt( bounds.getContig(),
-                                                             bounds.getStart(),
-                                                             bounds.getStop() );        
+        windowStart = windowStop = 0;
+        initializeReferenceSequence(bounds);
     }
 
     /**
-     * Gets the reference base associated with this particular point on the genome.
+     * Create a new locus reference view.
+     * @param provider source for locus data.
+     */
+    public LocusReferenceView( Walker walker, ShardDataProvider provider ) {
+        super( provider );
+        bounds = provider.getShard().getGenomeLoc();
+
+        // Retrieve information about the window being accessed.
+        if( walker.getClass().isAnnotationPresent(Reference.class) ) {
+            Window window = walker.getClass().getAnnotation(Reference.class).window();
+
+            if( window.start() > 0 ) throw new StingException( "Reference window starts after current locus" );
+            if( window.stop() < 0 ) throw new StingException( "Reference window ends before current locus" );
+
+            windowStart = window.start();
+            windowStop = window.stop();
+        }
+        else {
+            windowStart = 0;
+            windowStop = 0;
+        }
+
+        long expandedStart = getWindowStart( bounds );
+        long expandedStop  = getWindowStop( bounds );
+
+        initializeReferenceSequence(GenomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
+    }
+
+    /**
+     * Initialize reference sequence data using the given locus.
+     * @param locus
+     */
+    private void initializeReferenceSequence( GenomeLoc locus ) {
+        this.referenceSequence = reference.getSubsequenceAt( locus.getContig(), locus.getStart(), locus.getStop() );
+    }
+
+    /**
+     * Gets the reference context associated with this particular point on the genome.
      * @param genomeLoc Region for which to retrieve the base.  GenomeLoc must represent a 1-base region.
      * @return The base at the position represented by this genomeLoc.
      */
-    public char getReferenceBase( GenomeLoc genomeLoc ) {
+    public ReferenceContext getReferenceContext( GenomeLoc genomeLoc ) {
         validateLocation( genomeLoc );
-        int offset = (int)(genomeLoc.getStart() - bounds.getStart());
-        return StringUtil.bytesToString( referenceSequence.getBases(), offset, 1 ).charAt(0);
+
+        GenomeLoc window = GenomeLocParser.createGenomeLoc( genomeLoc.getContig(), getWindowStart(genomeLoc), getWindowStop(genomeLoc) );
+        char[] bases = StringUtil.bytesToString( referenceSequence.getBases(), (int)(window.getStart() - getWindowStart(bounds)), (int)window.size() ).toCharArray();
+        return new ReferenceContext( genomeLoc, window, bases );
     }
 
     /**
@@ -90,5 +146,23 @@ public class LocusReferenceView extends ReferenceView {
         if( !bounds.containsP(genomeLoc) )
             throw new InvalidPositionException(
                     String.format("Requested position %s not within interval %s", genomeLoc, bounds));
+    }
+
+    /**
+     * Gets the start of the expanded window, bounded if necessary by the contig.
+     * @param locus The locus to expand.
+     * @return The expanded window.
+     */
+    private long getWindowStart( GenomeLoc locus ) {
+        return Math.max( locus.getStart() + windowStart, 1 );
+    }
+
+    /**
+     * Gets the stop of the expanded window, bounded if necessary by the contig.
+     * @param locus The locus to expand.
+     * @return The expanded window.
+     */    
+    private long getWindowStop( GenomeLoc locus ) {
+        return Math.min( locus.getStop() + windowStop, reference.getSequenceDictionary().getSequence(locus.getContig()).getSequenceLength() );
     }
 }

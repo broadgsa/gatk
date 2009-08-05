@@ -45,7 +45,7 @@ public class TraverseLoci extends TraversalEngine {
         LocusWalker<M, T> locusWalker = (LocusWalker<M, T>)walker;
 
         LocusView locusView = getLocusView( walker, dataProvider );
-        LocusReferenceView referenceView = new LocusReferenceView( dataProvider );
+        LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
         ReferenceOrderedView referenceOrderedDataView = new ReferenceOrderedView( dataProvider );
 
         // We keep processing while the next reference location is within the interval
@@ -57,7 +57,7 @@ public class TraverseLoci extends TraversalEngine {
             // Iterate forward to get all reference ordered data covering this locus
             final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation());
 
-            ReferenceContext refContext = new ReferenceContext( referenceView.getReferenceBase(locus.getLocation()) );
+            ReferenceContext refContext = referenceView.getReferenceContext(locus.getLocation());
 
             final boolean keepMeP = locusWalker.filter(tracker, refContext, locus);
             if (keepMeP) {

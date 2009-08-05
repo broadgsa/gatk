@@ -38,7 +38,7 @@ public class TraverseLocusWindows extends TraversalEngine {
         GenomeLoc interval = shard.getGenomeLoc();
 
         ReadView readView = new ReadView( dataProvider );
-        LocusReferenceView referenceView = new LocusReferenceView( dataProvider );
+        LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
         ReferenceOrderedView referenceOrderedDataView = new ReferenceOrderedView( dataProvider );
 
         AlignmentContext locus = getLocusContext(readView.iterator(), interval);

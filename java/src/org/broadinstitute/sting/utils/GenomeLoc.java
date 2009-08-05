@@ -271,6 +271,13 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
         return 0;
     }
 
-
+    /**
+     * How many BPs are covered by this locus?
+     * @return Number of BPs covered by this locus.  According to the semantics of GenomeLoc, this should
+     *         never be < 1.
+     */
+    public long size() {
+        return stop - start + 1;
+    }
 
 }
