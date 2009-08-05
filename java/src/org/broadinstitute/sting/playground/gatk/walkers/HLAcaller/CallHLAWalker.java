@@ -199,39 +199,18 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
 
 
             //Calculate posterior probabilities!
-            NewHotnessGenotypeLikelihoods G = new NewHotnessGenotypeLikelihoods(GenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
-            //SSGGenotypeCall geno = G.callGenotypes(tracker, ref, pileup);
+            // todo -- note this now uses a flat prior -- rather than a reference biased prior
+            NewHotnessGenotypeLikelihoods G = new NewHotnessGenotypeLikelihoods();
 
-            for (int i = 0; i < pileup.getReads().size(); i++) {
-                SAMRecord read = pileup.getReads().get(i);
-                int offset = pileup.getOffsets().get(i);
-                char base = read.getReadString().charAt(offset);
-                byte qual = read.getBaseQualities()[offset];
-                if (qual >= 20){
-                    G.add(ref.getBase(), base, qual);
-                }
-            }
-
-            double mLikelihoods[] = G.likelihoods;
-
-            for (int i = 0; i< mLikelihoods.length; i++){
-            //    out.printf("%5.0f\t",mLikelihoods[i]);
-            }
+            // todo -- note I've removed the Q20 restriction -- the genotyper takes care of this automatically
+            G.add(pileup);
 
             //Store confidence scores
+            // Todo -- there's no need for the hash table now -- you can just use getLikeliood and the DiploidGenotype interface
             Scores = new Hashtable();
-            Scores.put("AA", mLikelihoods[0]);
-            Scores.put("AC", mLikelihoods[1]);
-            Scores.put("AG", mLikelihoods[2]);
-            Scores.put("AT", mLikelihoods[3]);
-            Scores.put("CC", mLikelihoods[4]);
-            Scores.put("CG", mLikelihoods[5]);
-            Scores.put("CT", mLikelihoods[6]);
-            Scores.put("GG", mLikelihoods[7]);
-            Scores.put("GT", mLikelihoods[8]);
-            Scores.put("TT", mLikelihoods[9]);
-
-            
+            for ( DiploidGenotype g : DiploidGenotype.values() ) {
+                Scores.put(g.toString(), G.getLikelihood(g));
+            }
 
             //Update probabilities for combinations of alleles
             //For each HLA allele
@@ -256,7 +235,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                     if (j == k2){ //C*150201
                         s2 = c1;
                     }
-                    
+
                     for (int k = 0; k < numHLAlleles; k++){
                         //out.print(k+","+loc + "," + HLAstartpos[j] + "," + HLAstoppos[j]);
                         if (loc >= HLAstartpos[k] && loc <= HLAstoppos[k]){

@@ -1,78 +1,166 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.genotype.BasicGenotype;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.confidence.BayesianConfidenceScore;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.MathUtils;
+import edu.mit.broad.picard.util.MathUtil;
 
-import static java.lang.Math.log10;
-import static java.lang.Math.pow;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.Arrays;
 
+/**
+ * Stable, error checking version of the Bayesian genotyper.  Useful for calculating the likelihoods, priors,
+ * and posteriors given a pile of bases and quality scores
+ *
+ * Suppose we have bases b1, b2, ..., bN with qualities scores q1, q2, ..., qN.  This object
+ * calculates:
+ *
+ * P(G | D) = P(G) * P(D | G)
+ *
+ * where
+ *
+ * P(D | G) = sum_i log10 P(bi | G)
+ *
+ * and
+ *
+ * P(bi | G) = 1 - P(error | q1) if bi is in G
+ *           = P(error | q1) / 3 if bi is not in G
+ *
+ * for homozygous genotypes and
+ *
+ * P(bi | G) = 1 - P(error | q1) / 2 + P(error | q1) / 6 if bi is in G
+ *           = P(error | q1) / 3 if bi is not in G
+ *
+ * for the 10 unique diploid genotypes AA, AC, AG, .., TT
+ *
+ * Everything is stored as arrays indexed by DiploidGenotype.ordinal() values in log10 space.
+ *
+ * The priors contain the relative probabilities of each genotype, and must be provided at object creation.
+ * From then on, you can call any of the add() routines to update the likelihoods and posteriors in the above
+ * model.
+ */
 public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods {
-    private static double getOneMinusQual(final byte qual) {
-        return oneMinusData[qual];
+    private int coverage = 0;
+
+    //
+    // The three fundamental data arrays associated with a Genotype Likelhoods object
+    //
+    private double[] likelihoods = null;
+    private double[] priors = null;
+    private double[] posteriors = null;
+
+    //
+    //
+    //
+
+    // todo -- fix me when this issue is resolved
+    public static boolean RequirePriorSumToOne = false;
+
+    /**
+     * Create a new GenotypeLikelhoods object with flat priors for each diploid genotype
+     */
+    public NewHotnessGenotypeLikelihoods() {
+        priors = flatPriors.clone();
+        initialize();
     }
 
-    private double getOneHalfMinusQual(final byte qual) {
-        return oneHalfMinusData[qual];
-    }
 
-    //public double[] likelihoods;
-    public int coverage;
-
-    // The genotype priors;
-    private double priorHomRef;
-    private double priorHet;
-    private double priorHomVar;
-    private double[] oneHalfMinusData;
-
-    public boolean isThreeStateErrors() {
-        return threeStateErrors;
-    }
-
-    public void setThreeStateErrors(boolean threeStateErrors) {
-        this.threeStateErrors = threeStateErrors;
-    }
-
-    private boolean threeStateErrors = false;
-    private boolean discoveryMode = false;
-
-    public static final double HUMAN_HETEROZYGOSITY = 1e-3;
-
-    public static double[] computePriors(double h) {
-        double[] pdbls = new double[3];
-        pdbls[0] = 1.0 - (3.0 * h / 2.0);
-        pdbls[1] = h;
-        pdbls[2] = h / 2.0;
-        return pdbls;
+    /**
+     * Create a new GenotypeLikelihoods object with priors for a diploid with heterozygosity and reference
+     * base ref
+     *
+     * @param ref
+     * @param heterozygosity
+     */
+    public NewHotnessGenotypeLikelihoods(char ref, double heterozygosity) {
+        double[] vals = heterozygosity2DiploidProbabilities(heterozygosity);
+        priors = getGenotypePriors(ref, vals[0], vals[1], vals[2]);
+        initialize();
     }
 
     /**
-     * set the mode to discovery
-     * @param isInDiscoveryMode
+     *
+     * Create a new GenotypeLikelihoods object with priors for a diploid with reference
+     * base ref and priors for hom-ref (ref/ref), het (ref/X), and hom-var (X/X) states
+     *
+     * @param ref
      */
-    public void setDiscovery(boolean isInDiscoveryMode) {
-       discoveryMode = isInDiscoveryMode;
-    }
-    // Store the 2nd-best base priors for on-genotype primary bases
-    private HashMap<String, Double> onNextBestBasePriors = new HashMap<String, Double>();
-
-    // Store the 2nd-best base priors for off-genotype primary bases
-    private HashMap<String, Double> offNextBestBasePriors = new HashMap<String, Double>();
-
-    public NewHotnessGenotypeLikelihoods(double heterozygosity) {
-        double[] vals = computePriors(heterozygosity);
-        initialize(vals[0], vals[1], vals[2]);
+    public NewHotnessGenotypeLikelihoods(char ref, double priorHomRef, double priorHet, double priorHomVar) {
+        priors = getGenotypePriors(ref, priorHomRef, priorHet, priorHomVar);
+        initialize();
     }
 
-    public NewHotnessGenotypeLikelihoods(double priorHomRef, double priorHet, double priorHomVar) {
-        initialize(priorHomRef, priorHet, priorHomVar);
+    /**
+     * Create a new Genotypelike Likelhoods's object with priors (in log10 space) for each of the DiploteGenotypes
+     *
+     * @param log10Priors
+     */
+    public NewHotnessGenotypeLikelihoods(double[] log10Priors) {
+        priors = log10Priors.clone();
+        initialize();
+    }
+
+    private void initialize() {
+        likelihoods = zeros.clone();            // likelihoods are all zeros
+        posteriors = priors.clone();            // posteriors are all the priors
+    }
+
+    /**
+     * Returns an array of log10 likelihoods for each genotype, indexed by DiploidGenotype.ordinal values()
+     * @return
+     */
+    public double[] getLikelihoods() {
+        return likelihoods;
+    }
+
+    /**
+     * Returns the likelihood associated with DiploidGenotype g
+     * @param g
+     * @return log10 likelihood as a double
+     */
+    public double getLikelihood(DiploidGenotype g) {
+        return getLikelihoods()[g.ordinal()];
+    }
+
+    /**
+     * Returns an array of posteriors for each genotype, indexed by DiploidGenotype.ordinal values().
+     *
+     * @return raw log10 (not-normalized posteriors) as a double array
+     */
+    public double[] getPosteriors() {
+        return posteriors;
+    }
+
+    /**
+     * Returns the posterior associated with DiploidGenotype g
+     * @param g
+     * @return raw log10 (not-normalized posteror) as a double
+     */
+    public double getPosterior(DiploidGenotype g) {
+        return getPosteriors()[g.ordinal()];
+    }
+
+    /**
+     * Returns an array of priors for each genotype, indexed by DiploidGenotype.ordinal values().
+     *
+     * @return log10 prior as a double array
+     */
+    public double[] getPriors() {
+        return priors;
+    }
+
+    /**
+     * Returns the prior associated with DiploidGenotype g
+     * @param g
+     * @return log10 prior as a double
+     */
+    public double getPrior(DiploidGenotype g) {
+        return getPriors()[g.ordinal()];
+    }
+
+    public int getCoverage() {
+        return coverage;
     }
 
     /**
@@ -92,77 +180,92 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods {
         this.filterQ0Bases = filterQ0Bases;
     }
 
-    private void initialize(double priorHomRef, double priorHet, double priorHomVar) {
-        this.oneHalfMinusData = threeStateErrors ? oneHalfMinusData3Base : oneHalfMinusDataArachne;
-
-        this.priorHomRef = priorHomRef;
-        this.priorHet = priorHet;
-        this.priorHomVar = priorHomVar;
-
-        likelihoods = new double[10];
-
-		coverage = 0;
-
-		for (int i = 0; i < likelihoods.length; i++) { likelihoods[i] = Math.log10(0.1); }
+    /**
+     * Remove call -- for historical purposes only
+     */
+    @Deprecated
+    public int add(char ref, char read, byte qual) {
+        return add(read, qual);
     }
 
-    public double getHomRefPrior() {
-        return priorHomRef;
-    }
-
-    public void setHomRefPrior(double priorHomRef) {
-        this.priorHomRef = priorHomRef;
-    }
-
-    public double getHetPrior() {
-        return priorHet;
-    }
-
-    public void setHetPrior(double priorHet) {
-        this.priorHet = priorHet;
-    }
-
-    public double getHomVarPrior() {
-        return priorHomVar;
-    }
-
-    public void setHomVarPrior(double priorHomVar) {
-        this.priorHomVar = priorHomVar;
-    }
-
-    public int add(char ref, char read, byte qual)
+    /**
+     * Updates likelihoods and posteriors to reflect an additional observation of observedBase with
+     * qualityScore.
+     *
+     * @param observedBase
+     * @param qualityScore
+     * @return 1 if the base was considered good enough to add to the likelihoods (not Q0 or 'N', for example)
+     */
+    public int add(char observedBase, byte qualityScore)
 	{
-        if (qual <= 0) {
+        if ( badBase(observedBase) ) {
+            throw new RuntimeException(String.format("BUG: unexpected base %c with Q%d passed to GenotypeLikelihoods", observedBase, qualityScore));
+        }
+
+        if (qualityScore <= 0) {
             if ( isFilteringQ0Bases() ) {
                 return 0;
             } else {
-                qual = 1;
+                qualityScore = 1;
             }
         }
 
-		if (coverage == 0)
-		{
-			for (int i = 0; i < likelihoods.length; i++)
-			{
-				likelihoods[i] = 0;
-			}
-		}
-
-		for (int i = 0; i < genotypes.length; i++)
-		{
-			double likelihood = calculateAlleleLikelihood(ref, read, genotypes[i], qual);
-            //if ( originalQual == 0 ) System.out.printf("Likelihood is %f for %c %c %d %s%n", likelihood, ref, read, qual, genotypes[i]);
-            likelihoods[i] += likelihood;
-			coverage += 1;
+        coverage++;
+        for (DiploidGenotype g : DiploidGenotype.values() ) {
+			double likelihood = calculateBaseLikelihood(observedBase, g.toString(), qualityScore);
+            //System.out.printf("Likelihood is %f for %c %d %s%n", likelihood, read, qual, g.toString());
+            likelihoods[g.ordinal()] += likelihood;
+            posteriors[g.ordinal()] += likelihood;
         }
 
         return 1;
     }
 
-    private double calculateAlleleLikelihood(char ref, char read, String genotype, byte qual) {
-        if (qual == 0) {
-            // zero quals are wrong
-            throw new RuntimeException(String.format("Unexpected Q0 base discovered in calculateAlleleLikelihood: %c %c %d", ref, read, qual));
+    /**
+     * Returns true when the observedBase is considered bad and shouldn't be processed by this object.  A base
+     * is considered bad if:
+     *
+     *   Criterion 1: observed base isn't a A,C,T,G or lower case equivalent
+     *
+     * @param observedBase
+     * @return true if the base is a bad base
+     */
+    private boolean badBase(char observedBase) {
+        return BaseUtils.simpleBaseToBaseIndex(observedBase) == -1;
+    }
+
+    /**
+     * Updates likelihoods and posteriors to reflect the additional observations contained within the
+     * read-based pileup up by calling add(observedBase, qualityScore) for each base / qual in the
+     * pileup
+     *
+     * @param pileup
+     * @return the number of good bases found in the pileup
+     */
+    public int add(ReadBackedPileup pileup, boolean ignoreBadBases) {
+        int n = 0;
+
+        for (int i = 0; i < pileup.getReads().size(); i++) {
+            SAMRecord read = pileup.getReads().get(i);
+            int offset = pileup.getOffsets().get(i);
+            char base = read.getReadString().charAt(offset);
+            byte qual = read.getBaseQualities()[offset];
+            if ( ! ignoreBadBases || ! badBase(base) ) {
+                n += add(base, qual);
+            }
+        }
+
+        return n;
+    }
+
+    public int add(ReadBackedPileup pileup) {
+        return add(pileup, false);
+    }
+
+
+    private double calculateBaseLikelihood(char read, String genotype, byte qual) {
+        if (qual == 0) { // zero quals are wrong
+            throw new RuntimeException(String.format("Unexpected Q0 base discovered in calculateAlleleLikelihood: %c %c %d", read, qual));
         }
 
         char h1 = genotype.charAt(0);
@@ -176,151 +279,85 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods {
         } else if ( (h1 != h2) && ((h1 == read) || (h2 == read)) ) {
             // het
             p_base = getOneHalfMinusQual(qual);
-        } else if ( threeStateErrors ) {
-            // error
-            //System.out.printf("%s %b %f %f%n", genotype, h1 != h2, log10Of2_3, log10Of1_3 );
-            p_base = qual / -10.0 + ( h1 != h2 ? log10Of1_3 : log10Of1_3 );
         } else {
             // error
-            p_base = qual / -10.0;
+            //System.out.printf("%s %b %f %f%n", genotype, h1 != h2, log10Of2_3, log10Of1_3 );
+            p_base = qual / -10.0 + log10Of1_3;
         }
 
         return p_base;
     }
 
-    public String[] sorted_genotypes;
-    public double[] sorted_likelihoods;
-
-    public void sort() {
-        Integer[] permutation = Utils.SortPermutation(likelihoods);
-
-        Integer[] reverse_permutation = new Integer[permutation.length];
-        for (int i = 0; i < reverse_permutation.length; i++) {
-            reverse_permutation[i] = permutation[(permutation.length - 1) - i];
-        }
-
-        sorted_genotypes = Utils.PermuteArray(genotypes, reverse_permutation);
-        sorted_likelihoods = Utils.PermuteArray(likelihoods, reverse_permutation);
-    }
-
-    public String toString(char ref) {
-        this.sort();
-		double sum = 0;
-        String s = String.format("%s %f %f ", this.BestGenotype(), this.LodVsNextBest(), this.LodVsRef(ref));
-        for (int i = 0; i < sorted_genotypes.length; i++) {
-            if (i != 0) {
-                s = s + " ";
-            }
-            s = s + sorted_genotypes[i] + ":" + String.format("%.2f", sorted_likelihoods[i]);
-			sum += Math.pow(10,sorted_likelihoods[i]);
-        }
-		s = s + String.format(" %f", sum);
-        return s;
-    }
-
-    public void applyPrior(char ref, double[] allele_likelihoods) {
-        int k = 0;
-        for (int i = 0; i < 4; i++) {
-            for (int j = i; j < 4; j++) {
-                if (i == j) {
-                    this.likelihoods[k] += Math.log10(allele_likelihoods[i]) + Math.log10(allele_likelihoods[j]);
-                } else {
-                    this.likelihoods[k] += Math.log10(allele_likelihoods[i]) + Math.log10(allele_likelihoods[j]) + Math.log10(2);
-                }
-                k++;
-            }
-        }
-        this.sort();
-    }
-
-    public void applyPrior(char ref) {
-        for (int i = 0; i < genotypes.length; i++) {
-            if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) {
-                // hom-ref
-                likelihoods[i] += Math.log10(priorHomRef);
-            } else if ((genotypes[i].charAt(0) != ref) && (genotypes[i].charAt(1) != ref)) {
-                // hom-nonref
-                likelihoods[i] += Math.log10(priorHomVar);
-            } else {
-                // het
-                likelihoods[i] += Math.log10(priorHet);
-            }
-            if (Double.isInfinite(likelihoods[i])) {
-                likelihoods[i] = -1000;
-            }
-        }
-        this.sort();
-    }
-
-    public double LodVsNextBest() {
-        this.sort();
-        return sorted_likelihoods[0] - sorted_likelihoods[1];
-    }
-
-    double ref_likelihood = Double.NaN;
-
-    public double LodVsRef(char ref) {
-        if ((this.BestGenotype().charAt(0) == ref) && (this.BestGenotype().charAt(1) == ref)) {
-            ref_likelihood = sorted_likelihoods[0];
-            return (-1.0 * this.LodVsNextBest());
-        } else {
-            for (int i = 0; i < genotypes.length; i++) {
-                if ((genotypes[i].charAt(0) == ref) && (genotypes[i].charAt(1) == ref)) {
-                    ref_likelihood = likelihoods[i];
-                }
-            }
-        }
-        return sorted_likelihoods[0] - ref_likelihood;
-    }
-
-    public String BestGenotype() {
-        this.sort();
-        return this.sorted_genotypes[0];
-    }
-
-    public double BestPosterior() {
-        this.sort();
-        return this.sorted_likelihoods[0];
-    }
-
-    public double RefPosterior(char ref) {
-        this.LodVsRef(ref);
-        return this.ref_likelihood;
-    }
-
     /**
-     * given all the data associated with a locus, make a genotypeLocus object containing the likelihoods and posterior probs
+     * Return a string representation of this object in a moderately usable form
      *
-     * @param tracker contains the reference meta data for this location, which may contain relevent information like dpSNP or hapmap information
-     * @param ref     the reference base
-     * @param pileup  a pileup of the reads, containing the reads and their offsets
-     *
-     * @return a GenotypeLocus, containing each of the genotypes and their associated likelihood and posterior prob values
+     * @return
      */
-    public SSGGenotypeCall callGenotypes(RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup) {
-        //filterQ0Bases(!keepQ0Bases); // Set the filtering / keeping flag
-
-        // for calculating the rms of the mapping qualities
-        double squared = 0.0;
-        for (int i = 0; i < pileup.getReads().size(); i++) {
-            SAMRecord read = pileup.getReads().get(i);
-            squared += read.getMappingQuality() * read.getMappingQuality();
-            int offset = pileup.getOffsets().get(i);
-            char base = read.getReadString().charAt(offset);
-            byte qual = read.getBaseQualities()[offset];
-            add(ref, base, qual);
+    public String toString() {
+        double sum = 0;
+        StringBuilder s = new StringBuilder();
+        for (DiploidGenotype g : DiploidGenotype.values()) {
+            s.append(String.format("%s %.10f ", g, likelihoods[g.ordinal()]));
+			sum += Math.pow(10,likelihoods[g.ordinal()]);
         }
-        // save off the likelihoods
-        if (likelihoods == null || likelihoods.length == 0) return null;
+		s.append(String.format(" %f", sum));
+        return s.toString();
+    }
 
-        // Apply the two calculations
-        applyPrior(ref);
+    public boolean validate() {
+        return validate(true);
+    }
 
-        // lets setup the locus
-        List<Genotype> lst = new ArrayList<Genotype>();
-        for (int x = 0; x < this.likelihoods.length; x++) {
-                lst.add(new BasicGenotype(pileup.getLocation(),this.genotypes[x],new BayesianConfidenceScore(this.likelihoods[x])));
+    public boolean validate(boolean throwException) {
+        try {
+            if ( RequirePriorSumToOne && MathUtils.compareDoubles(MathUtils.sumLog10(priors), 1.0) != 0 ) {
+                throw new IllegalStateException(String.format("Priors don't sum to 1: sum=%f %s", MathUtils.sumLog10(priors), Arrays.toString(priors)));
+            }
+
+            for ( DiploidGenotype g : DiploidGenotype.values() ) {
+                String bad = null;
+
+                int i = g.ordinal();
+                if ( ! MathUtils.wellFormedDouble(priors[i]) || ! MathUtils.isNegativeOrZero(priors[i]) ) {
+                    bad = String.format("Prior %f is badly formed %b", priors[i], MathUtils.isNegativeOrZero(priors[i]));
+                } else if ( ! MathUtils.wellFormedDouble(likelihoods[i]) || ! MathUtils.isNegativeOrZero(likelihoods[i]) ) {
+                    bad = String.format("Likelihood %f is badly formed", likelihoods[i]);
+                } else if ( ! MathUtils.wellFormedDouble(posteriors[i]) || ! MathUtils.isNegativeOrZero(posteriors[i]) ) {
+                    bad = String.format("Posterior %f is badly formed", posteriors[i]);
+                }
+
+                if ( bad != null ) {
+                    throw new IllegalStateException(String.format("At %s: %s", g.toString(), bad));
+                }
+            }
+        } catch ( IllegalStateException e ) {
+            if ( throwException )
+                throw new RuntimeException(e);
+            else
+                return false;
         }
-        return new SSGGenotypeCall(discoveryMode,ref,2,lst,likelihoods,pileup);
+
+        return true;
+    }
+
+    private static double getOneMinusQual(final byte qual) {
+        return oneMinusData[qual];
+    }
+
+    private double getOneHalfMinusQual(final byte qual) {
+        return oneHalfMinusData3Base[qual];
+    }
+
+    //
+    // Constant static data
+    //
+    private final static double[] zeros = new double[DiploidGenotype.values().length];
+    private final static double[] flatPriors = new double[DiploidGenotype.values().length];
+
+    static {
+        for ( DiploidGenotype g : DiploidGenotype.values() ) {
+            zeros[g.ordinal()] = 0.0;
+            flatPriors[g.ordinal()] = Math.log10(1.0 / DiploidGenotype.values().length);
+        }
     }
 }

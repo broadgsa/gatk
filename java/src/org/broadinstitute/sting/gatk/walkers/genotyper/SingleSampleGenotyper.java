@@ -38,7 +38,8 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
     @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confidient genotypes or just the variants?", required = false)
     public boolean GENOTYPE = false;
 
-    @Argument(fullName = "3BaseErrors", shortName = "3BaseErrors", doc = "Should we use a 3-base error mode (so that P(b_true != b_called | e) == e / 3?", required = false)
+    //@Argument(fullName = "3BaseErrors", shortName = "3BaseErrors", doc = "Should we use a 3-base error mode (so that P(b_true != b_called | e) == e / 3?", required = false)
+    // todo -- remove me
     public boolean THREE_BASE_ERRORS = true;
 
     public enum Caller {
@@ -51,7 +52,9 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
 
     // Control how the genotype hypotheses are weighed
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
-    public Double heterozygosity = OldAndBustedGenotypeLikelihoods.HUMAN_HETEROZYGOSITY;
+    public Double heterozygosity = GenotypeLikelihoods.HUMAN_HETEROZYGOSITY;
+
+    // todo -- remove dbSNP awareness until we understand how it should be used
     //@Argument(fullName = "priors_dbsnp", shortName = "pdbsnp", doc = "Comma-separated prior likelihoods for dbSNP loci (homref,het,homvar)", required = false)
     public String PRIORS_DBSNP = "0.999,1e-3,1e-5";
 
@@ -64,6 +67,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
 
     public long nFilteredQ0Bases = 0;
 
+    // todo -- remove this functionality
     private final static boolean TESTING_NEW = false;
 
     /**
@@ -131,24 +135,21 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
     }
 
     private SSGGenotypeCall mapNewHotness(RefMetaDataTracker tracker, char ref, AlignmentContext context) {
+        NewHotnessGenotypeLikelihoods G = new NewHotnessGenotypeLikelihoods(ref, GenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
+        G.filterQ0Bases(! keepQ0Bases);
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-        NewHotnessGenotypeLikelihoods G = makeNewHotnessGenotypeLikelihoods(tracker);
-        G.setDiscovery(GENOTYPE); // set it to discovery mode or variant detection mode
-        SSGGenotypeCall geno = callGenotypes(G, tracker, ref, pileup);
-        return geno;
+        G.add(pileup, true);
+        G.validate();
+
+        // lets setup the locus
+        List<Genotype> lst = new ArrayList<Genotype>();
+        for ( DiploidGenotype g : DiploidGenotype.values() ) {
+            lst.add(new BasicGenotype(pileup.getLocation(), g.toString(),new BayesianConfidenceScore(G.getLikelihood(g))));
+        }
+        return new SSGGenotypeCall(! GENOTYPE, ref, 2, lst, G.getPosteriors(), pileup);
     }
 
-
-    /**
-     * given all the data associated with a locus, make a genotypeLocus object containing the likelihoods and posterior probs
-     *
-     * @param tracker contains the reference meta data for this location, which may contain relevent information like dpSNP or hapmap information
-     * @param ref     the reference base
-     * @param pileup  a pileup of the reads, containing the reads and their offsets
-     *
-     * @return a GenotypeLocus, containing each of the genotypes and their associated likelihood and posterior prob values
-     */
-    public SSGGenotypeCall callGenotypes(GenotypeLikelihoods G, RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup) {
+    public SSGGenotypeCall callGenotypes(OldAndBustedGenotypeLikelihoods G, RefMetaDataTracker tracker, char ref, ReadBackedPileup pileup) {
         // for calculating the rms of the mapping qualities
         double squared = 0.0;
         for (int i = 0; i < pileup.getReads().size(); i++) {
@@ -172,12 +173,6 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
                 lst.add(new BasicGenotype(pileup.getLocation(),OldAndBustedGenotypeLikelihoods.genotypes[x],new BayesianConfidenceScore(G.likelihoods[x])));
         }
         return new SSGGenotypeCall(! GENOTYPE,ref,2,lst,G.likelihoods,pileup);
-    }
-
-   private NewHotnessGenotypeLikelihoods makeNewHotnessGenotypeLikelihoods(RefMetaDataTracker tracker) {
-        NewHotnessGenotypeLikelihoods G = new NewHotnessGenotypeLikelihoods(OldAndBustedGenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
-        G.filterQ0Bases(! keepQ0Bases);
-        return G;
     }
 
     /**
@@ -262,6 +257,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
     private SSGGenotypeCall mapOldAndBusted(RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         OldAndBustedGenotypeLikelihoods G = makeOldAndBustedGenotypeLikelihoods(tracker);
+        G.setThreeStateErrors(THREE_BASE_ERRORS);
         G.setDiscovery(GENOTYPE); // set it to discovery mode or variant detection mode
         SSGGenotypeCall geno = G.callGenotypes(tracker, ref, pileup);
         return geno;
