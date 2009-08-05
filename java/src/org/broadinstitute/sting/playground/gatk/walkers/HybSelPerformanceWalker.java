@@ -37,7 +37,8 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
     @Argument(fullName="booster", required=false, doc="interval list of booster baits")
     public File BOOSTER_FILE;
 
-    public Integer BOOSTER_DISTANCE = 250; // how far away can a booster be to "hit" its target?
+    @Argument(fullName="booster_distance", required=false, doc="distance up to which a booster can affect a target")
+    public Integer BOOSTER_DISTANCE = 100; // how far away can a booster be to "hit" its target?
 
     public static class TargetInfo {
         public int counts = 0;
