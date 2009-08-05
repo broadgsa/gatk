@@ -4,6 +4,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.confidence.BayesianConfidenceScore;
@@ -31,6 +32,7 @@ public class OldAndBustedGenotypeLikelihoods extends GenotypeLikelihoods {
     private double priorHet;
     private double priorHomVar;
     private double[] oneHalfMinusData;
+    public double[] likelihoods;
 
     public boolean isThreeStateErrors() {
         return threeStateErrors;
@@ -38,6 +40,7 @@ public class OldAndBustedGenotypeLikelihoods extends GenotypeLikelihoods {
 
     public void setThreeStateErrors(boolean threeStateErrors) {
         this.threeStateErrors = threeStateErrors;
+        this.oneHalfMinusData = threeStateErrors ? oneHalfMinusData3Base : oneHalfMinusDataArachne;
     }
 
     private boolean threeStateErrors = false;
@@ -50,6 +53,20 @@ public class OldAndBustedGenotypeLikelihoods extends GenotypeLikelihoods {
         pdbls[2] = h / 2.0;
         return pdbls;
     }
+
+    public final static String[] genotypes = new String[10];
+    static {
+        genotypes[0] = "AA";
+        genotypes[1] = "AC";
+        genotypes[2] = "AG";
+        genotypes[3] = "AT";
+        genotypes[4] = "CC";
+        genotypes[5] = "CG";
+        genotypes[6] = "CT";
+        genotypes[7] = "GG";
+        genotypes[8] = "GT";
+        genotypes[9] = "TT";
+    }    
 
     /**
      * set the mode to discovery
@@ -145,14 +162,17 @@ public class OldAndBustedGenotypeLikelihoods extends GenotypeLikelihoods {
 				likelihoods[i] = 0;
 			}
 		}
+        //System.out.printf("%s %s%n", OldAndBustedGenotypeLikelihoods.class, this.toString('A'));
 
 		for (int i = 0; i < genotypes.length; i++)
 		{
 			double likelihood = calculateAlleleLikelihood(ref, read, genotypes[i], qual);
-            //if ( originalQual == 0 ) System.out.printf("Likelihood is %f for %c %c %d %s%n", likelihood, ref, read, qual, genotypes[i]);
+            System.out.printf("Likelihood is %f for %c %c %d %s%n", likelihood, ref, read, qual, genotypes[i]);
             likelihoods[i] += likelihood;
 			coverage += 1;
         }
+
+        //System.out.printf("%s %s%n", OldAndBustedGenotypeLikelihoods.class, this.toString('A'));
 
         return 1;
     }
@@ -176,7 +196,7 @@ public class OldAndBustedGenotypeLikelihoods extends GenotypeLikelihoods {
             p_base = getOneHalfMinusQual(qual);
         } else if ( threeStateErrors ) {
             // error
-            //System.out.printf("%s %b %f %f%n", genotype, h1 != h2, log10Of2_3, log10Of1_3 );
+            //System.out.printf("%s %c %c %b %f %f%n", genotype, h1, h2, h1 != h2, log10Of2_3, log10Of1_3 );
             p_base = qual / -10.0 + ( h1 != h2 ? log10Of1_3 : log10Of1_3 );
         } else {
             // error
@@ -209,7 +229,7 @@ public class OldAndBustedGenotypeLikelihoods extends GenotypeLikelihoods {
             if (i != 0) {
                 s = s + " ";
             }
-            s = s + sorted_genotypes[i] + ":" + String.format("%.2f", sorted_likelihoods[i]);
+            s = s + sorted_genotypes[i] + ":" + String.format("%.10f", sorted_likelihoods[i]);
 			sum += Math.pow(10,sorted_likelihoods[i]);
         }
 		s = s + String.format(" %f", sum);
