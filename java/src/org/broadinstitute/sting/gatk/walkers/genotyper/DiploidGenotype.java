@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
+import org.broadinstitute.sting.utils.Utils;
+
 /**
  * Created by IntelliJ IDEA.
  * User: depristo
@@ -17,5 +19,31 @@ public enum DiploidGenotype {
     CT,
     GG,
     GT,
-    TT
+    TT;
+
+    public boolean isHomRef(char r) {
+        return isHom() && r == this.toString().charAt(0);
+    }
+
+    public boolean isHomVar(char r) {
+        return isHom() && r != this.toString().charAt(0);
+    }
+
+    public boolean isHetRef(char r) {
+        return Utils.countOccurrences(r, this.toString()) == 1;
+    }
+
+    public boolean isHom() {
+        return ! isHet();
+    }
+
+    public boolean isHet() {
+        switch (this) {
+            case AA:
+            case CC:
+            case GG:
+            case TT: return false;
+            default: return true;
+        }
+    }
 }

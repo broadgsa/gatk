@@ -7,6 +7,7 @@ import org.broadinstitute.sting.utils.genotype.geli.GeliTextWriter;
 import org.broadinstitute.sting.utils.genotype.glf.GLFWriter;
 
 import java.io.File;
+import java.io.PrintStream;
 
 
 /**
@@ -39,6 +40,15 @@ public class GenotypeWriterFactory {
                 return new GeliAdapter(destination, header);
             default:
                 throw new StingException("Genotype writer " + format.toString() + " is not implemented");
+        }
+    }
+
+    public static GenotypeWriter create(GENOTYPE_FORMAT format, SAMFileHeader header, PrintStream destination) {
+        switch (format) {
+            case GELI:
+                return new GeliTextWriter(destination);
+            default:
+                throw new StingException("Genotype writer to " + format.toString() + " to standard output is not implemented");
         }
     }
 }

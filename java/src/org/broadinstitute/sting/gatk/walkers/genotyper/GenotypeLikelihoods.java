@@ -18,7 +18,7 @@ public abstract class GenotypeLikelihoods {
     protected static final double[] oneMinusData = new double[Byte.MAX_VALUE];
     protected static final double[] oneHalfMinusDataArachne = new double[Byte.MAX_VALUE];
     protected static final double[] oneHalfMinusData3Base = new double[Byte.MAX_VALUE];
-    protected static final double log10Of1_3 = log10(1.0 / 3);
+    protected static final double log10Of1_3 = log10(1.0 / 3.0);
     
     static {
         for (int qual = 0; qual < Byte.MAX_VALUE; qual++) {
@@ -43,15 +43,46 @@ public abstract class GenotypeLikelihoods {
      * @param h the heterozygosity [probability of a base being heterozygous]
      */
     public static double[] heterozygosity2DiploidProbabilities(double h) {
-        if (MathUtils.isNegativeOrZero(h)) {
+        double[] pdbls = new double[3];
+
+        pdbls[0] = heterozygosity2HomRefProbability(h);
+        pdbls[1] = heterozygosity2HetProbability(h);
+        pdbls[2] = heterozygosity2HomVarProbability(h);
+        return pdbls;
+    }
+
+    /**
+     *
+     * @param h
+     * @return
+     */
+    public static double heterozygosity2HomRefProbability(double h) {
+        if (MathUtils.isNegative(h)) {
             throw new RuntimeException(String.format("Heterozygous value is bad %f", h));
         }
 
-        double[] pdbls = new double[3];
-        pdbls[0] = 1.0 - (3.0 * h / 2.0);
-        pdbls[1] = h;
-        pdbls[2] = h / 2.0;
-        return pdbls;
+        double v = 1.0 - (3.0 * h / 2.0);
+        if (MathUtils.isNegative(v)) {
+            throw new RuntimeException(String.format("Heterozygous value is bad %f", h));
+        }
+
+        return v;
+    }
+
+    public static double heterozygosity2HetProbability(double h) {
+        if (MathUtils.isNegative(h)) {
+            throw new RuntimeException(String.format("Heterozygous value is bad %f", h));
+        }
+
+        return h;
+    }
+
+    public static double heterozygosity2HomVarProbability(double h) {
+        if (MathUtils.isNegative(h)) {
+            throw new RuntimeException(String.format("Heterozygous value is bad %f", h));
+        }
+
+        return h / 2.0;
     }
 
     /**

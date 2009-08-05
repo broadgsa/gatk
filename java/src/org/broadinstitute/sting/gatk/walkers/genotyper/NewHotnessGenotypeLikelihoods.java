@@ -212,7 +212,7 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods {
 
         coverage++;
         for (DiploidGenotype g : DiploidGenotype.values() ) {
-			double likelihood = calculateBaseLikelihood(observedBase, g.toString(), qualityScore);
+			double likelihood = calculateBaseLikelihood(observedBase, g, qualityScore);
             //System.out.printf("Likelihood is %f for %c %d %s%n", likelihood, read, qual, g.toString());
             likelihoods[g.ordinal()] += likelihood;
             posteriors[g.ordinal()] += likelihood;
@@ -262,21 +262,17 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods {
         return add(pileup, false);
     }
 
-
-    private double calculateBaseLikelihood(char read, String genotype, byte qual) {
+    private double calculateBaseLikelihood(char observedBase, DiploidGenotype g, byte qual) {
         if (qual == 0) { // zero quals are wrong
-            throw new RuntimeException(String.format("Unexpected Q0 base discovered in calculateAlleleLikelihood: %c %c %d", read, qual));
+            throw new RuntimeException(String.format("Unexpected Q0 base discovered in calculateAlleleLikelihood: %c %s %d", observedBase, g, qual));
         }
 
-        char h1 = genotype.charAt(0);
-        char h2 = genotype.charAt(1);
+        double p_base = 0.0;
 
-        double p_base;
-
-        if ((h1 == h2) && (h1 == read)) {
+        if ( g.isHomRef(observedBase) ) {
             // hom
             p_base = getOneMinusQual(qual);
-        } else if ( (h1 != h2) && ((h1 == read) || (h2 == read)) ) {
+        } else if ( g.isHetRef(observedBase) ) {
             // het
             p_base = getOneHalfMinusQual(qual);
         } else {

@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.SSGGenotypeCall;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.io.PrintStream;
 
 
 /**
@@ -35,7 +36,12 @@ public class GeliTextWriter implements GenotypeWriter {
         mWriter.println(headerLine);
     }
 
-    public static String headerLine = "#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod    AA      AC      AG      AT      CC      CG      CT      GG      GT      TT";
+    public GeliTextWriter(PrintStream out) {
+        mWriter = new PrintWriter(out);
+        mWriter.println(headerLine);
+    }
+
+    public final static String headerLine = "#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod    AA      AC      AG      AT      CC      CG      CT      GG      GT      TT";
 
     /**
      * Add a genotype, given a genotype locus
