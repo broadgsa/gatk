@@ -209,8 +209,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
 
 	@Override
 	public List<String> getGenotype() throws IllegalStateException {
-		// TODO Auto-generated method stub
-		return null;
+		return Arrays.asList(Utils.join("", getAllelesFWD()));
 	}
 
 	public double getMAF() {

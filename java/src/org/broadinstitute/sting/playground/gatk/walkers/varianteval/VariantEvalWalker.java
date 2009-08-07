@@ -30,8 +30,8 @@ import java.util.*;
 @Requires(DataSource.REFERENCE)
 @Allows(DataSource.REFERENCE)
 public class VariantEvalWalker extends RefWalker<Integer, Integer> {
-    @Argument(shortName="minDiscoveryQ", doc="Phred-scaled minimum LOD to consider an evaluation SNP a variant", required=false)
-    public int minDiscoveryQ = -1;
+    @Argument(shortName="minConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
+    public int minConfidenceScore = -1;
 
     @Argument(shortName="printVariants", doc="If true, prints the variants in all of the variant tracks that are examined", required=false)
     public boolean printVariants = false;
@@ -159,10 +159,10 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         if ( eval != null ) {
             if ( evalContainsGenotypes ) {
                 // Genotyping - use best vs. next best lod
-                if ( eval.getConsensusConfidence() < minDiscoveryQ ) eval = null;
+                if ( eval.getConsensusConfidence() < minConfidenceScore ) eval = null;
             } else {
                 // Variant discovery - use best vs. reference lod
-                if ( Math.abs(eval.getVariationConfidence()) < minDiscoveryQ ) eval = null;
+                if ( Math.abs(eval.getVariationConfidence()) < minConfidenceScore ) eval = null;
             }
         }
 

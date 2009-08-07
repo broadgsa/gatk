@@ -113,7 +113,9 @@ public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVa
     }
 
     public char getAltSnpFWD() throws IllegalStateException {
-        return (bestGenotype.charAt(0) == refBase) ? bestGenotype.charAt(1) : bestGenotype.charAt(0);
+        char c = (bestGenotype.charAt(0) == refBase) ? bestGenotype.charAt(1) : bestGenotype.charAt(0);
+        //System.out.printf("%s : %c and %c%n", bestGenotype, refBase, c);
+        return c;
     }
 
     public boolean isReference() {
