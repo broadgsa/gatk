@@ -7,7 +7,8 @@ import org.broadinstitute.sting.utils.*;
 public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // extends RatioFilter {
     //final private static GenotypeFeatureData.Tail tail = GenotypeFeatureData.Tail.LeftTailed;
     private boolean exclude;
-    private double threshold, ratio;
+    private double threshold = 0.0;
+    private double ratio;
 
     public void initialize(String arguments) {
         if (arguments != null && !arguments.isEmpty()) {
