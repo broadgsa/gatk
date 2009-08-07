@@ -10,6 +10,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.OldAndBustedGenotypeLikelihoods;
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotypePriors;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -151,7 +152,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 
 		if (bases.length() == 0)
 		{
-	        OldAndBustedGenotypeLikelihoods G = new OldAndBustedGenotypeLikelihoods(OldAndBustedGenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
+	        OldAndBustedGenotypeLikelihoods G = new OldAndBustedGenotypeLikelihoods(DiploidGenotypePriors.HUMAN_HETEROZYGOSITY);
 	        return G;
 		}
 
@@ -160,7 +161,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
         ref = Character.toUpperCase(ref);
         
 		// Handle single-base polymorphisms.
-        OldAndBustedGenotypeLikelihoods G = new OldAndBustedGenotypeLikelihoods(OldAndBustedGenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
+        OldAndBustedGenotypeLikelihoods G = new OldAndBustedGenotypeLikelihoods(DiploidGenotypePriors.HUMAN_HETEROZYGOSITY);
         for ( int i = 0; i < reads.size(); i++ )  
         {
             SAMRecord read = reads.get(i);
@@ -389,7 +390,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 
 	OldAndBustedGenotypeLikelihoods HardyWeinberg(double[] allele_likelihoods)
 	{
-		OldAndBustedGenotypeLikelihoods G = new OldAndBustedGenotypeLikelihoods(OldAndBustedGenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
+		OldAndBustedGenotypeLikelihoods G = new OldAndBustedGenotypeLikelihoods(DiploidGenotypePriors.HUMAN_HETEROZYGOSITY);
 		int k = 0;
 		for (int i = 0; i < 4; i++)
 		{ 

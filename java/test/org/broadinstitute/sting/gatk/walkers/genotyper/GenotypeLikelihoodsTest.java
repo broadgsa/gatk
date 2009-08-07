@@ -21,7 +21,7 @@ public class GenotypeLikelihoodsTest extends BaseTest {
         Assert.assertTrue(GenotypeLikelihoods.oneHalfMinusDataArachne.length >= Byte.MAX_VALUE);
         Assert.assertTrue(GenotypeLikelihoods.oneHalfMinusData3Base.length >= Byte.MAX_VALUE);
         Assert.assertEquals(GenotypeLikelihoods.log10Of1_3,-0.4771212547196624, DELTA);
-        Assert.assertEquals(GenotypeLikelihoods.HUMAN_HETEROZYGOSITY,1e-3, DELTA);
+        Assert.assertEquals(DiploidGenotypePriors.HUMAN_HETEROZYGOSITY,1e-3, DELTA);
 
         for (int qual = 0; qual < Byte.MAX_VALUE; qual++) {
             double e = pow(10, (qual / -10.0));
@@ -58,19 +58,19 @@ public class GenotypeLikelihoodsTest extends BaseTest {
     }
 
     private void testPriorsFromHet(double h, double homRef, double het, double homVar) {
-        double[] vals = GenotypeLikelihoods.heterozygosity2DiploidProbabilities(h);
+        double[] vals = DiploidGenotypePriors.heterozygosity2DiploidProbabilities(h);
         Assert.assertEquals(vals[0], homRef, DELTA);
         Assert.assertEquals(vals[1], het, DELTA);
         Assert.assertEquals(vals[2], homVar, DELTA);
-        Assert.assertEquals(GenotypeLikelihoods.heterozygosity2HomRefProbability(h), homRef, DELTA);
-        Assert.assertEquals(GenotypeLikelihoods.heterozygosity2HetProbability(h), het, DELTA);
-        Assert.assertEquals(GenotypeLikelihoods.heterozygosity2HomVarProbability(h), homVar, DELTA);
+        Assert.assertEquals(DiploidGenotypePriors.heterozygosity2HomRefProbability(h), homRef, DELTA);
+        Assert.assertEquals(DiploidGenotypePriors.heterozygosity2HetProbability(h), het, DELTA);
+        Assert.assertEquals(DiploidGenotypePriors.heterozygosity2HomVarProbability(h), homVar, DELTA);
     }
 
     // 
     @Test
-    public void testGenotypePriors1() {
-        logger.warn("Executing testGenotypePriors1");
+    public void testGenotypePriorsReferenceIndependent() {
+        logger.warn("Executing testGenotypePriorsReferenceIndependent");
         // AA, AC, AG, AT, CC, CG, CT, GG, GT, TT
         double[] array1 = {-0.0705810742857073, -1, -1, -1, -1.301029995663981, -1, -1, -1.301029995663981, -1, -1.301029995663981};
         testGenotypePriors('A', 1e-1, array1);
@@ -85,9 +85,9 @@ public class GenotypeLikelihoodsTest extends BaseTest {
     private void testGenotypePriors(char ref, double h, double[] array) {
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             double val = 0.0;
-            if ( g.isHomRef(ref) ) val = GenotypeLikelihoods.heterozygosity2HomRefProbability(h);
-            if ( g.isHet() )       val = GenotypeLikelihoods.heterozygosity2HetProbability(h);
-            if ( g.isHomVar(ref) ) val = GenotypeLikelihoods.heterozygosity2HomVarProbability(h);
+            if ( g.isHomRef(ref) ) val = DiploidGenotypePriors.heterozygosity2HomRefProbability(h);
+            if ( g.isHet() )       val = DiploidGenotypePriors.heterozygosity2HetProbability(h);
+            if ( g.isHomVar(ref) ) val = DiploidGenotypePriors.heterozygosity2HomVarProbability(h);
 
             val = log10(val);
             double e = array[g.ordinal()];
@@ -95,44 +95,30 @@ public class GenotypeLikelihoodsTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testGenotypePriorsReferencePolarized() {
+        logger.warn("Executing testGenotypePriorsReferencePolarized");
+        // AA, AC, AG, AT, CC, CG, CT, GG, GT, TT
+        double[] array1 = {0.9985, 0.00033, 0.00033, 0.00033, 0.000166666666666667, 3.33333333333333e-06, 3.33333333333333e-06, 0.000166666666666667, 3.33333333333333e-06, 0.000166666666666667};
+        logger.warn("  Array 1");
+        testPolarizedGenotypePriors('A', 1e-3, 1e-5, array1);
+        double[] array2 = {0.9985, 0.000333, 0.000333, 0.000333, 0.000166666666666667, 3.33333333333333e-07, 3.33333333333333e-07, 0.000166666666666667, 3.33333333333333e-07, 0.000166666666666667};
+        logger.warn("  Array 2");
+        testPolarizedGenotypePriors('A', 1e-3, 1e-6, array2);
+        double[] array3 = {0.985, 0.00333, 0.00333, 0.00333, 0.00166666666666667, 3.33333333333333e-06, 3.33333333333333e-06, 0.00166666666666667, 3.33333333333333e-06, 0.00166666666666667};
+        logger.warn("  Array 3");
+        testPolarizedGenotypePriors('A', 1e-2, 1e-5, array3);
+        double[] array4 = {0.99985, 3.3e-05, 3.3e-05, 3.3e-05, 1.66666666666667e-05, 3.33333333333333e-07, 3.33333333333333e-07, 1.66666666666667e-05, 3.33333333333333e-07, 1.66666666666667e-05};
+        logger.warn("  Array 4");
+        testPolarizedGenotypePriors('A', 1e-4, 1e-6, array4);
+    }
 
-    /**
-     * Takes reference base, and three priors for hom-ref, het, hom-var, and fills in the priors vector
-     * appropriately.
-     *
-     * @param ref
-     * @param priorHomRef
-     * @param priorHet
-     * @param priorHomVar
-     */
-    public static double[] getGenotypePriors(char ref, double priorHomRef, double priorHet, double priorHomVar) {
-        if ((priorHomRef + priorHet + priorHomVar) != 1) {
-            throw new RuntimeException(String.format("Prior probabilities don't sum to one => %f, %f, %f", priorHomRef, priorHet, priorHomVar));
-        }
-
-        double[] priors = new double[DiploidGenotype.values().length];
-
+    private void testPolarizedGenotypePriors(char ref, double h, double pTri, double[] array) {
+        DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, h, pTri);
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
-            int nRefBases = Utils.countOccurrences(ref, g.toString());
-            double log10POfG = 0.0;
-
-            switch ( nRefBases ) {
-                case 2: // hom-ref
-                    log10POfG = Math.log10(priorHomRef);
-                    break;
-                case 0: // hom-nonref
-                    //log10POfG = Math.log10(priorHomVar / 3);
-                    log10POfG = Math.log10(priorHomVar);
-                    break;
-                default:
-                    //log10POfG = Math.log10(priorHet / 6);
-                    log10POfG = Math.log10(priorHet);
-                    break;
-            }
-
-            priors[g.ordinal()] = log10POfG;
+            double val = Math.pow(10, priors.getPrior(g));
+            double e = array[g.ordinal()];
+            Assert.assertEquals(String.format("%s should have p=%f but has p=%f", g, val, e), val, e, DELTA);
         }
-
-        return priors;
     }
 }
