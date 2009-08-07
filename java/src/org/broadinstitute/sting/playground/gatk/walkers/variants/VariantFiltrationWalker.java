@@ -132,7 +132,8 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                 }
             }
 
-            swriters.get(STUDY_NAME).print("inDbSNP\tinHapMap\tisHet\n");
+            if (LEARNING)
+                swriters.get(STUDY_NAME).print("inDbSNP\tinHapMap\tisHet\n");
         } catch (FileNotFoundException e) {
             throw new StingException(String.format("Could not open file(s) for writing"));
         }
