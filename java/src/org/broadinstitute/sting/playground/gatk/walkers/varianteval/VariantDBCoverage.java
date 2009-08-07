@@ -38,7 +38,7 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
         if (inDB && inEval) {
             nOverlapping++;
 
-            if ( discordantP(dbSNP, eval) )
+            if ( ! discordantP(dbSNP, eval) )
                 nConcordant++;
         }
     }
