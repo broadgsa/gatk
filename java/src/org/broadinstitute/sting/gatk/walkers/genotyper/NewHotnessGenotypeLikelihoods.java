@@ -27,12 +27,12 @@ import java.util.Arrays;
  * P(bi | G) = 1 - P(error | q1) if bi is in G
  *           = P(error | q1) / 3 if bi is not in G
  *
- * for homozygous genotypes and
+ * for homozygous genotypes and for heterozygous genotypes:
  *
  * P(bi | G) = 1 - P(error | q1) / 2 + P(error | q1) / 6 if bi is in G
  *           = P(error | q1) / 3 if bi is not in G
  *
- * for the 10 unique diploid genotypes AA, AC, AG, .., TT
+ * for each of the 10 unique diploid genotypes AA, AC, AG, .., TT
  *
  * Everything is stored as arrays indexed by DiploidGenotype.ordinal() values in log10 space.
  *
@@ -47,63 +47,29 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods {
     // The three fundamental data arrays associated with a Genotype Likelhoods object
     //
     private double[] likelihoods = null;
-    private double[] priors = null;
     private double[] posteriors = null;
 
-    //
-    //
-    //
-
-    // todo -- fix me when this issue is resolved
-    public static boolean RequirePriorSumToOne = false;
+    private DiploidGenotypePriors priors = null;
 
     /**
      * Create a new GenotypeLikelhoods object with flat priors for each diploid genotype
      */
     public NewHotnessGenotypeLikelihoods() {
-        priors = flatPriors.clone();
-        initialize();
-    }
-
-
-    /**
-     * Create a new GenotypeLikelihoods object with priors for a diploid with heterozygosity and reference
-     * base ref
-     *
-     * @param ref
-     * @param heterozygosity
-     */
-    public NewHotnessGenotypeLikelihoods(char ref, double heterozygosity) {
-        double[] vals = heterozygosity2DiploidProbabilities(heterozygosity);
-        priors = getGenotypePriors(ref, vals[0], vals[1], vals[2]);
+        this.priors = new DiploidGenotypePriors();
         initialize();
     }
 
     /**
-     *
-     * Create a new GenotypeLikelihoods object with priors for a diploid with reference
-     * base ref and priors for hom-ref (ref/ref), het (ref/X), and hom-var (X/X) states
-     *
-     * @param ref
+     * Create a new GenotypeLikelhoods object with flat priors for each diploid genotype
      */
-    public NewHotnessGenotypeLikelihoods(char ref, double priorHomRef, double priorHet, double priorHomVar) {
-        priors = getGenotypePriors(ref, priorHomRef, priorHet, priorHomVar);
-        initialize();
-    }
-
-    /**
-     * Create a new Genotypelike Likelhoods's object with priors (in log10 space) for each of the DiploteGenotypes
-     *
-     * @param log10Priors
-     */
-    public NewHotnessGenotypeLikelihoods(double[] log10Priors) {
-        priors = log10Priors.clone();
+    public NewHotnessGenotypeLikelihoods(DiploidGenotypePriors priors) {
+        this.priors = priors;
         initialize();
     }
 
     private void initialize() {
         likelihoods = zeros.clone();            // likelihoods are all zeros
-        posteriors = priors.clone();            // posteriors are all the priors
+        posteriors = priors.getPriors().clone();            // posteriors are all the priors
     }
 
     /**
@@ -147,7 +113,7 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods {
      * @return log10 prior as a double array
      */
     public double[] getPriors() {
-        return priors;
+        return priors.getPriors();
     }
 
     /**
@@ -306,17 +272,13 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods {
 
     public boolean validate(boolean throwException) {
         try {
-            if ( RequirePriorSumToOne && MathUtils.compareDoubles(MathUtils.sumLog10(priors), 1.0) != 0 ) {
-                throw new IllegalStateException(String.format("Priors don't sum to 1: sum=%f %s", MathUtils.sumLog10(priors), Arrays.toString(priors)));
-            }
+            priors.validate(throwException);
 
             for ( DiploidGenotype g : DiploidGenotype.values() ) {
                 String bad = null;
 
                 int i = g.ordinal();
-                if ( ! MathUtils.wellFormedDouble(priors[i]) || ! MathUtils.isNegativeOrZero(priors[i]) ) {
-                    bad = String.format("Prior %f is badly formed %b", priors[i], MathUtils.isNegativeOrZero(priors[i]));
-                } else if ( ! MathUtils.wellFormedDouble(likelihoods[i]) || ! MathUtils.isNegativeOrZero(likelihoods[i]) ) {
+                if ( ! MathUtils.wellFormedDouble(likelihoods[i]) || ! MathUtils.isNegativeOrZero(likelihoods[i]) ) {
                     bad = String.format("Likelihood %f is badly formed", likelihoods[i]);
                 } else if ( ! MathUtils.wellFormedDouble(posteriors[i]) || ! MathUtils.isNegativeOrZero(posteriors[i]) ) {
                     bad = String.format("Posterior %f is badly formed", posteriors[i]);
@@ -348,12 +310,10 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods {
     // Constant static data
     //
     private final static double[] zeros = new double[DiploidGenotype.values().length];
-    private final static double[] flatPriors = new double[DiploidGenotype.values().length];
 
     static {
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             zeros[g.ordinal()] = 0.0;
-            flatPriors[g.ordinal()] = Math.log10(1.0 / DiploidGenotype.values().length);
         }
     }
 }

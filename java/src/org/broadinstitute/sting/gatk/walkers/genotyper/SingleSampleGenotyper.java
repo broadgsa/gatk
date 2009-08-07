@@ -38,7 +38,9 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
 
     // Control how the genotype hypotheses are weighed
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
-    public Double heterozygosity = GenotypeLikelihoods.HUMAN_HETEROZYGOSITY;
+    public Double heterozygosity = DiploidGenotypePriors.HUMAN_HETEROZYGOSITY;
+
+    // todo - print out priors at the start of SSG with .INFO
 
     // todo -- remove dbSNP awareness until we understand how it should be used
     //@Argument(fullName = "priors_dbsnp", shortName = "pdbsnp", doc = "Comma-separated prior likelihoods for dbSNP loci (homref,het,homvar)", required = false)
@@ -46,7 +48,6 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
 
     @Argument(fullName = "keepQ0Bases", shortName = "keepQ0Bases", doc = "If true, then Q0 bases will be included in the genotyping calculation, and treated as Q1 -- this is really not a good idea", required = false)
     public boolean keepQ0Bases = false;
-
 
     /**
      * Filter out loci to ignore (at an ambiguous base in the reference or a locus with zero coverage).
@@ -75,7 +76,8 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
      */
     public SSGGenotypeCall map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
         char ref = refContext.getBase();
-        NewHotnessGenotypeLikelihoods G = new NewHotnessGenotypeLikelihoods(ref, GenotypeLikelihoods.HUMAN_HETEROZYGOSITY);
+        DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
+        NewHotnessGenotypeLikelihoods G = new NewHotnessGenotypeLikelihoods(priors);
         G.filterQ0Bases(! keepQ0Bases);
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         G.add(pileup, true);
