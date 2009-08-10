@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.utils;
+package org.broadinstitute.sting.playground.tools;
 
 import java.io.File;
 import java.util.Comparator;
@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
+import org.broadinstitute.sting.playground.utils.GenomicMap;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import net.sf.picard.cmdline.CommandLineProgram;
