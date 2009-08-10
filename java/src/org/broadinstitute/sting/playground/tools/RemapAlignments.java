@@ -186,7 +186,6 @@ public class RemapAlignments extends CommandLineProgram {
 	
     class AlignmentComparator implements Comparator<SAMRecord> {
 
-    	@Override
     	public int compare(SAMRecord r1, SAMRecord r2) {
     		if ( r1.getReferenceIndex() < r2.getReferenceIndex() ) return -1; 
     		if ( r1.getReferenceIndex() > r2.getReferenceIndex() ) return  1;
