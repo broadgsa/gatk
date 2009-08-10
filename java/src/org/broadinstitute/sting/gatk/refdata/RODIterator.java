@@ -5,6 +5,20 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.Iterator;
 
+/**
+ * Adapter (decorator) class for rod iterators. The "raw" rod iterator wrapped into this class
+ * should be capable of reading the underlying ROD data file and iterating over successive 
+ * genomic locations. The purpose of this adapter is to provide additional seekForward() method:
+ * upon a call to this method, the decorated iterator will fastforward to the specified position.
+ * NOTE 1: if a particular ROD data file is allowed to have multiple records (lines)
+ * associated with the same location, the "raw" iterator must be capable of dealing with this situation
+ * by loading all such records at once on a call to next().
+ * NOTE 2: the object represented by this class is still a unidirectional iterator: after a call to seekForward(),
+ * subsequent calls to seekForward() or next() will work from the position the iterator was fastforwarded to.   
+ * @author asivache
+ *
+ * @param <ROD>
+ */
 public class RODIterator<ROD extends ReferenceOrderedDatum> implements Iterator<ROD> {
     private PushbackIterator<ROD> it;
     private ROD current = null;
@@ -14,7 +28,10 @@ public class RODIterator<ROD extends ReferenceOrderedDatum> implements Iterator<
         this.it = new PushbackIterator<ROD>(it);
     }
 
+    @Override
     public boolean hasNext() { return it.hasNext(); }
+    
+    @Override
     public ROD next() {
         ROD next = it.next();
         if( next != null ) {
@@ -34,11 +51,23 @@ public class RODIterator<ROD extends ReferenceOrderedDatum> implements Iterator<
 
     /**
      * Seeks forward in the file until we reach (or cross) a record at contig / pos
-     * If we don't find anything and cross beyond contig / pos, we return null
-     * Otherwise we return the first object who's start is at pos
+     * If we don't find anything and cross beyond contig / pos, we return null;
+     * subsequent call to next() will return the first record located after the specified 
+     * position in this case. Otherwise, the first ROD record at or overlapping with
+     * the specified position is returned; the subsequent call to next() will return the
+     * next ROD record. 
      *
-     * @param loc
-     * @return
+     * NOTE 1: the location object <code>loc</code> should be a single point (not an interval);
+     * ROD locations, however, can be extended intervals, in which case first ROD that overlaps the specified
+     * position will be returned.
+     *  
+     * NOTE 2: seekForward() is not exactly like next(): if we are strictly past a record, seekForward will not
+     * see it, but it will be returning the "current" record (i.e. the record returned by last call to next() or
+     * seekForward()) over and over again and will NOT advance the iterator for as long as the current record's location 
+     * overlaps with the query position.
+     *  
+     * @param loc point-like genomic location to fastforward to.
+     * @return ROD object at (or overlapping with) the specified position, or null if no such ROD exists.
      */
     public ROD seekForward(final GenomeLoc loc) {
         final boolean DEBUG = false;
