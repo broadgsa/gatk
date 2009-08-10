@@ -10,6 +10,8 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.util.*;
 import java.io.PrintStream;
@@ -45,6 +47,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long counted_bases = 0; // number of bases used to count covariates
     private long skipped_sites = 0; // number of sites skipped because of a dbSNP entry
 
+    private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0l, 0l);  // mismatch/base counts for dbSNP loci
+    private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0l, 0l);  // mismatch/base counts for non-dbSNP loci
+    private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
+    private static final int DBSNP_VALIDATION_CHECK_FREQUENCY = 1000000;   // how often to validate dbsnp mismatch rate (in terms of loci seen)
+    private int lociSinceLastDbsnpCheck = 0;                               // loci since last dbsnp validation
 
     /**
      * Initialize the system.  Setup the data CovariateCountry for the read groups in our header
@@ -107,12 +114,60 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 }
             }
             counted_sites += 1;
+            updateMismatchCounts(novel_counts, context, ref.getBase());
         } else {
+            updateMismatchCounts(dbSNP_counts, context, ref.getBase());
             skipped_sites += 1;
         }
+
+        if ( ++lociSinceLastDbsnpCheck == DBSNP_VALIDATION_CHECK_FREQUENCY ) {
+            lociSinceLastDbsnpCheck = 0;
+            validateDbsnpMismatchRate();
+        }
+
         return 1;
     }
 
+
+    /**
+     * Update the mismatch / total_base counts for a given class of loci.
+     *
+     * @param counts
+     * @param context
+     * @return
+     */
+    private static void updateMismatchCounts(Pair<Long, Long> counts, AlignmentContext context, char ref) {
+        List<SAMRecord> reads = context.getReads();
+        List<Integer> offsets = context.getOffsets();
+        for (int i =0; i < reads.size(); i++ ) {
+            char readChar = reads.get(i).getReadString().charAt(offsets.get(i));
+            int readCharBaseIndex = BaseUtils.simpleBaseToBaseIndex(readChar);
+            int refCharBaseIndex  = BaseUtils.simpleBaseToBaseIndex(ref);
+
+            if ( readCharBaseIndex != -1 && refCharBaseIndex != -1 ) {
+                if ( readCharBaseIndex != refCharBaseIndex )
+                    counts.first++;
+                counts.second++;
+            }
+        }
+    }
+
+    /**
+     * Validate the dbSNP mismatch rates.
+     *
+     * @return
+     */
+    private void validateDbsnpMismatchRate() {
+        if ( novel_counts.second == 0 || dbSNP_counts.second == 0 )
+            return;
+        
+        double fractionMM_novel = (double)novel_counts.first / (double)novel_counts.second;
+        double fractionMM_dbsnp = (double)dbSNP_counts.first / (double)dbSNP_counts.second;
+        //System.out.println(String.format("dbSNP rate = %.2f, novel rate = %.2f", fractionMM_dbsnp, fractionMM_novel));
+
+        if ( fractionMM_dbsnp < DBSNP_VS_NOVEL_MISMATCH_RATE * fractionMM_novel )
+            Utils.warnUser("The variation rate of dbSNP sites seems suspicious!  Please double-check that the correct DBSNP ROD is being used.");
+    }
 
     /**
      * Check to see whether this read group should be processed.  Returns true if the
