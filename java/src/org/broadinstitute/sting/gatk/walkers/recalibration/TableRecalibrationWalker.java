@@ -292,7 +292,16 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         byte[] recalQuals = new byte[quals.length];
         RecalMapping mapper = cache.get(readGroup);
-        if ( mapper == null ) { throw new StingException(String.format("BUG: couldn't find RecalMapping for readgroup %s", readGroup)); }
+        if ( mapper == null ) {
+            // throw new StingException(String.format("BUG: couldn't find RecalMapping for readgroup %s", readGroup));
+            // Edited by ebanks on 8/9/09
+            // Actually, there is a valid case when the mapper == null: when all reads in a RG are
+            // unmapped or have mapping quality == 0.  In this case, we don't want to die - nor do we
+            // want to lose these reads - so we just don't alter the quals
+            for ( int cycle = 0; cycle < bases.length; cycle++ )
+                recalQuals[cycle] = quals[cycle];
+            return recalQuals;
+        }
 
         recalQuals[0] = quals[0];               // can't change the first -- no dinuc
         for ( int cycle = 1; cycle < bases.length; cycle++ ) { // skip first and last base, qual already set because no dinuc
