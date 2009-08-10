@@ -6,6 +6,7 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.BaseTest;
+import org.junit.Ignore;
 import edu.mit.broad.picard.util.MathUtil;
 
 import java.util.Arrays;
@@ -41,6 +42,7 @@ import java.util.Arrays;
  * From then on, you can call any of the add() routines to update the likelihoods and posteriors in the above
  * model.
  */
+@Ignore
 public class NewHotnessGenotypeLikelihoodsTest extends BaseTest {
     int x;
 /*    private int coverage = 0;
