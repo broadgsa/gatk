@@ -186,7 +186,7 @@ public class GenomeAnalysisEngine {
         }
 
         // parse out the rod bindings
-        ReferenceOrderedData.parseBindings(logger, argCollection.RODBindings, rods);
+        ReferenceOrderedData.parseBindings(argCollection.RODBindings, rods);
 
         validateSuppliedReferenceOrderedDataAgainstWalker( my_walker, rods );
 
