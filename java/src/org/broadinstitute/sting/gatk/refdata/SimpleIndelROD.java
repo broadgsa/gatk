@@ -22,7 +22,7 @@ public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVaria
             return Arrays.asList(this.get("4"));
 
         String str = this.get("3");
-        return Arrays.asList(str.substring(0, str.indexOf(":")));    
+        return Arrays.asList(str.substring(1, str.indexOf(":")));    
     }
 
     public String getFWDRefBases() { return ""; }
