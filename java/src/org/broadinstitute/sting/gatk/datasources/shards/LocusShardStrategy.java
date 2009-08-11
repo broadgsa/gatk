@@ -173,11 +173,11 @@ public abstract class LocusShardStrategy implements ShardStrategy {
 
         if (loc.getStop() - loc.getStart() <= proposedSize) {
             intervals.removeRegion(loc);
-            return new IntervalShard(loc);
+            return new IntervalShard(loc,Shard.ShardType.LOCUS_INTERVAL);
         } else {
             GenomeLoc subLoc = GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart(), loc.getStart() + proposedSize - 1);
             intervals.removeRegion(subLoc);
-            return new IntervalShard(subLoc);
+            return new IntervalShard(subLoc,Shard.ShardType.LOCUS_INTERVAL);
         }
     }
 

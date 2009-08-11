@@ -49,7 +49,7 @@ public class IntervalShardStrategy implements ShardStrategy {
 
     /** their prefered size of the shard, we can modify this based on what we see in the shards */
     private long size;
-
+    private Shard.ShardType type;
     /**
      * change the recommended shard size for the next shard we generate.  The code will do it's
      * best to respect this value, but there are no guarantees.
@@ -66,10 +66,11 @@ public class IntervalShardStrategy implements ShardStrategy {
      * @param size
      * @param locations
      */
-    IntervalShardStrategy( long size, GenomeLocSortedSet locations ) {
+    IntervalShardStrategy( long size, GenomeLocSortedSet locations, Shard.ShardType shardType ) {
         if (locations == null || locations.isEmpty()) {
             throw new StingException("IntervalShardStrategy: genomic regions list is empty.");
         }
+        type = shardType;
         this.regions = locations.clone();
         this.size = size;
     }
@@ -110,7 +111,7 @@ public class IntervalShardStrategy implements ShardStrategy {
         GenomeLoc loc = regions.iterator().next();
 
         regions.removeRegion(loc);
-        return new IntervalShard(loc);
+        return new IntervalShard(loc,type);
 
     }
 

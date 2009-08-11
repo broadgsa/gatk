@@ -106,8 +106,9 @@ public class ShardStrategyFactory {
             case EXPONENTIAL:
                 return new ExpGrowthLocusShardStrategy(dic, startingSize, lst, limitDataCount);
             case INTERVAL:
+                return new IntervalShardStrategy(startingSize, lst, Shard.ShardType.LOCUS_INTERVAL);
             case READS:
-                return new IntervalShardStrategy(startingSize, lst);
+                return new IntervalShardStrategy(startingSize, lst, Shard.ShardType.READ_INTERVAL);
             default:
                 throw new StingException("Strategy: " + strat + " isn't implemented");
         }

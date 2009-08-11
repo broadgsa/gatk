@@ -40,8 +40,12 @@ public class IntervalShard implements Shard {
 
     /** a collection of genomic locations to interate over */
     private GenomeLoc mSet;
+    private Shard.ShardType mType = Shard.ShardType.LOCUS_INTERVAL;
 
-    IntervalShard(GenomeLoc myLocation) {
+    IntervalShard(GenomeLoc myLocation, Shard.ShardType intervalType) {
+        if (intervalType != Shard.ShardType.LOCUS_INTERVAL && intervalType != Shard.ShardType.READ_INTERVAL)
+            throw new IllegalArgumentException("The specified interval type must be either LOCUS_INTERVAL or READ_INTERVAL");
+        mType = intervalType;
         mSet = myLocation.clone();
     }
 
@@ -56,6 +60,6 @@ public class IntervalShard implements Shard {
      * @return READ, indicating the shard type
      */
     public Shard.ShardType getShardType() {
-        return ShardType.INTERVAL;
+        return mType;
     }
 }

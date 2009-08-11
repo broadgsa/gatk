@@ -76,7 +76,7 @@ public class SAMDataSource implements SimpleDataSource {
     /**
      * A histogram of exactly what reads were removed from the input stream and why.
      */
-    private SAMReadViolationHistogram violations = new SAMReadViolationHistogram();    
+    private SAMReadViolationHistogram violations = new SAMReadViolationHistogram();
 
     // A pool of SAM iterators.
     private SAMResourcePool resourcePool = null;
@@ -120,24 +120,24 @@ public class SAMDataSource implements SimpleDataSource {
         return resourcePool.getHeader();
     }
 
-    
+
     /**
      * Returns Reads data structure containing information about the reads data sources placed in this pool as well as
      * information about how they are downsampled, sorted, and filtered
      * @return
      */
     public Reads getReadsInfo() { return reads; }
-    
-    /** 
+
+    /**
      * Returns header merger: a class that keeps the mapping between original read groups and read groups
      * of the merged stream; merger also provides access to the individual file readers (and hence headers
-     * prior to the merging too) maintained by the system. 
+     * prior to the merging too) maintained by the system.
      * @return
      */
     public SamFileHeaderMerger getHeaderMerger() { return resourcePool.getHeaderMerger(); }
 
     /**
-     * 
+     *
      * @param shard the shard to get data for
      *
      * @return an iterator for that region
@@ -162,7 +162,8 @@ public class SAMDataSource implements SimpleDataSource {
                     reads.getDownsamplingFraction(),
                     reads.getSafetyChecking(),
                     reads.getSupplementalFilters());
-        } else if (shard.getShardType() == Shard.ShardType.INTERVAL) {
+        } else if ((shard.getShardType() == Shard.ShardType.LOCUS_INTERVAL) ||
+                   (shard.getShardType() == Shard.ShardType.READ_INTERVAL)) {
             iterator = seekLocus(shard.getGenomeLoc());
             iterator = applyDecoratingIterators(false,
                     iterator,
@@ -170,8 +171,8 @@ public class SAMDataSource implements SimpleDataSource {
                     reads.getSafetyChecking(),
                     reads.getSupplementalFilters());
 
-            // add the new overlapping detection iterator, if we have a last interval
-            if (mLastInterval != null && queryOverlapping) iterator = new IntervalOverlapIterator(iterator,mLastInterval,false);
+            // add the new overlapping detection iterator, if we have a last interval and we're a read based shard
+            if (mLastInterval != null && shard.getShardType() == Shard.ShardType.READ_INTERVAL ) iterator = new IntervalOverlapIterator(iterator,mLastInterval,false);
             mLastInterval = shard.getGenomeLoc();
         } else {
 
@@ -258,7 +259,7 @@ public class SAMDataSource implements SimpleDataSource {
      */
     void setResourcePool( SAMResourcePool resourcePool ) {
         this.resourcePool = resourcePool;
-    }    
+    }
 
     /**
      * Retrieve unmapped reads.
