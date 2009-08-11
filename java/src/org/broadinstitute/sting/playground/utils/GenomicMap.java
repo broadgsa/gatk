@@ -207,22 +207,26 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 		if ( r.getReadUnmappedFlag() ) return r; // nothing to do if read is unmapped
 		
 		int customStart = r.getAlignmentStart();
-		
+
+        // get mapping from read's contig onto a "global" contig (as a list of intervals on the latter):
 		Collection<GenomeLoc> segments = getContigMapping(r.getReferenceName());
 		if ( segments == null ) throw new StingException("Can not remap a record: unknown custom contig name "+r.getReferenceName());
-		
+
+        // scroll the list of intervals until we find the interval that the alignment start falls into:
 		Pair<? extends Iterator<GenomeLoc>, Integer> p = seekForward(segments,customStart);
 		
 		Iterator<GenomeLoc> iter = p.first;
 		
-		GenomeLoc gl = iter.next(); // initialization: get first interval
+		GenomeLoc gl = iter.next(); // initialization: get interval that contains customStart
 
+        // p.second is 1-based position of alignment start relative to interval gl;
+        // hence refPos is 1-based position of the alignment start on the master ref (since gl.getStart() is 1-based too)
 		int refPos = (int)(p.second+gl.getStart()-1); 
 		
 		String oldRefName = r.getReferenceName();
 		int oldStart = r.getAlignmentStart();
 		int oldEnd = r.getAlignmentEnd();
-		
+
 		r.setAlignmentStart(refPos);		
 		
 		r.setHeader(h); // have to substitute here, or setReferenceIndex will not work correctly below
@@ -233,11 +237,11 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 		Cigar newCigar = new Cigar();
 		int N = oldCigar.numCigarElements() ;
 		
-		long currStop = gl.getStop();// end of the current segment of the custom contig on the master reference
-		
+		long currStop = gl.getStop();// end of the current segment of the custom contig on the master reference, 1-based inclusive
+        int delayedGap = 0 ; // length of the 'N' gap between the segments (intervals) on the master ref, to be added only if followed by another cigar element		
 		for ( int k = 0; k < N ; k++ ) {
 			CigarElement ce = oldCigar.getCigarElement(k);
-			int len = ce.getLength();
+			int len = ce.getLength();      // length of the cigar element
 			switch( ce.getOperator() ) {
 			case S: // soft clip
 			case H: // or hard clip - these are not included in getAlignmentStart, so pass them through
@@ -245,108 +249,67 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 					throw new StingException("Don't know what to do with S or N cigar element that is not at the either end of the cigar. Cigar: "+
 							r.getCigarString());
 			case I: // insertions are passed through as well
-				newCigar.add(ce);
+				newCigar.add(new CigarElement(len,ce.getOperator()));
 				break;
 			case D:
-				// deletion would be easy except for one quirk:  deletion can span over the boundary of adjacent segments on the custom
-				// contig; since that boundary itself will be encoded as a "deletion", we need to merge such overlapping real and
-				// pseudo-deletions into a single deletion element:
-				
-				int deletionLength = 0;
-				
-				while ( refPos + len - 1 >= currStop ) { 
-					// deletion wrt the custom reference touches the end of current segment or extends past it
-					int currDeletionLength = (int)(currStop - refPos + 1); // that many bases are deleted from the current segment
-					deletionLength += currDeletionLength;
-					len -= currDeletionLength; // we still have 'len' deleted bases to record
+            case M:
+///////////
+                if ( delayedGap > 0 ) {
+                    // we get here if previous M or D element ended exactly at the interval boundary; we need
+                    // to add the stretch of N's only if that element turned out to be not the last one, so we do it now
+                    newCigar.add(new CigarElement(delayedGap, CigarOperator.N));
+                    delayedGap = 0;
+                }
+                while ( refPos + len - 1 > currStop ) { // current D or M cigar element extends beyond the end of current segment
 
-					if ( k != N-1 || len > 0 ) { 
-						// we did not finish with current deletion and/or there are more cigar 
-						// elements to come, so we need to add pseudo-deletion to jump to the next segment:  
-						if ( ! iter.hasNext() ) {
-							String message = "Record "+r.getReadName()+" extends beyond its custom contig."+
-											"\nRead aligns to: "+oldRefName+":"+oldStart+"-"+oldEnd+"; cigar="+
-											r.getCigarString()+"; contig length="+contigLength(segments);
-							if ( discardCrossContig ) {
-			//					System.out.println("WARNING: ALIGNMENT DISCARDED: "+message);
-								return null;
-							} else throw new StingException(message);
-						}
+                    // we have that many bases in the current cigar element till the end of the current segment:
+                    int currLength = (int)(currStop-refPos+1);
 
-						gl = iter.next(); // advance to next segment
+                    newCigar.add(new CigarElement( currLength,ce.getOperator()) ); // record deletion/match till the end of the current segment
+                    len -= currLength; // we still have 'len' bases remaining in the current cigar element
 
-						refPos = (int)gl.getStart(); // we jump to the start of next segment on the master ref					
-					
-						if ( gl.getContigIndex() != r.getReferenceIndex() )
-							throw new StingException("Contig "+oldRefName+" has segments on different master contigs: currently unsupported");
-					
-						if ( refPos < currStop + 1 ) 
-							throw new StingException("Contig "+oldRefName+" has segments that are out of order or strictly adjacent: currently unsupported");
-					
-						// add "deletion" w/respect to the master ref over the region between adjacent segments:
-						deletionLength += (int)(refPos-currStop-1);
+                    // NOTE: since we entered the loop, we were guaranteed that len > currLength, so now len > 0
 
-						currStop = gl.getStop();
-					}
-				}
-				
-				deletionLength += len; // remaining deleted bases on the current segment; we are guaranteed that len < segment length
-				refPos += len; // advance ref position to next base after deletion
-				newCigar.add( new CigarElement(deletionLength, CigarOperator.D));
-				break;
-				
-			case M: // we have a span of 'len' matching bases w/respect to custom contig. 
-					// These bases can extend over the boundaries of the segments contig is built of:
-				
-				while ( refPos + len - 1 > currStop ) { // matching bases extend beyond current segment
+                    // check if we have next segment to extend remaining matching bases to; if we don't, something's awfully wrong:
+                    if ( ! iter.hasNext() ) {
+                        String message = "Record "+r.getReadName()+" extends beyond its custom contig."+
+                                        "\nRead aligns to: "+oldRefName+":"+oldStart+"-"+oldEnd+"; cigar="+
+                                        r.getCigarString()+"; contig length="+contigLength(segments);
+                        if ( discardCrossContig ) {
+                //			System.out.println("WARNING: ALIGNMENT DISCARDED: "+message);
+                            return null;
+                        } else throw new StingException(message);
+                    }
 
-					// we have that many matching bases till the end of the current segment:
-					int currMatchLength = (int)(currStop-refPos+1);
-					if ( currMatchLength > 0 ) { 
-						// will be non-positive if previous M or D cigar element ended exactly at the end of current segment;
-						// in that case we will not add an empty M element but proceed to adding pseudo-"deletion" 
-						newCigar.add(new CigarElement(currMatchLength,CigarOperator.M)); // record match till the end of the current segment
-						len -= currMatchLength; // we still have 'len' matching bases to record
-					}
+                    gl = iter.next(); // advance to next segment
 
-					// check if we have next segment to extend remaining matching bases to; if we don't, something's awfully wrong:
-					if ( ! iter.hasNext() ) {
-						String message = "Record "+r.getReadName()+" extends beyond its custom contig."+
-										"\nRead aligns to: "+oldRefName+":"+oldStart+"-"+oldEnd+"; cigar="+
-										r.getCigarString()+"; contig length="+contigLength(segments);
-						if ( discardCrossContig ) {
-				//			System.out.println("WARNING: ALIGNMENT DISCARDED: "+message);
-							return null;
-						} else throw new StingException(message);
-					}
-					
-					gl = iter.next(); // advance to next segment
-					
-					refPos = (int)gl.getStart(); // we jump to the start of next segment on the master ref					
-						
-					if ( gl.getContigIndex() != r.getReferenceIndex() )
-						throw new StingException("Contig "+oldRefName+
-						" has segments on different master contigs: currently unsupported");
-					
-					if ( refPos < currStop + 1 ) 
-						throw new StingException("Contig "+oldRefName+
-						" has segments that are out of order or strictly adjacent: currently unsupported");
-					if ( refPos > currStop + 1 ) {
-						// add "deletion" w/respect to the master ref over the region between adjacent segments
-						// (and do not add anything if segments are strictly adjacent, i.e. refPos == currStop+1):
-						newCigar.add(new CigarElement((int)(refPos-currStop-1),CigarOperator.D));
-					}
-					currStop = gl.getStop();
-					// now we can continue with recording remaining matching bases over the current segment
-				}
-				// we get here when remaining matching bases fit completely inside the current segment:
-				newCigar.add(new CigarElement(len,CigarOperator.M));
-				refPos+=len;
-				
-				// NOTE: if matching bases touched the end of current segment, but did not extend beyond it,
-				// we did not record the pseudo-"deletion" after the current segment yet, but refPos in that
-				// case is set to next base after the segment end; we will detect this later.
-				break;
+                    refPos = (int)gl.getStart(); // we jump to the start of next segment on the master ref
+
+                    if ( gl.getContigIndex() != r.getReferenceIndex() )
+                        throw new StingException("Contig "+oldRefName+
+                        " has segments on different master contigs: currently unsupported");
+
+                    if ( refPos < currStop + 1 )
+                        throw new StingException("Contig "+oldRefName+
+                        " has segments that are out of order or strictly adjacent: currently unsupported");
+                    if ( len > 0 && refPos > currStop + 1 ) {
+                        // add "panning" N's w/respect to the master ref over the region between adjacent segments
+                        // (and do not add anything if segments are strictly adjacent, i.e. refPos == currStop+1):
+                        newCigar.add(new CigarElement((int)(refPos-currStop-1),CigarOperator.N));
+                    } else {
+                        // we jumped onto the next interval, but the current cigar element ended exactly
+                        // at the end of the previous interval. We will need to end later, only if more M/D elements follow:
+                        delayedGap = (int)(refPos-currStop-1);
+                    }
+                    currStop = gl.getStop();
+                    // now we can continue with recording remaining matching bases over the current segment
+                }
+                // we get here when remaining matching bases fit completely inside the current segment:
+                if ( len > 0 ) newCigar.add(new CigarElement(len,ce.getOperator()));
+                refPos+=len;
+
+                break;
+////////////
 			}
 		}
 		
@@ -361,7 +324,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 	public Iterator<String> nameIterator() { return map.keySet().iterator(); }
 	public Set<String> nameSet() { return map.keySet(); }
 	
-	/** Returns an iterator into the specified collection of segments that points to the segment that contains
+	/** Returns an iterator into the specified collection of segments that points right before the segment that contains
 	 * specified position, and the offset of the position inside that segment. This helper method assumes that
 	 * there is a "custom" contig built of intervals on the "master" reference; the first argument specifies
 	 * the mapping (i.e. an ordered collection of master reference intervals the custom contig is built of), and the second argument

@@ -214,12 +214,17 @@ public class RemapAlignments extends CommandLineProgram {
     		int minNM = 1000000;
     		int cnt = 0; // count of best alignments
     		for ( SAMRecord r : reads ) {
-    			int nm = (Integer)r.getAttribute("NM"); 
+                Object attr = r.getAttribute("NM");
+                if ( attr == null ) {
+                    return; // can not recompute qualities!
+                }
+    			int nm = (Integer)attr;
     			if ( nm < minNM  ) { 
     				minNM = nm;
     				cnt = 1;
     			} else if ( nm == minNM ) cnt++;
     		}
+
     		// now reset counts and quals:
     		for ( SAMRecord r : reads ) {
     			
