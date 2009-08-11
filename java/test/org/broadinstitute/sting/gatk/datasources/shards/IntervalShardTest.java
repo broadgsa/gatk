@@ -59,14 +59,14 @@ public class IntervalShardTest extends BaseTest {
     @Test
     public void simpleReturn() {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, 1, 100);
-        intervalShard = new IntervalShard(loc);
+        intervalShard = new IntervalShard(loc,Shard.ShardType.LOCUS_INTERVAL);
         assertTrue(intervalShard.getGenomeLoc().equals(loc));
     }
 
     @Test
     public void ensureNotReference() {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, 1, 100);
-        intervalShard = new IntervalShard(loc);
+        intervalShard = new IntervalShard(loc,Shard.ShardType.LOCUS_INTERVAL);
         assertTrue(intervalShard.getGenomeLoc() != loc && intervalShard.getGenomeLoc().equals(loc));
     }
 

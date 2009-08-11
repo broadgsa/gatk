@@ -67,14 +67,14 @@ public class IntervalShardStrategyTest extends BaseTest {
 
     @Test(expected = StingException.class)
     public void testExceptionOnEmpty() {
-        IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet);
+        IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet,Shard.ShardType.LOCUS_INTERVAL);
     }
 
     @Test
     public void testSingleChromosomeFunctionality() {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, 1, 1000);
         mSortedSet.add(loc);
-        IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet);
+        IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet,Shard.ShardType.LOCUS_INTERVAL);
         int counter = 0;
         Shard d = null;
         while (strat.hasNext()) {
@@ -91,7 +91,7 @@ public class IntervalShardStrategyTest extends BaseTest {
             GenomeLoc loc = GenomeLocParser.createGenomeLoc(x, 1, 1000);
             mSortedSet.add(loc);
         }
-        IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet);
+        IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet,Shard.ShardType.LOCUS_INTERVAL);
         int counter = 0;
         Shard d = null;
         while (strat.hasNext()) {
@@ -108,7 +108,7 @@ public class IntervalShardStrategyTest extends BaseTest {
             GenomeLoc loc = GenomeLocParser.createGenomeLoc(x, 1, 1000);
             mSortedSet.add(loc);
         }
-        IntervalShardStrategy strat = new IntervalShardStrategy(789, mSortedSet);
+        IntervalShardStrategy strat = new IntervalShardStrategy(789, mSortedSet,Shard.ShardType.LOCUS_INTERVAL);
         int counter = 0;
         while (strat.hasNext()) {
             Shard d = strat.next();
@@ -126,7 +126,7 @@ public class IntervalShardStrategyTest extends BaseTest {
             GenomeLoc loc = GenomeLocParser.createGenomeLoc(x, 1, 1000);
             mSortedSet.add(loc);
         }
-        IntervalShardStrategy strat = new IntervalShardStrategy(Long.MAX_VALUE, mSortedSet);
+        IntervalShardStrategy strat = new IntervalShardStrategy(Long.MAX_VALUE, mSortedSet,Shard.ShardType.LOCUS_INTERVAL);
         int counter = 0;
         while (strat.hasNext()) {
             Shard d = strat.next();
@@ -140,7 +140,7 @@ public class IntervalShardStrategyTest extends BaseTest {
     public void testRemove() {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, 1, 1000);
         mSortedSet.add(loc);
-        IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet);
+        IntervalShardStrategy strat = new IntervalShardStrategy(100, mSortedSet,Shard.ShardType.LOCUS_INTERVAL);
         strat.remove();
     }
 
