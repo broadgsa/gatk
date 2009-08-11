@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.playground.gatk.walkers.fasta;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -29,6 +29,7 @@ public class FastaReferenceWalker extends RefWalker<Pair<GenomeLoc, Character>, 
             sum.second = value.second.toString();
         }
         // if the intervals don't overlap, print out the leftmost one and start a new one
+        // (end of contig or new interval)
         else if ( value.first.getStart() != sum.first.getStop() + 1 ) {
             printFasta(sum.first, sum.second);
             sum.first = value.first;
