@@ -5,14 +5,19 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.Iterator;
 
 // create a fasta sequence file from a reference, intervals, and rod(s) of variants
+// if there are multiple variants at a site, we take the first one seen
 
 @WalkerName("FastaAlternateReferenceMaker")
 @Requires(value={DataSource.REFERENCE})
 public class FastaAlternateReferenceWalker extends RefWalker<Pair<GenomeLoc, String>, Pair<GenomeLoc, String>> {
+
+    @Argument(fullName="maskSNPs", shortName="mask", doc="print 'N' at SNP sites instead of the alternate allele", required=false)
+    private Boolean MASK_SNPS = false;
 
 	private StringBuffer sb = new StringBuffer();
     int deletionBasesRemaining = 0;
@@ -38,7 +43,10 @@ public class FastaAlternateReferenceWalker extends RefWalker<Pair<GenomeLoc, Str
             } else if ( variant.isInsertion() ) {
                 return new Pair<GenomeLoc, String>(context.getLocation(), String.valueOf(ref.getBase()).concat(variant.getAltBasesFWD()));
             } else if ( variant.isSNP() ) {
-                return new Pair<GenomeLoc, String>(context.getLocation(), variant.getAltBasesFWD());
+                if ( MASK_SNPS )
+                    return new Pair<GenomeLoc, String>(context.getLocation(), "N");
+                else
+                    return new Pair<GenomeLoc, String>(context.getLocation(), variant.getAltBasesFWD());
             }
         }
 
