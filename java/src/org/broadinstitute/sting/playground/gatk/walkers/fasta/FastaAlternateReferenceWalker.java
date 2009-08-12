@@ -18,14 +18,18 @@ public class FastaAlternateReferenceWalker extends RefWalker<Pair<GenomeLoc, Str
 
     @Argument(fullName="maskSNPs", shortName="mask", doc="print 'N' at SNP sites instead of the alternate allele", required=false)
     private Boolean MASK_SNPS = false;
+    @Argument(fullName="outputSequenomFormat", shortName="sequenom", doc="output results in sequenom format (overrides 'maskSNPs' argument)", required=false)
+    private Boolean SEQUENOM = false;
 
 	private StringBuffer sb = new StringBuffer();
     int deletionBasesRemaining = 0;
 
     public Pair<GenomeLoc, String> map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
+        String refBase = String.valueOf(ref.getBase());
+
         if ( deletionBasesRemaining > 0 ) {
             deletionBasesRemaining--;
-            return new Pair<GenomeLoc, String>(context.getLocation(), "");
+            return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? (deletionBasesRemaining == 0 ? refBase.concat("]") : refBase) : ""));
         }
 
         Iterator<ReferenceOrderedDatum> rods = rodData.getAllRods().iterator();
@@ -39,19 +43,16 @@ public class FastaAlternateReferenceWalker extends RefWalker<Pair<GenomeLoc, Str
             if ( variant.isDeletion() ) {
                 deletionBasesRemaining = variant.length();
                 // delete the next n bases, not this one
-                return new Pair<GenomeLoc, String>(context.getLocation(), String.valueOf(ref.getBase()));
+                return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[-/") : refBase));
             } else if ( variant.isInsertion() ) {
-                return new Pair<GenomeLoc, String>(context.getLocation(), String.valueOf(ref.getBase()).concat(variant.getAltBasesFWD()));
+                return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[+/"+variant.getAltBasesFWD()+"]") : refBase.concat(variant.getAltBasesFWD())));
             } else if ( variant.isSNP() ) {
-                if ( MASK_SNPS )
-                    return new Pair<GenomeLoc, String>(context.getLocation(), "N");
-                else
-                    return new Pair<GenomeLoc, String>(context.getLocation(), variant.getAltBasesFWD());
+                return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM || MASK_SNPS ? "N" : variant.getAltBasesFWD()));
             }
         }
 
         // if we got here then we're just ref
-        return new Pair<GenomeLoc, String>(context.getLocation(), String.valueOf(ref.getBase()));
+        return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
 	}
 
     public Pair<GenomeLoc, String> reduceInit() {
