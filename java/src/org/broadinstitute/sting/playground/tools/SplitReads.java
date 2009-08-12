@@ -123,6 +123,7 @@ public class SplitReads extends CommandLineProgram {
 
         }
 
+        inReader.close();
         for ( SAMFileWriter w : outWriters ) w.close();
 
         return 0;
