@@ -23,7 +23,7 @@ public class BamToFastqWalker extends ReadWalker<Integer, Integer> {
         } else {
             out.println(BaseUtils.simpleReverseComplement(read.getReadString()));
             out.println("+");
-            out.println(BaseUtils.simpleReverseComplement(read.getBaseQualityString()));
+            out.println(BaseUtils.reverse(read.getBaseQualityString()));
         }
 
         return 1;
