@@ -254,6 +254,16 @@ public class BaseUtils {
     }
 
     /**
+     * Reverse (NOT reverse-complement!!) a string
+     *
+     * @param bases  input string
+     * @return the reversed string
+     */
+    static public String reverse(String bases) {
+        return new String( reverse( bases.getBytes() )) ;
+    }
+
+    /**
      * For the most frequent base in the sequence, return the percentage of the read it constitutes.
      *
      * @param sequence  the read sequence
