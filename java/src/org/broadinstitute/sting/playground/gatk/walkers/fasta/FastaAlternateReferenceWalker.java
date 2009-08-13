@@ -14,14 +14,13 @@ import java.util.Iterator;
 
 @WalkerName("FastaAlternateReferenceMaker")
 @Requires(value={DataSource.REFERENCE})
-public class FastaAlternateReferenceWalker extends RefWalker<Pair<GenomeLoc, String>, Pair<GenomeLoc, String>> {
+public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
     @Argument(fullName="maskSNPs", shortName="mask", doc="print 'N' at SNP sites instead of the alternate allele", required=false)
     private Boolean MASK_SNPS = false;
     @Argument(fullName="outputSequenomFormat", shortName="sequenom", doc="output results in sequenom format (overrides 'maskSNPs' argument)", required=false)
     private Boolean SEQUENOM = false;
 
-	private StringBuffer sb = new StringBuffer();
     int deletionBasesRemaining = 0;
 
     public Pair<GenomeLoc, String> map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
@@ -54,45 +53,4 @@ public class FastaAlternateReferenceWalker extends RefWalker<Pair<GenomeLoc, Str
         // if we got here then we're just ref
         return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
 	}
-
-    public Pair<GenomeLoc, String> reduceInit() {
-        return new Pair<GenomeLoc, String>(null, "");
-    }
-
-	public Pair<GenomeLoc, String> reduce(Pair<GenomeLoc, String> value, Pair<GenomeLoc, String> sum) {
-        // if there is no interval to the left, then this is the first one
-        if ( sum.first == null ) {
-            sum.first = value.first;
-            sum.second = value.second;
-        }
-        // if the intervals don't overlap, print out the leftmost one and start a new one
-        // (end of contig or new interval)
-        else if ( value.first.getStart() != sum.first.getStop() + 1 ) {
-            printFasta(sum.first, sum.second);
-            sum.first = value.first;
-            sum.second = value.second;
-        }
-        // otherwise, merge them
-        else {
-            sum.first = GenomeLocParser.setStop(sum.first,value.first.getStop());
-            sum.second = sum.second.concat(value.second);
-        }
-		return sum;
-	}
-
-    public void onTraversalDone(Pair<GenomeLoc, String> sum) {
-        if (sum.second != null)
-            printFasta(sum.first, sum.second);
-    }
-
-    private void printFasta(GenomeLoc loc, String s) {
-        out.println(">" + loc);
-        int lines = s.length() / 60;
-        int currentStart = 0;
-        for (int i=0; i < lines; i++) {
-            out.println(s.substring(currentStart, currentStart+60));
-            currentStart += 60;
-        }
-        out.println(s.substring(currentStart));
-    }
 }
