@@ -14,6 +14,10 @@ sub usage {
     print " The sort is stable. If -k option is not specified,\n";
     print " it is assumed that the contig name is the first\n";
     print " field in each line.\n\n";
+    print "  INPUT      input file to sort. If '-' is specified, \n";
+    print "             then reads from STDIN.\n";
+    print "  REF_DICT   .fai file, or ANY file that has contigs, in the\n";
+    print "             desired soting order, as its first column.\n";
     print "  --k POS :  contig name is in the field POS (1-based)\n";
     print "             of input lines.\n\n";
 
@@ -35,6 +39,7 @@ if ( scalar(@ARGV) != 2 ) {
 my $input_file = $ARGV[0];
 my $dict_file = $ARGV[1];
 
+
 open(DICT, "< $dict_file") or die("Can not open $dict_file: $!");
 
 my %ref_order;
@@ -52,11 +57,16 @@ while ( <DICT> ) {
 close DICT;
 #we have loaded contig ordering now
 
-open(INPUT, "< $input_file") or die("Can not open $input_file: $!");
+my $INPUT;
+if ($input_file eq "-" ) {
+    $INPUT = "STDIN";
+} else {
+    open($INPUT, "< $input_file") or die("Can not open $input_file: $!");
+}
 
 my %temp_outputs;
 
-while ( <INPUT> ) {
+while ( <$INPUT> ) {
     
     my @fields = split '\s';
     die("Specified field position exceeds the number of fields:\n$_") 
@@ -93,7 +103,7 @@ while ( <INPUT> ) {
     print $fhandle $_; # send current line to its corresponding temp file
 }
 
-close INPUT;
+close $INPUT;
 
 foreach my $f ( values %temp_outputs ) { close $f; }
 
