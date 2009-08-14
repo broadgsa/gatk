@@ -6,6 +6,8 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import net.sf.samtools.SAMRecord;
 
+import java.io.*;
+
 // create a fastq file from a bam file
 
 @WalkerName("BamToFastq")
@@ -13,6 +15,21 @@ public class BamToFastqWalker extends ReadWalker<Integer, Integer> {
 
     @Argument(fullName="re_reverse", shortName="reverse", doc="re-reverse bases and quals of reads from the negative strand", required=false)
     private Boolean RE_REVERSE = false;
+
+    @Argument(fullName="SQFile", shortName="SQ", doc="Output path for secondary quality map (readName => SAM SQ field)", required=false)
+    String SQFile = null;
+
+    private PrintWriter sqbw = null;
+
+    public void initialize() {
+        if ( SQFile != null ) {
+            try {
+                sqbw = new PrintWriter(SQFile);
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to open sq output file: " + SQFile);
+            }
+        }
+    }
 
 	public Integer map(char[] ref, SAMRecord read) {
         out.println("@" + read.getReadName());
@@ -24,6 +41,17 @@ public class BamToFastqWalker extends ReadWalker<Integer, Integer> {
             out.println(BaseUtils.simpleReverseComplement(read.getReadString()));
             out.println("+");
             out.println(BaseUtils.reverse(read.getBaseQualityString()));
+        }
+
+        if ( sqbw != null ) {
+            byte[] sqs = (byte[])read.getAttribute("SQ");
+            if ( sqs != null ) {
+                sqbw.print(read.getReadName() + "\t" + "SQ:H:");
+                for ( byte sq : sqs ) {
+                    sqbw.printf("%02X", sq);
+                }
+                sqbw.println();
+            }
         }
 
         return 1;
@@ -38,6 +66,8 @@ public class BamToFastqWalker extends ReadWalker<Integer, Integer> {
 	}
 
     public void onTraversalDone(Integer sum) {
+        if ( sqbw != null )
+            sqbw.close();
         logger.info("Number of reads converted: " + sum);
     }
 }
