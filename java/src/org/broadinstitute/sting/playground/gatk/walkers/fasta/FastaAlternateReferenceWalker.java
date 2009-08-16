@@ -7,7 +7,9 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
+import java.io.*;
 import java.util.Iterator;
+
 
 // create a fasta sequence file from a reference, intervals, and rod(s) of variants
 // if there are multiple variants at a site, we take the first one seen
@@ -20,8 +22,23 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
     private Boolean MASK_SNPS = false;
     @Argument(fullName="outputSequenomFormat", shortName="sequenom", doc="output results in sequenom format (overrides 'maskSNPs' argument)", required=false)
     private Boolean SEQUENOM = false;
+    @Argument(fullName="outputIndelPositions", shortName="indels", doc="output the positions of the indels in the new reference", required=false)
+    String indelsFile = null;
 
-    int deletionBasesRemaining = 0;
+    private int deletionBasesRemaining = 0;
+    private long basesSeen = 0;
+    private PrintWriter indelsWriter = null;
+
+    public void initialize() {
+        super.initialize();
+        if ( indelsFile != null ) {
+            try {
+                indelsWriter = new PrintWriter(indelsFile);
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to open indel positions output file: " + indelsFile);
+            }
+        }
+    }
 
     public Pair<GenomeLoc, String> map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
         String refBase = String.valueOf(ref.getBase());
@@ -41,16 +58,32 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
             AllelicVariant variant = (AllelicVariant)rod;
             if ( variant.isDeletion() ) {
                 deletionBasesRemaining = variant.length();
+                basesSeen++;
+                if ( indelsWriter != null )
+                    indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.length()));
                 // delete the next n bases, not this one
                 return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[-/") : refBase));
             } else if ( variant.isInsertion() ) {
+                basesSeen++;
+                if ( indelsWriter != null )
+                    indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.length()));
+                basesSeen += variant.length();
                 return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[+/"+variant.getAltBasesFWD()+"]") : refBase.concat(variant.getAltBasesFWD())));
             } else if ( variant.isSNP() ) {
+                basesSeen++;
                 return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM || MASK_SNPS ? "N" : variant.getAltBasesFWD()));
             }
         }
 
         // if we got here then we're just ref
+        basesSeen++;
         return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
 	}
+
+    public void onTraversalDone(GenomeLoc sum) {
+        super.onTraversalDone(sum);
+        if ( indelsWriter != null )
+            indelsWriter.close();
+    }
+
 }

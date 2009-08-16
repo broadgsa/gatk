@@ -25,13 +25,18 @@ public class FastaSequence {
     public void flush() {
         printFasta(true);
         printedHeader = false;
+        sequenceCounter++;
+    }
+
+    public String getCurrentID() {
+        return String.valueOf(sequenceCounter);
     }
 
     private void printFasta(boolean printAll) {
         if ( sb.length() == 0 || (!printAll && sb.length() < 60) )
             return;
         if ( !printedHeader ) {
-            out.println(">" + sequenceCounter++);
+            out.println(">" + sequenceCounter);
             printedHeader = true;
         }
         int lines = sb.length() / 60;
