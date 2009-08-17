@@ -3,8 +3,8 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 /**
  * the basic VCF record type
@@ -17,12 +17,14 @@ public class VCFRecord {
     private Map<String, String> mAuxValues = new HashMap<String, String>();
 
     /**
-     * create a VCFRecord, given a VCF header and the the values in this field
+     * create a VCFRecord, given a VCF header and the the values in this field.  THis is protected, so that the reader is
+     * the only accessing object
+     * TODO: this seems like a bad design
      *
      * @param header the VCF header
      * @param line   the line to parse into individual fields
      */
-    public VCFRecord(VCFHeader header, String line) {
+    protected VCFRecord(VCFHeader header, String line) {
         String tokens[] = line.split("\\s+");
         if (tokens.length != (header.getAuxillaryTags().size() + header.getHeaderFields().size())) {
             throw new StingException("Line:" + line + " didn't parse into " + (header.getAuxillaryTags().size() + header.getHeaderFields().size()) + " fields");
@@ -38,6 +40,22 @@ public class VCFRecord {
             tokenCount++;
         }
     }
+
+    public VCFRecord(VCFHeader header, List<String> values) {
+        if (values.size() != (header.getAuxillaryTags().size() + header.getHeaderFields().size())) {
+            throw new StingException("The input list doesn't contain enough fields, it should have " + (header.getAuxillaryTags().size() + header.getHeaderFields().size()) + " fields");
+        }
+        int index = 0;
+        for (VCFHeader.HEADER_FIELDS field: header.getHeaderFields()) {
+            mValues.put(field,values.get(index));
+            index++;
+        }
+        for (String str: header.getAuxillaryTags()) {
+            mAuxValues.put(str,values.get(index));
+            index++;
+        }
+    }
+
 
     /**
      * lookup a value, given it's column name
@@ -149,5 +167,13 @@ public class VCFRecord {
             ret.put(keyValue[0],keyValue[1]);
         }
         return ret;
+    }
+
+    /**
+     *
+     * @return the number of columnsof data we're storing
+     */
+    public int getColumnCount() {
+        return this.mAuxValues.size() + this.mValues.size();
     }
 }

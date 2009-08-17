@@ -1,13 +1,10 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.StingException;
-import org.junit.Test;
 import org.junit.Assert;
+import org.junit.Test;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 
 /**
@@ -20,24 +17,45 @@ import java.util.List;
  */
 public class VCFHeaderTest extends BaseTest {
 
+    private Set<VCFHeader.HEADER_FIELDS> headerFields = new LinkedHashSet<VCFHeader.HEADER_FIELDS>();
+    private Map<String, String> metaData = new HashMap();
+    private List<String> additionalColumns = new ArrayList<String>();
+
+    /**
+     * give it fake data, and make sure we get back the right fake data
+     */
     @Test
-    public void test1() {
-        File in = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample.vcf");
-        if (!in.exists()) throw new StingException("vfc doesn't exist");
-        List<String> array = new ArrayList<String>();
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader("vcfexample.vcf"));
-            String line = reader.readLine();
-            while (line.startsWith("#")) {
-                array.add(line);
-                line = reader.readLine();
-            }
-            VCFHeader header = new VCFHeader(array);
-        } catch (FileNotFoundException e) {
-            Assert.fail("File not found exception in VCFHeaderTest");
-        } catch (IOException e) {
-            Assert.fail("IO exception in VCFHeaderTest");
+    public void testHeaderConstructor() {
+        for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
+            headerFields.add(field);
         }
+        metaData.put("one","1");
+        metaData.put("two","2");
+        additionalColumns.add("extra1");
+        additionalColumns.add("extra2");
+        // this should create a header that is valid
+
+        VCFHeader header = new VCFHeader(headerFields, metaData, additionalColumns);
+
+        // check the fields
+        int index = 0;
+        for (VCFHeader.HEADER_FIELDS field : header.getHeaderFields()) {
+            Assert.assertEquals(VCFHeader.HEADER_FIELDS.values()[index],field);
+            index++;
+        }
+        index = 0;
+        for (String key: header.getMetaData().keySet()) {
+            Assert.assertEquals(header.getMetaData().get(key),metaData.get(key));
+            index++;
+        }
+        Assert.assertEquals(metaData.size(),index);
+        index = 0;
+        for (String key: header.getAuxillaryTags()) {
+            Assert.assertTrue(additionalColumns.contains(key));
+            index++;
+        }
+        Assert.assertEquals(additionalColumns.size(),index);
     }
+
     
 }
