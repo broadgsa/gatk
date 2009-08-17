@@ -9,9 +9,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 @WalkerName("SNPClusters")
-@By(DataSource.REFERENCE)
-@Requires(DataSource.REFERENCE)
-@Allows(DataSource.REFERENCE)
+@Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="snps",type=AllelicVariant.class)})
 public class SNPClusterWalker extends RefWalker<GenomeLoc, GenomeLoc> {
     @Argument(fullName="windowSize", shortName="window", doc="window size for calculating clusters", required=false)
     int windowSize = 10;
@@ -22,10 +20,8 @@ public class SNPClusterWalker extends RefWalker<GenomeLoc, GenomeLoc> {
     }
 
     public GenomeLoc map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        AllelicVariant eval = (AllelicVariant)tracker.lookup("eval", null);
-        if ( eval instanceof SNPCallFromGenotypes )
-            return context.getLocation();
-        return null;
+        AllelicVariant snp = (AllelicVariant)tracker.lookup("snps", null);
+        return (snp != null && snp.isSNP()) ? context.getLocation() : null;
     }
 
     public void onTraversalDone(GenomeLoc sum) {
