@@ -77,7 +77,7 @@ public class IndelFilterWalker extends RefWalker<Integer, Integer> {
             leftRun++;
         }
 
-        indelBase = indel.isDeletion() ? bases[refBasePos+indel.length()] : indel.getAltBasesFWD().charAt(indel.getAltBasesFWD().length()-1);
+        indelBase = indel.isDeletion() ? bases[Math.min(refBasePos+indel.length(),bases.length-1)] : indel.getAltBasesFWD().charAt(indel.getAltBasesFWD().length()-1);
         int rightRun = 0;
         for ( int i = refBasePos + (indel.isDeletion() ? 1+indel.length() : 1); i < bases.length; i++) {
             if ( bases[i] != indelBase )
