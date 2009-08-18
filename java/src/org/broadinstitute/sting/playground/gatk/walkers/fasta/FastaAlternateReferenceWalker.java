@@ -45,7 +45,7 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
         if ( deletionBasesRemaining > 0 ) {
             deletionBasesRemaining--;
-            return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? (deletionBasesRemaining == 0 ? refBase.concat("]") : refBase) : ""));
+            return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? (deletionBasesRemaining == 0 ? refBase.concat("/-]") : refBase) : ""));
         }
 
         Iterator<ReferenceOrderedDatum> rods = rodData.getAllRods().iterator();
@@ -62,13 +62,13 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
                 if ( indelsWriter != null )
                     indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.length()));
                 // delete the next n bases, not this one
-                return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[-/") : refBase));
+                return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[") : refBase));
             } else if ( variant.isInsertion() ) {
                 basesSeen++;
                 if ( indelsWriter != null )
                     indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.length()));
                 basesSeen += variant.length();
-                return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[+/"+variant.getAltBasesFWD()+"]") : refBase.concat(variant.getAltBasesFWD())));
+                return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[-/"+variant.getAltBasesFWD()+"]") : refBase.concat(variant.getAltBasesFWD())));
             } else if ( variant.isSNP() ) {
                 basesSeen++;
                 return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM || MASK_SNPS ? "N" : variant.getAltBasesFWD()));
