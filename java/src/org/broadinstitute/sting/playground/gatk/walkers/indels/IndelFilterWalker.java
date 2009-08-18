@@ -10,7 +10,8 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 /**
  * filter an indel callset based on given criteria
  */
-@Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="indels",type=AllelicVariant.class)})
+@Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="calls",type=AllelicVariant.class)})
+@Allows(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="calls",type=AllelicVariant.class),@RMD(name="otherindels",type=AllelicVariant.class)})
 @Reference(window=@Window(start=-20,stop=20))
 public class IndelFilterWalker extends RefWalker<Integer, Integer> {
     @Argument(fullName="homopolymerRunMax", shortName="homopolMax", doc="filter indels within homopolymer runs greater than the given length (max 20)", required=false)
@@ -21,6 +22,10 @@ public class IndelFilterWalker extends RefWalker<Integer, Integer> {
     Integer SIZE_MAX  = 100;
     @Argument(fullName="sizeMin", shortName="sizeMin", doc="filter indels less than a certain size", required=false)
     Integer SIZE_MIN  = 0;
+    @Argument(fullName="inOtherSet", shortName="inSet", doc="filter indels that DO NOT occur in the provided 2nd set", required=false)
+    Boolean IN_OTHER_SET = false;
+    @Argument(fullName="notInOtherSet", shortName="notInSet", doc="filter indels that DO occur in the provided 2nd set", required=false)
+    Boolean NOT_IN_OTHER_SET = false;
 
     public void initialize() {
         if  ( HOMOPOLYMER_MAX > 20 )
@@ -30,7 +35,7 @@ public class IndelFilterWalker extends RefWalker<Integer, Integer> {
     public Integer reduceInit() { return 0; }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        AllelicVariant indel = (AllelicVariant)tracker.lookup("indels", null);
+        AllelicVariant indel = (AllelicVariant)tracker.lookup("calls", null);
 
         if ( indel == null || !indel.isIndel() )
             return 0;
@@ -40,6 +45,10 @@ public class IndelFilterWalker extends RefWalker<Integer, Integer> {
         
         int homopol = homopolymerRunSize(ref, indel);
         if ( homopol < HOMOPOLYMER_MIN || homopol > HOMOPOLYMER_MAX )
+            return 0;
+
+        AllelicVariant other = (AllelicVariant)tracker.lookup("otherIndels", null);
+        if ( (IN_OTHER_SET && other == null) || (NOT_IN_OTHER_SET && other != null) )
             return 0;
 
         out.println(indel);
@@ -76,7 +85,7 @@ public class IndelFilterWalker extends RefWalker<Integer, Integer> {
             rightRun++;
         }
 
-        System.out.println(String.valueOf(bases) + ": " + leftRun + " / " + rightRun);
+        //System.out.println(String.valueOf(bases) + ": " + leftRun + " / " + rightRun);
         return Math.max(leftRun, rightRun);
     }
 }
