@@ -31,7 +31,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
     @Argument(fullName="outputFile", shortName="O", doc="output file name (defaults to BED format)", required=true)
     java.io.File bed_file;
     @Argument(fullName="1kg_format", shortName="1kg", doc="output in 1000 genomes format", required=false)
-    boolean FORMAT_1KG;
+    boolean FORMAT_1KG = false;
 	@Argument(fullName="somatic", shortName="somatic",
 			doc="Perform somatic calls; two input alignment files must be specified", required=false)
 	boolean call_somatic = false;
