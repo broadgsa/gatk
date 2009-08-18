@@ -26,14 +26,14 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
     @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = false)
     public File VARIANTS_FILE = null;
 
-    @Argument(fullName = "variant_output_format", shortName = "vf", doc = "File to which metrics should be written", required = false)
+    @Argument(fullName = "variant_output_format", shortName = "vf", doc = "File format to be used", required = false)
     public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
 
     // Control what goes into the variants file and what format that file should have
     @Argument(fullName = "lod_threshold", shortName = "lod", doc = "The lod threshold on which variants should be filtered", required = false)
     public Double LOD_THRESHOLD = Double.MIN_VALUE;
 
-    @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confidient genotypes or just the variants?", required = false)
+    @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confident genotypes or just the variants?", required = false)
     public boolean GENOTYPE = false;
 
     // Control how the genotype hypotheses are weighed
