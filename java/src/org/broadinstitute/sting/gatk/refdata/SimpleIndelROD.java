@@ -63,6 +63,10 @@ public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVaria
         return getFWDAlleles().get(0).length();
     }
 
+    public boolean allowIncompleteRecords() {
+        return true;
+    }
+
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append(getLocation().getContig() + "\t" + getLocation().getStart() + "\t");

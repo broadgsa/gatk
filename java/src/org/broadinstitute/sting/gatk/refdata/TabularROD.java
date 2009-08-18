@@ -163,6 +163,16 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
         return readHeader(source);
     }
 
+    /**
+     * By default, all records (i.e. RODs) must contain the same number of fields as specified
+     * by the header.  Subclasses should override this method to disable this requirement.
+     *
+     * @return true if incomplete records are allowed; false otherwise
+     */
+    public boolean allowIncompleteRecords() {
+        return false;
+    }
+
     public static ArrayList<String> readHeader(final File source) throws FileNotFoundException {
         ArrayList<String> header = null;
         int linesLookedAt = 0;
@@ -308,7 +318,7 @@ public class TabularROD extends BasicReferenceOrderedDatum implements Map<String
         if ( parts.length == 0 || COMMENT_PATTERN.matcher(parts[0]).matches() || HEADER_PATTERN.matcher(parts[0]).matches() )
             return false;
 
-        if (header.size() != parts.length) {
+        if ( !allowIncompleteRecords() && header.size() != parts.length) {
             throw new IOException(String.format("Header length %d not equal to Tabular parts length %d", header.size(), parts.length));
         }
 
