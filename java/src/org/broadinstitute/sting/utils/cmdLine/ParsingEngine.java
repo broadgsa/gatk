@@ -258,9 +258,6 @@ public class ParsingEngine {
         if( argumentMatches.size() == 0 )
             return;
 
-        if( argumentMatches.size() > 1 )
-            throw new StingException("Too many values matched argument: " + source.field.getName());
-
         if( source.clazz.isAssignableFrom(target.getClass()) ) {
             Object value = source.parse( source, target, argumentMatches.toArray(new ArgumentMatch[0]) );
             if( clp == null || !clp.intercept(source, target, value) )

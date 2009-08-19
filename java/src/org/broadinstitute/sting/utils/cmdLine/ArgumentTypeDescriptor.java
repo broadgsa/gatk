@@ -352,8 +352,8 @@ class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                                                                            COMPRESSION_SHORTNAME,
                                                                            "Compression level to use for writing BAM files",
                                                                            false,
-                                                                           "",
-                                                                           "" );
+                                                                           null,
+                                                                           null );
 
         return Arrays.asList( writerDefinition, compressionDefinition );
     }
