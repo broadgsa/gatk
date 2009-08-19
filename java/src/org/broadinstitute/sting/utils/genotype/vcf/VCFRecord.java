@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import org.broadinstitute.sting.utils.StingException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -153,7 +152,7 @@ public class VCFRecord {
         for (String s : infoSplit) {
             String keyValue[] = s.split("=");
             if (keyValue.length != 2)
-                throw new StingException("Key value pairs must have both a key and a value; pair: " + s);
+                throw new RuntimeException("Key value pairs must have both a key and a value; pair: " + s);
             ret.put(keyValue[0], keyValue[1]);
         }
         return ret;
@@ -161,7 +160,8 @@ public class VCFRecord {
 
     /** @return the number of columnsof data we're storing */
     public int getColumnCount() {
-        return mGenotypeFields.size() + mValues.size();
+        if (this.hasGenotypeData()) return mGenotypeFields.size() + mValues.size();
+        return mValues.size();
     }
 
     /**

@@ -1,11 +1,8 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 
 
 /**
@@ -37,19 +34,13 @@ public class VCFHeader {
     // the header string indicator
     public static final String HEADER_INDICATOR = "#";
 
-    /**
-     * our log, which we use to capture anything from this class
-     */
+    /** our log, which we use to capture anything from this class */
     private static Logger logger = Logger.getLogger(VCFHeader.class);
 
-    /**
-     * do we have genotying data?
-     */
+    /** do we have genotying data? */
     private boolean hasGenotypingData = false;
 
-    /**
-     * the current vcf version we support.
-     */
+    /** the current vcf version we support. */
     private static final String VCF_VERSION = "VCFv3.2";
 
     /**
@@ -74,7 +65,10 @@ public class VCFHeader {
     protected VCFHeader(Set<HEADER_FIELDS> headerFields, Map<String, String> metaData, List<String> genotypeSampleNames) {
         for (HEADER_FIELDS field : headerFields) mHeaderFields.add(field);
         for (String key : metaData.keySet()) mMetaData.put(key, metaData.get(key));
-        for (String col : genotypeSampleNames) mGenotypeSampleNames.add(col);
+        for (String col : genotypeSampleNames) {
+            if (!col.equals("FORMAT"))
+                mGenotypeSampleNames.add(col);
+        }
         hasGenotypingData = true;
         checkVCFVersion();
     }
@@ -87,10 +81,10 @@ public class VCFHeader {
         if (mMetaData.containsKey("format")) {
             if (mMetaData.get("format").equals(VCF_VERSION))
                 return;
-            throw new StingException("VCFHeader: VCF version of " + mMetaData.get("format") +
+            throw new RuntimeException("VCFHeader: VCF version of " + mMetaData.get("format") +
                     " doesn't match the supported version of " + VCF_VERSION);
         }
-        throw new StingException("VCFHeader: VCF version isn't present");
+        throw new RuntimeException("VCFHeader: VCF version isn't present");
     }
 
     /**
@@ -129,9 +123,7 @@ public class VCFHeader {
         return hasGenotypingData;
     }
 
-    /**
-     * @return the column count,
-     */
+    /** @return the column count, */
     public int getColumnCount() {
         return mHeaderFields.size() + ((hasGenotypingData) ? mGenotypeSampleNames.size() + 1 : 0);
     }

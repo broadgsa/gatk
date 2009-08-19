@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import org.broadinstitute.sting.utils.StingException;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -13,6 +12,7 @@ public class VCFWriter {
 
     // the print stream we're writting to
     BufferedWriter mWriter;
+    private final String FIELD_SEPERATOR = "\t";
 
     /**
      * create a VCF writer, given a VCF header and a file to write to
@@ -29,10 +29,9 @@ public class VCFWriter {
                             new FileOutputStream(location),
                             utf8));
         } catch (FileNotFoundException e) {
-            throw new StingException("Unable to create VCF file: " + location, e);
+            throw new RuntimeException("Unable to create VCF file: " + location, e);
         }
         try {
-
             // write the header meta-data out
             for (String metadata : header.getMetaData().keySet()) {
                 mWriter.write(VCFHeader.METADATA_INDICATOR + metadata + "=" + header.getMetaData().get(metadata) + "\n");
@@ -40,12 +39,15 @@ public class VCFWriter {
             // write out the column line
             StringBuilder b = new StringBuilder();
             b.append(VCFHeader.HEADER_INDICATOR);
-            for (VCFHeader.HEADER_FIELDS field : header.getHeaderFields()) b.append(field + "\t");
-            for (String field : header.getGenotypeSamples()) b.append(field + "\t");
-            mWriter.write(b.toString() + "\n");
+            for (VCFHeader.HEADER_FIELDS field : header.getHeaderFields()) b.append(field + FIELD_SEPERATOR);
+            if (header.hasGenotypingData()) {
+                b.append("FORMAT" + FIELD_SEPERATOR);
+                for (String field : header.getGenotypeSamples()) b.append(field + FIELD_SEPERATOR);
+                mWriter.write(b.toString() + "\n");
+            }
         }
         catch (IOException e) {
-            throw new StingException("IOException writing the VCF header", e);
+            throw new RuntimeException("IOException writing the VCF header", e);
         }
     }
 
@@ -56,7 +58,7 @@ public class VCFWriter {
      */
     public void addRecord(VCFRecord record) {
         if (record.getColumnCount() != mHeader.getGenotypeSamples().size() + mHeader.getHeaderFields().size()) {
-            throw new StingException("Record has " + record.getColumnCount() +
+            throw new RuntimeException("Record has " + record.getColumnCount() +
                     " columns, when is should have " + mHeader.getColumnCount());
         }
         StringBuilder builder = new StringBuilder();
@@ -67,17 +69,24 @@ public class VCFWriter {
             if (first) {
                 first = false;
                 builder.append(record.getValue(field));
-            } else builder.append("\t" + record.getValue(field));
+            } else builder.append(FIELD_SEPERATOR + record.getValue(field));
         }
-        for (VCFGenotypeRecord rec : record.getVCFGenotypeRecords()) {
-            builder.append("\t");
-            for (String s : rec.getFields().keySet())
-                builder.append(":" + rec.getFields().get(s));
-        }
-        try {
-            mWriter.write(builder.toString() + "\n");
-        } catch (IOException e) {
-            throw new StingException("Unable to write the VCF object to a file");
+        if (record.hasGenotypeData()) {
+            builder.append(FIELD_SEPERATOR + record.getFormatString());
+            for (VCFGenotypeRecord rec : record.getVCFGenotypeRecords()) {
+                builder.append(FIELD_SEPERATOR);
+                boolean ft = true;
+                for (String s : rec.getFields().keySet()) {
+                    if (!ft) builder.append(":");
+                    else ft = true;
+                    builder.append(rec.getFields().get(s));
+                }
+            }
+            try {
+                mWriter.write(builder.toString() + "\n");
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to write the VCF object to a file");
+            }
         }
     }
 
@@ -86,7 +95,7 @@ public class VCFWriter {
         try {
             mWriter.close();
         } catch (IOException e) {
-            throw new StingException("Unable to close VCFFile");
+            throw new RuntimeException("Unable to close VCFFile");
         }
     }
 

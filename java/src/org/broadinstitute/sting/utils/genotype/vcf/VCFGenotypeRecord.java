@@ -16,12 +16,12 @@ import java.util.Map;
  */
 public class VCFGenotypeRecord {
     // what kind of phasing this genotype has
-    enum GT_GENOTYPE {
-        UNPHASED, PHASED, PHASED_SWITCH_PROB
+    enum PHASE {
+        UNPHASED, PHASED, PHASED_SWITCH_PROB, UNKNOWN
     }
 
     // our phasing
-    private GT_GENOTYPE phaseType;
+    private PHASE phaseType;
 
     // our reference bases(s)
     private final char mReferenceBase;
@@ -31,7 +31,9 @@ public class VCFGenotypeRecord {
 
     // our mapping of the format mFields to values
     private final Map<String, String> mFields = new HashMap<String, String>();
-    
+
+    // our sample name
+    private final String mSampleName;
     /**
      * create a VCF record
      *
@@ -40,12 +42,12 @@ public class VCFGenotypeRecord {
      * @param phasing       the phasing of the the genotype
      * @param referenceBase the reference base
      */
-    public VCFGenotypeRecord(Map<String, String> keyValues, List<String> Alleles, GT_GENOTYPE phasing, char referenceBase) {
-        // validate
-        this.mReferenceBase = referenceBase;
-        this.mFields.putAll(keyValues);
-        this.mAlleleBases.addAll(Alleles);
-        this.phaseType = phasing;
+    public VCFGenotypeRecord(String sampleName, Map<String, String> keyValues, List<String> Alleles, PHASE phasing, char referenceBase) {
+        mSampleName = sampleName;
+        mReferenceBase = referenceBase;
+        mFields.putAll(keyValues);
+        mAlleleBases.addAll(Alleles);
+        phaseType = phasing;
     }
 
     /**
@@ -53,21 +55,21 @@ public class VCFGenotypeRecord {
      *
      * @param phase the string that contains the phase character
      */
-    static GT_GENOTYPE determinePhase(String phase) {
+    static PHASE determinePhase(String phase) {
         // find the phasing information
         if (phase.equals("/"))
-            return GT_GENOTYPE.UNPHASED;
+            return PHASE.UNPHASED;
         else if (phase.equals("|"))
-            return GT_GENOTYPE.PHASED;
+            return PHASE.PHASED;
         else if (phase.equals("\\"))
-            return GT_GENOTYPE.PHASED_SWITCH_PROB;
+            return PHASE.PHASED_SWITCH_PROB;
         else
             throw new IllegalArgumentException("Unknown genotype phasing parameter");
     }
 
     /** getter methods */
 
-    public GT_GENOTYPE getPhaseType() {
+    public PHASE getPhaseType() {
         return phaseType;
     }
 

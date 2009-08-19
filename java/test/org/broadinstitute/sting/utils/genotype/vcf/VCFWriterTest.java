@@ -54,18 +54,27 @@ public class VCFWriterTest extends BaseTest {
         additionalColumns.add("FORMAT");
         additionalColumns.add("extra1");
         additionalColumns.add("extra2");
-        // this should create a header that is valid
-
         return new VCFHeader(headerFields, metaData, additionalColumns);
     }
 
+    /**
+     * create a fake VCF record
+     * @param header the VCF header
+     * @return a VCFRecord
+     */
     private VCFRecord createVCFRecord(VCFHeader header) {
-        int totalVals = header.getColumnCount();
-        List<String> array = new ArrayList<String>();
-        for (int x = 0; x < totalVals; x++) {
-            array.add(String.valueOf(x));    
+        Map<VCFHeader.HEADER_FIELDS,String> map = new HashMap<VCFHeader.HEADER_FIELDS,String>();
+        for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values())
+            map.put(field,String.valueOf(1));
+        List<VCFGenotypeRecord> gt = new ArrayList<VCFGenotypeRecord>();
+        for (String name : header.getGenotypeSamples()) {
+            Map<String,String> str = new HashMap<String,String>();
+            str.put("key","0|0");
+            List<String> alleles = new ArrayList<String>();
+            alleles.add("AAA");
+            gt.add(new VCFGenotypeRecord(name,str,alleles, VCFGenotypeRecord.PHASE.PHASED,'A'));
         }
-        return new VCFRecord(header,array);
+        return new VCFRecord(header,map,"GT",gt);
     }
 
 
