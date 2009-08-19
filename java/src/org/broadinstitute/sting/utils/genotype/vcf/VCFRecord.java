@@ -13,76 +13,60 @@ public class VCFRecord {
     private final Map<VCFHeader.HEADER_FIELDS, String> mValues = new HashMap<VCFHeader.HEADER_FIELDS, String>();
 
     // our genotype sample fields
-    private final Map<String, String> mGenotypeFields = new HashMap<String, String>();
+    private final List<VCFGenotypeRecord> mGenotypeFields;
 
     // the format String, which specifies what each genotype can contain for values
-    private String formatString;
+    private final String mFormatString;
+
+    // the associated header
+    private final VCFHeader mHeader;
 
     /**
-     * create a VCFRecord, given a VCF header and the the values in this field.  THis is protected, so that the reader is
-     * the only accessing object
+     * given a VCF header, and the values for each of the columns, create a VCF record.
      *
-     * @param header the VCF header
-     * @param line   the line to parse into individual fields
+     * @param header          the VCF header
+     * @param columnValues          a mapping of header strings to values
+     * @param formatString    the format string for the genotype records
+     * @param genotypeRecords the genotype records
      */
-    protected VCFRecord(VCFHeader header, String line) {
-        String tokens[] = line.split("\\s+");
-        List<String> values = new ArrayList<String>();
-        for (String str : tokens) values.add(str);
-        initialize(header, values);
+    public VCFRecord(VCFHeader header, Map<VCFHeader.HEADER_FIELDS, String> columnValues, String formatString, List<VCFGenotypeRecord> genotypeRecords) {
+        mHeader = header;
+        mValues.putAll(columnValues);
+        mFormatString = formatString;
+        mGenotypeFields = new ArrayList<VCFGenotypeRecord>();
+        mGenotypeFields.addAll(genotypeRecords);
     }
 
     /**
-     * given a VCF header, and the values for each of the columns, create a VCF record
+     * given a VCF header, and the values for each of the columns, create a VCF record.
      *
-     * @param header the VCF header
-     * @param values the values, as a list, for each of the columns
+     * @param header          the VCF header
+     * @param columnValues          a mapping of header strings to values
      */
-    public VCFRecord(VCFHeader header, List<String> values) {
-        initialize(header, values);
+    public VCFRecord(VCFHeader header, Map<VCFHeader.HEADER_FIELDS, String> columnValues) {
+        mHeader = header;
+        mValues.putAll(columnValues);
+        mGenotypeFields = null;
+        mFormatString = null;
     }
 
     /**
-     * create the VCFRecord
-     *
-     * @param header the VCF header
-     * @param values the list of strings that make up the columns of the record
+     * do we have genotyping data
+     * @return true if we have genotyping data, false otherwise
      */
-    private void initialize(VCFHeader header, List<String> values) {
-        if (values.size() != header.getColumnCount()) {
-            throw new StingException("The input list doesn't contain enough fields, it should have " + header.getColumnCount() + " fields");
+    public boolean hasGenotypeData() {
+        if (mGenotypeFields==null) {
+            return false;
         }
-        int index = 0;
-        for (VCFHeader.HEADER_FIELDS field : header.getHeaderFields()) {
-            mValues.put(field, values.get(index));
-            index++;
-        }
-        if (header.hasGenotypingData()) {
-            formatString = values.get(index);
-            index++;
-            for (String str : header.getGenotypeSamples()) {
-                mGenotypeFields.put(str, values.get(index));
-                index++;
-            }
-        }
+        return true;
     }
 
     /**
-     * lookup a value, given it's column name
-     *
-     * @param key the column name, which is looked up in both the set columns and the auxillary columns
-     *
-     * @return a String representing the column values, or null if the field doesn't exist in this record
+     * get the format string
+     * @return the format sting, null if it doesn't exist
      */
-    public String getValue(String key) {
-        try {
-            return mValues.get(VCFHeader.HEADER_FIELDS.valueOf(key));
-        } catch (IllegalArgumentException e) {
-            if (this.mGenotypeFields.containsKey(key)) {
-                return mGenotypeFields.get(key);
-            }
-            return null;
-        }
+    public String getFormatString() {
+        return mFormatString;
     }
 
     /**
@@ -98,7 +82,7 @@ public class VCFRecord {
 
     /** @return the string for the chromosome that this VCF record is associated with */
     public String getChromosome() {
-        return this.mValues.get(VCFHeader.HEADER_FIELDS.CHROM);
+        return mValues.get(VCFHeader.HEADER_FIELDS.CHROM);
     }
 
     /** @return this VCF records position on the specified chromosome */
@@ -108,7 +92,7 @@ public class VCFRecord {
 
     /** @return the ID value for this record */
     public String getID() {
-        return this.mValues.get(VCFHeader.HEADER_FIELDS.ID);
+        return mValues.get(VCFHeader.HEADER_FIELDS.ID);
     }
 
     /**
@@ -118,7 +102,7 @@ public class VCFRecord {
      */
     public char getReferenceBase() {
         // TODO: this field isn't validated correctly
-        return this.mValues.get(VCFHeader.HEADER_FIELDS.REF).charAt(0);
+        return mValues.get(VCFHeader.HEADER_FIELDS.REF).charAt(0);
     }
 
     /**
@@ -127,10 +111,10 @@ public class VCFRecord {
      * @return an array of strings representing the alt alleles, or null if there are none
      */
     public String[] getAlternateAlleles() {
-        if (this.mValues.get(VCFHeader.HEADER_FIELDS.ALT).trim().equals(".")) {
+        if (mValues.get(VCFHeader.HEADER_FIELDS.ALT).trim().equals(".")) {
             return null;
         }
-        return this.mValues.get(VCFHeader.HEADER_FIELDS.ALT).split(",");
+        return mValues.get(VCFHeader.HEADER_FIELDS.ALT).split(",");
     }
 
     public boolean hasAlternateAllele() {
@@ -139,7 +123,7 @@ public class VCFRecord {
 
     /** @return the phred-scaled quality score */
     public int getQual() {
-        return Integer.valueOf(this.mValues.get(VCFHeader.HEADER_FIELDS.QUAL));
+        return Integer.valueOf(mValues.get(VCFHeader.HEADER_FIELDS.QUAL));
     }
 
     /**
@@ -148,10 +132,10 @@ public class VCFRecord {
      * @return an array of strings representing the filtering criteria, or null if none were applied
      */
     public String[] getFilteringCodes() {
-        if (this.mValues.get(VCFHeader.HEADER_FIELDS.FILTER).trim().equals("0")) {
+        if (mValues.get(VCFHeader.HEADER_FIELDS.FILTER).trim().equals("0")) {
             return null;
         }
-        return this.mValues.get(VCFHeader.HEADER_FIELDS.ALT).split(";");
+        return mValues.get(VCFHeader.HEADER_FIELDS.ALT).split(";");
     }
 
     public boolean hasFilteringCodes() {
@@ -177,20 +161,22 @@ public class VCFRecord {
 
     /** @return the number of columnsof data we're storing */
     public int getColumnCount() {
-        return this.mGenotypeFields.size() + this.mValues.size();
+        return mGenotypeFields.size() + mValues.size();
     }
 
     /**
      * return the mapping of the format tags to the specified sample's values
-     * @param sampleName the sample name to get the genotyping tags for
      * @return a VCFGenotypeRecord
      */
-    public VCFGenotypeRecord getVCFGenotypeRecord(String sampleName) {
-        if (!this.mGenotypeFields.containsKey(sampleName)) {
-            throw new IllegalArgumentException("Sample Name: " + sampleName + " doesn't exist in this VCF record");    
-        }
-        return new VCFGenotypeRecord(formatString,mGenotypeFields.get(sampleName),this.getAlternateAlleles(),this.getReferenceBase());
+    public List<VCFGenotypeRecord> getVCFGenotypeRecords() {
+        return this.mGenotypeFields;
+    }
 
+    /** @return a List of the sample names */
+    public String[] getSampleNames() {
+        String ret[] = new String[mHeader.getGenotypeSamples().size()];
+        mHeader.getGenotypeSamples().toArray(ret);
+        return ret;
     }
 
 }

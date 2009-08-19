@@ -51,6 +51,7 @@ public class VCFWriter {
 
     /**
      * output a record to the VCF file
+     *
      * @param record the record to output
      */
     public void addRecord(VCFRecord record) {
@@ -59,14 +60,19 @@ public class VCFWriter {
                     " columns, when is should have " + mHeader.getColumnCount());
         }
         StringBuilder builder = new StringBuilder();
+
         // first output the required fields in order
         boolean first = true;
         for (VCFHeader.HEADER_FIELDS field : mHeader.getHeaderFields()) {
-            if (first) { first = false; builder.append(record.getValue(field)); }
-            else builder.append("\t" + record.getValue(field));
+            if (first) {
+                first = false;
+                builder.append(record.getValue(field));
+            } else builder.append("\t" + record.getValue(field));
         }
-        for (String auxTag : mHeader.getGenotypeSamples()) {
-            builder.append("\t" + record.getValue(auxTag));
+        for (VCFGenotypeRecord rec : record.getVCFGenotypeRecords()) {
+            builder.append("\t");
+            for (String s : rec.getFields().keySet())
+                builder.append(":" + rec.getFields().get(s));
         }
         try {
             mWriter.write(builder.toString() + "\n");
@@ -75,9 +81,7 @@ public class VCFWriter {
         }
     }
 
-    /**
-     * attempt to close the VCF file
-     */
+    /** attempt to close the VCF file */
     public void close() {
         try {
             mWriter.close();
