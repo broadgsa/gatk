@@ -119,7 +119,7 @@ public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVa
     }
 
     public boolean isReference() {
-        return refBase == bestGenotype.charAt(0);
+        return refBase == bestGenotype.charAt(0) && refBase == bestGenotype.charAt(1);
     }
 
     public boolean isSNP() {
