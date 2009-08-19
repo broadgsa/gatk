@@ -39,7 +39,6 @@ public class VCFWriterTest extends BaseTest {
         Assert.assertEquals(2,counter);        
         reader.close();
         fakeVCFFile.delete();
-
     }
 
     /**
@@ -50,8 +49,9 @@ public class VCFWriterTest extends BaseTest {
         for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
             headerFields.add(field);
         }
-        metaData.put("one", "1");
+        metaData.put("format", "VCFv3.2"); // required 
         metaData.put("two", "2");
+        additionalColumns.add("FORMAT");
         additionalColumns.add("extra1");
         additionalColumns.add("extra2");
         // this should create a header that is valid
@@ -60,7 +60,7 @@ public class VCFWriterTest extends BaseTest {
     }
 
     private VCFRecord createVCFRecord(VCFHeader header) {
-        int totalVals = header.getHeaderFields().size() + header.getAuxillaryTags().size();
+        int totalVals = header.getColumnCount();
         List<String> array = new ArrayList<String>();
         for (int x = 0; x < totalVals; x++) {
             array.add(String.valueOf(x));    
@@ -87,10 +87,10 @@ public class VCFWriterTest extends BaseTest {
         }
         Assert.assertEquals(metaData.size(), index);
         index = 0;
-        for (String key : header.getAuxillaryTags()) {
+        for (String key : header.getGenotypeSamples()) {
             Assert.assertTrue(additionalColumns.contains(key));
             index++;
         }
-        Assert.assertEquals(additionalColumns.size(), index);
+        Assert.assertEquals(additionalColumns.size(), index+1 /* for the header field we don't see */);
     }
 }

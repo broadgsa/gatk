@@ -37,7 +37,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
                             new FileInputStream(vcfFile),
                             utf8));
         } catch (FileNotFoundException e) {
-            throw new StingException("Unable to find VCF file: " + vcfFile, e);
+            throw new StingException("VCFReader: Unable to find VCF file: " + vcfFile, e);
         }
 
         String line = null;
@@ -51,7 +51,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
             mHeader = this.createHeader(lines);
             mNextRecord = new VCFRecord(mHeader, line);
         } catch (IOException e) {
-            throw new StingException("Failed to parse VCF File on line: " + line, e);
+            throw new StingException("VCFReader: Failed to parse VCF File on line: " + line, e);
         }
 
     }
@@ -112,17 +112,19 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
             if (str.startsWith("#") && !str.startsWith("##")) {
                 String[] strings = str.substring(1).split("\\s+");
                 for (String s : strings) {
-                    if (headerFields.contains(s)) throw new StingException("Header field duplication is not allowed");
+                    if (headerFields.contains(s)) throw new StingException("VCFReader: Header field duplication is not allowed");
                     try {
                         headerFields.add(VCFHeader.HEADER_FIELDS.valueOf(s));
                     } catch (IllegalArgumentException e) {
+                        if (!s.equals("FORMAT")) 
                         auxTags.add(s);
                     }
                 }
             }
         }
         if (headerFields.size() != VCFHeader.HEADER_FIELDS.values().length) {
-            throw new StingException("The VCF header is missing " + (VCFHeader.HEADER_FIELDS.values().length - headerFields.size()) + " required fields");
+            throw new StingException("VCFReader: The VCF column header line is missing " + (VCFHeader.HEADER_FIELDS.values().length - headerFields.size())
+                    + " of the " + VCFHeader.HEADER_FIELDS.values().length + " required fields");
         }
         return new VCFHeader(headerFields,metaData,auxTags);
     }

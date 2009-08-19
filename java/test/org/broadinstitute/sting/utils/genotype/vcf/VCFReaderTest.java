@@ -20,8 +20,9 @@ public class VCFReaderTest extends BaseTest {
         while (reader.hasNext()) {
             counter++;
             reader.next();
-            System.err.println(counter);
         }
         Assert.assertEquals(5,counter);
     }
+
+
 }

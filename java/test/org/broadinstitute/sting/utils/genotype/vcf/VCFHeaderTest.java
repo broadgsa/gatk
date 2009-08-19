@@ -29,7 +29,7 @@ public class VCFHeaderTest extends BaseTest {
         for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
             headerFields.add(field);
         }
-        metaData.put("one","1");
+        metaData.put("format","VCFv3.2");
         metaData.put("two","2");
         additionalColumns.add("extra1");
         additionalColumns.add("extra2");
@@ -50,7 +50,7 @@ public class VCFHeaderTest extends BaseTest {
         }
         Assert.assertEquals(metaData.size(),index);
         index = 0;
-        for (String key: header.getAuxillaryTags()) {
+        for (String key: header.getGenotypeSamples()) {
             Assert.assertTrue(additionalColumns.contains(key));
             index++;
         }

@@ -41,7 +41,7 @@ public class VCFWriter {
             StringBuilder b = new StringBuilder();
             b.append(VCFHeader.HEADER_INDICATOR);
             for (VCFHeader.HEADER_FIELDS field : header.getHeaderFields()) b.append(field + "\t");
-            for (String field : header.getAuxillaryTags()) b.append(field + "\t");
+            for (String field : header.getGenotypeSamples()) b.append(field + "\t");
             mWriter.write(b.toString() + "\n");
         }
         catch (IOException e) {
@@ -54,10 +54,9 @@ public class VCFWriter {
      * @param record the record to output
      */
     public void addRecord(VCFRecord record) {
-        if (record.getColumnCount() != mHeader.getAuxillaryTags().size() + mHeader.getHeaderFields().size()) {
+        if (record.getColumnCount() != mHeader.getGenotypeSamples().size() + mHeader.getHeaderFields().size()) {
             throw new StingException("Record has " + record.getColumnCount() +
-                    " columns, when is should have " + (mHeader.getAuxillaryTags().size() +
-                    mHeader.getHeaderFields().size()));
+                    " columns, when is should have " + mHeader.getColumnCount());
         }
         StringBuilder builder = new StringBuilder();
         // first output the required fields in order
@@ -66,7 +65,7 @@ public class VCFWriter {
             if (first) { first = false; builder.append(record.getValue(field)); }
             else builder.append("\t" + record.getValue(field));
         }
-        for (String auxTag : mHeader.getAuxillaryTags()) {
+        for (String auxTag : mHeader.getGenotypeSamples()) {
             builder.append("\t" + record.getValue(auxTag));
         }
         try {
