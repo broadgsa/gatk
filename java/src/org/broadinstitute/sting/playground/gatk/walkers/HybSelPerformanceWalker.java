@@ -170,9 +170,13 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
         return new Interval(target.getContig(), (int) target.getStart(), (int) target.getStop());
     }
 
+    IndexedFastaSequenceFile seqFile = null;
+
     private double calculateGC(GenomeLoc target) {
         try {
-            IndexedFastaSequenceFile seqFile = new IndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
+            if (seqFile == null) {
+                seqFile = new IndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
+            }
             ReferenceSequence refSeq = seqFile.getSubsequenceAt(target.getContig(),target.getStart(), target.getStop());
 
 
