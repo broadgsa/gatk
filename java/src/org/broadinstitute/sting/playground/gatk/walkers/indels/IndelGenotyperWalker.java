@@ -59,6 +59,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	@Argument(fullName="refseq", shortName="refseq", 
 			doc="Name of RefSeq transcript annotation file. If specified, indels will be annotated as GENOMIC/UTR/INTRON/CODING", required=false)
 	String RefseqFileName = null;
+    @Argument(fullName="indel_debug", shortName="idebug", doc="Detailed printout for debugging",required=false) Boolean DEBUG = false;
 	 
 	private static int WINDOW_SIZE = 200;
 	private RunningCoverage coverage;
@@ -166,7 +167,12 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	
 	@Override
 	public Integer map(char[] ref, SAMRecord read) {
-		
+
+        if ( DEBUG ) {
+//            System.out.println("DEBUG>> read at "+ read.getAlignmentStart()+"-"+read.getAlignmentEnd()+
+//                    "("+read.getCigarString()+")");
+            if ( read.getDuplicateReadFlag() ) System.out.println("DEBUG>> Duplicated read (IGNORED)");
+        }
 
 		if ( read.getReadUnmappedFlag() ||
 			 read.getDuplicateReadFlag() ||
@@ -272,10 +278,15 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		IndelVariant v = null;
 		
 		for ( IndelVariant var : variants ) {
+            if ( DEBUG ) System.out.println("DEBUG>> Variant "+var.getBases()+" (cnt="+var.getCount()+")");
 			int cnt = var.getCount();
 			total_variant_count +=cnt;
-			if ( cnt > max_variant_count ) v = var;
+			if ( cnt > max_variant_count ) {
+                v = var;
+                max_variant_count = cnt;
+            }
 		}
+        if ( DEBUG ) System.out.println("DEBUG>> Returning: "+v.getBases()+" (cnt="+v.getCount()+") with total count of "+total_variant_count);
 		return new Pair<IndelVariant,Integer>(v,total_variant_count);
 	}	
 	
@@ -287,9 +298,12 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	 * @return
 	 */
 	private boolean isCall(Pair<IndelVariant,Integer> p, int coverage) {
-		return ( p.first.getCount() >= minIndelCount && 
-				(double)p.first.getCount() > minFraction * coverage && 
-				(double) p.first.getCount() > minConsensusFraction*p.second ); 		
+        boolean ret = ( p.first.getCount() >= minIndelCount &&
+				(double)p.first.getCount() > minFraction * coverage &&
+				(double) p.first.getCount() > minConsensusFraction*p.second );
+        if ( DEBUG && ! ret ) System.out.println("DEBUG>>  NOT a call: count="+p.first.count+" total_count="+p.second+" cov="+coverage+
+            " minConsensusF="+((double)p.first.count)/p.second+" minF="+((double)p.first.count)/coverage);
+		return ret;
 	}
 
 	/** Build output line for bed file and write it to the specified output writer if the latter is not null; 
@@ -345,10 +359,10 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 								 // but it may end up being smaller (delayed shift), if we have not
 			                     // covered MISMATCH_WIDTH bases to the right of the last indel yet.
 		
-		boolean debug = false;
+//		boolean debug = false;
 //		if ( coverage.getStart() <= 19661504 && coverage.getStop() >= 19661504 ) debug = true;
 		
-		if ( debug ) System.out.println("Window: ["+coverage.getStart()+", "+coverage.getStop()+"]; shifting to: "+position); 
+		if ( DEBUG ) System.out.println("DEBUG>> Window: ["+coverage.getStart()+", "+coverage.getStop()+"]; shift requested: to "+position);
 		
 		// walk along the coverage window and emit indels up to the position we are trying ot shift the window to
 		for ( long pos = coverage.getStart() ; pos < Math.min(position,coverage.getStop()+1) ; pos++ ) {
@@ -366,7 +380,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			long left = Math.max( pos-MISMATCH_WIDTH, coverage.getStart() );
 			long right = pos+MISMATCH_WIDTH;
 			
-			if ( debug) System.out.println("  Indel at "+pos);
+			if ( DEBUG ) System.out.println("DEBUG>> Indel at "+pos);
 			
 			// if right < position we are shifting to, we already have all the coverage within MISMATCH_WINDOW bases around the indel,
 			// so we can proceed with counting mismatches and emitting the indel
@@ -377,7 +391,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 				// we are not asked to force-shift, and there's still additional coverage to the right of current indel, so its too early to emit it;
 				// instead we shift only up to current indel pos - MISMATCH_WIDTH, so that we could keep collecting that coverage
 				move_to = left; 
-				if ( debug ) System.out.println("  waiting for coverage; shifting to "+ left);
+				if ( DEBUG ) System.out.println("DEBUG>> waiting for coverage; actual shift performed to "+ left);
 				break;
 			}
 
@@ -402,16 +416,11 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 
 			Pair<IndelVariant,Integer> p = findConsensus(variants);
 			if ( isCall(p,cov) ) { 	
-				if ( debug ) System.out.println("  is a CALL (printed)");
 				String message = makeBedLine(p,cov,pos,output);
 				String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotation));
 				
 				if ( verbose ) out.println(message + "\t"+ annotationString);
-			} else {
-				if ( debug ) System.out.println("  NOT a call: count="+p.first.count+" total_count="+p.second+" cov="+cov+
-					" minConsensusF="+((double)p.first.count)/p.second+" minF="+((double)p.first.count)/cov); 
 			}
-			
 			coverage.indelsAt(pos).clear(); // we dealt with this indel; don't want to see it again 
                                             // (we might otherwise in the case when 1) there will be another indel that follows
 			                                // within MISMATCH_WIDTH bases and 2) we'd need to wait for more coverage for that next indel)
@@ -420,7 +429,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 //				System.out.print("\t"+var.getType()+"\t"+var.getBases()+"\t"+var.getCount());
 //			}
 		}
-		if ( debug ) System.out.println("  --> Actual shift to " + move_to+" ("+position+")");
+		if ( DEBUG ) System.out.println("DEBUG>> Actual shift to " + move_to+" ("+position+")");
 		coverage.shift((int)(move_to - coverage.getStart() ) );
 	}
 
@@ -445,9 +454,21 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			int tumor_cov = coverage.coverageAt(pos);
 			int normal_cov = normal_coverage.coverageAt(pos);
 			
-			if ( tumor_cov < minCoverage ) continue; // low coverage
-			if ( normal_cov < minNormalCoverage ) continue; // low coverage
+			if ( tumor_cov < minCoverage ) {
+                if ( DEBUG ) {
+                    System.out.println("DEBUG>> Indel in tumor at "+pos+"; coverare in tumor="+tumor_cov+" (SKIPPED)");
+                }
+                continue; // low coverage
+            }
+			if ( normal_cov < minNormalCoverage ) {
+                if ( DEBUG ) {
+                    System.out.println("DEBUG>> Indel in tumor at "+pos+"; coverare in normal="+normal_cov+" (SKIPPED)");
+                }
+                continue; // low coverage
+            }
 			
+            if ( DEBUG ) System.out.println("DEBUG>> Indel in tumor at "+pos);
+
 			long left = Math.max( pos-MISMATCH_WIDTH, coverage.getStart() );
 			long right = pos+MISMATCH_WIDTH;
 			
@@ -457,6 +478,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 				// we are not asked to force-shift, and there's still additional coverage to the right of current indel, so its too early to emit it;
 				// instead we shift only up to current indel pos - MISMATCH_WIDTH, so that we could keep collecting that coverage
 				move_to = left; 
+                if ( DEBUG ) System.out.println("DEBUG>> waiting for coverage; actual shift performed to "+ left);
 				break;
 			}
 
@@ -528,6 +550,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 //			}
 		}
 		
+        if ( DEBUG ) System.out.println("DEBUG>> Actual shift to " + move_to+" ("+position+")");
 		coverage.shift((int)(move_to - coverage.getStart() ) );
 		normal_coverage.shift((int)(move_to - normal_coverage.getStart() ) );
 	}
