@@ -17,7 +17,7 @@ import java.util.TreeMap;
  */
 public class VCFValidator {
 
-    private static final String VCF_VERSION = "VCFv3.2";
+    private static final String VCF_VERSION = "VCRv3.2";
 
     /**
      * about as simple as things come right now.  We open the file, process all the entries in the file,
@@ -114,9 +114,10 @@ public class VCFValidator {
     public static void printUsage() {
         System.err.println("VCF validator (VCF Version " + VCF_VERSION + ")");
         System.err.println("Usage:");
-        System.err.println("vcfvalidator <-A> <fille.vcf>");
+        System.err.println("vcfvalidator <-A> <file.vcf>");
         System.err.println("");
-        System.err.println("\t-A\tTell the validator to attempt to catch all the problems, and not stop at the first.  Some may be too fatal to continue.");
+        System.err.println("\t<-A>\tTell the validator to attempt to catch all the problems, and not stop at the first.  Some may be too fatal to continue.");
+        System.err.println("\t<file.vcf>\tThe vcf file.  Required.");
         System.err.println("");
     }
 

@@ -29,7 +29,7 @@ public class VCFHeaderTest extends BaseTest {
         for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
             headerFields.add(field);
         }
-        metaData.put("format","VCFv3.2");
+        metaData.put("format","VCRv3.2");
         metaData.put("two","2");
         additionalColumns.add("extra1");
         additionalColumns.add("extra2");

@@ -50,7 +50,7 @@ public class SSGGenotypeCall implements GenotypeCall, GenotypeOutput {
         calculateBestNext(discoveryMode, genotypes, likelihoods, refStr);
 
         this.readDepth = pileup.getReads().size();
-        rmsMapping = Math.sqrt(calculateRMS(pileup) / readDepth);
+        rmsMapping = calculateRMS(pileup);
     }
 
 

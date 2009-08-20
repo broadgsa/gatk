@@ -49,7 +49,7 @@ public class VCFWriterTest extends BaseTest {
         for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
             headerFields.add(field);
         }
-        metaData.put("format", "VCFv3.2"); // required 
+        metaData.put("format", "VCRv3.2"); // required
         metaData.put("two", "2");
         additionalColumns.add("FORMAT");
         additionalColumns.add("extra1");

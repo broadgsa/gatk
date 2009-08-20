@@ -41,7 +41,7 @@ public class VCFHeader {
     private boolean hasGenotypingData = false;
 
     /** the current vcf version we support. */
-    private static final String VCF_VERSION = "VCFv3.2";
+    private static final String VCF_VERSION = "VCRv3.2";
 
     /**
      * create a VCF header, given a list of meta data and auxillary tags
