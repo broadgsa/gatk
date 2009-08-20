@@ -18,6 +18,8 @@ import java.io.PrintWriter;
  */
 @Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="callset1",type=AllelicVariant.class),@RMD(name="callset2",type=AllelicVariant.class)})
 public class VennCallSetsWalker extends RefWalker<Integer, Integer> {
+    @Argument(fullName="outputPrefix", shortName="prefix", doc="File prefix for output; turns on ALL output options below", required=false)
+    private String PREFIX = null;
     @Argument(fullName="union_out", shortName="union", doc="File to which union of sets should be written", required=false)
     String UNION_OUT = null;
     @Argument(fullName="intersect_out", shortName="intersect", doc="File to which intersection of sets should be written", required=false)
@@ -37,18 +39,22 @@ public class VennCallSetsWalker extends RefWalker<Integer, Integer> {
      */
     public void initialize() {
         try {
-            if ( UNION_OUT != null ) {
+            if ( UNION_OUT != null )
                 union_writer = new PrintWriter(UNION_OUT);
-            }
-            if ( INTERSECTION_OUT != null ) {
+            else if ( PREFIX != null )
+                union_writer = new PrintWriter(PREFIX + ".union.calls");
+            if ( INTERSECTION_OUT != null )
                 intersect_writer = new PrintWriter(INTERSECTION_OUT);
-            }
-            if ( SET1_OUT != null ) {
+            else if ( PREFIX != null )
+                intersect_writer = new PrintWriter(PREFIX + ".intersect.calls");
+            if ( SET1_OUT != null )
                 set1_writer = new PrintWriter(SET1_OUT);
-            }
-            if ( SET2_OUT != null ) {
+            else if ( PREFIX != null )
+                set1_writer = new PrintWriter(PREFIX + ".set1Only.calls");
+            if ( SET2_OUT != null )
                 set2_writer = new PrintWriter(SET2_OUT);
-            }
+            else if ( PREFIX != null )
+                set2_writer = new PrintWriter(PREFIX + ".set2Only.calls");
         } catch (FileNotFoundException e) {
             throw new StingException(String.format("Could not open file(s) for writing"));
         }
