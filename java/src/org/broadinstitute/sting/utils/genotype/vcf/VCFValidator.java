@@ -11,7 +11,9 @@ import java.util.TreeMap;
  *         <p/>
  *         Class VCFValidator
  *         <p/>
- *         validate a VCF file
+ *         This is the main class for providing a light weight validation of a VCF file.
+ *         It has two parameters, an optional -A flag meaning that you'd like to collect all
+ *         the errors and present them at the end, and the VCF file itself (a required parameter).
  */
 public class VCFValidator {
 
@@ -20,9 +22,9 @@ public class VCFValidator {
     /**
      * about as simple as things come right now.  We open the file, process all the entries in the file,
      * and if no errors pop up in processing, well hey, looks good to us.
-     * TODO: add validation to individual records fields as they make sense
      *
-     * @param args the vcf file is the only parameter
+     * @param args the vcf file is the only required parameter, with the optional -A indicating that errors
+     * should be held until the end of processing
      */
     public static void main(String[] args) {
         boolean catchAll = false;
@@ -43,25 +45,36 @@ public class VCFValidator {
         }
         // count hom many records we see
         int recordCount = 0;
-        Map<Integer,Exception> problems = new TreeMap<Integer,Exception>();
+        Map<Integer, Exception> problems = new TreeMap<Integer, Exception>();
 
         try {
             // open up our reader
             VCFReader reader = new VCFReader(vcfFile);
 
+            // the number of samples should be set in the header and consistant over all records
+            final int sampleCount = reader.getHeader().getGenotypeSamples().size();
             while (reader.hasNext()) {
                 try {
                     recordCount++;
                     VCFRecord rec = reader.next();
                     // if the header indicates we have genotyping data, try to extract it for all samples
                     if (reader.getHeader().hasGenotypingData()) {
+                        int sampleCounter = 0;
                         for (VCFGenotypeRecord genorec : rec.getVCFGenotypeRecords()) {
-                            // just cycle through them, more checks go here
+                            sampleCounter++;
+                            /**
+                             * just cycle through the records right now; any additional checks for
+                             * the records should go in this block.
+                             **/
                         }
+                        if (sampleCounter != sampleCount)
+                            throw new RuntimeException("Record " + recordCount + " does not have the required number " +
+                                    "of records (" + sampleCounter + " in the record, " + sampleCount + " in the header)");
+                        
                     }
                 } catch (Exception e) {
                     if (catchAll)
-                        problems.put(recordCount,e);
+                        problems.put(recordCount, e);
                     else {
                         validationFailed(e, recordCount);
                         return;
@@ -70,15 +83,15 @@ public class VCFValidator {
             }
         } catch (Exception e) {
             if (catchAll)
-                problems.put(new Integer(0),e);
+                problems.put(new Integer(0), e);
             else
                 validationFailed(e, recordCount);
         }
         System.err.println("Viewed " + recordCount + " VCF record entries.");
-        if (problems.size() > 0)  {
+        if (problems.size() > 0) {
             System.err.println("Encountered " + problems.size() + " number of issues. (record zero indicates a header problem)");
             for (Integer e : problems.keySet()) {
-                System.err.println("\tProblem at record " + e + " : " + problems.get(e));               
+                System.err.println("\tProblem at record " + e + " : " + problems.get(e));
             }
         }
     }
@@ -95,7 +108,9 @@ public class VCFValidator {
         e.printStackTrace();
     }
 
-    /** print the usage information for the VCF validator */
+    /**
+     * print the usage information for the VCF validator
+     */
     public static void printUsage() {
         System.err.println("VCF validator (VCF Version " + VCF_VERSION + ")");
         System.err.println("Usage:");
