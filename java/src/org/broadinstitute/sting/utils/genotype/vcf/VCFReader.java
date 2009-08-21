@@ -7,6 +7,7 @@ import java.nio.charset.Charset;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
 
 /** The VCFReader class, which given a valid vcf file, parses out the header and VCF records */
 public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
@@ -32,17 +33,14 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * @param vcfFile the vcf file to write
      */
     public VCFReader(File vcfFile) {
-        Charset utf8 = Charset.forName("UTF-8");
-        try {
-            mReader = new BufferedReader(
-                    new InputStreamReader(
-                            new FileInputStream(vcfFile),
-                            utf8));
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException("VCFReader: Unable to find VCF file: " + vcfFile, e);
-        }
+        if (vcfFile.getName().endsWith(".gz"))
+            openGZipFile(vcfFile);
+        else
+            openTextVersion(vcfFile);
 
         String line = null;
+
+        // try and parse the header
         try {
             ArrayList<String> lines = new ArrayList<String>();
             line = mReader.readLine();
@@ -55,7 +53,39 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         } catch (IOException e) {
             throw new RuntimeException("VCFReader: Failed to parse VCF File on line: " + line, e);
         }
+    }
 
+    /**
+     * open a g-zipped version of the VCF format
+     *
+     * @param vcfGZipFile the file to open
+     */
+    private void openGZipFile(File vcfGZipFile) {
+        try {
+            mReader = new BufferedReader(
+                    new InputStreamReader(new GZIPInputStream(
+                            new FileInputStream(vcfGZipFile))));
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException("VCFReader: Unable to find VCF file: " + vcfGZipFile, e);
+        } catch (IOException e) {
+            throw new RuntimeException("VCFReader: A problem occured trying to open the file using the gzipped decompressor, filename: " + vcfGZipFile, e);
+        }
+    }
+
+    /**
+     * open the vcf file as a text file
+     *
+     * @param vcfFile the vcf file name
+     */
+    private void openTextVersion(File vcfFile) {
+        try {
+            mReader = new BufferedReader(
+                    new InputStreamReader(
+                            new FileInputStream(vcfFile),
+                            Charset.forName("UTF-8")));
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException("VCFReader: Unable to find VCF text file: " + vcfFile, e);
+        }
     }
 
     /** @return true if we have another VCF record to return */
@@ -90,6 +120,8 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * package protected so that the VCFReader can access this function
      *
      * @param headerStrings a list of header strings
+     *
+     * @return a VCF Header created from the list of stinrgs
      */
     protected VCFHeader createHeader(List<String> headerStrings) {
 
@@ -114,7 +146,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
             if (str.startsWith("#") && !str.startsWith("##")) {
                 String[] strings = str.substring(1).split("\\s+");
                 for (String s : strings) {
-                    if (headerFields.contains(s))
+                    if (headerFields.contains(VCFHeader.HEADER_FIELDS.valueOf(s)))
                         throw new RuntimeException("VCFReader: Header field duplication is not allowed");
                     try {
                         headerFields.add(VCFHeader.HEADER_FIELDS.valueOf(s));
@@ -135,7 +167,8 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
     /**
      * create the next VCFRecord, given the input line
      *
-     * @param line the line from the file
+     * @param line    the line from the file
+     * @param mHeader the VCF header
      *
      * @return the VCFRecord
      */
@@ -174,10 +207,12 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * @param genotypeString contains the phasing information, allele information, and values for genotype parameters
      * @param altAlleles     the alternate allele string array, which we index into based on the field parameters
      * @param referenceBase  the reference base
+     *
+     * @return a VCFGenotypeRecord
      */
     public static VCFGenotypeRecord getVCFGenotype(String sampleName, String formatString, String genotypeString, String altAlleles[], char referenceBase) {
         // parameters to create the VCF genotype record
-        Map<String,String> tagToValue = new HashMap<String, String>();
+        Map<String, String> tagToValue = new HashMap<String, String>();
         VCFGenotypeRecord.PHASE phase = VCFGenotypeRecord.PHASE.UNKNOWN;
         List<String> bases = new ArrayList<String>();
 
@@ -197,15 +232,16 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
                 if (!m.matches())
                     throw new RuntimeException("Ubable to match GT genotype flag to it's regular expression");
                 phase = VCFGenotypeRecord.determinePhase(m.group(2));
-                addAllele(m.group(1),altAlleles,referenceBase,bases);
-                if (m.group(3).length() > 0) addAllele(m.group(3),altAlleles,referenceBase,bases);
+                addAllele(m.group(1), altAlleles, referenceBase, bases);
+                if (m.group(3).length() > 0) addAllele(m.group(3), altAlleles, referenceBase, bases);
             }
-            tagToValue.put(key,parse);
-            if (nextDivider+1 >= genotypeString.length()) nextDivider = genotypeString.length() - 1;
-            genotypeString = genotypeString.substring(nextDivider+1,genotypeString.length());
+            tagToValue.put(key, parse);
+            if (nextDivider + 1 >= genotypeString.length()) nextDivider = genotypeString.length() - 1;
+            genotypeString = genotypeString.substring(nextDivider + 1, genotypeString.length());
         }
-        if (keyStrings.length != tagToValue.size() || genotypeString.length() > 0) throw new RuntimeException("genotype value count doesn't match the key count");
-        return new VCFGenotypeRecord(sampleName,tagToValue,bases,phase,referenceBase);
+        if (keyStrings.length != tagToValue.size() || genotypeString.length() > 0)
+            throw new RuntimeException("genotype value count doesn't match the key count");
+        return new VCFGenotypeRecord(sampleName, tagToValue, bases, phase, referenceBase);
     }
 
 
@@ -215,6 +251,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * @param alleleNumber  the allele number, as a string
      * @param altAlleles    the list of alternate alleles
      * @param referenceBase the reference base
+     * @param bases         the list of bases for this genotype call
      */
     private static void addAllele(String alleleNumber, String[] altAlleles, char referenceBase, List<String> bases) {
         if (Integer.valueOf(alleleNumber) == 0)
