@@ -7,6 +7,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -322,11 +323,19 @@ public class GenomeLocParser {
         List<GenomeLoc> ret = null;
         try {
             File inputFile = new File(file_name);
-            
+
             // sometimes we see an empty file passed as a parameter, if so return an empty list
-            if (inputFile.exists() && inputFile.length() < 1) return new ArrayList<GenomeLoc>();
+            if (inputFile.exists() && inputFile.length() < 1) {
+                if (GenomeAnalysisEngine.instance.getArguments().unsafe)
+                    return new ArrayList<GenomeLoc>();
+                else {
+                    Utils.warnUser("The interval file " + file_name + " is empty. The GATK will continue processing but you " +
+                            "may want to fix (or exclude) this file.");
+                    return new ArrayList<GenomeLoc>();
+                }
+            }
             IntervalList il = IntervalList.fromFile(inputFile);
-            
+
             // iterate through the list of merged intervals and add then as GenomeLocs
             ret = new ArrayList<GenomeLoc>();
             for (Interval interval : il.getUniqueIntervals()) {
@@ -494,13 +503,14 @@ public class GenomeLocParser {
         checkSetup();
 
         int index = -1;
-        if ( ( index = contigInfo.getSequenceIndex(contig) ) < 0 ) {
+        if ((index = contigInfo.getSequenceIndex(contig)) < 0) {
             throw new StingException("Contig name ( " + contig + " ) not in the set sequence dictionary.");
         }
         return verifyGenomeLoc(new GenomeLoc(contig, index, loc.start, loc.getStop()));
     }
 
-/** Sets contig index. UNSAFE since it 1) does NOT update contig name; 2) does not validate the index
+    /**
+     * Sets contig index. UNSAFE since it 1) does NOT update contig name; 2) does not validate the index
      *
      * @param contig
      */
@@ -511,7 +521,6 @@ public class GenomeLocParser {
         }
         return verifyGenomeLoc(new GenomeLoc(GenomeLocParser.contigInfo.getSequence(contig).getSequenceName(), contig, loc.start, loc.getStop()));
     }
-
 
 
     /**
@@ -555,7 +564,9 @@ public class GenomeLocParser {
 
     /**
      * return a new genome loc, with an incremented position
+     *
      * @param loc the old location
+     *
      * @return a new genome loc
      */
     public static GenomeLoc incPos(GenomeLoc loc) {
@@ -564,8 +575,10 @@ public class GenomeLocParser {
 
     /**
      * return a new genome loc, with an incremented position
+     *
      * @param loc the old location
-     * @param by how much to move the start and stop by
+     * @param by  how much to move the start and stop by
+     *
      * @return a new genome loc
      */
     public static GenomeLoc incPos(GenomeLoc loc, long by) {
@@ -574,7 +587,9 @@ public class GenomeLocParser {
 
     /**
      * create a new genome loc with an incremented position
+     *
      * @param loc the location
+     *
      * @return a new genome loc
      */
     public static GenomeLoc nextLoc(GenomeLoc loc) {

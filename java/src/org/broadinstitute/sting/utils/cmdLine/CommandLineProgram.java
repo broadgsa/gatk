@@ -35,7 +35,7 @@ public abstract class CommandLineProgram {
     /**
      * our log, which we want to capture anything from org.broadinstitute.sting
      */
-    private static Logger logger = Logger.getRootLogger();// .getLogger(CommandLineProgram.class);
+    private static Logger logger = Logger.getRootLogger();
 
     /**
      * the default log level
@@ -303,7 +303,7 @@ public abstract class CommandLineProgram {
      */
     private void setupLoggerLevel()  {
 
-        Level par = Level.ERROR;
+        Level par = Level.WARN;
         if (logging_level.equals("DEBUG")) {
             par = Level.DEBUG;
         }
