@@ -146,7 +146,13 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
             if (str.startsWith("#") && !str.startsWith("##")) {
                 String[] strings = str.substring(1).split("\\s+");
                 for (String s : strings) {
-                    if (headerFields.contains(VCFHeader.HEADER_FIELDS.valueOf(s)))
+                    VCFHeader.HEADER_FIELDS field;
+                    try {
+                        field = VCFHeader.HEADER_FIELDS.valueOf(s);
+                    } catch (IllegalArgumentException e) {
+                        throw new RuntimeException("VCFReader: Unknown column name \"" + s + "\", it does not match a known column header name.");
+                    }
+                    if (headerFields.contains(field))
                         throw new RuntimeException("VCFReader: Header field duplication is not allowed");
                     try {
                         headerFields.add(VCFHeader.HEADER_FIELDS.valueOf(s));
