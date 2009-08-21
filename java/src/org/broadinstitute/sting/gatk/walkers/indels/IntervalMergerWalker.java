@@ -114,15 +114,6 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
      * @return a linked list of sorted, merged intervals.
      */
     private LinkedList<GenomeLoc> parseIntervals(List<String> intervalsSource) {
-
-		// ignore zero-length intervals files.
-		for (int i = 0; i < intervalsSource.size(); i++) 
-		{
-			File f = new File(intervalsSource.get(i));
-			long size = f.length();
-			if (size == 0) { intervalsSource.remove(i); }
-		}
-
         List<GenomeLoc> parsedIntervals = GenomeAnalysisEngine.parseIntervalRegion(intervalsSource);
         GenomeLocSortedSet intervalSortedSet = new GenomeLocSortedSet();
         for ( GenomeLoc parsedInterval : parsedIntervals )

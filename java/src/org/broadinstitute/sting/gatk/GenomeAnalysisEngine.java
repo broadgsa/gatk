@@ -103,12 +103,12 @@ public class GenomeAnalysisEngine {
     public Object execute(GATKArgumentCollection args, Walker<?,?> my_walker) {
         // validate our parameters
         if (args == null) {
-            throw new StingException("The GATKArgumentCollection passed to GenomeAnalysisEngine can be null.");
+            throw new StingException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
         }
 
         // validate our parameters
         if (my_walker == null)
-            throw new StingException("The walker passed to GenomeAnalysisEngine can be null.");
+            throw new StingException("The walker passed to GenomeAnalysisEngine can not be null.");
 
         // save our argument parameter
         this.argCollection = args;

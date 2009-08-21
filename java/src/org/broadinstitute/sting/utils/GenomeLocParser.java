@@ -321,8 +321,12 @@ public class GenomeLocParser {
          */
         List<GenomeLoc> ret = null;
         try {
-            IntervalList il = IntervalList.fromFile(new File(file_name));
-
+            File inputFile = new File(file_name);
+            
+            // sometimes we see an empty file passed as a parameter, if so return an empty list
+            if (inputFile.length() < 1) return new ArrayList<GenomeLoc>();
+            IntervalList il = IntervalList.fromFile(inputFile);
+            
             // iterate through the list of merged intervals and add then as GenomeLocs
             ret = new ArrayList<GenomeLoc>();
             for (Interval interval : il.getUniqueIntervals()) {
