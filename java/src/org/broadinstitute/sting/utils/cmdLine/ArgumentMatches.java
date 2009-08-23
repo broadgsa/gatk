@@ -31,7 +31,7 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      * Provide a place to put command-line argument values that don't seem to belong to
      * any particular command-line option.
      */
-    public ArgumentMatch MissingArgument = new ArgumentMatch();    
+    ArgumentMatch MissingArgument = new ArgumentMatch();
 
     /**
      * Get an iterator cycling through *unique* command-line argument <-> definition matches.
@@ -42,11 +42,33 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
     }
 
     /**
+     * Create an empty ArgumentMatches object.
+     */
+    public ArgumentMatches() {
+    }
+
+    /**
+     * Create a singleton ArgumentMatches object.
+     * @param match Match to incorporate.
+     */
+    public ArgumentMatches( ArgumentMatch match ) {
+        mergeInto( match );
+    }
+
+    /**
+     * Returns the number of matches in this structure.
+     * @return Count of the matches in this structure.
+     */
+    public int size() {
+        return argumentMatches.size();
+    }
+
+    /**
      * Indicates whether the site contains a matched argument.
      * @param site Site at which to check.
      * @return True if the site has a match.  False otherwise.
      */
-    public boolean hasMatch( int site ) {
+    boolean hasMatch( int site ) {
         return argumentMatches.containsKey( site );
     }
 
@@ -56,7 +78,7 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      * @return The match present at the given site.
      * @throws IllegalArgumentException if site does not contain a match.
      */
-    public ArgumentMatch getMatch( int site ) {
+    ArgumentMatch getMatch( int site ) {
         if( !argumentMatches.containsKey(site) )
             throw new IllegalArgumentException( "Site does not contain an argument: " + site );
         return argumentMatches.get(site);
@@ -67,7 +89,7 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      * @param definition Definition to match.
      * @return True if a match exists; false otherwise.
      */
-    public boolean hasMatch( ArgumentDefinition definition ) {
+    boolean hasMatch( ArgumentDefinition definition ) {
         return findMatches( definition ).size() > 0;
     }
 
@@ -77,11 +99,11 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      * @return List of all matches.
      */
 
-    public Collection<ArgumentMatch> findMatches( ArgumentSource argumentSource ) {
-        Collection<ArgumentMatch> matches = new HashSet<ArgumentMatch>();            
+    ArgumentMatches findMatches( ArgumentSource argumentSource ) {
+        ArgumentMatches matches = new ArgumentMatches();
         for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
             if( argumentMatch.definition != null && argumentMatch.definition.source.equals( argumentSource ) )
-                matches.add( argumentMatch );
+                matches.mergeInto( argumentMatch );
         }
         return matches;
     }
@@ -91,23 +113,23 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      * @param definition Argument definition to match.
      * @return List of all matches.
      */
-    public Collection<ArgumentMatch> findMatches( ArgumentDefinition definition ) {
-        Collection<ArgumentMatch> matches = new HashSet<ArgumentMatch>();
-        for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
+    ArgumentMatches findMatches( ArgumentDefinition definition ) {
+        ArgumentMatches matches = new ArgumentMatches();
+        for( ArgumentMatch argumentMatch: argumentMatches.values() ) {
             if( argumentMatch.definition == definition )
-                matches.add( argumentMatch );
-        }        
+                matches.mergeInto( argumentMatch );
+        }
         return matches;
     }
 
     /**
      * Find all successful matches (a 'successful' match is one paired with a definition).
      */
-    public Collection<ArgumentMatch> findSuccessfulMatches() {
-        Collection<ArgumentMatch> matches = new HashSet<ArgumentMatch>();
-        for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
+    ArgumentMatches findSuccessfulMatches() {
+        ArgumentMatches matches = new ArgumentMatches();
+        for( ArgumentMatch argumentMatch: argumentMatches.values() ) {
             if( argumentMatch.definition != null )
-                matches.add( argumentMatch );
+                matches.mergeInto( argumentMatch );
         }
         return matches;
     }
@@ -116,11 +138,11 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      * Find arguments that are unmatched to any definition.
      * @return Set of matches that have no associated definition.
      */
-    public Collection<ArgumentMatch> findUnmatched() {
-        Collection<ArgumentMatch> matches = new HashSet<ArgumentMatch>();
-        for( ArgumentMatch argumentMatch: getUniqueMatches() ) {
+    ArgumentMatches findUnmatched() {
+        ArgumentMatches matches = new ArgumentMatches();
+        for( ArgumentMatch argumentMatch: argumentMatches.values() ) {
             if( argumentMatch.definition == null )
-                matches.add( argumentMatch );
+                matches.mergeInto( argumentMatch );
         }
         return matches;
     }

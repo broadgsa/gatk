@@ -228,67 +228,6 @@ class ArgumentDefinitionGroup implements Iterable<ArgumentDefinition> {
 }
 
 /**
- * A specific argument definition.  Maps one-to-one with a field in some class.
- */
-class ArgumentDefinition {
-    /**
-     * Full name of the argument.  Must have a value.
-     */
-    public final String fullName;
-
-    /**
-     * Short name of the argument.  Can be null.
-     */
-    public final String shortName;
-
-    /**
-     * Doc string for the argument.  Displayed in help.
-     */
-    public final String doc;
-
-    /**
-     * Is this argument required?
-     */
-    public final boolean required;
-
-    /**
-     * Is this argument exclusive of other arguments?
-     */
-    public final String exclusiveOf;
-
-    /**
-     * Can we validate this regular expression?
-     */
-    public final String validation;
-
-    /**
-     * The target into which to inject arguments meeting this definition.
-     */
-    public final ArgumentSource source;
-
-    /**
-     * Creates a new argument definition.
-     * @param source Source information for defining the argument.
-     */
-    public ArgumentDefinition( ArgumentSource source,
-                               String fullName,
-                               String shortName,
-                               String doc,
-                               boolean required,
-                               String exclusiveOf, 
-                               String validation ) {
-        this.source = source;
-
-        this.fullName = fullName;
-        this.shortName = shortName;
-        this.doc = doc;
-        this.required = required;
-        this.exclusiveOf = exclusiveOf;
-        this.validation = validation;
-    }
-}
-
-/**
  * A Comparator-esque interface for finding argument definitions within a collection.
  */
 interface DefinitionMatcher {

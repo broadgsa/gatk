@@ -40,14 +40,16 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentSource;
+import org.broadinstitute.sting.gatk.io.stubs.Stub;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
-import java.lang.reflect.Field;
 
 public class GenomeAnalysisEngine {
 
@@ -73,8 +75,12 @@ public class GenomeAnalysisEngine {
     // our argument collection
     private GATKArgumentCollection argCollection;
 
-    /** Collection of output streams used by the walker. */
-    private OutputTracker outputTracker = new OutputTracker();
+    /** Collection of inputs used by the walker. */
+    private Map<ArgumentSource,Object> inputs = new HashMap<ArgumentSource,Object>();
+
+    /** Collection of outputs used by the walker. */
+    private Collection<Stub<?>> outputs = new ArrayList<Stub<?>>();
+
 
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(GenomeAnalysisEngine.class);
@@ -120,7 +126,7 @@ public class GenomeAnalysisEngine {
         MicroScheduler microScheduler = createMicroscheduler(my_walker);
 
         // create the output streams
-        initializeOutputStreams(my_walker);
+        initializeOutputStreams(my_walker, microScheduler.getOutputTracker());
 
         GenomeLocSortedSet locs = null;
         if (argCollection.intervals != null) {
@@ -134,12 +140,20 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Add additional, externally managed IO streams for walker consumption.
-     * @param walkerField Field in the walker into which to inject the value.
+     * Add additional, externally managed IO streams for walker input.
+     * @param argumentSource Field in the walker into which to inject the value.
      * @param value Instance to inject.
      */
-    public void setAdditionalIO( Field walkerField, Object value ) {
-        outputTracker.addAdditionalOutput( walkerField, value );    
+    public void addInput( ArgumentSource argumentSource, Object value ) {
+        inputs.put(argumentSource,value);
+    }
+
+    /**
+     * Add additional, externally managed IO streams for walker output.
+     * @param stub Instance to inject.
+     */
+    public void addOutput( Stub<?> stub ) {
+        outputs.add(stub);
     }
 
     /**
@@ -593,21 +607,18 @@ public class GenomeAnalysisEngine {
      *
      * @param walker the walker to initialize output streams for
      */
-    private void initializeOutputStreams(Walker walker) {
+    private void initializeOutputStreams(Walker walker, OutputTracker outputTracker) {
         if( argCollection.outErrFileName != null )
             outputTracker.initializeCoreIO( argCollection.outErrFileName, argCollection.outErrFileName );
         else
             outputTracker.initializeCoreIO( argCollection.outFileName, argCollection.errFileName );
-        outputTracker.prepareWalker(walker);
-    }
 
-    /**
-     * Gets the output tracker.  Tracks data available to a given walker.
-     *
-     * @return The output tracker.
-     */
-    public OutputTracker getOutputTracker() {
-        return outputTracker;
+        for( Map.Entry<ArgumentSource,Object> input: inputs.entrySet() )
+            outputTracker.addInput(input.getKey(),input.getValue());
+        for( Stub<?> stub: outputs )
+            outputTracker.addOutput(stub);
+
+        outputTracker.prepareWalker(walker);
     }
 
     public SAMFileHeader getSAMFileHeader() {

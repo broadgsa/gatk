@@ -1,10 +1,13 @@
-package org.broadinstitute.sting.gatk;
+package org.broadinstitute.sting.gatk.io;
 
 import org.junit.Test;
 import org.junit.After;
 import org.junit.Assert;
 import org.broadinstitute.sting.utils.io.RedirectingOutputStream;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.io.OutputTracker;
+import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
+import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -42,26 +45,28 @@ public class OutputTrackerTest extends BaseTest {
 
     @Test
     public void testNullInputs() {
-        OutputTracker ot = new OutputTracker();
+        OutputTracker ot = new DirectOutputTracker();
         ot.initializeCoreIO(null,null);
 
-        Assert.assertTrue("OutputTracker: Output stream is of wrong type.", ot.getOutStream() instanceof RedirectingOutputStream );
-        Assert.assertTrue("OutputTracker: Error stream is of wrong type.", ot.getErrStream() instanceof RedirectingOutputStream );
+        Assert.assertNotNull("OutputTracker: Output stream is null.", ot.outStub );
+        Assert.assertNotNull("OutputTracker: Error stream is null.", ot.errStub );
 
-        RedirectingOutputStream outStream = (RedirectingOutputStream)ot.getOutStream();
-        RedirectingOutputStream errStream = (RedirectingOutputStream)ot.getErrStream();
+        OutputStreamStub outStream = ot.outStub;
+        Assert.assertNull("OutputTracker: Output file incorrectly initialized.", outStream.getOutputFile());
+        Assert.assertSame("OutputTracker: Output stream incorrectly initialized.", System.out, outStream.getOutputStream());
 
-        Assert.assertSame("OutputTracker: Output stream incorrectly initialized.", System.out, outStream.getBackingOutputStream());
-        Assert.assertSame("OutputTracker: Error stream incorrectly initialized.", System.err, errStream.getBackingOutputStream());
+        OutputStreamStub errStream = ot.errStub;        
+        Assert.assertNull("OutputTracker: Error file incorrectly initialized.", errStream.getOutputFile());
+        Assert.assertSame("OutputTracker: Error stream incorrectly initialized.", System.err, errStream.getOutputStream());
     }
 
     @Test
     public void testOutputStreamAlone() throws FileNotFoundException {
-        OutputTracker ot = new OutputTracker();
+        OutputTracker ot = new DirectOutputTracker();
         ot.initializeCoreIO(OUTPUT_FILENAME,null);
 
         final String OUTPUT_TEXT = "out stream test";
-        PrintWriter outWriter = new PrintWriter(ot.getOutStream());
+        PrintWriter outWriter = new PrintWriter(ot.outStub);
         outWriter.append(OUTPUT_TEXT);
         outWriter.close();
 
@@ -71,18 +76,22 @@ public class OutputTrackerTest extends BaseTest {
 
         Assert.assertEquals("OutputTracker: Written output is incorrect", outText, OUTPUT_TEXT);
 
-        Assert.assertTrue("OutputTracker: Error stream is of wrong type.", ot.getErrStream() instanceof RedirectingOutputStream );
-        RedirectingOutputStream errStream = (RedirectingOutputStream)ot.getErrStream();
-        Assert.assertSame("OutputTracker: Error stream incorrectly initialized.", System.err, errStream.getBackingOutputStream());
+        OutputStreamStub errStream = ot.errStub;
+        Assert.assertNull("OutputTracker: Error file incorrectly initialized.", errStream.getOutputFile());
+        Assert.assertSame("OutputTracker: Error stream incorrectly initialized.", System.err, errStream.getOutputStream());
     }
 
     @Test
     public void testErrorStreamAlone() throws FileNotFoundException {
-        OutputTracker ot = new OutputTracker();
+        OutputTracker ot = new DirectOutputTracker();
         ot.initializeCoreIO(null,ERROR_FILENAME);
 
+        OutputStreamStub outStream = ot.outStub;
+        Assert.assertNull("OutputTracker: Output file incorrectly initialized.", outStream.getOutputFile());
+        Assert.assertSame("OutputTracker: Output stream incorrectly initialized.", System.out, outStream.getOutputStream());
+
         final String ERROR_TEXT = "err stream test";
-        PrintWriter errWriter = new PrintWriter(ot.getErrStream());
+        PrintWriter errWriter = new PrintWriter(ot.errStub);
         errWriter.append(ERROR_TEXT);
         errWriter.close();
 
@@ -90,24 +99,21 @@ public class OutputTrackerTest extends BaseTest {
         String errText = errScanner.nextLine();
         Assert.assertFalse("Err stream has too much data", errScanner.hasNext());
 
-        Assert.assertTrue("OutputTracker: Output stream is of wrong type.", ot.getOutStream() instanceof RedirectingOutputStream );
-        RedirectingOutputStream outStream = (RedirectingOutputStream)ot.getOutStream();
-        Assert.assertSame("OutputTracker: Output stream incorrectly initialized.", System.out, outStream.getBackingOutputStream());
         Assert.assertEquals("OutputTracker: Written error text is incorrect", errText, ERROR_TEXT);
     }
 
     @Test
     public void testIndependentStreams() throws FileNotFoundException {
-        OutputTracker ot = new OutputTracker();
+        OutputTracker ot = new DirectOutputTracker();
         ot.initializeCoreIO(OUTPUT_FILENAME,ERROR_FILENAME);
 
         final String OUTPUT_TEXT = "out stream test";
-        PrintWriter outWriter = new PrintWriter(ot.getOutStream());
+        PrintWriter outWriter = new PrintWriter(ot.outStub);
         outWriter.append(OUTPUT_TEXT);
         outWriter.close();
 
         final String ERROR_TEXT = "err stream test";
-        PrintWriter errWriter = new PrintWriter(ot.getErrStream());
+        PrintWriter errWriter = new PrintWriter(ot.errStub);
         errWriter.append(ERROR_TEXT);
         errWriter.close();
 
@@ -125,15 +131,16 @@ public class OutputTrackerTest extends BaseTest {
 
     @Test
     public void testIdenticalInputsGetIdenticalResults() {
-        OutputTracker ot = new OutputTracker();
+        OutputTracker ot = new DirectOutputTracker();
         ot.initializeCoreIO(OUTPUT_FILENAME,OUTPUT_FILENAME);
 
-        Assert.assertTrue("OutputTracker: Output stream is of wrong type.", ot.getOutStream() instanceof RedirectingOutputStream );
-        Assert.assertTrue("OutputTracker: Error stream is of wrong type.", ot.getErrStream() instanceof RedirectingOutputStream );
+        Assert.assertNotNull("OutputTracker: Output stream is null.", ot.outStub );
+        Assert.assertNotNull("OutputTracker: Error stream is null.", ot.errStub );
 
-        RedirectingOutputStream outStream = (RedirectingOutputStream)ot.getOutStream();
-        RedirectingOutputStream errStream = (RedirectingOutputStream)ot.getErrStream();
+        OutputStreamStub outStream = ot.outStub;
+        OutputStreamStub errStream = ot.errStub;
 
-        Assert.assertSame("OutputTracker: PrintStreams don't match", outStream.getBackingOutputStream(), errStream.getBackingOutputStream());
+        Assert.assertSame("OutputTracker: files don't match", outStream.getOutputFile(), errStream.getOutputFile());
+        Assert.assertSame("OutputTracker: streams don't match", outStream.getOutputStream(), errStream.getOutputStream());
     }
 }

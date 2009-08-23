@@ -1,19 +1,20 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentSource;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentTypeDescriptor;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.xReadLines;
-import org.broadinstitute.sting.utils.sam.SAMFileWriterBuilder;
-import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
+import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
+import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.ArrayList;
-
-import net.sf.samtools.SAMFileWriter;
+import java.util.Collection;
+import java.util.Arrays;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -88,6 +89,17 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     }
 
     /**
+     * Subclasses of CommandLinePrograms can provide their own types of command-line arguments.
+     * @return A collection of type descriptors generating implementation-dependent placeholders.
+     */
+    protected Collection<ArgumentTypeDescriptor> getArgumentTypeDescriptors() {
+        return Arrays.asList( new SAMFileReaderArgumentTypeDescriptor(GATKEngine),
+                              new SAMFileWriterArgumentTypeDescriptor(GATKEngine),
+                              new OutputStreamArgumentTypeDescriptor(GATKEngine) );
+    }
+
+
+    /**
      * GATK can add arguments dynamically based on analysis type.
      *
      * @return true
@@ -107,24 +119,6 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         if (getAnalysisName() == null) return new Class[] {};
         return new Class[] { GATKEngine.getWalkerByName(getAnalysisName()).getClass() };
     }
-
-    /**
-     * Allows arguments to be hijacked by subclasses of the program before being placed
-     * into plugin classes.
-     * @return True if the particular field should be hijacked; false otherwise.
-     */
-    protected boolean intercept( ArgumentSource source, Object targetInstance, Object value ) {
-        if( !(Walker.class.isAssignableFrom(source.clazz)) )
-            return false;
-
-        if( value instanceof SAMFileReaderBuilder || value instanceof SAMFileWriterBuilder ) {
-            GATKEngine.setAdditionalIO( source.field, value );
-            return true;
-        }
-
-        return false;
-    }
-
 
     @Override
     protected String getArgumentSourceName( Class argumentSource ) {

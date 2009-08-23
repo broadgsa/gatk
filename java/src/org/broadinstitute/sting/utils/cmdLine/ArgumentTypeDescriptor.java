@@ -26,19 +26,13 @@
 package org.broadinstitute.sting.utils.cmdLine;
 
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.sam.SAMFileWriterBuilder;
-import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
 import org.apache.log4j.Logger;
 
 import java.lang.reflect.*;
 import java.util.*;
-import java.io.File;
-
-import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMFileReader;
 
 /**
- * An factory capable of providing parsers that can parse any type
+ * An descriptor capable of providing parsers that can parse any type
  * of supported command-line argument.
  *
  * @author mhanna
@@ -53,11 +47,23 @@ public abstract class ArgumentTypeDescriptor {
     
     /**
      * Class reference to the different types of descriptors that the create method can create.
+     * The type of set used must be ordered (but not necessarily sorted).
      */
-    private static List<ArgumentTypeDescriptor> descriptors = Arrays.asList( new SAMFileReaderArgumentTypeDescriptor(),
-                                                                             new SAMFileWriterArgumentTypeDescriptor(),
-                                                                             new SimpleArgumentTypeDescriptor(),                                                                                
-                                                                             new CompoundArgumentTypeDescriptor() );
+    private static Set<ArgumentTypeDescriptor> descriptors = new LinkedHashSet<ArgumentTypeDescriptor>( Arrays.asList(new SimpleArgumentTypeDescriptor(),
+                                                                                                                      new CompoundArgumentTypeDescriptor()) );
+
+    /**
+     * Adds new, user defined descriptors to the head of the descriptor list.
+     * @param argumentTypeDescriptors New descriptors to add.  List can be empty, but should not be null.
+     */
+    public static void addDescriptors( Collection<ArgumentTypeDescriptor> argumentTypeDescriptors ) {
+        // We care about ordering; newly added descriptors should have priority over stock descriptors.
+        // Enforce this by creating a new *ordered* set, adding the new descriptors, then adding the old descriptors.
+        Set<ArgumentTypeDescriptor> allDescriptors = new LinkedHashSet<ArgumentTypeDescriptor>();
+        allDescriptors.addAll( argumentTypeDescriptors );
+        allDescriptors.addAll( descriptors );
+        descriptors = allDescriptors;
+    }
 
     public static ArgumentTypeDescriptor create( Class type ) {
         for( ArgumentTypeDescriptor descriptor: descriptors ) {
@@ -77,32 +83,41 @@ public abstract class ArgumentTypeDescriptor {
     /**
      * Given the given argument source and attributes, synthesize argument definitions for command-line arguments.
      * @param source Source class and field for the given argument.
-     * @param description Description of the fields that go into a given argument.
      * @return A list of command-line argument definitions supporting this field.
      */
-    public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source, Argument description ) {
-        ArgumentDefinition definition =  new ArgumentDefinition( source,
-                                                                 getFullName( source, description ),
-                                                                 getShortName( source, description ),
-                                                                 getDoc( source, description ),
-                                                                 isRequired( source, description ),
-                                                                 getExclusiveOf( source, description ),
-                                                                 getValidationRegex( source, description ) );
-        return Collections.singletonList(definition);
-    }
-    
-    public Object parse( ArgumentSource source, ArgumentMatch... values ) {
-        return parse( source, source.field.getType(), values ); 
+    public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
+        return Collections.singletonList(createDefaultArgumentDefinition(source));
     }
 
-    protected abstract Object parse( ArgumentSource source, Class type, ArgumentMatch... values );
+    public Object parse( ArgumentSource source, ArgumentMatches matches ) {
+        return parse( source, source.field.getType(), matches );
+    }
+
+    /**
+     * By default, argument sources create argument definitions with a set of default values.
+     * Use this method to create the one simple argument definition.
+     * @param source argument source for which to create a default definition.
+     * @return The default definition for this argument source.
+     */
+    protected ArgumentDefinition createDefaultArgumentDefinition( ArgumentSource source ) {
+        return new ArgumentDefinition( source,
+                                       getFullName(source),
+                                       getShortName(source),
+                                       getDoc(source),
+                                       isRequired(source),
+                                       getExclusiveOf(source),
+                                       getValidationRegex(source) );
+    }
+
+    protected abstract Object parse( ArgumentSource source, Class type, ArgumentMatches matches );
 
     /**
      * Retrieves the full name of the argument, specifiable with the '--' prefix.  The full name can be
      * either specified explicitly with the fullName annotation parameter or implied by the field name.
      * @return full name of the argument.  Never null.
      */
-    protected String getFullName( ArgumentSource source, Argument description ) {
+    protected String getFullName( ArgumentSource source ) {
+        Argument description = getArgumentDescription(source);
         return description.fullName().trim().length() > 0 ? description.fullName().trim() : source.field.getName().toLowerCase();
     }
 
@@ -111,7 +126,8 @@ public abstract class ArgumentTypeDescriptor {
      * be specified or not; if left unspecified, no short name will be present.
      * @return short name of the argument.  Null if no short name exists.
      */
-    protected String getShortName( ArgumentSource source, Argument description ) {
+    protected String getShortName( ArgumentSource source ) {
+        Argument description = getArgumentDescription(source);
         return description.shortName().trim().length() > 0 ? description.shortName().trim() : null;
     }
 
@@ -119,7 +135,8 @@ public abstract class ArgumentTypeDescriptor {
      * Documentation for this argument.  Mandatory field.
      * @return Documentation for this argument.
      */
-    protected String getDoc( ArgumentSource source, Argument description ) {
+    protected String getDoc( ArgumentSource source ) {
+        Argument description = getArgumentDescription(source);
         return description.doc();
     }
 
@@ -127,7 +144,8 @@ public abstract class ArgumentTypeDescriptor {
      * Returns whether this field is required.  Note that flag fields are always forced to 'not required'.
      * @return True if the field is mandatory and not a boolean flag.  False otherwise.
      */
-    protected boolean isRequired( ArgumentSource source, Argument description ) {
+    protected boolean isRequired( ArgumentSource source ) {
+        Argument description = getArgumentDescription(source);
         return description.required() && !source.isFlag();
     }
 
@@ -135,7 +153,8 @@ public abstract class ArgumentTypeDescriptor {
      * Specifies other arguments which cannot be used in conjunction with tihs argument.  Comma-separated list.
      * @return A comma-separated list of exclusive arguments, or null if none are present.
      */
-    protected String getExclusiveOf( ArgumentSource source, Argument description ) {
+    protected String getExclusiveOf( ArgumentSource source ) {
+        Argument description = getArgumentDescription(source);
         return description.exclusiveOf().trim().length() > 0 ? description.exclusiveOf().trim() : null;
     }
 
@@ -143,9 +162,51 @@ public abstract class ArgumentTypeDescriptor {
      * A regular expression which can be used for validation.
      * @return a JVM regex-compatible regular expression, or null to permit any possible value.
      */
-    protected String getValidationRegex( ArgumentSource source, Argument description ) {
+    protected String getValidationRegex( ArgumentSource source ) {
+        Argument description = getArgumentDescription(source);
         return description.validation().trim().length() > 0 ? description.validation().trim() : null;
     }
+
+    /**
+     * Gets the value of an argument with the given full name, from the collection of ArgumentMatches.
+     * If the argument matches multiple values, an exception will be thrown.
+     * @param definition Definition of the argument for which to find matches.
+     * @param matches The matches for the given argument.
+     * @return The value of the argument if available, or null if not present.
+     */
+    protected String getArgumentValue( ArgumentDefinition definition, ArgumentMatches matches ) {
+        Collection<String> argumentValues = getArgumentValues( definition, matches );
+        if( argumentValues.size() > 1 )
+            throw new StingException("Multiple values associated with given definition, but this argument expects only one: " + definition.fullName);
+        return argumentValues.size() > 0 ? argumentValues.iterator().next() : null;
+    }
+
+    /**
+     * Gets the values of an argument with the given full name, from the collection of ArgumentMatches.
+     * @param definition Definition of the argument for which to find matches.
+     * @param matches The matches for the given argument.
+     * @return The value of the argument if available, or an empty collection if not present.
+     */
+    protected Collection<String> getArgumentValues( ArgumentDefinition definition, ArgumentMatches matches ) {
+        Collection<String> values = new ArrayList<String>();
+        for( ArgumentMatch match: matches ) {
+            if( match.definition.equals(definition) )
+                values.addAll(match.values());
+        }
+        return values;
+    }
+
+    /**
+     * Retrieves the argument description from the given argument source.  Will throw an exception if
+     * the given ArgumentSource
+     * @param source source of the argument.
+     * @return Argument description annotation associated with the given field.
+     */
+    protected Argument getArgumentDescription( ArgumentSource source ) {
+        if( !source.field.isAnnotationPresent(Argument.class) )
+            throw new StingException("ArgumentAnnotation is not present for the argument field: " + source.field.getName());
+        return source.field.getAnnotation(Argument.class);
+    }    
 }
 
 /**
@@ -171,10 +232,8 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    protected Object parse( ArgumentSource source, Class type, ArgumentMatch... matches ) {
-        if( matches.length > 1 || matches[0].values().size() > 1 )
-            throw new StingException("Simple argument parser is unable to parse multiple arguments.");
-        String value = matches[0].values().get(0);
+    protected Object parse( ArgumentSource source, Class type, ArgumentMatches matches ) {
+        String value = getArgumentValue( createDefaultArgumentDefinition(source), matches );
 
         // lets go through the types we support
         try {
@@ -228,13 +287,9 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
     
     @Override
-    public Object parse( ArgumentSource source, Class type, ArgumentMatch... matches )
+    public Object parse( ArgumentSource source, Class type, ArgumentMatches matches )
     {
         Class componentType = null;
-
-        if( matches.length > 1 )
-            throw new StingException("Simple argument parser is unable to combine multiple argument types into a compound argument.");
-        ArgumentMatch match = matches[0];
 
         if( Collection.class.isAssignableFrom(type) ) {
 
@@ -272,8 +327,10 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 throw new StingException("constructFromString:IllegalAccessException: Failed conversion " + e.getMessage());
             }
 
-            for( ArgumentMatch value: match )
-                collection.add( componentArgumentParser.parse(source,componentType,value) );
+            for( ArgumentMatch match: matches ) {
+                for( ArgumentMatch value: match )
+                    collection.add( componentArgumentParser.parse(source,componentType,new ArgumentMatches(value)) );
+            }
 
             return collection;
 
@@ -281,115 +338,23 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         else if( type.isArray() ) {
             componentType = type.getComponentType();
             ArgumentTypeDescriptor componentArgumentParser = ArgumentTypeDescriptor.create( componentType );
-            Object arr = Array.newInstance(componentType,match.values().size());
+
+            // Assemble a collection of individual values used in this computation.
+            Collection<ArgumentMatch> values = new ArrayList<ArgumentMatch>();
+            for( ArgumentMatch match: matches ) {
+                for( ArgumentMatch value: match )
+                    values.add(value);
+            }
+
+            Object arr = Array.newInstance(componentType,values.size());
 
             int i = 0;
-            for( ArgumentMatch value: match )
-                Array.set( arr,i++,componentArgumentParser.parse(source,componentType,value));
+            for( ArgumentMatch value: values )
+                Array.set( arr,i++,componentArgumentParser.parse(source,componentType,new ArgumentMatches(value)));
 
             return arr;
         }
         else
             throw new StingException("Unsupported compound argument type: " + type);
     }
-}
-
-/**
- * Handle SAMFileReaders.
- */
-class SAMFileReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor {
-    @Override
-    public boolean supports( Class type ) {
-        return SAMFileReader.class.isAssignableFrom(type);
-    }
-
-    @Override
-    public Object parse( ArgumentSource source, Class type, ArgumentMatch... matches )  {
-        if( matches.length > 1 )
-            throw new UnsupportedOperationException("Only an input file name and validation stringency can be supplied when creating a BAM file reader.");
-
-        SAMFileReaderBuilder builder = new SAMFileReaderBuilder();
-
-        ArgumentMatch readerMatch = matches[0];
-
-        if( readerMatch == null )
-            throw new StingException("SAM file compression was supplied, but not associated writer was supplied with it.");
-        if( readerMatch.values().size() > 1 )
-            throw new StingException("Only one filename can be supplied per created BAM file");
-
-        builder.setSAMFile(new File(readerMatch.values().get(0).trim()));
-
-        return builder;
-    }
-}
-
-/**
- * Handle SAMFileWriters.
- */
-class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
-    private static final String COMPRESSION_FULLNAME = "bam_compression";
-    private static final String COMPRESSION_SHORTNAME = "compress";
-
-    @Override
-    public boolean supports( Class type ) {
-        return SAMFileWriter.class.isAssignableFrom(type);
-    }
-
-    @Override
-    public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source, Argument description ) {
-        String fullName = description.fullName().trim().length() > 0 ? description.fullName().trim() : "outputBAM";
-        String shortName = description.shortName().trim().length() > 0 ? description.shortName().trim() : "ob";
-
-        ArgumentDefinition writerDefinition = new ArgumentDefinition( source,
-                                                                      fullName,
-                                                                      shortName,
-                                                                      getDoc( source, description ),
-                                                                      isRequired( source, description ),
-                                                                      getExclusiveOf( source, description ),
-                                                                      getValidationRegex( source, description ) );
-        ArgumentDefinition compressionDefinition = new ArgumentDefinition( source,
-                                                                           COMPRESSION_FULLNAME,
-                                                                           COMPRESSION_SHORTNAME,
-                                                                           "Compression level to use for writing BAM files",
-                                                                           false,
-                                                                           null,
-                                                                           null );
-
-        return Arrays.asList( writerDefinition, compressionDefinition );
-    }
-
-    @Override
-    public Object parse( ArgumentSource source, Class type, ArgumentMatch... matches )  {
-        if( matches.length > 2 )
-            throw new UnsupportedOperationException("Only an input file name and validation stringency can be supplied when creating a BAM file reader.");
-
-        SAMFileWriterBuilder builder = new SAMFileWriterBuilder();
-
-        ArgumentMatch writerMatch = null;
-        ArgumentMatch compressionMatch = null;
-
-        for( ArgumentMatch match: matches ) {
-            if( match.definition.fullName.equals(COMPRESSION_FULLNAME) )
-                compressionMatch = match;
-            else
-                writerMatch = match;
-        }
-
-        if( writerMatch == null )
-            throw new StingException("SAM file compression was supplied, but not associated writer was supplied with it.");
-        if( writerMatch.values().size() > 1 )
-            throw new StingException("Only one filename can be supplied per created BAM file");
-
-        builder.setSAMFile(new File(writerMatch.values().get(0).trim()));
-
-        if( compressionMatch != null ) {
-            if( compressionMatch.values().size() > 1 )
-                throw new StingException("Only one value can be supplied for BAM compression");
-            int compressionLevel = Integer.valueOf(compressionMatch.values().get(0));
-            builder.setCompressionLevel(compressionLevel);
-        }
-
-        return builder;
-    }
-    
 }

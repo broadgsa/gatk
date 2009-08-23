@@ -3,9 +3,9 @@ package org.broadinstitute.sting.gatk.executive;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.OutputTracker;
+import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.concurrent.Callable;
 /**
@@ -29,36 +29,43 @@ public class ShardTraverser implements Callable {
     private TraversalEngine traversalEngine;
     private Shard shard;
     private ShardDataProvider dataProvider;
-    private OutputMerger output;
+    private ThreadLocalOutputTracker outputTracker;
+    private OutputMergeTask outputMergeTask;
+
+    /**
+     * Is this traversal complete?
+     */
+    private boolean complete = false;
 
     public ShardTraverser( HierarchicalMicroScheduler microScheduler,
                            TraversalEngine traversalEngine,
                            Walker walker,
                            Shard shard,
                            ShardDataProvider dataProvider,
-                           OutputMerger output ) {
+                           ThreadLocalOutputTracker outputTracker ) {
         this.microScheduler = microScheduler;
         this.walker = walker;
         this.traversalEngine = traversalEngine;
         this.shard = shard;
         this.dataProvider = dataProvider;
-        this.output = output;
+        this.outputTracker = outputTracker;
     }
 
     public Object call() {
         long startTime = System.currentTimeMillis(); 
 
         Object accumulator = walker.reduceInit();
-        OutputTracker outputTracker = GenomeAnalysisEngine.instance.getOutputTracker();
-        outputTracker.setLocalStreams( output.getOutStream(), output.getErrStream() );
-
         try {
             accumulator = traversalEngine.traverse( walker, shard, dataProvider, accumulator );
         }
         finally {
             dataProvider.close();
-            output.complete();
-            outputTracker.cleanup();            
+            outputMergeTask = outputTracker.closeStorage();
+
+            synchronized(this) {
+                complete = true;
+                notifyAll();
+            }
         }
 
         long endTime = System.currentTimeMillis();
@@ -66,5 +73,39 @@ public class ShardTraverser implements Callable {
         microScheduler.reportShardTraverseTime(endTime-startTime);
 
         return accumulator;
+    }
+
+    /**
+     * Has this traversal completed?
+     * @return True if completed, false otherwise.
+     */
+    public boolean isComplete() {
+        synchronized(this) {
+            return complete;
+        }
+    }
+
+   /**
+     * Waits for any the given OutputMerger to be ready for merging.
+     */
+    public void waitForComplete() {
+        try {
+            synchronized(this) {
+                if( isComplete() )
+                    return;
+                wait();
+            }
+        }
+        catch( InterruptedException ex ) {
+            throw new StingException("Interrupted while waiting for more output to be finalized.",ex);
+        }
+    }
+
+    /**
+     * Gets the output merge task associated with the given shard.
+     * @return OutputMergeTask if one exists; null if nothing needs to be merged.
+     */
+    public OutputMergeTask getOutputMergeTask() {
+        return outputMergeTask;
     }
 }

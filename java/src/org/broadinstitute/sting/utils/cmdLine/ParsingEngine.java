@@ -61,8 +61,13 @@ public class ParsingEngine {
 
     public ParsingEngine( CommandLineProgram clp ) {
         this.clp = clp;
+
         parsingMethods.add( ParsingMethod.FullNameParsingMethod );
         parsingMethods.add( ParsingMethod.ShortNameParsingMethod );
+
+        // Null check for unit tests.  Perhaps we should mock up an empty CLP?
+        if( clp != null )
+            ArgumentTypeDescriptor.addDescriptors( clp.getArgumentTypeDescriptors() );
     }
 
     /**
@@ -172,7 +177,7 @@ public class ParsingEngine {
 
         // Find invalid arguments.  Invalid arguments will have a null argument definition.
         if( !skipValidationOf.contains(ValidationType.InvalidArgument) ) {
-            Collection<ArgumentMatch> invalidArguments = argumentMatches.findUnmatched();
+            ArgumentMatches invalidArguments = argumentMatches.findUnmatched();
             if( invalidArguments.size() > 0 )
                 throw new InvalidArgumentException( invalidArguments );
         }
@@ -183,7 +188,7 @@ public class ParsingEngine {
                     argumentDefinitions.findArgumentDefinitions( null, ArgumentDefinitions.VerifiableDefinitionMatcher );
             Collection<Pair<ArgumentDefinition,String>> invalidValues = new ArrayList<Pair<ArgumentDefinition,String>>();
             for( ArgumentDefinition verifiableArgument: verifiableArguments ) {
-                Collection<ArgumentMatch> verifiableMatches = argumentMatches.findMatches( verifiableArgument );
+                ArgumentMatches verifiableMatches = argumentMatches.findMatches( verifiableArgument );
                 for( ArgumentMatch verifiableMatch: verifiableMatches ) {
                     for( String value: verifiableMatch.values() ) {
                         if( !value.matches(verifiableArgument.validation) )
@@ -253,15 +258,14 @@ public class ParsingEngine {
      * @param argumentMatches Argument matches to load into the object.
      * @param target
      */
-    private void loadMatchesIntoObject( ArgumentSource source, Object target, Collection<ArgumentMatch> argumentMatches ) {
+    private void loadMatchesIntoObject( ArgumentSource source, Object target, ArgumentMatches argumentMatches ) {
         // Nothing to load
         if( argumentMatches.size() == 0 )
             return;
 
         if( source.clazz.isAssignableFrom(target.getClass()) ) {
-            Object value = source.parse( source, target, argumentMatches.toArray(new ArgumentMatch[0]) );
-            if( clp == null || !clp.intercept(source, target, value) )
-                JVMUtils.setField( source.field, target, value );
+            Object value = source.parse( source, target, argumentMatches );
+            JVMUtils.setField( source.field, target, value );
         }
     }
 
@@ -346,15 +350,32 @@ class MissingArgumentException extends ArgumentException {
     }
 }
 
+class MissingArgumentValueException extends ArgumentException {
+    public MissingArgumentValueException( Collection<ArgumentDefinition> missingArguments ) {
+        super( formatArguments(missingArguments) );
+    }
+
+    private static String formatArguments( Collection<ArgumentDefinition> missingArguments ) {
+        StringBuilder sb = new StringBuilder();
+        for( ArgumentDefinition missingArgument: missingArguments ) {
+            if( missingArgument.shortName != null )
+                sb.append( String.format("%nValue for argument with name '--%s' (-%s) is missing.", missingArgument.fullName, missingArgument.shortName) );
+            else
+                sb.append( String.format("%nValue for argument with name '--%s' is missing.", missingArgument.fullName) );
+        }
+        return sb.toString();
+    }
+}
+
 /**
  * An exception for undefined arguments.
  */
 class InvalidArgumentException extends ArgumentException {
-    public InvalidArgumentException( Collection<ArgumentMatch> invalidArguments ) {
+    public InvalidArgumentException( ArgumentMatches invalidArguments ) {
         super( formatArguments(invalidArguments) );
     }
 
-    private static String formatArguments( Collection<ArgumentMatch> invalidArguments ) {
+    private static String formatArguments( ArgumentMatches invalidArguments ) {
         StringBuilder sb = new StringBuilder();
         for( ArgumentMatch invalidArgument: invalidArguments )
             sb.append( String.format("%nArgument with name '%s' isn't defined.", invalidArgument.label) );

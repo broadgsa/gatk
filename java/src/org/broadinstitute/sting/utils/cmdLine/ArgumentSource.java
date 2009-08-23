@@ -30,7 +30,6 @@ import org.broadinstitute.sting.utils.StingException;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.List;
-import java.util.Collections;
 
 /**
  * Describes the source field which defines a command-line argument.
@@ -52,11 +51,6 @@ public class ArgumentSource {
     public final Field field;
 
     /**
-     * Descriptor for the argument.  Contains name, validation info, etc.
-     */
-    public final Argument descriptor;
-
-    /**
      * Create a new command-line argument target.
      * @param clazz Class containing the argument.
      * @param field Field containing the argument.  Field must be annotated with 'Argument'.
@@ -64,9 +58,6 @@ public class ArgumentSource {
     public ArgumentSource( Class clazz, Field field ) {
         this.clazz = clazz;
         this.field = field;
-        this.descriptor = field.getAnnotation(Argument.class);
-        if( descriptor == null )
-            throw new StingException("Cannot build out a command-line argument without a descriptor.");
     }
 
     /**
@@ -101,7 +92,7 @@ public class ArgumentSource {
      */
     public List<ArgumentDefinition> createArgumentDefinitions() {
         ArgumentTypeDescriptor typeDescriptor = ArgumentTypeDescriptor.create( field.getType() );
-        return typeDescriptor.createArgumentDefinitions( this, descriptor );
+        return typeDescriptor.createArgumentDefinitions( this );
     }
 
     /**
@@ -109,7 +100,7 @@ public class ArgumentSource {
      * @param targetInstance Instance into which to inject the parsed value.
      * @param values String representation of all values passed.
      */
-    public Object parse( ArgumentSource source, Object targetInstance, ArgumentMatch... values ) {
+    public Object parse( ArgumentSource source, Object targetInstance, ArgumentMatches values ) {
         Object value = null;
         if( !isFlag() ) {
             ArgumentTypeDescriptor typeDescriptor = ArgumentTypeDescriptor.create( field.getType() );

@@ -33,6 +33,8 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrde
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.io.OutputTracker;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.*;
@@ -115,6 +117,12 @@ public abstract class MicroScheduler {
      * @return the return type of the walker
      */
     public abstract Object execute(Walker walker, ShardStrategy shardStrategy, int iterations );
+
+    /**
+     * Retrieves the object responsible for tracking and managing output.
+     * @return An output tracker, for loading data in and extracting results.  Will not be null.
+     */
+    public abstract OutputTracker getOutputTracker();
 
 
     /**

@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.OutputTracker;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMFileReader;

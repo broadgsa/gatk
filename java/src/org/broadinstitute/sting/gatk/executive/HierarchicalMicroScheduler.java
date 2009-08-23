@@ -6,21 +6,14 @@ import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.OutputTracker;
-import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.io.*;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.JMException;
-import java.io.File;
-import java.util.List;
 import java.util.Queue;
 import java.util.LinkedList;
 import java.util.Collection;
@@ -29,14 +22,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.lang.management.ManagementFactory;
-
-/**
- * Created by IntelliJ IDEA.
- * User: mhanna
- * Date: Apr 26, 2009
- * Time: 5:41:04 PM
- * To change this template use File | Settings | File Templates.
- */
 
 /**
  * A microscheduler that schedules shards according to a tree-like structure.
@@ -52,9 +37,20 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     /** Manage currently running threads. */
     private ExecutorService threadPool;
 
-    private Queue<Shard> traverseTasks = new LinkedList<Shard>();
-    private Queue<TreeReduceTask> reduceTasks = new LinkedList<TreeReduceTask>();
-    private Queue<OutputMerger> outputMergeTasks = new LinkedList<OutputMerger>();
+    /**
+     * A thread local output tracker for managing output per-thread.
+     */
+    private ThreadLocalOutputTracker outputTracker = new ThreadLocalOutputTracker();
+
+    private final Queue<Shard> traverseTasks = new LinkedList<Shard>();
+    private final Queue<TreeReduceTask> reduceTasks = new LinkedList<TreeReduceTask>();
+
+    /**
+     * Keep a queue of shard traversals, and constantly monitor it to see what output
+     * merge tasks remain.
+     * TODO: Integrate this into the reduce tree.
+     */
+    private final Queue<ShardTraverser> outputMergeTasks = new LinkedList<ShardTraverser>();
 
     /** How many total tasks were in the queue at the start of run. */
     private int totalTraversals = 0;
@@ -115,7 +111,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         while (isShardTraversePending() || isTreeReducePending()) {
             // Too many files sitting around taking up space?  Merge them.
             if (isMergeLimitExceeded())
-                mergeExistingOutput();
+                mergeExistingOutput(false);
 
             // Wait for the next slot in the queue to become free.
             waitForFreeQueueSlot();
@@ -130,7 +126,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
         // Merge any lingering output files.  If these files aren't ready,
         // sit around and wait for them, then merge them.
-        mergeRemainingOutput();
+        mergeExistingOutput(true);
 
         threadPool.shutdown();
 
@@ -147,6 +143,13 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         printOnTraversalDone(result);
 
         return result;
+    }
+
+    /**
+     * @{inheritDoc}
+     */
+    public OutputTracker getOutputTracker() {
+        return outputTracker;
     }
 
     /**
@@ -188,62 +191,43 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
      * @return True if the merging needs to take priority.  False otherwise.
      */
     protected boolean isMergeLimitExceeded() {
-        if (outputMergeTasks.size() < MAX_OUTSTANDING_OUTPUT_MERGES)
-            return false;
-
-        // If any of the first MAX_OUTSTANDING merges aren't ready, the merge limit
-        // has not been exceeded.
-        OutputMerger[] outputMergers = outputMergeTasks.toArray(new OutputMerger[0]);
-        for (int i = 0; i < MAX_OUTSTANDING_OUTPUT_MERGES; i++) {
-            if (!outputMergers[i].isComplete())
-                return false;
+        int pendingTasks = 0;
+        for( ShardTraverser shardTraverse: outputMergeTasks ) {
+            if( !shardTraverse.isComplete() )
+                break;
+            pendingTasks++;
         }
-
-        // Everything's ready?  
-        return true;
-    }
-
-    /**
-     * Returns whether there is output waiting to be merged into the global output
-     * streams right now.
-     *
-     * @return True if this output is ready to be merged.  False otherwise.
-     */
-    protected boolean isOutputMergeReady() {
-        if (outputMergeTasks.size() > 0)
-            return outputMergeTasks.peek().isComplete();
-        else
-            return false;
+        return (outputMergeTasks.size() >= MAX_OUTSTANDING_OUTPUT_MERGES);
     }
 
     /**
      * Merging all output that's sitting ready in the OutputMerger queue into
      * the final data streams.
      */
-    protected void mergeExistingOutput() {
+    protected void mergeExistingOutput( boolean wait ) {
         long startTime = System.currentTimeMillis();
 
-        OutputTracker outputTracker = GenomeAnalysisEngine.instance.getOutputTracker();
-        while (isOutputMergeReady())
-            outputMergeTasks.remove().mergeInto(outputTracker.getGlobalOutStream(), outputTracker.getGlobalErrStream());
+        // Create a list of the merge tasks that will be performed in this run of the mergeExistingOutput().
+        Queue<ShardTraverser> mergeTasksInSession = new LinkedList<ShardTraverser>();
+        while( !outputMergeTasks.isEmpty() ) {
+            ShardTraverser traverser = outputMergeTasks.peek();
 
-        long endTime = System.currentTimeMillis();
+            // If the next traversal isn't done and we're not supposed to wait, we've found our working set.  Continue.
+            if( !traverser.isComplete() && !wait )
+                break;
 
-        totalOutputMergeTime += ( endTime - startTime );
-    }
+            outputMergeTasks.remove();
+            mergeTasksInSession.add(traverser);
+        }
 
-    /** Merge any output that hasn't yet been taken care of by the blocking thread. */
-    protected void mergeRemainingOutput() {
-        long startTime = System.currentTimeMillis();
+        // Actually run through, merging the tasks in the working queue.
+        for( ShardTraverser traverser: mergeTasksInSession ) {
+            if( !traverser.isComplete() )
+                traverser.waitForComplete();
 
-        OutputTracker outputTracker = GenomeAnalysisEngine.instance.getOutputTracker();
-        while (outputMergeTasks.size() > 0) {
-            OutputMerger outputMerger = outputMergeTasks.remove();
-            synchronized (outputMerger) {
-                if (!outputMerger.isComplete())
-                    outputMerger.waitForOutputComplete();
-            }
-            outputMerger.mergeInto(outputTracker.getGlobalOutStream(), outputTracker.getGlobalErrStream());
+            OutputMergeTask mergeTask = traverser.getOutputMergeTask();
+            if( mergeTask != null )
+                mergeTask.merge();
         }
 
         long endTime = System.currentTimeMillis();
@@ -262,25 +246,23 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
             throw new IllegalStateException("Cannot traverse; no pending traversals exist.");
 
         Shard shard = traverseTasks.remove();
-        OutputMerger outputMerger = new OutputMerger();
 
         ShardTraverser traverser = new ShardTraverser(this,
                 traversalEngine,
                 walker,
                 shard,
                 getShardDataProvider(shard),
-                outputMerger);
+                outputTracker);
 
         Future traverseResult = threadPool.submit(traverser);
 
         // Add this traverse result to the reduce tree.  The reduce tree will call a callback to throw its entries on the queue.
         reduceTree.addEntry(traverseResult);
+        outputMergeTasks.add(traverser);
 
         // No more data?  Let the reduce tree know so it can finish processing what it's got.
         if (!isShardTraversePending())
             reduceTree.complete();
-
-        outputMergeTasks.add(outputMerger);
 
         return traverseResult;
     }
@@ -372,7 +354,9 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
     /** {@inheritDoc} */
     public int getNumberOfTasksInIOQueue() {
-        return outputMergeTasks.size();
+        synchronized( outputMergeTasks ) {
+            return outputMergeTasks.size();
+        }
     }
 
     /** {@inheritDoc} */

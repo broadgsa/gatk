@@ -43,6 +43,18 @@ public class Utils {
         throw new StingException(msg);
     }
 
+    /**
+     * Compares two objects, either of which might be null.
+     * @param lhs One object to compare.
+     * @param rhs The other object to compare.
+     * @return True if the two objects are equal, false otherwise.
+     */
+    public static boolean equals(Object lhs, Object rhs) {
+        if( lhs == null && rhs == null ) return true;
+        else if( lhs == null ) return false;
+        else return lhs.equals(rhs);
+    }
+
     public static <T> List<T> cons(final T elt, final List<T> l) {
         List<T> l2 = new ArrayList<T>();
         l2.add(elt);

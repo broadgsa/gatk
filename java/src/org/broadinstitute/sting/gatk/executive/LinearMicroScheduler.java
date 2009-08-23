@@ -6,12 +6,19 @@ import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
+import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.Collection;
 
 /** A micro-scheduling manager for single-threaded execution of a traversal. */
 public class LinearMicroScheduler extends MicroScheduler {
+
+    /**
+     * A direct output tracker for directly managing output.
+     */
+    private DirectOutputTracker outputTracker = new DirectOutputTracker();
 
     /**
      * Create a new linear microscheduler to process the given reads and reference.
@@ -55,5 +62,8 @@ public class LinearMicroScheduler extends MicroScheduler {
         return accumulator;
     }
 
-
+    /**
+     * @{inheritDoc}
+     */
+    public OutputTracker getOutputTracker() { return outputTracker; }
 }

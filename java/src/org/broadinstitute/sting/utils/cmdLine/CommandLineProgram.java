@@ -7,6 +7,8 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.EnumSet;
 import java.util.Enumeration;
+import java.util.Collections;
+import java.util.Collection;
 
 /**
  * User: aaron
@@ -96,6 +98,14 @@ public abstract class CommandLineProgram {
     }
 
     /**
+     * Subclasses of CommandLinePrograms can provide their own types of command-line arguments.  
+     * @return A collection of type descriptors generating implementation-dependent placeholders.
+     */
+    protected Collection<ArgumentTypeDescriptor> getArgumentTypeDescriptors() {
+        return Collections.emptyList();
+    }
+
+    /**
      * Will this application want to vary its argument list dynamically?
      * If so, parse the command-line options and then prompt the subclass to return
      * a list of argument providers.
@@ -108,16 +118,6 @@ public abstract class CommandLineProgram {
      * @return A list of objects to inspect.
      */
     protected Class[] getArgumentSources() { return new Class[] {}; }
-
-    /**
-     * Allows arguments to be hijacked by subclasses of the program before being placed
-     * into plugin classes.
-     * @param source Source class for the argument.
-     * @param targetInstance Instance into which the value should be ultimately injected.
-     * @param value Value to inject.
-     * @return True if the particular field has been hijacked; false otherwise.
-     */
-    protected boolean intercept( ArgumentSource source, Object targetInstance, Object value ) { return false; }
 
     /**
      * Name this argument source.  Provides the (full) class name as a default.
