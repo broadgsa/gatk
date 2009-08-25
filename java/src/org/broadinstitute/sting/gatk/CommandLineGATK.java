@@ -113,7 +113,7 @@ public class CommandLineGATK extends CommandLineExecutable {
         
         final int fieldWidth = maxNameLength + HelpFormatter.FIELD_SEPARATION_WIDTH;
         final int walkersPerLine = Math.min(HelpFormatter.LINE_WIDTH / fieldWidth, 4 );
-        final int columnSpacing = (HelpFormatter.LINE_WIDTH - (fieldWidth * walkersPerLine)) / walkersPerLine;
+        final int columnSpacing = Math.max((HelpFormatter.LINE_WIDTH - (fieldWidth * walkersPerLine)) / walkersPerLine, 1);
 
         int currentWalkerName = 0;
         for( String walkerName: walkerNames ) {
