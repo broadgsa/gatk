@@ -111,7 +111,7 @@ public class VECHomopolymer implements VariantExclusionCriterion {
         exclude =  checkOne || checkTwo || checkThree || checkFour;
     }
 
-    public boolean isExcludable() {
-        return exclude;
+    public double inclusionProbability() {
+        return exclude ? 0.0 : 1.0;
     }
 }

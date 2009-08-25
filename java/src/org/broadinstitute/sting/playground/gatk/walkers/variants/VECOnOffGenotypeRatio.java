@@ -64,11 +64,11 @@ public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // ext
         exclude = ratio < threshold;
     }
 
-    public boolean useZeroQualityReads() { return false; }
-
-    public boolean isExcludable() {
-        return exclude;
+    public double inclusionProbability() {
+        return exclude ? 0.0 : 1.0;
     }
+
+    public boolean useZeroQualityReads() { return false; }
 
     public String getStudyHeader() {
         return "OnOffGenotype("+threshold+")\tOnRatio";
