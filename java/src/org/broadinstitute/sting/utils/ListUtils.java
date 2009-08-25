@@ -2,6 +2,8 @@ package org.broadinstitute.sting.utils;
 
 import java.util.*;
 
+import net.sf.samtools.SAMRecord;
+
 /**
  * Created by IntelliJ IDEA.
  * User: andrew
@@ -66,9 +68,85 @@ public class ListUtils {
         for (int i : indices) {
             subset.add(list.get(i));
         }
-        
+
         return subset;
     }
 
+    public static Comparable orderStatisticSearch(int orderStat, List<Comparable> list) {
+        // this finds the order statistic of the list (kth largest element)
+        // the list is assumed *not* to be sorted
+
+        final Comparable x = list.get(orderStat);
+        ListIterator iterator = list.listIterator();
+        ArrayList lessThanX = new ArrayList();
+        ArrayList equalToX = new ArrayList();
+        ArrayList greaterThanX = new ArrayList();
+
+        for(Comparable y : list) {
+            if(x.compareTo(y) > 0) {
+                lessThanX.add(y);
+            } else if(x.compareTo(y) < 0) {
+                greaterThanX.add(y);
+            } else
+                equalToX.add(y);
+        }
+
+        if(lessThanX.size() > orderStat)
+            return orderStatisticSearch(orderStat, lessThanX);
+        else if(lessThanX.size() + equalToX.size() >= orderStat)
+            return orderStat;
+        else
+            return orderStatisticSearch(orderStat - lessThanX.size() - equalToX.size(), greaterThanX);
+
+    }
+
+
+    public static Object getMedian(List<Comparable> list) {
+        return orderStatisticSearch((int) Math.ceil(list.size()/2), list);
+    }
+
+    public static byte getQScoreOrderStatistic(List<SAMRecord> reads, List<Integer> offsets, int k) {
+        // version of the order statistic calculator for SAMRecord/Integer lists, where the
+        // list index maps to a q-score only through the offset index
+        // returns the kth-largest q-score.
+
+
+        ArrayList lessThanQReads = new ArrayList();
+        ArrayList equalToQReads = new ArrayList();
+        ArrayList greaterThanQReads = new ArrayList();
+        ArrayList lessThanQOffsets = new ArrayList();
+        ArrayList greaterThanQOffsets = new ArrayList();
+
+        final byte qk = reads.get(k).getBaseQualities()[offsets.get(k)];
+
+        for(int iter = 0; iter < reads.size(); iter ++) {
+            SAMRecord read = reads.get(iter);
+            int offset = offsets.get(iter);
+            byte quality = read.getBaseQualities()[offset];
+
+            if(quality < qk) {
+                lessThanQReads.add(read);
+                lessThanQOffsets.add(offset);
+            } else if(quality > qk) {
+                greaterThanQReads.add(read);
+                greaterThanQOffsets.add(offset);
+            } else {
+                equalToQReads.add(reads.get(iter));
+            }
+        }
+
+        if(lessThanQReads.size() > k)
+            return getQScoreOrderStatistic(lessThanQReads, lessThanQOffsets, k);
+        else if(equalToQReads.size() + lessThanQReads.size() >= k)
+            return qk;
+        else
+            return getQScoreOrderStatistic(greaterThanQReads, greaterThanQOffsets, k - lessThanQReads.size() - equalToQReads.size());
+
+    }
+
+
+    public static byte getQScoreMedian(List<SAMRecord> reads, List<Integer> offsets) {
+        return getQScoreOrderStatistic(reads, offsets, (int)Math.floor(reads.size()/2.));
+    }
 
 }

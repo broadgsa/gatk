@@ -8,6 +8,17 @@ import cern.jet.math.Arithmetic;
  * @author Kiran Garimella
  */
 public class MathUtils {
+
+    /** Public constants - used for the Lanczos approximation to the factorial function
+     *  (for the calculation of the binomial/multinomial probability in logspace)
+     * @param LANC_SEQ[] - an array holding the constants which correspond to the product
+     * of Chebyshev Polynomial coefficients, and points on the Gamma function (for interpolation)
+     * [see A Precision Approximation of the Gamma Function J. SIAM Numer. Anal. Ser. B, Vol. 1 1964. pp. 86-96]
+     * @param LANC_G - a value for the Lanczos approximation to the gamma function that works to
+     * high precision 
+     */
+
+
     /** Private constructor.  No instantiating this class! */
     private MathUtils() {}
 
@@ -121,6 +132,45 @@ public class MathUtils {
     }
 
     /**
+     * Performs the calculation for a binomial probability in logspace, preventing the blowups of the binomial coefficient
+     * consistent with moderately large n and k.
+     *
+     * @param k - number of successes/observations
+     * @param n - number of Bernoulli trials
+     * @param p - probability of success/observations
+     *
+     * @return    the probability mass associated with a binomial mass function for the above configuration
+     */
+    public static double binomialProbabilityLog(int k, int n, double p) {
+
+        double log_coef = 0.0;
+        int min;
+        int max;
+
+        if(k < n - k) {
+            min = k;
+            max = n-k;
+        } else {
+            min = n - k;
+            max = k;
+        }
+
+        for(int i=2; i <= min; i++) {
+            log_coef -= Math.log((double)i);
+        }
+
+        for(int i = max+1; i <= n; i++) {
+            log_coef += Math.log((double)i);
+        }
+
+        return Math.exp(log_coef + ((double)k)*Math.log(p) + ((double)(n-k))*Math.log(1-p));
+
+        // in the future, we may want to precompile a table of exact values, where the entry (a,b) indicates
+        // the sum of log(i) from i = (1+(50*a)) to i = 50+(50*b) to increase performance on binomial coefficients
+        // which may require many sums.
+    }
+  
+    /**
      * Computes a multinomial.  This is computed using the formula
      *
      *   M(x1,x2,...,xk; n) = [ n! / (x1! x2! ... xk!) ]
@@ -194,4 +244,6 @@ public class MathUtils {
         rms /= x.length;
         return Math.sqrt(rms);
     }
+
+
 }
