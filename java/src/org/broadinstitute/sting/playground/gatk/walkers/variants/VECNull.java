@@ -10,8 +10,9 @@ public class VECNull implements VariantExclusionCriterion {
     public void compute(char ref, AlignmentContext context, rodVariants variant) {
     }
 
-    public boolean isExcludable() {
-        return false;
+    public double inclusionProbability() {
+        // A hack for now until this filter is actually converted to an empirical filter
+        return 1.0;
     }
 
     public String getStudyHeader() {

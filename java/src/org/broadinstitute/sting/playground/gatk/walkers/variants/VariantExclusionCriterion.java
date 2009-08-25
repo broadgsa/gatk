@@ -8,7 +8,8 @@ public interface VariantExclusionCriterion {
 
     public void compute(char ref, AlignmentContext context, rodVariants variant);
 
-    public boolean isExcludable();
+    //public boolean isExcludable();
+    public double inclusionProbability();
 
     public String getStudyHeader();
 

@@ -27,9 +27,14 @@ public class VECDepthOfCoverage implements VariantExclusionCriterion {
         depth = context.getReads().size();
     }
 
-    public boolean isExcludable() {
-        return exclude;
+    public double inclusionProbability() {
+        // A hack for now until this filter is actually converted to an empirical filter
+        return exclude ? 0.0 : 1.0;
     }
+
+//    public boolean isExcludable() {
+//        return exclude;
+//    }
 
     public String getStudyHeader() {
         return "DepthOfCoverage("+maximum+")\tdepth";

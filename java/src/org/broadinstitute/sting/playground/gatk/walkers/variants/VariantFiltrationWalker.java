@@ -24,19 +24,16 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="variants_out_head", shortName="VOH", doc="File to which modified variants should be written") public String VARIANTS_OUT_HEAD;
     @Argument(fullName="features", shortName="F", doc="Feature test (optionally with arguments) to apply to genotype posteriors.  Syntax: 'testname[:arguments]'", required=false) public String[] FEATURES;
     @Argument(fullName="exclusion_criterion", shortName="X", doc="Exclusion test (optionally with arguments) to apply to variant call.  Syntax: 'testname[:arguments]'", required=false) public String[] EXCLUSIONS;
+    @Argument(fullName="inclusion_threshold", shortName="IT", doc="The product of the probability to include variants based on these filters must be greater than the value specified here in order to be included", required=false) public Double INCLUSION_THRESHOLD = 0.9;
     @Argument(fullName="verbose", shortName="V", doc="Show how the variant likelihoods are changing with the application of each feature") public Boolean VERBOSE = false;
     @Argument(fullName="list", shortName="ls", doc="List the available features and exclusion criteria and exit") public Boolean LIST = false;
-    @Argument(fullName="learning_mode", shortName="LM", doc="Output parseable information on each filter that can then be fed back to the filter as a training set") public Boolean LEARNING = false;
-    @Argument(fullName="truth", shortName="truth", doc="Operate on truth set only") public Boolean TRUTH = false;
 
     private List<Class<? extends IndependentVariantFeature>> featureClasses;
     private List<Class<? extends VariantExclusionCriterion>> exclusionClasses;
 
-    private PrintWriter vwriter;
-    private HashMap<String, PrintWriter> ewriters;
-    private HashMap<String, PrintWriter> swriters;
-    private final String STUDY_NAME = "study";
-    private final String knownSNPDBName = "dbSNP";
+    private PrintWriter variantsWriter;
+    private PrintWriter paramsWriter;
+    private HashMap<String, PrintWriter> exclusionWriters;
 
     private ArrayList<IndependentVariantFeature> requestedFeatures;
     private ArrayList<VariantExclusionCriterion> requestedExclusions;
@@ -55,16 +52,11 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         }
 
         try {
-            vwriter = new PrintWriter(VARIANTS_OUT_HEAD + ".included.geli.calls");
-            vwriter.println(GeliTextWriter.headerLine);
+            variantsWriter = new PrintWriter(VARIANTS_OUT_HEAD + ".included.geli.calls");
+            variantsWriter.println(GeliTextWriter.headerLine);
 
-            swriters = new HashMap<String, PrintWriter>();
-
-            if (LEARNING) {
-                PrintWriter studyWriter = new PrintWriter(VARIANTS_OUT_HEAD + "." + STUDY_NAME);
-                swriters.put(STUDY_NAME, studyWriter);
-                studyWriter.print("Chr\tPosition\t");
-            }
+            paramsWriter = new PrintWriter(VARIANTS_OUT_HEAD + ".params.out");
+            paramsWriter.print("Chr\tPosition\t");
 
             requestedFeatures = new ArrayList<IndependentVariantFeature>();
             requestedExclusions = new ArrayList<VariantExclusionCriterion>();
@@ -85,8 +77,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                                 ivf.initialize(requestedFeatureArgs);
                                 requestedFeatures.add(ivf);
 
-                                if (LEARNING)
-                                    swriters.get(STUDY_NAME).print(ivf.getStudyHeader() + "\t");
+                                paramsWriter.print(ivf.getStudyHeader() + "\t");
                             } catch (InstantiationException e) {
                                 throw new StingException(String.format("Cannot instantiate feature class '%s': must be concrete class", featureClass.getSimpleName()));
                             } catch (IllegalAccessException e) {
@@ -98,7 +89,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             }
 
             // Initialize requested exclusion criteria
-            ewriters = new HashMap<String, PrintWriter>();
+            exclusionWriters = new HashMap<String, PrintWriter>();
 
             if (EXCLUSIONS != null) {
                 for (String requestedExclusionString : EXCLUSIONS) {
@@ -115,13 +106,12 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                                 vec.initialize(requestedExclusionArgs);
                                 requestedExclusions.add(vec);
 
-                                if (LEARNING)
-                                    swriters.get(STUDY_NAME).print(vec.getStudyHeader() + "\t");
+                                paramsWriter.print(vec.getStudyHeader() + "\t");
 
                                 PrintWriter writer = new PrintWriter(VARIANTS_OUT_HEAD + ".excluded." + exclusionClassName + ".geli.calls");
                                 writer.println(GeliTextWriter.headerLine);
 
-                                ewriters.put(exclusionClassName, writer);
+                                exclusionWriters.put(exclusionClassName, writer);
                             } catch (InstantiationException e) {
                                 throw new StingException(String.format("Cannot instantiate exclusion class '%s': must be concrete class", exclusionClass.getSimpleName()));
                             } catch (IllegalAccessException e) {
@@ -132,8 +122,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                 }
             }
 
-            if (LEARNING)
-                swriters.get(STUDY_NAME).print("inDbSNP\tinHapMap\tisHet\n");
+            paramsWriter.print("inDbSNP\tinHapMap\tisHet\n");
         } catch (FileNotFoundException e) {
             throw new StingException(String.format("Could not open file(s) for writing"));
         }
@@ -186,21 +175,13 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         rodVariants variant = (rodVariants) tracker.lookup("variant", null);
         
-        rodGFF hapmapSite = null;
-
-        for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
-            if ( datum != null && datum instanceof rodGFF ) {
-                hapmapSite = (rodGFF) datum;
-            }
-        }
-
         // Ignore places where we don't have a variant or where the reference base is ambiguous.
-        if (variant != null && (!TRUTH || hapmapSite != null) && BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1) {
-            if (VERBOSE) { out.println("Original:\n  " + variant); }
+        if (variant != null && BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1) {
+            HashMap<String, Double> exclusionResults = new HashMap<String, Double>();
 
-            if (LEARNING) {
-                swriters.get(STUDY_NAME).print(context.getLocation().getContig() + "\t" + context.getLocation().getStart() + "\t");
-            }
+            if (VERBOSE) { out.println("Original:\n" + variant); }
+
+            paramsWriter.print(context.getLocation().getContig() + "\t" + context.getLocation().getStart() + "\t");
 
             // Apply features that modify the likelihoods and LOD scores
             for ( IndependentVariantFeature ivf : requestedFeatures ) {
@@ -212,58 +193,61 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
 
                 if (VERBOSE) { out.println(rationalizeClassName(ivf.getClass()) + ":\n  " + variant); }
 
-                if (LEARNING) {
-                    swriters.get(STUDY_NAME).print(ivf.getStudyInfo() + "\t");
-                }
+                paramsWriter.print(ivf.getStudyInfo() + "\t");
             }
 
-            // Apply exclusion tests that accept or reject the variant call
-            ArrayList<String> exclusionResults = new ArrayList<String>();
-
-            // we need to provide an alternative context without mapping quality 0 reads
+            // We need to provide an alternative context without mapping quality 0 reads
             // for those exclusion criterion that don't want them
             AlignmentContext Q0freeContext = removeQ0reads(context);
 
+            // Apply exclusion tests that score the variant call
+            if (VERBOSE) {
+                out.print("InclusionProbabilities:[");
+            }
+
+            // Use the filters to score the variant
+            double jointInclusionProbability = 1.0;
             for ( VariantExclusionCriterion vec : requestedExclusions ) {
                 vec.compute(ref.getBase(), (vec.useZeroQualityReads() ? context : Q0freeContext), variant);
 
                 String exclusionClassName = rationalizeClassName(vec.getClass());
 
-                if (vec.isExcludable()) {
-                    exclusionResults.add(exclusionClassName);
-                }
+                Double inclusionProbability = vec.inclusionProbability();
+                jointInclusionProbability *= inclusionProbability;
+                exclusionResults.put(exclusionClassName, inclusionProbability);
 
-                if (LEARNING) {
-                    swriters.get(STUDY_NAME).print(vec.getStudyInfo() + "\t");
-                }
-            }
-
-            if (exclusionResults.size() > 0) {
-                String exclusions = "";
-                for (int i = 0; i < exclusionResults.size(); i++) {
-                    exclusions += exclusionResults.get(i) + (i == exclusionResults.size() - 1 ? "" : ",");
-
-                    PrintWriter writer = ewriters.get(exclusionResults.get(i));
-                    if (writer != null) {
-                        writer.println(variant);
+                if (inclusionProbability < INCLUSION_THRESHOLD) {
+                    PrintWriter ewriter = exclusionWriters.get(exclusionClassName);
+                    if (ewriter != null) {
+                        ewriter.println(variant);
+                        ewriter.flush();
                     }
                 }
-                
-                if (VERBOSE) { out.printf("Exclusions: %s\n", exclusions); }
+
+                if (VERBOSE) {
+                    out.print(exclusionClassName + "=" + inclusionProbability + ";");
+                }
+
+                paramsWriter.print(vec.getStudyInfo() + "\t");
+            }
+
+            // Decide whether we should keep the call or not
+            if (jointInclusionProbability >= INCLUSION_THRESHOLD) {
+                variantsWriter.println(variant);
+
+                if (VERBOSE) { out.println("] JointInclusionProbability:" + jointInclusionProbability + " State:included\n"); }
             } else {
-                vwriter.println(variant);
+                if (VERBOSE) { out.println("] JointInclusionProbability:" + jointInclusionProbability + " State:excluded\n"); }
             }
 
-            if (VERBOSE) { out.println(); }
-
-            if (LEARNING) {
-                rodDbSNP dbsnp = (rodDbSNP)tracker.lookup(knownSNPDBName, null);
-                if ( dbsnp == null )
-                    swriters.get(STUDY_NAME).print("false\tfalse\t");
-                else
-                    swriters.get(STUDY_NAME).print(dbsnp.isSNP() + "\t" + dbsnp.isHapmap() + "\t");
-                swriters.get(STUDY_NAME).println(GenotypeUtils.isHet(variant));
+            rodDbSNP dbsnp = (rodDbSNP) tracker.lookup("dbSNP", null);
+            if ( dbsnp == null ) {
+                paramsWriter.print("false\tfalse\t");
+            } else {
+                paramsWriter.print(dbsnp.isSNP() + "\t" + dbsnp.isHapmap() + "\t");
             }
+
+            paramsWriter.println(GenotypeUtils.isHet(variant));
 
             return 1;
         }
@@ -312,14 +296,11 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     public void onTraversalDone(Integer result) {
         out.printf("Processed %d loci.\n", result);
 
-        vwriter.close();
+        variantsWriter.close();
+        paramsWriter.close();
 
-        for (PrintWriter ewriter : ewriters.values()) {
+        for (PrintWriter ewriter : exclusionWriters.values()) {
             ewriter.close();
-        }
-
-        for (PrintWriter swriter : swriters.values()) {
-            swriter.close();
         }
     }
 }

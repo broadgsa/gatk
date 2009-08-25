@@ -69,8 +69,9 @@ public class VECAlleleBalance implements VariantExclusionCriterion {  //extends 
 
     public boolean useZeroQualityReads() { return false; }
 
-    public boolean isExcludable() {
-        return exclude;
+    public double inclusionProbability() {
+        // A hack for now until this filter is actually converted to an empirical filter
+        return exclude ? 0.0 : 1.0;
     }
 
     public String getStudyHeader() {
