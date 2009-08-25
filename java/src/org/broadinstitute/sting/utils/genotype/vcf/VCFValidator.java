@@ -2,6 +2,9 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 
 
 import java.io.File;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -24,7 +27,7 @@ public class VCFValidator {
      * and if no errors pop up in processing, well hey, looks good to us.
      *
      * @param args the vcf file is the only required parameter, with the optional -A indicating that errors
-     * should be held until the end of processing
+     *             should be held until the end of processing
      */
     public static void main(String[] args) {
         boolean catchAll = false;
@@ -37,13 +40,14 @@ public class VCFValidator {
             printUsage();
             return;
         }
+        printHeader(args[(catchAll) ? 1 : 0]);
         File vcfFile = new File(args[(catchAll) ? 1 : 0]);
         if (!vcfFile.exists()) {
             System.err.println("Specified VCF file doesn't exist, please check the input file\n");
             printUsage();
             return;
         }
-        // count hom many records we see
+        // count hom many records we've see
         int recordCount = 0;
         Map<Integer, Exception> problems = new TreeMap<Integer, Exception>();
 
@@ -53,24 +57,28 @@ public class VCFValidator {
 
             // the number of samples should be set in the header and consistant over all records
             final int sampleCount = reader.getHeader().getGenotypeSamples().size();
-            while (reader.hasNext()) {
+            boolean keepGoing = true;
+            while (keepGoing) {
                 try {
-                    recordCount++;
-                    VCFRecord rec = reader.next();
-                    // if the header indicates we have genotyping data, try to extract it for all samples
-                    if (reader.getHeader().hasGenotypingData()) {
-                        int sampleCounter = 0;
-                        for (VCFGenotypeRecord genorec : rec.getVCFGenotypeRecords()) {
-                            sampleCounter++;
-                            /**
-                             * just cycle through the records right now; any additional checks for
-                             * the records should go in this block.
-                             **/
+                    recordCount++;                                            
+                    keepGoing = reader.hasNext();
+                    if (keepGoing) {
+                        VCFRecord rec = reader.next();
+                        // if the header indicates we have genotyping data, try to extract it for all samples
+                        if (reader.getHeader().hasGenotypingData()) {
+                            int sampleCounter = 0;
+                            for (VCFGenotypeRecord genorec : rec.getVCFGenotypeRecords()) {
+                                sampleCounter++;
+                                /**
+                                 * just cycle through the records right now; any additional checks for
+                                 * the records should go in this block.
+                                 **/
+                            }
+                            if (sampleCounter != sampleCount)
+                                throw new RuntimeException("Record " + recordCount + " does not have the required number " +
+                                        "of records (" + sampleCounter + " in the record, " + sampleCount + " in the header)");
+
                         }
-                        if (sampleCounter != sampleCount)
-                            throw new RuntimeException("Record " + recordCount + " does not have the required number " +
-                                    "of records (" + sampleCounter + " in the record, " + sampleCount + " in the header)");
-                        
                     }
                 } catch (Exception e) {
                     if (catchAll)
@@ -82,9 +90,10 @@ public class VCFValidator {
                 }
             }
         } catch (Exception e) {
-            if (catchAll)
+            if (catchAll) {
                 problems.put(new Integer(0), e);
-            else
+                e.printStackTrace();
+            } else
                 validationFailed(e, recordCount);
         }
         System.err.println("Viewed " + recordCount + " VCF record entries.");
@@ -108,9 +117,7 @@ public class VCFValidator {
         e.printStackTrace();
     }
 
-    /**
-     * print the usage information for the VCF validator
-     */
+    /** print the usage information for the VCF validator */
     public static void printUsage() {
         System.err.println("VCF validator (VCF Version " + VCF_VERSION + ")");
         System.err.println("Usage:");
@@ -121,4 +128,16 @@ public class VCFValidator {
         System.err.println("");
     }
 
+    public static void printHeader(String file) {
+        System.err.println("-------------------------------------------");
+        System.err.println("VCF Validator v1.0\n");
+        System.err.println("Run on file " + file + " at " + getDateTime());
+        System.err.println("-------------------------------------------");                
+    }
+
+    private static String getDateTime() {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        Date date = new Date();
+        return dateFormat.format(date);
+    }
 }

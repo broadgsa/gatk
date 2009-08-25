@@ -46,15 +46,12 @@ public class VCFWriterTest extends BaseTest {
      * @return a fake VCF header
      */
     private VCFHeader createFakeHeader() {
-        for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
-            headerFields.add(field);
-        }
         metaData.put("format", "VCRv3.2"); // required
         metaData.put("two", "2");
         additionalColumns.add("FORMAT");
         additionalColumns.add("extra1");
         additionalColumns.add("extra2");
-        return new VCFHeader(headerFields, metaData, additionalColumns);
+        return new VCFHeader(metaData, additionalColumns);
     }
 
     /**

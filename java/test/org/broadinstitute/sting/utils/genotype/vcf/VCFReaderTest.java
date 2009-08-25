@@ -16,6 +16,11 @@ public class VCFReaderTest extends BaseTest {
 
     @Test
     public void testVCFInput() {
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
         VCFReader reader = new VCFReader(vcfFile);
         int counter = 0;
         while (reader.hasNext()) {

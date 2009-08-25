@@ -48,7 +48,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
                 lines.add(line);
                 line = mReader.readLine();
             }
-            mHeader = this.createHeader(lines);
+            mHeader = this.createHeader(lines);            
             mNextRecord = createRecord(line, mHeader);
         } catch (IOException e) {
             throw new RuntimeException("VCFReader: Failed to parse VCF File on line: " + line, e);
@@ -126,7 +126,6 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
     protected VCFHeader createHeader(List<String> headerStrings) {
 
         Map<String, String> metaData = new HashMap<String, String>();
-        Set<VCFHeader.HEADER_FIELDS> headerFields = new LinkedHashSet<VCFHeader.HEADER_FIELDS>();
         List<String> auxTags = new ArrayList<String>();
         // iterate over all the passed in strings
         for (String str : headerStrings) {
@@ -142,32 +141,28 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         }
 
         // iterate over all the passed in strings
-        for (String str : headerStrings) {
+        for (String str : headerStrings) {  // TODO: fix, we shouldn't loop over every line
             if (str.startsWith("#") && !str.startsWith("##")) {
                 String[] strings = str.substring(1).split("\\s+");
-                for (String s : strings) {
-                    VCFHeader.HEADER_FIELDS field;
+                // the columns should be in order according to Richard Durbin
+                int arrayIndex = 0;
+                for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
                     try {
-                        field = VCFHeader.HEADER_FIELDS.valueOf(s);
+                        if (field != VCFHeader.HEADER_FIELDS.valueOf(strings[arrayIndex]))
+                            throw new RuntimeException("VCFReader: we were expecting column name " + field + " but we saw " + strings[arrayIndex]);
                     } catch (IllegalArgumentException e) {
-                        throw new RuntimeException("VCFReader: Unknown column name \"" + s + "\", it does not match a known column header name.");
+                        throw new RuntimeException("VCFReader: Unknown column name \"" + strings[arrayIndex] + "\", it does not match a known column header name.");
                     }
-                    if (headerFields.contains(field))
-                        throw new RuntimeException("VCFReader: Header field duplication is not allowed");
-                    try {
-                        headerFields.add(VCFHeader.HEADER_FIELDS.valueOf(s));
-                    } catch (IllegalArgumentException e) {
-                        if (!s.equals("FORMAT"))
-                            auxTags.add(s);
-                    }
+                    arrayIndex++;
+                }
+                while (arrayIndex < strings.length) {
+                    if (!strings[arrayIndex].equals("FORMAT"))
+                        auxTags.add(strings[arrayIndex]);
+                    arrayIndex++;
                 }
             }
         }
-        if (headerFields.size() != VCFHeader.HEADER_FIELDS.values().length) {
-            throw new RuntimeException("VCFReader: The VCF column header line is missing " + (VCFHeader.HEADER_FIELDS.values().length - headerFields.size())
-                    + " of the " + VCFHeader.HEADER_FIELDS.values().length + " required fields");
-        }
-        return new VCFHeader(headerFields, metaData, auxTags);
+        return new VCFHeader(metaData, auxTags);
     }
 
     /**
@@ -221,7 +216,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         Map<String, String> tagToValue = new HashMap<String, String>();
         VCFGenotypeRecord.PHASE phase = VCFGenotypeRecord.PHASE.UNKNOWN;
         List<String> bases = new ArrayList<String>();
-
+        int addedCount = 0;
         String keyStrings[] = formatString.split(":");
         for (String key : keyStrings) {
             String parse;
@@ -236,17 +231,23 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
             if (key.equals("GT")) {
                 Matcher m = gtPattern.matcher(parse);
                 if (!m.matches())
-                    throw new RuntimeException("Ubable to match GT genotype flag to it's regular expression");
+                    throw new RuntimeException("VCFReader: Unable to match GT genotype flag to it's expected pattern, the field was: " + parse);
                 phase = VCFGenotypeRecord.determinePhase(m.group(2));
                 addAllele(m.group(1), altAlleles, referenceBase, bases);
                 if (m.group(3).length() > 0) addAllele(m.group(3), altAlleles, referenceBase, bases);
             }
             tagToValue.put(key, parse);
+            addedCount++;
             if (nextDivider + 1 >= genotypeString.length()) nextDivider = genotypeString.length() - 1;
             genotypeString = genotypeString.substring(nextDivider + 1, genotypeString.length());
         }
-        if (keyStrings.length != tagToValue.size() || genotypeString.length() > 0)
-            throw new RuntimeException("genotype value count doesn't match the key count");
+        // catch some common errors, either there are too many field keys or there are two many field values
+        if (keyStrings.length != tagToValue.size())
+            throw new RuntimeException("VCFReader: genotype value count doesn't match the key count (expected "
+                    + keyStrings.length + " but saw " + tagToValue.size() + ")");
+        else if (genotypeString.length() > 0)
+            throw new RuntimeException("VCFReader: genotype string contained additional unprocessed fields: " + genotypeString
+                    + ".  This most likely means that the format string is shorter then the value fields.");
         return new VCFGenotypeRecord(sampleName, tagToValue, bases, phase, referenceBase);
     }
 

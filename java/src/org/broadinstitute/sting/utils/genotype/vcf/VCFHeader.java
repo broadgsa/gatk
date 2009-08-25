@@ -19,9 +19,6 @@ public class VCFHeader {
         CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO
     }
 
-    // our header field ordering, as a linked hash set to guarantee ordering
-    private Set<HEADER_FIELDS> mHeaderFields = new LinkedHashSet<HEADER_FIELDS>();
-
     // the associated meta data
     private final Map<String, String> mMetaData = new HashMap<String, String>();
 
@@ -46,11 +43,9 @@ public class VCFHeader {
     /**
      * create a VCF header, given a list of meta data and auxillary tags
      *
-     * @param headerFields the required header fields, in order they're presented
      * @param metaData     the meta data associated with this header
      */
-    protected VCFHeader(Set<HEADER_FIELDS> headerFields, Map<String, String> metaData) {
-        for (HEADER_FIELDS field : headerFields) mHeaderFields.add(field);
+    protected VCFHeader(Map<String, String> metaData) {
         for (String key : metaData.keySet()) mMetaData.put(key, metaData.get(key));
         checkVCFVersion();
     }
@@ -58,18 +53,16 @@ public class VCFHeader {
     /**
      * create a VCF header, given a list of meta data and auxillary tags
      *
-     * @param headerFields        the required header fields, in order they're presented
      * @param metaData            the meta data associated with this header
      * @param genotypeSampleNames the genotype format field, and the sample names
      */
-    protected VCFHeader(Set<HEADER_FIELDS> headerFields, Map<String, String> metaData, List<String> genotypeSampleNames) {
-        for (HEADER_FIELDS field : headerFields) mHeaderFields.add(field);
+    protected VCFHeader(Map<String, String> metaData, List<String> genotypeSampleNames) {
         for (String key : metaData.keySet()) mMetaData.put(key, metaData.get(key));
         for (String col : genotypeSampleNames) {
             if (!col.equals("FORMAT"))
                 mGenotypeSampleNames.add(col);
         }
-        hasGenotypingData = true;
+        if (genotypeSampleNames.size() > 0) hasGenotypingData = true;
         checkVCFVersion();
     }
 
@@ -88,12 +81,16 @@ public class VCFHeader {
     }
 
     /**
-     * get the header fields in order they're presented in the input file
+     * get the header fields in order they're presented in the input file (which is now required to be
+     * the order presented in the spec).
      *
      * @return a set of the header fields, in order
      */
     public Set<HEADER_FIELDS> getHeaderFields() {
-        return mHeaderFields;
+        Set<HEADER_FIELDS> fields = new LinkedHashSet<HEADER_FIELDS>();
+        for (HEADER_FIELDS field : HEADER_FIELDS.values())
+            fields.add(field);
+        return fields;
     }
 
     /**
@@ -125,7 +122,7 @@ public class VCFHeader {
 
     /** @return the column count, */
     public int getColumnCount() {
-        return mHeaderFields.size() + ((hasGenotypingData) ? mGenotypeSampleNames.size() + 1 : 0);
+        return HEADER_FIELDS.values().length + ((hasGenotypingData) ? mGenotypeSampleNames.size() + 1 : 0);
     }
 }
 

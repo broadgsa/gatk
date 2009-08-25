@@ -26,16 +26,13 @@ public class VCFHeaderTest extends BaseTest {
      */
     @Test
     public void testHeaderConstructor() {
-        for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
-            headerFields.add(field);
-        }
         metaData.put("format","VCRv3.2");
         metaData.put("two","2");
         additionalColumns.add("extra1");
         additionalColumns.add("extra2");
         // this should create a header that is valid
 
-        VCFHeader header = new VCFHeader(headerFields, metaData, additionalColumns);
+        VCFHeader header = new VCFHeader(metaData, additionalColumns);
 
         // check the fields
         int index = 0;
