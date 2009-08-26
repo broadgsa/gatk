@@ -29,6 +29,8 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
         String pathToSyzygyFile = null;
     @Argument(fullName = "ColumnOffset", shortName = "co", doc = "Offset of column containing the power in the pf", required = true)
         int colOffset = 0;
+    @Argument(fullName = "linesToClear", shortName="clr", doc = "Clear so many lines from the read file before starting (default - just the header line)", required = false)
+        int clrLines = 1;
 
     BufferedReader syzyFileReader;
     final String pfFileDelimiter = " ";
@@ -40,7 +42,9 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
         super.initialize();
         try {
             syzyFileReader = new BufferedReader(new FileReader(pathToSyzygyFile));
-            syzyFileReader.readLine();
+            for(int clear = 0; clear < clrLines; clear++) {
+                syzyFileReader.readLine();
+            }
         } catch (FileNotFoundException e) {
             String newErrMsg = "Syzygy input file " + pathToSyzygyFile + " could be incorrect. File not found.";
             throw new StingException(newErrMsg,e);
@@ -69,8 +73,8 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
             if(!syzyFileIsReady) {
                 throw new StingException("Input file reader was not ready before an attempt to read from it.");
             } else if(!outOfLinesInSyzyFile) {
-                double syzyPow = getSyzyPowFromFile();
-                out.printf("%s: %d %d %f %f%n", context.getLocation(), context.getReads().size(),powpair.second,powpair.first,syzyPow);
+                Pair<Double,String> syzyPow = getSyzyPowFromFile();
+                out.printf("%s: %d %d %f %f (%s)%n", context.getLocation(), context.getReads().size(),powpair.second,powpair.first,syzyPow.first,syzyPow.second);
             } else {
                 out.printf("%s: %d %d %f%n", context.getLocation(), context.getReads().size(),powpair.second,powpair.first);
             }
@@ -79,7 +83,7 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
         return context.getReads().size();
     }
 
-    public double getSyzyPowFromFile() {
+    public Pair<Double,String> getSyzyPowFromFile() {
         String thisLine = null;
         try {
             thisLine = syzyFileReader.readLine();
@@ -87,15 +91,17 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
             String newErrMsg = "Ran out of lines in the syzyfile; further output of Syzygy power will be suppressed.";
             outOfLinesInSyzyFile=true;
             logger.warn(newErrMsg + " " + e.toString());
-            return -1.1;
+            return new Pair(-1.1, "Printing Stops Here");
         }
 
+        String chromPos = null;
         StringTokenizer lineTokenizer = new StringTokenizer(thisLine, pfFileDelimiter);
         try {
-            for(int j = 0; j < colOffset; j++) {
+            chromPos = lineTokenizer.nextToken();
+            for(int j = 1; j < colOffset; j++) {
                 lineTokenizer.nextToken();
             }
-            return (Double.valueOf(lineTokenizer.nextToken())/100.0);
+            return new Pair((Double.valueOf(lineTokenizer.nextToken())/100.0),chromPos);
         } catch (NoSuchElementException e) {
             String errMsg = "The given column offset for the pool, " + colOffset + " exceeded the number of entries in the file " + pathToSyzygyFile;
             throw new StingException(errMsg);

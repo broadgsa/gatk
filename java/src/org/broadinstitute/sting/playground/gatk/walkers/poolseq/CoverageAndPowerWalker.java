@@ -32,15 +32,10 @@ public class CoverageAndPowerWalker extends LocusWalker<Integer, Pair<Long, Long
 
     @Argument(fullName="lodThreshold", shortName="lt", doc="Threshold for LOD score for calls")
         public double threshold = 3.0;
-
-
      
     private static final int BOOTSTRAP_ITERATIONS = 300;
 
-
-    @Override
-    public void initialize()
-    {
+    public void initialize() {
 
         if(num_individuals <= 0)
             throw new IllegalArgumentException("Positive nonzero parameter expected for poolSize");
@@ -117,9 +112,7 @@ public class CoverageAndPowerWalker extends LocusWalker<Integer, Pair<Long, Long
         double pow = 0;
 
         if(depth - kaccept < kaccept) {// kaccept > depth/2 - calculate power as P[hits between k and depth]
-
             for(int k = kaccept; k < depth; k++) {
-
                 pow += MathUtils.binomialProbabilityLog(k, depth, snp_prop);
             }
 
@@ -153,14 +146,8 @@ public class CoverageAndPowerWalker extends LocusWalker<Integer, Pair<Long, Long
         if (depth <= 0) {
             result = new Pair(-1,-1);
         } else if (!use_bootstrap) { // object data from command line
-
             result = powerTheoretical(depth, reads, offsets, single_snip_proportion);
-        } else {
-
-            //
-            // otherwise, bootstrapping occurs below
-            //
-
+        } else { // otherwise, bootstrapping occurs below
             int hypothesis_rejections=0;
 
             for(int boot = 0; boot < BOOTSTRAP_ITERATIONS; boot++)
@@ -196,15 +183,7 @@ public class CoverageAndPowerWalker extends LocusWalker<Integer, Pair<Long, Long
 
     public int randomlySelectRead(int depth)
     {
-        double qscore_selector = Math.random();
-        int readspositionrandom;
-        for(readspositionrandom = 1; readspositionrandom < ((double)depth * qscore_selector); readspositionrandom ++) {
-            if(readspositionrandom > depth + 1) {
-                throw new RuntimeException("qscore iterator exceeding possible thresholds");
-            }
-        }
-
-        return readspositionrandom - 1;
+        return (int) Math.floor((double)depth * Math.random());
     }
 
 

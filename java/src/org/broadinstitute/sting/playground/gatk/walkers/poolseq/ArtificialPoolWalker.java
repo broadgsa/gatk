@@ -54,6 +54,7 @@ public class ArtificialPoolWalker extends LocusWalker<List<SAMRecord>[], SAMFile
     private LinkedList<Integer>[] living_reads;
     private SingleSampleGenotyper ssg;
     private int npeople;
+    //TODO: LOCAL CLASS FOR ALL THIS
     //@param local_genotypes - holds the genotype (A A/ A C/ etc) for each individual. Updates at each locus.
     //@param auxWrite - the writer to the auxiliary file
     //@param readGroupSets : holds the readgroups (identifiers for individuals from each read)
@@ -86,8 +87,6 @@ public class ArtificialPoolWalker extends LocusWalker<List<SAMRecord>[], SAMFile
 
         if(red_prop <= 0) {
             red_prop =  1.0/npeople;
-        } else {
-            // do nothing muhahaha
         }
 
         // initialize the local genotype array
@@ -112,7 +111,7 @@ public class ArtificialPoolWalker extends LocusWalker<List<SAMRecord>[], SAMFile
 
         updateLiving();
         // each time we move to the next locus, remove from the coverage count those reads that ended
-        auxWrite.printf("%s:%s",context.getContig(),context.getPosition());
+        auxWrite.printf("%s:%s",context.getContig(),context.getPosition());    // TODO: PUT IN REDUCE
 
         return getNewReadsAndGenotypesByGroup(tracker, ref, context);
     }
@@ -134,7 +133,6 @@ public class ArtificialPoolWalker extends LocusWalker<List<SAMRecord>[], SAMFile
         List<SAMRecord>[] randomReadsByGroup = drawReadsRandomlyFromReadsByGroup(readsByReadGroup,sought_coverage);
         printToFileAndAuxFile(randomReadsByGroup,sought_coverage,outFile);
         return outFile;
-
     }
 
 
