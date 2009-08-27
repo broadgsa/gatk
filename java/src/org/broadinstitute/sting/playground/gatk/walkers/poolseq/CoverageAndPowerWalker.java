@@ -7,6 +7,8 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ListUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.playground.utils.PoolUtils;
@@ -21,6 +23,8 @@ import java.util.*;
  * Time: 11:57:07 AM
  * To change this template use File | Settings | File Templates.
  */
+
+@By(DataSource.REFERENCE)
 public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, Pair<Long, Long>> {
     @Argument(fullName="suppressLocusPrinting",doc="Suppress printing",required=false)
         public boolean suppress_printing = false;

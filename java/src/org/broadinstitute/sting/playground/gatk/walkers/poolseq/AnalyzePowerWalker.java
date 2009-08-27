@@ -6,6 +6,8 @@ import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.walkers.By;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.playground.utils.PoolUtils;
 
 import java.io.FileNotFoundException;
@@ -26,6 +28,7 @@ import net.sf.samtools.SAMRecord;
  * Time: 3:47:47 PM
  * To change this template use File | Settings | File Templates.
  */
+@By(DataSource.REFERENCE)
 public class AnalyzePowerWalker extends CoverageAndPowerWalker{
     // runs CoverageAndPowerWalker except compares to Syzygy outputs in a file
 
@@ -44,7 +47,7 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
         super.initialize();
         try {
             syzyFileReader = new BufferedReader(new FileReader(pathToSyzygyFile));
-            syzyFileReader.readLine();
+            System.out.println(syzyFileReader.readLine());
         } catch (FileNotFoundException e) {
             String newErrMsg = "Syzygy input file " + pathToSyzygyFile + " could be incorrect. File not found.";
             throw new StingException(newErrMsg,e);
@@ -62,23 +65,27 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
         Pair<Pair<List<SAMRecord>, List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> splitReads = PoolUtils.splitReadsByReadDirection(context.getReads(),context.getOffsets());
         if ( !super.suppress_printing )
         {
-            Pair<double[],byte[]> powpair = super.calculatePower(splitReads,false,context);
+            Pair<double[],byte[]> powPair = super.calculatePower(splitReads,false,context);
 
-            boolean syzyFileIsReady;
+            boolean syzyFileIsReady=true;
             try {
                 syzyFileIsReady = syzyFileReader.ready();
             }
             catch(IOException e) {
-                syzyFileIsReady = false;
+                throw new StingException("Input file reader was not ready before an attempt to read from it", e);
             }
 
             if(!syzyFileIsReady) {
-                throw new StingException("Input file reader was not ready before an attempt to read from it.");
+                throw new StingException("Input file reader was not ready before an attempt to read from it, but there was no IOException");
             } else if(!outOfLinesInSyzyFile) {
                 Pair<Double,String> syzyPow = getSyzyPowFromFile();
-                out.printf("%s: %d %d %f %f (%s)%n", context.getLocation(), context.getReads().size(),powpair.second,powpair.first,syzyPow.first,syzyPow.second);
+                out.printf("%s: %d %d %d %d %d %d %f %f %f %f |%s%n", context.getLocation(), splitReads.getFirst().getFirst().size(), splitReads.getFirst().getSecond().size(),
+                        context.getReads().size(), powPair.getSecond()[0], powPair.getSecond()[1], powPair.getSecond()[2],
+                        powPair.getFirst()[0], powPair.getFirst()[1], powPair.getFirst()[2], syzyPow.getFirst(), syzyPow.getSecond());
             } else {
-                out.printf("%s: %d %d %f%n", context.getLocation(), context.getReads().size(),powpair.second,powpair.first);
+                out.printf("%s: $d %d %d %d %d %d %d %f %f %f%n", context.getLocation(), splitReads.getFirst().getFirst().size(), splitReads.getFirst().getSecond().size(),
+                        context.getReads().size(), powPair.getSecond()[0], powPair.getSecond()[1], powPair.getSecond()[2],
+                        powPair.getFirst()[0], powPair.getFirst()[1], powPair.getFirst()[2]);
             }
         }
 
