@@ -197,7 +197,7 @@ public class BaseUtils {
      * @param base  the base [AaCcGgTt]
      * @return the complementary base, or the input base if it's not one of the understood ones
      */
-    static public byte simpleComplement(char base) {
+    static public char simpleComplement(char base) {
         switch (base) {
             case 'A':
             case 'a': return 'T';
@@ -207,7 +207,7 @@ public class BaseUtils {
             case 'g': return 'C';
             case 'T':
             case 't': return 'A';
-            default: return (byte) base;
+            default: return base;
         }
     }
 
@@ -221,7 +221,7 @@ public class BaseUtils {
         byte[] rcbases = new byte[bases.length];
 
         for (int i = 0; i < bases.length; i++) {
-            rcbases[i] = simpleComplement((char) bases[bases.length - 1 - i]);
+            rcbases[i] = (byte)simpleComplement((char) bases[bases.length - 1 - i]);
         }
 
         return rcbases;
