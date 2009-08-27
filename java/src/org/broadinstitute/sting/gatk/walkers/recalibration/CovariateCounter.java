@@ -121,9 +121,9 @@ public class CovariateCounter {
         char prevBase = (char)bases[offset - 1];
 
         if (read.getReadNegativeStrandFlag()) {
-            ref = (char)BaseUtils.simpleComplement(ref);
-            base = (char)BaseUtils.simpleComplement(base);
-            prevBase = (char)BaseUtils.simpleComplement((char)bases[offset+1]);
+            ref = BaseUtils.simpleComplement(ref);
+            base = BaseUtils.simpleComplement(base);
+            prevBase = BaseUtils.simpleComplement((char)bases[offset+1]);
             cycle = read.getReadLength() - (offset + 1);
         }
 
