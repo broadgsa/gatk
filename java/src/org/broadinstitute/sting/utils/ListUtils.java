@@ -110,7 +110,10 @@ public class ListUtils {
         // list index maps to a q-score only through the offset index
         // returns the kth-largest q-score.
 
-
+        if( reads.size() == 0) {
+            return 0;
+        }
+        
         ArrayList lessThanQReads = new ArrayList();
         ArrayList equalToQReads = new ArrayList();
         ArrayList greaterThanQReads = new ArrayList();

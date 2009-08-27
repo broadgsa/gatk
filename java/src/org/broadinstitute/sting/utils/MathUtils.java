@@ -169,6 +169,23 @@ public class MathUtils {
         // the sum of log(i) from i = (1+(50*a)) to i = 50+(50*b) to increase performance on binomial coefficients
         // which may require many sums.
     }
+
+    /**
+     * Performs the cumulative sum of binomial probabilities, where the probability calculation is done in log space.
+     * @param start - start of the cumulant sum (over hits)
+     * @param end - end of the cumulant sum (over hits)
+     * @param total - number of attempts for the number of hits
+     * @param probHit - probability of a successful hit
+     * @return - returns the cumulative probability
+     */
+    public static double cumBinomialProbLog(int start, int end, int total, double probHit) {
+        double cumProb = 0.0;
+        for(int hits = start; hits < end; hits++) {
+            cumProb += binomialProbabilityLog(hits, total, probHit);
+        }
+
+        return cumProb;
+    }
   
     /**
      * Computes a multinomial.  This is computed using the formula
