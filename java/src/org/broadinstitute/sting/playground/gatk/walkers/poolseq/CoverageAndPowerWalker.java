@@ -43,6 +43,9 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
     }
 
     public Pair<Long,Long> reduceInit() {
+        if ( ! suppress_printing ) { // print header
+            out.printf("%s%n",createHeaderString());
+        }
         return new Pair(0l,0l);
     }
 
@@ -152,6 +155,10 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
         }
 
         return power;
+    }
+
+    public String createHeaderString() {
+        return "Chrom:Pos  CvgF  CvgR  CvgC  QmedF  QmedR  QmedC  PowF  PowR  PowC";
     }
 
     // class methods

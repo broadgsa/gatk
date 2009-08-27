@@ -6,6 +6,7 @@ import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.playground.utils.PoolUtils;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -13,7 +14,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.StringTokenizer;
 import java.util.NoSuchElementException;
+import java.util.List;
 import java.rmi.NoSuchObjectException;
+
+import net.sf.samtools.SAMRecord;
 
 /**
  * Created by IntelliJ IDEA.
@@ -29,8 +33,6 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
         String pathToSyzygyFile = null;
     @Argument(fullName = "ColumnOffset", shortName = "co", doc = "Offset of column containing the power in the pf", required = true)
         int colOffset = 0;
-    @Argument(fullName = "linesToClear", shortName="clr", doc = "Clear so many lines from the read file before starting (default - just the header line)", required = false)
-        int clrLines = 1;
 
     BufferedReader syzyFileReader;
     final String pfFileDelimiter = " ";
@@ -42,9 +44,7 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
         super.initialize();
         try {
             syzyFileReader = new BufferedReader(new FileReader(pathToSyzygyFile));
-            for(int clear = 0; clear < clrLines; clear++) {
-                syzyFileReader.readLine();
-            }
+            syzyFileReader.readLine();
         } catch (FileNotFoundException e) {
             String newErrMsg = "Syzygy input file " + pathToSyzygyFile + " could be incorrect. File not found.";
             throw new StingException(newErrMsg,e);
@@ -56,11 +56,13 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
     }
 
     @Override
-    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context)
+    public Pair<Integer,Integer> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context)
     {
+
+        Pair<Pair<List<SAMRecord>, List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> splitReads = PoolUtils.splitReadsByReadDirection(context.getReads(),context.getOffsets());
         if ( !super.suppress_printing )
         {
-            Pair<Double,Byte> powpair = super.boostrapSamplingPowerCalc(context);
+            Pair<double[],byte[]> powpair = super.calculatePower(splitReads,false,context);
 
             boolean syzyFileIsReady;
             try {
@@ -80,7 +82,7 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
             }
         }
 
-        return context.getReads().size();
+        return new Pair(splitReads.getFirst().getFirst().size(), splitReads.getFirst().getFirst().size());
     }
 
     public Pair<Double,String> getSyzyPowFromFile() {
@@ -106,5 +108,9 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
             String errMsg = "The given column offset for the pool, " + colOffset + " exceeded the number of entries in the file " + pathToSyzygyFile;
             throw new StingException(errMsg);
         }
+    }
+
+    public String createHeaderString() {
+        return (super.createHeaderString() + "  PowSyz");
     }
 }
