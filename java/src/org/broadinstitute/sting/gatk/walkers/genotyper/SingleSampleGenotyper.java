@@ -40,6 +40,12 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
     public Double heterozygosity = DiploidGenotypePriors.HUMAN_HETEROZYGOSITY;
 
+    @Argument(fullName = "useEmpiricalTransitions", shortName = "useEmpiricalTransitions", doc = "EXPERIMENTAL", required = false)
+    public boolean useEmpiricalTransitions = false;
+
+    @Argument(fullName = "verbose", shortName = "v", doc = "EXPERIMENTAL", required = false)
+    public boolean VERBOSE = false;
+
     // todo - print out priors at the start of SSG with .INFO
 
     // todo -- remove dbSNP awareness until we understand how it should be used
@@ -77,10 +83,12 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
     public SSGGenotypeCall map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
         char ref = refContext.getBase();
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
-        NewHotnessGenotypeLikelihoods G = new NewHotnessGenotypeLikelihoods(priors);
+
+        NewHotnessGenotypeLikelihoods G = useEmpiricalTransitions ? new EmpiricalSubstitutionGenotypeLikelihoods(priors) : new NewHotnessGenotypeLikelihoods(priors);
+
         G.filterQ0Bases(! keepQ0Bases);
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-        G.add(pileup, true);
+        G.add(pileup, true, VERBOSE);
         G.validate();
 
         // lets setup the locus
@@ -89,6 +97,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
             lst.add(new BasicGenotype(pileup.getLocation(), g.toString(),new BayesianConfidenceScore(G.getLikelihood(g))));
         }
 
+        //System.out.printf("At %s%n", new SSGGenotypeCall(! GENOTYPE, ref, 2, lst, G.getPosteriors(), pileup));
         return new SSGGenotypeCall(! GENOTYPE, ref, 2, lst, G.getPosteriors(), pileup);
     }
 

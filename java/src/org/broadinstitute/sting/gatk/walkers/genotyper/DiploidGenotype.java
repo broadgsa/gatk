@@ -10,16 +10,22 @@ import org.broadinstitute.sting.utils.Utils;
  * To change this template use File | Settings | File Templates.
  */
 public enum DiploidGenotype {
-    AA,
-    AC,
-    AG,
-    AT,
-    CC,
-    CG,
-    CT,
-    GG,
-    GT,
-    TT;
+    AA ('A', 'A'),
+    AC ('A', 'C'),
+    AG ('A', 'G'),
+    AT ('A', 'T'),
+    CC ('C', 'C'),
+    CG ('C', 'G'),
+    CT ('C', 'T'),
+    GG ('G', 'G'),
+    GT ('G', 'T'),
+    TT ('T', 'T');
+
+    public char base1, base2;
+    private DiploidGenotype(char base1, char base2) {
+        this.base1 = base1;
+        this.base2 = base2;
+    }
 
     public boolean isHomRef(char r) {
         return isHom() && r == this.toString().charAt(0);

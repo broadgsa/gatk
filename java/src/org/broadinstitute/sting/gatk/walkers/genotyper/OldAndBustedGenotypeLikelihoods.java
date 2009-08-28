@@ -16,6 +16,21 @@ import java.util.HashMap;
 import java.util.List;
 
 public class OldAndBustedGenotypeLikelihoods extends GenotypeLikelihoods {
+    protected static final double[] oneMinusData = new double[Byte.MAX_VALUE];
+    protected static final double[] oneHalfMinusDataArachne = new double[Byte.MAX_VALUE];
+    protected static final double[] oneHalfMinusData3Base = new double[Byte.MAX_VALUE];
+    //protected static final double[] oneHalfMinusData = new double[Byte.MAX_VALUE];
+    protected static final double log10Of1_3 = log10(1.0 / 3.0);
+
+    static {
+        for (int qual = 0; qual < Byte.MAX_VALUE; qual++) {
+            double e = pow(10, (qual / -10.0));
+            oneMinusData[qual] = log10(1.0 - e);
+            oneHalfMinusDataArachne[qual] = log10(0.5 - e / 2.0);
+            oneHalfMinusData3Base[qual] = log10(0.5 - e / 2.0 + e / 6.0);
+        }
+    }
+
     private static double getOneMinusQual(final byte qual) {
         return oneMinusData[qual];
     }
