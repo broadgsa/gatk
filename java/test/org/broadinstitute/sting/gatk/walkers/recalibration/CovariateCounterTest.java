@@ -93,7 +93,7 @@ public class CovariateCounterTest extends BaseTest {
     @Test
     public void testOneRead() {
         for ( int i = 1; i < read1.getReadBases().length; i++ )
-            c.updateDataFromRead(readGroup1, read1, i, (char)read1.getReadBases()[i]);
+            c.updateDataFromRead(readGroup1, read1, i, (char)read1.getReadBases()[i], false);
         c.printState();
 
         Assert.assertEquals("Incorrect mapping to recal bin", c.getRecalData(readGroup1, 0, quals1[0], 'A', (char)bases1[0]).N, 0);
@@ -112,9 +112,9 @@ public class CovariateCounterTest extends BaseTest {
     @Test
     public void testTwoReads() {
         for ( int i = 1; i < read1.getReadBases().length; i++ )
-            c.updateDataFromRead(readGroup1, read1, i, (char)read1.getReadBases()[i]);
+            c.updateDataFromRead(readGroup1, read1, i, (char)read1.getReadBases()[i], false);
         for ( int i = 1; i < read2.getReadBases().length; i++ )
-            c.updateDataFromRead(readGroup2, read2, i, (char)read2.getReadBases()[i]);
+            c.updateDataFromRead(readGroup2, read2, i, (char)read2.getReadBases()[i], false);
         c.printState();
 
         Assert.assertEquals("Incorrect mapping to recal bin", c.getRecalData(readGroup1, 0, quals1[0], 'A', (char)bases1[0]).N, 0);
@@ -133,9 +133,9 @@ public class CovariateCounterTest extends BaseTest {
     @Test
     public void testTwoReadsSameGroup() {
         for ( int i = 1; i < read1.getReadBases().length; i++ )
-            c.updateDataFromRead(readGroup1, read1, i, (char)read1.getReadBases()[i]);
+            c.updateDataFromRead(readGroup1, read1, i, (char)read1.getReadBases()[i], false);
         for ( int i = 1; i < read2.getReadBases().length; i++ )
-            c.updateDataFromRead(readGroup1, read1, i, (char)read1.getReadBases()[i]);
+            c.updateDataFromRead(readGroup1, read1, i, (char)read1.getReadBases()[i], false);
         c.printState();
 
         for ( int i = 1; i < bases1.length; i++ ) {
@@ -153,9 +153,9 @@ public class CovariateCounterTest extends BaseTest {
     @Test
     public void testTwoReadsSameGroupNotIdentical() {
         for ( int i = 1; i < read1.getReadBases().length; i++ )
-            c.updateDataFromRead(readGroup1, read1, i, (char)read1.getReadBases()[i]);
+            c.updateDataFromRead(readGroup1, read1, i, (char)read1.getReadBases()[i], false);
         for ( int i = 1; i < read3.getReadBases().length; i++ )
-            c.updateDataFromRead(readGroup1, read3, i, (char)read3.getReadBases()[i]);
+            c.updateDataFromRead(readGroup1, read3, i, (char)read3.getReadBases()[i], false);
         c.printState();
 
         for ( int i = 1; i < bases1.length; i++ ) {
@@ -177,6 +177,6 @@ public class CovariateCounterTest extends BaseTest {
 
         SAMRecord read = ArtificialSAMUtils.createArtificialRead(header,"read1",1,1, bases, quals);
 
-        c.updateDataFromRead(readGroup1, read, 0, (char)bases[0]);
+        c.updateDataFromRead(readGroup1, read, 0, (char)bases[0], false);
     }
 }

@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.lang.reflect.Method;
 
 @WalkerName("TableRecalibration")
 @Requires({DataSource.READS, DataSource.REFERENCE})
@@ -52,14 +53,17 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     @Argument(shortName="rawQempirical", doc="If provided, we will use raw Qempirical scores calculated from the # mismatches and # bases, rather than the more conservative estimate of # mismatches + 1 / # bases + 1", required=false)
     public boolean rawQempirical = false;
 
-    @Argument(shortName="adjustQ0Bases", doc="If provided, Q0 bases will have their quality scores modified, otherwise they will be left as Q0 in the output", required=false)
-    public boolean adjustQ0Bases = false;
+    @Argument(fullName="preserveQScoresLessThan", shortName="pQ", doc="If provided, bases with quality scores less than this threshold won't be recalibrated.  In general its unsafe to change qualities scores below < 5, since base callers use these values to indicate random or bad bases", required=false)
+    public int preserveQScoresLessThan = 5;
 
+    @Argument(fullName = "useOriginalQuals", shortName="OQ", doc="If provided, we will use use the quals from the original qualities OQ attribute field instead of the quals in the regular QUALS field", required=false)
+    public boolean useOriginalQuals = false;
+    
+    //
+    // Basic static information
+    //
     private static Logger logger = Logger.getLogger(TableRecalibrationWalker.class);
-
-    private static String VERSION = "0.2.3";
-
-    private final static boolean DEBUG = false;
+    private static String VERSION = "0.2.4";
 
     // maps from [readGroup] -> [prevBase x base -> [cycle, qual, new qual]]
     HashMap<String, RecalMapping> cache = new HashMap<String, RecalMapping>();
@@ -82,10 +86,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static Pattern COLLAPSED_DINUC_PATTERN = Pattern.compile("^#\\s+collapsed_dinuc\\s+(\\w+)");
     private static Pattern HEADER_PATTERN = Pattern.compile("^rg.*");
 
-    //private static boolean DEBUG_ME = true;
-
     public void initialize() {
         logger.info("TableRecalibrator version: " + VERSION);
+        
         //
         // crappy hack until Enum arg types are supported
         //
@@ -233,7 +236,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
     public SAMRecord map(char[] ref, SAMRecord read) {
         byte[] bases = read.getReadBases();
-        byte[] quals = read.getBaseQualities();
+
+
+        byte[] quals = RecalDataManager.getQualsForRecalibration(read, useOriginalQuals);
 
         // Since we want machine direction reads not corrected positive strand reads, rev comp any negative strand reads
         if (read.getReadNegativeStrandFlag()) {
@@ -244,33 +249,30 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         try {
             byte[] recalQuals = recalibrateBasesAndQuals(read.getAttribute("RG").toString(), bases, quals);
 
-            //if ( read.getReadName().equals("IL12_395:7:215:171:693") ) {
-            //    for ( int i = 0; i < quals.length; i++ ) {
-            //        System.out.printf("READ found: %s is now %s%n", quals[i], recalQuals[i]);
-            //    }
-            //}
+            // Don't change Q scores below some threshold
+            preserveQScores(quals, recalQuals, read);
 
-            if (read.getReadNegativeStrandFlag())               // reverse the quals for the neg strand read
+            if (read.getReadNegativeStrandFlag()) {               // reverse the quals for the neg strand read
                 recalQuals = BaseUtils.reverse(recalQuals);
-
-            // special case the first and last bases in SOLID reads, which are always 0
-            // We actually just never change Q0 bases
-            preserveQ0Bases(quals, recalQuals, read);
+                quals = BaseUtils.reverse(quals);
+            }
+            
             read.setBaseQualities(recalQuals);
+            if ( read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) == null ) {
+                read.setAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, QualityUtils.phredToFastq(quals));
+            }
+
             return read;
         } catch ( StingException e ) {
             throw new RuntimeException(String.format("Bug found while processing read %s: %s", read.format(), e.getMessage()));
         }
     }
 
-    private void preserveQ0Bases( byte[] originalQuals, byte[] recalQuals, SAMRecord read ) {
-        if ( ! adjustQ0Bases ) {
-            for ( int i = 0; i < recalQuals.length; i++ ) {
-                //System.out.printf("Original qual %d => %d%n", originalQuals[i], recalQuals[i]);
-                if ( originalQuals[i] == 0 ) {
-                    //System.out.printf("Preserving Q0 base at %d in read %s%n", i, read.getReadName());
-                    recalQuals[i] = 0;
-                }
+    private void preserveQScores( byte[] originalQuals, byte[] recalQuals, SAMRecord read ) {
+        for ( int i = 0; i < recalQuals.length; i++ ) {
+            if ( originalQuals[i] < preserveQScoresLessThan ) {
+                System.out.printf("Preserving Q%d base at %d in read %s%n", originalQuals[i], i, read.getReadName());
+                recalQuals[i] = originalQuals[i];
             }
         }
     }
@@ -527,12 +529,6 @@ class SerialRecalMapping implements RecalMapping {
                 throw new RuntimeException(String.format("Illegal base quality score calculated: %s %c%c %d %d => %d + %.2f + %.2f + %.2f = %d",
                         readGroup, prevBase, base, cycle, qual, qual, globalDeltaQ, deltaQPos, deltaQDinuc, newQualByte));
         }
-
-        //if ( printStateP(pos, RecalData.dinucIndex2bases(index), qual) )
-        //    System.out.printf("%s %c%c %d %d => %d + %.2f + %.2f + %.2f + %.2f = %d%n",
-        //            readGroup, prevBase, base, cycle, qual,
-        //           qual, globalDeltaQ, deltaQual, deltaQPos, deltaQDinuc,
-        //            newQualByte);
 
         return newQualByte;
     }

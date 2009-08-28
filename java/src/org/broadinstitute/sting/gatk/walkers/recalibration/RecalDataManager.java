@@ -1,8 +1,11 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.utils.ExpandingArrayList;
+import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.util.*;
+
+import net.sf.samtools.SAMRecord;
 
 /**
  * Created by IntelliJ IDEA.
@@ -12,6 +15,9 @@ import java.util.*;
  * To change this template use File | Settings | File Templates.
  */
 public class RecalDataManager {
+    /** The original quality scores are stored in this attribute */
+    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ";
+
     ArrayList<RecalData> flattenData = new ArrayList<RecalData>();
     boolean trackPos, trackDinuc;
     String readGroup;
@@ -114,10 +120,6 @@ public class RecalDataManager {
         return d3 == null ? null : d3.get(dinucIndex);
     }
 
-    //private RecalData get(int posIndex, int qual, int dinucIndex) {
-    //    return data[posIndex][qual][dinucIndex];
-    //}
-
     private void set(int posIndex, int qual, int dinucIndex, RecalData datum) {
         // grow data if necessary
         ExpandingArrayList<ExpandingArrayList<RecalData>> d2 = data.get(posIndex);
@@ -136,31 +138,6 @@ public class RecalDataManager {
         // set d3 to datum
         d3.set(dinucIndex, datum);
     }
-
-    //private void set(int posIndex, int qual, int dinucIndex, RecalData datum) {
-    //    data[posIndex][qual][dinucIndex] = datum;
-    //}
-
-
-   /* public List<RecalData> select(int pos, int qual, int dinuc_index ) {
-        List<RecalData> l = new LinkedList<RecalData>();
-        for ( int i = 0; i < data.length; i++ ) {
-            if ( i == pos || pos == -1 || ! trackPos ) {
-                for ( int j = 0; j < data[i].length; j++ ) {
-                    if ( j == qual || qual == -1 ) {
-                        for ( int k = 0; k < data[i][j].length; k++ ) {
-                            if ( k == dinuc_index|| dinuc_index == -1 || ! trackDinuc ) {
-                                l.add(data[i][j][k]);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return l;
-    }
-    */
 
     private RecalData getMatchingDatum(List<RecalData> l, RecalData datum,
                                        boolean combinePos, boolean combineQual, boolean combineDinuc) {
@@ -198,6 +175,21 @@ public class RecalDataManager {
 
     public List<RecalData> getAll() {
         return flattenData;
+    }
+
+    // we can process the OQ field if requested
+    public static byte[] getQualsForRecalibration( SAMRecord read, boolean useOriginalQuals ) {
+        byte[] quals = read.getBaseQualities();
+        if ( useOriginalQuals && read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
+            Object obj = read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG);
+            if ( obj instanceof String )
+                quals = QualityUtils.fastqToPhred((String)obj);
+            else {
+                throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
+            }
+        }
+
+        return quals;
     }
 }
 

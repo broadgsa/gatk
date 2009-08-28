@@ -109,13 +109,13 @@ public class CovariateCounter {
      * @param ref
      * @return
      */
-    public int updateDataFromRead( String rg, SAMRecord read, int offset, char ref ) {
+    public int updateDataFromRead( String rg, SAMRecord read, int offset, char ref, boolean useOriginalQuals ) {
         if ( offset == 0 )
             throw new RuntimeException("Illegal read offset " + offset + " in read " + read.getReadName());
 
         int cycle = offset;
         byte[] bases = read.getReadBases();
-        byte[] quals = read.getBaseQualities();
+        byte[] quals = RecalDataManager.getQualsForRecalibration(read, useOriginalQuals);
 
         char base = (char)bases[offset];
         char prevBase = (char)bases[offset - 1];

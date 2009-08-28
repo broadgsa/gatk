@@ -41,6 +41,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     //@Argument(fullName="collapseDinuc", shortName="collapseDinuc", required=false, doc="")
     public boolean collapseDinuc = false;
 
+    @Argument(fullName = "useOriginalQuals", shortName="OQ", doc="If provided, we will use use the quals from the original qualities OQ attribute field instead of the quals in the regular QUALS field", required=false)
+    public boolean useOriginalQuals = false;
+
+
     private CovariateCounter covariateCounter = null;
 
     private long counted_sites = 0; // number of sites used to count covariates
@@ -109,7 +113,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 if ((read.getMappingQuality() >= MIN_MAPPING_QUALITY && isSupportedReadGroup(readGroup) )) {
                     int offset = offsets.get(i);
                     if ( offset > 0 && offset < (read.getReadLength() - 1) ) { // skip first and last bases because they suck and they don't have a dinuc count
-                        counted_bases += covariateCounter.updateDataFromRead(readGroupString, read, offset, ref.getBase());
+                        counted_bases += covariateCounter.updateDataFromRead(readGroupString, read, offset, ref.getBase(), useOriginalQuals);
                     }
                 }
             }
@@ -233,33 +237,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         out.printf("# counted_bases    %d%n", counted_bases);
         out.printf("# skipped_sites    %d%n", skipped_sites);
         out.printf("# fraction_skipped 1 / %.0f bp%n", (double)counted_sites / skipped_sites);
-    }
-
-    @Deprecated
-    private void writeLogisticRecalibrationTable() {
-        PrintStream dinuc_out = null;
-        try {
-            dinuc_out = new PrintStream( OUTPUT_FILEROOT+".covariate_counts.csv");
-            dinuc_out.println("rg,dn,logitQ,pos,indicator,count");
-            for (String readGroup : covariateCounter.getReadGroups()) {
-                for ( int dinuc_index=0; dinuc_index<RecalData.NDINUCS; dinuc_index++) {
-                    for ( RecalData datum: covariateCounter.getRecalData(readGroup) ) {
-                        if ( RecalData.dinucIndex(datum.dinuc) == dinuc_index ) {
-                            if ((datum.N - datum.B) > 0)
-                                dinuc_out.format("%s,%s,%d,%d,%d,%d%n", readGroup, RecalData.dinucIndex2bases(dinuc_index), datum.qual, datum.pos, 0, datum.N - datum.B);
-                            if (datum.B > 0)
-                                dinuc_out.format("%s,%s,%d,%d,%d,%d%n", readGroup, RecalData.dinucIndex2bases(dinuc_index), datum.qual, datum.pos, 1, datum.B);
-                        }
-                    }
-                }
-            }
-        }
-        catch (FileNotFoundException e) {
-            System.err.println("FileNotFoundException: " + e.getMessage());
-        }
-        finally {
-            if (dinuc_out != null) dinuc_out.close();
-        }
     }
 
     /**
