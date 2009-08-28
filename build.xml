@@ -175,6 +175,55 @@
         </javac>
     </target>
 
+
+   <property name="scala.home" value="/home/radon01/depristo/work/local/scala-2.7.5.final"/>
+   <property
+      name="build.dir"
+      value="${base.dir}/build"
+       />
+    <target name="init.scala">
+      <property
+        name="scala-library.jar"
+        value="${scala.home}/lib/scala-library.jar"
+         />
+      <path id="build.classpath">
+        <pathelement location="${scala-library.jar}"   />
+        <!--<pathelement location="${your.path}"   />-->
+        <pathelement location="${build.dir}"   />
+      </path>
+     <taskdef name="scalac" classname="scala.tools.ant.Scalac">
+        <classpath>
+          <pathelement location="${scala.home}/lib/scala-compiler.jar"   />
+          <pathelement location="${scala-library.jar}"   />
+        </classpath>
+    </taskdef>
+    </target>
+    
+    <property name="scala.dir" value="scala" />
+    <property name="scala.classes" value="scala/classes" />
+    <target name="scala" depends="init.scala" description="build the scala code">
+        <echo message="Sting: Compiling scala -- omg!"/>
+        <mkdir dir="${scala.classes}"/>
+
+        <scalac srcdir="${scala.dir}" destdir="${scala.classes}" force="changed">
+            <include name="**/*.scala"/>
+            <classpath>
+                <path refid="runtime.dependencies" />
+                <pathelement location="build"/>
+                <pathelement location="lib/junit-4.4.jar"/>
+                <pathelement location="${scala.home}/lib/scala-compiler.jar"   />
+                <pathelement location="${scala-library.jar}"   />
+          </classpath>
+        </scalac>
+        
+        <delete file="${dist}/GATKScala.jar"/>
+        <jar jarfile="${dist}/GATKScala.jar">
+           <fileset dir="${scala.classes}">
+               <include name="**/*.class"/>
+           </fileset>
+        </jar>
+    </target>
+
     <!-- TEST -->
     <target name="test" depends="test.compile,agent" description="Run unit tests">
         <mkdir dir="${report}"/>
