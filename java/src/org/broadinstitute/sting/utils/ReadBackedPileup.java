@@ -58,7 +58,7 @@ public class ReadBackedPileup extends BasicPileup {
     }
 
     public String getQualsAsInts() {
-        System.out.printf("getQualsAsInts");        
+        //System.out.printf("getQualsAsInts");        
         return Utils.join(",", qualPileup(reads, offsets));
     }
 
@@ -97,6 +97,10 @@ public class ReadBackedPileup extends BasicPileup {
 
     public String getProbDistPileup() {
         return probDistPileupAsString(reads, offsets);
+    }
+
+    public String toString() {
+        return getPileupString(true);
     }
 
     public String getPileupString(boolean qualsAsInts)
