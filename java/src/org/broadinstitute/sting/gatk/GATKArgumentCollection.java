@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk;
 
+import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.simpleframework.xml.*;
@@ -13,8 +14,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import net.sf.samtools.SAMFileReader;
 
 /**
  *
@@ -99,7 +98,7 @@ public class GATKArgumentCollection {
     public String outErrFileName = null;
 
     @Element(required = false)
-    @Argument(fullName = "maximum_reads", shortName = "M", doc = "Maximum number of iterations to process before exiting, the lower bound is zero.  Intended only for testing", required = false)
+    @Argument(fullName = "maximum_iterations", shortName = "M", doc = "Maximum number of iterations to process before exiting, the lower bound is zero.  Intended only for testing", required = false)
     public Integer maximumEngineIterations = -1;
 
     @Element(required = false)
