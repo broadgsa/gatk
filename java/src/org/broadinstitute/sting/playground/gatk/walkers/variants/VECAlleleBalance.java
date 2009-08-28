@@ -8,9 +8,11 @@ import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.GenotypeUtils;
 
 public class VECAlleleBalance implements VariantExclusionCriterion {  //extends RatioFilter {
-    //final private static GenotypeFeatureData.Tail tail = GenotypeFeatureData.Tail.TwoTailed;
+    private static final double defaultMinGenotypeConfidenceToTest = 5.0;  // TODO -- must be replaced with true confidence scoore, right now assumes LOD
+
     private boolean exclude;
     private double lowThreshold = 0.1, highThreshold = 0.85;
+    private double minGenotypeConfidenceToTest = defaultMinGenotypeConfidenceToTest;
     private double ratio;
 
     public void initialize(String arguments) {
@@ -18,18 +20,9 @@ public class VECAlleleBalance implements VariantExclusionCriterion {  //extends 
             String[] argPieces = arguments.split(",");
             lowThreshold = Double.valueOf(argPieces[0]);
             highThreshold = Double.valueOf(argPieces[1]);
+            if ( argPieces.length > 2 )
+                minGenotypeConfidenceToTest = Double.valueOf(argPieces[2]);
         }
-    }
-
-    /**
-     * We can only filter out het calls with the AlleleBalance filter
-     *
-     * @param variant
-     * @return
-     */
-    protected boolean applyToVariant(rodVariants variant) {
-        String genotype = variant.getBestGenotype();
-        return genotype.charAt(0) != genotype.charAt(1);
     }
 
     /**
@@ -64,7 +57,17 @@ public class VECAlleleBalance implements VariantExclusionCriterion {  //extends 
         Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
         int n = counts.first + counts.second;
         ratio = counts.first.doubleValue() / (double)n;
-        exclude = GenotypeUtils.isHet(variant) && (ratio < lowThreshold || ratio > highThreshold);
+
+        boolean highGenotypeConfidence = variant.getConsensusConfidence() > minGenotypeConfidenceToTest;
+        boolean failsHetExpectation = GenotypeUtils.isHet(variant) && (ratio < lowThreshold || ratio > highThreshold);
+        exclude = failsHetExpectation && highGenotypeConfidence;
+
+//        if ( failsHetExpectation ) {
+//            String header = highGenotypeConfidence ? "FILTER-HIGH-CONFIDENCE" : "PASS-LOW-CONFIDENCE";
+//            System.out.printf("[%s] %s getConsensusConfidence() = %f > minGenotypeConfidenceToTest = %f exclude=%b  %s%n",
+//                    header, variant.getBestGenotype(), variant.getConsensusConfidence(), minGenotypeConfidenceToTest, exclude,
+//                    ! highGenotypeConfidence ? variant : "" );
+//        }
     }
 
     public boolean useZeroQualityReads() { return false; }

@@ -5,6 +5,8 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.*;
 
 public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // extends RatioFilter {
+    private static final double minGenotypeConfidenceToTest = 5.0;  // TODO -- must be replaced with true confidence scoore, right now assumes LOD
+
     //final private static GenotypeFeatureData.Tail tail = GenotypeFeatureData.Tail.LeftTailed;
     private boolean exclude;
     private double threshold = 0.0;
@@ -14,16 +16,6 @@ public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // ext
         if (arguments != null && !arguments.isEmpty()) {
             threshold = Double.valueOf(arguments);
         }
-    }
-
-    /**
-     * On/off genotype filters can be applied to any genotype
-     *
-     * @param variant
-     * @return
-     */
-    protected boolean applyToVariant(rodVariants variant) {
-        return true;
     }
 
     /**
@@ -61,7 +53,8 @@ public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // ext
         Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
         int n = counts.first + counts.second;
         ratio = counts.first.doubleValue() / (double)n;
-        exclude = ratio < threshold;
+        boolean highGenotypeConfidence = variant.getConsensusConfidence() > minGenotypeConfidenceToTest;
+        exclude = ratio < threshold && highGenotypeConfidence;
     }
 
     public double inclusionProbability() {
