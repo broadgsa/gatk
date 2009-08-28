@@ -17,18 +17,7 @@ public class GenotypeLikelihoodsTest extends BaseTest {
     @Test
     public void testBasic() {
         logger.warn("Executing testIsBetween");
-        Assert.assertTrue(GenotypeLikelihoods.oneMinusData.length >= Byte.MAX_VALUE);
-        Assert.assertTrue(GenotypeLikelihoods.oneHalfMinusDataArachne.length >= Byte.MAX_VALUE);
-        Assert.assertTrue(GenotypeLikelihoods.oneHalfMinusData3Base.length >= Byte.MAX_VALUE);
-        Assert.assertEquals(GenotypeLikelihoods.log10Of1_3,-0.4771212547196624, DELTA);
         Assert.assertEquals(DiploidGenotypePriors.HUMAN_HETEROZYGOSITY,1e-3, DELTA);
-
-        for (int qual = 0; qual < Byte.MAX_VALUE; qual++) {
-            double e = pow(10, (qual / -10.0));
-            Assert.assertEquals(GenotypeLikelihoods.oneMinusData[qual], log10(1.0 - e), DELTA);
-            Assert.assertEquals(GenotypeLikelihoods.oneHalfMinusDataArachne[qual], log10(0.5 - e / 2.0), DELTA);
-            Assert.assertEquals(GenotypeLikelihoods.oneHalfMinusData3Base[qual], log10(0.5 - e / 2.0 + e / 6.0), DELTA);
-        }
     }
 
 
