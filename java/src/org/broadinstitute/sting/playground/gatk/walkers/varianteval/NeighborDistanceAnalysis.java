@@ -21,8 +21,9 @@ import java.io.PrintStream;
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  *
  */
-public class NeighborDistanceAnalysis extends ViolationVariantAnalysis implements GenotypeAnalysis, PopulationAnalysis {
+public class NeighborDistanceAnalysis extends BasicVariantAnalysis implements GenotypeAnalysis, PopulationAnalysis {
     ArrayList<Long> neighborWiseDistances;
+    int minDistanceForFlagging = 5;
     int[] neighborWiseBoundries = {1, 2, 5, 10, 20, 50, 100, 1000, 10000};
 
     AllelicVariant lastVariant = null;
@@ -51,7 +52,7 @@ public class NeighborDistanceAnalysis extends ViolationVariantAnalysis implement
                         //out.printf("# Excluding %d %s %s vs. %s %s%n", d, eL, interval, lvL, lastVariantInterval);
                     } else {
                         neighborWiseDistances.add(d);
-                        r = String.format("neighbor-distance %d %s %s", d, eL, lvL);
+                        r = d <= minDistanceForFlagging ? String.format("neighbor-distance %d %s %s", d, eL, lvL) : null;
                     }
                 }
             }

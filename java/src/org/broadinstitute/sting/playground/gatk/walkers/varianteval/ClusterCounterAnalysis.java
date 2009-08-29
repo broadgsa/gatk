@@ -22,6 +22,7 @@ import java.util.HashSet;
  */
 public class ClusterCounterAnalysis extends BasicVariantAnalysis implements GenotypeAnalysis, PopulationAnalysis {
     ArrayList<HashSet<GenomeLoc>> variantsWithClusters;
+    int minDistanceForFlagging = 5;
     int[] neighborWiseBoundries = {1, 2, 5, 10, 20, 50, 100};
     AllelicVariant lastVariant = null;
     GenomeLoc lastVariantInterval = null;
@@ -60,7 +61,7 @@ public class ClusterCounterAnalysis extends BasicVariantAnalysis implements Geno
                                 variantsWithClusters.get(i).add(eL);
                             }
                         }
-                        r = String.format("snp_within_cluster %d %s %s %s", d, eL, lvL, s.toString());
+                        r = d <= minDistanceForFlagging ? String.format("snp_within_cluster %d %s %s %s", d, eL, lvL, s.toString()) : null;
                     }
                 }
             }

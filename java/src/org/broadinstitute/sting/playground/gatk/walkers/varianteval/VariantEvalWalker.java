@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SNPCallFromGenotypes;
+import org.broadinstitute.sting.gatk.refdata.IntervalRod;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
@@ -27,8 +28,8 @@ import java.util.*;
  *
  */
 @By(DataSource.REFERENCE)
-@Requires(DataSource.REFERENCE)
-@Allows(DataSource.REFERENCE)
+@Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="eval",type=AllelicVariant.class)})
+@Allows(value={DataSource.REFERENCE},referenceMetaData = {@RMD(name="eval",type=AllelicVariant.class), @RMD(name="dbsnp",type=AllelicVariant.class),@RMD(name="hapmap-chip",type=AllelicVariant.class), @RMD(name="interval",type=IntervalRod.class)})
 public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     @Argument(shortName="minConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
     public int minConfidenceScore = -1;
@@ -39,17 +40,26 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     @Argument(shortName="badHWEThreshold", doc="XXX", required=false)
     public double badHWEThreshold = 1e-3;
 
-    @Argument(shortName="evalContainsGenotypes", doc="If true, the input list of variants will be treated as a genotyping file, containing assertions of actual genotype values for a particular person.  Analyses that only make sense on at the population level will be disabled, while those operating on genotypes will be enabled", required=false)
+    @Argument(fullName="evalContainsGenotypes", shortName = "G", doc="If true, the input list of variants will be treated as a genotyping file, containing assertions of actual genotype values for a particular person.  Analyses that only make sense on at the population level will be disabled, while those operating on genotypes will be enabled", required=false)
     public boolean evalContainsGenotypes = false;
 
-    String analysisFilenameBase = null;
+    @Argument(fullName="explode", shortName = "E", doc="Old style formatting, with each analysis split into separate files.", required=false)
+    public boolean explode = false;
 
-    String COMMENT_STRING = "";
+    @Argument(fullName="includeViolations", shortName = "V", doc="If provided, violations will be written out along with summary information", required=false)
+    public boolean includeViolations = false;
+
+    @Argument(fullName="extensiveSubsets", shortName = "A", doc="If provided, output will be calculated over a lot of subsets, by default we only operate over all variants", required=false)
+    public boolean extensiveSubsets = false;
+
+    String analysisFilenameBase = null;
 
     final String knownSNPDBName = "dbSNP";
     final String genotypeChipName = "hapmap-chip";
 
     HashMap<String, ArrayList<VariantAnalysis>> analysisSets;
+
+    PrintStream perLocusStream = null;
 
     long nSites = 0;
 
@@ -60,10 +70,13 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     final String NOVEL_SNPS = "novel";
     final String[] POPULATION_ANALYSIS_NAMES = { ALL_SNPS, SINGLETON_SNPS, TWOHIT_SNPS, KNOWN_SNPS, NOVEL_SNPS };
     final String[] GENOTYPE_ANALYSIS_NAMES = { ALL_SNPS, KNOWN_SNPS, NOVEL_SNPS };
+    final String[] SIMPLE_ANALYSIS_NAMES = { ALL_SNPS };
     String[] ALL_ANALYSIS_NAMES = null;
 
     public void initialize() {
-        ALL_ANALYSIS_NAMES = evalContainsGenotypes ? GENOTYPE_ANALYSIS_NAMES : POPULATION_ANALYSIS_NAMES;
+        ALL_ANALYSIS_NAMES = SIMPLE_ANALYSIS_NAMES;
+        if ( extensiveSubsets )
+            ALL_ANALYSIS_NAMES = evalContainsGenotypes ? GENOTYPE_ANALYSIS_NAMES : POPULATION_ANALYSIS_NAMES;
 
         // setup the path to the analysis
         if ( this.getToolkit().getArguments().outFileName != null ) {
@@ -77,7 +90,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     }
 
     private ArrayList<VariantAnalysis> getAnalysisSet(final String name) {
-        return analysisSets.get(name);
+        return analysisSets.containsKey(name) ? analysisSets.get(name) : null;
     }
 
     private ArrayList<VariantAnalysis> initializeAnalysisSet(final String setName) {
@@ -137,12 +150,20 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 
     public void initializeAnalysisOutputStream(final String setName, VariantAnalysis analysis) {
         final String filename = getAnalysisFilename(setName + "." + analysis.getName(), analysis.getParams());
-        if ( filename == null )
-            analysis.initialize(this, out, filename);
+
+        try {
+            if ( perLocusStream == null )
+                perLocusStream = filename == null ? out : new PrintStream(new File(analysisFilenameBase + "interesting_sites"));
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+
+        if ( filename == null || ! explode )
+            analysis.initialize(this, out, perLocusStream, filename);
         else {
             File file = new File(filename);
             try {
-                analysis.initialize(this, new PrintStream(new FileOutputStream(file)), filename);
+                analysis.initialize(this, new PrintStream(new FileOutputStream(file)), perLocusStream, filename);
             } catch (FileNotFoundException e) {
                 throw new StingException("Couldn't open analysis output file " + filename, e);
             }
@@ -191,9 +212,13 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     public void updateAnalysisSet(final String analysisSetName, AllelicVariant eval,
                                   RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         // Iterate over each analysis, and update it
-        for ( VariantAnalysis analysis : getAnalysisSet(analysisSetName) ) {
-            String s = analysis.update(eval, tracker, ref, context);
-            if ( s != null ) analysis.getCallPrintStream().println(s);
+        if ( getAnalysisSet(analysisSetName) != null ) {
+            for ( VariantAnalysis analysis : getAnalysisSet(analysisSetName) ) {
+                String s = analysis.update(eval, tracker, ref, context);
+                if ( s != null && includeViolations ) {
+                    analysis.getCallPrintStream().println(getLineHeader(analysisSetName, "flagged", analysis.getName()) + s);
+                }
+            }
         }
     }
 
@@ -212,20 +237,26 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         }
     }
 
+    private String getLineHeader( final String analysisSetName, final String keyword, final String analysis) {
+        String s = Utils.join(",", Arrays.asList(analysisSetName, keyword, analysis));
+        return s + Utils.dupString(' ', 50 - s.length());
+    }
+
     private void printAnalysisSet( final String analysisSetName ) {
-        out.printf("Writing analysis set %s", analysisSetName);
+        //out.printf("Writing analysis set %s", analysisSetName);
         Date now = new Date();
         for ( VariantAnalysis analysis : getAnalysisSet(analysisSetName) ) {
+            String header = getLineHeader(analysisSetName, "summary", analysis.getName());
             analysis.finalize(nSites);
             PrintStream stream = analysis.getSummaryPrintStream();
-            stream.printf("%s%s%n", COMMENT_STRING, Utils.dupString('-', 78));
-            stream.printf("%sAnalysis set       %s%n", COMMENT_STRING, analysisSetName);
-            stream.printf("%sAnalysis name      %s%n", COMMENT_STRING, analysis.getName());
-            stream.printf("%sAnalysis params    %s%n", COMMENT_STRING, Utils.join(" ", analysis.getParams()));
-            stream.printf("%sAnalysis class     %s%n", COMMENT_STRING, analysis );
-            stream.printf("%sAnalysis time      %s%n", COMMENT_STRING, now );
+            stream.printf("%s%s%n", header, Utils.dupString('-', 78));
+            //stream.printf("%s Analysis set       %s%n", analysisSetName, , analysisSetName);
+            stream.printf("%sAnalysis name      %s%n", header, analysis.getName());
+            stream.printf("%sAnalysis params    %s%n", header, Utils.join(" ", analysis.getParams()));
+            stream.printf("%sAnalysis class     %s%n", header, analysis);
+            stream.printf("%sAnalysis time      %s%n", header, now);
             for ( String line : analysis.done()) {
-                stream.printf("%s%s%n", COMMENT_STRING, line);
+                stream.printf("%s%s%n", header, line);
             }
         }
     }

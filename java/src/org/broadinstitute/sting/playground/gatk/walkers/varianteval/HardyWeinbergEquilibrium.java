@@ -22,7 +22,7 @@ import cern.jet.math.Arithmetic;
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  *
  */
-public class HardyWeinbergEquilibrium extends ViolationVariantAnalysis implements PopulationAnalysis {
+public class HardyWeinbergEquilibrium extends BasicVariantAnalysis implements PopulationAnalysis {
     private double threshold;
     int nSites = 0;
     int nViolations = 0;

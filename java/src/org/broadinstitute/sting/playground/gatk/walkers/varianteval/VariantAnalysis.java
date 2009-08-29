@@ -22,7 +22,7 @@ public interface VariantAnalysis {
     public PrintStream getSummaryPrintStream();
     public PrintStream getCallPrintStream();
     public List<String> getParams();
-    public void initialize(VariantEvalWalker master, PrintStream out, String filename);
+    public void initialize(VariantEvalWalker master, PrintStream out, PrintStream callOut, String filename);
     public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context);
     public void finalize(long nSites);
     public List<String> done();

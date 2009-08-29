@@ -20,13 +20,15 @@ import java.util.ArrayList;
  */
 public abstract class BasicVariantAnalysis implements VariantAnalysis {
     protected String name;
-    protected PrintStream out;
-    protected VariantEvalWalker master;
+    protected PrintStream out, callOut;
+    private VariantEvalWalker master;
     protected String filename;
 
     public BasicVariantAnalysis(String name) {
         this.name = name;
     }
+
+    public VariantEvalWalker getMaster() { return master; }
 
     public String getName() {
         return name;
@@ -36,9 +38,10 @@ public abstract class BasicVariantAnalysis implements VariantAnalysis {
         return new ArrayList<String>();
     }
 
-    public void initialize(VariantEvalWalker master, PrintStream out, String filename) {
+    public void initialize(VariantEvalWalker master, PrintStream out, PrintStream callOut, String filename) {
         this.master = master;
         this.out = out;
+        this.callOut = callOut;
         this.filename = filename;
     }
 
@@ -47,7 +50,7 @@ public abstract class BasicVariantAnalysis implements VariantAnalysis {
     }
 
     public PrintStream getCallPrintStream() {
-        return out;
+        return callOut;
     }
 
     public List<String> done() {
