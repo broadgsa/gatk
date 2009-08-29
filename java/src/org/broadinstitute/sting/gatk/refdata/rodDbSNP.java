@@ -116,11 +116,11 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
     // What kind of variant are we?
     //
     // ----------------------------------------------------------------------
-    public boolean isSNP() { return varType.contains("single"); }
-    public boolean isInsertion() { return varType.contains("insertion"); }
-    public boolean isDeletion() { return varType.contains("deletion"); }
-    public boolean isIndel() { return isInsertion() || isDeletion() || varType.contains("in-del"); }
-    public boolean isReference() { return false; } // snp locations are never "reference", there's always a snp!!
+    public boolean isSNP()              { return varType.contains("single"); }
+    public boolean isInsertion()        { return varType.contains("insertion"); }
+    public boolean isDeletion()         { return varType.contains("deletion"); }
+    public boolean isIndel()            { return isInsertion() || isDeletion() || varType.contains("in-del"); }
+    public boolean isReference()        { return false; } // snp locations are never "reference", there's always a variant
 
     public boolean isHapmap() { return validationStatus.contains("by-hapmap"); }
     public boolean is2Hit2Allele() { return validationStatus.contains("by-2hit-2allele"); }
