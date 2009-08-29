@@ -176,7 +176,7 @@
     </target>
 
 
-   <property name="scala.home" value="/home/radon01/depristo/work/local/scala-2.7.5.final"/>
+   <property name="scala.home" value="scala/installation"/>
    <property
       name="build.dir"
       value="${base.dir}/build"
@@ -199,13 +199,13 @@
     </taskdef>
     </target>
     
-    <property name="scala.dir" value="scala" />
+    <property name="scala.src" value="scala/src" />
     <property name="scala.classes" value="scala/classes" />
     <target name="scala" depends="init.scala" description="build the scala code">
-        <echo message="Sting: Compiling scala -- omg!"/>
+        <echo message="Sting: Compiling scala!"/>
         <mkdir dir="${scala.classes}"/>
 
-        <scalac srcdir="${scala.dir}" destdir="${scala.classes}" force="changed">
+        <scalac srcdir="${scala.src}" destdir="${scala.classes}" force="changed">
             <include name="**/*.scala"/>
             <classpath>
                 <path refid="runtime.dependencies" />
