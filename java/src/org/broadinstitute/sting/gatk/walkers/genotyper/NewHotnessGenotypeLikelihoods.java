@@ -269,21 +269,23 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods implement
     //
     //
     // -----------------------------------------------------------------------------------------------------------------
-    final static NewHotnessGenotypeLikelihoods[][][][] cache = new NewHotnessGenotypeLikelihoods[BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][MAX_PLOIDY][2];
+    final static NewHotnessGenotypeLikelihoods[][][][][] cache =
+            new NewHotnessGenotypeLikelihoods[EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][MAX_PLOIDY][2];
     static int cacheSize = 0;
 
     private NewHotnessGenotypeLikelihoods getSetCache( char observedBase, byte qualityScore, int ploidy,
                                                        SAMRecord read, int offset, NewHotnessGenotypeLikelihoods val ) {
 
+        int a = EmpiricalSubstitutionGenotypeLikelihoods.getReadSequencerPlatform(read).ordinal();
         int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
         int j = qualityScore;
         int k = ploidy;
         int x = strandIndex(! read.getReadNegativeStrandFlag());
 
         if ( val != null )
-            cache[i][j][k][x] = val;
+            cache[a][i][j][k][x] = val;
 
-        return cache[i][j][k][x];
+        return cache[a][i][j][k][x];
     }
 
     private NewHotnessGenotypeLikelihoods getCache( char observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset ) {
@@ -324,7 +326,7 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods implement
             setCache(observedBase, qualityScore, ploidy, read, offset, g);
             cacheSize++;
 
-            //System.out.printf("Caching %c %d %d %d %b (%d total entries)%n", observedBase, BaseUtils.simpleBaseToBaseIndex(observedBase), qualityScore, ploidy, fwdStrand, cacheSize);
+            //System.out.printf("Caching %c %d %d %s %s (%d total entries)%n", observedBase, qualityScore, ploidy, read.getReadName(), EmpiricalSubstitutionGenotypeLikelihoods.getReadSequencerPlatform(read), cacheSize);
             return g;
         } catch ( CloneNotSupportedException e ) {
             throw new RuntimeException(e);

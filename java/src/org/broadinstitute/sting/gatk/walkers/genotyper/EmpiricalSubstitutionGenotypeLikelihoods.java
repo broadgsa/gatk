@@ -57,6 +57,13 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends NewHotnessGenotype
         }
     }
 
+    public static SequencerPlatform getReadSequencerPlatform( SAMRecord read ) {
+        final String readGroupString = ((String)read.getAttribute("RG"));
+        SAMReadGroupRecord readGroup = readGroupString == null ? null : read.getHeader().getReadGroup(readGroupString);
+        final String platformName = readGroup == null ? null : (String)readGroup.getAttribute(SAM_PLATFORM_TAG);
+        return standardizeSequencerPlatform(platformName);
+    }
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // Static methods to get at the transition tables themselves
@@ -232,11 +239,7 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends NewHotnessGenotype
 
     protected double log10PofTrueBaseGivenMiscall(char observedBase, char chromBase, SAMRecord read, int offset) {
         boolean fwdStrand = ! read.getReadNegativeStrandFlag();
-
-        final String readGroupString = ((String)read.getAttribute("RG"));
-        SAMReadGroupRecord readGroup = readGroupString == null ? null : read.getHeader().getReadGroup(readGroupString);
-        final String platformName = readGroup == null ? null : (String)readGroup.getAttribute(SAM_PLATFORM_TAG);
-        SequencerPlatform pl = standardizeSequencerPlatform(platformName);
+        SequencerPlatform pl = getReadSequencerPlatform(read);
 
         if ( pl == SequencerPlatform.UNKNOWN ) {
             if ( raiseErrorOnUnknownPlatform )
