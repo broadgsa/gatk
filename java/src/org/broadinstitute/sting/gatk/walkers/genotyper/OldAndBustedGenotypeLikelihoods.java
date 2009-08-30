@@ -4,7 +4,6 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.confidence.BayesianConfidenceScore;
@@ -15,12 +14,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class OldAndBustedGenotypeLikelihoods extends GenotypeLikelihoods {
+public class OldAndBustedGenotypeLikelihoods {
     protected static final double[] oneMinusData = new double[Byte.MAX_VALUE];
     protected static final double[] oneHalfMinusDataArachne = new double[Byte.MAX_VALUE];
     protected static final double[] oneHalfMinusData3Base = new double[Byte.MAX_VALUE];
     //protected static final double[] oneHalfMinusData = new double[Byte.MAX_VALUE];
     protected static final double log10Of1_3 = log10(1.0 / 3.0);
+    private boolean filterQ0Bases = true;
 
     static {
         for (int qual = 0; qual < Byte.MAX_VALUE; qual++) {

@@ -3,21 +3,13 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.utils.BaseUtils;
 
 import static java.lang.Math.log10;
-import static java.lang.Math.pow;
 import java.util.TreeMap;
 import java.util.EnumMap;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
 
-/**
- * Created by IntelliJ IDEA.
- * User: mdepristo
- * Date: Aug 23, 2009
- * Time: 9:47:33 PM
- * To change this template use File | Settings | File Templates.
- */
-public class EmpiricalSubstitutionGenotypeLikelihoods extends NewHotnessGenotypeLikelihoods {
+public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihoods {
     // --------------------------------------------------------------------------------------------------------------
     //
     // Static methods to manipulate machine platforms
@@ -120,27 +112,6 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends NewHotnessGenotype
         addMisCall(pl, 'T', 'C', 22.1/100.0);
         addMisCall(pl, 'T', 'G', 32.0/100.0);
     }
-//
-//    // TODO -- delete me for testing only
-//    private static void addSolexa() {
-//        SequencerPlatform pl = SequencerPlatform.SOLEXA;
-//        addMisCall(pl, 'A', 'C', 59.2/100.0);
-//        addMisCall(pl, 'A', 'G', 15.3/100.0);
-//        addMisCall(pl, 'A', 'T', 25.6/100.0);
-//
-//        addMisCall(pl, 'C', 'A', 54.2/100.0);
-//        addMisCall(pl, 'C', 'G', 10.3/100.0);
-//        addMisCall(pl, 'C', 'T', 35.5/100.0);
-//
-//        addMisCall(pl, 'G', 'A', 26.4/100.0);
-//        addMisCall(pl, 'G', 'C',  5.6/100.0);
-//        addMisCall(pl, 'G', 'T', 68.0/100.0);
-//
-//        addMisCall(pl, 'T', 'A', 41.8/100.0);
-//        addMisCall(pl, 'T', 'C', 17.3/100.0);
-//        addMisCall(pl, 'T', 'G', 40.9/100.0);
-//
-//    }
 
     private static void addSOLiD() {
         SequencerPlatform pl = SequencerPlatform.SOLID;

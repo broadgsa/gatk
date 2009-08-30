@@ -1,15 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.ReadBackedPileup;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.BaseTest;
 import org.junit.Ignore;
-import edu.mit.broad.picard.util.MathUtil;
-
-import java.util.Arrays;
 
 /**
  * Stable, error checking version of the Bayesian genotyper.  Useful for calculating the likelihoods, priors,
@@ -50,10 +42,10 @@ public class NewHotnessGenotypeLikelihoodsTest extends BaseTest {
     private double[] priors = null;
     private double[] posteriors = null;
 
-    NewHotnessGenotypeLikelihoods();
-    NewHotnessGenotypeLikelihoods(char ref, double heterozygosity)
-    NewHotnessGenotypeLikelihoods(char ref, double priorHomRef, double priorHet, double priorHomVar);
-    NewHotnessGenotypeLikelihoods(double[] log10Priors)
+    GenotypeLikelihoods();
+    GenotypeLikelihoods(char ref, double heterozygosity)
+    GenotypeLikelihoods(char ref, double priorHomRef, double priorHet, double priorHomVar);
+    GenotypeLikelihoods(double[] log10Priors)
     double[] getLikelihoods()
     double getLikelihood(DiploidGenotype g);
     double[] getPosteriors();

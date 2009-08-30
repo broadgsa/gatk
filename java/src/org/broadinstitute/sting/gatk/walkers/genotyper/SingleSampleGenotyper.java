@@ -40,8 +40,8 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
     public Double heterozygosity = DiploidGenotypePriors.HUMAN_HETEROZYGOSITY;
 
-    @Argument(fullName = "useEmpiricalTransitions", shortName = "useEmpiricalTransitions", doc = "EXPERIMENTAL", required = false)
-    public boolean useEmpiricalTransitions = false;
+    @Argument(fullName = "baseModel", shortName = "m", doc = "Base substitution model to employ -- EMPIRICAL is the recommended default, but it's possible to select the ONE_STATE and THREE_STATE models for comparison purposes", required = false)
+    public BaseMismatchModel baseModel = BaseMismatchModel.EMPIRICAL;
 
     @Argument(fullName = "verbose", shortName = "v", doc = "EXPERIMENTAL", required = false)
     public boolean VERBOSE = false;
@@ -79,25 +79,21 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
 
         // setup GenotypeLike object
-        NewHotnessGenotypeLikelihoods G;
-        if ( useEmpiricalTransitions )
-            G = new EmpiricalSubstitutionGenotypeLikelihoods(priors, defaultPlatform);
-        else
-            G = new NewHotnessGenotypeLikelihoods(priors);
+        GenotypeLikelihoods gl = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, priors, defaultPlatform);
 
-        G.setVerbose(VERBOSE);
+        gl.setVerbose(VERBOSE);
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-        G.add(pileup, true);
-        G.validate();
+        gl.add(pileup, true);
+        gl.validate();
 
         // lets setup the locus
         List<Genotype> lst = new ArrayList<Genotype>();
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
-            lst.add(new BasicGenotype(pileup.getLocation(), g.toString(),new BayesianConfidenceScore(G.getLikelihood(g))));
+            lst.add(new BasicGenotype(pileup.getLocation(), g.toString(),new BayesianConfidenceScore(gl.getLikelihood(g))));
         }
 
-        //System.out.printf("At %s%n", new SSGGenotypeCall(! GENOTYPE, ref, 2, lst, G.getPosteriors(), pileup));
-        return new SSGGenotypeCall(! GENOTYPE, ref, 2, lst, G.getPosteriors(), pileup);
+        //System.out.printf("At %s%n", new SSGGenotypeCall(! GENOTYPE, ref, 2, lst, g.getPosteriors(), pileup));
+        return new SSGGenotypeCall(! GENOTYPE, ref, 2, lst, gl.getPosteriors(), pileup);
     }
 
     /**

@@ -189,11 +189,11 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             }
 
             //Calculate posterior probabilities!
-            NewHotnessGenotypeLikelihoods G = new NewHotnessGenotypeLikelihoods();
+            GenotypeLikelihoods gl = new ThreeStateErrorGenotypeLikelihoods();
 
-            //I've tried simply adding the entire pileup to G, but quality scores are not checked, and 'N' bases throw an error
-            //(NewHotnessGenotypeLikelihoods potentially has bug on line 57)
-            //G.add(pileup);
+            //I've tried simply adding the entire pileup to g, but quality scores are not checked, and 'N' bases throw an error
+            //(GenotypeLikelihoods potentially has bug on line 57)
+            //g.add(pileup);
 
             //Check for bad bases and ensure mapping quality myself. This works.
             for (int i = 0; i < context.getReads().size(); i++) {
@@ -206,20 +206,20 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                     if (base == 'A'){numAs++;}
                     if (base == 'C'){numCs++;}
                     if (base == 'T'){numTs++;}
-                    if (base == 'G'){numGs++;}
+                    if (base == 'g'){numGs++;}
                     //consider base in likelihood calculations if it looks good and has high mapping score
-                    G.add(base, qual, read, offset);
+                    gl.add(base, qual, read, offset);
                 }
             }
 
             //Debugging purposes
-            if (DEBUG) {out.printf("A[%s]\tC[%s]\tT[%s]\tG[%s]\t",numAs,numCs,numTs,numGs);}
+            if (DEBUG) {out.printf("A[%s]\tC[%s]\tT[%s]\tg[%s]\t",numAs,numCs,numTs,numGs);}
 
 
             //Store confidence scores - this is a local hash that we use to get likelihood given a particular genotype
             Scores = new Hashtable();
             for ( DiploidGenotype g : DiploidGenotype.values() ) {
-                Scores.put(g.toString(), G.getLikelihood(g));
+                Scores.put(g.toString(), gl.getLikelihood(g));
             }
 
             //Get likelihood score for homozygous ref: used to normalize likelihoood scores at 0.
