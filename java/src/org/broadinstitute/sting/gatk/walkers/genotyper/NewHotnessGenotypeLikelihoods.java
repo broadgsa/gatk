@@ -51,6 +51,9 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods implement
 
     private DiploidGenotypePriors priors = null;
 
+    private boolean verbose = false;
+    private int minQScoreToInclude = 0;
+
     /**
      * Create a new GenotypeLikelhoods object with flat priors for each diploid genotype
      */
@@ -83,6 +86,23 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods implement
     private void initialize() {
         likelihoods = zeros.clone();            // likelihoods are all zeros
         posteriors = priors.getPriors().clone();            // posteriors are all the priors
+    }
+
+
+    public void setVerbose(boolean v) {
+        verbose = v;
+    }
+
+    public boolean isVerbose() {
+        return verbose;
+    }
+
+    public int getMinQScoreToInclude() {
+        return minQScoreToInclude;
+    }
+
+    public void setMinQScoreToInclude(int minQScoreToInclude) {
+        this.minQScoreToInclude = minQScoreToInclude;
     }
 
     /**
@@ -142,23 +162,6 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods implement
         return getPriors()[g.ordinal()];
     }
 
-    /**
-     * Are we ignoring Q0 bases during calculations?
-     * @return
-     */
-    public boolean isFilteringQ0Bases() {
-        return filterQ0Bases;
-    }
-
-    /**
-     * Enable / disable filtering of Q0 bases.  Enabled by default
-     *
-     * @param filterQ0Bases
-     */
-    public void filterQ0Bases(boolean filterQ0Bases) {
-        this.filterQ0Bases = filterQ0Bases;
-    }
-
     // -----------------------------------------------------------------------------------------------------------------
     //
     //
@@ -175,58 +178,8 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods implement
      * @param qualityScore
      * @return 1 if the base was considered good enough to add to the likelihoods (not Q0 or 'N', for example)
      */
-    public int add(char observedBase, byte qualityScore, boolean fwdStrand) {
-        return add(observedBase, qualityScore, fwdStrand, true, false);
-    }
-
-    public int add(char observedBase, byte qualityScore, boolean fwdStrand, boolean enableCache, boolean verbose) {
-        if ( badBase(observedBase) ) {
-            throw new RuntimeException(String.format("BUG: unexpected base %c with Q%d passed to GenotypeLikelihoods", observedBase, qualityScore));
-        }
-
-        // TODO -- we should probably filter Q1 bases too
-        if (qualityScore <= 0) {
-            if ( isFilteringQ0Bases() ) {
-                return 0;
-            } else {
-                qualityScore = 1;
-            }
-        }
-
-        // Handle caching if requested.  Just look up the cached result if its available, or compute and store it
-        NewHotnessGenotypeLikelihoods cached = null;
-        if ( enableCache ) {
-            if ( ! inCache(observedBase, qualityScore, FIXED_PLOIDY, fwdStrand) ) {
-                cached = calculateCachedGenotypeLikelihoods(observedBase, qualityScore, FIXED_PLOIDY, fwdStrand);
-            } else {
-                cached = getCachedGenotypeLikelihoods(observedBase, qualityScore, FIXED_PLOIDY, fwdStrand);
-            }
-        }
-
-        for ( DiploidGenotype g : DiploidGenotype.values() ) {
-            double likelihoodCalc = ! enableCache ? log10PofObservingBaseGivenGenotype(observedBase, g, qualityScore, fwdStrand) : 0.0;
-            double likelihoodCached = enableCache ? cached.likelihoods[g.ordinal()] : 0.0;
-            double likelihood = enableCache ? likelihoodCached : likelihoodCalc;
-
-            //if ( enableCache && likelihoodCalc != 0.0 && MathUtils.compareDoubles(likelihoodCached, likelihoodCalc) != 0 ) {
-            //    System.out.printf("ERROR: Likelihoods not equal is cache=%f != calc=%f for %c %d %s%n",
-            //            likelihoodCached, likelihoodCalc, observedBase, qualityScore, g.toString());
-            //}
-            if ( verbose )
-                System.out.printf("  L(%c | G=%s, Q=%d, S=%s) = %f%n", observedBase, g, qualityScore, fwdStrand ? "+" : "-", likelihood);
-
-            likelihoods[g.ordinal()] += likelihood;
-            posteriors[g.ordinal()] += likelihood;
-        }
-
-        if ( verbose ) {
-            for ( DiploidGenotype g : DiploidGenotype.values() ) { System.out.printf("%s\t", g); }
-            System.out.println();
-            for ( DiploidGenotype g : DiploidGenotype.values() ) { System.out.printf("%.2f\t", likelihoods[g.ordinal()]); }
-            System.out.println();
-        }
-
-        return 1;
+    public int add(char observedBase, byte qualityScore, SAMRecord read, int offset) {
+        return reallyAdd(observedBase, qualityScore, read, offset, true);
     }
 
     /**
@@ -237,7 +190,7 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods implement
      * @param pileup
      * @return the number of good bases found in the pileup
      */
-    public int add(ReadBackedPileup pileup, boolean ignoreBadBases, boolean verbose) {
+    public int add(ReadBackedPileup pileup, boolean ignoreBadBases) {
         int n = 0;
 
         for (int i = 0; i < pileup.getReads().size(); i++) {
@@ -246,20 +199,67 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods implement
             char base = read.getReadString().charAt(offset);
             byte qual = read.getBaseQualities()[offset];
             if ( ! ignoreBadBases || ! badBase(base) ) {
-                n += add(base, qual, ! read.getReadNegativeStrandFlag(), true, verbose);
+                n += add(base, qual, read, offset);
             }
         }
 
         return n;
     }
 
-    public int add(ReadBackedPileup pileup, boolean ignoreBadBases) {
-        return add(pileup, ignoreBadBases, false);
+    public int add(ReadBackedPileup pileup) {
+        return add(pileup, false);
     }
 
 
-    public int add(ReadBackedPileup pileup) {
-        return add(pileup, false);
+    private int reallyAdd(char observedBase, byte qualityScore, SAMRecord read, int offset, boolean enableCache) {
+        if ( badBase(observedBase) ) {
+            throw new RuntimeException(String.format("BUG: unexpected base %c with Q%d passed to GenotypeLikelihoods", observedBase, qualityScore));
+        }
+
+        int nBasesAdded = 0; // the result -- how many bases did we add?
+
+        if ( qualityScore > getMinQScoreToInclude() ) {
+            // Handle caching if requested.  Just look up the cached result if its available, or compute and store it
+            NewHotnessGenotypeLikelihoods cached = null;
+            if ( enableCache ) {
+                if ( ! inCache( observedBase, qualityScore, FIXED_PLOIDY, read, offset ) ) {
+                    cached = calculateCachedGenotypeLikelihoods(observedBase, qualityScore, FIXED_PLOIDY, read, offset );
+                } else {
+                    cached = getCachedGenotypeLikelihoods(observedBase, qualityScore, FIXED_PLOIDY, read, offset );
+                }
+            }
+
+            for ( DiploidGenotype g : DiploidGenotype.values() ) {
+                double likelihoodCalc = ! enableCache ? log10PofObservingBaseGivenGenotype(observedBase, g, qualityScore, read, offset) : 0.0;
+                double likelihoodCached = enableCache ? cached.likelihoods[g.ordinal()] : 0.0;
+                double likelihood = enableCache ? likelihoodCached : likelihoodCalc;
+
+                //if ( enableCache && likelihoodCalc != 0.0 && MathUtils.compareDoubles(likelihoodCached, likelihoodCalc) != 0 ) {
+                //    System.out.printf("ERROR: Likelihoods not equal is cache=%f != calc=%f for %c %d %s%n",
+                //            likelihoodCached, likelihoodCalc, observedBase, qualityScore, g.toString());
+                //}
+
+                if ( isVerbose() ) {
+                    boolean fwdStrand = ! read.getReadNegativeStrandFlag();
+                    System.out.printf("  L(%c | G=%s, Q=%d, S=%s) = %f / %f%n",
+                            observedBase, g, qualityScore, fwdStrand ? "+" : "-", pow(10,likelihood) * 100, likelihood);
+                }
+
+                likelihoods[g.ordinal()] += likelihood;
+                posteriors[g.ordinal()] += likelihood;
+            }
+
+            if ( isVerbose() ) {
+                for ( DiploidGenotype g : DiploidGenotype.values() ) { System.out.printf("%s\t", g); }
+                System.out.println();
+                for ( DiploidGenotype g : DiploidGenotype.values() ) { System.out.printf("%.2f\t", likelihoods[g.ordinal()]); }
+                System.out.println();
+            }
+
+            nBasesAdded = 1;
+        }
+
+        return nBasesAdded;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -272,34 +272,56 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods implement
     final static NewHotnessGenotypeLikelihoods[][][][] cache = new NewHotnessGenotypeLikelihoods[BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][MAX_PLOIDY][2];
     static int cacheSize = 0;
 
+    private NewHotnessGenotypeLikelihoods getSetCache( char observedBase, byte qualityScore, int ploidy,
+                                                       SAMRecord read, int offset, NewHotnessGenotypeLikelihoods val ) {
+
+        int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
+        int j = qualityScore;
+        int k = ploidy;
+        int x = strandIndex(! read.getReadNegativeStrandFlag());
+
+        if ( val != null )
+            cache[i][j][k][x] = val;
+
+        return cache[i][j][k][x];
+    }
+
+    private NewHotnessGenotypeLikelihoods getCache( char observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset ) {
+        return getSetCache( observedBase, qualityScore, ploidy, read, offset, null );
+    }
+
+    private void setCache( char observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset, NewHotnessGenotypeLikelihoods val ) {
+        getSetCache( observedBase, qualityScore, ploidy, read, offset, val );
+    }
+
     private int strandIndex(boolean fwdStrand) {
         return fwdStrand ? 0 : 1;
     }
 
-    private boolean inCache( char observedBase, byte qualityScore, int ploidy, boolean fwdStrand ) {
-        return cache[BaseUtils.simpleBaseToBaseIndex(observedBase)][qualityScore][ploidy][strandIndex(fwdStrand)] != null;
+    private boolean inCache( char observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset ) {
+        return getCache(observedBase, qualityScore, ploidy, read, offset) != null;
     }
 
-    private NewHotnessGenotypeLikelihoods getCachedGenotypeLikelihoods( char observedBase, byte qualityScore, int ploidy, boolean fwdStrand ) {
-        if ( ! inCache(observedBase, qualityScore, ploidy, fwdStrand ) )
-            throw new RuntimeException(String.format("BUG: trying to fetch an unset cached genotype likelihood at base=%c, qual=%d, ploidy=%d, fwdstrand=%b",
-                    observedBase, qualityScore, ploidy, fwdStrand));
+    private NewHotnessGenotypeLikelihoods getCachedGenotypeLikelihoods( char observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset ) {
+        if ( ! inCache(observedBase, qualityScore, ploidy, read, offset ) )
+            throw new RuntimeException(String.format("BUG: trying to fetch an unset cached genotype likelihood at base=%c, qual=%d, ploidy=%d, read=%s",
+                    observedBase, qualityScore, ploidy, read));
 
-        return cache[BaseUtils.simpleBaseToBaseIndex(observedBase)][qualityScore][ploidy][strandIndex(fwdStrand)];
+        return getCache(observedBase, qualityScore, ploidy, read, offset);
     }
 
-    private NewHotnessGenotypeLikelihoods calculateCachedGenotypeLikelihoods( char observedBase, byte qualityScore, int ploidy, boolean fwdStrand ) {
-        if ( inCache(observedBase, qualityScore, ploidy, fwdStrand ) )
-            throw new RuntimeException(String.format("BUG: trying to set an already set cached genotype likelihood at base=%c, qual=%d, ploidy=%d, fwdstrand=%b",
-                    observedBase, qualityScore, ploidy, fwdStrand));
+    private NewHotnessGenotypeLikelihoods calculateCachedGenotypeLikelihoods( char observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset ) {
+        if ( inCache(observedBase, qualityScore, ploidy, read, offset ) )
+            throw new RuntimeException(String.format("BUG: trying to set an already set cached genotype likelihood at base=%c, qual=%d, ploidy=%d, read=%s",
+                    observedBase, qualityScore, ploidy, read));
 
         // create a new genotype likelihoods object and add this single base to it -- now we have a cached result
         try {
             NewHotnessGenotypeLikelihoods g = (NewHotnessGenotypeLikelihoods)this.clone();
             g.initialize();
-            g.add(observedBase, qualityScore, fwdStrand, false, false);
+            g.reallyAdd(observedBase, qualityScore, read, offset, false);
 
-            cache[BaseUtils.simpleBaseToBaseIndex(observedBase)][qualityScore][ploidy][strandIndex(fwdStrand)] = g;
+            setCache(observedBase, qualityScore, ploidy, read, offset, g);
             cacheSize++;
 
             //System.out.printf("Caching %c %d %d %d %b (%d total entries)%n", observedBase, BaseUtils.simpleBaseToBaseIndex(observedBase), qualityScore, ploidy, fwdStrand, cacheSize);
@@ -403,19 +425,20 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods implement
      * @param qual
      * @return
      */
-    protected double log10PofObservingBaseGivenGenotype(char observedBase, DiploidGenotype g, byte qual, boolean fwdStrand) {
+    protected double log10PofObservingBaseGivenGenotype(char observedBase, DiploidGenotype g, byte qual, SAMRecord read, int offset ) {
         if (qual == 0) { // zero quals are wrong
-            throw new RuntimeException(String.format("Unexpected Q0 base discovered in calculateAlleleLikelihood: %c %s %d", observedBase, g, qual));
+            throw new RuntimeException(String.format("Unexpected Q0 base discovered in calculateAlleleLikelihood: %c %s %d at %d in %s",
+                    observedBase, g, qual, offset, read));
         }
 
         // todo assumes ploidy is 2 -- should be generalized.  Obviously the below code can be turned into a loop
         double p_base = 0.0;
-        p_base += pow(10, log10PofObservingBaseGivenChromosome(observedBase, g.base1, qual, FIXED_PLOIDY, fwdStrand));
-        p_base += pow(10, log10PofObservingBaseGivenChromosome(observedBase, g.base2, qual, FIXED_PLOIDY, fwdStrand));
+        p_base += pow(10, log10PofObservingBaseGivenChromosome(observedBase, g.base1, qual, FIXED_PLOIDY, read, offset ));
+        p_base += pow(10, log10PofObservingBaseGivenChromosome(observedBase, g.base2, qual, FIXED_PLOIDY, read, offset ));
         return log10(p_base);
     }
 
-    protected double log10PofObservingBaseGivenChromosome(char observedBase, char chromBase, byte qual, int ploidy, boolean fwdStrand) {
+    protected double log10PofObservingBaseGivenChromosome(char observedBase, char chromBase, byte qual, int ploidy, SAMRecord read, int offset) {
         double logP = 0.0;
 
         if ( observedBase == chromBase ) {
@@ -425,7 +448,7 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods implement
             logP = log10(1.0 - e);
         } else {
             // the base is inconsistent with the chromosome -- it's e * P(chromBase | observedBase is an error)
-            logP = qual / -10.0 + log10PofTrueBaseGivenMiscall(observedBase, chromBase, fwdStrand);
+            logP = qual / -10.0 + log10PofTrueBaseGivenMiscall(observedBase, chromBase, read, offset);
         }
 
         // adjust for ploidy.  We take the raw p(obs | chrom) / ploidy, which is -log10(ploidy) in log space
@@ -441,7 +464,7 @@ public class NewHotnessGenotypeLikelihoods extends GenotypeLikelihoods implement
      */
     protected static final double log103 = log10(3.0);
 
-    protected double log10PofTrueBaseGivenMiscall(char observedBase, char chromBase, boolean fwdStrand) {
+    protected double log10PofTrueBaseGivenMiscall(char observedBase, char chromBase, SAMRecord read, int offset) {
         return -log103; // currently equivalent to e/3 model
     }
 

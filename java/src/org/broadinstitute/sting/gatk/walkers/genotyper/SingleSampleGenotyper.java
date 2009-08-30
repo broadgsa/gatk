@@ -46,16 +46,10 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
     @Argument(fullName = "verbose", shortName = "v", doc = "EXPERIMENTAL", required = false)
     public boolean VERBOSE = false;
 
-    // todo - print out priors at the start of SSG with .INFO
+    @Argument(fullName = "platform", shortName = "pl", doc = "Causes the genotyper to assume that reads without PL header TAG are this platform.  Defaults to null, indicating that the system will throw a runtime exception when such reads are detected", required = false)
+    public EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform defaultPlatform = null;
 
-    // todo -- remove dbSNP awareness until we understand how it should be used
-    //@Argument(fullName = "priors_dbsnp", shortName = "pdbsnp", doc = "Comma-separated prior likelihoods for dbSNP loci (homref,het,homvar)", required = false)
-    //public String PRIORS_DBSNP = "0.999,1e-3,1e-5";
-
-    @Argument(fullName = "keepQ0Bases", shortName = "keepQ0Bases", doc = "If true, then Q0 bases will be included in the genotyping calculation, and treated as Q1 -- this is really not a good idea", required = false)
-    public boolean keepQ0Bases = false;
-
-    /**
+     /**
      * Filter out loci to ignore (at an ambiguous base in the reference or a locus with zero coverage).
      *
      * @param tracker the meta data tracker
@@ -84,11 +78,16 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
         char ref = refContext.getBase();
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
 
-        NewHotnessGenotypeLikelihoods G = useEmpiricalTransitions ? new EmpiricalSubstitutionGenotypeLikelihoods(priors) : new NewHotnessGenotypeLikelihoods(priors);
+        // setup GenotypeLike object
+        NewHotnessGenotypeLikelihoods G;
+        if ( useEmpiricalTransitions )
+            G = new EmpiricalSubstitutionGenotypeLikelihoods(priors, defaultPlatform);
+        else
+            G = new NewHotnessGenotypeLikelihoods(priors);
 
-        G.filterQ0Bases(! keepQ0Bases);
+        G.setVerbose(VERBOSE);
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-        G.add(pileup, true, VERBOSE);
+        G.add(pileup, true);
         G.validate();
 
         // lets setup the locus

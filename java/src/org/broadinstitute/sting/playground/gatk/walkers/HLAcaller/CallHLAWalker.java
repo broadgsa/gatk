@@ -208,7 +208,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                     if (base == 'T'){numTs++;}
                     if (base == 'G'){numGs++;}
                     //consider base in likelihood calculations if it looks good and has high mapping score
-                    G.add(base, qual, ! read.getReadNegativeStrandFlag());
+                    G.add(base, qual, read, offset);
                 }
             }
 
