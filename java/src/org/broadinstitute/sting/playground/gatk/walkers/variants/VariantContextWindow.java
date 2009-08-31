@@ -81,6 +81,8 @@ public class VariantContextWindow {
     public VariantContext[] getWindow(int elementsToLeft, int elementsToRight) {
         if ( elementsToLeft > maxWindowElements() || elementsToRight > maxWindowElements() )
             throw new StingException("Too large a window requested");
+        if ( elementsToLeft < 0 || elementsToRight < 0 )
+            throw new StingException("Window size cannot be negative");        
 
         VariantContext[] array = new VariantContext[elementsToLeft + elementsToRight + 1];
         ListIterator<VariantContext> iter = window.listIterator(currentContext - elementsToLeft);        
