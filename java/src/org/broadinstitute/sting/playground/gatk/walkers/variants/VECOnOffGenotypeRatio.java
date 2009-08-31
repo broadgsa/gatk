@@ -50,7 +50,7 @@ public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // ext
         VariantContext context = contextWindow.getContext();
         char ref = context.getReferenceContext().getBase();
 
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getAlignmentContext());
+        ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getAlignmentContext(useZeroQualityReads()));
         Pair<Integer, Integer> counts = scoreVariant(ref, pileup, context.getVariant());
         int n = counts.first + counts.second;
         ratio = counts.first.doubleValue() / (double)n;

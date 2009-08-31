@@ -20,7 +20,7 @@ public class VECMappingQuality implements VariantExclusionCriterion {
 
     public void compute(VariantContextWindow contextWindow) {
         VariantContext context = contextWindow.getContext();
-        List<SAMRecord> reads = context.getAlignmentContext().getReads();
+        List<SAMRecord> reads = context.getAlignmentContext(useZeroQualityReads()).getReads();
         int[] qualities = new int[reads.size()];
         for (int i=0; i < reads.size(); i++)
             qualities[i] = reads.get(i).getMappingQuality();

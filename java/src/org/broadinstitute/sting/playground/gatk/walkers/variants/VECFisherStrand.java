@@ -30,7 +30,7 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         int allele2 = BaseUtils.simpleBaseToBaseIndex(variant.getBestGenotype().charAt(1));
 
         if (allele1 != allele2) {
-            exclude = strandTest(context.getReferenceContext().getBase(), context.getAlignmentContext(), allele1, allele2, pvalueLimit, null);
+            exclude = strandTest(context.getReferenceContext().getBase(), context.getAlignmentContext(useZeroQualityReads()), allele1, allele2, pvalueLimit, null);
         } else {
             exclude = false;
         }

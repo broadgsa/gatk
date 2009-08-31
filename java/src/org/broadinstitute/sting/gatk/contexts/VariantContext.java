@@ -50,7 +50,6 @@ public class VariantContext {
     public RefMetaDataTracker getTracker() { return tracker; }
     public ReferenceContext getReferenceContext() { return ref; }
     public rodVariants getVariant() { return variant; }
-    public AlignmentContext getAlignmentContext() { return getAlignmentContext(false); }
     public AlignmentContext getAlignmentContext(boolean useMQ0Reads) {
         return (useMQ0Reads ? context : getQ0freeContext());
     }

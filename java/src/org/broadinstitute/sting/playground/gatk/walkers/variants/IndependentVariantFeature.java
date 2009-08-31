@@ -30,4 +30,6 @@ public interface IndependentVariantFeature {
     public String getStudyHeader();
 
     public String getStudyInfo();
+
+    public boolean useZeroQualityReads();
 }

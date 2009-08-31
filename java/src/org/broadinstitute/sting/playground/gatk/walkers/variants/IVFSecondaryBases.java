@@ -63,7 +63,7 @@ public class IVFSecondaryBases implements IndependentVariantFeature {
         VariantContext context = contextWindow.getContext();
         likelihoods = new double[10];
 
-        ReadBackedPileup pileup = new ReadBackedPileup(context.getReferenceContext().getBase(), context.getAlignmentContext());
+        ReadBackedPileup pileup = new ReadBackedPileup(context.getReferenceContext().getBase(), context.getAlignmentContext(useZeroQualityReads()));
         String primaryBases = pileup.getBases();
         String secondaryBases = pileup.getSecondaryBasePileup();
 
@@ -124,4 +124,6 @@ public class IVFSecondaryBases implements IndependentVariantFeature {
     public String getStudyInfo() {
         return "";
     }
+
+    public boolean useZeroQualityReads() { return false; }
 }

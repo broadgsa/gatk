@@ -31,8 +31,8 @@ public class VECClusteredSnps implements VariantExclusionCriterion {
             if ( variants[i] == null || variants[i+snpThreshold-1] == null )
                 continue;
 
-            GenomeLoc left = variants[i].getAlignmentContext().getLocation();
-            GenomeLoc right = variants[i+snpThreshold-1].getAlignmentContext().getLocation();
+            GenomeLoc left = variants[i].getAlignmentContext(useZeroQualityReads()).getLocation();
+            GenomeLoc right = variants[i+snpThreshold-1].getAlignmentContext(useZeroQualityReads()).getLocation();
             if ( left.getContigIndex() == right.getContigIndex() ) {
                 distance = Math.abs(right.getStart() - left.getStart());
                 if ( distance <= window ) {

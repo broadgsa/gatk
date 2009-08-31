@@ -22,8 +22,8 @@ public class IVFBinomialStrand implements IndependentVariantFeature {
         VariantContext context = contextWindow.getContext();
         likelihoods = new double[10];
         
-        ReadBackedPileup pileup = new ReadBackedPileup(context.getReferenceContext().getBase(), context.getAlignmentContext());
-        List<SAMRecord> reads = context.getAlignmentContext().getReads();
+        ReadBackedPileup pileup = new ReadBackedPileup(context.getReferenceContext().getBase(), context.getAlignmentContext(useZeroQualityReads()));
+        List<SAMRecord> reads = context.getAlignmentContext(useZeroQualityReads()).getReads();
         String bases = pileup.getBases();
 
         for (int genotypeIndex = 0; genotypeIndex < Genotype.values().length; genotypeIndex++) {
@@ -59,4 +59,6 @@ public class IVFBinomialStrand implements IndependentVariantFeature {
     public String getStudyInfo() {
         return "";
     }
+
+    public boolean useZeroQualityReads() { return false; }    
 }

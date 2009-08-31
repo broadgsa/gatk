@@ -24,7 +24,7 @@ public class VECDepthOfCoverage implements VariantExclusionCriterion {
 
     public void compute(VariantContextWindow contextWindow) {
         VariantContext context = contextWindow.getContext();
-        depth = context.getAlignmentContext().getReads().size();
+        depth = context.getAlignmentContext(useZeroQualityReads()).getReads().size();
         exclude = depth > maximum;
     }
 

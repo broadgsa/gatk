@@ -56,7 +56,7 @@ public class VECHomopolymer implements VariantExclusionCriterion {
 
     public void compute(VariantContextWindow contextWindow) {
         VariantContext context = contextWindow.getContext();
-        AlignmentContext alignmentContext = context.getAlignmentContext();
+        AlignmentContext alignmentContext = context.getAlignmentContext(useZeroQualityReads());
         char[] geno = context.getVariant().getBestGenotype().toCharArray();
         int[] genotype = {-1,-1};
         for (int h = 0; h < 2; h ++) {
