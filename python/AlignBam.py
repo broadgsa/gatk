@@ -38,6 +38,9 @@ def run_paired_BWA(bam):
     cmd("/seq/dirseq/samtools/current/samtools import "+bam_ref_list+" "+alignedsam+" "+alignedbam)
     
 if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print "Usage: AlignBam.py BAM_FILE"
+        sys.exit()
     bam = sys.argv[1]
     run_paired_BWA(bam)
     
