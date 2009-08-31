@@ -45,6 +45,11 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     // fraction of mismatches that need to no longer mismatch for a column to be considered cleaned
     private static final double MISMATCH_COLUMN_CLEANED_FRACTION = 0.75;
 
+    private static final double SW_MATCH = 30.0;      // 1.0;
+    private static final double SW_MISMATCH = -10.0;  //-1.0/3.0;
+    private static final double SW_GAP = -10.0;       //-1.0-1.0/3.0;
+    private static final double SW_GAP_EXTEND = -2.0; //-1.0/.0;
+
     private FileWriter indelOutput = null;
     private FileWriter statsOutput = null;
     private FileWriter snpsOutput = null;
@@ -263,7 +268,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         if ( altAlignmentsToTest.size() <= MAX_READS_FOR_CONSENSUSES ) {
             for ( AlignedRead aRead : altAlignmentsToTest ) {
                 // do a pairwise alignment against the reference
-                SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getReadString());
+                SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getReadString(), SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
                 Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, aRead.getReadString());
                 if ( c != null)
                     altConsenses.add(c);
@@ -275,7 +280,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 int index = generator.nextInt(altAlignmentsToTest.size());
                 AlignedRead aRead = altAlignmentsToTest.remove(index);
                 // do a pairwise alignment against the reference
-                SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getReadString());
+                SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, aRead.getReadString(), SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
                 Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, aRead.getReadString());
                 if ( c != null)
                     altConsenses.add(c);
