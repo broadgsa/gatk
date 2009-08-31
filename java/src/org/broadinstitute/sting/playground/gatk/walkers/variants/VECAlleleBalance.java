@@ -57,7 +57,7 @@ public class VECAlleleBalance implements VariantExclusionCriterion {  //extends 
         char ref = context.getReferenceContext().getBase();
         rodVariants variant = context.getVariant();
 
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getAlignmentContext());
+        ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getAlignmentContext(useZeroQualityReads()));
         Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
         int n = counts.first + counts.second;
         ratio = counts.first.doubleValue() / (double)n;

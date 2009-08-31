@@ -210,7 +210,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
 
         if (VERBOSE) { out.println("Original:\n" + variant); }
 
-        GenomeLoc loc = context.getAlignmentContext().getLocation();
+        GenomeLoc loc = context.getAlignmentContext(true).getLocation();
         paramsWriter.print(loc.getContig() + "\t" + loc.getStart() + "\t");
 
         // Apply features that modify the likelihoods and LOD scores

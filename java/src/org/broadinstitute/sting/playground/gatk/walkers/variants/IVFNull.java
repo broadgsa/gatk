@@ -17,4 +17,6 @@ public class IVFNull implements IndependentVariantFeature {
     public String getStudyInfo() {
         return "";
     }
+
+    public boolean useZeroQualityReads() { return false; }
 }

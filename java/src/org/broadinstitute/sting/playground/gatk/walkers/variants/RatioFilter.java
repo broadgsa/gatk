@@ -261,7 +261,7 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
         rodVariants variant = context.getVariant();
         char ref = context.getReferenceContext().getBase();
 
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getAlignmentContext());
+        ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getAlignmentContext(useZeroQualityReads()));
         if ( applyToVariant(variant) ) {
             Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
             GenotypeFeatureData gfd = dataTable.get(orderedBases(variant.getBestGenotype()));
