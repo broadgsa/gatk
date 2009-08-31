@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
 import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.SAMRecord;
@@ -22,12 +23,14 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         factorials.add(0.0);  // add fact(0)
     }
 
-    public void compute(char ref, AlignmentContext context, rodVariants variant) {
+    public void compute(VariantContextWindow contextWindow) {
+        VariantContext context = contextWindow.getContext();
+        rodVariants variant = context.getVariant();
         int allele1 = BaseUtils.simpleBaseToBaseIndex(variant.getBestGenotype().charAt(0));
         int allele2 = BaseUtils.simpleBaseToBaseIndex(variant.getBestGenotype().charAt(1));
 
         if (allele1 != allele2) {
-            exclude = strandTest(ref, context, allele1, allele2, pvalueLimit, null);
+            exclude = strandTest(context.getReferenceContext().getBase(), context.getAlignmentContext(), allele1, allele2, pvalueLimit, null);
         } else {
             exclude = false;
         }

@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-
 /**
  * Interface for conditionally independent variant features.  
  */
@@ -23,10 +21,9 @@ public interface IndependentVariantFeature {
      * Method to compute the result of this feature for each of the ten genotypes.  The return value must
      * be a double array of length 10 (one for each genotype) and the value must be in log10-space.
      * 
-     * @param ref      the reference base
-     * @param context  the context for the given locus
+     * @param contextWindow  the context for the given locus
      */
-    public void compute(char ref, AlignmentContext context);
+    public void compute(VariantContextWindow contextWindow);
 
     public double[] getLikelihoods();
 

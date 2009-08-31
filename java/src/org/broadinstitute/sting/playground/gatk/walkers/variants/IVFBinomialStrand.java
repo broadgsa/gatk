@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 
@@ -18,11 +18,12 @@ public class IVFBinomialStrand implements IndependentVariantFeature {
         }
     }
 
-    public void compute(char ref, AlignmentContext context) {
+    public void compute(VariantContextWindow contextWindow) {
+        VariantContext context = contextWindow.getContext();
         likelihoods = new double[10];
         
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-        List<SAMRecord> reads = context.getReads();
+        ReadBackedPileup pileup = new ReadBackedPileup(context.getReferenceContext().getBase(), context.getAlignmentContext());
+        List<SAMRecord> reads = context.getAlignmentContext().getReads();
         String bases = pileup.getBases();
 
         for (int genotypeIndex = 0; genotypeIndex < Genotype.values().length; genotypeIndex++) {

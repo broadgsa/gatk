@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import org.broadinstitute.sting.utils.*;
 
 public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // extends RatioFilter {
@@ -46,9 +46,12 @@ public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // ext
         return new Pair<Integer, Integer>(on, off);
     }
 
-    public void compute(char ref, AlignmentContext context, rodVariants variant) {
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-        Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
+    public void compute(VariantContextWindow contextWindow) {
+        VariantContext context = contextWindow.getContext();
+        char ref = context.getReferenceContext().getBase();
+
+        ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getAlignmentContext());
+        Pair<Integer, Integer> counts = scoreVariant(ref, pileup, context.getVariant());
         int n = counts.first + counts.second;
         ratio = counts.first.doubleValue() / (double)n;
         exclude = ratio < threshold;

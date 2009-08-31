@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 
@@ -29,14 +29,14 @@ public class IVFPrimaryBases implements IndependentVariantFeature {
      * Method to compute the result of this feature for each of the ten genotypes.  The return value must be a double array
      * of length 10 (one for each genotype) and the value must be in log10-space.
      *
-     * @param ref     the reference base
-     * @param context the context for the given locus
+     * @param contextWindow the context for the given locus
      * @return a ten-element array of log-likelihood result of the feature applied to each genotype
      */
-    public void compute(char ref, AlignmentContext context) {
+    public void compute(VariantContextWindow contextWindow) {
+        VariantContext context = contextWindow.getContext();
         likelihoods = new double[10];
 
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+        ReadBackedPileup pileup = new ReadBackedPileup(context.getReferenceContext().getBase(), context.getAlignmentContext());
         String primaryBases = pileup.getBases();
 
         for (int genotypeIndex = 0; genotypeIndex < Genotype.values().length; genotypeIndex++) {

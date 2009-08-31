@@ -1,12 +1,9 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.refdata.rodVariants;
-
 public interface VariantExclusionCriterion {
     public void initialize(String arguments);
 
-    public void compute(char ref, AlignmentContext context, rodVariants variant);
+    public void compute(VariantContextWindow contextWindow);
 
     //public boolean isExcludable();
     public double inclusionProbability();

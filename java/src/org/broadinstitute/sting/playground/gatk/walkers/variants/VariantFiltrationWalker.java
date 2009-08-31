@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
@@ -12,7 +11,6 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.*;
 
-import net.sf.samtools.SAMRecord;
 
 /**
  * VariantFiltrationWalker applies specified conditionally independent features and filters to pre-called variants.
@@ -37,6 +35,11 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
 
     private ArrayList<IndependentVariantFeature> requestedFeatures;
     private ArrayList<VariantExclusionCriterion> requestedExclusions;
+
+    // the structures necessary to initialize and maintain a windowed context
+    private VariantContextWindow variantContextWindow;
+    private static final int windowSize = 10;  // 10 variants on either end of the current one
+    private ArrayList<VariantContext> windowInitializer = new ArrayList<VariantContext>();
 
     /**
      * Prepare the output file and the list of available features.
@@ -174,107 +177,103 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
      */
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         rodVariants variant = (rodVariants) tracker.lookup("variant", null);
-        
+
         // Ignore places where we don't have a variant or where the reference base is ambiguous.
-        if (variant != null && BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1) {
-            HashMap<String, Double> exclusionResults = new HashMap<String, Double>();
+        if ( variant == null || BaseUtils.simpleBaseToBaseIndex(ref.getBase()) == -1 )
+            return 0;
 
-            if (VERBOSE) { out.println("Original:\n" + variant); }
+        VariantContext varContext = new VariantContext(tracker, ref, context, variant);
 
-            paramsWriter.print(context.getLocation().getContig() + "\t" + context.getLocation().getStart() + "\t");
-
-            // Apply features that modify the likelihoods and LOD scores
-            for ( IndependentVariantFeature ivf : requestedFeatures ) {
-                ivf.compute(ref.getBase(), context);
-
-                double[] weights = ivf.getLikelihoods();
-
-                variant.adjustLikelihoods(weights);
-
-                if (VERBOSE) { out.println(rationalizeClassName(ivf.getClass()) + ":\n  " + variant); }
-
-                paramsWriter.print(ivf.getStudyInfo() + "\t");
+        // if we're still initializing the context, do so
+        if ( windowInitializer != null ) {
+            windowInitializer.add(varContext);
+            if ( windowInitializer.size() == windowSize ) {
+                variantContextWindow = new VariantContextWindow(windowInitializer);
+                windowInitializer = null;
             }
-
-            // We need to provide an alternative context without mapping quality 0 reads
-            // for those exclusion criterion that don't want them
-            AlignmentContext Q0freeContext = removeQ0reads(context);
-
-            // Apply exclusion tests that score the variant call
-            if (VERBOSE) {
-                out.print("InclusionProbabilities:[");
-            }
-
-            // Use the filters to score the variant
-            double jointInclusionProbability = 1.0;
-            for ( VariantExclusionCriterion vec : requestedExclusions ) {
-                vec.compute(ref.getBase(), (vec.useZeroQualityReads() ? context : Q0freeContext), variant);
-
-                String exclusionClassName = rationalizeClassName(vec.getClass());
-
-                Double inclusionProbability = vec.inclusionProbability();
-                jointInclusionProbability *= inclusionProbability;
-                exclusionResults.put(exclusionClassName, inclusionProbability);
-
-                if (inclusionProbability < INCLUSION_THRESHOLD) {
-                    PrintWriter ewriter = exclusionWriters.get(exclusionClassName);
-                    if (ewriter != null) {
-                        ewriter.println(variant);
-                        ewriter.flush();
-                    }
-                }
-
-                if (VERBOSE) {
-                    out.print(exclusionClassName + "=" + inclusionProbability + ";");
-                }
-
-                paramsWriter.print(vec.getStudyInfo() + "\t");
-            }
-
-            // Decide whether we should keep the call or not
-            if (jointInclusionProbability >= INCLUSION_THRESHOLD) {
-                variantsWriter.println(variant);
-
-                if (VERBOSE) { out.println("] JointInclusionProbability:" + jointInclusionProbability + " State:included\n"); }
-            } else {
-                if (VERBOSE) { out.println("] JointInclusionProbability:" + jointInclusionProbability + " State:excluded\n"); }
-            }
-
-            rodDbSNP dbsnp = (rodDbSNP) tracker.lookup("dbSNP", null);
-            if ( dbsnp == null ) {
-                paramsWriter.print("false\tfalse\t");
-            } else {
-                paramsWriter.print(dbsnp.isSNP() + "\t" + dbsnp.isHapmap() + "\t");
-            }
-
-            paramsWriter.println(GenotypeUtils.isHet(variant));
-
-            return 1;
+        } else {
+            variantContextWindow.moveWindow(varContext);
+            compute();
         }
 
-        return 0;
+        return 1;
     }
 
-    private AlignmentContext removeQ0reads(AlignmentContext context) {
-        // set up the variables
-        List<SAMRecord> reads = context.getReads();
-        List<Integer> offsets = context.getOffsets();
-        Iterator<SAMRecord> readIter = reads.iterator();
-        Iterator<Integer> offsetIter = offsets.iterator();
-        ArrayList<SAMRecord> Q0freeReads = new ArrayList<SAMRecord>();
-        ArrayList<Integer> Q0freeOffsets = new ArrayList<Integer>();
+    private void compute() {
+        // get the current context
+        VariantContext context = variantContextWindow.getContext();
+        if ( context == null )
+            return;
+        rodVariants variant = context.getVariant();
 
-        // copy over good reads/offsets
-        while ( readIter.hasNext() ) {
-            SAMRecord read = readIter.next();
-            Integer offset = offsetIter.next();
-            if ( read.getMappingQuality() > 0 ) {
-                Q0freeReads.add(read);
-                Q0freeOffsets.add(offset);
-            }                       
+        HashMap<String, Double> exclusionResults = new HashMap<String, Double>();
+
+        if (VERBOSE) { out.println("Original:\n" + variant); }
+
+        GenomeLoc loc = context.getAlignmentContext().getLocation();
+        paramsWriter.print(loc.getContig() + "\t" + loc.getStart() + "\t");
+
+        // Apply features that modify the likelihoods and LOD scores
+        for ( IndependentVariantFeature ivf : requestedFeatures ) {
+            ivf.compute(variantContextWindow);
+
+            double[] weights = ivf.getLikelihoods();
+
+            variant.adjustLikelihoods(weights);
+
+            if (VERBOSE) { out.println(rationalizeClassName(ivf.getClass()) + ":\n  " + variant); }
+
+            paramsWriter.print(ivf.getStudyInfo() + "\t");
         }
-        
-        return new AlignmentContext(context.getLocation(), Q0freeReads, Q0freeOffsets);    
+
+        // Apply exclusion tests that score the variant call
+        if (VERBOSE) {
+            out.print("InclusionProbabilities:[");
+        }
+
+        // Use the filters to score the variant
+        double jointInclusionProbability = 1.0;
+        for ( VariantExclusionCriterion vec : requestedExclusions ) {
+            vec.compute(variantContextWindow);
+
+            String exclusionClassName = rationalizeClassName(vec.getClass());
+
+            Double inclusionProbability = vec.inclusionProbability();
+            jointInclusionProbability *= inclusionProbability;
+            exclusionResults.put(exclusionClassName, inclusionProbability);
+
+            if (inclusionProbability < INCLUSION_THRESHOLD) {
+                PrintWriter ewriter = exclusionWriters.get(exclusionClassName);
+                if (ewriter != null) {
+                    ewriter.println(variant);
+                    ewriter.flush();
+                }
+            }
+
+            if (VERBOSE) {
+                out.print(exclusionClassName + "=" + inclusionProbability + ";");
+            }
+
+            paramsWriter.print(vec.getStudyInfo() + "\t");
+        }
+
+        // Decide whether we should keep the call or not
+        if (jointInclusionProbability >= INCLUSION_THRESHOLD) {
+            variantsWriter.println(variant);
+
+            if (VERBOSE) { out.println("] JointInclusionProbability:" + jointInclusionProbability + " State:included\n"); }
+        } else {
+            if (VERBOSE) { out.println("] JointInclusionProbability:" + jointInclusionProbability + " State:excluded\n"); }
+        }
+
+        rodDbSNP dbsnp = (rodDbSNP) context.getTracker().lookup("dbSNP", null);
+        if ( dbsnp == null ) {
+            paramsWriter.print("false\tfalse\t");
+        } else {
+            paramsWriter.print(dbsnp.isSNP() + "\t" + dbsnp.isHapmap() + "\t");
+        }
+
+        paramsWriter.println(GenotypeUtils.isHet(variant));
     }
 
     /**
@@ -294,6 +293,11 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
      * @param result  the number of loci seen.
      */
     public void onTraversalDone(Integer result) {
+        for (int i=0; i < windowSize; i++) {
+            variantContextWindow.moveWindow(null);
+            compute();
+        }
+
         out.printf("Processed %d loci.\n", result);
 
         variantsWriter.close();

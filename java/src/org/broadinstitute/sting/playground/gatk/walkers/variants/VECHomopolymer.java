@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.refdata.rodVariants;
+import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
@@ -54,22 +54,23 @@ public class VECHomopolymer implements VariantExclusionCriterion {
         return "";
     }
 
-    public void compute(char ref, AlignmentContext context, rodVariants variant) {
-
-        char[] geno = variant.getBestGenotype().toCharArray();
+    public void compute(VariantContextWindow contextWindow) {
+        VariantContext context = contextWindow.getContext();
+        AlignmentContext alignmentContext = context.getAlignmentContext();
+        char[] geno = context.getVariant().getBestGenotype().toCharArray();
         int[] genotype = {-1,-1};
         for (int h = 0; h < 2; h ++) {
             genotype[h] = BaseUtils.simpleBaseToBaseIndex(geno[h]);
         }
 
-        if (contig == null || !context.getContig().equals(contig)) {
-            contig = context.getContig();
+        if (contig == null || !alignmentContext.getContig().equals(contig)) {
+            contig = alignmentContext.getContig();
             contigSeq = refSeq.getSequence(contig);
         }
 
         String bases = new String(contigSeq.getBases());
-        String prevbases = bases.substring((int) (context.getPosition() - extent - 1), (int) (context.getPosition() - 1));
-        String nextbases = bases.substring((int) (context.getPosition() + 1), (int) (context.getPosition() + extent + 1));
+        String prevbases = bases.substring((int) (alignmentContext.getPosition() - extent - 1), (int) (alignmentContext.getPosition() - 1));
+        String nextbases = bases.substring((int) (alignmentContext.getPosition() + 1), (int) (alignmentContext.getPosition() + extent + 1));
 
         int[] prevCounts = {0,0,0,0};
         int[] nextCounts = {0,0,0,0};
@@ -103,6 +104,7 @@ public class VECHomopolymer implements VariantExclusionCriterion {
         if ((float)(prevMax)/(float)(extent) > frac) {homopolymer[0] = prevMaxBase;}
         if ((float)(nextMax)/(float)(extent) > frac) {homopolymer[1] = nextMaxBase;}
 
+        char ref = context.getReferenceContext().getBase();
         boolean checkOne = homopolymer[0] == genotype[0] && homopolymer[0] != BaseUtils.simpleBaseToBaseIndex(ref);
         boolean checkTwo = homopolymer[0] == genotype[1] && homopolymer[0] != BaseUtils.simpleBaseToBaseIndex(ref);
         boolean checkThree = homopolymer[1] == genotype[0] && homopolymer[1] != BaseUtils.simpleBaseToBaseIndex(ref);

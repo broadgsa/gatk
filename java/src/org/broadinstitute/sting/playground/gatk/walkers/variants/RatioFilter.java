@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
 import org.broadinstitute.sting.gatk.refdata.TabularROD;
 import org.broadinstitute.sting.utils.*;
@@ -255,10 +255,13 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
 
     public boolean useZeroQualityReads() { return false; }
 
-    public void compute(char ref, AlignmentContext context, rodVariants variant) {
+    public void compute(VariantContextWindow contextWindow) {
         boolean exclude = false;
+        VariantContext context = contextWindow.getContext();
+        rodVariants variant = context.getVariant();
+        char ref = context.getReferenceContext().getBase();
 
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+        ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getAlignmentContext());
         if ( applyToVariant(variant) ) {
             Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
             GenotypeFeatureData gfd = dataTable.get(orderedBases(variant.getBestGenotype()));
