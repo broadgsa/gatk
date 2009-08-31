@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.fasta;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.io.PrintStream;
 
@@ -12,11 +13,22 @@ public class FastaSequence {
     private StringBuffer sb = new StringBuffer();
     private long sequenceCounter = 1;
     private boolean printedHeader = false;
+    private String name = null;
 
 	public FastaSequence(PrintStream out) {
         this.out = out;
     }
 
+    public void setName(String name) {
+        if ( printedHeader ) throw new StingException("Can not set name for FASTA record: header is already printed.");
+        this.name = name;
+    }
+
+    public String getName() {
+        if ( name != null ) return name;
+        else return getCurrentID();                        
+    }
+    
     public void append(String s) {
         sb.append(s);
         printFasta(false);
@@ -25,6 +37,7 @@ public class FastaSequence {
     public void flush() {
         printFasta(true);
         printedHeader = false;
+        name = null;
         sequenceCounter++;
     }
 
@@ -36,7 +49,8 @@ public class FastaSequence {
         if ( sb.length() == 0 || (!printAll && sb.length() < 60) )
             return;
         if ( !printedHeader ) {
-            out.println(">" + sequenceCounter);
+            if ( name == null ) out.println(">" + sequenceCounter);
+            else  out.println(">" + name);
             printedHeader = true;
         }
         int lines = sb.length() / 60;
