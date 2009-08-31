@@ -56,14 +56,14 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
             // if we have multiple variants at a locus, just take the first damn one we see for now
             AllelicVariant variant = (AllelicVariant)rod;
-            if ( variant.isDeletion() ) {
+            if ( ! rod.getName().equals("snpmask") && variant.isDeletion() ) {
                 deletionBasesRemaining = variant.length();
                 basesSeen++;
                 if ( indelsWriter != null )
                     indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.length()));
                 // delete the next n bases, not this one
                 return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[") : refBase));
-            } else if ( variant.isInsertion() ) {
+            } else if ( ! rod.getName().equals("snpmask") && variant.isInsertion() ) {
                 basesSeen++;
                 if ( indelsWriter != null )
                     indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.length()));
