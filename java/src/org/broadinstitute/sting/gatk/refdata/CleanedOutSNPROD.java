@@ -17,5 +17,8 @@ public class CleanedOutSNPROD extends TabularROD {
         return GenomeLocParser.parseGenomeLoc(this.get("0"));
     }
 
-    public boolean isRealSNP() { return this.get("1").equals(REAL_SNP_STRING); }
+    public boolean isRealSNP() {
+        String s = this.get("1");
+        return s != null && s.equals(REAL_SNP_STRING);
+    }
  }
