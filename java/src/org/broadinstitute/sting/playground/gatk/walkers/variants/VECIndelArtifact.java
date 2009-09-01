@@ -25,7 +25,6 @@ public class VECIndelArtifact implements VariantExclusionCriterion {
         }
 
         AllelicVariant indelCall = (AllelicVariant)tracker.lookup("indels", null);
-        // TODO - fix indel call capability to span full indel
         if ( indelCall != null ) {
             exclude = true;
             source = "IndelCall";
@@ -33,10 +32,9 @@ public class VECIndelArtifact implements VariantExclusionCriterion {
         }
 
         rodDbSNP dbsnp = (rodDbSNP)tracker.lookup("dbSNP", null);
-        // TODO - fix dbsnp capability to span full indel
         if ( dbsnp != null && dbsnp.isIndel() ) {
             exclude = true;
-            source = "dbsnp";
+            source = "dbSNP";
             return;
         }
 

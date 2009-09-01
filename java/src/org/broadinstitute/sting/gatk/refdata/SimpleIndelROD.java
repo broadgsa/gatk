@@ -14,7 +14,8 @@ public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVaria
     }
 
     public GenomeLoc getLocation() {
-        return GenomeLocParser.createGenomeLoc(this.get("0"), Long.parseLong(this.get("1")));
+        long pos = Long.parseLong(this.get("1"));
+        return GenomeLocParser.createGenomeLoc(this.get("0"), pos, (isDeletion() ? pos+length() : pos+1));
     }
 
     public List<String> getFWDAlleles() {
