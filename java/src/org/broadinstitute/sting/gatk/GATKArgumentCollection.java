@@ -122,6 +122,10 @@ public class GATKArgumentCollection {
     public Boolean unsafe = false;
 
     @Element(required = false)
+    @Argument(fullName = "max_reads_at_locus", shortName = "mrl", doc = "Sets the upper limit for the number of reads presented at a single locus. 100,000 by default.", required = false)
+    public int readMaxPileup = 100000;
+
+    @Element(required = false)
     @Argument(fullName = "disablethreading", shortName = "dt", doc = "Disable experimental threading support.", required = false)
     public Boolean disableThreading = false;
 
@@ -241,6 +245,9 @@ public class GATKArgumentCollection {
         if (!other.unsafe.equals(this.unsafe)) {
             return false;
         }
+        if (other.readMaxPileup != this.readMaxPileup) {
+             return false;
+         }
         if (( other.filterZeroMappingQualityReads == null && this.filterZeroMappingQualityReads != null ) ||
                 ( other.filterZeroMappingQualityReads != null && !other.filterZeroMappingQualityReads.equals(this.filterZeroMappingQualityReads) )) {
             return false;

@@ -357,7 +357,8 @@ public class GenomeAnalysisEngine {
                           argCollection.downsampleFraction,
                           argCollection.downsampleCoverage,
                           !argCollection.unsafe,
-                          filters );
+                          filters,
+                          argCollection.readMaxPileup);
     }
 
     /**

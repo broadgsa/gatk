@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.gatk;
 
-import java.io.File;
-import java.util.List;
-import java.util.ArrayList;
-
-import net.sf.samtools.SAMFileReader;
 import net.sf.picard.filter.SamRecordFilter;
+import net.sf.samtools.SAMFileReader;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 /**
  * User: hanna
  * Date: May 14, 2009
@@ -30,6 +30,7 @@ public class Reads {
     private Integer downsampleToCoverage = null;
     private Boolean beSafe = null;
     private List<SamRecordFilter> supplementalFilters = null;
+    private int maximumReadsAtLocus = Integer.MAX_VALUE; // this should always be set, so we'll default it MAX_INT
 
     /**
      * Gets a list of the files acting as sources of reads.
@@ -61,6 +62,14 @@ public class Reads {
      */
     public Integer getDownsampleToCoverage() {
         return downsampleToCoverage;
+    }
+
+    /**
+     * get the maximum number of reads we allow at a locus for locus-by-hanger
+     * @return the maximum reads allowed in a pile-up
+     */
+    public Integer getMaxReadsAtLocus() {
+        return maximumReadsAtLocus;
     }
 
     /**
@@ -100,12 +109,14 @@ public class Reads {
            Double downsampleFraction,
            Integer downsampleCoverage,
            Boolean beSafe,
-           List<SamRecordFilter> supplementalFilters ) {
+           List<SamRecordFilter> supplementalFilters,
+           int maximumReadsAtLocus) {
         this.readsFiles = samFiles;
         this.validationStringency = strictness;
         this.downsamplingFraction = downsampleFraction;
         this.downsampleToCoverage = downsampleCoverage;
         this.beSafe = beSafe;
         this.supplementalFilters = supplementalFilters;
+        this.maximumReadsAtLocus = maximumReadsAtLocus;
     }
 }

@@ -1,20 +1,19 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.Reads;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.iterators.LocusIteratorByHanger;
-import org.broadinstitute.sting.gatk.iterators.LocusIterator;
-import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
-import net.sf.samtools.SAMRecord;
-
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Collection;
-import java.util.Arrays;
-
 import net.sf.picard.filter.FilteringIterator;
 import net.sf.picard.filter.SamRecordFilter;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.iterators.LocusIterator;
+import org.broadinstitute.sting.gatk.iterators.LocusIteratorByHanger;
+import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 /**
  * User: hanna
  * Date: May 13, 2009
@@ -60,7 +59,7 @@ public abstract class LocusView extends LocusIterator implements View {
         Iterator<SAMRecord> reads = new FilteringIterator(provider.getReadIterator(), new LocusStreamFilterFunc());
         this.sourceInfo = provider.getReadIterator().getSourceInfo();
 
-        this.loci = new LocusIteratorByHanger(reads);
+        this.loci = new LocusIteratorByHanger(reads, sourceInfo);
         seedNextLocus();
 
         provider.register(this);

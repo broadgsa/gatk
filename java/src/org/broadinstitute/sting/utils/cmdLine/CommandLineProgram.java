@@ -46,7 +46,7 @@ public abstract class CommandLineProgram {
               shortName="l",
               doc="Set the minimum level of logging, i.e. setting INFO get's you INFO up to FATAL, setting ERROR gets you ERROR and FATAL level logging. (DEBUG, INFO, WARN, ERROR, FATAL, OFF). ",
               required=false)    
-    protected String logging_level = "ERROR";
+    protected String logging_level = "WARN";
 
 
     /**
@@ -302,24 +302,23 @@ public abstract class CommandLineProgram {
      * level that was provided.
      */
     private void setupLoggerLevel()  {
-
         Level par = Level.WARN;
-        if (logging_level.equals("DEBUG")) {
+        if (logging_level.toUpperCase().equals("DEBUG")) {
             par = Level.DEBUG;
         }
-        else if (logging_level.equals("ERROR")) {
+        else if (logging_level.toUpperCase().equals("ERROR")) {
             par = Level.ERROR;
         }
-        else if (logging_level.equals("FATAL")) {
+        else if (logging_level.toUpperCase().equals("FATAL")) {
             par = Level.FATAL;
         }
-        else if (logging_level.equals("INFO")) {
+        else if (logging_level.toUpperCase().equals("INFO")) {
             par = Level.INFO;
         }
-        else if (logging_level.equals("WARN")) {
+        else if (logging_level.toUpperCase().equals("WARN")) {
             par = Level.WARN;
         }
-        else if (logging_level.equals("OFF")) {
+        else if (logging_level.toUpperCase().equals("OFF")) {
             par = Level.OFF;
         }
         else {

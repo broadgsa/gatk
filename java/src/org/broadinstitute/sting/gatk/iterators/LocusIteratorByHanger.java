@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.iterators;
 import net.sf.samtools.AlignmentBlock;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -58,14 +59,15 @@ public class LocusIteratorByHanger extends LocusIterator {
     final int INCREMENT_SIZE = 100;
     final boolean DEBUG = false;
     boolean justCleared = false;
-
+    private Reads readInfo;
     // -----------------------------------------------------------------------------------------------------------------
     //
     // constructors and other basic operations
     //
     // -----------------------------------------------------------------------------------------------------------------
-    public LocusIteratorByHanger(final Iterator<SAMRecord> samIterator) {
+    public LocusIteratorByHanger(final Iterator<SAMRecord> samIterator, Reads readInformation) {
         this.it = new PushbackIterator<SAMRecord>(samIterator);
+        this.readInfo = readInformation;
     }
 
     public Iterator<AlignmentContext> iterator() {
@@ -107,7 +109,7 @@ public class LocusIteratorByHanger extends LocusIterator {
     // -----------------------------------------------------------------------------------------------------------------
     public AlignmentContext next() {
         if ( ! currentPositionIsFullyCovered() )
-            expandWindow(INCREMENT_SIZE);
+            expandWindow(INCREMENT_SIZE,readInfo.getMaxReadsAtLocus());
 
         if ( DEBUG ) {
             logger.debug("in Next:");
@@ -167,7 +169,7 @@ public class LocusIteratorByHanger extends LocusIterator {
         }
     }
 
-    private final void expandWindow(final int incrementSize) {
+    private final void expandWindow(final int incrementSize, final int maximumPileupSize) {
         // todo: reenable
         if ( false && incrementSize != 1 ) {
             Utils.scareUser(String.format("BUG: IncrementSize=%d != 1, the codebase doesn't support this extension strategy yet", incrementSize));
@@ -177,7 +179,7 @@ public class LocusIteratorByHanger extends LocusIterator {
             logger.debug(String.format("entering expandWindow..., hasNext=%b", it.hasNext()));
             printState();
         }
-
+        boolean warned = false; // warn them once per locus       
         while ( it.hasNext() ) {
             if ( DEBUG ) {
                 logger.debug(String.format("Expanding window"));
@@ -204,7 +206,15 @@ public class LocusIteratorByHanger extends LocusIterator {
                 break;
             }
             else
-                hangRead(read);
+                // check to see if we've exceeded the maximum number of reads in the pile-up
+                if (readHanger.size() < maximumPileupSize)
+                    hangRead(read);
+                else {
+                    // if we haven't warned the user for this locus, do so now
+                    if (!warned)
+                        Utils.warnUser("Unable to add a read, we're over the hanger limit of " + maximumPileupSize + " at location " + readHanger.getLeftLoc());
+                    warned = true;
+                }
         }
     }
 

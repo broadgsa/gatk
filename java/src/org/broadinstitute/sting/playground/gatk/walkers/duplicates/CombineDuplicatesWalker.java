@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.playground.gatk.walkers.duplicates;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
