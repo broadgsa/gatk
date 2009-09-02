@@ -20,6 +20,17 @@
     <class>org.broadinstitute.sting.gatk.walkers.indels.IntervalMergerWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.indels.MismatchIntervalWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.indels.SNPClusterWalker</class>
+    <!-- Variant filtration -->
+    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VariantFiltrationWalker</class>
+    <!-- And the filters -->
+    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.IVFSecondaryBases</class>
+    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECFisherStrand</class>
+    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECAlleleBalance</class>
+    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECDepthOfCoverage</class>
+    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECLodThreshold</class>
+    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECMappingQualityZero</class>
+    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECIndelArtifact</class>
+    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECClusteredSnps</class>
   </dependencies>
   <resources>
     <file>java/src/org/broadinstitute/sting/gatk/walkers/CountReadsWalker.java</file>
