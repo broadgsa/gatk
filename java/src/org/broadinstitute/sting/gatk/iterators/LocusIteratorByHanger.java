@@ -60,6 +60,7 @@ public class LocusIteratorByHanger extends LocusIterator {
     final boolean DEBUG = false;
     boolean justCleared = false;
     private Reads readInfo;
+
     // -----------------------------------------------------------------------------------------------------------------
     //
     // constructors and other basic operations
@@ -83,17 +84,17 @@ public class LocusIteratorByHanger extends LocusIterator {
     }
 
     public void printState() {
-        for ( int i = 0; i < readHanger.size(); i++ ) {
+        for (int i = 0; i < readHanger.size(); i++) {
             RefHanger.Hanger rhanger = readHanger.getHanger(i);
             RefHanger.Hanger ohanger = offsetHanger.getHanger(i);
 
             logger.debug(String.format("printState(): location %s", rhanger.loc));
-            for ( int j = 0; j < rhanger.size(); j++ ) {
-                SAMRecord read = (SAMRecord)rhanger.get(j);
-                int offset = (Integer)ohanger.get(j);
-                logger.debug(String.format("  read: %s(%d)=%s", read.getReadName(), offset, read.getReadString().charAt(offset) ));
+            for (int j = 0; j < rhanger.size(); j++) {
+                SAMRecord read = (SAMRecord) rhanger.get(j);
+                int offset = (Integer) ohanger.get(j);
+                logger.debug(String.format("  read: %s(%d)=%s", read.getReadName(), offset, read.getReadString().charAt(offset)));
             }
-        }        
+        }
     }
 
     public void clear() {
@@ -108,10 +109,10 @@ public class LocusIteratorByHanger extends LocusIterator {
     //
     // -----------------------------------------------------------------------------------------------------------------
     public AlignmentContext next() {
-        if ( ! currentPositionIsFullyCovered() )
-            expandWindow(INCREMENT_SIZE,readInfo.getMaxReadsAtLocus());
+        if (!currentPositionIsFullyCovered())
+            expandWindow(INCREMENT_SIZE, readInfo.getMaxReadsAtLocus());
 
-        if ( DEBUG ) {
+        if (DEBUG) {
             logger.debug("in Next:");
             printState();
         }
@@ -119,7 +120,7 @@ public class LocusIteratorByHanger extends LocusIterator {
         RefHanger.Hanger rhanger = readHanger.popLeft();
         RefHanger.Hanger ohanger = offsetHanger.popLeft();
 
-        if ( rhanger.size() == 0 ) {
+        if (rhanger.size() == 0) {
             // we are in the case where there are no reads (we're inside a large indel without any reads
             // so recursively call next.  This is safe because having a position without any reads
             // implies that there are positions to the right with reads
@@ -127,29 +128,39 @@ public class LocusIteratorByHanger extends LocusIterator {
             return next();
         } else {
             return new AlignmentContext(rhanger.loc, rhanger.data, ohanger.data);
-        }            
-    }
-
-    protected void hangRead(final SAMRecord read) {
-        GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
-
-        for ( AlignmentBlock block : read.getAlignmentBlocks() ) {
-            if ( DEBUG ) logger.debug(String.format("Processing block %s len=%d", block, block.getLength()));
-            for ( int i = 0; i < block.getLength(); i++ ) {
-                GenomeLoc offset = GenomeLocParser.createGenomeLoc(readLoc.getContigIndex(), block.getReferenceStart() + i);
-                readHanger.expandingPut(offset, read);
-                offsetHanger.expandingPut(offset, block.getReadStart() + i - 1);
-                if ( DEBUG ) logger.debug(String.format("  # Added %s", offset));
-            }
         }
     }
 
+    protected boolean hangRead(final SAMRecord read, final int maximumPileupSize, boolean warned) {
+        GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
+
+        for (AlignmentBlock block : read.getAlignmentBlocks()) {
+            if (DEBUG) logger.debug(String.format("Processing block %s len=%d", block, block.getLength()));
+            for (int i = 0; i < block.getLength(); i++) {
+                // check to see if we've exceeded the maximum number of reads in the pile-up
+                GenomeLoc offset = GenomeLocParser.createGenomeLoc(readLoc.getContigIndex(), block.getReferenceStart() + i);
+                int hangerSize = (readHanger.hasLocation(offset)) ? readHanger.getHanger(offset).size() : -1;
+                if (hangerSize >= maximumPileupSize) {
+                    if (!warned) {
+                        warned = true;
+                        Utils.warnUser("Unable to add a read, we're over the hanger limit of " + maximumPileupSize + " at location " + readHanger.getLeftLoc());
+                    }
+                } else {
+                    readHanger.expandingPut(offset, read);
+                    offsetHanger.expandingPut(offset, block.getReadStart() + i - 1);
+                }                    
+                if (DEBUG) logger.debug(String.format("  # Added %s", offset));
+            }
+        }
+        return warned; // did we warn the user about this location?
+    }
+
     private final boolean currentPositionIsFullyCovered(final GenomeLoc nextReadInStreamLoc) {
-        if ( readHanger.isEmpty() )
+        if (readHanger.isEmpty())
             // If the buffer is empty, we're definitely not done
             return false;
 
-        if ( nextReadInStreamLoc.compareTo(readHanger.getLeftLoc()) == 1 )
+        if (nextReadInStreamLoc.compareTo(readHanger.getLeftLoc()) == 1)
             // the next read in the stream is beyond the left most position, so it's fully covered
             return true;
         else
@@ -158,7 +169,7 @@ public class LocusIteratorByHanger extends LocusIterator {
     }
 
     private final boolean currentPositionIsFullyCovered() {
-        if ( ! it.hasNext() )   // if there are no more reads, we are fully covered
+        if (!it.hasNext())   // if there are no more reads, we are fully covered
             return true;
         else {
             final SAMRecord read = it.peek();
@@ -171,26 +182,26 @@ public class LocusIteratorByHanger extends LocusIterator {
 
     private final void expandWindow(final int incrementSize, final int maximumPileupSize) {
         // todo: reenable
-        if ( false && incrementSize != 1 ) {
+        if (false && incrementSize != 1) {
             Utils.scareUser(String.format("BUG: IncrementSize=%d != 1, the codebase doesn't support this extension strategy yet", incrementSize));
         }
 
-        if ( DEBUG ) {
+        if (DEBUG) {
             logger.debug(String.format("entering expandWindow..., hasNext=%b", it.hasNext()));
             printState();
         }
-        boolean warned = false; // warn them once per locus       
-        while ( it.hasNext() ) {
-            if ( DEBUG ) {
+        Boolean warned = false; // warn them once per locus
+        while (it.hasNext()) {
+            if (DEBUG) {
                 logger.debug(String.format("Expanding window"));
                 printState();
             }
-            
+
             SAMRecord read = it.next();
             justCleared = false;
 
             GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
-            if ( DEBUG ) {
+            if (DEBUG) {
                 logger.debug(String.format("  Expanding window sizes %d with %d : left=%s, right=%s, readLoc = %s, cmp=%d",
                         readHanger.size(), incrementSize,
                         readHanger.hasHangers() ? readHanger.getLeftLoc() : "NA",
@@ -200,21 +211,12 @@ public class LocusIteratorByHanger extends LocusIterator {
             }
             //if ( readHanger.size() >= incrementSize ) {
             //if ( readHanger.hasHangers() && readLoc.compareTo(readHanger.getLeftLoc()) == 1) {
-            if ( readHanger.hasHangers() && readLoc.distance(readHanger.getLeftLoc()) >= incrementSize ) {
+            if (readHanger.hasHangers() && readLoc.distance(readHanger.getLeftLoc()) >= incrementSize) {
                 // We've collected up enough reads
                 it.pushback(read);
                 break;
-            }
-            else
-                // check to see if we've exceeded the maximum number of reads in the pile-up
-                if (readHanger.size() < maximumPileupSize)
-                    hangRead(read);
-                else {
-                    // if we haven't warned the user for this locus, do so now
-                    if (!warned)
-                        Utils.warnUser("Unable to add a read, we're over the hanger limit of " + maximumPileupSize + " at location " + readHanger.getLeftLoc());
-                    warned = true;
-                }
+            } else
+                warned = hangRead(read,maximumPileupSize,warned);
         }
     }
 
