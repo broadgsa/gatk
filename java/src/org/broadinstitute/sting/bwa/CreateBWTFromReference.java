@@ -30,13 +30,10 @@ import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.File;
 import java.util.TreeSet;
 import java.util.Comparator;
-import java.util.Arrays;
-import java.util.Collections;
 
 /**
  * Create a suffix array data structure.
@@ -96,26 +93,23 @@ public class CreateBWTFromReference {
     private int[] createCompressedSuffixArray( int[] suffixArray, int[] inverseSuffixArray ) {
         int[] compressedSuffixArray = new int[suffixArray.length];
         compressedSuffixArray[0] = inverseSuffixArray[0];
-        for( int i = 1; i < suffixArray.length; i++ ) {
-            if( suffixArray[i]+1 < suffixArray.length )
-                compressedSuffixArray[i] = inverseSuffixArray[suffixArray[i]+1];
-        }
+        for( int i = 1; i < suffixArray.length; i++ )
+            compressedSuffixArray[i] = inverseSuffixArray[suffixArray[i]+1];
         return compressedSuffixArray;
     }
 
     private char[] createBWT( String sequence, int[] suffixArray ) {
         char[] bwt = new char[suffixArray.length];
         for( int i = 0; i < suffixArray.length; i++ ) {
-            int sequenceEnd = (suffixArray[i] + suffixArray.length - 1) % suffixArray.length;
-            if( sequenceEnd < sequence.length() )
-                bwt[i] = sequence.charAt(sequenceEnd);
-            else
-                bwt[i] = '$';
-        }     
+            // Find the first character after the current character in the rotation.  If the character is past the end
+            // (in other words, '$'), back up to the previous character.
+            int sequenceEnd = Math.min((suffixArray[i]+suffixArray.length-1)%suffixArray.length, sequence.length()-1 );
+            bwt[i] = sequence.charAt(sequenceEnd);
+        }
         return bwt;
     }
 
-    public static void main( String argv[] ) throws FileNotFoundException, IOException {
+    public static void main( String argv[] ) throws IOException {
         if( argv.length != 1 ) {
             System.out.println("No reference");
             return;
@@ -134,18 +128,18 @@ public class CreateBWTFromReference {
 
         // Generate the suffix array and print diagnostics.
         int[] suffixArray = creator.createSuffixArray(sequence);
-        for( int i = 0; i < 10; i++ )
+        for( int i = 0; i < 8; i++ )
             System.out.printf("suffixArray[%d] = %d (%s...)%n", i, suffixArray[i], sequence.substring(suffixArray[i],Math.min(suffixArray[i]+100,sequence.length())));
 
         // Invert the suffix array and print diagnostics.
         int[] inverseSuffixArray = creator.invertSuffixArray(suffixArray);
-        for( int i = 0; i < 10; i++ )
+        for( int i = 0; i < 8; i++ )
             System.out.printf("inverseSuffixArray[%d] = %d (%s...)%n", i, inverseSuffixArray[i], sequence.substring(i,Math.min(i+100,sequence.length())));
 
         // Create the data structure for the compressed suffix array and print diagnostics.
         int[] compressedSuffixArray = creator.createCompressedSuffixArray(suffixArray,inverseSuffixArray);
         int reconstructedInverseSA = compressedSuffixArray[0];
-        for( int i = 0; i < 10; i++ ) {
+        for( int i = 0; i < 8; i++ ) {
             System.out.printf("compressedSuffixArray[%d] = %d (SA-1[%d] = %d)%n", i, compressedSuffixArray[i], i, reconstructedInverseSA);
             reconstructedInverseSA = compressedSuffixArray[reconstructedInverseSA];
         }
@@ -167,7 +161,7 @@ public class CreateBWTFromReference {
 
         /**
          * Create a new comparator.
-         * @param sequence
+         * @param sequence Reference sequence to use as basis for comparison.
          */
         public SuffixArrayComparator( String sequence ) {
             this.sequence = sequence;
