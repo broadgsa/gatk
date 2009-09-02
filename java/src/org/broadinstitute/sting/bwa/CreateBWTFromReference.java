@@ -30,10 +30,11 @@ import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.util.StringUtil;
 
-import java.io.IOException;
-import java.io.File;
+import java.io.*;
 import java.util.TreeSet;
 import java.util.Comparator;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
  * Create a suffix array data structure.
@@ -54,7 +55,7 @@ public class CreateBWTFromReference {
     private int[] countOccurrences( String sequence ) {
         int occurrences[] = new int[ALPHABET_SIZE];
         for( char base: sequence.toCharArray() )
-            occurrences[ CreatePACFromReference.getPackedRepresentation((byte)base) ]++;
+            occurrences[ BytePackedOutputStream.getPackedRepresentation((byte)base) ]++;
 
         // Make occurrences cumulative
         for( int i = 1; i < ALPHABET_SIZE; i++ )
@@ -98,33 +99,32 @@ public class CreateBWTFromReference {
         return compressedSuffixArray;
     }
 
-    private char[] createBWT( String sequence, int[] suffixArray ) {
-        char[] bwt = new char[suffixArray.length];
+    private byte[] createBWT( String sequence, int[] suffixArray ) {
+        byte[] bwt = new byte[suffixArray.length];
         for( int i = 0; i < suffixArray.length; i++ ) {
             // Find the first character after the current character in the rotation.  If the character is past the end
             // (in other words, '$'), back up to the previous character.
             int sequenceEnd = Math.min((suffixArray[i]+suffixArray.length-1)%suffixArray.length, sequence.length()-1 );
-            bwt[i] = sequence.charAt(sequenceEnd);
+            bwt[i] = (byte)sequence.charAt(sequenceEnd);
         }
         return bwt;
     }
 
     public static void main( String argv[] ) throws IOException {
-        if( argv.length != 1 ) {
-            System.out.println("No reference");
+        if( argv.length != 2 ) {
+            System.out.println("USAGE: CreateBWTFromReference <input>.fasta <output>");
             return;
         }
 
         String inputFileName = argv[0];
         File inputFile = new File(inputFileName);
 
+        String outputFileName = argv[1];
+        File outputFile = new File(outputFileName);
+
         CreateBWTFromReference creator = new CreateBWTFromReference();
 
         String sequence = creator.loadReference(inputFile);
-
-        // Count the occurences of each given base.
-        int[] occurrences = creator.countOccurrences(sequence);
-        System.out.printf("Occurrences: a=%d, c=%d, g=%d, t=%d%n",occurrences[0],occurrences[1],occurrences[2],occurrences[3]);
 
         // Generate the suffix array and print diagnostics.
         int[] suffixArray = creator.createSuffixArray(sequence);
@@ -144,9 +144,35 @@ public class CreateBWTFromReference {
             reconstructedInverseSA = compressedSuffixArray[reconstructedInverseSA];
         }
 
+        // Count the occurences of each given base.
+        int[] occurrences = creator.countOccurrences(sequence);
+        System.out.printf("Occurrences: a=%d, c=%d, g=%d, t=%d%n",occurrences[0],occurrences[1],occurrences[2],occurrences[3]);
+
         // Create the BWT.
-        char[] bwt = creator.createBWT(sequence, suffixArray);
-        System.out.printf("BWT: %s%n", new String(bwt));
+        byte[] bwt = creator.createBWT(sequence, suffixArray);
+
+        String bwtAsString = new String(bwt);
+        System.out.printf("BWT:%n");
+        while( bwtAsString.length() > 0 ) {
+            int end = Math.min( 80, bwtAsString.length() );
+            //System.out.printf("%s%n", bwtAsString.substring(0,end));
+            bwtAsString = bwtAsString.substring(end);
+        }
+
+        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(outputFile));
+
+        ByteBuffer buffer = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN);
+        buffer.putInt(inverseSuffixArray[0]);
+        outputStream.write(buffer.array());
+        outputStream.flush();
+
+        OccurrenceOutputStream occurrenceWriter = new OccurrenceOutputStream(outputStream);
+        occurrenceWriter.write(occurrences);
+        occurrenceWriter.flush();
+
+        WordPackedOutputStream bwtOutputStream = new WordPackedOutputStream(outputStream,ByteOrder.LITTLE_ENDIAN);
+        bwtOutputStream.write(bwt);
+        bwtOutputStream.close();
     }
 
     /**

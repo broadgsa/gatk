@@ -31,8 +31,6 @@ import net.sf.picard.reference.ReferenceSequence;
 
 import java.io.*;
 
-import org.broadinstitute.sting.utils.StingException;
-
 /**
  * Generate a .PAC file from a given reference.
  *
@@ -41,11 +39,9 @@ import org.broadinstitute.sting.utils.StingException;
  */
 
 public class CreatePACFromReference {
-    private static final int ALPHABET_SIZE = 4;
-
-    public static void main( String argv[] ) throws FileNotFoundException, IOException {
-        if( argv.length != 1 ) {
-            System.out.println("No reference");
+    public static void main( String argv[] ) throws IOException {
+        if( argv.length != 2 ) {
+            System.out.println("USAGE: CreatePACFromReference <input>.fasta <output>");
             return;
         }
 
@@ -56,52 +52,10 @@ public class CreatePACFromReference {
         ReferenceSequence sequence = reference.nextSequence();
 
         // Target file for output
-        File outputFile = new File(inputFileName + ".mypac");
-        BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(outputFile));
+        File outputFile = new File(argv[1]);
+        BytePackedOutputStream outputStream = new BytePackedOutputStream(outputFile);
 
-        // Number of bytes, rounded up, plus one extra byte indicating how many bases the last byte holds.
-        byte packed = 0;
-        int positionInPack = 0;
-
-        for( byte base: sequence.getBases() ) {
-            // Pack base into the appropriate bits of the byte.
-            packed |= (getPackedRepresentation(base) << 2*(ALPHABET_SIZE-positionInPack-1));
-
-            // Increment the packed counter.  If all possible bases have been squeezed into this byte, write it out.
-            positionInPack = ++positionInPack % 4;
-            if( positionInPack == 0 ) {
-                outputStream.write(packed);
-                packed = 0;
-            }
-        }
-
-        // Last (incomplete) block in file.
-        if( positionInPack > 0 )
-            outputStream.write(packed);
-
-        // Last character of a .pac file is how many bases are in the last byte.
-        outputStream.write(positionInPack);
-        
+        outputStream.write(sequence.getBases());
         outputStream.close();
-    }
-
-    /**
-     * Gets the two-bit representation of a base.  A=00b, C=01b, G=10b, T=11b.
-     * @param base ASCII value for the base to pack.
-     * @return A byte from 0-3 indicating the base's packed value.
-     */
-    public static byte getPackedRepresentation(byte base) {
-        switch( base ) {
-            case 'A':
-                return 0;
-            case 'C':
-                return 1;
-            case 'G':
-                return 2;
-            case 'T':
-                return 3;
-            default:
-                throw new StingException("Unknown base type: " + base);
-        }
     }
 }
