@@ -73,8 +73,8 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
             boolean exclude = ! passesThreshold(r);
             sumExclude += p * (exclude ? 1.0 : 0.0);
 
-            System.out.printf("integral: k=%d, n=%d, r=%f, p=%f, sumP = %f, exclude=%b | sum=%f, percentExcluded=%f%n",
-                    counts.first, n, r, p, sumP, exclude, sumExclude, sumExclude / sumP);
+            //System.out.printf("integral: k=%d, n=%d, r=%f, p=%f, sumP = %f, exclude=%b | sum=%f, percentExcluded=%f%n",
+            //        counts.first, n, r, p, sumP, exclude, sumExclude, sumExclude / sumP);
         }
 
         double percentExcluded = sumExclude / sumP;
