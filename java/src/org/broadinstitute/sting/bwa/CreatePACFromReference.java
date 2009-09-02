@@ -90,7 +90,7 @@ public class CreatePACFromReference {
      * @param base ASCII value for the base to pack.
      * @return A byte from 0-3 indicating the base's packed value.
      */
-    private static byte getPackedRepresentation(byte base) {
+    public static byte getPackedRepresentation(byte base) {
         switch( base ) {
             case 'A':
                 return 0;
