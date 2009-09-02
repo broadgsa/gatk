@@ -4,10 +4,12 @@ import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
 import org.broadinstitute.sting.utils.*;
 import org.apache.log4j.Logger;
+import cern.jet.math.Arithmetic;
 
 
 public abstract class RatioFilter implements VariantExclusionCriterion {
     private static final double defaultMinGenotypeConfidenceToTest = 5.0;  // TODO -- must be replaced with true confidence scoore, right now assumes LOD
+    private static final int minDepthOfCoverage = 25;                   // TODO -- must be replaced with a proper probability calculation
     protected double minGenotypeConfidenceToTest = defaultMinGenotypeConfidenceToTest;
 
     protected double pvalueLimit = -1;
@@ -50,21 +52,31 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
 
         boolean highGenotypeConfidence = variant.getConsensusConfidence() > minGenotypeConfidenceToTest;
         boolean excludable = !excludeHetsOnly() || GenotypeUtils.isHet(variant);
-        exclude = excludable && highGenotypeConfidence && integralExclude(counts);
+        exclude = excludable && highGenotypeConfidence && pointEstimateExclude(counts);
         //
         // for printing only
         //
         int n = counts.first + counts.second;
         double value = counts.first / (1.0 * counts.first + counts.second);
-        logger.info(String.format("%s: counts1=%d (%.2f), counts2=%d (%.2f), n=%d, value=%f, exclude=%b, bases=%s",
+        logger.info(String.format("%s: counts1=%d (%.2f), counts2=%d (%.2f), n=%d, value=%f, exclude=%b, location=%s, bases=%s",
                 name, counts.first, counts.first / (0.01 * n), counts.second, counts.second / (0.01 * n), n,
-                value, exclude, pileup.getBases()));
+                value, exclude, variant.getLocation(), pileup.getBases()));
     }
 
     private final static double SEARCH_INCREMENT = 0.01;
     private final static double integralPValueThreshold = 0.05;
 
-    private boolean integralExclude(Pair<Integer, Integer> counts ) {
+    // TODO - this whole calculation needs to be redone correctly
+    private boolean pointEstimateExclude(Pair<Integer, Integer> counts) {
+        if ( counts.first + counts.second < minDepthOfCoverage )
+            return false;
+
+        int n = counts.first + counts.second;
+        double ratio = counts.first.doubleValue() / (double)n;
+        return !passesThreshold(ratio);
+    }
+
+    private boolean integralExclude(Pair<Integer, Integer> counts) {
         double sumExclude = 0.0, sumP = 0.0;
         int n = counts.first + counts.second;
         for ( double r = 0.0; r <= 1.0; r += SEARCH_INCREMENT ) {

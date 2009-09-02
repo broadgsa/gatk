@@ -4,7 +4,7 @@ import org.broadinstitute.sting.gatk.refdata.rodVariants;
 import org.broadinstitute.sting.utils.*;
 
 public class VECOnOffGenotypeRatio extends RatioFilter {
-    private double threshold = 0.0;
+    private double threshold = 0.8;
     private double ratio;
 
     public VECOnOffGenotypeRatio() {

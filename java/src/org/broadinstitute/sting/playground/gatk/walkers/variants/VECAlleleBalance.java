@@ -7,7 +7,7 @@ import org.broadinstitute.sting.utils.Pair;
 
 public class VECAlleleBalance extends RatioFilter {
 
-    private double lowThreshold = 0.10, highThreshold = 0.85;
+    private double lowThreshold = 0.25, highThreshold = 0.75;
     private double ratio;
 
     public VECAlleleBalance() {
