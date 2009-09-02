@@ -294,6 +294,11 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
      */
     public void onTraversalDone(Integer result) {
         // move the window over so that we can filter the last few variants
+        if ( windowInitializer != null ) {
+            while ( windowInitializer.size() < windowSize )
+                windowInitializer.add(null);
+            variantContextWindow = new VariantContextWindow(windowInitializer);
+        }
         for (int i=0; i < windowSize; i++) {
             variantContextWindow.moveWindow(null);
             compute();

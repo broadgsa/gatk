@@ -1,30 +1,31 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
-import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import org.broadinstitute.sting.utils.*;
 
-public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // extends RatioFilter {
-    //final private static GenotypeFeatureData.Tail tail = GenotypeFeatureData.Tail.LeftTailed;
-    private boolean exclude;
+public class VECOnOffGenotypeRatio extends RatioFilter {
     private double threshold = 0.0;
     private double ratio;
 
+    public VECOnOffGenotypeRatio() {
+        super("On/Off Genotype Ratio", VECOnOffGenotypeRatio.class, Tail.LeftTailed);
+    }
+
     public void initialize(String arguments) {
         if (arguments != null && !arguments.isEmpty()) {
-            threshold = Double.valueOf(arguments);
+            String[] argPieces = arguments.split(",");
+            threshold = Double.valueOf(argPieces[0]);
+            if ( argPieces.length > 1 )
+                minGenotypeConfidenceToTest = Double.valueOf(argPieces[1]);
         }
+        setLowThreshold(threshold);
     }
 
     /**
      * Return the counts of bases that are on (matching the bestGenotype) and off (not matching the
      * best genotype).  On are in the first field, off in the second.
      *
-     * @param ref
-     * @param pileup
-     * @param variant
-     * @return
-     */
+    */
     protected Pair<Integer, Integer> scoreVariant(char ref, ReadBackedPileup pileup, rodVariants variant) {
         final String genotype = variant.getBestGenotype().toUpperCase();
         final String bases = pileup.getBases();
@@ -43,19 +44,11 @@ public class VECOnOffGenotypeRatio implements VariantExclusionCriterion { // ext
             //System.out.printf("count = %d, on=%d, off=%d for %c in %s%n", count, on, off, base, genotype);            
         }
 
+        ratio = (double)on / (double)off;
         return new Pair<Integer, Integer>(on, off);
     }
 
-    public void compute(VariantContextWindow contextWindow) {
-        VariantContext context = contextWindow.getContext();
-        char ref = context.getReferenceContext().getBase();
-
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getAlignmentContext(useZeroQualityReads()));
-        Pair<Integer, Integer> counts = scoreVariant(ref, pileup, context.getVariant());
-        int n = counts.first + counts.second;
-        ratio = counts.first.doubleValue() / (double)n;
-        exclude = ratio < threshold;
-    }
+    protected boolean excludeHetsOnly() { return false; }
 
     public double inclusionProbability() {
         return exclude ? 0.0 : 1.0;

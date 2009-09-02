@@ -1,19 +1,18 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variants;
 
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
-import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.GenotypeUtils;
 
-public class VECAlleleBalance implements VariantExclusionCriterion {  //extends RatioFilter {
-    private static final double defaultMinGenotypeConfidenceToTest = 5.0;  // TODO -- must be replaced with true confidence scoore, right now assumes LOD
+public class VECAlleleBalance extends RatioFilter {
 
-    private boolean exclude;
-    private double lowThreshold = 0.1, highThreshold = 0.85;
-    private double minGenotypeConfidenceToTest = defaultMinGenotypeConfidenceToTest;
+    private double lowThreshold = 0.10, highThreshold = 0.85;
     private double ratio;
+
+    public VECAlleleBalance() {
+        super("Allele Balance Ratio", VECAlleleBalance.class, Tail.TwoTailed);
+    }
 
     public void initialize(String arguments) {
         if (arguments != null && !arguments.isEmpty()) {
@@ -23,15 +22,13 @@ public class VECAlleleBalance implements VariantExclusionCriterion {  //extends 
             if ( argPieces.length > 2 )
                 minGenotypeConfidenceToTest = Double.valueOf(argPieces[2]);
         }
+        setLowThreshold(lowThreshold);
+        setHighThreshold(highThreshold);
     }
 
     /**
      * Return the count of bases matching the major (first) and minor (second) alleles as a pair.
      *
-     * @param ref
-     * @param pileup
-     * @param variant
-     * @return
      */
     protected Pair<Integer, Integer> scoreVariant(char ref, ReadBackedPileup pileup, rodVariants variant) {
         final String genotype = variant.getBestGenotype();
@@ -49,30 +46,11 @@ public class VECAlleleBalance implements VariantExclusionCriterion {  //extends 
         int refCount = a == ref ? aCount : bCount;
         int altCount = a == ref ? bCount : aCount;
 
-        return new Pair(refCount, altCount);
+        ratio = (double)refCount / (double)altCount;
+        return new Pair<Integer, Integer>(refCount, altCount);
     }
 
-    public void compute(VariantContextWindow contextWindow) {
-        VariantContext context = contextWindow.getContext();
-        char ref = context.getReferenceContext().getBase();
-        rodVariants variant = context.getVariant();
-
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getAlignmentContext(useZeroQualityReads()));
-        Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
-        int n = counts.first + counts.second;
-        ratio = counts.first.doubleValue() / (double)n;
-
-        boolean highGenotypeConfidence = variant.getConsensusConfidence() > minGenotypeConfidenceToTest;
-        boolean failsHetExpectation = GenotypeUtils.isHet(variant) && (ratio < lowThreshold || ratio > highThreshold);
-        exclude = failsHetExpectation && highGenotypeConfidence;
-
-//        if ( failsHetExpectation ) {
-//            String header = highGenotypeConfidence ? "FILTER-HIGH-CONFIDENCE" : "PASS-LOW-CONFIDENCE";
-//            System.out.printf("[%s] %s getConsensusConfidence() = %f > minGenotypeConfidenceToTest = %f exclude=%b  %s%n",
-//                    header, variant.getBestGenotype(), variant.getConsensusConfidence(), minGenotypeConfidenceToTest, exclude,
-//                    ! highGenotypeConfidence ? variant : "" );
-//        }
-    }
+    protected boolean excludeHetsOnly() { return true; }
 
     public boolean useZeroQualityReads() { return false; }
 
