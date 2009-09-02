@@ -258,4 +258,18 @@ public class AlignmentUtils {
         refLine.append('\n');
         return refLine.toString();
     }
+
+    /**
+     * Due to (unfortunate) multiple ways to indicate that read is unmapped allowed by SAM format
+     * specification, one may need this convenience shortcut. Checks both 'read unmapped' flag and
+     * alignment reference index/start.
+     * @param r
+     * @return
+     */
+    public static boolean isReadUnmapped(final SAMRecord r) {
+        if ( r.getReadUnmappedFlag() ) return true;
+        if ( r.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX ||
+             r.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ) return true;
+        return false;
+    }
 }
