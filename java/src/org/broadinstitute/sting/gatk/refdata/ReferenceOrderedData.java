@@ -75,6 +75,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         addModule("CleanedOutSNP", CleanedOutSNPROD.class);
         addModule("SangerSNP", SangerSNPROD.class);
         addModule("SimpleIndel", SimpleIndelROD.class);
+        addModule("PointIndel", PointIndelROD.class);
         addModule("HapMapGenotype", HapMapGenotypeROD.class);
         addModule("Intervals", IntervalRod.class);
         addModule("Variants", rodVariants.class);
