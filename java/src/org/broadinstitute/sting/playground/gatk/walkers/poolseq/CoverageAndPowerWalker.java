@@ -163,7 +163,7 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
         double power = 0.0;
         for ( int boot = 0; boot < BOOTSTRAP_ITERATIONS; boot++) {
             Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> snpReadsAndRefReads = coinTossPartition(reads,offsets,this.getSNPProportion(1));
-            if( calculateLogLikelihoodOfSample(snpReadsAndRefReads, num_individuals) > thresh) {
+            if( PoolUtils.calculateLogLikelihoodOfSample(snpReadsAndRefReads, num_individuals) > thresh) {
                 power += 1.0/BOOTSTRAP_ITERATIONS;
             }
         }
@@ -207,43 +207,6 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
         }
 
         return partitionedReads;
-    }
-
-    public static double calculateLogLikelihoodOfSample(Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> snpReadsRefReads, int nIndivids) {
-        List<Byte> qListSnps = getQList(snpReadsRefReads.getFirst().getFirst(),snpReadsRefReads.getSecond().getFirst());
-        List<Byte> qListRefs = getQList(snpReadsRefReads.getFirst().getSecond(),snpReadsRefReads.getSecond().getSecond());
-        Pair<Double,Double> logsumSNP = qListToSumLogProbabilities(true,qListSnps, 2.0*nIndivids);
-        Pair<Double,Double> logsumRef = qListToSumLogProbabilities(false,qListRefs, 2.0*nIndivids);
-
-        return 0.0 - logsumSNP.first - logsumRef.first + logsumSNP.second + logsumRef.second;
-    }
-
-    public static List<Byte> getQList(List<SAMRecord> reads, List<Integer> offsets) {
-        List<Byte> qscores = new LinkedList();
-        for(int readNo = 0; readNo < reads.size(); readNo++) {
-            qscores.add(reads.get(readNo).getBaseQualities()[offsets.get(readNo)]);
-        }
-
-        return qscores;
-    }
-
-    public static Pair<Double,Double> qListToSumLogProbabilities(boolean listRepresentsSNPObservations, List<Byte> qList, double denom)
-    {
-        double logProbObserveXAndSNPTrue = 0; // note "error" for SNP is observing a ref
-        double logProbObserveXAndRefTrue = 0;// and "error" for ref is observing a SNP
-
-        for (byte qual : qList) {
-            double p_err = QualityUtils.qualToErrorProb(qual);
-            if (listRepresentsSNPObservations) {
-                logProbObserveXAndSNPTrue += Math.log10((1 - p_err) / denom +((denom - 1)*p_err) / denom);
-                logProbObserveXAndRefTrue += Math.log10(p_err);
-            } else {
-                logProbObserveXAndSNPTrue += Math.log10((denom - 1) * (1 - p_err)/denom + p_err/denom);
-                logProbObserveXAndRefTrue+= Math.log10(1 -p_err);
-            }
-        }
-
-        return new Pair<Double,Double>(logProbObserveXAndSNPTrue,logProbObserveXAndRefTrue);
     }
 
 }

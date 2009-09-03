@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.QualityUtils;
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,7 +17,8 @@ import org.broadinstitute.sting.utils.Pair;
  */
 public class PoolUtils {
 
-    private PoolUtils () {}
+    private PoolUtils() {
+    }
 
     public static final int BASE_A_OFFSET = 0;
     public static final int BASE_C_OFFSET = 1;
@@ -24,13 +26,13 @@ public class PoolUtils {
     public static final int BASE_T_OFFSET = 3;
     public static final int BASE_INDEXED_ARRAY_SIZE = 4;
 
-    public static Pair<Pair<List<SAMRecord>, List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> splitReadsByReadDirection(List<SAMRecord> reads, List<Integer> offsets) {
+    public static Pair<Pair<List<SAMRecord>, List<SAMRecord>>, Pair<List<Integer>, List<Integer>>> splitReadsByReadDirection(List<SAMRecord> reads, List<Integer> offsets) {
         ArrayList<SAMRecord> forwardReads;
         ArrayList<SAMRecord> reverseReads;
         ArrayList<Integer> forwardOffsets;
         ArrayList<Integer> reverseOffsets;
 
-        if ( reads == null) {
+        if (reads == null) {
             forwardReads = null;
             reverseReads = null;
             forwardOffsets = null;
@@ -41,8 +43,8 @@ public class PoolUtils {
             forwardOffsets = new ArrayList();
             reverseOffsets = new ArrayList();
 
-            for ( int readNo = 0; readNo < reads.size(); readNo ++ ) {
-                if ( reads.get(readNo).getReadNegativeStrandFlag() ) {
+            for (int readNo = 0; readNo < reads.size(); readNo++) {
+                if (reads.get(readNo).getReadNegativeStrandFlag()) {
                     forwardReads.add(reads.get(readNo));
                     forwardOffsets.add(offsets.get(readNo));
                 } else {
@@ -52,48 +54,53 @@ public class PoolUtils {
             }
         }
 
-        return new Pair(new Pair(forwardReads,reverseReads), new Pair(forwardOffsets,reverseOffsets));
+        return new Pair(new Pair(forwardReads, reverseReads), new Pair(forwardOffsets, reverseOffsets));
     }
 
     public static Pair<List<SAMRecord>[], List<Integer>[]> splitReadsByBase(List<SAMRecord> reads, List<Integer> offsets) {
         ArrayList<SAMRecord>[] readsByBase;
         ArrayList<Integer>[] offsetsByBase;
-        if ( reads == null ) {
+        if (reads == null) {
             readsByBase = null;
             offsetsByBase = null;
-        }  else {
+        } else {
             readsByBase = new ArrayList[4];
             offsetsByBase = new ArrayList[4];
-            for(int readNum = 0; readNum < reads.size(); readNum++) {
+            for (int readNum = 0; readNum < reads.size(); readNum++) {
                 switch (reads.get(readNum).getReadBases()[offsets.get(readNum)]) {
                     case 'A':
-                    case 'a': readsByBase[0].add(reads.get(readNum));
-                        offsetsByBase[0].add(offsets.get(readNum));
+                    case 'a':
+                        readsByBase[BASE_A_OFFSET].add(reads.get(readNum));
+                        offsetsByBase[BASE_A_OFFSET].add(offsets.get(readNum));
                         break;
                     case 'C':
-                    case 'c': readsByBase[1].add(reads.get(readNum));
-                        offsetsByBase[1].add(offsets.get(readNum));
+                    case 'c':
+                        readsByBase[BASE_C_OFFSET].add(reads.get(readNum));
+                        offsetsByBase[BASE_C_OFFSET].add(offsets.get(readNum));
                         break;
                     case 'G':
-                    case 'g': readsByBase[2].add(reads.get(readNum));
-                        offsetsByBase[2].add(offsets.get(readNum));
+                    case 'g':
+                        readsByBase[BASE_G_OFFSET].add(reads.get(readNum));
+                        offsetsByBase[BASE_G_OFFSET].add(offsets.get(readNum));
                         break;
                     case 'T':
-                    case 't': readsByBase[3].add(reads.get(readNum));
-                        offsetsByBase[3].add(offsets.get(readNum));
+                    case 't':
+                        readsByBase[BASE_T_OFFSET].add(reads.get(readNum));
+                        offsetsByBase[BASE_T_OFFSET].add(offsets.get(readNum));
                         break;
-                    default: break; // TODO: INDEL AWARENESS
+                    default:
+                        break; // TODO: INDEL AWARENESS
                 }
             }
         }
-        return new Pair(readsByBase,offsetsByBase);
+        return new Pair(readsByBase, offsetsByBase);
     }
 
     public static Pair<List<SAMRecord>, List<Integer>> thresholdReadsByQuality(List<SAMRecord> reads, List<Integer> offsets, byte qThresh) {
         List<SAMRecord> threshReads;
         List<Integer> threshOffsets;
-        if(reads == null) {
-            threshReads=null;
+        if (reads == null) {
+            threshReads = null;
             threshOffsets = null;
         } else if (qThresh <= 0) {
             threshReads = reads;
@@ -102,19 +109,19 @@ public class PoolUtils {
             threshReads = new ArrayList();
             threshOffsets = new ArrayList();
 
-            for ( int readNo = 0; readNo < reads.size(); readNo ++) {
-                if ( reads.get(readNo).getBaseQualities()[offsets.get(readNo)] >= qThresh) {
+            for (int readNo = 0; readNo < reads.size(); readNo++) {
+                if (reads.get(readNo).getBaseQualities()[offsets.get(readNo)] >= qThresh) {
                     threshReads.add(reads.get(readNo));
                     threshOffsets.add(offsets.get(readNo));
                 } // else do nothing
             }
         }
 
-        return new Pair(threshReads,threshOffsets);
+        return new Pair(threshReads, threshOffsets);
     }
 
     public static int getBaseOffset(char base) {
-        switch(base) {
+        switch (base) {
             case 'A':
             case 'a':
                 return getBaseAOffset();
@@ -131,7 +138,7 @@ public class PoolUtils {
                 return -1;
         }
         //TODO: indel offsets
-        }
+    }
 
     public static int getBaseAOffset() {
         return BASE_A_OFFSET;
@@ -149,13 +156,42 @@ public class PoolUtils {
         return BASE_T_OFFSET;
     }
 
-    public static List<Byte> getListOfBaseQualities(List<SAMRecord> reads,List<Integer> offsets) {
-        //TODO: this is a terrible method name. Change it to something better.
+    public static List<Byte> getReadBaseQualities(List<SAMRecord> reads, List<Integer> offsets) {
         List<Byte> qualities = new ArrayList<Byte>(reads.size());
-        for (int readNo = 0; readNo < reads.size(); readNo ++) {
+        for (int readNo = 0; readNo < reads.size(); readNo++) {
             qualities.add(reads.get(readNo).getBaseQualities()[offsets.get(readNo)]);
         }
 
         return qualities;
     }
+
+    public static double calculateLogLikelihoodOfSample(Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> snpReadsRefReads, int nIndivids) {
+        List<Byte> qListSnps = getReadBaseQualities(snpReadsRefReads.getFirst().getFirst(),snpReadsRefReads.getSecond().getFirst());
+        List<Byte> qListRefs = getReadBaseQualities(snpReadsRefReads.getFirst().getSecond(),snpReadsRefReads.getSecond().getSecond());
+        Pair<Double,Double> logsumSNP = qListToSumLogProbabilities(true,qListSnps, 2.0*nIndivids);
+        Pair<Double,Double> logsumRef = qListToSumLogProbabilities(false,qListRefs, 2.0*nIndivids);
+
+        return 0.0 - logsumSNP.first - logsumRef.first + logsumSNP.second + logsumRef.second;
+    }
+
+
+    public static Pair<Double,Double> qListToSumLogProbabilities(boolean listRepresentsSNPObservations, List<Byte> qList, double denom)
+    {
+        double logProbObserveXAndSNPTrue = 0; // note "error" for SNP is observing a ref
+        double logProbObserveXAndRefTrue = 0;// and "error" for ref is observing a SNP
+
+        for (byte qual : qList) {
+            double p_err = QualityUtils.qualToErrorProb(qual);
+            if (listRepresentsSNPObservations) {
+                logProbObserveXAndSNPTrue += Math.log10((1 - p_err) / denom +((denom - 1)*p_err) / denom);
+                logProbObserveXAndRefTrue += Math.log10(p_err);
+            } else {
+                logProbObserveXAndSNPTrue += Math.log10((denom - 1) * (1 - p_err)/denom + p_err/denom);
+                logProbObserveXAndRefTrue+= Math.log10(1 -p_err);
+            }
+        }
+
+        return new Pair<Double,Double>(logProbObserveXAndSNPTrue,logProbObserveXAndRefTrue);
+    }
+
 }
