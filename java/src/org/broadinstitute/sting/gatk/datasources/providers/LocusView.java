@@ -61,7 +61,7 @@ public abstract class LocusView extends LocusIterator implements View {
         Iterator<SAMRecord> reads = new FilteringIterator(provider.getReadIterator(), new LocusStreamFilterFunc());
         this.sourceInfo = provider.getReadIterator().getSourceInfo();
 
-        if (GenomeAnalysisEngine.instance.getArguments().useLocusIteratorByState)
+        if ( GenomeAnalysisEngine.instance != null && GenomeAnalysisEngine.instance.getArguments().useLocusIteratorByState)
             this.loci = new LocusIteratorByState(reads, sourceInfo);
         else
             this.loci = new LocusIteratorByHanger(reads, sourceInfo);
