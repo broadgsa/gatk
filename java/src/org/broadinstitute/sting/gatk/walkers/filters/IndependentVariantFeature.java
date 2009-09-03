@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.variants;
+package org.broadinstitute.sting.gatk.walkers.filters;
 
 /**
  * Interface for conditionally independent variant features.  

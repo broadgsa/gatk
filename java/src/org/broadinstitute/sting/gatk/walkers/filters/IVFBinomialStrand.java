@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.variants;
+package org.broadinstitute.sting.gatk.walkers.filters;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.VariantContext;

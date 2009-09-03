@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.variants;
+package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.gatk.refdata.rodVariants;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
