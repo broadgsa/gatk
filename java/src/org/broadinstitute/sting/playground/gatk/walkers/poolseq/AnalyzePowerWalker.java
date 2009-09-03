@@ -40,14 +40,19 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
     BufferedReader syzyFileReader;
     final String pfFileDelimiter = " ";
     boolean outOfLinesInSyzyFile = false;
+    private double[][] syzyPowerTable;
+    private String[][] syzySanityCheckTable;
 
     @Override
     public void initialize()
     {
         super.initialize();
+        syzyPowerTable = new double[8][1500000];
+        syzySanityCheckTable = new String[8][1500000];
         try {
             syzyFileReader = new BufferedReader(new FileReader(pathToSyzygyFile));
-            System.out.println(syzyFileReader.readLine());
+            logger.error("generatePowerTable called");
+            generatePowerTable(syzyFileReader);
         } catch (FileNotFoundException e) {
             String newErrMsg = "Syzygy input file " + pathToSyzygyFile + " could be incorrect. File not found.";
             throw new StingException(newErrMsg,e);
@@ -59,34 +64,36 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
     }
 
     @Override
-    public Pair<Integer,Integer> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context)
+    public Pair<Integer,Integer> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext rawContext)
     {
+         AlignmentContext context;
+        if (super.getMinQualityScore() <= 0) {
+            context = rawContext;
+        } else {
+            Pair<List<SAMRecord>,List<Integer>> readsFilteredByQuality = filterByQuality(rawContext.getReads(),rawContext.getOffsets(), super.getMinQualityScore());
+            context = new AlignmentContext(rawContext.getLocation(),readsFilteredByQuality.getFirst(),readsFilteredByQuality.getSecond());
+        }
 
         Pair<Pair<List<SAMRecord>, List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> splitReads = PoolUtils.splitReadsByReadDirection(context.getReads(),context.getOffsets());
         if ( !super.suppress_printing )
         {
             Pair<double[],byte[]> powPair = super.calculatePower(splitReads,false,context);
 
-            boolean syzyFileIsReady=true;
-            try {
-                syzyFileIsReady = syzyFileReader.ready();
-            }
-            catch(IOException e) {
-                throw new StingException("Input file reader was not ready before an attempt to read from it", e);
-            }
 
-            if(!syzyFileIsReady) {
-                throw new StingException("Input file reader was not ready before an attempt to read from it, but there was no IOException");
-            } else if(!outOfLinesInSyzyFile) {
-                Pair<Double,String> syzyPow = getSyzyPowFromFile();
-                out.printf("%s: %d %d %d %d %d %d %f %f %f %f |%s%n", context.getLocation(), splitReads.getFirst().getFirst().size(), splitReads.getFirst().getSecond().size(),
-                        context.getReads().size(), powPair.getSecond()[0], powPair.getSecond()[1], powPair.getSecond()[2],
-                        powPair.getFirst()[0], powPair.getFirst()[1], powPair.getFirst()[2], syzyPow.getFirst(), syzyPow.getSecond());
-            } else {
-                out.printf("%s: $d %d %d %d %d %d %d %f %f %f%n", context.getLocation(), splitReads.getFirst().getFirst().size(), splitReads.getFirst().getSecond().size(),
-                        context.getReads().size(), powPair.getSecond()[0], powPair.getSecond()[1], powPair.getSecond()[2],
-                        powPair.getFirst()[0], powPair.getFirst()[1], powPair.getFirst()[2]);
+
+            int tabIndexChrom = getTableChromIndex(context.getLocation().toString());
+            int tabIndexLoc = getTablePosIndex(context.getLocation().toString());
+            double syzyPow = 0;
+            String syzySanity = "NoLoc";
+            if(tabIndexChrom >= 0 && tabIndexLoc >= 0) {
+                syzyPow += syzyPowerTable[tabIndexChrom][tabIndexLoc];
+                syzySanity = "s " + syzySanityCheckTable[tabIndexChrom][tabIndexLoc];
+
             }
+            out.printf("%s|%s: %d %d %d %d %d %d %f %f %f %f %n", context.getLocation(), syzySanity, splitReads.getFirst().getFirst().size(), splitReads.getFirst().getSecond().size(),
+                    context.getReads().size(), powPair.getSecond()[0], powPair.getSecond()[1], powPair.getSecond()[2],
+                    powPair.getFirst()[0], powPair.getFirst()[1], powPair.getFirst()[2], syzyPow);
+
         }
 
         return new Pair(splitReads.getFirst().getFirst().size(), splitReads.getFirst().getFirst().size());
@@ -103,13 +110,14 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
             return new Pair(-1.1, "Printing Stops Here");
         }
 
-        String chromPos = null;
+        String chromPosTar = null;
         StringTokenizer lineTokenizer = new StringTokenizer(thisLine, pfFileDelimiter);
         try {
-            chromPos = lineTokenizer.nextToken();
+            chromPosTar = lineTokenizer.nextToken();
             for(int j = 1; j < colOffset; j++) {
                 lineTokenizer.nextToken();
             }
+            String chromPos = (new StringTokenizer(chromPosTar, "\t")).nextToken();
             return new Pair((Double.valueOf(lineTokenizer.nextToken())/100.0),chromPos);
         } catch (NoSuchElementException e) {
             String errMsg = "The given column offset for the pool, " + colOffset + " exceeded the number of entries in the file " + pathToSyzygyFile;
@@ -119,5 +127,91 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
 
     public String createHeaderString() {
         return (super.createHeaderString() + "  PowSyz");
+    }
+
+    //TODO: rewrite this so it's not a complete hack!!!
+
+    public void generatePowerTable(BufferedReader syzFile) {
+
+        System.out.println("generatePowerTable entered");
+        int numreads = 0;
+
+        try{
+            while(syzFile.ready()) {
+                String line = syzFile.readLine();
+                if(line == null || line.equals("")) {
+                    break;
+                }
+                StringTokenizer tok = new StringTokenizer(line, " :\t");
+                String chrmNoStrWithChr = tok.nextToken();
+                String chrmNoStr = chrmNoStrWithChr.substring(3);
+                String locStr = tok.nextToken();
+                for(int j = colOffset - 2; j > 0; j --) {
+                    tok.nextToken();
+                }
+                numreads++;
+                String syzyPowStr = tok.nextToken();
+                if ( chrmNoStr == null || locStr == null || chrmNoStr.equals("") || locStr.equals("")) {
+                    break;
+                }
+                int chrIndex = getTableChromIndex(chrmNoStr,locStr);
+                int posIndex = getTablePosIndex(chrmNoStr,locStr);
+                syzyPowerTable[chrIndex][posIndex] = Double.valueOf(syzyPowStr)/100.0;
+                syzySanityCheckTable[chrIndex][posIndex] = "chrm" + chrmNoStr +":" + locStr;
+                if( (numreads % 1000) == 0){
+                    System.out.println(numreads + " reads from Syzygy file");
+                }
+            }
+        } catch (IOException e) {
+            // do nothing
+            System.out.println("IOException caught");
+        }
+        System.out.println("Table generated.");
+
+   }
+
+    public int getTableChromIndex(String chromNo, String locNo) {
+        switch (Integer.valueOf(chromNo)) {
+            case 1: return 0;
+            case 2: return 1;
+            case 3:
+                if ( Integer.valueOf(locNo) < 63000000 )
+                    return 2;
+                else
+                    return 3;
+            case 7: return 4;
+            case 10: return 5;
+            case 11: return 6;
+            case 12: return 7;
+            default:
+                System.out.println(chromNo + " " + locNo);
+                return -1;
+        }
+    }
+
+    public int getTableChromIndex(String chromAndPos) {
+        StringTokenizer tok = new StringTokenizer(chromAndPos,":");
+        return getTableChromIndex(tok.nextToken().substring(3),tok.nextToken());
+    }
+
+    public int getTablePosIndex(String chromAndPos) {
+        StringTokenizer tok = new StringTokenizer(chromAndPos,":");
+        return getTablePosIndex(tok.nextToken().substring(3),tok.nextToken());
+    }
+
+    public int getTablePosIndex(String chromNo, String locNo) {
+        switch ( getTableChromIndex(chromNo, locNo) ) {
+            case 0: return Integer.valueOf(locNo) - 120065274;
+            case 1: return Integer.valueOf(locNo) - 43311321;
+            case 2: return Integer.valueOf(locNo) - 12157091;
+            case 3: return Integer.valueOf(locNo) - 64000000;
+            case 4: return Integer.valueOf(locNo) - 27838907;
+            case 5: return Integer.valueOf(locNo) - 12003199;
+            case 6: return Integer.valueOf(locNo) - 92342389;
+            case 7: return Integer.valueOf(locNo) - 69809219;
+            default:
+                System.out.println(chromNo + " " + locNo);
+                return -1;
+        }
     }
 }
