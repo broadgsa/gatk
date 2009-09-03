@@ -235,7 +235,7 @@
     <target name="test" depends="test.compile,agent" description="Run unit tests">
         <mkdir dir="${report}"/>
         <echo message="Sting: Running test cases!"/>
-        <junit printsummary="yes" showoutput="no" clonevm="yes" haltonfailure="yes" failureProperty="test.failure">
+        <junit printsummary="yes" showoutput="yes" clonevm="yes" haltonfailure="yes" failureProperty="test.failure">
             <jvmarg value="-javaagent:build/TestAgent.jar"/>
             <formatter type="${testOutput}" usefile="${usefile}" />
             <classpath>
