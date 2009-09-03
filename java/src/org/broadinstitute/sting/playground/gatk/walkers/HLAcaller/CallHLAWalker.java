@@ -198,7 +198,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             }
 
             //Calculate posterior probabilities!
-            GenotypeLikelihoods gl = new ThreeStateErrorGenotypeLikelihoods();
+            GenotypeLikelihoods G = new EmpiricalSubstitutionGenotypeLikelihoods();
 
             //I've tried simply adding the entire pileup to g, but quality scores are not checked, and 'N' bases throw an error
             //(GenotypeLikelihoods potentially has bug on line 57)
@@ -217,7 +217,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                     if (base == 'T'){numTs++;}
                     if (base == 'g'){numGs++;}
                     //consider base in likelihood calculations if it looks good and has high mapping score
-                    gl.add(base, qual, read, offset);
+                    G.add(base, qual, read, offset);
                 }
             }
 
