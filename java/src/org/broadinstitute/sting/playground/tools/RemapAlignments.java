@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 
 import org.broadinstitute.sting.playground.utils.GenomicMap;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.AlignmentUtils;
 
 import net.sf.picard.cmdline.CommandLineProgram;
 import net.sf.picard.cmdline.Option;
@@ -126,7 +127,7 @@ public class RemapAlignments extends CommandLineProgram {
 				badRecords++;
 				continue;
 			}
-			if ( read.getReadUnmappedFlag() ) totalUnmappedReads++;
+			if ( AlignmentUtils.isReadUnmapped(read) ) totalUnmappedReads++;
 			else {
 				// destroy mate pair mapping information, if any (we will need to reconstitute pairs after remapping both ends):
 				read.setMateReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);
@@ -218,7 +219,10 @@ public class RemapAlignments extends CommandLineProgram {
                 if ( attr == null ) {
                     return; // can not recompute qualities!
                 }
-    			int nm = (Integer)attr;
+    			int nm;
+                if ( attr instanceof Short ) nm = ((Short)attr).intValue();
+                else if ( attr instanceof Integer ) nm = ((Integer)attr).intValue();
+                else throw new RuntimeException("NM attribute is neither Short nor Integer, don't know what to do.");
     			if ( nm < minNM  ) { 
     				minNM = nm;
     				cnt = 1;
@@ -230,12 +234,17 @@ public class RemapAlignments extends CommandLineProgram {
     			
     			int cnt2 = reads.size() - cnt; // count of inferior alignments
     			
-    	   		r.setAttribute("X0", new Integer(cnt));
+    	   		r.setAttribute("X0", new Integer(cnt));   
         		r.setAttribute("X1", new Integer(cnt2));
     			
         		if ( cnt2 > 255 ) cnt2 = 255; // otherwise we will be out of bounds in g_log_n
-        		
-    			if ( ((Integer)r.getAttribute("NM")).intValue() == minNM ) { 
+
+                int nm_attr;
+                Object attr =  r.getAttribute("NM");
+                if ( attr instanceof Short ) nm_attr = ((Short)attr).intValue();
+                else if ( attr instanceof Integer ) nm_attr = ((Integer)attr).intValue();
+                else throw new RuntimeException("NM attribute is neither Short nor Integer, don't know what to do.");
+    			if ( nm_attr == minNM ) { 
     				
     				// one of the best alignments:
 
