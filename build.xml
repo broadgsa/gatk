@@ -5,6 +5,13 @@
     <property name="single" value="*Test" />
     <property name="dist" value="dist" />
 
+    <!-- should our junit test output go to a file or the screen?
+    false means it goes to the screen (default) true to file -->
+    <property name="usefile" value="false" />
+
+    <!-- should our junit tests use XML? default is no -->
+    <property name="testOutput" value="brief" />
+
     <!-- If running the 'package' task, this property controls the name of the xml file to package -->
     <property name="executable" value="GenomeAnalysisTK" />
 
@@ -228,9 +235,9 @@
     <target name="test" depends="test.compile,agent" description="Run unit tests">
         <mkdir dir="${report}"/>
         <echo message="Sting: Running test cases!"/>
-        <junit printsummary="yes" showoutput="yes" clonevm="yes" haltonfailure="yes" failureProperty="test.failure">
+        <junit printsummary="yes" showoutput="no" clonevm="yes" haltonfailure="yes" failureProperty="test.failure">
             <jvmarg value="-javaagent:build/TestAgent.jar"/>
-            <formatter type="brief" usefile="false" />
+            <formatter type="${testOutput}" usefile="${usefile}" />
             <classpath>
                 <path refid="runtime.dependencies"/>
                 <pathelement location="build"/>
