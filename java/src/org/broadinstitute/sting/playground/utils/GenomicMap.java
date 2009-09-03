@@ -24,10 +24,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.*;
 
 public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeLoc> > >{
 	
@@ -204,7 +201,15 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 	 * @return same read instance that was passed to this method, remapped
 	 */
 	public SAMRecord remapToMasterReference(SAMRecord r, SAMFileHeader h, boolean discardCrossContig) {
-		if ( r.getReadUnmappedFlag() ) return r; // nothing to do if read is unmapped
+		if ( AlignmentUtils.isReadUnmapped(r) ) {
+            // set to NO_... just in case: in principle, SAM format spec allows unmapped reads (with 'unmapped'
+            // flag raised) to have reference contig and start position set to arbitrary values for sorting
+            // purposes; after remapping, these values would make no sense or even cause a crash when reading
+            // remapped bam
+            r.setReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);
+            r.setAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
+            return r; // nothing to do if read is unmapped
+        }
 		
 		int customStart = r.getAlignmentStart();
 
