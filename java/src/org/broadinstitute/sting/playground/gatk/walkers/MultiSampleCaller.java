@@ -9,8 +9,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.genotyper.OldAndBustedGenotypeLikelihoods;
-import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotypePriors;
+import org.broadinstitute.sting.playground.utils.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -28,17 +27,26 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
     @Argument(required=false, shortName="max_iterations", doc="Maximum number of iterations for EM") public int MAX_ITERATIONS = 10;
     @Argument(fullName="discovery_output", shortName="discovery_output", required=true, doc="file to write SNP discovery output to")       public String DISCOVERY_OUTPUT;
     @Argument(fullName="individual_output", shortName="individual_output", required=true, doc="file to write individual SNP calls to") public String INDIVIDUAL_OUTPUT;
+    @Argument(fullName="stats_output", shortName="stats_output", required=false, doc="file to write stats to") public String STATS_OUTPUT = "/dev/null";
     @Argument(fullName="sample_name_regex", shortName="sample_name_regex", required=false, doc="sample_name_regex") public String SAMPLE_NAME_REGEX = null;
     @Argument(fullName="call_indels", shortName="call_indels", required=false, doc="call indels?") public boolean CALL_INDELS = false;
+    @Argument(fullName="weight_samples", shortName="weight_samples", required=false, doc="rw-weight samples during EM?") public boolean WEIGHT_SAMPLES = false;
+
+    @Argument(fullName="theta", shortName="theta", required=false, doc="rate of sequence divergence") public double THETA = 1e-3;
+    @Argument(fullName="allele_frequency_prior", shortName="allele_frequency_prior", required=false, doc="use prior on allele frequencies? (P(f) = theta/(N*f)") public boolean ALLELE_FREQUENCY_PRIOR = false;
+
+    @Argument(fullName="confusion_matrix_file", shortName="confusion_matrix_file", required=false, doc="file containing confusion matrix for all three technologies") public String CONFUSION_MATRIX_FILE = null;
 
 	// Private state.
     protected List<String> sample_names;
     protected SAMFileHeader header;
 	protected PrintStream individual_output_file;
 	protected PrintStream discovery_output_file;
+	protected PrintStream stats_output_file;
 
 	class MultiSampleCallResult
 	{
+		GenomeLoc location;
 		char ref;
 		char alt;
 		EM_Result em_result;
@@ -52,8 +60,10 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		int n_hom;
 		int EM_N;
 		double alt_freq;
-		public MultiSampleCallResult(char ref, char alt, EM_Result em_result, double lod, double strand_score, double pD, double pNull, String in_dbsnp, int n_ref, int n_het, int n_hom, int EM_N, double alt_freq)
+
+		public MultiSampleCallResult(GenomeLoc location, char ref, char alt, EM_Result em_result, double lod, double strand_score, double pD, double pNull, String in_dbsnp, int n_ref, int n_het, int n_hom, int EM_N, double alt_freq)
 		{
+			this.location = location;
 			this.ref = ref;
 			this.alt = alt;
 			this.em_result = em_result;
@@ -68,6 +78,102 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 			this.EM_N = EM_N;
 			this.alt_freq = alt_freq;
 		}
+
+		public MultiSampleCallResult() { } // this is just so I can do new MultiSampleCallResult().header(). "inner classes cannot have static declarations" :(
+
+		public String header()
+		{
+			return new String("loc ref alt lod strand_score pD pNull in_dbsnp pA pC pG pT EM_alt_freq EM_N n_ref n_het n_hom");
+		}
+
+		public String toString()
+		{
+			String s = "";
+			s = s + String.format("%s %c %c %f %f %f %f %s ", location, ref, alt, lod, strand_score, pD, pNull, in_dbsnp);
+			for (int i = 0; i < 4; i++) { s = s + String.format("%f ", em_result.allele_likelihoods[i]); }
+			s = s + String.format("%f %d %d %d %d", alt_freq, em_result.EM_N, n_ref, n_het, n_hom);
+			return s;
+		}
+	}
+
+	public static class DepthStats
+	{
+		public static String Header()
+		{
+			return "loc ref depth A C G T a c g t mq_min mq_mean mq_median mq_max mq_sd";
+		}
+
+		public static String Row(char ref, AlignmentContext context)
+		{
+			String ans = "";
+			List<SAMRecord> reads = context.getReads();
+			List<Integer> offsets = context.getOffsets();
+			Pileup pileup = new ReadBackedPileup(ref, context);
+			
+			ans += String.format("%s ", context.getLocation());
+			ans += String.format("%c ", ref);
+			ans += String.format("%d ", reads.size());
+			ans += String.format("%d ", countBase(context, 'A', "+"));
+			ans += String.format("%d ", countBase(context, 'C', "+"));
+			ans += String.format("%d ", countBase(context, 'G', "+"));
+			ans += String.format("%d ", countBase(context, 'T', "+"));
+			ans += String.format("%d ", countBase(context, 'A', "-"));
+			ans += String.format("%d ", countBase(context, 'C', "-"));
+			ans += String.format("%d ", countBase(context, 'G', "-"));
+			ans += String.format("%d ", countBase(context, 'T', "-"));
+
+			ans += String.format("%s ", Stats(BasicPileup.mappingQualPileup(reads)));
+
+			return ans;
+		}
+
+		static int countBase(AlignmentContext context, char base, String strand)
+		{
+			int count =  0;
+			List<SAMRecord> reads = context.getReads();
+			List<Integer> offsets = context.getOffsets();
+			for (int i = 0; i < reads.size(); i++)
+			{
+				if (reads.get(i).getReadString().charAt(offsets.get(i)) == base)
+				{
+					if (strand.equals("+") && (reads.get(i).getReadNegativeStrandFlag()==false)) { count += 1; }
+					else if (strand.equals("-") && (reads.get(i).getReadNegativeStrandFlag()==true)) { count += 1; }
+					else if (! (strand.equals("+") || strand.equals("-"))) { count += 1; }
+				}
+			}
+			return count;
+		}
+
+		public static String Stats(ArrayList<Byte> X)
+		{
+			Collections.sort(X);
+
+			long count = 0;
+			long sum = 0;
+			long min = X.get(0);
+			long max = X.get(0);
+			long median = X.get(0);
+			for (int i = 0; i < X.size(); i++)
+			{
+				int x = X.get(i);
+				if (x < min) { min = x; }
+				if (x > max) { max = x; }
+				sum += x;
+				count += 1;
+				if (i == X.size()/2) { median = x; }
+			}
+
+			double mean = sum/count;
+			for (int i = 0; i < X.size(); i++)
+			{
+				int x = X.get(i);
+				sum += (x-mean)*(x-mean);
+				count += 1;
+			}
+			double sd = Math.sqrt(sum/count);
+
+			return String.format("%d %f %d %d %f", min, mean, median, max, sd);
+		}
 	}
 
 
@@ -75,13 +181,20 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	// Walker Interface Functions 
     public void initialize() 
 	{ 
+		System.out.printf("\n\n\n\n");
+		(new ClassicGenotypeLikelihoods()).TEST();
+
+
 		try
 		{
 			discovery_output_file = new PrintStream(DISCOVERY_OUTPUT);
 			individual_output_file = new PrintStream(new GZIPOutputStream(new FileOutputStream(INDIVIDUAL_OUTPUT)));
 			
-			discovery_output_file.println("loc ref alt lod strand_score pD pNull discovery_lod in_dbsnp pA pC pG pT EM_alt_freq EM_N n_ref n_het n_hom"); 
+			discovery_output_file.println(new MultiSampleCallResult().header());
 			individual_output_file.println("loc ref sample_name genotype lodVsNextBest lodVsRef in_dbsnp AA AC AG AT CC CG CT GG GT TT");
+
+			stats_output_file = new PrintStream(STATS_OUTPUT);
+			stats_output_file.println(DepthStats.Header());
 		} 
 		catch (Exception e)
 		{
@@ -89,10 +202,9 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 			System.exit(-1);
 		}
 
-
-        GenomeAnalysisEngine toolkit = this.getToolkit();
-        this.header = toolkit.getSAMFileHeader();
-        List<SAMReadGroupRecord> read_groups = header.getReadGroups();
+		GenomeAnalysisEngine toolkit = this.getToolkit();
+		this.header = toolkit.getSAMFileHeader();
+		List<SAMReadGroupRecord> read_groups = header.getReadGroups();
 
         sample_names    = new ArrayList<String>();
 
@@ -101,27 +213,49 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
         for (int i = 0; i < read_groups.size(); i++)
         {
             String sample_name = read_groups.get(i).getSample();
+            String platform = (String)(read_groups.get(i).getAttribute(SAMReadGroupRecord.PLATFORM_TAG));
 
 			if (SAMPLE_NAME_REGEX != null) { sample_name = sample_name.replaceAll(SAMPLE_NAME_REGEX, "$1"); }
+
+            System.out.printf("SAMPLE: %s %s\n", sample_name, platform);
 
 			if (unique_sample_names.contains(sample_name)) { continue; }
 			unique_sample_names.add(sample_name);
             sample_names.add(sample_name);
-            System.out.println("SAMPLE: " + sample_name);
+
+            System.out.printf("UNIQUE_SAMPLE: %s %s\n", sample_name, platform);
         } 
+
+		// Load the confusion matrix if it exists
+		if (CONFUSION_MATRIX_FILE != null)
+		{
+			this.confusion_matrix = new ConfusionMatrix(CONFUSION_MATRIX_FILE);
+		}
+
     }
 
 
-    public MultiSampleCallResult map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context)
+    public MultiSampleCallResult map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
 	{
+		context = filter_each_read(context);
+
 		if (ref.getBase() == 'N') { return null; }
+		if (context.getReads().size() <= 0) { return null; }
+
 		this.ref = ref.getBase();
 		MultiSampleCallResult result = this.MultiSampleCall(tracker, ref.getBase(), context, sample_names);
+		stats_output_file.println(DepthStats.Row(ref.getBase(), context));
 		return result;
 	}
 
     public void onTraversalDone(String sum) 
 	{
+		discovery_output_file.flush();
+		discovery_output_file.close();
+
+		stats_output_file.flush();
+		stats_output_file.close();
+
 		out.println("MultiSampleCaller done.");
 		return;
 	}
@@ -133,6 +267,10 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 
     public String reduce(MultiSampleCallResult record, String sum) 
 	{
+		if (record != null)
+		{
+			discovery_output_file.printf(record.toString() + "\n");
+		}
 		return null;
 	}
 
@@ -144,15 +282,16 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	// Calling Functions
 
 	char ref;
+	protected ConfusionMatrix confusion_matrix;
 
-	OldAndBustedGenotypeLikelihoods Genotype(AlignmentContext context, double[] allele_likelihoods, double indel_alt_freq)
+	ClassicGenotypeLikelihoods Genotype(AlignmentContext context, double[] allele_likelihoods, double indel_alt_freq)
 	{
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         String bases = pileup.getBases();
 
 		if (bases.length() == 0)
 		{
-	        OldAndBustedGenotypeLikelihoods G = new OldAndBustedGenotypeLikelihoods(DiploidGenotypePriors.HUMAN_HETEROZYGOSITY);
+	        ClassicGenotypeLikelihoods G = new ClassicGenotypeLikelihoods();
 	        return G;
 		}
 
@@ -161,17 +300,33 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
         ref = Character.toUpperCase(ref);
         
 		// Handle single-base polymorphisms.
-        OldAndBustedGenotypeLikelihoods G = new OldAndBustedGenotypeLikelihoods(DiploidGenotypePriors.HUMAN_HETEROZYGOSITY);
+        ClassicGenotypeLikelihoods G = new ClassicGenotypeLikelihoods();
         for ( int i = 0; i < reads.size(); i++ )  
         {
+			//System.out.printf("DBG: %s\n", context.getLocation());
+
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
-            G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset]);
+			if (CONFUSION_MATRIX_FILE == null)
+			{
+            	G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset]);
+			}
+			else
+			{
+            	String RG = (String)(read.getAttribute("RG"));
+
+            	assert(header != null);
+            	assert(header.getReadGroup(RG) != null);
+
+            	String platform = (String)(header.getReadGroup(RG).getAttribute(SAMReadGroupRecord.PLATFORM_TAG));
+
+            	G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset], confusion_matrix, platform);
+			}
         }
-        G.applyPrior(ref, allele_likelihoods);
+        G.ApplyPrior(ref, allele_likelihoods);
 
 		// Handle indels
-/*		if (CALL_INDELS)
+		if (CALL_INDELS)
 		{
 			String[] indels = BasicPileup.indelPileup(reads, offsets);
 			IndelLikelihood indel_call = new IndelLikelihood(indels, indel_alt_freq);
@@ -183,7 +338,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 			{
 				G.addIndelLikelihood(null);
 			}
-		}*/
+		}
 
 		/*
 		// Handle 2nd-best base calls.
@@ -196,15 +351,17 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
         return G;
     }
 
-	double[] CountFreqs(OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
+	double[] CountFreqs_gold(ClassicGenotypeLikelihoods[] genotype_likelihoods)
 	{
 		double[] allele_likelihoods = new double[4];
 		for (int x = 0; x < genotype_likelihoods.length; x++)
 		{
-			if (genotype_likelihoods[x].coverage == 0) { continue; }
+			ClassicGenotypeLikelihoods G = genotype_likelihoods[x];
+
+			if (G.coverage == 0) { continue; }
 			
 			double Z = 0;
-			for(int k = 0; k < 10; k++) { Z += Math.pow(10,genotype_likelihoods[x].likelihoods[k]); }
+			for(int k = 0; k < 10; k++) { Z += Math.pow(10,G.likelihoods[k]); }
 			Z = Math.log10(Z);
 
 			double[] personal_allele_likelihoods = new double[4];
@@ -213,8 +370,9 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 			{ 
 				for (int j = i; j < 4; j++)
 				{
-					personal_allele_likelihoods[i] += Math.pow(10,genotype_likelihoods[x].likelihoods[k]-Z);
-					personal_allele_likelihoods[j] += Math.pow(10,genotype_likelihoods[x].likelihoods[k]-Z);
+					double likelihood = Math.pow(10,G.likelihoods[k]-Z);
+					personal_allele_likelihoods[i] += likelihood;
+					personal_allele_likelihoods[j] += likelihood;
 					k++;
 				}
 			}
@@ -231,7 +389,45 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		return allele_likelihoods;
 	}
 
-/*	double CountIndelFreq(OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
+	// This version is a little faster. 
+	double[] CountFreqs(ClassicGenotypeLikelihoods[] genotype_likelihoods)
+	{
+		double[] allele_likelihoods = new double[4];
+		for (int x = 0; x < genotype_likelihoods.length; x++)
+		{
+			ClassicGenotypeLikelihoods G = genotype_likelihoods[x];
+
+			if (G.coverage == 0) { continue; }
+			
+			double Z = 0;
+			double[] personal_allele_likelihoods = new double[4];
+			int k = 0;
+			for (int i = 0; i < 4; i++)
+			{ 
+				for (int j = i; j < 4; j++)
+				{
+					double likelihood = Math.pow(10,G.likelihoods[k]);
+					Z += likelihood;
+					personal_allele_likelihoods[i] += likelihood;
+					personal_allele_likelihoods[j] += likelihood;
+					k++;
+				}
+			}
+			double sum = 0;
+			for (int y = 0; y < 4; y++) { sum += personal_allele_likelihoods[y]; }
+			for (int y = 0; y < 4; y++) { personal_allele_likelihoods[y] /= sum; }
+			for (int y = 0; y < 4; y++) { allele_likelihoods[y] += personal_allele_likelihoods[y]; }
+		}
+
+		double sum = 0;
+		for (int i = 0; i < 4; i++) { sum += allele_likelihoods[i]; }
+		for (int i = 0; i < 4; i++) { allele_likelihoods[i] /= sum; }
+
+		return allele_likelihoods;
+	}
+
+
+	double CountIndelFreq(ClassicGenotypeLikelihoods[] genotype_likelihoods)
 	{ 
 		HashMap<String, Double> indel_allele_likelihoods = new HashMap<String, Double>();
 
@@ -258,10 +454,10 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		pAlt = pAlt / (pRef + pAlt);
 
 		return pAlt;
-	}*/
+	}
 
 	// Potential precision error here.
-	double Compute_pD(OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
+	double Compute_pD(ClassicGenotypeLikelihoods[] genotype_likelihoods, double[] sample_weights)
 	{
 		double pD = 0;
 		for (int i = 0; i < sample_names.size(); i++)
@@ -271,22 +467,45 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 			{
 				sum += Math.pow(10, genotype_likelihoods[i].likelihoods[j]);
 			}
-			pD += Math.log10(sum);
+			pD += Math.log10(sample_weights[i] * sum);
 		}
 		return pD;
 	}
 
-	double Compute_pNull(AlignmentContext[] contexts)
+	double Compute_pNull(AlignmentContext[] contexts, double[] sample_weights)
 	{
 		double[] allele_likelihoods = new double[4];
 		for (int i = 0; i < 4; i++) { allele_likelihoods[i] = 1e-6/3.0; }
 		allele_likelihoods[BaseUtils.simpleBaseToBaseIndex(ref)] = 1.0-1e-6;
-		OldAndBustedGenotypeLikelihoods[] G = new OldAndBustedGenotypeLikelihoods[sample_names.size()];
+		ClassicGenotypeLikelihoods[] G = new ClassicGenotypeLikelihoods[sample_names.size()];
 		for (int j = 0; j < sample_names.size(); j++)
 		{
 			G[j] = Genotype(contexts[j], allele_likelihoods, 1e-6);
 		}
-		return Compute_pD(G);
+		return Compute_pD(G, sample_weights);
+	}
+
+	double[] Compute_SampleWeights(ClassicGenotypeLikelihoods[] genotype_likelihoods)
+	{
+		double[] pD = new double[sample_names.size()];
+		double total_pD = 0;
+		for (int i = 0; i < sample_names.size(); i++)
+		{
+			double sum = 0;
+			for (int j = 0; j < 10; j++)
+			{
+				sum += Math.pow(10, genotype_likelihoods[i].likelihoods[j]);
+			}
+			pD[i] = sum;
+			total_pD += pD[i];
+		}
+
+		for (int i = 0; i < sample_names.size(); i++)
+		{
+			pD[i] /= total_pD;
+		}
+
+		return pD;
 	}
 
 	// Some globals to cache results.
@@ -297,9 +516,32 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	double LOD(AlignmentContext[] contexts)
 	{
 		em_result = EM(contexts);
-		OldAndBustedGenotypeLikelihoods[] G = em_result.genotype_likelihoods;
-		pD = Compute_pD(G);
-		pNull = Compute_pNull(contexts);
+		ClassicGenotypeLikelihoods[] G = em_result.genotype_likelihoods;
+		pD = Compute_pD(G, em_result.sample_weights);
+		pNull = Compute_pNull(contexts, em_result.sample_weights);
+
+		if (ALLELE_FREQUENCY_PRIOR)
+		{
+			// Apply p(f).
+			double pVar = 0.0;
+			for (int i = 1; i < em_result.EM_N; i++) { pVar += THETA/(double)i; }
+
+			double p0 = Math.log10(1 - pVar);
+			double pF;
+
+			double MAF = Compute_alt_freq(ref, em_result.allele_likelihoods);
+
+			if (MAF < 1/(2.0*em_result.EM_N)) { pF = p0; }
+			else { pF = Math.log10(THETA/(2.0*em_result.EM_N * MAF)); }
+
+			//System.out.printf("DBG %s %c %f %f %f %f (%.20f) %f ", contexts[0].getLocation(), ref, pD, pF, pNull, p0, Compute_alt_freq(ref, em_result.allele_likelihoods), 2.0 * em_result.EM_N);
+			//for (int i = 0; i < 4; i++) { System.out.printf("%f ", em_result.allele_likelihoods[i]); }
+			//System.out.printf("\n");
+
+			pD = pD + pF;
+			pNull = pNull + p0;
+		}
+
 		lod = pD - pNull;
 		return lod;
 	}
@@ -307,23 +549,27 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	class EM_Result
 	{
 		String[] sample_names;
-		OldAndBustedGenotypeLikelihoods[] genotype_likelihoods;
+		ClassicGenotypeLikelihoods[] genotype_likelihoods;
 		double[] allele_likelihoods;
+		double[] sample_weights;
 		int EM_N;
 
-		public EM_Result(List<String> sample_names, OldAndBustedGenotypeLikelihoods[] genotype_likelihoods, double[] allele_likelihoods)
+		public EM_Result(List<String> sample_names, ClassicGenotypeLikelihoods[] genotype_likelihoods, double[] allele_likelihoods, double[] sample_weights)
 		{
 			this.sample_names = new String[1];
 			this.sample_names = sample_names.toArray(this.sample_names);
 			this.genotype_likelihoods = genotype_likelihoods;
 			this.allele_likelihoods = allele_likelihoods;
+			this.sample_weights = sample_weights;
 
 			EM_N = 0;
 			for (int i = 0; i < genotype_likelihoods.length; i++) 
 			{
 				if (genotype_likelihoods[i].coverage > 0) { EM_N += 1; }
 			}
+
 		}
+
 	}
 
 	EM_Result EM(AlignmentContext[] contexts)
@@ -338,43 +584,70 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		}
 		double indel_alt_freq = 1e-4;
 
-		OldAndBustedGenotypeLikelihoods[] G = new OldAndBustedGenotypeLikelihoods[sample_names.size()];
+		double[] sample_weights = new double[sample_names.size()];
+		for (int i = 0; i < sample_weights.length; i++)
+		{
+			//sample_weights[i] = 1.0/(double)i;
+			sample_weights[i] = 1.0;
+		}
+
+		ClassicGenotypeLikelihoods[] G = new ClassicGenotypeLikelihoods[sample_names.size()];
+		ClassicGenotypeLikelihoods[] Weighted_G = new ClassicGenotypeLikelihoods[sample_names.size()];
 		for (int i = 0; i < MAX_ITERATIONS; i++)
 		{
 			for (int j = 0; j < sample_names.size(); j++)
 			{
 				G[j] = Genotype(contexts[j], allele_likelihoods, indel_alt_freq);
+				if (WEIGHT_SAMPLES) { G[j].ApplyWeight(sample_weights[j]); }
 			}
-		
+
 			allele_likelihoods = CountFreqs(G);
 
-//			if (CALL_INDELS)
-//			{
-//				indel_alt_freq = CountIndelFreq(G);
-//			}
+			if (CALL_INDELS) 
+			{
+				indel_alt_freq = CountIndelFreq(G);
+			}
+
+			if (WEIGHT_SAMPLES)
+			{
+				sample_weights = Compute_SampleWeights(G);
+			}
 		}
 
-		return new EM_Result(sample_names, G, allele_likelihoods);
+		return new EM_Result(sample_names, G, allele_likelihoods, sample_weights);
 	}
 
 	// Hacky global variables for debugging.
 	double StrandScore(AlignmentContext context)
 	{
-		//AlignmentContext[] contexts = filterAlignmentContextBySample(context, sample_names, 0);
+		//AlignmentContext[] contexts = filterAlignmentContext(context, sample_names, 0);
 
-		AlignmentContext fw = filterAlignmentContextByStrand(context, "+");
-		AlignmentContext bw = filterAlignmentContextByStrand(context, "-");
-		AlignmentContext[] contexts_fw = filterAlignmentContextBySample(fw, sample_names, 0);
-		AlignmentContext[] contexts_bw = filterAlignmentContextBySample(bw, sample_names, 0);
+		AlignmentContext fw = filterAlignmentContext(context, "+");
+		AlignmentContext bw = filterAlignmentContext(context, "-");
+		AlignmentContext[] contexts_fw = filterAlignmentContext(fw, sample_names, 0);
+		AlignmentContext[] contexts_bw = filterAlignmentContext(bw, sample_names, 0);
 
 		EM_Result em_fw = EM(contexts_fw);
 		EM_Result em_bw = EM(contexts_bw);
 
-		double pNull_fw = Compute_pNull(contexts_fw);
-		double pNull_bw = Compute_pNull(contexts_bw);
+		double pNull_fw = Compute_pNull(contexts_fw, em_fw.sample_weights);
+		double pNull_bw = Compute_pNull(contexts_bw, em_bw.sample_weights);
 
-		double pD_fw = Compute_pD(em_fw.genotype_likelihoods);
-		double pD_bw = Compute_pD(em_bw.genotype_likelihoods);
+		double pD_fw = Compute_pD(em_fw.genotype_likelihoods, em_fw.sample_weights);
+		double pD_bw = Compute_pD(em_bw.genotype_likelihoods, em_bw.sample_weights);
+
+		if (ALLELE_FREQUENCY_PRIOR)
+		{
+			// Apply p(f).
+			double pVar = 0.0;
+			for (int i = 1; i < em_result.EM_N; i++) { pVar += THETA/(double)i; }
+
+			pD_fw = pD_fw + Math.log10(THETA/(2.0*em_fw.EM_N * Compute_alt_freq(ref, em_fw.allele_likelihoods)));
+			pNull_fw = pNull_fw + Math.log10(1 - pVar);
+
+			pD_bw = pD_bw + Math.log10(THETA/(2.0*em_bw.EM_N * Compute_alt_freq(ref, em_bw.allele_likelihoods)));
+			pNull_bw = pNull_bw + Math.log10(1 - pVar);
+		}
 
 		double EM_alt_freq_fw = Compute_alt_freq(ref, em_fw.allele_likelihoods);
 		double EM_alt_freq_bw = Compute_alt_freq(ref, em_bw.allele_likelihoods);
@@ -388,9 +661,9 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		return strand_score;
 	}
 
-	OldAndBustedGenotypeLikelihoods HardyWeinberg(double[] allele_likelihoods)
+	ClassicGenotypeLikelihoods HardyWeinberg(double[] allele_likelihoods)
 	{
-		OldAndBustedGenotypeLikelihoods G = new OldAndBustedGenotypeLikelihoods(DiploidGenotypePriors.HUMAN_HETEROZYGOSITY);
+		ClassicGenotypeLikelihoods G = new ClassicGenotypeLikelihoods();
 		int k = 0;
 		for (int i = 0; i < 4; i++)
 		{ 
@@ -410,7 +683,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		else { return BaseUtils.baseIndexToSimpleBase(perm[2]); }
 	}
 
-	double Compute_discovery_lod(char ref, OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
+	double Compute_discovery_lod(char ref, ClassicGenotypeLikelihoods[] genotype_likelihoods)
 	{
 		double pBest = 0;
 		double pRef  = 0;
@@ -428,7 +701,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		return allele_likelihoods[BaseUtils.simpleBaseToBaseIndex(PickAlt(ref, allele_likelihoods))];
 	}
 
-	int Compute_n_ref(char ref, OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
+	int Compute_n_ref(char ref, ClassicGenotypeLikelihoods[] genotype_likelihoods)
 	{
 		int n = 0;
 		for (int i = 0; i < genotype_likelihoods.length; i++)
@@ -440,7 +713,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		return n;
 	}
 
-	int Compute_n_het(char ref, OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
+	int Compute_n_het(char ref, ClassicGenotypeLikelihoods[] genotype_likelihoods)
 	{
 		int n = 0;
 		for (int i = 0; i < genotype_likelihoods.length; i++)
@@ -453,7 +726,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		return n;
 	}
 
-	int Compute_n_hom(char ref, OldAndBustedGenotypeLikelihoods[] genotype_likelihoods)
+	int Compute_n_hom(char ref, ClassicGenotypeLikelihoods[] genotype_likelihoods)
 	{
 		int n = 0;
 		for (int i = 0; i < genotype_likelihoods.length; i++)
@@ -466,16 +739,16 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	}
 
 	// This should actually return a GLF Record
-	MultiSampleCallResult MultiSampleCall(RefMetaDataTracker tracker, char ref, AlignmentContext context, List<String> sample_names)
+	MultiSampleCallResult MultiSampleCall(RefMetaDataTracker tracker, char ref, AlignmentContext context, List<String> sample_names) 
 	{
 		String in_dbsnp;
 		if (tracker.lookup("DBSNP", null) != null) { in_dbsnp = "known"; } else { in_dbsnp = "novel"; }
 
-		AlignmentContext[] contexts = filterAlignmentContextBySample(context, sample_names, 0);
+		AlignmentContext[] contexts = filterAlignmentContext(context, sample_names, 0);
 		double lod = LOD(contexts);		
 		double strand_score = StrandScore(context);
 		//EM_Result em_result = EM(contexts);
-		OldAndBustedGenotypeLikelihoods population_genotype_likelihoods = HardyWeinberg(em_result.allele_likelihoods);
+		ClassicGenotypeLikelihoods population_genotype_likelihoods = HardyWeinberg(em_result.allele_likelihoods);	
 
 		//double pD = Compute_pD(em_result.genotype_likelihoods);
 		//double pNull = Compute_pNull(contexts);
@@ -483,16 +756,13 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		double discovery_lod = Compute_discovery_lod(ref, em_result.genotype_likelihoods);
 		double alt_freq      = Compute_alt_freq(ref, em_result.allele_likelihoods);
 
-		char alt = 'N';
-	   	if (lod > 0.0) { alt = PickAlt(ref, em_result.allele_likelihoods); }
-
 		int n_ref = Compute_n_ref(ref, em_result.genotype_likelihoods);
 		int n_het = Compute_n_het(ref, em_result.genotype_likelihoods);
 		int n_hom = Compute_n_hom(ref, em_result.genotype_likelihoods);
 
-		discovery_output_file.printf("%s %c %c %f %f %f %f %f %s ", context.getLocation(), ref, alt, lod, strand_score, pD, pNull, discovery_lod, in_dbsnp);
-		for (int i = 0; i < 4; i++) { discovery_output_file.printf("%f ", em_result.allele_likelihoods[i]); }
-		discovery_output_file.printf("%f %d %d %d %d\n", alt_freq, em_result.EM_N, n_ref, n_het, n_hom);
+		char alt = 'N';
+	   	//if (lod > 0.0) { alt = PickAlt(ref, em_result.allele_likelihoods); }
+	   	if ((n_het > 0) || (n_hom > 0)) { alt = PickAlt(ref, em_result.allele_likelihoods); }
 
 		for (int i = 0; i < em_result.genotype_likelihoods.length; i++)
 		{
@@ -512,7 +782,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 			individual_output_file.printf("\n");
 		}
 
-		return new MultiSampleCallResult(ref, alt, em_result, lod, strand_score, pD, pNull, in_dbsnp, n_ref, n_het, n_hom, em_result.EM_N, alt_freq);
+		return new MultiSampleCallResult(context.getLocation(), ref, alt, em_result, lod, strand_score, pD, pNull, in_dbsnp, n_ref, n_het, n_hom, em_result.EM_N, alt_freq);
 	}
 
 	// END Calling Functions
@@ -522,7 +792,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	// Utility Functions
 	
 	/// Filter a locus context by forward and backward
-	private AlignmentContext filterAlignmentContextByStrand(AlignmentContext context, String strand)
+	private AlignmentContext filterAlignmentContext(AlignmentContext context, String strand)
 	{
 		ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
 		ArrayList<Integer> offsets = new ArrayList<Integer>();
@@ -542,7 +812,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 	}
 
 	// Filter a locus context by sample ID
-    private AlignmentContext[] filterAlignmentContextBySample(AlignmentContext context, List<String> sample_names, int downsample)
+    protected AlignmentContext[] filterAlignmentContext(AlignmentContext context, List<String> sample_names, int downsample)
     {
 		HashMap<String,Integer> index = new HashMap<String,Integer>();
 		for (int i = 0; i < sample_names.size(); i++)
@@ -606,6 +876,36 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 		}
 
         return contexts;
+    }
+
+	private AlignmentContext filter_each_read(AlignmentContext L)
+	{
+		ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
+		ArrayList<Integer> offsets = new ArrayList<Integer>();
+
+        for (int i = 0; i < L.getReads().size(); i++)
+        {
+            SAMRecord read = L.getReads().get(i);
+            Integer offset = L.getOffsets().get(i);
+            String RG = (String)(read.getAttribute("RG"));
+
+            assert(this.header != null);
+            //assert(this.header.getReadGroup(RG) != null);
+            if (this.header.getReadGroup(RG) == null) { continue; }
+
+			// skip bogus data
+			if (read.getMappingQuality() == 0) { continue; }
+
+            String sample = this.header.getReadGroup(RG).getSample();
+			//if (SAMPLE_NAME_REGEX != null) { sample = sample.replaceAll(SAMPLE_NAME_REGEX, "$1"); }
+		
+            reads.add(read); 
+            offsets.add(offset); 
+        }
+
+		AlignmentContext ans = new AlignmentContext(L.getLocation(), reads, offsets);
+
+        return ans;
     }
 
 	// END Utility functions
