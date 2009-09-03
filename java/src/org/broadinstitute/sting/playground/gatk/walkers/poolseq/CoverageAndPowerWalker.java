@@ -35,8 +35,11 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
     @Argument(fullName="bootStrap", shortName="bs", doc="Use a bootstrap method", required=false)
         public boolean useBootstrap = false;
 
-    @Argument(fullName="lodThreshold", shortName="lt", doc="Threshold for LOD score for calls")
-        public double threshold = 3.0;
+    @Argument(fullName="lodThreshold", shortName="lt", doc="Threshold for LOD score for calls", required=false)
+        public double lodThreshold = 3.0;
+
+    @Argument(fullName="minQScore", shortName="qm", doc="Threshold for the minimum quality score, filter out bases below",required=false)
+        public byte minQScore = 0;
      
     private static final int BOOTSTRAP_ITERATIONS = 300;
 
@@ -58,11 +61,18 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
     }
 
     public Pair<Integer,Integer> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> readsByDirection = PoolUtils.splitReadsByReadDirection(context.getReads(),context.getOffsets());
+        AlignmentContext filteredContext;
+        if (this.getMinQualityScore() <= 0) {
+            filteredContext = context;
+        } else {
+            Pair<List<SAMRecord>,List<Integer>> readsFilteredByQuality = filterByQuality(context.getReads(),context.getOffsets(), this.getMinQualityScore());
+            filteredContext = new AlignmentContext(context.getLocation(),readsFilteredByQuality.getFirst(),readsFilteredByQuality.getSecond());
+        }
+        Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> readsByDirection = PoolUtils.splitReadsByReadDirection(filteredContext.getReads(),filteredContext.getOffsets());
         if ( ! suppress_printing) {
-            Pair<double[],byte[]> powers = calculatePower(readsByDirection, useBootstrap, context);
-            out.printf("%s: %d %d %d %d %d %d %f %f %f%n", context.getLocation(), readsByDirection.getFirst().getFirst().size(), readsByDirection.getFirst().getSecond().size(),
-            context.getReads().size(), powers.getSecond()[0], powers.getSecond()[1], powers.getSecond()[2],
+            Pair<double[],byte[]> powers = calculatePower(readsByDirection, useBootstrap, filteredContext);
+            out.printf("%s: %d %d %d %d %d %d %f %f %f%n", filteredContext.getLocation(), readsByDirection.getFirst().getFirst().size(), readsByDirection.getFirst().getSecond().size(),
+            filteredContext.getReads().size(), powers.getSecond()[0], powers.getSecond()[1], powers.getSecond()[2],
             powers.getFirst()[0], powers.getFirst()[1], powers.getFirst()[2]);
         }
         return new Pair(readsByDirection.getFirst().getFirst().size(),readsByDirection.getFirst().getSecond().size());
@@ -73,9 +83,9 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
     public Pair<double[],byte[]> calculatePower(Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> dirReads, boolean bootStrap, AlignmentContext context) {
         Pair<double[],byte[]> powerAndMedianQ;
         if( bootStrap ) {
-            powerAndMedianQ = calculateDirectionalPowersByBootstrap(dirReads,threshold,context);
+            powerAndMedianQ = calculateDirectionalPowersByBootstrap(dirReads,lodThreshold,context);
         } else {
-            powerAndMedianQ = calculateDirectionalPowersTheoretical(dirReads,threshold,context);
+            powerAndMedianQ = calculateDirectionalPowersTheoretical(dirReads,lodThreshold,context);
         }
 
         return powerAndMedianQ;
@@ -162,7 +172,15 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
     }
 
     public String createHeaderString() {
-        return "Chrom:Pos  CvgF  CvgR  CvgC  QmedF  QmedR  QmedC  PowF  PowR  PowC";
+        return "Chrom:Pos  ForwardCoverage  ReverseCoverage  CombinedCoverage  ForwardMedianQ  ReverseMedianQ  CombinedMedianQ  PowerForward  PowerReverse  PowerCombined";
+    }
+
+    public byte getMinQualityScore() {
+        return minQScore;
+    }
+
+    public Pair<List<SAMRecord>,List<Integer>> filterByQuality(List<SAMRecord> reads, List<Integer> offsets, byte qMin) {
+        return PoolUtils.thresholdReadsByQuality(reads,offsets,qMin);
     }
 
     // class methods
