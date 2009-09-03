@@ -13,7 +13,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoods;
-import org.broadinstitute.sting.gatk.walkers.genotyper.ThreeStateErrorGenotypeLikelihoods;
+import org.broadinstitute.sting.gatk.walkers.genotyper.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
@@ -228,7 +228,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             //Store confidence scores - this is a local hash that we use to get likelihood given a particular genotype
             Scores = new Hashtable();
             for ( DiploidGenotype g : DiploidGenotype.values() ) {
-                Scores.put(g.toString(), gl.getLikelihood(g));
+                Scores.put(g.toString(), G.getLikelihood(g));
             }
 
             //Get likelihood score for homozygous ref: used to normalize likelihoood scores at 0.
