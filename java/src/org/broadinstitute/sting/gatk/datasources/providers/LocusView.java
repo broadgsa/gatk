@@ -4,10 +4,12 @@ import net.sf.picard.filter.FilteringIterator;
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByHanger;
+import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
 import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
 
 import java.util.Arrays;
@@ -59,7 +61,10 @@ public abstract class LocusView extends LocusIterator implements View {
         Iterator<SAMRecord> reads = new FilteringIterator(provider.getReadIterator(), new LocusStreamFilterFunc());
         this.sourceInfo = provider.getReadIterator().getSourceInfo();
 
-        this.loci = new LocusIteratorByHanger(reads, sourceInfo);
+        if (GenomeAnalysisEngine.instance.getArguments().useLocusIteratorByState)
+            this.loci = new LocusIteratorByState(reads, sourceInfo);
+        else
+            this.loci = new LocusIteratorByHanger(reads, sourceInfo);
         seedNextLocus();
 
         provider.register(this);
@@ -144,6 +149,7 @@ public abstract class LocusView extends LocusIterator implements View {
      * Seed the nextLocus variable with the contents of the next locus (if one exists).
      */
     private void seedNextLocus() {
+        //System.out.printf("loci is %s%n", loci);
         if( loci.hasNext() )
             nextLocus = loci.next();
 

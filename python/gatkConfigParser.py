@@ -27,6 +27,7 @@ class gatkConfigParser(ConfigParser.SafeConfigParser):
         print 'Reading configuration file(s):', files
         self.read(files)
         self.validateRequiredOptions()
+        self.moreArgs = ""
 
     def validateRequiredOptions(self):
         for key, value in defaultRequiredOptions.iteritems():
@@ -71,9 +72,12 @@ class gatkConfigParser(ConfigParser.SafeConfigParser):
     def gatk_args(self): return self.getOption(self.GATK, 'args')
     def reference(self): return self.getOption(self.GATK, 'reference')
     
+    def setMoreArgs(self, s): 
+        self.moreArgs = s
+    
     def gatkCmd(self, mode, log = None, stdLogName=False):
         cmd = ' '.join([self.java(), self.jvm_args(), '-jar', self.jar(), self.gatk_args(), '-R', self.reference()])
-        cmd += ' ' + ' '.join(['-T', mode, self.getGATKModeOption('args', mode)])
+        cmd += ' ' + ' '.join(['-T', mode, self.getGATKModeOption('args', mode)]) + ' ' + self.moreArgs
         if log <> None:
             if stdLogName:
                 #head, ext = os.path.splitext(log)

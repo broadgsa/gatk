@@ -49,11 +49,18 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihood
         }
     }
 
+    private static SAMRecord lastReadForPL = null;
+    private static SequencerPlatform plOfLastRead = null;
     public static SequencerPlatform getReadSequencerPlatform( SAMRecord read ) {
-        final String readGroupString = ((String)read.getAttribute("RG"));
-        SAMReadGroupRecord readGroup = readGroupString == null ? null : read.getHeader().getReadGroup(readGroupString);
-        final String platformName = readGroup == null ? null : (String)readGroup.getAttribute(SAM_PLATFORM_TAG);
-        return standardizeSequencerPlatform(platformName);
+        if ( lastReadForPL != read ) {
+            lastReadForPL = read;
+            final String readGroupString = ((String)read.getAttribute("RG"));
+            SAMReadGroupRecord readGroup = readGroupString == null ? null : read.getHeader().getReadGroup(readGroupString);
+            final String platformName = readGroup == null ? null : (String)readGroup.getAttribute(SAM_PLATFORM_TAG);
+            plOfLastRead = standardizeSequencerPlatform(platformName);
+        }
+
+        return plOfLastRead;
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -206,6 +213,10 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihood
      */
     protected Object clone() throws CloneNotSupportedException {
         return super.clone();
+    }
+
+    protected boolean cacheByTech() {
+        return true;
     }
 
     protected double log10PofTrueBaseGivenMiscall(char observedBase, char chromBase, SAMRecord read, int offset) {

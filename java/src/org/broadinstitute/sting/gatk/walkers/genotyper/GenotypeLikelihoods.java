@@ -167,6 +167,28 @@ public abstract class GenotypeLikelihoods implements Cloneable {
         return getPriors()[g.ordinal()];
     }
 
+    /**
+     * Simple function to overload to control the caching of genotype likelihood outputs.
+     * By default the function trues true -- do enable caching.  If you are experimenting with an
+     * complex calcluation of P(B | G) and caching might not work correctly for you, overload this
+     * function and return false, so the super() object won't try to cache your GL calculations.
+     *
+     * @return true if caching should be enabled, false otherwise
+     */
+    protected boolean enableCache() {
+        return true;
+    }
+
+    /**
+     * Does the caller need to know the tech of the read?  If true, we will use the declared tech of the
+     * read for caching, which can be painfully slow.  By default we aren't tech aware.
+     *
+     * @return true
+     */
+    protected boolean cacheByTech() {
+        return false;
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     //
     //
@@ -216,7 +238,7 @@ public abstract class GenotypeLikelihoods implements Cloneable {
     }
 
 
-    private int reallyAdd(char observedBase, byte qualityScore, SAMRecord read, int offset, boolean enableCache) {
+    private int reallyAdd(char observedBase, byte qualityScore, SAMRecord read, int offset, boolean enableCacheArg ) {
         if ( badBase(observedBase) ) {
             throw new RuntimeException(String.format("BUG: unexpected base %c with Q%d passed to GenotypeLikelihoods", observedBase, qualityScore));
         }
@@ -225,6 +247,7 @@ public abstract class GenotypeLikelihoods implements Cloneable {
 
         if ( qualityScore > getMinQScoreToInclude() ) {
             // Handle caching if requested.  Just look up the cached result if its available, or compute and store it
+            boolean enableCache = enableCacheArg && enableCache();
             GenotypeLikelihoods cached = null;
             if ( enableCache ) {
                 if ( ! inCache( observedBase, qualityScore, FIXED_PLOIDY, read, offset ) ) {
@@ -281,7 +304,8 @@ public abstract class GenotypeLikelihoods implements Cloneable {
     private GenotypeLikelihoods getSetCache( char observedBase, byte qualityScore, int ploidy,
                                                        SAMRecord read, int offset, GenotypeLikelihoods val ) {
 
-        int a = EmpiricalSubstitutionGenotypeLikelihoods.getReadSequencerPlatform(read).ordinal();
+        EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform pl = cacheByTech() ? EmpiricalSubstitutionGenotypeLikelihoods.getReadSequencerPlatform(read) : EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform.UNKNOWN;
+        int a = pl.ordinal();
         int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
         int j = qualityScore;
         int k = ploidy;
