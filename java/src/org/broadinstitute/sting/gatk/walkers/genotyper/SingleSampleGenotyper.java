@@ -16,7 +16,7 @@ import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import java.io.File;
 
 @ReadFilters(ZeroMappingQualityReadFilter.class)
-public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, GenotypeWriter> {
+public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSampleGenotyper.CallResult> {
     // Control output settings
     @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = false)
     public File VARIANTS_FILE = null;
@@ -26,7 +26,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, GenotypeW
 
     // Control what goes into the variants file and what format that file should have
     @Argument(fullName = "lod_threshold", shortName = "lod", doc = "The lod threshold on which variants should be filtered", required = false)
-    public Double LOD_THRESHOLD = Double.MIN_VALUE;
+    public double LOD_THRESHOLD = Double.MIN_VALUE;
 
     @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confident genotypes or just the variants?", required = false)
     public boolean GENOTYPE = false;
@@ -44,6 +44,22 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, GenotypeW
     @Argument(fullName = "platform", shortName = "pl", doc = "Causes the genotyper to assume that reads without PL header TAG are this platform.  Defaults to null, indicating that the system will throw a runtime exception when such reads are detected", required = false)
     public EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform defaultPlatform = null;
 
+    public class CallResult {
+        long nConfidentCalls = 0;
+        long nNonConfidentCalls = 0;
+        long nCalledBases = 0;
+        GenotypeWriter writer;
+
+        CallResult(GenotypeWriter writer) {
+            this.writer = writer;
+        }
+        
+        public String toString() {
+            return String.format("SSG: %d confident and %d non-confident calls were made at %d bases", 
+                    nConfidentCalls, nNonConfidentCalls, nCalledBases);
+        }
+    }
+
      /**
      * Filter out loci to ignore (at an ambiguous base in the reference or a locus with zero coverage).
      *
@@ -59,6 +75,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, GenotypeW
 
     /** Initialize the walker with some sensible defaults */
     public void initialize() {
+        GenotypeLikelihoods.clearCache();
         // nothing to do
     }
 
@@ -111,11 +128,11 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, GenotypeW
      *
      * @return an empty string
      */
-    public GenotypeWriter reduceInit() {
+    public CallResult reduceInit() {
         if ( VARIANTS_FILE != null )
-            return GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE);
+            return new CallResult(GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE));
         else
-            return GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out);
+            return new CallResult(GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out));
     }
 
     /**
@@ -126,18 +143,24 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, GenotypeW
      *
      * @return an empty string
      */
-    public GenotypeWriter reduce(SSGenotypeCall call, GenotypeWriter sum) {
+    public CallResult reduce(SSGenotypeCall call, CallResult sum) {
+        sum.nCalledBases++;
+        
         if (call != null && (GENOTYPE || call.isVariant(call.getReference()))) {
-            if (call.getLog10PError() >= LOD_THRESHOLD) {
-                sum.addGenotypeCall(call);
+            if (call.getNegLog10PError() >= LOD_THRESHOLD) {
+                sum.nConfidentCalls++;
+                //System.out.printf("Call %s%n", call);
+                sum.writer.addGenotypeCall(call);
+            } else {
+                sum.nNonConfidentCalls++;
             }
         }
         return sum;
     }
 
     /** Close the variant file. */
-    public void onTraversalDone(GenotypeWriter sum) {
-        sum.close();
+    public void onTraversalDone(CallResult sum) {
+        sum.writer.close();
     }
 }
 

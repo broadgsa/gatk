@@ -103,7 +103,7 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
      * @return get the one minus error value
      */
     @Override
-    public double getLog10PError() {
+    public double getNegLog10PError() {
         getBestGenotype();
         getAltGenotype();        
         return Math.abs(mGenotypeLikelihoods.getPosterior(mGenotype) - mGenotypeLikelihoods.getPosterior(mCompareTo));

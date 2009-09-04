@@ -15,7 +15,7 @@ public interface Genotype {
      *
      * @return the log based error estimate
      */
-    public double getLog10PError();
+    public double getNegLog10PError();
 
     /**
      * get the bases that represent this

@@ -297,9 +297,14 @@ public abstract class GenotypeLikelihoods implements Cloneable {
     //
     //
     // -----------------------------------------------------------------------------------------------------------------
-    final static GenotypeLikelihoods[][][][][] CACHE =
+    static GenotypeLikelihoods[][][][][] CACHE =
             new GenotypeLikelihoods[EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][MAX_PLOIDY][2];
     static int cacheSize = 0;
+
+    public static void clearCache() {
+        CACHE = new GenotypeLikelihoods[EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][MAX_PLOIDY][2];
+        cacheSize = 0;
+    }
 
     private GenotypeLikelihoods getSetCache( char observedBase, byte qualityScore, int ploidy,
                                                        SAMRecord read, int offset, GenotypeLikelihoods val ) {

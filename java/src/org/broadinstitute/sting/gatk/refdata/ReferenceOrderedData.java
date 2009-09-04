@@ -56,7 +56,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         if (Types.containsKey(boundName)) {
             throw new RuntimeException(String.format("GATK BUG: adding ROD module %s that is already bound", boundName));
         }
-        System.out.printf("* Adding rod class %s%n", name);
+        logger.info(String.format("* Adding rod class %s%n", name));
         Types.put(boundName, new RODBinding(name, rodType));
     }
 

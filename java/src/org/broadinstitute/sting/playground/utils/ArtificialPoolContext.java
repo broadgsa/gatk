@@ -251,7 +251,7 @@ public class ArtificialPoolContext {
 
     public String genotypeAndConfidenceToString(int group, String spacer) {
         Genotype call = this.getGenotype(group);
-        return (call.getBases() + spacer + call.getLog10PError()); // TODO: fix me
+        return (call.getBases() + spacer + call.getNegLog10PError()); // TODO: fix me
     }
 
     public Genotype getGenotype(int group) {
