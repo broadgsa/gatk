@@ -1,6 +1,5 @@
-package org.broadinstitute.sting.playground.gatk.walkers.fasta;
+package org.broadinstitute.sting.gatk.walkers.fasta;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.PrintStream;

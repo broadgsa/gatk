@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.fasta;
+package org.broadinstitute.sting.gatk.walkers.fasta;
 
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
