@@ -4,11 +4,7 @@ import net.sf.picard.util.SequenceUtil;
 
 import java.util.*;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.MalformedGenomeLocException;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
+import org.broadinstitute.sting.utils.*;
 
 /**
  * Example format:
@@ -165,8 +161,10 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
             loc = GenomeLocParser.parseGenomeLoc(contig, start, stop-1);
 
             name = parts[4];
-            refBases = parts[5];
             strand = parts[6];
+            refBases = parts[7];
+            if ( strand == "-" )
+                refBases = BaseUtils.simpleReverseComplement(refBases);
             observed = parts[9];
             molType = parts[10];
             varType = parts[11];
@@ -190,24 +188,22 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
         }
     }
 
-	@Override
 	public String getAltBasesFWD() {
-		// TODO Auto-generated method stub
-		return null;
+        List<String> alleles = getAllelesFWD();
+        return (alleles.get(0).equals(refBases) ? alleles.get(1) : alleles.get(0));
 	}
 
-	@Override
 	public char getAltSnpFWD() throws IllegalStateException {
-        return getAllelesFWD().get(1).charAt(0);
+        if ( !isSNP() )
+            throw new IllegalStateException("I'm not a SNP");
+        return getAltBasesFWD().charAt(0);
 	}
 
-	@Override
 	public double getConsensusConfidence() {
 		// TODO Auto-generated method stub
 		return Double.MAX_VALUE;
 	}
 
-	@Override
 	public List<String> getGenotype() throws IllegalStateException {
 		return Arrays.asList(Utils.join("", getAllelesFWD()));
 	}
@@ -222,25 +218,21 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
         return avHet;
     }
 
-	@Override
 	public int getPloidy() throws IllegalStateException {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 
-	@Override
 	public double getVariationConfidence() {
 		// TODO Auto-generated method stub
 		return Double.MAX_VALUE;
 	}
 
-	@Override
 	public boolean isGenotype() {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean isBiallelic() {
 		// TODO Auto-generated method stub
 		return observed.indexOf('/')==observed.lastIndexOf('/');
