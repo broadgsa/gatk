@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
-import org.broadinstitute.sting.gatk.refdata.rodVariants;
+import org.broadinstitute.sting.gatk.refdata.RodGeliText;
 import org.broadinstitute.sting.utils.*;
 
 public class VECOnOffGenotypeRatio extends RatioFilter {
@@ -26,7 +26,7 @@ public class VECOnOffGenotypeRatio extends RatioFilter {
      * best genotype).  On are in the first field, off in the second.
      *
     */
-    protected Pair<Integer, Integer> scoreVariant(char ref, ReadBackedPileup pileup, rodVariants variant) {
+    protected Pair<Integer, Integer> scoreVariant(char ref, ReadBackedPileup pileup, RodGeliText variant) {
         final String genotype = variant.getBestGenotype().toUpperCase();
         final String bases = pileup.getBases();
 

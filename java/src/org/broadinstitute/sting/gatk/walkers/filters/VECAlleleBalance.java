@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
-import org.broadinstitute.sting.gatk.refdata.rodVariants;
+import org.broadinstitute.sting.gatk.refdata.RodGeliText;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Pair;
@@ -30,7 +30,7 @@ public class VECAlleleBalance extends RatioFilter {
      * Return the count of bases matching the major (first) and minor (second) alleles as a pair.
      *
      */
-    protected Pair<Integer, Integer> scoreVariant(char ref, ReadBackedPileup pileup, rodVariants variant) {
+    protected Pair<Integer, Integer> scoreVariant(char ref, ReadBackedPileup pileup, RodGeliText variant) {
         final String genotype = variant.getBestGenotype();
         final String bases = pileup.getBases();
 

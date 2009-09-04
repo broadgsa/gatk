@@ -45,7 +45,7 @@ public class VCFHeader {
      *
      * @param metaData     the meta data associated with this header
      */
-    protected VCFHeader(Map<String, String> metaData) {
+    public VCFHeader(Map<String, String> metaData) {
         for (String key : metaData.keySet()) mMetaData.put(key, metaData.get(key));
         checkVCFVersion();
     }
@@ -56,7 +56,7 @@ public class VCFHeader {
      * @param metaData            the meta data associated with this header
      * @param genotypeSampleNames the genotype format field, and the sample names
      */
-    protected VCFHeader(Map<String, String> metaData, List<String> genotypeSampleNames) {
+    public VCFHeader(Map<String, String> metaData, List<String> genotypeSampleNames) {
         for (String key : metaData.keySet()) mMetaData.put(key, metaData.get(key));
         for (String col : genotypeSampleNames) {
             if (!col.equals("FORMAT"))

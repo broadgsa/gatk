@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Arrays;
 
-public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVariant {
+public class RodGeliText extends BasicReferenceOrderedDatum implements AllelicVariant {
     public enum Genotype { AA, AC, AG, AT, CC, CG, CT, GG, GT, TT }
     public GenomeLoc loc;
     public char refBase = 'N';
@@ -43,7 +43,7 @@ public class rodVariants extends BasicReferenceOrderedDatum implements AllelicVa
     public double lodBtnb;
     public double[] genotypeLikelihoods = new double[10];
     
-    public rodVariants(final String name) {
+    public RodGeliText(final String name) {
         super(name);
     }
 

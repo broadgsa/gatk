@@ -1,10 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.gatk.contexts.VariantContext;
-import org.broadinstitute.sting.gatk.refdata.rodVariants;
+import org.broadinstitute.sting.gatk.refdata.RodGeliText;
 import org.broadinstitute.sting.utils.*;
 import org.apache.log4j.Logger;
-import cern.jet.math.Arithmetic;
 
 
 public abstract class RatioFilter implements VariantExclusionCriterion {
@@ -37,14 +36,14 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
         highThreshold = threshold;
     }
 
-    protected abstract Pair<Integer, Integer> scoreVariant(char ref, ReadBackedPileup pileup, rodVariants variant);
+    protected abstract Pair<Integer, Integer> scoreVariant(char ref, ReadBackedPileup pileup, RodGeliText variant);
     protected abstract boolean excludeHetsOnly();
 
     public boolean useZeroQualityReads() { return false; }
 
     public void compute(VariantContextWindow contextWindow) {
         VariantContext context = contextWindow.getContext();
-        rodVariants variant = context.getVariant();
+        RodGeliText variant = context.getVariant();
         char ref = context.getReferenceContext().getBase();
 
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getAlignmentContext(useZeroQualityReads()));

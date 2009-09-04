@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.contexts;
 
-import org.broadinstitute.sting.gatk.refdata.rodVariants;
+import org.broadinstitute.sting.gatk.refdata.RodGeliText;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
 import net.sf.samtools.SAMRecord;
@@ -36,11 +36,11 @@ public class VariantContext {
     private RefMetaDataTracker tracker;
     private ReferenceContext ref;
     private AlignmentContext context;
-    private rodVariants variant;
+    private RodGeliText variant;
     private AlignmentContext Q0freeContext = null;
 
     public VariantContext(RefMetaDataTracker tracker, ReferenceContext ref,
-                          AlignmentContext context, rodVariants variant) {
+                          AlignmentContext context, RodGeliText variant) {
         this.tracker = tracker;
         this.ref = ref;
         this.context = context;
@@ -49,7 +49,7 @@ public class VariantContext {
 
     public RefMetaDataTracker getTracker() { return tracker; }
     public ReferenceContext getReferenceContext() { return ref; }
-    public rodVariants getVariant() { return variant; }
+    public RodGeliText getVariant() { return variant; }
     public AlignmentContext getAlignmentContext(boolean useMQ0Reads) {
         return (useMQ0Reads ? context : getQ0freeContext());
     }

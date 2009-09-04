@@ -4,7 +4,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodGFF;
+import org.broadinstitute.sting.gatk.refdata.RodGenotypeChipAsGFF;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.SSGenotypeCall;
 import org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper;
@@ -52,7 +52,7 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
 
     public List<String> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
-        rodGFF hapmap_chip = (rodGFF)tracker.lookup("hapmap-chip", null);
+        RodGenotypeChipAsGFF hapmap_chip = (RodGenotypeChipAsGFF)tracker.lookup("hapmap-chip", null);
         String hc_genotype;
 
         if (hapmap_chip != null) {

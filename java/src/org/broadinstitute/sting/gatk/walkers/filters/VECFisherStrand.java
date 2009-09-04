@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.VariantContext;
-import org.broadinstitute.sting.gatk.refdata.rodVariants;
+import org.broadinstitute.sting.gatk.refdata.RodGeliText;
 import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.SAMRecord;
 import cern.jet.math.Arithmetic;
@@ -23,7 +23,7 @@ public class VECFisherStrand implements VariantExclusionCriterion {
 
     public void compute(VariantContextWindow contextWindow) {
         VariantContext context = contextWindow.getContext();
-        rodVariants variant = context.getVariant();
+        RodGeliText variant = context.getVariant();
         int allele1 = BaseUtils.simpleBaseToBaseIndex(variant.getBestGenotype().charAt(0));
         int allele2 = BaseUtils.simpleBaseToBaseIndex(variant.getBestGenotype().charAt(1));
 

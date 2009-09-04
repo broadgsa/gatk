@@ -17,7 +17,7 @@ import java.util.*;
  * The former modifiesthe likelihoods of each genotype, while the latter makes a decision to include or exclude a
  * variant outright.  At the moment, the variants are expected to be in gelitext format.
  */
-@Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=rodVariants.class))
+@Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type= RodGeliText.class))
 public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="variants_out_head", shortName="VOH", doc="File to which modified variants should be written") public String VARIANTS_OUT_HEAD;
     @Argument(fullName="features", shortName="F", doc="Feature test (optionally with arguments) to apply to genotype posteriors.  Syntax: 'testname[:arguments]'", required=false) public String[] FEATURES;
@@ -176,7 +176,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
      * @return 1 if the locus was successfully processed, 0 if otherwise
      */
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        rodVariants variant = (rodVariants) tracker.lookup("variant", null);
+        RodGeliText variant = (RodGeliText) tracker.lookup("variant", null);
 
         // Ignore places where we don't have a variant or where the reference base is ambiguous.
         if ( variant == null || BaseUtils.simpleBaseToBaseIndex(ref.getBase()) == -1 )
@@ -204,7 +204,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         VariantContext context = variantContextWindow.getContext();
         if ( context == null )
             return;
-        rodVariants variant = context.getVariant();
+        RodGeliText variant = context.getVariant();
 
         HashMap<String, Double> exclusionResults = new HashMap<String, Double>();
 

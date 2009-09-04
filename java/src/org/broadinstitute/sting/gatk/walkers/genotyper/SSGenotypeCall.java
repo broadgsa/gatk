@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.*;
@@ -129,7 +128,7 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
                 mCompareTo = DiploidGenotype.valueOf(Utils.dupString(this.getReference(),2));
             } else {
                 Integer sorted[] = Utils.SortPermutation(mGenotypeLikelihoods.getPosteriors());
-                mCompareTo = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 1]];
+                mCompareTo = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 2]];
             }
         }
         return mCompareTo;

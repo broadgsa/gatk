@@ -2,10 +2,7 @@ package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodGFF;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
@@ -85,7 +82,7 @@ public class PileupWithContextWalker extends LocusWalker<Integer, Integer> imple
             }
             */
 
-            if ( datum != null && (datum instanceof rodGFF)) {
+            if ( datum != null && (datum instanceof RodGenotypeChipAsGFF)) {
                 rodString += "Hapmap: " + datum.toSimpleString() + " ";
             }
         }

@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class rodGFF extends BasicReferenceOrderedDatum implements AllelicVariant {
+public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements AllelicVariant {
     private String contig, source, feature, strand, frame;
     private long start, stop;
     private double score;
@@ -27,7 +27,7 @@ public class rodGFF extends BasicReferenceOrderedDatum implements AllelicVariant
     // Constructors
     //
     // ----------------------------------------------------------------------
-    public rodGFF(final String name) {
+    public RodGenotypeChipAsGFF(final String name) {
         super(name);        
     }
 

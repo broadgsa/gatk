@@ -62,23 +62,21 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
 
     static {
         // All known ROD types
-        addModule("GFF", rodGFF.class);
+        addModule("GFF", RodGenotypeChipAsGFF.class);
         addModule("dbSNP", rodDbSNP.class);
         addModule("HapMapAlleleFrequencies", HapMapAlleleFrequenciesROD.class);
         addModule("SAMPileup", rodSAMPileup.class);
         addModule("GELI", rodGELI.class);
-        addModule("FLT", rodFLT.class);
         addModule("RefSeq", rodRefSeq.class);
         addModule("Table", TabularROD.class);
         addModule("PooledEM", PooledEMSNPROD.class);
-        addModule("1KGSNPs", KGenomesSNPROD.class);
         addModule("CleanedOutSNP", CleanedOutSNPROD.class);
         addModule("SangerSNP", SangerSNPROD.class);
         addModule("SimpleIndel", SimpleIndelROD.class);
         addModule("PointIndel", PointIndelROD.class);
         addModule("HapMapGenotype", HapMapGenotypeROD.class);
         addModule("Intervals", IntervalRod.class);
-        addModule("Variants", rodVariants.class);
+        addModule("Variants", RodGeliText.class);
         addModule("GLF", RodGLF.class);
     }
 
@@ -232,7 +230,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         for (ReferenceOrderedDatum rec : this) {
             System.out.println(rec.toString());
 
-            rodGFF gff = (rodGFF) rec;
+            RodGenotypeChipAsGFF gff = (RodGenotypeChipAsGFF) rec;
             String[] keys = {"LENGTH", "ALT", "FOBARBAR"};
             for (String key : keys) {
                 System.out.printf("  -> %s is (%s)%n", key, gff.containsAttribute(key) ? gff.getAttribute(key) : "none");
