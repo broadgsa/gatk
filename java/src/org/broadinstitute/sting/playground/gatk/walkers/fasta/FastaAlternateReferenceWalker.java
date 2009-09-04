@@ -11,18 +11,13 @@ import java.io.*;
 import java.util.Iterator;
 
 
-// create a fasta sequence file from a reference, intervals, and rod(s) of variants
-// if there are multiple variants at a site, we take the first one seen
-
 @WalkerName("FastaAlternateReferenceMaker")
 @Requires(value={DataSource.REFERENCE})
 public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
-    @Argument(fullName="maskSNPs", shortName="mask", doc="print 'N' at SNP sites instead of the alternate allele", required=false)
-    private Boolean MASK_SNPS = false;
     @Argument(fullName="outputSequenomFormat", shortName="sequenom", doc="output results in sequenom format (overrides 'maskSNPs' argument)", required=false)
     private Boolean SEQUENOM = false;
-    @Argument(fullName="outputIndelPositions", shortName="indels", doc="output the positions of the indels in the new reference", required=false)
+    @Argument(fullName="outputIndelPositions", shortName="indelPositions", doc="output the positions of the indels in the new reference", required=false)
     String indelsFile = null;
 
     private int deletionBasesRemaining = 0;
@@ -56,14 +51,14 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
             // if we have multiple variants at a locus, just take the first damn one we see for now
             AllelicVariant variant = (AllelicVariant)rod;
-            if ( ! rod.getName().equals("snpmask") && variant.isDeletion() ) {
+            if ( !rod.getName().startsWith("snpmask") && variant.isDeletion() ) {
                 deletionBasesRemaining = variant.length();
                 basesSeen++;
                 if ( indelsWriter != null )
                     indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.length()));
                 // delete the next n bases, not this one
                 return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[") : refBase));
-            } else if ( ! rod.getName().equals("snpmask") && variant.isInsertion() ) {
+            } else if ( !rod.getName().startsWith("snpmask") && variant.isInsertion() ) {
                 basesSeen++;
                 if ( indelsWriter != null )
                     indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.length()));
@@ -71,7 +66,7 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
                 return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[-/"+variant.getAltBasesFWD()+"]") : refBase.concat(variant.getAltBasesFWD())));
             } else if ( variant.isSNP() ) {
                 basesSeen++;
-                return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM || MASK_SNPS ? "N" : variant.getAltBasesFWD()));
+                return new Pair<GenomeLoc, String>(context.getLocation(), (rod.getName().startsWith("snpmask") ? "N" : variant.getAltBasesFWD()));
             }
         }
 
