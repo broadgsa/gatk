@@ -52,14 +52,52 @@ public class CoverageHistogram extends LocusWalker<Integer,Integer>
 
     public void onTraversalDone(Integer sum) 
 	{
-		double mean_coverage = (double)sum_coverage / (double)num_sites;
+        double mean_coverage = (double)sum_coverage / (double)num_sites;
+        double mean_good_coverage = (double)sum_coverage / ((double)(num_sites - coverage_hist[0]));
 		out.printf("# all_sites                  : mean:%f num_sites:%d%n", mean_coverage, num_sites);
-        out.printf("# sites with at least 1 read : mean:%f num_sites:%d%n%n", sum_coverage / ((double)(num_sites - coverage_hist[0])), num_sites - coverage_hist[0]);
+        out.printf("# sites with at least 1 read : mean:%f num_sites:%d%n", mean_good_coverage, num_sites - coverage_hist[0]);
 
-		out.println("depth count freq");
+        // Code for calculting std devs adapted from Michael Melgar's python script
+
+        // Find the maximum extent of 'good' data
+        // First, find the mode
+        long maxValue = coverage_hist[1]; // ignore doc=0
+        int mode = 1;
+        for (int i = 2; i <= max_depth; i++) {
+            if (coverage_hist[i] > maxValue) {
+                maxValue = coverage_hist[i];
+                mode = i;
+            }
+        }
+        // now, procede to find end of good Gaussian fit
+        long dist = (long)Math.pow(10, 9);
+        while ( Math.abs(coverage_hist[mode] - coverage_hist[1]) < dist )
+            dist = Math.abs(coverage_hist[mode++] - coverage_hist[1]);
+        int maxGoodDepth = mode + 1;
+
+        // calculate the mean of the good region
+        long totalGoodSites = 0, totalGoodDepth = 0;
+        for (int i = 1; i <= maxGoodDepth; i++) { // ignore doc=0
+            totalGoodSites += coverage_hist[i];
+            totalGoodDepth += i * coverage_hist[i];
+        }
+        double meanGoodDepth = (double)totalGoodDepth / (double)totalGoodSites;
+
+        // calculate the variance and standard deviation of the good region
+        double var = 0.0;
+        for (int i = 1; i <= maxGoodDepth; i++) {  // ignore doc=0
+            var += coverage_hist[i] * Math.pow(meanGoodDepth - (double)i, 2);
+        }
+        double stdev = Math.sqrt(var / (double)totalGoodSites);
+        out.printf("# sites within Gaussian fit  : mean:%f num_sites:%d std_dev:%f%n", meanGoodDepth, totalGoodSites, stdev);
+
+        for (int i = 1; i <= 5; i++)
+            out.printf("# Gaussian mean + %d Std Dev  : %f%n", i, (meanGoodDepth + i*stdev));
+
+		out.println("\ndepth count freq(percent)");
 		for (int i = 0; i <= max_depth; i++)
 		{
-			out.printf("%d %d %f\n", i, coverage_hist[i], (100.0*coverage_hist[i]) / num_sites);
+			out.printf("%d %d %f\n", i, coverage_hist[i], (100.0*coverage_hist[i]) / (double)num_sites);
 		}
 		return;
 	}
