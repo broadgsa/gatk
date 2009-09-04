@@ -11,8 +11,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
-import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoods;
 import org.broadinstitute.sting.gatk.walkers.genotyper.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -48,17 +46,21 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
     int[] HLAstartpos;
     int[] HLAstoppos;
     int numHLAlleles = 0;
+    int numInterval = 1;
     double[][] Prob; String[][] Alleles;
     int j1, k1, j2, k2;
+    int iAstart = -1, iAstop = -1, iBstart = -1, iBstop = -1, iCstart = -1, iCstop = -1;
+
 
     Hashtable Scores = new Hashtable();
 
     boolean DatabaseLoaded = false;
     boolean PrintedOutput = false;
-    boolean DEBUG = false;
+    boolean DEBUG = true;
 
     public Pair<Long, Long> reduceInit() {
         //Load sequences corresponding to HLA alleles from sam file
+
         if (!DatabaseLoaded){
             try{
                 out.printf("Reading HLA database ...");
@@ -67,6 +69,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                 BufferedReader br = new BufferedReader(new InputStreamReader(in));
                 String strLine; String [] s = null;
                 //Read File Line By Line
+                int i = 0;
                 while ((strLine = br.readLine()) != null)   {
                     s = strLine.split("\\t");
                     if (s.length>=10){
@@ -75,6 +78,16 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                         HLAcigars.add(s[5]);
                         HLAnames.add(s[0]);
                         HLApositions.add(s[3]);
+                        if (s[0].indexOf("HLA_A") > -1){
+                            if (iAstart < 0){iAstart=i;}
+                            iAstop = i; i++;
+                        }else if (s[0].indexOf("HLA_B") > -1){
+                            if (iBstart < 0){iBstart=i;}
+                            iBstop = i; i++;
+                        }else if (s[0].indexOf("HLA_C") > -1){
+                            if (iCstart < 0){iCstart=i;}
+                            iCstop = i; i++;
+                        }
                     }
                 }
                 in.close();
@@ -82,7 +95,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                 HLAstartpos = new int[n]; HLAstoppos = new int[n];
                 Prob = new double[n][n];
 
-                for (int i = 0; i < n; i++){
+                for (i = 0; i < n; i++){
                     //Find start and stop positions for each allele
                     HLAstartpos[i]=Integer.parseInt(HLApositions.get(i));
                     HLAstoppos[i]=HLAstartpos[i]+HLAreads.get(i).length()-1;
@@ -109,10 +122,20 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             out.printf("Comparing reads to database ...\n");
 
             //For debugging: prints which HLA alleles were indexed before
-            if (DEBUG){out.printf("%s,%s\t%s,%s\n",HLAnames.get(j1),HLAnames.get(k1),HLAnames.get(j2),HLAnames.get(k2));}
+            if (j1 > k1){int tmp = k1; k1 = j1; j1 = tmp;}
+            if (j2 > k2){int tmp = k2; k2 = j2; j2 = tmp;}
+
+            if (DEBUG){
+                out.printf("Astart[%s]\tAstop[%s]\tBstart[%s]\tBstop[%s]\tCstart[%s]\tCstop[%s]\tnumAlleles[%s]\n",iAstart,iAstop,iBstart,iBstop,iCstart,iCstop,numHLAlleles);
+                out.printf("%s,%s\t%s,%s\n",HLAnames.get(j1),HLAnames.get(k1),HLAnames.get(j2),HLAnames.get(k2));
+            }
         }
+        out.printf("Computing for interval %s...\n",numInterval);
+        numInterval++;
         return new Pair<Long,Long>(0l,0l);
     }
+
+
 
     private String CigarFormatted(String cigar, String read){
         // returns a cigar-formatted sequence (removes insertions, inserts 'D' to where deletions occur
@@ -186,6 +209,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             int numCs = 0;
             int numGs = 0;
             int numTs = 0;
+            int depth = 0;
             String c1 = ""; String c2 = "";
             long pos_k = 0; long pos_j = 0;
             
@@ -198,7 +222,10 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             }
 
             //Calculate posterior probabilities!
-            GenotypeLikelihoods G = new EmpiricalSubstitutionGenotypeLikelihoods();
+
+
+            GenotypeLikelihoods G = new ThreeStateErrorGenotypeLikelihoods();
+
 
             //I've tried simply adding the entire pileup to g, but quality scores are not checked, and 'N' bases throw an error
             //(GenotypeLikelihoods potentially has bug on line 57)
@@ -206,16 +233,17 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
 
             //Check for bad bases and ensure mapping quality myself. This works.
             for (int i = 0; i < context.getReads().size(); i++) {
+                
                 SAMRecord read = context.getReads().get(i);
                 int offset = context.getOffsets().get(i);
                 char base = read.getReadString().charAt(offset);
                 byte qual = read.getBaseQualities()[offset];
                 int mapquality = read.getMappingQuality();
                 if (mapquality >= 5 && BaseUtils.simpleBaseToBaseIndex(base) != -1) {
-                    if (base == 'A'){numAs++;}
-                    if (base == 'C'){numCs++;}
-                    if (base == 'T'){numTs++;}
-                    if (base == 'g'){numGs++;}
+                    if (base == 'A'){numAs++; depth++;}
+                    if (base == 'C'){numCs++; depth++;}
+                    if (base == 'T'){numTs++; depth++;}
+                    if (base == 'G'){numGs++; depth++;}
                     //consider base in likelihood calculations if it looks good and has high mapping score
                     G.add(base, qual, read, offset);
                 }
@@ -224,68 +252,95 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             //Debugging purposes
             if (DEBUG) {out.printf("A[%s]\tC[%s]\tT[%s]\tg[%s]\t",numAs,numCs,numTs,numGs);}
 
+            if (depth > 0){
+                //Store confidence scores - this is a local hash that we use to get likelihood given a particular genotype
+                Scores = new Hashtable();
+                for ( DiploidGenotype g : DiploidGenotype.values() ) {
+                    Scores.put(g.toString(), G.getLikelihood(g));
+                    //also hash other combination not stored by DiploidGenotype
+                    if (g.toString().equals("AC")) Scores.put("CA", G.getLikelihood(g));
+                    if (g.toString().equals("AG")) Scores.put("GA", G.getLikelihood(g));
+                    if (g.toString().equals("AT")) Scores.put("TA", G.getLikelihood(g));
+                    if (g.toString().equals("CG")) Scores.put("GC", G.getLikelihood(g));
+                    if (g.toString().equals("CT")) Scores.put("TC", G.getLikelihood(g));
+                    if (g.toString().equals("GT")) Scores.put("TG", G.getLikelihood(g));
 
-            //Store confidence scores - this is a local hash that we use to get likelihood given a particular genotype
-            Scores = new Hashtable();
-            for ( DiploidGenotype g : DiploidGenotype.values() ) {
-                Scores.put(g.toString(), G.getLikelihood(g));
-            }
+                }
 
-            //Get likelihood score for homozygous ref: used to normalize likelihoood scores at 0.
-            String homref = String.valueOf(ref.getBase())+String.valueOf(ref.getBase());
-            Double homreflikelihood = Double.parseDouble((String) Scores.get(homref).toString());
+                //Get likelihood score for homozygous ref: used to normalize likelihoood scores at 0.
+                String homref = String.valueOf(ref.getBase())+String.valueOf(ref.getBase());
+                Double homreflikelihood = Double.parseDouble((String) Scores.get(homref).toString());
 
 
-            //Update likelihood for each combinations of alleles
-            Double likelihood = 0.0;
-            String r1 = "", r2 = "", s1 = "", s2 = "";
-            for (int j = 0; j < numHLAlleles; j++){
+                //Update likelihood for each combinations of alleles
+                Double likelihood = 0.0;
+                String r1 = "", r2 = "", s1 = "", s2 = "";
+                for (int j = 0; j < numHLAlleles; j++){
 
-                //check if allele 1 overlaps current position
-                if (loc >= HLAstartpos[j] && loc <= HLAstoppos[j]){
-                    pos_j = loc - HLAstartpos[j];
-                    c1 = Character.toString(Character.toUpperCase(HLAreads.get(j).charAt((int) pos_j)));
+                    //check if allele 1 overlaps current position
+                    if (loc >= HLAstartpos[j] && loc <= HLAstoppos[j]){
+                        pos_j = loc - HLAstartpos[j];
+                        c1 = Character.toString(Character.toUpperCase(HLAreads.get(j).charAt((int) pos_j)));
 
-                    //Extract bases for HLA alleles indicated in reduceInit (for debugging)
-                    if (j == j1) r1 = c1;
-                    if (j == k1) r2 = c1;
-                    if (j == j2) s1 = c1;
-                    if (j == k2) s2 = c1;
+                        //Extract bases for HLA alleles indicated in reduceInit (for debugging)
+                        if (j == j1) r1 = c1;
+                        if (j == k1) r2 = c1;
+                        if (j == j2) s1 = c1;
+                        if (j == k2) s2 = c1;
 
-                    //Updade likelihoods
-                    for (int k = 0; k < numHLAlleles; k++){
+                        //Only check A-A, B-C, C-C combinations
+                        int kStart = 0, kStop = 0;
+                        if (j >= iAstart && j <= iAstop){
+                            kStart = iAstart; kStop = iAstop;
+                        } else if (j >= iBstart && j <= iBstop){
+                            kStart = iBstart; kStop = iBstop;
+                        } else if (j >= iCstart && j <= iCstop){
+                            kStart = iCstart; kStop = iCstop;
+                        }
 
-                        //check if allele 2 overlaps current position
-                        if (loc >= HLAstartpos[k] && loc <= HLAstoppos[k]){
-                            pos_k = loc - HLAstartpos[k];
-                            c2 = Character.toString(Character.toUpperCase(HLAreads.get(k).charAt((int) pos_k)));
+                        //Fill half-matrix only to speed up process
+                        if (j > kStart){kStart = j;}
 
-                            //updates likelihoods for both permutations of the alleles, normalized to the likelihood for homozygous reference
-                            
-                            if (Scores.containsKey(c1 + c2)){
+                        if (DEBUG){
+                            //out.printf("j[%s],k[%s,%s]\t",j,kStart,kStop);
+                        }
 
-                                likelihood = Double.parseDouble((String) Scores.get(c1 + c2).toString());
-                                Prob[j][k]= Prob[j][k]+ likelihood - homreflikelihood;
+                        //Update likelihoods
+                        for (int k = kStart; k <= kStop; k++){
 
-                            }else if(Scores.containsKey(c2 + c1)){
+                            //check if allele 2 overlaps current position
+                            if (loc >= HLAstartpos[k] && loc <= HLAstoppos[k]){
+                                pos_k = loc - HLAstartpos[k];
+                                c2 = Character.toString(Character.toUpperCase(HLAreads.get(k).charAt((int) pos_k)));
 
-                                likelihood = Double.parseDouble((String) Scores.get(c2 + c1).toString());
-                                Prob[j][k]= Prob[j][k]+ likelihood - homreflikelihood;
-
+                                //updates likelihoods for both permutations of the alleles, normalized to the likelihood for homozygous reference
+                                if (!homref.equals(c1+c2)){
+                                    if (Scores.containsKey(c1 + c2)){
+                                        //out.printf("j[%s],k[%s],g[%s],s[%.0f]\t",j,k,c1+c2,Scores.get(c1 + c2));
+                                        likelihood = Double.parseDouble((String) Scores.get(c1 + c2).toString());
+                                        Prob[j][k]= Prob[j][k]+ likelihood - homreflikelihood;
+                                    } else{
+                                        if (DEBUG){
+                                        //out.printf("\nCharacters [%s] not found,j[%s],k[%s],%s,%s\n",c1+c2,j,k,HLAnames.get(j),HLAnames.get(k));
+                                        }
+                                    }
+                                }
                             }
                         }
+
                     }
                 }
-            }
+            
 
-            if ( DEBUG ){
-                //Debugging: print updated likelihoods for 2 sets of HLA alleles, as well as normalized likelihoods for all 10 genotypes
-                out.printf("%s%s:%5.0f\t%s%s:%5.0f\t",r1,r2,Prob[j1][k1],s1,s2,Prob[j2][k2]);
-                for ( DiploidGenotype g : DiploidGenotype.values() ) {
-                    out.printf("%s %5.0f\t",g.toString(),likelihood - homreflikelihood);
+                if ( DEBUG ){
+                    //Debugging: print updated likelihoods for 2 sets of HLA alleles, as well as normalized likelihoods for all 10 genotypes
+                    out.printf("%s%s:%5.0f\t%s%s:%5.0f\t",r1,r2,Prob[j1][k1],s1,s2,Prob[j2][k2]);
+                    for ( DiploidGenotype g : DiploidGenotype.values() ) {
+                        out.printf("%s %5.0f\t",g.toString(),likelihood - homreflikelihood);
+                    }
+                    out.printf("\n");
                 }
-                out.printf("\n");
-            }           
+            }
         }
         
         return context.getReads().size();
@@ -318,60 +373,58 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
 
             //Find max scores for each HLA gene.
             for (int i = 0; i < numHLAlleles; i++){
-                for (int j = 0; j < numHLAlleles; j++){
-                    if (i >= j){
-                        //Print likelihoods for all alleles
+                for (int j = i; j < numHLAlleles; j++){
+                    //Print likelihoods for all alleles
+                    if (!DEBUG){
                         out.printf("%s\t%s\t%5.0f\n",HLAnames.get(i),HLAnames.get(j),Prob[i][j]);
+                    }
 
-                        if (HLAnames.get(i).indexOf("HLA_A") > -1 && HLAnames.get(j).indexOf("HLA_A") > -1){
-                            if (Prob[i][j] > maxA){
-                                maxA2 = maxA; i_maxA_2 = i_maxA; j_maxA_2 = j_maxA;
-                                maxA = Prob[i][j]; i_maxA = i; j_maxA = j;
-                            }
-                        } else if (HLAnames.get(i).indexOf("HLA_B") > -1 && HLAnames.get(j).indexOf("HLA_B") > -1){
-                            if (Prob[i][j] > maxB){
-                                maxB2 = maxB; i_maxB_2 = i_maxB; j_maxB_2 = j_maxB;
-                                maxB = Prob[i][j]; i_maxB = i; j_maxB = j;
-                            }
-                        } else if (HLAnames.get(i).indexOf("HLA_C") > -1 && HLAnames.get(j).indexOf("HLA_C") > -1){
-                            if (Prob[i][j] > maxC){
-                                maxC2 = maxC; i_maxC_2 = i_maxC; j_maxC_2 = j_maxC;
-                                maxC = Prob[i][j]; i_maxC = i; j_maxC = j;
-                            }
+                    if (HLAnames.get(i).indexOf("HLA_A") > -1 && HLAnames.get(j).indexOf("HLA_A") > -1){
+                        if (Prob[i][j] > maxA){
+                            maxA2 = maxA; i_maxA_2 = i_maxA; j_maxA_2 = j_maxA;
+                            maxA = Prob[i][j]; i_maxA = i; j_maxA = j;
+                        }
+                    } else if (HLAnames.get(i).indexOf("HLA_B") > -1 && HLAnames.get(j).indexOf("HLA_B") > -1){
+                        if (Prob[i][j] > maxB){
+                            maxB2 = maxB; i_maxB_2 = i_maxB; j_maxB_2 = j_maxB;
+                            maxB = Prob[i][j]; i_maxB = i; j_maxB = j;
+                        }
+                    } else if (HLAnames.get(i).indexOf("HLA_C") > -1 && HLAnames.get(j).indexOf("HLA_C") > -1){
+                        if (Prob[i][j] > maxC){
+                            maxC2 = maxC; i_maxC_2 = i_maxC; j_maxC_2 = j_maxC;
+                            maxC = Prob[i][j]; i_maxC = i; j_maxC = j;
                         }
                     }
-                }
+		}
             }
+
 
             //Print alleles with the highest likelihoods
             for (int i = 0; i < numHLAlleles; i++){
-                for (int j = 0; j < numHLAlleles; j++){
-                    if (i >= j){
-                        if (HLAnames.get(i).indexOf("HLA_A") > -1 && HLAnames.get(j).indexOf("HLA_A") > -1){
-                            if (Prob[i][j] == maxA && maxA > 0){
-                                out.printf("%s\t%s\t%5.0f\t%5.0f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxA,maxA-maxA2);
-                            }
-                        } else if (HLAnames.get(i).indexOf("HLA_B") > -1 && HLAnames.get(j).indexOf("HLA_B") > -1){
-                            if (Prob[i][j] == maxB && maxB > 0){
-                                out.printf("%s\t%s\t%5.0f\t%5.0f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxB,maxB-maxB2);
-                            }
-                        } else if (HLAnames.get(i).indexOf("HLA_C") > -1 && HLAnames.get(j).indexOf("HLA_C") > -1){
-                            if (Prob[i][j] == maxC && maxC > 0){
-                                out.printf("%s\t%s\t%5.0f\t%5.0f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxC,maxC-maxC2);
-                            }
+                for (int j = i; j < numHLAlleles; j++){
+                    if (HLAnames.get(i).indexOf("HLA_A") > -1 && HLAnames.get(j).indexOf("HLA_A") > -1){
+                        if (Prob[i][j] == maxA && maxA > 0){
+                            out.printf("%s\t%s\t%5.0f\t%5.0f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxA,maxA-maxA2);
+                        }
+                    } else if (HLAnames.get(i).indexOf("HLA_B") > -1 && HLAnames.get(j).indexOf("HLA_B") > -1){
+                        if (Prob[i][j] == maxB && maxB > 0){
+                            out.printf("%s\t%s\t%5.0f\t%5.0f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxB,maxB-maxB2);
+                        }
+                    } else if (HLAnames.get(i).indexOf("HLA_C") > -1 && HLAnames.get(j).indexOf("HLA_C") > -1){
+                        if (Prob[i][j] == maxC && maxC > 0){
+                            out.printf("%s\t%s\t%5.0f\t%5.0f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxC,maxC-maxC2);
                         }
                     }
+
                 }
             }
-            
+
 
             //2nd Highest likelihoods
             for (int i = 0; i < numHLAlleles; i++){
-                for (int j = 0; j < numHLAlleles; j++){
-                    if (i >= j){
-                        if (Prob[i][j] == maxA2){
-                            //out.printf("2nd Highest likelihood: %5.0f in %s and %s; i=%s, j=%s\n",maxA2,HLAnames.get(i),HLAnames.get(j),i,j);
-                        }
+                for (int j = i; j < numHLAlleles; j++){
+                    if (Prob[i][j] == maxA2){
+                        //out.printf("2nd Highest likelihood: %5.0f in %s and %s; i=%s, j=%s\n",maxA2,HLAnames.get(i),HLAnames.get(j),i,j);
                     }
                 }
             }
