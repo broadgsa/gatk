@@ -180,7 +180,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
 
         // check to ensure that the column count of tokens is right
         if (tokens.length != mHeader.getColumnCount()) {
-            throw new RuntimeException("The input file line doesn't contain enough fields, it should have " + mHeader.getColumnCount() + " fields, it has " + tokens.length);
+            throw new RuntimeException("The input file line doesn't contain enough fields, it should have " + mHeader.getColumnCount() + " fields, it has " + tokens.length + ". Line = " + line);
         }
 
         int index = 0;
@@ -261,10 +261,14 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * @param bases         the list of bases for this genotype call
      */
     private static void addAllele(String alleleNumber, String[] altAlleles, char referenceBase, List<String> bases) {
-        if (Integer.valueOf(alleleNumber) == 0)
+        int alleleValue = Integer.valueOf(alleleNumber);
+        // check to make sure the allele value is within bounds
+        if (alleleValue < 0 || alleleValue > altAlleles.length)
+            throw new IllegalArgumentException("VCFReader: the allele value of " + alleleValue + " is out of bounds given the alternate allele list.");
+        if (alleleValue == 0)
             bases.add(String.valueOf(referenceBase));
         else
-            bases.add(altAlleles[Integer.valueOf(alleleNumber) - 1]);
+            bases.add(altAlleles[alleleValue - 1]);
     }
 
 

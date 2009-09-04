@@ -3,14 +3,12 @@ package org.broadinstitute.sting.utils.genotype.geli;
 import edu.mit.broad.picard.genotype.geli.GeliFileWriter;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
-import org.broadinstitute.sting.utils.genotype.GenotypeOutput;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
+import org.broadinstitute.sting.gatk.walkers.genotyper.SSGenotypeCall;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.gatk.walkers.genotyper.SSGGenotypeCall;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.File;
+import java.util.Arrays;
 
 
 /*
@@ -68,14 +66,11 @@ public class GeliAdapter implements GenotypeWriter {
      * @param contig        the contig you're calling in
      * @param position      the position on the contig
      * @param referenceBase the reference base
-     * @param readDepth     the read depth at the specified position
      * @param likelihoods   the likelihoods of each of the possible alleles
      */
     public void addGenotypeCall(SAMSequenceRecord contig,
                                 int position,
-                                float rmsMapQuals,
                                 char referenceBase,
-                                int readDepth,
                                 LikelihoodObject likelihoods) {
         writer.addGenotypeLikelihoods(likelihoods.convert(writer.getFileHeader(), 1, position, (byte) referenceBase));
     }
@@ -102,10 +97,27 @@ public class GeliAdapter implements GenotypeWriter {
      * @param locus the locus to add
      */
     @Override
-    public void addGenotypeCall(GenotypeOutput locus) {
-        SSGGenotypeCall call = (SSGGenotypeCall)locus;
-        LikelihoodObject obj = new LikelihoodObject(call.getLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
-        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),(int)locus.getLocation().getStart(),(float)locus.getRmsMapping(),locus.getReferencebase(),locus.getReadDepth(),obj);        
+    public void addGenotypeCall(Genotype locus) {
+        double likelihoods[];
+        int readDepth = -1;
+        double nextVrsBest = 0;
+        double nextVrsRef = 0;
+        if (!(locus instanceof GenotypesBacked)) {
+            likelihoods = new double[10];
+            Arrays.fill(likelihoods, Double.MIN_VALUE);
+        } else {
+            likelihoods = ((LikelihoodsBacked) locus).getLikelihoods();
+
+        }
+        char ref = locus.getReference();
+
+
+        SSGenotypeCall call = (SSGenotypeCall)locus;
+        LikelihoodObject obj = new LikelihoodObject(call.getProbabilities(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
+        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),
+                             (int)locus.getLocation().getStart(),
+                             ref,
+                             obj);
     }
 
     /**

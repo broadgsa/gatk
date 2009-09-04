@@ -1,21 +1,19 @@
 package org.broadinstitute.sting.playground.utils;
 
-import org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper;
 import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.GenotypeCall;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 
 import java.io.PrintWriter;
-import java.util.Set;
-import java.util.List;
-import java.util.LinkedList;
 import java.util.ArrayList;
-
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMFileWriter;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Created by IntelliJ IDEA.
@@ -252,11 +250,11 @@ public class ArtificialPoolContext {
     }
 
     public String genotypeAndConfidenceToString(int group, String spacer) {
-        GenotypeCall call = this.getGenotypeCall(group);
-        return (call.getGenotypes() + spacer + call.getConfidenceScore().toString());
+        Genotype call = this.getGenotype(group);
+        return (call.getBases() + spacer + call.getLog10PError()); // TODO: fix me
     }
 
-    public GenotypeCall getGenotypeCall(int group) {
+    public Genotype getGenotype(int group) {
         AlignmentContext alicon = this.getAlignmentContext();
         Pair<List<SAMRecord>[],List<Integer>[]> byGroupSplitPair = this.splitByGroup(alicon.getReads(),alicon.getOffsets());
         return ssg.map(this.getRefMetaDataTracker(),this.getReferenceContext(),

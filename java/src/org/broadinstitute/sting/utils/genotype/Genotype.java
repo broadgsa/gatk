@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.genotype.confidence.ConfidenceScore;
-import org.broadinstitute.sting.utils.genotype.Variant;
 
 /**
  * @author aaron
@@ -13,11 +11,11 @@ import org.broadinstitute.sting.utils.genotype.Variant;
  */
 public interface Genotype {
     /**
-     * get the confidence score
+     * get the -1 * (log 10 of the error value)
      *
-     * @return get the confidence score that we're based on
+     * @return the log based error estimate
      */
-    public ConfidenceScore getConfidenceScore();
+    public double getLog10PError();
 
     /**
      * get the bases that represent this
@@ -71,16 +69,16 @@ public interface Genotype {
     public boolean isVariant(char ref);
 
     /**
-     * return this genotype as a variant
-     *
-     * @return
+     * get the reference base.
+     * @return a character, representing the reference base
      */
-    public Variant toVariant();
+    public char getReference();
 
     /**
-     * return a readable string representation of this genotype
+     * return this genotype as a variant
      *
-     * @return
+     * @return the variant
      */
-    public String toString();
+    public Variant toVariation();
+
 }

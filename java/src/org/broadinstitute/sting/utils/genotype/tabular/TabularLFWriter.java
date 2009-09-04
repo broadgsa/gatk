@@ -1,12 +1,12 @@
 package org.broadinstitute.sting.utils.genotype.tabular;
 
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.GenotypeOutput;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.util.Arrays;
 
 
 /**
@@ -43,7 +43,23 @@ public class TabularLFWriter implements GenotypeWriter {
      * @param locus the locus to add
      */
     @Override
-    public void addGenotypeCall(GenotypeOutput locus) {
+    public void addGenotypeCall(Genotype locus) {
+        double likelihoods[];
+        int readDepth = -1;
+        double nextVrsBest = 0;
+        double nextVrsRef = 0;
+        if (!(locus instanceof GenotypesBacked)) {
+            likelihoods = new double[10];
+            Arrays.fill(likelihoods, Double.MIN_VALUE);
+        } else {
+            likelihoods = ((LikelihoodsBacked) locus).getLikelihoods();
+
+        }
+        char ref = locus.getReference();
+
+        if (locus instanceof ReadBacked) {
+            readDepth = ((ReadBacked)locus).getReadCount();
+        }
         /**
          * This output is not correct, but I don't we even use this format anymore.  If we do, someone
          * should change this code
@@ -51,14 +67,14 @@ public class TabularLFWriter implements GenotypeWriter {
         outStream.println(String.format("%s %s %c %s %s %f %f %f %f %d %s",
 	                                        locus.getLocation().toString(),
 											"NOT OUTPUTED",
-	                                        locus.getReferencebase(),
+	                                        ref,
 	                                        locus.getBases(),
 											locus.getBases(),
 	                                        -1,
 	                                        -1,
-                                            locus.getBestRef(),
-                                            locus.getBestNext(),
-	                                        locus.getReadDepth(),
+                                            nextVrsRef,
+                                            nextVrsBest,
+	                                        readDepth,
 											locus.getBases()));
     }
 

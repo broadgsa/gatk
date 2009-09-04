@@ -5,23 +5,18 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.BasicGenotype;
-import org.broadinstitute.sting.utils.genotype.confidence.BayesianConfidenceScore;
 
 import java.io.File;
-import java.util.List;
-import java.util.ArrayList;
 
 @ReadFilters(ZeroMappingQualityReadFilter.class)
-public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, GenotypeWriter> {
+public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, GenotypeWriter> {
     // Control output settings
     @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = false)
     public File VARIANTS_FILE = null;
@@ -74,7 +69,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
      * @param refContext the reference base
      * @param context contextual information around the locus
      */
-    public SSGGenotypeCall map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
+    public SSGenotypeCall map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
         char ref = refContext.getBase();
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
 
@@ -86,14 +81,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
         gl.add(pileup, true);
         gl.validate();
 
-        // lets setup the locus
-        List<Genotype> lst = new ArrayList<Genotype>();
-        for ( DiploidGenotype g : DiploidGenotype.values() ) {
-            lst.add(new BasicGenotype(pileup.getLocation(), g.toString(),new BayesianConfidenceScore(gl.getLikelihood(g))));
-        }
-
-        //System.out.printf("At %s%n", new SSGGenotypeCall(! GENOTYPE, ref, 2, lst, g.getPosteriors(), pileup));
-        return new SSGGenotypeCall(! GENOTYPE, ref, 2, lst, gl.getPosteriors(), pileup);
+        return new SSGenotypeCall(!GENOTYPE, context.getLocation(), ref,gl, pileup);
     }
 
     /**
@@ -138,11 +126,9 @@ public class SingleSampleGenotyper extends LocusWalker<SSGGenotypeCall, Genotype
      *
      * @return an empty string
      */
-    public GenotypeWriter reduce(SSGGenotypeCall call, GenotypeWriter sum) {
-        if (call != null && (GENOTYPE || call.isVariation())) {
-            //System.out.printf("Score %s%n", call.getConfidenceScore());
-            if (call.getConfidenceScore().getScore() > LOD_THRESHOLD) {
-                //System.out.printf("Call %s%n", call);                
+    public GenotypeWriter reduce(SSGenotypeCall call, GenotypeWriter sum) {
+        if (call != null && (GENOTYPE || call.isVariant(call.getReference()))) {
+            if (call.getLog10PError() >= LOD_THRESHOLD) {
                 sum.addGenotypeCall(call);
             }
         }

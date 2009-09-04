@@ -1,17 +1,18 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
+import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.genotype.GenotypeOutput;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.IndelLikelihood;
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import org.broadinstitute.sting.gatk.walkers.genotyper.SSGGenotypeCall;
+import org.broadinstitute.sting.utils.ReadBackedPileup;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.DataOutputStream;
 import java.io.File;
+import java.util.Arrays;
+import java.util.List;
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -76,12 +77,12 @@ public class GLFWriter implements GenotypeWriter {
     /**
      * add a point genotype to the GLF writer
      *
-     * @param contig   the name of the contig you're calling in
-     * @param refBase      the reference base, as a char
-     * @param genomicLoc   the location the location on the reference contig
-     * @param readDepth    the read depth at the specified postion
-     * @param rmsMapQ      the root mean square of the mapping quality
-     * @param lhValues     the GenotypeLikelihoods object, representing the genotype likelyhoods
+     * @param contig     the name of the contig you're calling in
+     * @param refBase    the reference base, as a char
+     * @param genomicLoc the location the location on the reference contig
+     * @param readDepth  the read depth at the specified postion
+     * @param rmsMapQ    the root mean square of the mapping quality
+     * @param lhValues   the GenotypeLikelihoods object, representing the genotype likelyhoods
      */
     public void addGenotypeCall(SAMSequenceRecord contig,
                                 int genomicLoc,
@@ -90,14 +91,14 @@ public class GLFWriter implements GenotypeWriter {
                                 int readDepth,
                                 LikelihoodObject lhValues) {
 
-       // check if we've jumped to a new contig
+        // check if we've jumped to a new contig
         checkSequence(contig.getSequenceName(), contig.getSequenceLength());
 
         SinglePointCall call = new SinglePointCall(refBase,
-                genomicLoc - lastPos,
-                readDepth,
-                (short) rmsMapQ,
-                lhValues.toDoubleArray());
+                                                   genomicLoc - lastPos,
+                                                   readDepth,
+                                                   (short) rmsMapQ,
+                                                   lhValues.toDoubleArray());
         lastPos = genomicLoc;
         call.write(this.outputBinaryCodec);
     }
@@ -105,20 +106,50 @@ public class GLFWriter implements GenotypeWriter {
     /**
      * Add a genotype, given a genotype locus
      *
-     * @param locus
+     * @param locus the genotype called at a locus
      */
     @Override
-    public void addGenotypeCall(GenotypeOutput locus) {
-        SSGGenotypeCall call = (SSGGenotypeCall)locus;
-        LikelihoodObject obj = new LikelihoodObject(call.getLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
+    public void addGenotypeCall(Genotype locus) {
+        char ref = locus.getReference();
+
+        // get likelihood information if available
+        LikelihoodObject obj;
+        if (locus instanceof GenotypesBacked) {
+            obj = new LikelihoodObject(((LikelihoodsBacked) locus).getLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
+        } else {
+            double values[] = new double[10];
+            Arrays.fill(values,-255.0);
+            obj = new LikelihoodObject(values, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
+        }
         obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);  // transform! ... to negitive log likelihoods
-        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),(int)locus.getLocation().getStart(),(float)locus.getRmsMapping(),locus.getReferencebase(),locus.getReadDepth(),obj);
+
+        double rms = -1;
+        // calculate the RMS mapping qualities and the read depth
+        if (locus instanceof ReadBacked) {
+            rms = calculateRMS(((ReadBacked)locus).getReads());
+        }
+        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),(int)locus.getLocation().getStart(),(float)rms,ref,((ReadBacked)locus).getReadCount(),obj);
     }
 
+
+    /**
+     * calculate the rms , given the read pileup
+     *
+     * @param reads the read array
+     *
+     * @return the rms of the read mapping qualities
+     */
+    private double calculateRMS(List<SAMRecord> reads) {
+        int[] qualities = new int[reads.size()];
+        for (int i = 0; i < reads.size(); i++) {
+            qualities[i] = reads.get(i).getMappingQuality();
+        }
+        return MathUtils.rms(qualities);
+    }
     /**
      * add a variable length (indel, deletion, etc) to the genotype writer
      *
-     * @param contig    the name of the contig you're calling in
+     * @param contig        the name of the contig you're calling in
      * @param refBase       the reference base
      * @param genomicLoc    the location on the reference contig
      * @param readDepth     the read depth at the specified postion
@@ -138,19 +169,19 @@ public class GLFWriter implements GenotypeWriter {
 
         // check if we've jumped to a new contig
         checkSequence(contig.getSequenceName(), contig.getSequenceLength());
-        
+
         // normalize the two
         VariableLengthCall call = new VariableLengthCall(refBase,
-                genomicLoc - lastPos,
-                readDepth,
-                (short) rmsMapQ,
-                firstHomZyg.getLikelihood(),
-                secondHomZyg.getLikelihood(),
-                hetLikelihood,
-                firstHomZyg.getLengthOfIndel(),
-                firstHomZyg.getIndelSequence(),
-                secondHomZyg.getLengthOfIndel(),
-                secondHomZyg.getIndelSequence());
+                                                         genomicLoc - lastPos,
+                                                         readDepth,
+                                                         (short) rmsMapQ,
+                                                         firstHomZyg.getLikelihood(),
+                                                         secondHomZyg.getLikelihood(),
+                                                         hetLikelihood,
+                                                         firstHomZyg.getLengthOfIndel(),
+                                                         firstHomZyg.getIndelSequence(),
+                                                         secondHomZyg.getLengthOfIndel(),
+                                                         secondHomZyg.getIndelSequence());
         lastPos = genomicLoc;
         call.write(this.outputBinaryCodec);
     }
@@ -158,8 +189,7 @@ public class GLFWriter implements GenotypeWriter {
     /**
      * add a no call to the genotype file, if supported.
      *
-     * @param position  the position
-     * 
+     * @param position the position
      */
     @Override
     public void addNoCall(int position) {
@@ -170,12 +200,12 @@ public class GLFWriter implements GenotypeWriter {
     /**
      * add a GLF record to the output file
      *
-     * @param contigName the contig name
+     * @param contigName   the contig name
      * @param contigLength the contig length
-     * @param rec the GLF record to write.
+     * @param rec          the GLF record to write.
      */
     public void addGLFRecord(String contigName, int contigLength, GLFRecord rec) {
-        checkSequence(contigName,contigLength);
+        checkSequence(contigName, contigLength);
         rec.write(this.outputBinaryCodec);
     }
 
@@ -200,12 +230,12 @@ public class GLFWriter implements GenotypeWriter {
      * check to see if we've jumped to a new contig
      *
      * @param sequenceName the name for the sequence
-     * @param seqLength the sequence length
+     * @param seqLength    the sequence length
      */
     private void checkSequence(String sequenceName, int seqLength) {
         if ((referenceSequenceName == null) || (!referenceSequenceName.equals(sequenceName))) {
             if (this.referenceSequenceName != null) { // don't write the record the first time
-                this.writeEndRecord();   
+                this.writeEndRecord();
             }
             referenceSequenceName = sequenceName;
             referenceSequenceLength = seqLength;

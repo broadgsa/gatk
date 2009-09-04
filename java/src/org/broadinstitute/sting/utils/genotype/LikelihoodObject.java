@@ -60,11 +60,6 @@ public class LikelihoodObject {
         NEGITIVE_LOG, LOG, RAW;
     }
 
-    // our qhet and qstar values; wait, what?
-    // TODO: are these really needed here? We have them to support the tabular output format only.
-    //private double qhat;
-    //private double qstar;
-
     // our liklihood storage type
     protected LIKELIHOOD_TYPE mLikelihoodType = LIKELIHOOD_TYPE.NEGITIVE_LOG;
 

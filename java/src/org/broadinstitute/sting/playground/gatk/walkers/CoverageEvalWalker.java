@@ -6,14 +6,17 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodGFF;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.genotyper.SSGenotypeCall;
 import org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper;
-import org.broadinstitute.sting.gatk.walkers.genotyper.SSGGenotypeCall;
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.ListUtils;
-import org.broadinstitute.sting.utils.genotype.GenotypeCall;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -77,9 +80,9 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
                     List<Integer> sub_offsets = ListUtils.sliceListByIndices(subset_indices, offsets);
 
                     AlignmentContext subContext = new AlignmentContext(context.getLocation(), sub_reads, sub_offsets);
-                    GenotypeCall call = SSG.map(tracker, ref, subContext);
+                    SSGenotypeCall call = SSG.map(tracker, ref, subContext);
 
-                    String callType = (call.isVariation()) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
+                    String callType = (call.isVariant(call.getReference())) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
                     if (call != null) {
                         GenotypeCalls.add(coverage+"\t"+coverage_available+"\t"+hc_genotype+"\t"+callType+"\t"+toGeliString(call));
                     }
@@ -104,27 +107,52 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
 	}
 
     // a method to support getting the geli string, since the AlleleFrequencyEstimate is going away
-    public String toGeliString (GenotypeCall locus) {
-        SSGGenotypeCall call = (SSGGenotypeCall)locus;
-        return String.format("%s    %16d  %c  %8d  %d  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
-	                                        call.getLocation().getContig(),
-                                            call.getLocation().getStart(),
-											call.getReferencebase(),
-                                            call.getReadDepth(),
-                                            -1,
-	                                        call.getBases(),
-	                                        call.getBestRef(),
-	                                        call.getBestNext(),
-                                            call.getLikelihoods()[0],
-                                            call.getLikelihoods()[1],
-                                            call.getLikelihoods()[2],
-                                            call.getLikelihoods()[3],
-                                            call.getLikelihoods()[4],
-                                            call.getLikelihoods()[5],
-                                            call.getLikelihoods()[6],
-                                            call.getLikelihoods()[7],
-                                            call.getLikelihoods()[8],
-                                            call.getLikelihoods()[9]);
+    public String toGeliString (Genotype locus) {
+        double likelihoods[];
+        int readDepth = -1;
+        double nextVrsBest = 0;
+        double nextVrsRef = 0;
+
+        char ref = locus.getReference();
+
+        if (locus instanceof ReadBacked) {
+            readDepth = ((ReadBacked)locus).getReadCount();
+        }
+        if (!(locus instanceof GenotypesBacked)) {
+            likelihoods = new double[10];
+            Arrays.fill(likelihoods, 0.0);
+        } else {
+            likelihoods = ((LikelihoodsBacked) locus).getLikelihoods();
+            double[] lks;
+            lks = Arrays.copyOf(likelihoods,likelihoods.length);
+            Arrays.sort(lks);
+            nextVrsBest = lks[9] - lks[8];
+            if (ref != 'X')  {
+                int index = (DiploidGenotype.valueOf(Utils.dupString(ref,2)).ordinal());
+                nextVrsRef = lks[9] - likelihoods[index];
+            }
+        }
+        // we have to calcuate our own
+
+       return new String(String.format("%s    %16d  %c  %8d  %d  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
+                                      locus.getLocation().getContig(),
+                                      locus.getLocation().getStart(),
+                                      ref,
+                                      readDepth,
+                                      -1,
+                                      locus.getBases(),
+                                      nextVrsRef,
+                                      nextVrsBest,
+                                      likelihoods[0],
+                                      likelihoods[1],
+                                      likelihoods[2],
+                                      likelihoods[3],
+                                      likelihoods[4],
+                                      likelihoods[5],
+                                      likelihoods[6],
+                                      likelihoods[7],
+                                      likelihoods[8],
+                                      likelihoods[9]));
     }
 }
 

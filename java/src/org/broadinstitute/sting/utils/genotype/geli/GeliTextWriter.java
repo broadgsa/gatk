@@ -1,23 +1,23 @@
 package org.broadinstitute.sting.utils.genotype.geli;
 
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.GenotypeOutput;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.gatk.walkers.genotyper.SSGGenotypeCall;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.util.Arrays;
 
 
 /**
- * 
- * @author aaron 
- * 
- * Class GeliTextWriter
- *
- * A descriptions should go here. Blame aaron if it's missing.
+ * @author aaron
+ *         <p/>
+ *         Class GeliTextWriter
+ *         <p/>
+ *         write out the geli text file format containing genotype information
  */
 public class GeliTextWriter implements GenotypeWriter {
     // where we write to
@@ -25,6 +25,7 @@ public class GeliTextWriter implements GenotypeWriter {
 
     /**
      * create a geli text writer
+     *
      * @param file the file to write to
      */
     public GeliTextWriter(File file) {
@@ -48,28 +49,52 @@ public class GeliTextWriter implements GenotypeWriter {
      *
      * @param locus the locus to add
      */
-    public void addGenotypeCall(GenotypeOutput locus) {
-        SSGGenotypeCall call = (SSGGenotypeCall)locus;
+    public void addGenotypeCall(Genotype locus) {
+        double likelihoods[];
+        int readDepth = -1;
+        double nextVrsBest = 0;
+        double nextVrsRef = 0;
 
-        mWriter.println( String.format("%s    %16d  %c  %8d  %d  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
-	                                        locus.getLocation().getContig(),
-                                            locus.getLocation().getStart(),
-											locus.getReferencebase(),
-                                            call.getReadDepth(),
-                                            -1,
-	                                        locus.getBases(),
-	                                        call.getBestRef(),
-	                                        call.getBestNext(),
-                                            call.getLikelihoods()[0],
-                                            call.getLikelihoods()[1],
-                                            call.getLikelihoods()[2],
-                                            call.getLikelihoods()[3],
-                                            call.getLikelihoods()[4],
-                                            call.getLikelihoods()[5],
-                                            call.getLikelihoods()[6],
-                                            call.getLikelihoods()[7],
-                                            call.getLikelihoods()[8],
-                                            call.getLikelihoods()[9]));
+        char ref = locus.getReference();
+
+        if (locus instanceof ReadBacked) {
+            readDepth = ((ReadBacked)locus).getReadCount();
+        }
+        if (!(locus instanceof GenotypesBacked)) {
+            likelihoods = new double[10];
+            Arrays.fill(likelihoods, 0.0);
+        } else {
+            likelihoods = ((LikelihoodsBacked) locus).getLikelihoods();
+            double[] lks;
+            lks = Arrays.copyOf(likelihoods,likelihoods.length);
+            Arrays.sort(lks);
+            nextVrsBest = lks[9] - lks[8];
+            if (ref != 'X')  {
+                int index = (DiploidGenotype.valueOf(Utils.dupString(ref,2)).ordinal());
+                nextVrsRef = lks[9] - likelihoods[index];
+            }
+        }
+        // we have to calcuate our own
+        
+        mWriter.println(String.format("%s    %16d  %c  %8d  %d  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
+                                      locus.getLocation().getContig(),
+                                      locus.getLocation().getStart(),
+                                      ref,
+                                      readDepth,
+                                      -1,
+                                      locus.getBases(),
+                                      nextVrsRef,
+                                      nextVrsBest,
+                                      likelihoods[0],
+                                      likelihoods[1],
+                                      likelihoods[2],
+                                      likelihoods[3],
+                                      likelihoods[4],
+                                      likelihoods[5],
+                                      likelihoods[6],
+                                      likelihoods[7],
+                                      likelihoods[8],
+                                      likelihoods[9]));
     }
 
     /**
