@@ -42,13 +42,13 @@ import java.io.FileNotFoundException;
 import java.lang.reflect.Method;
 
 @WalkerName("TableRecalibration")
-@Requires({DataSource.READS, DataSource.REFERENCE})
+@Requires({DataSource.READS}) // , DataSource.REFERENCE})
 public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
-    @Argument(shortName="params", doc="CountCovariates params file", required=true)
+    @Argument(fullName="params", shortName="params", doc="CountCovariates params file", required=true)
     public String paramsFile;
 
-    @Argument(fullName="outputBamFile", shortName="outputBAM", doc="output BAM file", required=false)
-    public SAMFileWriter outputBamFile = null;
+    @Argument(fullName="outputBam", shortName="outputBam", doc="output BAM file", required=true)
+    public SAMFileWriter outputBam = null;
 
     @Argument(shortName="rawQempirical", doc="If provided, we will use raw Qempirical scores calculated from the # mismatches and # bases, rather than the more conservative estimate of # mismatches + 1 / # bases + 1", required=false)
     public boolean rawQempirical = false;
@@ -63,7 +63,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     // Basic static information
     //
     private static Logger logger = Logger.getLogger(TableRecalibrationWalker.class);
-    private static String VERSION = "0.2.4";
+    private static String VERSION = "0.2.5";
 
     // maps from [readGroup] -> [prevBase x base -> [cycle, qual, new qual]]
     HashMap<String, RecalMapping> cache = new HashMap<String, RecalMapping>();
@@ -271,7 +271,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private void preserveQScores( byte[] originalQuals, byte[] recalQuals, SAMRecord read ) {
         for ( int i = 0; i < recalQuals.length; i++ ) {
             if ( originalQuals[i] < preserveQScoresLessThan ) {
-                System.out.printf("Preserving Q%d base at %d in read %s%n", originalQuals[i], i, read.getReadName());
+                //System.out.printf("Preserving Q%d base at %d in read %s%n", originalQuals[i], i, read.getReadName());
                 recalQuals[i] = originalQuals[i];
             }
         }
@@ -332,7 +332,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     }
 
     public SAMFileWriter reduceInit() {
-        return outputBamFile;
+        return outputBam;
     }
 
     /**

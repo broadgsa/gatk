@@ -22,9 +22,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     @Argument(fullName="buggyMaxReadLen", doc="If we see a read longer than this, we assume there's a bug and abort", required=false)
     public int buggyMaxReadLen = 100000;
 
-    @Argument(fullName="OUTPUT_FILEROOT", shortName="outroot", required=false, doc="Filename root for the outputted logistic regression training files")
-    public String OUTPUT_FILEROOT = "output";
+    @Argument(fullName="OUTPUT_FILEROOT", shortName="outroot", required=false, doc="Depreciated output file root -- now use --params to directly specify the file output name")
+    public String OUTPUT_FILEROOT = null; // going to blow up if specified
 
+    @Argument(fullName="params", shortName="params", required=false, doc="Filename root for the outputted logistic regression training files")
+    public String params = "output.recal_data.csv";
+    
     @Argument(fullName="MIN_MAPPING_QUALITY", shortName="minmap", required=false, doc="Only use reads with at least this quality score")
     public int MIN_MAPPING_QUALITY = 1;
 
@@ -205,19 +208,19 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     public PrintStream reduceInit() {
         try {
-            return new PrintStream( OUTPUT_FILEROOT+".recal_data.csv" );
+            if ( OUTPUT_FILEROOT != null )
+                throw new RuntimeException("OUTPUT_FILEROOT argument has been removed, please use --params from now on to directly specify the output parameter filename");
+            return new PrintStream( params );
         } catch ( FileNotFoundException e ) {
             throw new RuntimeException("Couldn't open output file", e);
         }
     }
 
     public void onTraversalDone(PrintStream recalTableStream) {
-        printInfo(out);
-
-        out.printf("Writing raw recalibration data..."); out.flush();
+        out.printf("Writing raw recalibration data...");
         writeRecalTable(recalTableStream);
         out.printf("...done%n");
-
+        
         //out.printf("Writing logistic recalibration data%n");
         //writeLogisticRecalibrationTable();
         //out.printf("...done%n");
@@ -230,7 +233,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @param out
      */
     private void printInfo(PrintStream out) {
-        out.printf("# date             \"%s\"%n", new Date());
+        //out.printf("# date             \"%s\"%n", new Date());
         out.printf("# collapsed_pos    %b%n", collapsePos);
         out.printf("# collapsed_dinuc  %b%n", collapseDinuc);
         out.printf("# counted_sites    %d%n", counted_sites);
@@ -249,8 +252,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         recalTableStream.println("rg,pos,Qrep,dn,nBases,nMismatches,Qemp");
         for (String readGroup : new TreeSet<String>(covariateCounter.getReadGroups()) ) {
             for ( RecalData datum: RecalData.sort(covariateCounter.getRecalData(readGroup)) ) {
-                if ( datum.N > 0 )
+                if ( datum.N > 0 ) {
                     recalTableStream.println(datum.toCSVString(collapsePos));
+                }
             }
         }
     }

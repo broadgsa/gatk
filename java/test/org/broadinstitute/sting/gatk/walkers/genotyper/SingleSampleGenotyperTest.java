@@ -46,6 +46,26 @@ public class SingleSampleGenotyperTest extends WalkerTest {
 
     // --------------------------------------------------------------------------------------------------------------
     //
+    // testing calls with SLX, 454, and SOLID data
+    //
+    // --------------------------------------------------------------------------------------------------------------
+    @Test
+    public void testMultiTechnologies() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T SingleSampleGenotyper" +
+                        " -R /broad/1KG/reference/human_b36_both.fasta" +
+                        " -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" +
+                        " -varout %s" +
+                        " -L 1:10,000,000-10,100,000" +
+                        " -m empirical",
+                1,
+                Arrays.asList("b8975b303952edff3b0273165ba91001"));
+
+        executeTest(String.format("testMultiTechnologies"), spec);
+    }    
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
     // testing the cache
     //
     // --------------------------------------------------------------------------------------------------------------
@@ -56,7 +76,7 @@ public class SingleSampleGenotyperTest extends WalkerTest {
             WalkerTest.WalkerTestSpec withoutCacheSpec = new WalkerTest.WalkerTestSpec(
                     testGeliLod5() + " -L 1:10,000,000-10,100,000 --disableCache -m " + model.toString(), 1,
                     Arrays.asList(""));
-            List<String> withoutCache = executeTest("empirical1MbTest", withoutCacheSpec );
+            List<String> withoutCache = executeTest("empirical1MbTest", withoutCacheSpec ).getSecond();
 
             WalkerTest.WalkerTestSpec withCacheSpec = new WalkerTest.WalkerTestSpec(
                     testGeliLod5() + " -L 1:10,000,000-10,100,000 -m " + model.toString(), 1,
@@ -113,6 +133,8 @@ public class SingleSampleGenotyperTest extends WalkerTest {
                 Arrays.asList(OneMbEmpiricalMD5));
         executeTest("empirical1MbTest", spec);
     }
+
+
 
     // --------------------------------------------------------------------------------------------------------------
     //

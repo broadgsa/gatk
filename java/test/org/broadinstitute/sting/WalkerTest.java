@@ -2,6 +2,8 @@ package org.broadinstitute.sting;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 import org.junit.Test;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
@@ -97,7 +99,7 @@ public class WalkerTest extends BaseTest {
         return false;
     }
 
-    protected List<String> executeTest(final String name, WalkerTestSpec spec) {
+    protected Pair<List<File>, List<String>> executeTest(final String name, WalkerTestSpec spec) {
         List<File> tmpFiles = new ArrayList<File>();
         for ( int i = 0; i < spec.nOutputFiles; i++ ) {
             try {
@@ -110,14 +112,19 @@ public class WalkerTest extends BaseTest {
         final String args = String.format(spec.args, tmpFiles.toArray());
         logger.warn(Utils.dupString('-', 80));
         logger.warn(String.format("Executing test %s with GATK arguments: %s", name, args));
+
         CommandLineGATK instance = new CommandLineGATK();
         CommandLineExecutable.start(instance, args.split(" "));
 
-        return assertMatchingMD5s(name, tmpFiles, spec.md5s);
+        if ( CommandLineExecutable.result != 0 ) {
+            throw new RuntimeException("Error running the GATK with arguments: " + args);
+        }
+
+        return new Pair<List<File>, List<String>>(tmpFiles, assertMatchingMD5s(name, tmpFiles, spec.md5s));
     }
 
     @Test
     public void testWalkerTest() {
-        logger.warn("WalkerTest is just a framework");
+        //logger.warn("WalkerTest is just a framework");
     }
 }

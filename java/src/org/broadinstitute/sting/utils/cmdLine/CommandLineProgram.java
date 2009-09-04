@@ -139,7 +139,7 @@ public abstract class CommandLineProgram {
         BasicConfigurator.configure();
     }
 
-    public static int result = 0;
+    public static int result = -1;
 
     /**
      * This function is called to start processing the command line, and kick
