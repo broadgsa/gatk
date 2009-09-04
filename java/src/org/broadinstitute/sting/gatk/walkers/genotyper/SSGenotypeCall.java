@@ -72,6 +72,8 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
 
     @Override
     public boolean equals(Object other) {
+        lazyEval();
+
         if (other == null)
             return false;
         if (other instanceof SSGenotypeCall) {
@@ -89,11 +91,29 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
     }
 
     public String toString() {
-        return String.format("%s ref=%s depth=%d rmsMAPQ=%.2f likelihoods=%s",
-                             getLocation(), mRefBase, mPileup.getReads().size(), Arrays.toString(mGenotypeLikelihoods.getLikelihoods()));
+        lazyEval();
+        return String.format("%s best=%s cmp=%s ref=%s depth=%d negLog10PError = %.2f, likelihoods=%s",
+                getLocation(), mGenotype, mCompareTo, mRefBase, mPileup.getReads().size(),
+                getNegLog10PError(), Arrays.toString(mGenotypeLikelihoods.getLikelihoods()));
     }
 
+    private void lazyEval() {
+        // us
+        if (mGenotype == null) {
+            Integer sorted[] = Utils.SortPermutation(mGenotypeLikelihoods.getPosteriors());
+            mGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 1]];
+        }
 
+        // our comparison
+        if (mCompareTo == null) {
+            if (this.mBestVrsRef) {
+                mCompareTo = DiploidGenotype.valueOf(Utils.dupString(this.getReference(),2));
+            } else {
+                Integer sorted[] = Utils.SortPermutation(mGenotypeLikelihoods.getPosteriors());
+                mCompareTo = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 2]];
+            }
+        }
+    }
 
 
     /**
@@ -112,10 +132,7 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
      * get the best genotype
      */
     public DiploidGenotype getBestGenotype() {
-        if (mGenotype == null) {
-            Integer sorted[] = Utils.SortPermutation(mGenotypeLikelihoods.getPosteriors());
-            mGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 1]];
-        }
+        lazyEval();
         return mGenotype;
     }
 
@@ -123,14 +140,7 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
      * get the alternate genotype
      */
     public DiploidGenotype getAltGenotype() {
-        if (mCompareTo == null) {
-            if (this.mBestVrsRef) {
-                mCompareTo = DiploidGenotype.valueOf(Utils.dupString(this.getReference(),2));
-            } else {
-                Integer sorted[] = Utils.SortPermutation(mGenotypeLikelihoods.getPosteriors());
-                mCompareTo = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 2]];
-            }
-        }
+        lazyEval();
         return mCompareTo;
     }
 

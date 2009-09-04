@@ -44,6 +44,10 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
     @Argument(fullName = "platform", shortName = "pl", doc = "Causes the genotyper to assume that reads without PL header TAG are this platform.  Defaults to null, indicating that the system will throw a runtime exception when such reads are detected", required = false)
     public EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform defaultPlatform = null;
 
+    @Argument(fullName = "disableCache", doc = "[ADVANCED] If true, we won't use the caching system.  This argument is for testing purposes only", required = false)
+    public boolean disableCache = false;
+
+
     public class CallResult {
         long nConfidentCalls = 0;
         long nNonConfidentCalls = 0;
@@ -94,6 +98,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
         GenotypeLikelihoods gl = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, priors, defaultPlatform);
 
         gl.setVerbose(VERBOSE);
+        gl.setEnableCacheFlag(! disableCache);
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
         gl.add(pileup, true);
         gl.validate();

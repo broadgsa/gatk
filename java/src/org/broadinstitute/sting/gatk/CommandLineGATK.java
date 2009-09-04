@@ -66,6 +66,7 @@ public class CommandLineGATK extends CommandLineExecutable {
         try {
             CommandLineGATK instance = new CommandLineGATK();
             start(instance, argv);
+            System.exit(CommandLineProgram.result); // todo -- this is a painful hack
         } catch (Exception e) {
             exitSystemWithError(e);
         }

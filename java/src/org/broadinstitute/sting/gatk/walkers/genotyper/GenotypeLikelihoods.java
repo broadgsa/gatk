@@ -41,6 +41,8 @@ public abstract class GenotypeLikelihoods implements Cloneable {
     private final static int FIXED_PLOIDY = 2;
     private final static int MAX_PLOIDY = FIXED_PLOIDY + 1;
 
+    protected boolean enableCacheFlag = true;
+
     //
     // The three fundamental data arrays associated with a Genotype Likelhoods object
     //
@@ -175,8 +177,12 @@ public abstract class GenotypeLikelihoods implements Cloneable {
      *
      * @return true if caching should be enabled, false otherwise
      */
-    protected boolean enableCache() {
-        return true;
+    public boolean cacheIsEnabled() {
+        return enableCacheFlag;
+    }
+
+    public void setEnableCacheFlag(boolean enable) {
+        enableCacheFlag = enable;
     }
 
     /**
@@ -247,7 +253,7 @@ public abstract class GenotypeLikelihoods implements Cloneable {
 
         if ( qualityScore > getMinQScoreToInclude() ) {
             // Handle caching if requested.  Just look up the cached result if its available, or compute and store it
-            boolean enableCache = enableCacheArg && enableCache();
+            boolean enableCache = enableCacheArg && cacheIsEnabled();
             GenotypeLikelihoods cached = null;
             if ( enableCache ) {
                 if ( ! inCache( observedBase, qualityScore, FIXED_PLOIDY, read, offset ) ) {

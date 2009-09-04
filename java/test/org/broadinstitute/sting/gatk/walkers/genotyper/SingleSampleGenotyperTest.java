@@ -1,140 +1,164 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.WalkerTest;
 import org.broadinstitute.sting.utils.genotype.Variant;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.junit.Test;
 import org.broadinstitute.sting.gatk.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.executive.Accumulator;
 
 import java.io.*;
-import java.util.Arrays;
-import java.util.EnumMap;
+import java.util.*;
 import java.security.MessageDigest;
 import java.math.BigInteger;
 
 import junit.framework.Assert;
 
-public class SingleSampleGenotyperTest extends BaseTest {
-    private final static double DELTA = 1e-8;
-
-    private static final String oneMB = "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam";
-    private static final String fiveMB = "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_15_mb.SLX.bam";
-    private static String gatkargs(final String bam) {
-        final String GATKArgs =
-                "<GATK-argument-collection>\n" +
-                        "   <sam-files class=\"java.util.ArrayList\">\n" +
-                        "      <file>%s</file>\n" +
-                        "   </sam-files>\n" +
-                        "   <reference-file>/broad/1KG/reference/human_b36_both.fasta</reference-file>\n" +
-                        "   <analysis-name>SingleSampleGenotyper</analysis-name>\n" +
-                        "</GATK-argument-collection>";
-        return String.format(GATKArgs, bam);
+public class SingleSampleGenotyperTest extends WalkerTest {
+    public static String baseTestString() {
+        return "-T SingleSampleGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s";
     }
 
-    private static class ExpectedResult {
-        long nCalls;
-        String md5sum;
-        public ExpectedResult(long calls, String md5) {
-            this.nCalls = calls;
-            this.md5sum = md5;
-        }
+    public static String testGeliLod5() {
+        return baseTestString() + " --variant_output_format GELI -lod 5";
     }
 
-    public static EnumMap<BaseMismatchModel, ExpectedResult> expectedOutput = new EnumMap<BaseMismatchModel, ExpectedResult>(BaseMismatchModel.class);
+    private static String OneMb1StateMD5 = "d5404668e76f206055f03d97162ea6d9";
+    private static String OneMb3StateMD5 = "46fb7b66da3dac341e9c342f751d74cd";
+    private static String OneMbEmpiricalMD5 = "ea0be2fd074a6c824a0670ad5b3e0aca";
 
-    static {
-        expectedOutput.put(BaseMismatchModel.ONE_STATE, new ExpectedResult(983L, "d5404668e76f206055f03d97162ea6d9"));
-        expectedOutput.put(BaseMismatchModel.THREE_STATE, new ExpectedResult(1055L, "46fb7b66da3dac341e9c342f751d74cd"));
-        expectedOutput.put(BaseMismatchModel.EMPIRICAL, new ExpectedResult(1070L, "ea0be2fd074a6c824a0670ad5b3e0aca"));
-    }
-
-    //private static double callingTolerance = 0.2; // I'm willing to tolerate +/- 10% variation in call rate from that expected
-
-    public static long nExpectedCalls(BaseMismatchModel model) {
-        return expectedOutput.get(model).nCalls;
-    }
-
-//    public static double nExpectedCallsTolerance(long nBasesCalled) {
-//        return nExpectedCalls(nBasesCalled) * callingTolerance;
+//    private static String oneMbMD5(BaseMismatchModel m) {
+//        switch (m) {
+//            case ONE_STATE: return OneMb1StateMD5;
+//            case THREE_STATE: return OneMb3StateMD5;
+//            case EMPIRICAL: return OneMbEmpiricalMD5;
+//            default: throw new RuntimeException("Unexpected BaseMismatchModel " + m);
+//        }
 //    }
 
-    public static void assertGoodNumberOfCalls(final String name, BaseMismatchModel model, SingleSampleGenotyper.CallResult calls) {
-        Assert.assertEquals(name, nExpectedCalls(model), calls.nConfidentCalls);
-    }   
+    // Uncomment to not check outputs against expectations
+    //protected boolean parameterize() {
+    //    return true;
+    //}
 
-    public static void assertMatchingMD5(final String name, BaseMismatchModel model, final File resultsFile ) {
-        try {
-            byte[] bytesOfMessage = getBytesFromFile(resultsFile);
-            byte[] thedigest = MessageDigest.getInstance("MD5").digest(bytesOfMessage);
-            BigInteger bigInt = new BigInteger(1, thedigest);
-            String filemd5sum = bigInt.toString(16);
-            Assert.assertEquals(name + "Mismatching MD5s", expectedOutput.get(model).md5sum, filemd5sum);
-        } catch ( Exception e ) {
-            throw new RuntimeException("Failed to read bytes from calls file: " + resultsFile);
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing the cache
+    //
+    // --------------------------------------------------------------------------------------------------------------
+    @Test
+    public void testCache() {
+        for ( BaseMismatchModel model : BaseMismatchModel.values() ) {
+            // calculated the expected value without the cache enabled
+            WalkerTest.WalkerTestSpec withoutCacheSpec = new WalkerTest.WalkerTestSpec(
+                    testGeliLod5() + " -L 1:10,000,000-10,100,000 --disableCache -m " + model.toString(), 1,
+                    Arrays.asList(""));
+            List<String> withoutCache = executeTest("empirical1MbTest", withoutCacheSpec );
+
+            WalkerTest.WalkerTestSpec withCacheSpec = new WalkerTest.WalkerTestSpec(
+                    testGeliLod5() + " -L 1:10,000,000-10,100,000 -m " + model.toString(), 1,
+                    withoutCache);
+            executeTest(String.format("testCache[%s]", model), withCacheSpec );
         }
     }
 
-    public static byte[] getBytesFromFile(File file) throws IOException {
-        InputStream is = new FileInputStream(file);
-
-        // Get the size of the file
-        long length = file.length();
-
-        if (length > Integer.MAX_VALUE) {
-            // File is too large
-        }
-
-        // Create the byte array to hold the data
-        byte[] bytes = new byte[(int)length];
-
-        // Read in the bytes
-        int offset = 0;
-        int numRead = 0;
-        while (offset < bytes.length
-               && (numRead=is.read(bytes, offset, bytes.length-offset)) >= 0) {
-            offset += numRead;
-        }
-
-        // Ensure all the bytes have been read in
-        if (offset < bytes.length) {
-            throw new IOException("Could not completely read file "+file.getName());
-        }
-
-        // Close the input stream and return bytes
-        is.close();
-        return bytes;
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing genotype mode
+    //
+    // --------------------------------------------------------------------------------------------------------------
+    @Test
+    public void genotypeTest() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                testGeliLod5() + " -L 1:10,000,000-10,100,000 -m empirical --genotype", 1,
+                Arrays.asList("7e5dec6481bbbc890493925da9a8f691"));
+        executeTest("genotypeTest", spec);
     }
 
-    private void oneMBCallTest(BaseMismatchModel model) {
-        logger.warn("Executing oneMBCallTest for " + model);
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // basic base calling models
+    //
+    // --------------------------------------------------------------------------------------------------------------
 
-        InputStream stream = new ByteArrayInputStream(gatkargs(oneMB).getBytes());
-        GATKArgumentCollection mycoll = GATKArgumentCollection.unmarshal(stream);
-        mycoll.intervals = Arrays.asList("1:10,000,000-11,000,000");
-
-        SingleSampleGenotyper SSG = new SingleSampleGenotyper();
-        SSG.VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
-        SSG.LOD_THRESHOLD = 5.0;
-
-        try {
-            SSG.VARIANTS_FILE = File.createTempFile("SSGTempTmpCalls.geli.calls", ".tmp" );
-        } catch (IOException ex) {
-            System.err.println("Cannot create temp file: " + ex.getMessage());
-        }
-        SSG.baseModel = model;
-
-        GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
-        System.out.printf("model is %s, SSG says %s%n", model, SSG.baseModel );
-        Accumulator obj = (Accumulator)engine.execute(mycoll, SSG);
-        SingleSampleGenotyper.CallResult calls  = (SingleSampleGenotyper.CallResult)obj.finishTraversal();
-        logger.warn(String.format("SSG(%s): made %d calls at %d bases", SSG.baseModel, calls.nConfidentCalls, calls.nCalledBases));
-        assertMatchingMD5("testBasic", model, SSG.VARIANTS_FILE);
-        assertGoodNumberOfCalls("testBasic", model, calls);
+    @Test
+    public void oneState100bpTest() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec( testGeliLod5() + " -L 1:10,000,000-10,000,100 -m one_state", 1, Arrays.asList("3cd402d889c015be4a318123468f4262"));
+        executeTest("oneState100bpTest", spec);
     }
 
-    @Test public void oneStateOneMBTest() { oneMBCallTest(BaseMismatchModel.ONE_STATE); }
-    @Test public void threeStateOneMBTest() { oneMBCallTest(BaseMismatchModel.THREE_STATE); }
-    @Test public void empiricalStateOneMBTest() { oneMBCallTest(BaseMismatchModel.EMPIRICAL); }
+    @Test
+    public void oneState1MbTest() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                testGeliLod5() + " -L 1:10,000,000-11,000,000 -m one_state",
+                1, Arrays.asList(OneMb1StateMD5));
+        executeTest("oneState1MbTest", spec);
+    }
+
+    @Test
+    public void threeState1MbTest() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                testGeliLod5() + " -L 1:10,000,000-11,000,000 -m three_state", 1,
+                Arrays.asList(OneMb3StateMD5));
+        executeTest("threeState1MbTest", spec);
+    }
+
+    @Test
+    public void empirical1MbTest() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                testGeliLod5() + " -L 1:10,000,000-11,000,000 -m empirical", 1,
+                Arrays.asList(OneMbEmpiricalMD5));
+        executeTest("empirical1MbTest", spec);
+    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing output formats
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    //@Argument(fullName = "variant_output_format", shortName = "vf", doc = "File format to be used", required = false)
+    //public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing LOD thresholding
+    //
+    // --------------------------------------------------------------------------------------------------------------
+    @Test
+    public void testLOD() {
+        HashMap<Double, String> e = new HashMap<Double, String>();
+        e.put( 10.0, "e4c51dca6f1fa999f4399b7412829534" );
+        e.put( 3.0, "d804c24d49669235e3660e92e664ba1a" );
+
+        for ( Map.Entry<Double, String> entry : e.entrySet() ) {
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    baseTestString() + " --variant_output_format GELI -L 1:10,000,000-11,000,000 -m EMPIRICAL -lod " + entry.getKey(), 1,
+                    Arrays.asList(entry.getValue()));
+            executeTest("testLOD", spec);
+        }
+    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing hetero setting
+    //
+    // --------------------------------------------------------------------------------------------------------------
+    @Test
+    public void testHeterozyosity() {
+        HashMap<Double, String> e = new HashMap<Double, String>();
+        e.put( 0.01, "ca9986b32aac0d6ad6058f4bf10e7df2" );
+        e.put( 0.0001, "55d4e3e73215b70b22a8e689a4e16d37" );
+        e.put( 1.0 / 1850, "1ae2126f1a6490d6edd15d95bce726c4" );
+        
+        for ( Map.Entry<Double, String> entry : e.entrySet() ) {
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    testGeliLod5() + " -L 1:10,000,000-11,000,000 -m EMPIRICAL --heterozygosity " + entry.getKey(), 1,
+                    Arrays.asList(entry.getValue()));
+            executeTest(String.format("testHeterozyosity[%s]", entry.getKey()), spec);
+        }
+    }
 }

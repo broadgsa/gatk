@@ -80,7 +80,7 @@ public abstract class CommandLineProgram {
      * this is used to indicate if they've asked for help
      */
     @Argument(fullName="help",shortName="h",doc="Generate this help message",required=false)
-    public Boolean help = false;    
+    public Boolean help = false;
 
     /**
      * our logging output patterns
@@ -138,6 +138,8 @@ public abstract class CommandLineProgram {
         // setup a basic log configuration
         BasicConfigurator.configure();
     }
+
+    public static int result = 0;
 
     /**
      * This function is called to start processing the command line, and kick
@@ -233,10 +235,10 @@ public abstract class CommandLineProgram {
             clp.setupLoggerLevel();
 
             // call the execute
-            int result = clp.execute();
+            CommandLineProgram.result = clp.execute();
 
             // return the result
-            System.exit(result);
+            //System.exit(result);     // todo -- is this safe -- why exit here?  I want to run the GATK like normal
         }
         catch (ArgumentException e) {
             clp.parser.printHelp( clp.getApplicationDetails() );
