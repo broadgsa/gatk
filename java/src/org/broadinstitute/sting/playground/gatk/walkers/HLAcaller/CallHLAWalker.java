@@ -35,7 +35,8 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
 
     //String HLAdatabaseFile = "/Users/shermanjia/Work/HLA.sam";
     //String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.sam";
-    String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.nuc.sam";
+    //String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.nuc.sam";
+    String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.nuc.4digitUnique.sam";
 
 
 
