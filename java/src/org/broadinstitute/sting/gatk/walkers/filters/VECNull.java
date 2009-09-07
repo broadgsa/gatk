@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
-public class VECNull implements VariantExclusionCriterion {
-    public void initialize(String arguments) {
-    }
+import java.util.HashMap;
 
-    public void compute(VariantContextWindow contextWindow) {
-    }
+public class VECNull implements VariantExclusionCriterion {
+    public void initialize(HashMap<String,String> arguments) {}
+
+    public void compute(VariantContextWindow contextWindow) {}
 
     public double inclusionProbability() {
         // A hack for now until this filter is actually converted to an empirical filter

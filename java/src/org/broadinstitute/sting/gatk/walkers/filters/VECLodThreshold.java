@@ -2,15 +2,16 @@ package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.gatk.contexts.VariantContext;
 
+import java.util.HashMap;
+
 public class VECLodThreshold implements VariantExclusionCriterion {
     private double lodThreshold = 5.0;
     private double lod;
     private boolean exclude;
 
-    public void initialize(String arguments) {
-        if (arguments != null && !arguments.isEmpty()) {
-            lodThreshold = Double.valueOf(arguments);
-        }
+    public void initialize(HashMap<String,String> args) {
+        if ( args.get("lod") != null )
+            lodThreshold = Double.valueOf(args.get("lod"));
     }
 
     public void compute(VariantContextWindow contextWindow) {

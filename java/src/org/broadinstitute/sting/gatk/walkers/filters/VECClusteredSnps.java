@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
+import java.util.HashMap;
 
 
 public class VECClusteredSnps implements VariantExclusionCriterion {
@@ -12,12 +13,11 @@ public class VECClusteredSnps implements VariantExclusionCriterion {
     private boolean exclude;
     private long distance;
 
-    public void initialize(String arguments) {
-        if (arguments != null && !arguments.isEmpty()) {
-            String[] argPieces = arguments.split(",");
-            window = Integer.valueOf(argPieces[0]);
-            snpThreshold = Integer.valueOf(argPieces[1]);
-        }
+    public void initialize(HashMap<String,String> args) {
+        if ( args.get("window") != null )
+            window = Integer.valueOf(args.get("window"));
+        if ( args.get("snps") != null )
+            snpThreshold = Integer.valueOf(args.get("snps"));
 
         if ( window < 2 || snpThreshold < 2 )
             throw new StingException("Window and threshold values need to be >= 2");

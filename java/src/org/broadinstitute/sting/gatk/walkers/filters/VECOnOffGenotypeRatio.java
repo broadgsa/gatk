@@ -3,6 +3,8 @@ package org.broadinstitute.sting.gatk.walkers.filters;
 import org.broadinstitute.sting.gatk.refdata.RodGeliText;
 import org.broadinstitute.sting.utils.*;
 
+import java.util.HashMap;
+
 public class VECOnOffGenotypeRatio extends RatioFilter {
     private double threshold = 0.8;
     private double ratio;
@@ -11,13 +13,11 @@ public class VECOnOffGenotypeRatio extends RatioFilter {
         super("On/Off Genotype Ratio", VECOnOffGenotypeRatio.class, Tail.LeftTailed);
     }
 
-    public void initialize(String arguments) {
-        if (arguments != null && !arguments.isEmpty()) {
-            String[] argPieces = arguments.split(",");
-            threshold = Double.valueOf(argPieces[0]);
-            if ( argPieces.length > 1 )
-                minGenotypeConfidenceToTest = Double.valueOf(argPieces[1]);
-        }
+    public void initialize(HashMap<String,String> args) {
+        if ( args.get("threshold") != null )
+            threshold = Double.valueOf(args.get("threshold"));
+        if ( args.get("confidence") != null )
+            minGenotypeConfidenceToTest = Double.valueOf(args.get("confidence"));
         setLowThreshold(threshold);
     }
 

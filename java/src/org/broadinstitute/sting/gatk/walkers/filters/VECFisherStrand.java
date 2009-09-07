@@ -8,6 +8,7 @@ import net.sf.samtools.SAMRecord;
 import cern.jet.math.Arithmetic;
 
 import java.util.List;
+import java.util.HashMap;
 
 
 public class VECFisherStrand implements VariantExclusionCriterion {
@@ -15,10 +16,9 @@ public class VECFisherStrand implements VariantExclusionCriterion {
     private double pValue;
     private boolean exclude;
 
-    public void initialize(String arguments) {
-        if (arguments != null && !arguments.isEmpty()) {
-            pvalueLimit = Double.valueOf(arguments);
-        }
+    public void initialize(HashMap<String,String> args) {
+        if ( args.get("pvalue") != null )
+            pvalueLimit = Double.valueOf(args.get("pvalue"));
     }
 
     public void compute(VariantContextWindow contextWindow) {

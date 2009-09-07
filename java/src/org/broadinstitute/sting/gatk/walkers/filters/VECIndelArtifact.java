@@ -3,15 +3,14 @@ package org.broadinstitute.sting.gatk.walkers.filters;
 import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 
+import java.util.HashMap;
+
 
 public class VECIndelArtifact implements VariantExclusionCriterion {
     private boolean exclude;
     private String source = "N/A";
 
-    public void initialize(String arguments) {
-        if (arguments != null && !arguments.isEmpty()) {
-        }
-    }
+    public void initialize(HashMap<String,String> arguments) {}
 
     public void compute(VariantContextWindow contextWindow) {
         VariantContext context = contextWindow.getContext();

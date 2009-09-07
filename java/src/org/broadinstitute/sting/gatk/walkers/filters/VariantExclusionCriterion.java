@@ -1,8 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
-public interface VariantExclusionCriterion {
-    public void initialize(String arguments);
+import java.util.HashMap;
 
+public interface VariantExclusionCriterion {
+    public void initialize(HashMap<String,String> arguments);
     public void compute(VariantContextWindow contextWindow);
 
     //public boolean isExcludable();

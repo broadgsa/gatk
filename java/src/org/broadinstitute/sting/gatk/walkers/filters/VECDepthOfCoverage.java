@@ -2,6 +2,8 @@ package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.gatk.contexts.VariantContext;
 
+import java.util.HashMap;
+
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,10 +18,9 @@ public class VECDepthOfCoverage implements VariantExclusionCriterion {
     private boolean exclude = false;
     private int depth;
 
-    public void initialize(String arguments) {
-        if (arguments != null && !arguments.isEmpty()) {
-            maximum = Integer.valueOf(arguments);
-        }
+    public void initialize(HashMap<String,String> args) {
+        if ( args.get("max") != null )
+            maximum = Integer.valueOf(args.get("max"));
     }
 
     public void compute(VariantContextWindow contextWindow) {

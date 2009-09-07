@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
+import java.util.HashMap;
 
 
 public class VECMappingQuality implements VariantExclusionCriterion {
@@ -12,10 +13,9 @@ public class VECMappingQuality implements VariantExclusionCriterion {
     private double rms;
     private boolean exclude;
 
-    public void initialize(String arguments) {
-        if (arguments != null && !arguments.isEmpty()) {
-            minQuality = Double.valueOf(arguments);
-        }
+    public void initialize(HashMap<String,String> args) {
+        if ( args.get("min") != null )
+            minQuality = Double.valueOf(args.get("min"));
     }
 
     public void compute(VariantContextWindow contextWindow) {

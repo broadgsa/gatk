@@ -5,6 +5,8 @@ import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Pair;
 
+import java.util.HashMap;
+
 public class VECAlleleBalance extends RatioFilter {
 
     private double lowThreshold = 0.25, highThreshold = 0.75;
@@ -14,14 +16,13 @@ public class VECAlleleBalance extends RatioFilter {
         super("Allele Balance Ratio", VECAlleleBalance.class, Tail.TwoTailed);
     }
 
-    public void initialize(String arguments) {
-        if (arguments != null && !arguments.isEmpty()) {
-            String[] argPieces = arguments.split(",");
-            lowThreshold = Double.valueOf(argPieces[0]);
-            highThreshold = Double.valueOf(argPieces[1]);
-            if ( argPieces.length > 2 )
-                minGenotypeConfidenceToTest = Double.valueOf(argPieces[2]);
-        }
+    public void initialize(HashMap<String,String> args) {
+        if ( args.get("low") != null )
+            lowThreshold = Double.valueOf(args.get("low"));
+        if ( args.get("high") != null )
+            highThreshold = Double.valueOf(args.get("high"));
+        if ( args.get("confidence") != null )
+            minGenotypeConfidenceToTest = Double.valueOf(args.get("confidence"));
         setLowThreshold(lowThreshold);
         setHighThreshold(highThreshold);
     }

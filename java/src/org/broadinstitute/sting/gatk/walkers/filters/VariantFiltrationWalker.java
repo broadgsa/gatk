@@ -21,7 +21,7 @@ import java.util.*;
 public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="variants_out_head", shortName="VOH", doc="File to which modified variants should be written") public String VARIANTS_OUT_HEAD;
     @Argument(fullName="features", shortName="F", doc="Feature test (optionally with arguments) to apply to genotype posteriors.  Syntax: 'testname[:arguments]'", required=false) public String[] FEATURES;
-    @Argument(fullName="exclusion_criterion", shortName="X", doc="Exclusion test (optionally with arguments) to apply to variant call.  Syntax: 'testname[:arguments]'", required=false) public String[] EXCLUSIONS;
+    @Argument(fullName="exclusion_criterion", shortName="X", doc="Exclusion test (optionally with arguments) to apply to variant call.  Syntax: 'testname[:key1=arg1,key2=arg2,...]'", required=false) public String[] EXCLUSIONS;
     @Argument(fullName="inclusion_threshold", shortName="IT", doc="The product of the probability to include variants based on these filters must be greater than the value specified here in order to be included", required=false) public Double INCLUSION_THRESHOLD = 0.9;
     @Argument(fullName="verbose", shortName="V", doc="Show how the variant likelihoods are changing with the application of each feature") public Boolean VERBOSE = false;
     @Argument(fullName="list", shortName="ls", doc="List the available features and exclusion criteria and exit") public Boolean LIST = false;
@@ -98,15 +98,23 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                 for (String requestedExclusionString : EXCLUSIONS) {
                     String[] requestedExclusionPieces = requestedExclusionString.split(":");
                     String requestedExclusionName = requestedExclusionPieces[0];
-                    String requestedExclusionArgs = (requestedExclusionPieces.length == 2) ? requestedExclusionPieces[1] : "";
 
                     for ( Class exclusionClass : exclusionClasses ) {
                         String exclusionClassName = rationalizeClassName(exclusionClass);
 
                         if (requestedExclusionName.equalsIgnoreCase(exclusionClassName)) {
                             try {
+                                HashMap<String,String> requestedArgs = new HashMap<String,String>();
+                                if ( requestedExclusionPieces.length == 2 ) {
+                                    String[] argStrings = requestedExclusionPieces[1].split(",");
+                                    for (int i = 0; i < argStrings.length; i++ ) {
+                                        String[] arg = argStrings[i].split("=");
+                                        if ( arg.length == 2 )
+                                            requestedArgs.put(arg[0], arg[1]);
+                                    }
+                                }
                                 VariantExclusionCriterion vec = (VariantExclusionCriterion) exclusionClass.newInstance();
-                                vec.initialize(requestedExclusionArgs);
+                                vec.initialize(requestedArgs);
                                 requestedExclusions.add(vec);
 
                                 paramsWriter.print(vec.getStudyHeader() + "\t");

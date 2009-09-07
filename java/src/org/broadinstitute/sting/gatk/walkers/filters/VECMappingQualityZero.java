@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
+import java.util.HashMap;
 
 
 public class VECMappingQualityZero implements VariantExclusionCriterion {
@@ -11,10 +12,9 @@ public class VECMappingQualityZero implements VariantExclusionCriterion {
     private int mq0Count;
     private boolean exclude;
 
-    public void initialize(String arguments) {
-        if (arguments != null && !arguments.isEmpty()) {
-            maximum = Integer.valueOf(arguments);
-        }
+    public void initialize(HashMap<String,String> args) {
+        if ( args.get("max") != null )
+            maximum = Integer.valueOf(args.get("max"));
     }
 
     public void compute(VariantContextWindow contextWindow) {

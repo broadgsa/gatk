@@ -7,6 +7,7 @@ import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 
 import net.sf.picard.reference.ReferenceSequence;
 
@@ -28,12 +29,11 @@ public class VECHomopolymer implements VariantExclusionCriterion {
 
     private boolean exclude = false;
 
-    public void initialize(String arguments) {
-        if (arguments != null && !arguments.isEmpty()) {
-            String[] argPieces = arguments.split(",");
-            extent = Integer.valueOf(argPieces[0]);
-            frac = Float.valueOf(argPieces[1]);
-        }
+    public void initialize(HashMap<String,String> args) {
+        if ( args.get("extent") != null )
+            extent = Integer.valueOf(args.get("extent"));
+        if ( args.get("fraction") != null )
+            frac = Integer.valueOf(args.get("fraction"));
 
         File refFile = new File ("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta");
 
