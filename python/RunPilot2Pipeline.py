@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     samples = ["NA12878","NA12891","NA12892","NA19238","NA19239","NA19240"]
     techs = ["SLX"]
-    chrs = range(1, 22) + ["X"]
+    chrs = range(1, 23) + ["X"]
     DoCs = [82,91,70,56,68,86]
 
 # Official genome-wide Depth of Coverage tables for pilot 2, freeze 5:
@@ -60,7 +60,7 @@ if __name__ == "__main__":
 # SLX:     82      91      70      56      68      86
 # SOLID:   37                                      64
 # 454+SLD: 64                                      77
-# ALL:     xx                                      xx
+# ALL:     138                                     150
 
     for sample, DoC in zip(samples, DoCs):
         #
@@ -69,12 +69,12 @@ if __name__ == "__main__":
         MQs = [100,5,5]
         def finalBam(tech):
             return os.path.join(final_bam_dir, "%s.%s.bam" % ( sample, tech ))
-        def outputFile(root, tech, name):
+        def outputFileTech(root, tech, name):
             return os.path.join(root, "%s.%s.%s" % ( sample, tech, name ))
         def badSnps( tech ):
-            return outputFile(cleaner_output, tech, "realigner.badsnps")
+            return os.path.join(cleaner_output, "%s.%s.realigner.badsnps" % ( sample, tech ))
         def indelsForFiltering( tech ):
-            return outputFile(indel_output, tech, "low.calls")
+            return outputFileTech(indel_output, tech, "low.calls")
 
         myTechs = techs
         if sample in ["NA12878", "NA19240"]:
@@ -85,7 +85,7 @@ if __name__ == "__main__":
             myChrs = chrs
             if sample in ["NA12891", "NA19239"]:
                 myChrs = chrs + ["Y"]
-            def badSnps( tech, chr ):
+            def badSnpsChr( tech, chr ):
                 return os.path.join(cleaner_output, "%s.chr%s.%s.realigner.badsnps" % ( sample, chr, tech ))
 
             for chr in myChrs:
@@ -123,7 +123,7 @@ if __name__ == "__main__":
                     jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, mergedIntervalsFile, just_print_commands = OPTIONS.dry, waitID = jobid)
 
                     cleanedFile = outputFile(cleaner_output, "bam")
-                    badsnpsFile = badSnps(tech)
+                    badsnpsFile = badSnpsChr(tech, str(chr))
                     cmd = CleanIntervals(bam, cleanedFile, mergedIntervalsFile, badsnpsFile)
                     jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, cleanedFile, just_print_commands = OPTIONS.dry, waitID = jobid)
 
@@ -140,7 +140,7 @@ if __name__ == "__main__":
 
             cmd = "cat "
             for chr in myChrs:
-                cmd = cmd + " " + badSnps(tech, chr)
+                cmd = cmd + " " + badSnpsChr(tech, chr)
             cmd = cmd + " > " + badSnps(tech)
             jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, badSnps(tech), just_print_commands = OPTIONS.dry, waitID = mergeid)
 
@@ -149,12 +149,12 @@ if __name__ == "__main__":
             def SnpCaller(bam, outputFile): 
                 return config.gatkCmd('SingleSampleGenotyper') + " -o " + outputFile + " -I " + bam
             def VarFiltration(bam, outputHead, snpcalls, badsnps, indelcalls, depth, mq): 
-                return config.gatkCmd('VariantFiltration') + " -VOH " + outputHead + " -I " + bam + " -B variant,Variants," + snpcalls + ",cleaned,CleanedOutSnp," + badsnps + ",indels,SimpleIndel," + indelcalls + " -X DepthOfCoverage:" + depth + " -X MappingQualityZero:" + mq
+                return config.gatkCmd('VariantFiltration') + " -VOH " + outputHead + " -I " + bam + " -B variant,Variants," + snpcalls + ",cleaned,CleanedOutSnp," + badsnps + ",indels,SimpleIndel," + indelcalls + " -X DepthOfCoverage:max=" + depth + " -X MappingQualityZero:max=" + mq
             def VarFiltration454(bam, outputHead, snpcalls, depth, mq): 
-                return config.gatkCmd('VariantFiltration') + " -VOH " + outputHead + " -I " + bam + " -B variant,Variants," + snpcalls + " -X DepthOfCoverage:" + depth + " -X MappingQualityZero:" + mq
+                return config.gatkCmd('VariantFiltration') + " -VOH " + outputHead + " -I " + bam + " -B variant,Variants," + snpcalls + " -X DepthOfCoverage:max=" + depth + " -X MappingQualityZero:max=" + mq
 
 
-            indelsFileHigh = outputFile(indel_output, tech, "high.calls")
+            indelsFileHigh = outputFileTech(indel_output, tech, "high.calls")
             cmd = IndelCaller(bamToCallFrom, indelsFileHigh, "0.3")
             jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, indelsFileHigh, just_print_commands = OPTIONS.dry, waitID = mergeid)
 
@@ -162,7 +162,7 @@ if __name__ == "__main__":
             cmd = IndelCaller(bamToCallFrom, indelsFileLow, "0.1")
             jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, indelsFileLow, just_print_commands = OPTIONS.dry, waitID = mergeid)
 
-            snpsFile = outputFile(snp_output, tech, "calls")
+            snpsFile = outputFileTech(snp_output, tech, "calls")
             cmd = SnpCaller(bamToCallFrom, snpsFile)
             jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, snpsFile, just_print_commands = OPTIONS.dry, waitID = jobid)  # wait on the low indel calls
 
@@ -176,13 +176,13 @@ if __name__ == "__main__":
         def SnpCaller(bams, outputFile): 
             return config.gatkCmd('SingleSampleGenotyper') + " -o " + outputFile + " ".join(map( lambda x: " -I " + x, bams ))
         def VarFiltration(bams, outputHead, snpcalls, badsnps, indelcalls, depth, mq): 
-            return config.gatkCmd('VariantFiltration') + " -VOH " + outputHead + " -B variant,Variants," + snpcalls + ",cleaned,CleanedOutSnp," + badsnps + ",indels,SimpleIndel," + indelcalls + " -X DepthOfCoverage:" + depth + " -X MappingQualityZero:" + mq + " ".join(map( lambda x: " -I " + x, bams ))
+            return config.gatkCmd('VariantFiltration') + " -VOH " + outputHead + " -B variant,Variants," + snpcalls + ",cleaned,CleanedOutSnp," + badsnps + ",indels,SimpleIndel," + indelcalls + " -X DepthOfCoverage:max=" + depth + " -X MappingQualityZero:max=" + mq + " ".join(map( lambda x: " -I " + x, bams ))
 
 #
 # HOW DO I MAKE THESE JOBS DEPEND ON THE MERGE IDS OF THE INDIVIDUAL SAMPLES???
 # (Or until everything else is done?)
 #
-        solid454SnpsFile = outputFile(snp_output, "454-SOLID", "calls")
+        solid454SnpsFile = outputFileTech(snp_output, "454-SOLID", "calls")
         cmd = SnpCaller([finalBam("SOLID"),finalBam("454")], solid454SnpsFile)
         jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, solid454SnpsFile, just_print_commands = OPTIONS.dry, waitID = allMergeIds)
 
@@ -190,7 +190,7 @@ if __name__ == "__main__":
         cmd = VarFiltration([finalBam("SOLID"),finalBam("454")], solid454VarFiltFile, solid454SnpsFile, badSnps("SOLID"), indelsForFiltering("SOLID"), str(DoC), str(mappingQuality))
         jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, allVarFiltFile, just_print_commands = OPTIONS.dry, waitID = jobid)
 
-        allSnpsFile = outputFile(snp_output, "allTechs", "calls")
+        allSnpsFile = outputFileTech(snp_output, "allTechs", "calls")
         cmd = SnpCaller([finalBam("SLX"),finalBam("SOLID"),finalBam("454")], solid454SnpsFile)
         jobid = farm_commands.cmd(cmd, OPTIONS.farmQueue, allSnpsFile, just_print_commands = OPTIONS.dry, waitID = allMergeIds)
         allVarFiltFile = os.path.join(filter_output, "%s.allTechs" % ( sample ))
