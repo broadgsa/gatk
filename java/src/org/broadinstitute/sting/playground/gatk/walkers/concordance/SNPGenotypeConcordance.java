@@ -102,7 +102,7 @@ public class SNPGenotypeConcordance implements ConcordanceType {
         else if ( call1.isSNP() && call2.isReference() && bestVsRef1 >= LOD )
              printVariant(refVsVar1Writer, call1);
         else if ( call2.isSNP() && call1.isReference() && bestVsRef2 >= LOD )
-            printVariant(refVsVar2Writer, call1);
+            printVariant(refVsVar2Writer, call2);
     }
 
     private boolean sameVariantAllele(String genotype1, String genotype2, char ref) {
