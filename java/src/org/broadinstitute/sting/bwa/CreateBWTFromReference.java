@@ -33,6 +33,7 @@ import net.sf.samtools.util.StringUtil;
 import java.io.*;
 import java.util.TreeSet;
 import java.util.Comparator;
+import java.util.Arrays;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -107,12 +108,12 @@ public class CreateBWTFromReference {
     }
 
     private byte[] createBWT( String sequence, int[] suffixArray ) {
-        byte[] bwt = new byte[suffixArray.length];
-        for( int i = 0; i < suffixArray.length; i++ ) {
-            // Find the first character after the current character in the rotation.  If the character is past the end
-            // (in other words, '$'), back up to the previous character.
-            int sequenceEnd = Math.min((suffixArray[i]+suffixArray.length-1)%suffixArray.length, sequence.length()-1 );
-            bwt[i] = (byte)sequence.charAt(sequenceEnd);
+        byte[] bwt = new byte[suffixArray.length-1];
+        int i = 0;
+        for( int suffixArrayEntry: suffixArray ) {
+            if( suffixArrayEntry == 0 )
+                continue;
+            bwt[i++] = (byte)sequence.charAt(suffixArrayEntry-1);
         }
         return bwt;
     }
@@ -168,12 +169,7 @@ public class CreateBWTFromReference {
         byte[] bwt = creator.createBWT(sequence, suffixArray);
 
         String bwtAsString = new String(bwt);
-        //System.out.printf("BWT:%n");
-        while( bwtAsString.length() > 0 ) {
-            int end = Math.min( 80, bwtAsString.length() );
-            //System.out.printf("%s%n", bwtAsString.substring(0,end));
-            bwtAsString = bwtAsString.substring(end);
-        }
+        System.out.printf("BWT: %s...%n", bwtAsString.substring(0,80));
 
         OutputStream bwtOutputStream = new BufferedOutputStream(new FileOutputStream(bwtFile));
 
@@ -201,6 +197,20 @@ public class CreateBWTFromReference {
         saIntWriter.write(suffixArray, 1, suffixArray.length-1);
 
         saIntWriter.close();
+
+        File existingBwtFile = new File(inputFileName+".bwt");
+        WordPackedInputStream inputStream = new WordPackedInputStream(existingBwtFile,ByteOrder.LITTLE_ENDIAN);
+        byte[] existingBwt = inputStream.read();
+
+        String existingBwtAsString = new String(existingBwt);
+        System.out.printf("Existing BWT: %s...%n",existingBwtAsString.substring(0,80));
+
+        for( int i = 0; i < bwt.length; i++ ) {
+            if( bwt[i] != existingBwt[i] ) {
+                System.out.printf("First bwt mismatch: %d%n",i);
+                break;
+            }
+        }
     }
 
     /**

@@ -40,7 +40,7 @@ public class WordPackedOutputStream {
     /**
      * How many bases can be stored in the given word?
      */
-    private static final int BASES_PER_WORD = 16;
+    public static final int BASES_PER_WORD = 16;
 
     /**
      * Ultimate target for the packed bases.
