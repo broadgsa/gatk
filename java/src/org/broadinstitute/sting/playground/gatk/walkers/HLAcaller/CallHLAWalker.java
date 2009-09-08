@@ -44,6 +44,10 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
     ArrayList<String> HLAcigars = new ArrayList<String>();
     ArrayList<String> HLAnames = new ArrayList<String>();
     ArrayList<String> HLApositions = new ArrayList<String>();
+    
+    ArrayList<SAMRecord> AllReads = new ArrayList<SAMRecord>();
+    ArrayList<String> AllReadNames = new ArrayList<String>();
+
     int[] HLAstartpos;
     int[] HLAstoppos;
     int numHLAlleles = 0;
@@ -196,6 +200,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         
         List<SAMRecord> reads = context.getReads();
+
         List<Integer> offsets = context.getOffsets();
         GenomeLoc Gloc = context.getLocation();
 
@@ -241,6 +246,14 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                 byte qual = read.getBaseQualities()[offset];
                 int mapquality = read.getMappingQuality();
                 if (mapquality >= 5 && BaseUtils.simpleBaseToBaseIndex(base) != -1) {
+
+                    //Adds read to list of reads for final phasing comparison
+                    String name = read.getReadName();
+                    if (!AllReadNames.contains(name)){
+                        AllReadNames.add(name);
+                        AllReads.add(read);
+                    }
+
                     if (base == 'A'){numAs++; depth++;}
                     if (base == 'C'){numCs++; depth++;}
                     if (base == 'T'){numTs++; depth++;}
@@ -361,6 +374,8 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
 
         //Print HLA allele combinations with highest likelihood sums
         if (!PrintedOutput){
+            ArrayList<Integer> TopAlleles = new ArrayList<Integer>();
+
             double maxA = 0;  int i_maxA =0;   int j_maxA = 0;
             double maxA2 = 0; int i_maxA_2 =0; int j_maxA_2 = 0;
 
@@ -406,20 +421,35 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                     if (HLAnames.get(i).indexOf("HLA_A") > -1 && HLAnames.get(j).indexOf("HLA_A") > -1){
                         if (Prob[i][j] == maxA && maxA > 0){
                             out.printf("%s\t%s\t%5.0f\t%5.0f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxA,maxA-maxA2);
+                            if (!TopAlleles.contains(i)){TopAlleles.add(i);}
+                            if (!TopAlleles.contains(j)){TopAlleles.add(j);}
                         }
                     } else if (HLAnames.get(i).indexOf("HLA_B") > -1 && HLAnames.get(j).indexOf("HLA_B") > -1){
                         if (Prob[i][j] == maxB && maxB > 0){
                             out.printf("%s\t%s\t%5.0f\t%5.0f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxB,maxB-maxB2);
+                            if (!TopAlleles.contains(i)){TopAlleles.add(i);}
+                            if (!TopAlleles.contains(j)){TopAlleles.add(j);}
                         }
                     } else if (HLAnames.get(i).indexOf("HLA_C") > -1 && HLAnames.get(j).indexOf("HLA_C") > -1){
                         if (Prob[i][j] == maxC && maxC > 0){
                             out.printf("%s\t%s\t%5.0f\t%5.0f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxC,maxC-maxC2);
+                            if (!TopAlleles.contains(i)){TopAlleles.add(i);}
+                            if (!TopAlleles.contains(j)){TopAlleles.add(j);}
                         }
                     }
 
                 }
             }
 
+            //Check top alleles for phasing
+            for (int i = 0; i< TopAlleles.size(); i++){
+                if ( DEBUG ){
+                //Debugging: print list of alleles to be checked for phasing
+                    out.printf("%s\t%s",TopAlleles.get(i),HLAnames.get(TopAlleles.get(i)));
+                    out.printf("\n");
+                }
+                
+            }
 
             //2nd Highest likelihoods
             for (int i = 0; i < numHLAlleles; i++){
