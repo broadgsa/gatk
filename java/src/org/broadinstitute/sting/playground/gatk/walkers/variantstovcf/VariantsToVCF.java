@@ -1,20 +1,19 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantstovcf;
 
-import org.broadinstitute.sting.gatk.walkers.RefWalker;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.walkers.RefWalker;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.ListUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
-import java.util.*;
 import java.io.File;
+import java.util.*;
 
 public class VariantsToVCF extends RefWalker<Integer, Integer> {
     @Argument(fullName="vcfout", shortName="VO", doc="The output VCF file") public File VCF_OUT;
@@ -84,8 +83,8 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
                 String lod = String.format("%d", av.getVariationConfidence() > 99 ? 99 : (int) av.getVariationConfidence());
                 int depth = 0;
 
-                if (rod instanceof rodVariants) {
-                    rodVariants rv = (rodVariants) rod;
+                if (rod instanceof RodGeliText) {
+                    RodGeliText rv = (RodGeliText) rod;
                     depth = rv.depth;
                 }
 
