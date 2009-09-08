@@ -16,7 +16,7 @@ import java.util.Map;
  */
 public class VCFGenotypeRecord {
     // what kind of phasing this genotype has
-    enum PHASE {
+    public enum PHASE {
         UNPHASED, PHASED, PHASED_SWITCH_PROB, UNKNOWN
     }
 
