@@ -37,7 +37,7 @@ import java.nio.ByteOrder;
  * @author mhanna
  * @version 0.1
  */
-public class OccurrenceOutputStream {
+public class PackedIntOutputStream {
     /**
      * How many bytes does it take to hold an integer in Java?
      */
@@ -49,35 +49,47 @@ public class OccurrenceOutputStream {
     private final OutputStream targetOutputStream;
 
     /**
-     * Create a new OccurrenceArrayOutputStream, writing to the given target file.
+     * Create a new PackedIntOutputStream, writing to the given target file.
      * @param outputFile target output file.
      * @throws IOException if an I/O error occurs.
      */
-    public OccurrenceOutputStream( File outputFile ) throws IOException {
+    public PackedIntOutputStream( File outputFile ) throws IOException {
         this(new FileOutputStream(outputFile));
     }
 
     /**
-     * Write occurrence array to the given OutputStream.
-     * @param outputStream Output stream to which to write packed bases.
+     * Write packed ints to the given OutputStream.
+     * @param outputStream Output stream to which to write packed ints.
      * @throws IOException if an I/O error occurs.
      */
-    public OccurrenceOutputStream( OutputStream outputStream ) throws IOException {
+    public PackedIntOutputStream( OutputStream outputStream ) throws IOException {
         this.targetOutputStream = outputStream;
     }
 
     /**
-     * Write the cumulative occurrences to the output stream.
-     * @param occurrences occurrences to write.  occurrences.length must match alphabet size.
+     * Write the data to the output stream.
+     * @param datum datum to write. 
      * @throws IOException if an I/O error occurs.
      */
-    public void write( int[] occurrences ) throws IOException {
-        if( occurrences.length > BytePackedOutputStream.ALPHABET_SIZE )
-            throw new StingException("Wrong number of occurrence data points; expected " + BytePackedOutputStream.ALPHABET_SIZE);
-        ByteBuffer buffer = ByteBuffer.allocate(INT_SIZE_IN_BYTES*occurrences.length).order(ByteOrder.LITTLE_ENDIAN);
-        for(int occurrence: occurrences)
-            buffer.putInt(occurrence);
-        targetOutputStream.write(buffer.array());        
+    public void write( int datum ) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(INT_SIZE_IN_BYTES).order(ByteOrder.LITTLE_ENDIAN);
+        buffer.putInt(datum);
+        targetOutputStream.write(buffer.array());
+    }
+
+    /**
+     * Write the data to the output stream.
+     * @param data data to write.  occurrences.length must match alphabet size.
+     * @throws IOException if an I/O error occurs.
+     */
+    public void write( int[] data ) throws IOException {
+        for(int datum: data)
+            write(datum);
+    }
+
+    public void write( int[] data, int offset, int length ) throws IOException {
+        for( int i = offset; i < offset+length; i++ )
+            write(data[i]);
     }
 
     /**

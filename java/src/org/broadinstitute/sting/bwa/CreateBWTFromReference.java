@@ -99,6 +99,13 @@ public class CreateBWTFromReference {
         return compressedSuffixArray;
     }
 
+    private int[] createInversedCompressedSuffixArray( int[] compressedSuffixArray ) {
+        int[] inverseCompressedSuffixArray = new int[compressedSuffixArray.length];
+        for( int i = 0; i < compressedSuffixArray.length; i++ )
+            inverseCompressedSuffixArray[compressedSuffixArray[i]] = i;
+        return inverseCompressedSuffixArray;
+    }
+
     private byte[] createBWT( String sequence, int[] suffixArray ) {
         byte[] bwt = new byte[suffixArray.length];
         for( int i = 0; i < suffixArray.length; i++ ) {
@@ -111,16 +118,19 @@ public class CreateBWTFromReference {
     }
 
     public static void main( String argv[] ) throws IOException {
-        if( argv.length != 2 ) {
-            System.out.println("USAGE: CreateBWTFromReference <input>.fasta <output>");
+        if( argv.length != 3 ) {
+            System.out.println("USAGE: CreateBWTFromReference <input>.fasta <output bwt> <output sa>");
             return;
         }
 
         String inputFileName = argv[0];
         File inputFile = new File(inputFileName);
 
-        String outputFileName = argv[1];
-        File outputFile = new File(outputFileName);
+        String bwtFileName = argv[1];
+        File bwtFile = new File(bwtFileName);
+
+        String saFileName = argv[2];
+        File saFile = new File(saFileName);
 
         CreateBWTFromReference creator = new CreateBWTFromReference();
 
@@ -144,6 +154,12 @@ public class CreateBWTFromReference {
             reconstructedInverseSA = compressedSuffixArray[reconstructedInverseSA];
         }
 
+        // Create the data structure for the inverse compressed suffix array and print diagnostics.
+        int[] inverseCompressedSuffixArray = creator.createInversedCompressedSuffixArray(compressedSuffixArray);
+        for( int i = 0; i < 8; i++ ) {
+            System.out.printf("inverseCompressedSuffixArray[%d] = %d%n", i, inverseCompressedSuffixArray[i]);
+        }
+
         // Count the occurences of each given base.
         int[] occurrences = creator.countOccurrences(sequence);
         System.out.printf("Occurrences: a=%d, c=%d, g=%d, t=%d%n",occurrences[0],occurrences[1],occurrences[2],occurrences[3]);
@@ -152,27 +168,39 @@ public class CreateBWTFromReference {
         byte[] bwt = creator.createBWT(sequence, suffixArray);
 
         String bwtAsString = new String(bwt);
-        System.out.printf("BWT:%n");
+        //System.out.printf("BWT:%n");
         while( bwtAsString.length() > 0 ) {
             int end = Math.min( 80, bwtAsString.length() );
             //System.out.printf("%s%n", bwtAsString.substring(0,end));
             bwtAsString = bwtAsString.substring(end);
         }
 
-        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(outputFile));
+        OutputStream bwtOutputStream = new BufferedOutputStream(new FileOutputStream(bwtFile));
 
         ByteBuffer buffer = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN);
         buffer.putInt(inverseSuffixArray[0]);
-        outputStream.write(buffer.array());
-        outputStream.flush();
+        bwtOutputStream.write(buffer.array());
+        bwtOutputStream.flush();
 
-        OccurrenceOutputStream occurrenceWriter = new OccurrenceOutputStream(outputStream);
+        PackedIntOutputStream occurrenceWriter = new PackedIntOutputStream(bwtOutputStream);
         occurrenceWriter.write(occurrences);
         occurrenceWriter.flush();
 
-        WordPackedOutputStream bwtOutputStream = new WordPackedOutputStream(outputStream,ByteOrder.LITTLE_ENDIAN);
-        bwtOutputStream.write(bwt);
-        bwtOutputStream.close();
+        WordPackedOutputStream sequenceOutputStream = new WordPackedOutputStream(bwtOutputStream,ByteOrder.LITTLE_ENDIAN);
+        sequenceOutputStream.write(bwt);
+        sequenceOutputStream.close();
+
+        OutputStream saOutputStream = new BufferedOutputStream(new FileOutputStream(saFile));
+        PackedIntOutputStream saIntWriter = new PackedIntOutputStream(saOutputStream);
+
+        // SA file format is 'primary' (= SA-1[0]?), occurrence array, interval, sequence length, SA[]
+        saIntWriter.write(inverseSuffixArray[0]);
+        saIntWriter.write(occurrences);
+        saIntWriter.write(1);
+        saIntWriter.write(suffixArray.length-1);
+        saIntWriter.write(suffixArray, 1, suffixArray.length-1);
+
+        saIntWriter.close();
     }
 
     /**
