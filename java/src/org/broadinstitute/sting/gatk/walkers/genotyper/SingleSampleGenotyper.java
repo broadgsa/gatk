@@ -79,7 +79,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
 
     /** Initialize the walker with some sensible defaults */
     public void initialize() {
-        GenotypeLikelihoods.clearCache();
+        //GenotypeLikelihoods.clearCache();
         // nothing to do
     }
 

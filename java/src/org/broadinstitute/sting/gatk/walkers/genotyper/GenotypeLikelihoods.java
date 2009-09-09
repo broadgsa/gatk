@@ -38,8 +38,8 @@ import static java.lang.Math.pow;
  * model.
  */
 public abstract class GenotypeLikelihoods implements Cloneable {
-    private final static int FIXED_PLOIDY = 2;
-    private final static int MAX_PLOIDY = FIXED_PLOIDY + 1;
+    protected final static int FIXED_PLOIDY = 2;
+    protected final static int MAX_PLOIDY = FIXED_PLOIDY + 1;
 
     protected boolean enableCacheFlag = true;
 
@@ -185,16 +185,6 @@ public abstract class GenotypeLikelihoods implements Cloneable {
         enableCacheFlag = enable;
     }
 
-    /**
-     * Does the caller need to know the tech of the read?  If true, we will use the declared tech of the
-     * read for caching, which can be painfully slow.  By default we aren't tech aware.
-     *
-     * @return true
-     */
-    protected boolean cacheByTech() {
-        return false;
-    }
-
     // -----------------------------------------------------------------------------------------------------------------
     //
     //
@@ -303,30 +293,44 @@ public abstract class GenotypeLikelihoods implements Cloneable {
     //
     //
     // -----------------------------------------------------------------------------------------------------------------
-    static GenotypeLikelihoods[][][][][] CACHE =
-            new GenotypeLikelihoods[EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][MAX_PLOIDY][2];
-    static int cacheSize = 0;
 
-    public static void clearCache() {
-        CACHE = new GenotypeLikelihoods[EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][MAX_PLOIDY][2];
-        cacheSize = 0;
-    }
+    /**
+     * Procedure intended for overloading in subclasses.  Returns / sets cached GL value given all of the information
+     * one can reasonably expect to have.  The default cache is fairly simple.
+     *
+     * @param observedBase
+     * @param qualityScore
+     * @param ploidy
+     * @param read
+     * @param offset
+     * @param val
+     * @return
+     */
+    protected abstract GenotypeLikelihoods getSetCache( char observedBase, byte qualityScore, int ploidy,
+                                                        SAMRecord read, int offset, GenotypeLikelihoods val );
 
-    private GenotypeLikelihoods getSetCache( char observedBase, byte qualityScore, int ploidy,
-                                                       SAMRecord read, int offset, GenotypeLikelihoods val ) {
+    protected GenotypeLikelihoods simpleGetSetCache( GenotypeLikelihoods[][][][] cache,
+                                                     char observedBase, byte qualityScore, int ploidy,
+                                                     SAMRecord read, int offset, GenotypeLikelihoods val ) {
 
-        EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform pl = cacheByTech() ? EmpiricalSubstitutionGenotypeLikelihoods.getReadSequencerPlatform(read) : EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform.UNKNOWN;
-        int a = pl.ordinal();
         int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
         int j = qualityScore;
         int k = ploidy;
-        int x = strandIndex(! read.getReadNegativeStrandFlag());
+        int x = strandIndex(! read.getReadNegativeStrandFlag() );
 
         if ( val != null )
-            CACHE[a][i][j][k][x] = val;
+            cache[i][j][k][x] = val;
 
-        return CACHE[a][i][j][k][x];
+        return cache[i][j][k][x];
     }
+
+    protected int strandIndex(boolean fwdStrand) {
+        return fwdStrand ? 0 : 1;
+    }
+
+    //
+    // All oft he following routines are totally generic
+    //
 
     private GenotypeLikelihoods getCache( char observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset ) {
         return getSetCache( observedBase, qualityScore, ploidy, read, offset, null );
@@ -334,10 +338,6 @@ public abstract class GenotypeLikelihoods implements Cloneable {
 
     private void setCache( char observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset, GenotypeLikelihoods val ) {
         getSetCache( observedBase, qualityScore, ploidy, read, offset, val );
-    }
-
-    private int strandIndex(boolean fwdStrand) {
-        return fwdStrand ? 0 : 1;
     }
 
     private boolean inCache( char observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset ) {
@@ -364,7 +364,6 @@ public abstract class GenotypeLikelihoods implements Cloneable {
             g.reallyAdd(observedBase, qualityScore, read, offset, false);
 
             setCache(observedBase, qualityScore, ploidy, read, offset, g);
-            cacheSize++;
 
             //System.out.printf("Caching %c %d %d %s %s (%d total entries)%n", observedBase, qualityScore, ploidy, read.getReadName(), EmpiricalSubstitutionGenotypeLikelihoods.getReadSequencerPlatform(read), cacheSize);
             return g;

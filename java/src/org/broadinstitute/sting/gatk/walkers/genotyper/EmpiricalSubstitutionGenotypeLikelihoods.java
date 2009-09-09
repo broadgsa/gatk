@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
 
 import static java.lang.Math.log10;
 import java.util.TreeMap;
@@ -215,9 +216,38 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihood
         return super.clone();
     }
 
-    protected boolean cacheByTech() {
-        return true;
+    // -----------------------------------------------------------------------------------------------------------------
+    //
+    //
+    // caching routines
+    //
+    //
+    // -----------------------------------------------------------------------------------------------------------------
+    static GenotypeLikelihoods[][][][][] EMPIRICAL_CACHE = new GenotypeLikelihoods[EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][MAX_PLOIDY][2];
+
+    protected GenotypeLikelihoods getSetCache( char observedBase, byte qualityScore, int ploidy,
+                                             SAMRecord read, int offset, GenotypeLikelihoods val ) {
+        SequencerPlatform pl = getReadSequencerPlatform(read);
+        int a = pl.ordinal();
+        int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
+        int j = qualityScore;
+        int k = ploidy;
+        int x = strandIndex(! read.getReadNegativeStrandFlag());
+
+        if ( val != null )
+            EMPIRICAL_CACHE[a][i][j][k][x] = val;
+
+        return EMPIRICAL_CACHE[a][i][j][k][x];
     }
+  
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //
+    //
+    // calculation of p(B|GT)
+    //
+    //
+    // -----------------------------------------------------------------------------------------------------------------
 
     protected double log10PofTrueBaseGivenMiscall(char observedBase, char chromBase, SAMRecord read, int offset) {
         boolean fwdStrand = ! read.getReadNegativeStrandFlag();

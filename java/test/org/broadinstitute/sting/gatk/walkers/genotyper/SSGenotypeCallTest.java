@@ -26,6 +26,12 @@ public class SSGenotypeCallTest extends BaseTest {
 
     // we need a fake GenotypeLikelihoods class
     public class GenotypeLikelihoodsImpl extends GenotypeLikelihoods {
+        public boolean cacheIsEnabled() { return false; }
+
+        protected GenotypeLikelihoods getSetCache( char observedBase, byte qualityScore, int ploidy,
+                                                 SAMRecord read, int offset, GenotypeLikelihoods val ) {
+            return null;
+        }
 
         /**
          * Must be overridden by concrete subclasses

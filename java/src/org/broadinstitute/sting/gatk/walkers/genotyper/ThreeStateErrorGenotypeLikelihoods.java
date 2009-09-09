@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
 
 import static java.lang.Math.log10;
 import java.util.TreeMap;
@@ -32,5 +33,11 @@ public class ThreeStateErrorGenotypeLikelihoods extends GenotypeLikelihoods {
 
     protected double log10PofTrueBaseGivenMiscall(char observedBase, char chromBase, SAMRecord read, int offset) {
         return -log103; // equivalent to e / 3 model
+    }
+
+    static GenotypeLikelihoods[][][][] THREE_STATE_CACHE = new GenotypeLikelihoods[BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][MAX_PLOIDY][2];
+    protected GenotypeLikelihoods getSetCache( char observedBase, byte qualityScore, int ploidy,
+                                             SAMRecord read, int offset, GenotypeLikelihoods val ) {
+        return simpleGetSetCache(THREE_STATE_CACHE, observedBase, qualityScore, ploidy, read, offset, val);
     }
 }
