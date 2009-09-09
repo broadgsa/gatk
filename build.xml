@@ -249,6 +249,29 @@
                 <fileset dir="${test.classes}">
                     <include name="**/${single}.class"/>
                     <exclude name="**/BaseTest.class"/>
+                    <exclude name="**/*IntegrationTest.class"/>
+                </fileset>
+            </batchtest>
+        </junit>
+        <fail message="test failed" if="test.failure" />
+    </target>
+    <!-- Our long tests, tests that are more software integration and test -->
+    <target name="integrationtest" depends="test.compile"
+            description="Run the long integration unit tests">
+        <mkdir dir="${report}"/>
+        <echo message="Sting: Running integration test cases!"/>
+        <junit printsummary="yes" showoutput="yes" clonevm="yes" haltonfailure="yes" failureProperty="test.failure">
+            <formatter type="${testOutput}" usefile="${usefile}" />
+            <classpath>
+                <path refid="runtime.dependencies"/>
+                <pathelement location="build"/>
+                <pathelement location="${test.classes}"/>
+                <pathelement location="lib/junit-4.4.jar"/>
+            </classpath>
+
+            <batchtest fork="yes" todir="${report}">
+                <fileset dir="${test.classes}">
+                  <include name="**/*IntegrationTest.class"/>
                 </fileset>
             </batchtest>
         </junit>

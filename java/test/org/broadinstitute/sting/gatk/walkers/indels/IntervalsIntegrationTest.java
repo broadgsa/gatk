@@ -5,7 +5,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-public class IntervalsTest extends WalkerTest {
+public class IntervalsIntegrationTest extends WalkerTest {
     @Test
     public void testIntervals() {
 

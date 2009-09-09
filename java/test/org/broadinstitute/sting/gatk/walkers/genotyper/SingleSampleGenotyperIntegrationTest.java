@@ -1,23 +1,14 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.WalkerTest;
-import org.broadinstitute.sting.utils.genotype.Variant;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.junit.Test;
-import org.broadinstitute.sting.gatk.GATKArgumentCollection;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.executive.Accumulator;
 
-import java.io.*;
-import java.util.*;
-import java.security.MessageDigest;
-import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import junit.framework.Assert;
-
-public class SingleSampleGenotyperTest extends WalkerTest {
+public class SingleSampleGenotyperIntegrationTest extends WalkerTest {
     public static String baseTestString() {
         return "-T SingleSampleGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s";
     }

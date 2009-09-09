@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.io.File;
 
-public class RecalibrationWalkersTest extends WalkerTest {
+public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     static HashMap<String, String> paramsFiles = new HashMap<String, String>();
 
     @Test
