@@ -124,7 +124,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 		
 		try {
 			BufferedReader reader = new BufferedReader( new FileReader(f) );
-			
+
 			String line = null;
 			while( ( line = reader.readLine() ) != null ) {
 				int p1 = 0;
@@ -270,8 +270,14 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
                     // we have that many bases in the current cigar element till the end of the current segment:
                     int currLength = (int)(currStop-refPos+1);
 
-                    newCigar.add(new CigarElement( currLength,ce.getOperator()) ); // record deletion/match till the end of the current segment
-                    len -= currLength; // we still have 'len' bases remaining in the current cigar element
+
+                    // curr length can be exactly 0 if previous element ended exactly at the segment boundary:
+                    // after that element was processed, refPos was set to currStop+1, so in this special case we need
+                    // *first* to switch to next segment, *then* start adding bases from the current element.
+                    if ( currLength > 0 ) {
+                        newCigar.add(new CigarElement( currLength,ce.getOperator()) ); // record deletion/match till the end of the current segment
+                        len -= currLength; // we still have 'len' bases remaining in the current cigar element
+                    }
 
                     // NOTE: since we entered the loop, we were guaranteed that len > currLength, so now len > 0
 
@@ -369,12 +375,17 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 	
 	public static void main(String argv[]) {
 		
-		SAMFileReader reader = new SAMFileReader(new java.io.File("/humgen/gsa-scr1/asivache/TCGA/Ovarian/C2K/0904/normal.bam"));
-		
+//		SAMFileReader reader = new SAMFileReader(new java.io.File("/humgen/gsa-scr1/asivache/TCGA/Ovarian/C2K/0904/normal.bam"));
+        SAMFileReader reader = new SAMFileReader(new java.io.File("X:/asivache/cDNA/new_pipeline/30BV1/test.1.sam"));
+
 		
 		SAMRecord r = new SAMRecord(reader.getFileHeader());
 		GenomeLocParser.setupRefContigOrdering(reader.getFileHeader().getSequenceDictionary());
-		
+
+        r.setReferenceName("ENST00000378466");
+        r.setAlignmentStart(1235);
+        r.setCigarString("24M1D27M");
+
 //		List<GenomeLoc> s = new ArrayList<GenomeLoc>();
 //		s.add( GenomeLocParser.createGenomeLoc("chr1", 100, 199));	
 //		s.add( GenomeLocParser.createGenomeLoc("chr1", 300, 499));	
@@ -382,14 +393,18 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 
 		GenomicMap m = new GenomicMap(5);
 		
-		m.readArachne(new File("/humgen/gsa-scr1/asivache/cDNA/Ensembl48.transcriptome.map"));
-		
+//		m.readArachne(new File("/humgen/gsa-scr1/asivache/cDNA/Ensembl48.transcriptome.map"));
+//        m.write(new File("/humgen/gsa-scr1/asivache/cDNA/new_pipeline/Ensembl48.new.transcriptome.map"));
+        m.read(new File("W:/berger/cDNA_BAM/refs/Ensembl52.plus.Genome.map"));
+
+        m.remapToMasterReference(r,reader.getFileHeader(),true);
+
 //		if ( m.getContigMapping("ENST00000302418") == null ) System.out.println("ERROR! CONTIG IS MISSING!");
-		m.write(new File("/humgen/gsa-scr1/asivache/cDNA/new_pipeline/Ensembl48.new.transcriptome.map"));
-		
+
 		int cnt = 0;
 		
 		System.out.println(m.size() + " contigs loaded");
+        System.out.println("new alignment: "+r.format())  ;
 /*
  		for ( String name : m.nameSet() ) {
  
