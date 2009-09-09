@@ -113,11 +113,14 @@ public class LocusIteratorByState extends LocusIterator {
             //    return null;    // we are done
 
             //if (DEBUG2) System.out.printf("stepForwardOnGenome2: curElement=%s, counter=%d, len=%d%n", curElement, cigarElementCounter, curElement != null ? curElement.getLength() : -1);
-            if ( curElement == null || ++cigarElementCounter >= curElement.getLength() ) {
+            if ( curElement == null || ++cigarElementCounter > curElement.getLength() ) {
                 cigarOffset++;
                 if ( cigarOffset < nCigarElements ) {
                     curElement = cigar.getCigarElement(cigarOffset);
                     cigarElementCounter = 0;
+                    // next line: guards against cigar elements of length 0; when new cigar element is retrieved,
+                    // we reenter in order to re-check cigarElementCounter against curElement's length
+                    return stepForwardOnGenome();
                 } else {
                     return null;
                 }
@@ -215,31 +218,36 @@ public class LocusIteratorByState extends LocusIterator {
         //    printState();
         //}
 
-        collectPendingReads(readInfo.getMaxReadsAtLocus());
-
-        // todo -- performance problem -- should be lazy, really
         ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>(readStates.size());
         ArrayList<Integer> offsets = new ArrayList<Integer>(readStates.size());
-        for ( SAMRecordState state : readStates ) {
-            if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
-//                System.out.println("Location: "+getLocation()+"; Read "+state.getRead().getReadName()+"; offset="+state.getReadOffset());
-                reads.add(state.getRead());
-                offsets.add(state.getReadOffset());
-            } else if ( readInfo.includeReadsWithDeletionAtLoci() ) {
-                reads.add(state.getRead());
-                offsets.add(-1);
-            }
-        }
-        GenomeLoc loc = getLocation();
 
-        updateReadStates(); // critical - must be called after we get the current state offsets and location
+        // keep iterating forward until we encounter a reference position that has something "real" hanging over it
+        // (i.e. either a real base, or a real base or a deletion if includeReadsWithDeletion is true)
+        while(true) {
+            collectPendingReads(readInfo.getMaxReadsAtLocus());
+
+            // todo -- performance problem -- should be lazy, really
+            for ( SAMRecordState state : readStates ) {
+                if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
+//                    System.out.println("Location: "+getLocation()+"; Read "+state.getRead().getReadName()+"; offset="+state.getReadOffset());
+                    reads.add(state.getRead());
+                    offsets.add(state.getReadOffset());
+                } else if ( readInfo.includeReadsWithDeletionAtLoci() && state.getCurrentCigarOperator() != CigarOperator.N ) {
+                    reads.add(state.getRead());
+                    offsets.add(-1);
+                }
+            }
+            GenomeLoc loc = getLocation();
+
+            updateReadStates(); // critical - must be called after we get the current state offsets and location
 
         //if (DEBUG) {
         //    logger.debug("DONE WITH NEXT, updating read states, current state is:");
         //    printState();
         //}
-
-        return reads.size() == 0 ? next() : new AlignmentContext(loc, reads, offsets);
+            // if we got reads with non-D/N over the current position, we are done
+            if ( reads.size() != 0 ) return new AlignmentContext(loc, reads, offsets);
+        }
     }
 
     private void collectPendingReads(final int maximumPileupSize) {
