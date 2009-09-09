@@ -33,7 +33,6 @@ import net.sf.samtools.util.StringUtil;
 import java.io.*;
 import java.util.TreeSet;
 import java.util.Comparator;
-import java.util.Arrays;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -56,7 +55,7 @@ public class CreateBWTFromReference {
     private int[] countOccurrences( String sequence ) {
         int occurrences[] = new int[ALPHABET_SIZE];
         for( char base: sequence.toCharArray() )
-            occurrences[ BytePackedOutputStream.getPackedRepresentation((byte)base) ]++;
+            occurrences[PackUtils.packBase((byte)base)]++;
 
         // Make occurrences cumulative
         for( int i = 1; i < ALPHABET_SIZE; i++ )
@@ -182,7 +181,7 @@ public class CreateBWTFromReference {
         occurrenceWriter.write(occurrences);
         occurrenceWriter.flush();
 
-        WordPackedOutputStream sequenceOutputStream = new WordPackedOutputStream(bwtOutputStream,ByteOrder.LITTLE_ENDIAN);
+        BasePackedOutputStream<Integer> sequenceOutputStream = new BasePackedOutputStream<Integer>(Integer.class,bwtOutputStream,ByteOrder.LITTLE_ENDIAN);
         sequenceOutputStream.write(bwt);
         sequenceOutputStream.close();
 

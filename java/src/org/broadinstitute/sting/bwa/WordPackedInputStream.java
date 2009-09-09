@@ -26,7 +26,7 @@ public class WordPackedInputStream {
 
     public WordPackedInputStream( File inputFile, ByteOrder byteOrder ) throws FileNotFoundException {
         this.targetInputStream = new BufferedInputStream(new FileInputStream(inputFile));
-        this.buffer = ByteBuffer.allocate(WordPackedOutputStream.BASES_PER_WORD/BytePackedOutputStream.ALPHABET_SIZE).order(byteOrder);
+        this.buffer = ByteBuffer.allocate(PackUtils.bitsInType(Integer.class)/PackUtils.BITS_PER_BYTE).order(byteOrder);
     }
 
     /**
@@ -44,9 +44,9 @@ public class WordPackedInputStream {
         List<Byte> bwtList = new ArrayList<Byte>();
         while(targetInputStream.read(buffer.array()) > 0) {
             int packedWord = buffer.getInt();
-            for( int i = WordPackedOutputStream.BASES_PER_WORD-1; i >= 0; i-- ) {
+            for( int i = PackUtils.bitsInType(Integer.class)/PackUtils.BITS_PER_BASE - 1; i >= 0; i-- ) {
                 byte packedByte = (byte)((packedWord >> i*2) & 0x3);
-                bwtList.add(BytePackedOutputStream.decodePackedRepresentation(packedByte));
+                bwtList.add(PackUtils.unpackBase(packedByte));
             }
             buffer.rewind();
         }

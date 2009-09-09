@@ -30,6 +30,7 @@ import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.reference.ReferenceSequence;
 
 import java.io.*;
+import java.nio.ByteOrder;
 
 /**
  * Generate a .PAC file from a given reference.
@@ -53,9 +54,13 @@ public class CreatePACFromReference {
 
         // Target file for output
         File outputFile = new File(argv[1]);
-        BytePackedOutputStream outputStream = new BytePackedOutputStream(outputFile);
+        OutputStream outputStream = new FileOutputStream(outputFile);
 
-        outputStream.write(sequence.getBases());
+        BasePackedOutputStream<Byte> basePackedOutputStream = new BasePackedOutputStream<Byte>(Byte.class, outputStream, ByteOrder.BIG_ENDIAN);
+        basePackedOutputStream.write(sequence.getBases());
+
+        outputStream.write(sequence.getBases().length%PackUtils.ALPHABET_SIZE);
+
         outputStream.close();
     }
 }
