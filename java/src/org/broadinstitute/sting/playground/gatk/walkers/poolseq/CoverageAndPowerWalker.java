@@ -71,7 +71,7 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
         Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> readsByDirection = PoolUtils.splitReadsByReadDirection(filteredContext.getReads(),filteredContext.getOffsets());
         if ( ! suppress_printing) {
             Pair<double[],byte[]> powers = calculatePower(readsByDirection, useBootstrap, filteredContext);
-            out.printf("%s: %d %d %d %d %d %d %f %f %f%n", filteredContext.getLocation(), readsByDirection.getFirst().getFirst().size(), readsByDirection.getFirst().getSecond().size(),
+            out.printf("%s %d %d %d %d %d %d %f %f %f%n", filteredContext.getLocation(), readsByDirection.getFirst().getFirst().size(), readsByDirection.getFirst().getSecond().size(),
             filteredContext.getReads().size(), powers.getSecond()[0], powers.getSecond()[1], powers.getSecond()[2],
             powers.getFirst()[0], powers.getFirst()[1], powers.getFirst()[2]);
         }

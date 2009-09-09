@@ -41,9 +41,16 @@ import java.util.*;
  * To change this template use File | Settings | File Templates.
  */
 public class AlignmentContext {
-    private GenomeLoc loc = null;
-    private List<SAMRecord> reads = null;
-    private List<Integer> offsets = null;
+    protected GenomeLoc loc = null;
+    protected List<SAMRecord> reads = null;
+    protected List<Integer> offsets = null;
+
+    /**
+     * Default constructor for AlignmentContext object
+     * since private objects are already set to null we
+     * don't need to do anything
+     */
+    public AlignmentContext() { /*   private objects already set to null    */  }
 
     /**
      * Create a new AlignmentContext object
