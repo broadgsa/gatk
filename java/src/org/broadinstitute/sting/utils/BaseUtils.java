@@ -133,6 +133,10 @@ public class BaseUtils {
         }
     }
 
+    static public boolean isRegularBase(char base) {
+        return simpleBaseToBaseIndex(base) != -1;
+    }
+
     /**
      * Converts a base index to a simple base
      *

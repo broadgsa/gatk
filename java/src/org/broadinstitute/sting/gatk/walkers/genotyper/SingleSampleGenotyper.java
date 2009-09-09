@@ -92,18 +92,22 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
      */
     public SSGenotypeCall map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
         char ref = refContext.getBase();
-        DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
+        if ( BaseUtils.isRegularBase(ref) ) {
+            DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
 
-        // setup GenotypeLike object
-        GenotypeLikelihoods gl = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, priors, defaultPlatform);
+            // setup GenotypeLike object
+            GenotypeLikelihoods gl = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, priors, defaultPlatform);
 
-        gl.setVerbose(VERBOSE);
-        gl.setEnableCacheFlag(! disableCache);
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-        gl.add(pileup, true);
-        gl.validate();
+            gl.setVerbose(VERBOSE);
+            gl.setEnableCacheFlag(! disableCache);
+            ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+            gl.add(pileup, true);
+            gl.validate();
 
-        return new SSGenotypeCall(!GENOTYPE, context.getLocation(), ref,gl, pileup);
+            return new SSGenotypeCall(!GENOTYPE, context.getLocation(), ref,gl, pileup);
+        } else {
+            return null;
+        }
     }
 
     /**
