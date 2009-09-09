@@ -128,12 +128,12 @@ public class RemapAlignments extends CommandLineProgram {
 				continue;
 			}
 			if ( AlignmentUtils.isReadUnmapped(read) ) totalUnmappedReads++;
-			else {
-				// destroy mate pair mapping information, if any (we will need to reconstitute pairs after remapping both ends):
-				read.setMateReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);
-				read.setMateAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
+
+                        // destroy mate pair mapping information, if any (we will need to reconstitute pairs after remapping both ends):
+                        read.setMateReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);
+                        read.setMateAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
 //				if ( read.getReadPairedFlag() ) System.out.println("PAIRED READ!!");
-			}
+
 			totalRecords++;
 			
 			if ( totalRecords % 1000000 == 0 ) System.out.println(totalRecords + " valid records processed");
@@ -203,9 +203,13 @@ public class RemapAlignments extends CommandLineProgram {
  
         	// technically, if edit distance of the read is equal to max_diff used in alignments, 
         	// we should have set 25... 
-    		r.setMappingQuality(37);
-    		r.setAttribute("X0", new Integer(1));
-    		r.setAttribute("X1", new Integer(0));
+                if ( AlignmentUtils.isReadUnmapped(r) ) {
+                    r.setMappingQuality(0);
+                } else {
+                    r.setMappingQuality(37);
+                    r.setAttribute("X0", new Integer(1));
+                    r.setAttribute("X1", new Integer(0));
+                }
     		r.setNotPrimaryAlignmentFlag(false);
     		
     	} else {
