@@ -41,5 +41,9 @@ public class VECMappingQualityZero implements VariantExclusionCriterion {
         return (exclude ? "fail" : "pass") + "\t" + mq0Count;
     }
 
+    public String getVCFFilterString() {
+        return "MQzero" + mq0Count;
+    }
+
     public boolean useZeroQualityReads() { return true; }
 }

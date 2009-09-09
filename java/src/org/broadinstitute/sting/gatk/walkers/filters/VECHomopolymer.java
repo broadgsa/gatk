@@ -116,4 +116,8 @@ public class VECHomopolymer implements VariantExclusionCriterion {
     public double inclusionProbability() {
         return exclude ? 0.0 : 1.0;
     }
+
+    public String getVCFFilterString() {
+        return "homopolymer";
+    }
 }

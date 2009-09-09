@@ -56,5 +56,9 @@ public class VECClusteredSnps implements VariantExclusionCriterion {
         return (exclude ? "fail" : "pass") + "\t" + (exclude ? distance : "N/A");
     }
 
+    public String getVCFFilterString() {
+        return "ClusteredSnp";
+    }
+
     public boolean useZeroQualityReads() { return false; }
 }

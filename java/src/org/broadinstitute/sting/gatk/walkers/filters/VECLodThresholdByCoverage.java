@@ -33,6 +33,10 @@ public class VECLodThresholdByCoverage implements VariantExclusionCriterion {
         return String.format("%s\t%d\t%f", exclude ? "fail" : "pass", (int) depth, lod);
     }
 
+    public String getVCFFilterString() {
+        return "LODbyDoC";
+    }
+
     public boolean useZeroQualityReads() {
         return false;
     }

@@ -47,6 +47,10 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         return (exclude ? "fail" : "pass") + "\t" + pValue;
     }
 
+    public String getVCFFilterString() {
+        return "strand" + pValue;
+    }
+
     public boolean useZeroQualityReads() { return false; }
 
     public boolean strandTest(char ref, AlignmentContext context, int allele1, int allele2, double threshold, StringBuffer out) {

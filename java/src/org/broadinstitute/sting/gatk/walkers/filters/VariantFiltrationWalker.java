@@ -5,11 +5,14 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.geli.GeliTextWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.playground.gatk.walkers.variantstovcf.VariantsToVCF;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.*;
+import java.io.*;
 
 
 /**
@@ -19,7 +22,10 @@ import java.util.*;
  */
 @Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type= RodGeliText.class))
 public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
-    @Argument(fullName="variants_out_head", shortName="VOH", doc="File to which modified variants should be written") public String VARIANTS_OUT_HEAD;
+    @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true) public File VCF_OUT;
+    @Argument(fullName="sampleName", shortName="sample", doc="Temporary hack to get VCF to work: the sample (NA-ID) corresponding to the variants", required=true) public String sampleName;
+    @Argument(fullName="includedOutput", shortName="included", doc="File to which all variants passing filters should be written", required=true) public String INCLUDED_OUT;
+    @Argument(fullName="annotatedOutput", shortName="annotated", doc="File to which all variants should be written with annotations - for debugging/parameterizing", required=false) public String ANNOTATED_OUT;
     @Argument(fullName="features", shortName="F", doc="Feature test (optionally with arguments) to apply to genotype posteriors.  Syntax: 'testname[:arguments]'", required=false) public String[] FEATURES;
     @Argument(fullName="exclusion_criterion", shortName="X", doc="Exclusion test (optionally with arguments) to apply to variant call.  Syntax: 'testname[:key1=arg1,key2=arg2,...]'", required=false) public String[] EXCLUSIONS;
     @Argument(fullName="inclusion_threshold", shortName="IT", doc="The product of the probability to include variants based on these filters must be greater than the value specified here in order to be included", required=false) public Double INCLUSION_THRESHOLD = 0.9;
@@ -29,9 +35,11 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     private List<Class<? extends IndependentVariantFeature>> featureClasses;
     private List<Class<? extends VariantExclusionCriterion>> exclusionClasses;
 
-    private PrintWriter variantsWriter;
-    private PrintWriter paramsWriter;
-    private HashMap<String, PrintWriter> exclusionWriters;
+    private VCFWriter vcfWriter;
+    private VCFHeader vcfHeader;
+    private PrintWriter annotatedWriter;
+    private PrintWriter includedWriter;
+    private HashMap<String, String> sampleNames = new HashMap<String, String>();
 
     private ArrayList<IndependentVariantFeature> requestedFeatures;
     private ArrayList<VariantExclusionCriterion> requestedExclusions;
@@ -57,12 +65,15 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         if (LIST) { listFiltersAndExit(); }
 
         try {
-            variantsWriter = new PrintWriter(VARIANTS_OUT_HEAD + ".included.geli.calls");
-            variantsWriter.println(GeliTextWriter.headerLine);
-
-            paramsWriter = new PrintWriter(VARIANTS_OUT_HEAD + ".params.out");
-            paramsWriter.print("Chr\tPosition\t");
-
+            sampleNames.put(sampleName.toUpperCase(), "variant");
+            vcfHeader = VariantsToVCF.getHeader(this.getToolkit().getArguments(), sampleNames.keySet());
+            vcfWriter = new VCFWriter(vcfHeader, VCF_OUT);
+            includedWriter = new PrintWriter(INCLUDED_OUT);
+            includedWriter.println(GeliTextWriter.headerLine);
+            if ( ANNOTATED_OUT != null ) {
+                annotatedWriter = new PrintWriter(ANNOTATED_OUT);
+                annotatedWriter.print("Chr\tPosition\t");
+            }
             requestedFeatures = new ArrayList<IndependentVariantFeature>();
             requestedExclusions = new ArrayList<VariantExclusionCriterion>();
 
@@ -85,7 +96,8 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                                 ivf.initialize(requestedFeatureArgs);
                                 requestedFeatures.add(ivf);
 
-                                paramsWriter.print(ivf.getStudyHeader() + "\t");
+                                if ( annotatedWriter != null )
+                                    annotatedWriter.print(ivf.getStudyHeader() + "\t");
                             } catch (InstantiationException e) {
                                 throw new StingException(String.format("Cannot instantiate feature class '%s': must be concrete class", featureClass.getSimpleName()));
                             } catch (IllegalAccessException e) {
@@ -99,9 +111,6 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                     }
                 }
             }
-
-            // Initialize requested exclusion criteria
-            exclusionWriters = new HashMap<String, PrintWriter>();
 
             if (EXCLUSIONS != null) {
                 for (String requestedExclusionString : EXCLUSIONS) {
@@ -129,12 +138,8 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                                 vec.initialize(requestedArgs);
                                 requestedExclusions.add(vec);
 
-                                paramsWriter.print(vec.getStudyHeader() + "\t");
-
-                                PrintWriter writer = new PrintWriter(VARIANTS_OUT_HEAD + ".excluded." + exclusionClassName + ".geli.calls");
-                                writer.println(GeliTextWriter.headerLine);
-
-                                exclusionWriters.put(exclusionClassName, writer);
+                                if ( annotatedWriter != null )
+                                    annotatedWriter.print(vec.getStudyHeader() + "\t");
                             } catch (InstantiationException e) {
                                 throw new StingException(String.format("Cannot instantiate exclusion class '%s': must be concrete class", exclusionClass.getSimpleName()));
                             } catch (IllegalAccessException e) {
@@ -149,7 +154,8 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                 }
             }
 
-            paramsWriter.print("inDbSNP\tinHapMap\tisHet\n");
+            if ( annotatedWriter != null )
+                annotatedWriter.print("inDbSNP\tinHapMap\tisHet\n");
         } catch (FileNotFoundException e) {
             throw new StingException(String.format("Could not open file(s) for writing"));
         }
@@ -235,7 +241,8 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         if (VERBOSE) { out.println("Original:\n" + variant); }
 
         GenomeLoc loc = context.getAlignmentContext(true).getLocation();
-        paramsWriter.print(loc.getContig() + "\t" + loc.getStart() + "\t");
+        if ( annotatedWriter != null )
+            annotatedWriter.print(loc.getContig() + "\t" + loc.getStart() + "\t");
 
         // Apply features that modify the likelihoods and LOD scores
         for ( IndependentVariantFeature ivf : requestedFeatures ) {
@@ -247,7 +254,8 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
 
             if (VERBOSE) { out.println(rationalizeClassName(ivf.getClass()) + ":\n  " + variant); }
 
-            paramsWriter.print(ivf.getStudyInfo() + "\t");
+            if ( annotatedWriter != null )
+                annotatedWriter.print(ivf.getStudyInfo() + "\t");
         }
 
         // Apply exclusion tests that score the variant call
@@ -256,6 +264,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         }
 
         // Use the filters to score the variant
+        String filterFailureString = "";
         double jointInclusionProbability = 1.0;
         for ( VariantExclusionCriterion vec : requestedExclusions ) {
             vec.compute(variantContextWindow);
@@ -267,23 +276,20 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             exclusionResults.put(exclusionClassName, inclusionProbability);
 
             if (inclusionProbability < INCLUSION_THRESHOLD) {
-                PrintWriter ewriter = exclusionWriters.get(exclusionClassName);
-                if (ewriter != null) {
-                    ewriter.println(variant);
-                    ewriter.flush();
-                }
+                filterFailureString += vec.getVCFFilterString() + ";";
             }
 
             if (VERBOSE) {
                 out.print(exclusionClassName + "=" + inclusionProbability + ";");
             }
 
-            paramsWriter.print(vec.getStudyInfo() + "\t");
+            if ( annotatedWriter != null )
+                annotatedWriter.print(vec.getStudyInfo() + "\t");
         }
 
         // Decide whether we should keep the call or not
         if (jointInclusionProbability >= INCLUSION_THRESHOLD) {
-            variantsWriter.println(variant);
+            includedWriter.println(variant);
 
             if (VERBOSE) { out.println("] JointInclusionProbability:" + jointInclusionProbability + " State:included\n"); }
         } else {
@@ -291,13 +297,21 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         }
 
         rodDbSNP dbsnp = (rodDbSNP) context.getTracker().lookup("dbSNP", null);
-        if ( dbsnp == null ) {
-            paramsWriter.print("false\tfalse\t");
-        } else {
-            paramsWriter.print(dbsnp.isSNP() + "\t" + dbsnp.isHapmap() + "\t");
+        if ( annotatedWriter != null ) {
+            if ( dbsnp == null )
+                annotatedWriter.print("false\tfalse\t");
+            else
+                annotatedWriter.print(dbsnp.isSNP() + "\t" + dbsnp.isHapmap() + "\t");
+            annotatedWriter.println(GenotypeUtils.isHet(variant));
         }
 
-        paramsWriter.println(GenotypeUtils.isHet(variant));
+        List<VCFGenotypeRecord> gt = new ArrayList<VCFGenotypeRecord>();
+        Map<VCFHeader.HEADER_FIELDS,String> map = new HashMap<VCFHeader.HEADER_FIELDS,String>();
+        if ( VariantsToVCF.generateVCFRecord(context.getTracker(), context.getReferenceContext(), context.getAlignmentContext(true), vcfHeader, gt, map, sampleNames, out, false, false) ) {
+            if ( !filterFailureString.equals("") )
+                map.put(VCFHeader.HEADER_FIELDS.FILTER, filterFailureString);           
+            vcfWriter.addRecord(new VCFRecord(vcfHeader, map, "GT:GQ:DP", gt));
+        }
     }
 
     /**
@@ -330,11 +344,9 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
 
         out.printf("Processed %d loci.\n", result);
 
-        variantsWriter.close();
-        paramsWriter.close();
-
-        for (PrintWriter ewriter : exclusionWriters.values()) {
-            ewriter.close();
-        }
+        vcfWriter.close();
+        includedWriter.close();
+        if ( annotatedWriter != null )
+            annotatedWriter.close();
     }
 }

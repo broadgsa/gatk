@@ -46,5 +46,9 @@ public class VECDepthOfCoverage implements VariantExclusionCriterion {
         return (exclude ? "fail" : "pass") + "\t" + depth;
     }
 
+    public String getVCFFilterString() {
+        return "DoC" + depth;
+    }
+
     public boolean useZeroQualityReads() { return false; }
 }

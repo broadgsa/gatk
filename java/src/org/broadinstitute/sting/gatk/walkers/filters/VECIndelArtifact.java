@@ -52,5 +52,9 @@ public class VECIndelArtifact implements VariantExclusionCriterion {
         return (exclude ? "fail" : "pass") + "\t" + source;
     }
 
+    public String getVCFFilterString() {
+        return "InDel";
+    }
+
     public boolean useZeroQualityReads() { return false; }
 }

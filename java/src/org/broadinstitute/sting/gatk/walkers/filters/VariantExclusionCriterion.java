@@ -10,7 +10,8 @@ public interface VariantExclusionCriterion {
     public double inclusionProbability();
 
     public String getStudyHeader();
-
     public String getStudyInfo();
+    public String getVCFFilterString();
+
     public boolean useZeroQualityReads();
 }

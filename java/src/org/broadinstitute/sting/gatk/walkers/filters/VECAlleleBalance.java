@@ -67,4 +67,9 @@ public class VECAlleleBalance extends RatioFilter {
     public String getStudyInfo() {
         return (exclude ? "fail" : "pass") + "\t" + ratio;
     }
+
+    public String getVCFFilterString() {
+        return "AlleleBalance" + ratio;
+    }
+
 }

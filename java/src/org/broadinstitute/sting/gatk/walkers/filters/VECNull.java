@@ -20,6 +20,10 @@ public class VECNull implements VariantExclusionCriterion {
         return "";
     }
 
+    public String getVCFFilterString() {
+        return "";
+    }
+
     public boolean useZeroQualityReads() {
         return false;
     }

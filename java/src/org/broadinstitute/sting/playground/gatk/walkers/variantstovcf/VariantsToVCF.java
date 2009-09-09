@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantstovcf;
 
+import org.broadinstitute.sting.gatk.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
@@ -12,7 +13,7 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
-import java.io.File;
+import java.io.*;
 import java.util.*;
 
 public class VariantsToVCF extends RefWalker<Integer, Integer> {
@@ -22,43 +23,47 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
 
     private VCFWriter vcfwriter = null;
     private VCFHeader vcfheader = null;
-    private HashSet<String> sampleNames = null;
+    private TreeMap<String, String> sampleNames = null;
 
     public void initialize() {
+        sampleNames = new TreeMap<String, String>();
+        GATKArgumentCollection args = this.getToolkit().getArguments();
+
+        for (String rodName : args.RODBindings) {
+            //out.println(rodName);
+            String[] rodPieces = rodName.split(",");
+            String sampleName = rodPieces[0];
+
+            if (sampleName.startsWith("NA"))
+                sampleNames.put(sampleName.toUpperCase(), sampleName.toUpperCase());
+        }
+
+        vcfheader = getHeader(args, sampleNames.keySet());
+        vcfwriter = new VCFWriter(vcfheader, VCF_OUT);
+    }
+
+    public static VCFHeader getHeader(GATKArgumentCollection args, Set<String> sampleNames) {
         Map<String, String> metaData = new HashMap<String, String>();
         List<String> additionalColumns = new ArrayList<String>();
-        sampleNames = new HashSet<String>();
 
         Calendar cal = Calendar.getInstance();
 
         metaData.put("format", "VCRv3.2");
         metaData.put("fileDate", String.format("%d%02d%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)));
         metaData.put("source", "VariantsToVCF");
-        metaData.put("reference", this.getToolkit().getArguments().referenceFile.getAbsolutePath());
-        
+        metaData.put("reference", args.referenceFile.getAbsolutePath());
+
         additionalColumns.add("FORMAT");
+        additionalColumns.addAll(sampleNames);
 
-        for (String rodName : this.getToolkit().getArguments().RODBindings) {
-            //out.println(rodName);
-
-            String[] rodPieces = rodName.split(",");
-            String sampleName = rodPieces[0];
-
-            if (sampleName.startsWith("NA")) {
-                additionalColumns.add(sampleName);
-                sampleNames.add(sampleName.toUpperCase());
-            }
-        }
-
-        vcfheader = new VCFHeader(metaData, additionalColumns);
-        vcfwriter = new VCFWriter(vcfheader, VCF_OUT);
+        return new VCFHeader(metaData, additionalColumns);
     }
 
     public boolean filter(RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         if (BaseUtils.simpleBaseToBaseIndex(ref) > -1) { return true; }
 
         for (ReferenceOrderedDatum rod : tracker.getAllRods()) {
-            if (rod != null && sampleNames.contains(rod.getName().toUpperCase())) {
+            if (rod != null && sampleNames.keySet().contains(rod.getName().toUpperCase())) {
                 return true;
             }
         }
@@ -67,17 +72,28 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        List<VCFGenotypeRecord> gt = new ArrayList<VCFGenotypeRecord>();
+        Map<VCFHeader.HEADER_FIELDS,String> map = new HashMap<VCFHeader.HEADER_FIELDS,String>();
+        if ( generateVCFRecord(tracker, ref, context, vcfheader, gt, map, sampleNames, out, SUPPRESS_MULTISTATE, VERBOSE) ) {
+            vcfwriter.addRecord(new VCFRecord(vcfheader, map, "GT:GQ:DP", gt));
+            //vcfwriter.addRecord(new VCFRecord(vcfheader, map, "GT", gt));
+            return  1;
+        }
+        return 0;
+    }
+
+    public static boolean generateVCFRecord(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context,
+                                            VCFHeader vcfheader, List<VCFGenotypeRecord> gt, Map<VCFHeader.HEADER_FIELDS,String> map,
+                                            Map<String, String> sampleNamesToRods, PrintStream out, boolean SUPPRESS_MULTISTATE, boolean VERBOSE) {
+        int[] alleleCounts = new int[4];
         int numSNPs = 0;
         int numRefs = 0;
         int[] alleleNames = { 0, 1, 2, 3 };
-        int[] alleleCounts = new int[4];
         double snpQual = 0.0;
-        List<VCFGenotypeRecord> gt = new ArrayList<VCFGenotypeRecord>();
-
         int refbase = BaseUtils.simpleBaseToBaseIndex(ref.getBase());
 
         for (String name : vcfheader.getGenotypeSamples()) {
-            ReferenceOrderedDatum rod = tracker.lookup(name, null);
+            ReferenceOrderedDatum rod = tracker.lookup(sampleNamesToRods.get(name), null);
             if (rod != null) {
                 AllelicVariant av = (AllelicVariant) rod;
                 String lod = String.format("%d", av.getVariationConfidence() > 99 ? 99 : (int) av.getVariationConfidence());
@@ -122,77 +138,72 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
             }
         }
 
-        if (numSNPs > 0) {
-            Integer[] perm = Utils.SortPermutation(alleleCounts);
-            int[] sortedCounts = Utils.PermuteArray(alleleCounts, perm);
-            int[] sortedNames = Utils.PermuteArray(alleleNames, perm);
+        if (numSNPs == 0)
+            return false;
 
-            rodDbSNP dbsnp = (rodDbSNP) tracker.lookup("dbsnp", null);
 
-            String infoString = String.format("locus=%s ref=%c allele_count=( %c:%d %c:%d %c:%d %c:%d )",
-                context.getLocation(),
-                ref.getBase(),
-                BaseUtils.baseIndexToSimpleBase(sortedNames[0]), sortedCounts[0],
-                BaseUtils.baseIndexToSimpleBase(sortedNames[1]), sortedCounts[1],
-                BaseUtils.baseIndexToSimpleBase(sortedNames[2]), sortedCounts[2],
-                BaseUtils.baseIndexToSimpleBase(sortedNames[3]), sortedCounts[3]
-            );
+        Integer[] perm = Utils.SortPermutation(alleleCounts);
+        int[] sortedCounts = Utils.PermuteArray(alleleCounts, perm);
+        int[] sortedNames = Utils.PermuteArray(alleleNames, perm);
 
-            if (SUPPRESS_MULTISTATE && sortedCounts[2] > 0) {
-                out.println("[multistate] " + infoString);
-                return 0;
-            } else {
-                if (VERBOSE) {
-                    out.println("[locus_info] " + infoString);
-                }
+        rodDbSNP dbsnp = (rodDbSNP) tracker.lookup("dbsnp", null);
+
+        String infoString = String.format("locus=%s ref=%c allele_count=( %c:%d %c:%d %c:%d %c:%d )",
+            context.getLocation(),
+            ref.getBase(),
+            BaseUtils.baseIndexToSimpleBase(sortedNames[0]), sortedCounts[0],
+            BaseUtils.baseIndexToSimpleBase(sortedNames[1]), sortedCounts[1],
+            BaseUtils.baseIndexToSimpleBase(sortedNames[2]), sortedCounts[2],
+            BaseUtils.baseIndexToSimpleBase(sortedNames[3]), sortedCounts[3]
+        );
+
+        if (SUPPRESS_MULTISTATE && sortedCounts[2] > 0) {
+            out.println("[multistate] " + infoString);
+            return false;
+        } else {
+            if (VERBOSE) {
+                out.println("[locus_info] " + infoString);
             }
-
-            Map<VCFHeader.HEADER_FIELDS,String> map = new HashMap<VCFHeader.HEADER_FIELDS,String>();
-            for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
-                map.put(field,String.valueOf(1));
-
-                if (field == VCFHeader.HEADER_FIELDS.CHROM) {
-                    map.put(field, context.getContig());
-                } else if (field == VCFHeader.HEADER_FIELDS.POS) {
-                    map.put(field, String.valueOf(context.getPosition()));
-                } else if (field == VCFHeader.HEADER_FIELDS.REF) {
-                    map.put(field, String.valueOf(ref.getBases()));
-                } else if (field == VCFHeader.HEADER_FIELDS.ALT) {
-                    map.put(field, String.valueOf(BaseUtils.baseIndexToSimpleBase(sortedNames[3])));
-                } else if (field == VCFHeader.HEADER_FIELDS.ID) {
-                    map.put(field, (dbsnp == null) ? "." : dbsnp.name);
-                } else if (field == VCFHeader.HEADER_FIELDS.QUAL) {
-                    map.put(field, String.format("%d", snpQual > 99 ? 99 : (int) snpQual));
-                } else if (field == VCFHeader.HEADER_FIELDS.FILTER) {
-                    map.put(field, String.valueOf("0"));
-                } else if (field == VCFHeader.HEADER_FIELDS.INFO) {
-                    String infostr = ".";
-                    ArrayList<String> info = new ArrayList<String>();
-
-                    if (dbsnp != null) { info.add("DB=1"); }
-                    if (dbsnp != null && dbsnp.isHapmap()) { info.add("H2=1"); }
-
-                    for (int i = 0; i < info.size(); i++) {
-                        if (i == 0) { infostr = ""; }
-                        
-                        infostr += info.get(i);
-
-                        if (i < info.size() - 1) {
-                            infostr += ";";
-                        }
-                    }
-
-                    map.put(field, infostr);
-                }
-            }
-
-            vcfwriter.addRecord(new VCFRecord(vcfheader, map, "GT:GQ:DP", gt));
-            //vcfwriter.addRecord(new VCFRecord(vcfheader, map, "GT", gt));
-
-            return 1;
         }
 
-        return 0;
+        for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
+            map.put(field,String.valueOf(1));
+
+            if (field == VCFHeader.HEADER_FIELDS.CHROM) {
+                map.put(field, context.getContig());
+            } else if (field == VCFHeader.HEADER_FIELDS.POS) {
+                map.put(field, String.valueOf(context.getPosition()));
+            } else if (field == VCFHeader.HEADER_FIELDS.REF) {
+                map.put(field, String.valueOf(ref.getBases()));
+            } else if (field == VCFHeader.HEADER_FIELDS.ALT) {
+                map.put(field, String.valueOf(BaseUtils.baseIndexToSimpleBase(sortedNames[3])));
+            } else if (field == VCFHeader.HEADER_FIELDS.ID) {
+                map.put(field, (dbsnp == null) ? "." : dbsnp.name);
+            } else if (field == VCFHeader.HEADER_FIELDS.QUAL) {
+                map.put(field, String.format("%d", snpQual > 99 ? 99 : (int) snpQual));
+            } else if (field == VCFHeader.HEADER_FIELDS.FILTER) {
+                map.put(field, String.valueOf("0"));
+            } else if (field == VCFHeader.HEADER_FIELDS.INFO) {
+                String infostr = ".";
+                ArrayList<String> info = new ArrayList<String>();
+
+                if (dbsnp != null) { info.add("DB=1"); }
+                if (dbsnp != null && dbsnp.isHapmap()) { info.add("H2=1"); }
+
+                for (int i = 0; i < info.size(); i++) {
+                    if (i == 0) { infostr = ""; }
+
+                    infostr += info.get(i);
+
+                    if (i < info.size() - 1) {
+                        infostr += ";";
+                    }
+                }
+
+                map.put(field, infostr);
+            }
+        }
+        return true;
     }
 
     public Integer reduceInit() {
