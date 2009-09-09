@@ -135,10 +135,10 @@ public class LocusIteratorByState extends LocusIterator {
                     cigarElementCounter = curElement.getLength();
                     readOffset += curElement.getLength();
                     break;
-                case N : // reference skip
-                    cigarElementCounter = curElement.getLength();
-                    genomeOffset += curElement.getLength();
-                    break;
+                case N : // reference skip (looks and gets processed just like a "deletion", just different logical meaning)
+//                    cigarElementCounter = curElement.getLength();
+//                    genomeOffset += curElement.getLength();
+//                    break;
                 case D : // deletion w.r.t. the reference
                     genomeOffset++;
                     done = true;
@@ -221,7 +221,8 @@ public class LocusIteratorByState extends LocusIterator {
         ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>(readStates.size());
         ArrayList<Integer> offsets = new ArrayList<Integer>(readStates.size());
         for ( SAMRecordState state : readStates ) {
-            if ( state.getCurrentCigarOperator() != CigarOperator.D ) {
+            if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
+//                System.out.println("Location: "+getLocation()+"; Read "+state.getRead().getReadName()+"; offset="+state.getReadOffset());
                 reads.add(state.getRead());
                 offsets.add(state.getReadOffset());
             } else if ( readInfo.includeReadsWithDeletionAtLoci() ) {
