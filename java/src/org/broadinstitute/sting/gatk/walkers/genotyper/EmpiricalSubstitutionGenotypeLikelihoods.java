@@ -43,8 +43,9 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihood
     }
 
     public static SequencerPlatform standardizeSequencerPlatform( final String sequencerString ) {
-        if ( sequencerString != null && PLFieldToSequencerPlatform.containsKey(sequencerString) ) {
-            return PLFieldToSequencerPlatform.get(sequencerString);
+        String lcSequencerString = sequencerString.toLowerCase();
+        if ( sequencerString != null && PLFieldToSequencerPlatform.containsKey(lcSequencerString) ) {
+            return PLFieldToSequencerPlatform.get(lcSequencerString);
         } else {
             return SequencerPlatform.UNKNOWN;
         }
