@@ -573,10 +573,11 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             String qualStr = read.getBaseQualityString();
 
             for (int j=0; j < readStr.length(); j++, refIdx++ ) {
-                //                if ( refIdx < 0 || refIdx >= reference.length() ) {
-                //                    System.out.println( "Read: "+read.getRead().getReadName() + "; length = " + readStr.length() );
-                //                    System.out.println( "Ref left: "+ leftmostIndex +"; ref length=" + reference.length() + "; read alignment start: "+read.getOriginalAlignmentStart() ); 
-                //                }
+                if ( refIdx < 0 || refIdx >= reference.length() ) {
+                    //System.out.println( "Read: "+read.getRead().getReadName() + "; length = " + readStr.length() );
+                    //System.out.println( "Ref left: "+ leftmostIndex +"; ref length=" + reference.length() + "; read alignment start: "+read.getOriginalAlignmentStart() );
+                    break;
+                }
                 totalBases[refIdx] += (int)qualStr.charAt(j) - 33;
                 if ( Character.toUpperCase(readStr.charAt(j)) != Character.toUpperCase(reference.charAt(refIdx)) )
                     originalMismatchBases[refIdx] += (int)qualStr.charAt(j) - 33;
