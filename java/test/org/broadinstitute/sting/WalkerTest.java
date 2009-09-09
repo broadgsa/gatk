@@ -1,22 +1,20 @@
 package org.broadinstitute.sting;
 
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
-import org.junit.Test;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.CommandLineExecutable;
-
-import java.io.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ArrayList;
-import java.security.MessageDigest;
-import java.math.BigInteger;
-
 import junit.framework.Assert;
+import org.broadinstitute.sting.gatk.CommandLineExecutable;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.Utils;
+import org.junit.Test;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.List;
 
 public class WalkerTest extends BaseTest {
     public String assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5 ) {
@@ -25,13 +23,13 @@ public class WalkerTest extends BaseTest {
             byte[] thedigest = MessageDigest.getInstance("MD5").digest(bytesOfMessage);
             BigInteger bigInt = new BigInteger(1, thedigest);
             String filemd5sum = bigInt.toString(16);
-
+            while (filemd5sum.length() < 32) filemd5sum = "0" + filemd5sum; // pad to length 32
             if ( parameterize() || expectedMD5.equals("") ) {
                 logger.warn(String.format("PARAMETERIZATION[%s]: file %s has md5 = %s, stated expectation is %s, equal? = %b",
                         name, resultsFile, filemd5sum, expectedMD5, filemd5sum.equals(expectedMD5)));
             } else {
                 logger.warn(String.format("Checking MD5 for %s [calculated=%s, expected=%s]", resultsFile, filemd5sum, expectedMD5));
-                Assert.assertEquals(name + "Mismatching MD5s", expectedMD5, filemd5sum);
+                Assert.assertEquals(name + " Mismatching MD5s", expectedMD5, filemd5sum);
                 logger.warn(String.format("  => %s PASSED", name));
             }
 

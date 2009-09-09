@@ -52,6 +52,9 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     @Argument(fullName="extensiveSubsets", shortName = "A", doc="If provided, output will be calculated over a lot of subsets, by default we only operate over all variants", required=false)
     public boolean extensiveSubsets = false;
 
+    @Argument(fullName="supressDateInformation", doc="This flag indicates that we want to suppress the date information from the output, so that if can be diff'ed against previous evals.", required=false)
+    public boolean supressDateInformation = false;
+
     String analysisFilenameBase = null;
 
     final String knownSNPDBName = "dbSNP";
@@ -253,8 +256,8 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
             //stream.printf("%s Analysis set       %s%n", analysisSetName, , analysisSetName);
             stream.printf("%sAnalysis name      %s%n", header, analysis.getName());
             stream.printf("%sAnalysis params    %s%n", header, Utils.join(" ", analysis.getParams()));
-            stream.printf("%sAnalysis class     %s%n", header, analysis);
-            stream.printf("%sAnalysis time      %s%n", header, now);
+            stream.printf("%sAnalysis class     %s%n", header, analysis.getClass().getName());
+            if (!supressDateInformation) stream.printf("%sAnalysis time      %s%n", header, now);
             for ( String line : analysis.done()) {
                 stream.printf("%s%s%n", header, line);
             }
