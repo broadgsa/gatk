@@ -461,6 +461,15 @@ public class Utils {
         return count;
     }
 
+    public static <T> int countOccurrences(T x, List<T> l) {
+        int count = 0;
+        for ( T y : l ) {
+            if ( x.equals(y) ) count++;
+        }
+        
+        return count;
+    }
+
     public static byte listMaxByte(List<Byte> quals) {
         if ( quals.size() == 0 ) return 0;
         byte m = quals.get(0);

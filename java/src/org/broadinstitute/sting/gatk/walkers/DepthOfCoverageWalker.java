@@ -29,18 +29,64 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Pair;
+import net.sf.samtools.SAMRecord;
 
 /**
  * Display the depth of coverage at a given locus.
  */
 public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>> {
-    @Argument(fullName="suppressLocusPrinting",doc="Suppress printing",required=false)
-    public boolean suppressPrinting = false;
+    enum printType {
+        NONE,
+        COMPACT,
+        DETAILED
+    }
+
+    @Argument(fullName="printStyle", shortName = "s", doc="Printing style: NONE, COMPACT, or DETAILED", required=false)
+    public printType printStyle = printType.COMPACT;
+
+    @Argument(fullName="excludeDeletions", shortName = "ed", doc="If true, we will exclude reads with deletions at a locus in coverage",required=false)
+    public boolean excludeDeletionsInCoverage = false;
+
+    @Argument(fullName="minMAPQ", shortName = "minMAPQ", doc="If provided, we will exclude reads with MAPQ < this value at a locus in coverage",required=false)
+    public int excludeMAPQBelowThis = -1;
+
+    public boolean includeReadsWithDeletionAtLoci() { return ! excludeDeletionsInCoverage; }
+
+    public void initialize() {
+        switch ( printStyle ) {
+            case COMPACT:
+                out.printf("locus depth%n");
+                break;
+            case DETAILED:
+                out.printf("locus nCleanReads nDeletionReads nLowMAPQReads%n");
+                break;
+        }
+    }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( !suppressPrinting )
-            out.printf("%s: %d%n", context.getLocation(), context.getReads().size() );
-        return context.getReads().size();
+        int nCleanReads = 0, nBadMAPQReads = 0, nDeletionReads = 0;
+
+        for ( int i = 0; i < context.getReads().size(); i++ ) {
+            SAMRecord read = context.getReads().get(i);
+            int offset = context.getOffsets().get(i);
+
+            if ( read.getMappingQuality() < excludeMAPQBelowThis ) nBadMAPQReads++;
+            else if ( offset == -1 ) nDeletionReads++;
+            else nCleanReads++;
+        }
+
+        int nTotalReads = nCleanReads + (excludeDeletionsInCoverage ? 0 : nDeletionReads);
+
+        switch ( printStyle ) {
+            case COMPACT:
+                out.printf("%s %8d%n", context.getLocation(), nTotalReads);
+                break;
+            case DETAILED:
+                out.printf("%s %8d %8d %8d %8d%n", context.getLocation(), nTotalReads, nCleanReads, nDeletionReads, nBadMAPQReads);
+                break;
+        }
+
+        return nTotalReads;
     }
 
     public boolean isReduceByInterval() {

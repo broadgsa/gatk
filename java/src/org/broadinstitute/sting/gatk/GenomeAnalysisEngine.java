@@ -358,7 +358,8 @@ public class GenomeAnalysisEngine {
                           argCollection.downsampleCoverage,
                           !argCollection.unsafe,
                           filters,
-                          argCollection.readMaxPileup);
+                          argCollection.readMaxPileup,
+                          walker.includeReadsWithDeletionAtLoci() );
     }
 
     /**

@@ -323,8 +323,8 @@
     <target name="clean" description="clean up">
         <delete dir="out"/>
         <delete dir="build"/>
-        <delete dir="${dist}"/>
         <delete dir="lib"/>
         <delete dir="staging"/>
+        <delete dir="${dist}"/>
     </target>
 </project>

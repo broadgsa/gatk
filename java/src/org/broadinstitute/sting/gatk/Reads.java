@@ -31,6 +31,17 @@ public class Reads {
     private Boolean beSafe = null;
     private List<SamRecordFilter> supplementalFilters = null;
     private int maximumReadsAtLocus = Integer.MAX_VALUE; // this should always be set, so we'll default it MAX_INT
+    private boolean includeReadsWithDeletionAtLoci = false;
+
+
+    /**
+     * Return true if the walker wants to see reads that contain deletions when looking at locus pileups
+     * 
+     * @return
+     */
+    public boolean includeReadsWithDeletionAtLoci() {
+        return includeReadsWithDeletionAtLoci;
+    }
 
     /**
      * Gets a list of the files acting as sources of reads.
@@ -110,7 +121,8 @@ public class Reads {
            Integer downsampleCoverage,
            Boolean beSafe,
            List<SamRecordFilter> supplementalFilters,
-           int maximumReadsAtLocus) {
+           int maximumReadsAtLocus,
+           boolean includeReadsWithDeletionAtLoci) {
         this.readsFiles = samFiles;
         this.validationStringency = strictness;
         this.downsamplingFraction = downsampleFraction;
@@ -118,5 +130,6 @@ public class Reads {
         this.beSafe = beSafe;
         this.supplementalFilters = supplementalFilters;
         this.maximumReadsAtLocus = maximumReadsAtLocus;
+        this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;
     }
 }

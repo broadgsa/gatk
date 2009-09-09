@@ -218,13 +218,15 @@ public class LocusIteratorByState extends LocusIterator {
         collectPendingReads(readInfo.getMaxReadsAtLocus());
 
         // todo -- performance problem -- should be lazy, really
-        LinkedList<SAMRecord> reads = new LinkedList<SAMRecord>();
-        LinkedList<Integer> offsets = new LinkedList<Integer>();
+        ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>(readStates.size());
+        ArrayList<Integer> offsets = new ArrayList<Integer>(readStates.size());
         for ( SAMRecordState state : readStates ) {
-            // todo -- enable D operation in alignment contexts
             if ( state.getCurrentCigarOperator() != CigarOperator.D ) {
                 reads.add(state.getRead());
                 offsets.add(state.getReadOffset());
+            } else if ( readInfo.includeReadsWithDeletionAtLoci() ) {
+                reads.add(state.getRead());
+                offsets.add(-1);
             }
         }
         GenomeLoc loc = getLocation();
@@ -236,7 +238,7 @@ public class LocusIteratorByState extends LocusIterator {
         //    printState();
         //}
 
-        return new AlignmentContext(loc, reads, offsets);
+        return reads.size() == 0 ? next() : new AlignmentContext(loc, reads, offsets);
     }
 
     private void collectPendingReads(final int maximumPileupSize) {

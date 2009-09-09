@@ -49,18 +49,19 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             String md5 = entry.getValue();
             String paramsFile = paramsFiles.get(bam);
             System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
-
-            WalkerTestSpec spec = new WalkerTestSpec(
-                    "-R /broad/1KG/reference/human_b36_both.fasta" +
-                            " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
-                            " -T TableRecalibration" +
-                            " -I " + bam +
-                            " -L 1:10,000,000-20,000,000" +
-                            " --outputBam %s" +
-                            " --params " + paramsFile,
-                    1, // just one output file
-                    Arrays.asList(md5));
-            executeTest("testTableRecalibrator1", spec);
+            if ( paramsFile != null ) {
+                WalkerTestSpec spec = new WalkerTestSpec(
+                        "-R /broad/1KG/reference/human_b36_both.fasta" +
+                                " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
+                                " -T TableRecalibration" +
+                                " -I " + bam +
+                                " -L 1:10,000,000-20,000,000" +
+                                " --outputBam %s" +
+                                " --params " + paramsFile,
+                        1, // just one output file
+                        Arrays.asList(md5));
+                executeTest("testTableRecalibrator1", spec);
+            }
         }
     }
 }

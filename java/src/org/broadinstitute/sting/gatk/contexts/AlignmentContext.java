@@ -142,4 +142,39 @@ public class AlignmentContext {
         reads = downsampledReads;
         offsets = downsampledOffsets;
     }
+
+    /**
+     * Returns only the reads in ac that do not contain spanning deletions of this locus
+     *
+     * @param ac
+     * @return
+     */
+    public static AlignmentContext withoutSpanningDeletions( AlignmentContext ac ) {
+        return subsetDeletions( ac, true );
+    }
+
+    /**
+     * Returns only the reads in ac that do contain spanning deletions of this locus
+     *
+     * @param ac
+     * @return
+     */
+    public static AlignmentContext withSpanningDeletions( AlignmentContext ac ) {
+        return subsetDeletions( ac, false );
+    }
+
+    private static AlignmentContext subsetDeletions( AlignmentContext ac, boolean readsWithoutDeletions ) {
+        ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>(ac.getReads().size());
+        ArrayList<Integer> offsets = new ArrayList<Integer>(ac.getReads().size());
+        for ( int i = 0; i < ac.getReads().size(); i++ ) {
+            SAMRecord read = ac.getReads().get(i);
+            int offset = ac.getOffsets().get(i);
+            if ( (offset == -1 && ! readsWithoutDeletions) || (offset != -1 && readsWithoutDeletions) ) {
+                reads.add(read);
+                offsets.add(offset);
+            }
+        }
+
+        return new AlignmentContext(ac.getLocation(), reads, offsets);
+    }
 }

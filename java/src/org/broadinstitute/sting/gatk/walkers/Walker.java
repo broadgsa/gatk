@@ -43,6 +43,24 @@ public abstract class Walker<MapType, ReduceType> {
         return GenomeAnalysisEngine.instance;
     }
 
+    /**
+     * (conceptual static) method that states whether you want to see reads piling up at a locus
+     * that contain a deletion at the locus.
+     *
+     * ref:   ATCTGA
+     * read1: ATCTGA
+     * read2: AT--GA
+     *
+     * Normally, the locus iterator only returns a list of read1 at this locus at position 3, but
+     * if this function returns true, then the system will return (read1, read2) with offsets
+     * of (3, -1).  The -1 offset indicates a deletion in the read.
+     *
+     * @return false if you don't want to see deletions, or true if you do
+     */
+    public boolean includeReadsWithDeletionAtLoci() { 
+        return false;
+    }
+
     public void initialize() { }
 
     /**
