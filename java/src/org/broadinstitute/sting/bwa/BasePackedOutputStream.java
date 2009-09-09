@@ -51,6 +51,15 @@ public class BasePackedOutputStream<T> {
     }
 
     /**
+     * Writes the given base to the output stream.  Will write only this base; no packing will be performed.
+     * @param base List of bases to write.
+     * @throws IOException if an I/O error occurs.
+     */
+    public void write( int base ) throws IOException {
+        write( new byte[] { (byte)base } );
+    }
+
+    /**
      * Writes an array of bases to the target output stream.
      * @param bases List of bases to write.
      * @throws IOException if an I/O error occurs.

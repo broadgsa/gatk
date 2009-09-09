@@ -177,7 +177,7 @@ public class CreateBWTFromReference {
         bwtOutputStream.write(buffer.array());
         bwtOutputStream.flush();
 
-        PackedIntOutputStream occurrenceWriter = new PackedIntOutputStream(bwtOutputStream);
+        IntPackedOutputStream occurrenceWriter = new IntPackedOutputStream(bwtOutputStream,ByteOrder.LITTLE_ENDIAN);
         occurrenceWriter.write(occurrences);
         occurrenceWriter.flush();
 
@@ -186,7 +186,7 @@ public class CreateBWTFromReference {
         sequenceOutputStream.close();
 
         OutputStream saOutputStream = new BufferedOutputStream(new FileOutputStream(saFile));
-        PackedIntOutputStream saIntWriter = new PackedIntOutputStream(saOutputStream);
+        IntPackedOutputStream saIntWriter = new IntPackedOutputStream(saOutputStream,ByteOrder.LITTLE_ENDIAN);
 
         // SA file format is 'primary' (= SA-1[0]?), occurrence array, interval, sequence length, SA[]
         saIntWriter.write(inverseSuffixArray[0]);
@@ -198,8 +198,17 @@ public class CreateBWTFromReference {
         saIntWriter.close();
 
         File existingBwtFile = new File(inputFileName+".bwt");
-        WordPackedInputStream inputStream = new WordPackedInputStream(existingBwtFile,ByteOrder.LITTLE_ENDIAN);
-        byte[] existingBwt = inputStream.read();
+        InputStream existingBwtStream = new BufferedInputStream(new FileInputStream(existingBwtFile));
+
+        IntPackedInputStream existingIntReader = new IntPackedInputStream(existingBwtStream,ByteOrder.LITTLE_ENDIAN);
+
+        int existingFirstInverseSA = existingIntReader.read();
+
+        int[] existingOccurrences = new int[4];
+        existingIntReader.read(existingOccurrences);
+
+        BasePackedInputStream inputStream = new BasePackedInputStream<Integer>(Integer.class,existingBwtStream,ByteOrder.LITTLE_ENDIAN);
+        byte[] existingBwt = inputStream.read(existingOccurrences[3]);
 
         String existingBwtAsString = new String(existingBwt);
         System.out.printf("Existing BWT: %s...%n",existingBwtAsString.substring(0,80));
