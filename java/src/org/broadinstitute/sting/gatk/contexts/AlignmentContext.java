@@ -100,9 +100,10 @@ public class AlignmentContext {
     public String getContig() { return getLocation().getContig(); }
     public long getPosition() { return getLocation().getStart(); }
     public GenomeLoc getLocation() { return loc; }
-    public void setLocation(GenomeLoc loc) {
-        this.loc = loc.clone();
-    }
+
+    //public void setLocation(GenomeLoc loc) {
+    //    this.loc = loc.clone();
+    //}
 
     public void downsampleToCoverage(int coverage) {
         if ( numReads() <= coverage )

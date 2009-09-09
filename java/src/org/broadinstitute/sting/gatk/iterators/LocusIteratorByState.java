@@ -112,7 +112,7 @@ public class LocusIteratorByState extends LocusIterator {
             //if ( cigarOffset == cigar.numCigarElements() )
             //    return null;    // we are done
 
-            if (DEBUG2) System.out.printf("stepForwardOnGenome2: curElement=%s, counter=%d, len=%d%n", curElement, cigarElementCounter, curElement != null ? curElement.getLength() : -1);
+            //if (DEBUG2) System.out.printf("stepForwardOnGenome2: curElement=%s, counter=%d, len=%d%n", curElement, cigarElementCounter, curElement != null ? curElement.getLength() : -1);
             if ( curElement == null || ++cigarElementCounter >= curElement.getLength() ) {
                 cigarOffset++;
                 if ( cigarOffset < nCigarElements ) {
@@ -151,102 +151,15 @@ public class LocusIteratorByState extends LocusIterator {
                 default : throw new IllegalStateException("Case statement didn't deal with cigar op: " + curElement.getOperator());
             }
 
-            if (DEBUG2) System.out.printf("stepForwardOnGenome3: done=%b curElement=%s, counter=%d, len=%d, offset=%d%n",
-                    done, curElement, cigarElementCounter, curElement != null ? curElement.getLength() : -1, getReadOffset());
+            //if (DEBUG2) System.out.printf("stepForwardOnGenome3: done=%b curElement=%s, counter=%d, len=%d, offset=%d%n",
+            //        done, curElement, cigarElementCounter, curElement != null ? curElement.getLength() : -1, getReadOffset());
             return done ? curElement.getOperator() : stepForwardOnGenome();
         }
     }
 
-/*    private class SAMRecordState {
-        SAMRecord read;
-        int readOffset = -1;     // how far are we offset from the start of the read bases?
-        int genomeOffset = -1;   // how far are we offset from the alignment start on the genome?
-        Iterator<CigarElement> cigarIt = null;
-        CigarElement curElement = null;
-        int cigarElementCounter = 0;
-
-        public SAMRecordState(SAMRecord read) {
-            this.read = read;
-            cigarIt = read.getCigar().getCigarElements().iterator();
-            //stepForwardOnGenome();      // todo -- may be a performance issue -- can we avoid this?
-        }
-
-        public SAMRecord getRead() { return read; }
-
-        *//**
-         * What is our current offset in the read's bases that aligns us with the reference genome?
-         *
-         * @return
-         *//*
-        public int getReadOffset() { return readOffset; }
-
-        *//**
-         * What is the current offset w.r.t. the alignment state that aligns us to the readOffset?
-         *
-         * @return
-         *//*
-        public int getGenomeOffset() { return genomeOffset; }
-
-        public int getGenomePosition() { return read.getAlignmentStart() + getGenomeOffset(); }        
-
-        public GenomeLoc getLocation() {
-            return GenomeLocParser.createGenomeLoc(read.getReferenceIndex(), getGenomePosition());
-        }
-
-        public CigarOperator getCurrentCigarOperator() { return curElement.getOperator(); }
-
-        public CigarOperator stepForwardOnGenome() {
-            if (DEBUG2) System.out.printf("stepForwardOnGenome1: cigarIt=%s%n", cigarIt);
-            if (cigarIt == null && ! cigarIt.hasNext())
-                return null;    // we are done
-
-            if (DEBUG2) System.out.printf("stepForwardOnGenome2: curElement=%s, counter=%d, len=%d%n", curElement, cigarElementCounter, curElement != null ? curElement.getLength() : -1);
-            if ( curElement == null || ++cigarElementCounter >= curElement.getLength() ) {
-                if ( cigarIt.hasNext() ) {
-                    curElement = cigarIt.next();
-                    cigarElementCounter = 0;
-                } else {
-                    return null;
-                }
-            }
-
-            boolean done = false;
-            switch (curElement.getOperator()) {
-                case H : // ignore hard clips
-                case P : // ignore pads
-                    cigarElementCounter = curElement.getLength();
-                    break;
-                case S : // soft clip
-                case I : // insertion w.r.t. the reference
-//                    readOffset++; done = true; break;
-                    cigarElementCounter = curElement.getLength();
-                    readOffset += curElement.getLength();
-                    break;
-                case N : // reference skip
-                    cigarElementCounter = curElement.getLength();
-                    genomeOffset += curElement.getLength();
-                    break;
-                case D : // deletion w.r.t. the reference
-                    genomeOffset++;
-                    done = true;
-                    break;
-                case M :
-                    readOffset++;
-                    genomeOffset++;
-                    done = true;
-                    break;
-                default : throw new IllegalStateException("Case statement didn't deal with cigar op: " + curElement.getOperator());
-            }
-
-            if (DEBUG2) System.out.printf("stepForwardOnGenome3: done=%b curElement=%s, counter=%d, len=%d, offset=%d%n",
-                    done, curElement, cigarElementCounter, curElement != null ? curElement.getLength() : -1, getReadOffset());
-            return done ? curElement.getOperator() : stepForwardOnGenome();
-        }
-    }*/
-
     private LinkedList<SAMRecordState> readStates = new LinkedList<SAMRecordState>();
-    final boolean DEBUG = false;
-    final boolean DEBUG2 = false && DEBUG;
+    //final boolean DEBUG = false;
+    //final boolean DEBUG2 = false && DEBUG;
     private Reads readInfo;
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -269,7 +182,7 @@ public class LocusIteratorByState extends LocusIterator {
 
     public boolean hasNext() {
         boolean r = ! readStates.isEmpty() || it.hasNext();
-        if ( DEBUG ) System.out.printf("hasNext() = %b%n", r);
+        //if ( DEBUG ) System.out.printf("hasNext() = %b%n", r);
         return r;
     }
 
@@ -297,10 +210,10 @@ public class LocusIteratorByState extends LocusIterator {
     //
     // -----------------------------------------------------------------------------------------------------------------
     public AlignmentContext next() {
-        if (DEBUG) {
-            logger.debug("in Next:");
-            printState();
-        }
+        //if (DEBUG) {
+        //    logger.debug("in Next:");
+        //    printState();
+        //}
 
         collectPendingReads(readInfo.getMaxReadsAtLocus());
 
@@ -318,30 +231,28 @@ public class LocusIteratorByState extends LocusIterator {
 
         updateReadStates(); // critical - must be called after we get the current state offsets and location
 
-        if (DEBUG) {
-            logger.debug("DONE WITH NEXT, updating read states, current state is:");
-            printState();
-        }
+        //if (DEBUG) {
+        //    logger.debug("DONE WITH NEXT, updating read states, current state is:");
+        //    printState();
+        //}
 
         return new AlignmentContext(loc, reads, offsets);
     }
 
     private void collectPendingReads(final int maximumPileupSize) {
-        if (DEBUG) {
-            logger.debug(String.format("entering collectPendingReads..., hasNext=%b", it.hasNext()));
-            printState();
-        }
+        //if (DEBUG) {
+        //    logger.debug(String.format("entering collectPendingReads..., hasNext=%b", it.hasNext()));
+        //    printState();
+        //}
 
         Boolean warned = false;             // warn them once per locus
         int curSize = readStates.size();    // simple performance improvement -- avoids unnecessary size() operation
         while (it.hasNext()) {
             SAMRecord read = it.next();
 
-            if (DEBUG) logger.debug(String.format("Considering read %s: %s vs. %s",
-                    read.getReadName(), getLocation(), GenomeLocParser.createGenomeLoc(read)));
+//            if (DEBUG) logger.debug(String.format("Considering read %s: %s vs. %s",
+//                    read.getReadName(), getLocation(), GenomeLocParser.createGenomeLoc(read)));
 
-            //GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
-            //if (getLocation() != null && readLoc.distance(getLocation()) >= 1) {
             if ( readIsPastCurrentPosition(read) ) {
                 // We've collected up enough reads
                 it.pushback(read);
@@ -357,7 +268,7 @@ public class LocusIteratorByState extends LocusIterator {
                     state.stepForwardOnGenome();
                     readStates.add(state);
                     curSize++;
-                    if (DEBUG) logger.debug(String.format("  ... added read %s", read.getReadName()));
+                    //if (DEBUG) logger.debug(String.format("  ... added read %s", read.getReadName()));
                 }
             }
         }
@@ -370,7 +281,6 @@ public class LocusIteratorByState extends LocusIterator {
         else {
             SAMRecordState state = readStates.getFirst();
             SAMRecord ourRead = state.getRead();
-            //System.out.printf("read=%d vs. us=%d%n", read.getAlignmentStart(), ourRead.getAlignmentStart());
             return read.getReferenceIndex() > ourRead.getReferenceIndex() || read.getAlignmentStart() > state.getGenomePosition();
         }
     }
@@ -382,7 +292,7 @@ public class LocusIteratorByState extends LocusIterator {
             SAMRecordState state = it.next();
             CigarOperator op = state.stepForwardOnGenome();
             if ( op == null ) { // we've stepped off the end of the object
-                if (DEBUG) logger.debug(String.format("   removing read %s at %d", state.getRead().getReadName(), state.getRead().getAlignmentStart()));
+                //if (DEBUG) logger.debug(String.format("   removing read %s at %d", state.getRead().getReadName(), state.getRead().getAlignmentStart()));
                 it.remove();
             }
         }

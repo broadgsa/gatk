@@ -135,8 +135,8 @@ public class GATKArgumentCollection {
     public int numberOfThreads = 1;
 
     @Element(required = false)
-    @Argument(fullName = "LocusIteratorByState", shortName = "LIBS", doc = "Should we use the new LocusIteratorByState or the old LocusIteratorByHanger?", required = false)
-    public Boolean useLocusIteratorByState = false;
+    @Argument(fullName = "LocusIteratorByHanger", shortName = "LIBH", doc = "Should we use the new LocusIteratorByState or the old LocusIteratorByHanger?", required = false)
+    public Boolean useLocusIteratorByHanger = true;
 
 
     /**
@@ -277,7 +277,7 @@ public class GATKArgumentCollection {
         if (other.numberOfThreads != this.numberOfThreads) {
             return false;
         }
-        if (other.useLocusIteratorByState != this.useLocusIteratorByState) {
+        if (other.useLocusIteratorByHanger != this.useLocusIteratorByHanger ) {
             return false;
         }
 

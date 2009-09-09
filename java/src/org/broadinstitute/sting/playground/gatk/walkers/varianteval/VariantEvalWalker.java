@@ -181,6 +181,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 
         //if ( eval!=null ) System.out.printf("Eval: %f %d %b%n", eval.getVariationConfidence(), minDiscoveryQ, eval.getVariationConfidence() < minDiscoveryQ);
         if ( eval != null ) {
+            // comment to disable variant filtering by confidence score
             if ( evalContainsGenotypes ) {
                 // Genotyping - use best vs. next best lod
                 if ( eval.getConsensusConfidence() < minConfidenceScore ) eval = null;

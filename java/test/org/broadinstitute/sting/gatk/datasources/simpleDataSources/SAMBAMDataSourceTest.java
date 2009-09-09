@@ -86,7 +86,7 @@ public class SAMBAMDataSourceTest extends BaseTest {
         int count = 0;
 
         // setup the data
-        fl.add(new File(oneKGLocation + "/pilot3/sams/NA12892.bam"));
+        fl.add(new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"));
         Reads reads = new Reads(fl);
 
         try {
