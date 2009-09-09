@@ -136,7 +136,7 @@ public class GATKArgumentCollection {
 
     @Element(required = false)
     @Argument(fullName = "LocusIteratorByHanger", shortName = "LIBH", doc = "Should we use the new LocusIteratorByState or the old LocusIteratorByHanger?", required = false)
-    public Boolean useLocusIteratorByHanger = true;
+    public Boolean useLocusIteratorByHanger = false;
 
 
     /**
