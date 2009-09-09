@@ -41,6 +41,12 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     private static final int windowSize = 10;  // 10 variants on either end of the current one
     private ArrayList<VariantContext> windowInitializer = new ArrayList<VariantContext>();
 
+    private void listFiltersAndExit() {
+        out.println("\nAvailable features: " + getAvailableClasses(featureClasses));
+        out.println("Available exclusion criteria: " + getAvailableClasses(exclusionClasses) + "\n");
+        System.exit(0);
+    }
+
     /**
      * Prepare the output file and the list of available features.
      */
@@ -48,11 +54,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         featureClasses = PackageUtils.getClassesImplementingInterface(IndependentVariantFeature.class);
         exclusionClasses = PackageUtils.getClassesImplementingInterface(VariantExclusionCriterion.class);
 
-        if (LIST) {
-            out.println("\nAvailable features: " + getAvailableClasses(featureClasses));
-            out.println("Available exclusion criteria: " + getAvailableClasses(exclusionClasses) + "\n");
-            System.exit(0);
-        }
+        if (LIST) { listFiltersAndExit(); }
 
         try {
             variantsWriter = new PrintWriter(VARIANTS_OUT_HEAD + ".included.geli.calls");
@@ -71,10 +73,13 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                     String requestedFeatureName = requestedFeaturePieces[0];
                     String requestedFeatureArgs = (requestedFeaturePieces.length == 2) ? requestedFeaturePieces[1] : "";
 
+                    boolean found = false;
                     for ( Class featureClass : featureClasses ) {
                         String featureClassName = rationalizeClassName(featureClass);
 
                         if (requestedFeatureName.equalsIgnoreCase(featureClassName)) {
+                            found = true;
+
                             try {
                                 IndependentVariantFeature ivf = (IndependentVariantFeature) featureClass.newInstance();
                                 ivf.initialize(requestedFeatureArgs);
@@ -88,6 +93,10 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                             }
                         }
                     }
+
+                    if (!found) {
+                        throw new StingException("Unknown feature '" + requestedFeatureString + "'.  Issue the '-ls' argument to list available features.");
+                    }
                 }
             }
 
@@ -99,10 +108,13 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                     String[] requestedExclusionPieces = requestedExclusionString.split(":");
                     String requestedExclusionName = requestedExclusionPieces[0];
 
+                    boolean found = false;
                     for ( Class exclusionClass : exclusionClasses ) {
                         String exclusionClassName = rationalizeClassName(exclusionClass);
 
                         if (requestedExclusionName.equalsIgnoreCase(exclusionClassName)) {
+                            found = true;
+
                             try {
                                 HashMap<String,String> requestedArgs = new HashMap<String,String>();
                                 if ( requestedExclusionPieces.length == 2 ) {
@@ -129,6 +141,10 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
                                 throw new StingException(String.format("Cannot instantiate exclusion class '%s': must have no-arg constructor", exclusionClass.getSimpleName()));
                             }
                         }
+                    }
+
+                    if (!found) {
+                        throw new StingException("Unknown exclusion criterion '" + requestedExclusionString + "'.  Issue the '-ls' argument to list available exclusion criteria.");
                     }
                 }
             }
