@@ -55,7 +55,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     @Argument(fullName="supressDateInformation", doc="This flag indicates that we want to suppress the date information from the output, so that if can be diff'ed against previous evals.", required=false)
     public boolean supressDateInformation = false;
 
-    @Argument(fullName = "numPeopleInPool", shortName="S", doc="If using a variant file from a pooled caller, this field provides the number of individuals in each pool", required=false)
+    @Argument(fullName = "numPeopleInPool", shortName="PS", doc="If using a variant file from a pooled caller, this field provides the number of individuals in each pool", required=false)
     public int numPeopleInPool = 1;
 
     String analysisFilenameBase = null;
