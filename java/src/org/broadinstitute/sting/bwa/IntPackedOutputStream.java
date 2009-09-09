@@ -62,7 +62,7 @@ public class IntPackedOutputStream {
      * @param byteOrder Endianness to use when writing a list of integers.
      * @throws IOException if an I/O error occurs.
      */
-    public IntPackedOutputStream(OutputStream outputStream, ByteOrder byteOrder) throws IOException {
+    public IntPackedOutputStream(OutputStream outputStream, ByteOrder byteOrder) {
         this.targetOutputStream = outputStream;
         buffer = ByteBuffer.allocate(PackUtils.bitsInType(Integer.class)/PackUtils.BITS_PER_BYTE).order(byteOrder);
     }

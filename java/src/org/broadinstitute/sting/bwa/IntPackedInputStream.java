@@ -35,9 +35,8 @@ public class IntPackedInputStream {
      * Read  ints from the given InputStream.
      * @param inputStream Input stream from which to read ints.
      * @param byteOrder Endianness to use when writing a list of integers.
-     * @throws IOException if an I/O error occurs.
      */
-    public IntPackedInputStream(InputStream inputStream, ByteOrder byteOrder) throws IOException {
+    public IntPackedInputStream(InputStream inputStream, ByteOrder byteOrder) {
         this.targetInputStream = inputStream;
         this.buffer = ByteBuffer.allocate(PackUtils.bitsInType(Integer.class)/PackUtils.BITS_PER_BYTE).order(byteOrder);        
     }
@@ -59,7 +58,18 @@ public class IntPackedInputStream {
      * @throws IOException if an I/O error occurs.
      */
     public void read( int[] data ) throws IOException {
-        for(int i = 0; i < data.length; i++) {
+        read( data, 0, data.length );
+    }
+
+    /**
+     * Read the data from the input stream, starting at the given offset.
+     * @param data placeholder for input data.
+     * @param offset place in the array to start reading in data.
+     * @param length number of ints to read in. 
+     * @throws IOException if an I/O error occurs.
+     */
+    public void read( int[] data, int offset, int length ) throws IOException {
+        for(int i = offset; i < offset+length; i++) {
             targetInputStream.read(buffer.array());
             data[i] = buffer.getInt();
             buffer.rewind();

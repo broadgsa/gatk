@@ -32,7 +32,7 @@ public class BasePackedInputStream<T> {
         this(type,new BufferedInputStream(new FileInputStream(inputFile)),byteOrder);
     }
 
-    public BasePackedInputStream( Class<T> type, InputStream inputStream, ByteOrder byteOrder ) throws FileNotFoundException {
+    public BasePackedInputStream( Class<T> type, InputStream inputStream, ByteOrder byteOrder ) {
         if( type != Integer.class )
             throw new StingException("Only bases packed into 32-bit words are currently supported by this input stream.  Type specified: " + type.getName());
 
@@ -44,6 +44,7 @@ public class BasePackedInputStream<T> {
     /**
      * Read the entire contents of the input stream.
      * @param length number of bases to read from the stream.
+     * @return a byte array of the given length.
      * @throws IOException if an I/O error occurs.
      */
     public byte[] read( int length ) throws IOException {

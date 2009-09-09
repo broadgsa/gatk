@@ -33,8 +33,8 @@ import net.sf.samtools.util.StringUtil;
 import java.io.*;
 import java.util.TreeSet;
 import java.util.Comparator;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+
+import org.broadinstitute.sting.utils.StingException;
 
 /**
  * Create a suffix array data structure.
@@ -136,18 +136,25 @@ public class CreateBWTFromReference {
 
         String sequence = creator.loadReference(inputFile);
 
+        // Count the occurences of each given base.
+        int[] occurrences = creator.countOccurrences(sequence);
+        System.out.printf("Occurrences: a=%d, c=%d, g=%d, t=%d%n",occurrences[0],occurrences[1],occurrences[2],occurrences[3]);
+
         // Generate the suffix array and print diagnostics.
-        int[] suffixArray = creator.createSuffixArray(sequence);
-        for( int i = 0; i < 8; i++ )
-            System.out.printf("suffixArray[%d] = %d (%s...)%n", i, suffixArray[i], sequence.substring(suffixArray[i],Math.min(suffixArray[i]+100,sequence.length())));
+        int[] suffixArrayData = creator.createSuffixArray(sequence);
 
         // Invert the suffix array and print diagnostics.
-        int[] inverseSuffixArray = creator.invertSuffixArray(suffixArray);
+        int[] inverseSuffixArray = creator.invertSuffixArray(suffixArrayData);
+
+        SuffixArray suffixArray = new SuffixArray( inverseSuffixArray[0], occurrences, suffixArrayData );
+
+        for( int i = 0; i < 8; i++ )
+            System.out.printf("suffixArray[%d] = %d (%s...)%n", i, suffixArray.sequence[i], sequence.substring(suffixArray.sequence[i],Math.min(suffixArray.sequence[i]+100,sequence.length())));
         for( int i = 0; i < 8; i++ )
             System.out.printf("inverseSuffixArray[%d] = %d (%s...)%n", i, inverseSuffixArray[i], sequence.substring(i,Math.min(i+100,sequence.length())));
 
         // Create the data structure for the compressed suffix array and print diagnostics.
-        int[] compressedSuffixArray = creator.createCompressedSuffixArray(suffixArray,inverseSuffixArray);
+        int[] compressedSuffixArray = creator.createCompressedSuffixArray(suffixArray.sequence,inverseSuffixArray);
         int reconstructedInverseSA = compressedSuffixArray[0];
         for( int i = 0; i < 8; i++ ) {
             System.out.printf("compressedSuffixArray[%d] = %d (SA-1[%d] = %d)%n", i, compressedSuffixArray[i], i, reconstructedInverseSA);
@@ -160,64 +167,39 @@ public class CreateBWTFromReference {
             System.out.printf("inverseCompressedSuffixArray[%d] = %d%n", i, inverseCompressedSuffixArray[i]);
         }
 
-        // Count the occurences of each given base.
-        int[] occurrences = creator.countOccurrences(sequence);
-        System.out.printf("Occurrences: a=%d, c=%d, g=%d, t=%d%n",occurrences[0],occurrences[1],occurrences[2],occurrences[3]);
-
         // Create the BWT.
-        byte[] bwt = creator.createBWT(sequence, suffixArray);
+        BWT bwt = new BWT( inverseSuffixArray[0], occurrences, creator.createBWT(sequence, suffixArray.sequence) );
 
-        String bwtAsString = new String(bwt);
+        String bwtAsString = new String(bwt.sequence);
         System.out.printf("BWT: %s...%n", bwtAsString.substring(0,80));
 
-        OutputStream bwtOutputStream = new BufferedOutputStream(new FileOutputStream(bwtFile));
+        BWTWriter bwtWriter = new BWTWriter(bwtFile);
+        bwtWriter.write(bwt);
+        bwtWriter.close();
 
-        ByteBuffer buffer = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN);
-        buffer.putInt(inverseSuffixArray[0]);
-        bwtOutputStream.write(buffer.array());
-        bwtOutputStream.flush();
+        SuffixArrayWriter saWriter = new SuffixArrayWriter(saFile);
+        saWriter.write(suffixArray);
+        saWriter.close();
 
-        IntPackedOutputStream occurrenceWriter = new IntPackedOutputStream(bwtOutputStream,ByteOrder.LITTLE_ENDIAN);
-        occurrenceWriter.write(occurrences);
-        occurrenceWriter.flush();
+        File existingBWTFile = new File(inputFileName+".bwt");
+        BWTReader existingBWTReader = new BWTReader(existingBWTFile);
+        BWT existingBWT = existingBWTReader.read();
 
-        BasePackedOutputStream<Integer> sequenceOutputStream = new BasePackedOutputStream<Integer>(Integer.class,bwtOutputStream,ByteOrder.LITTLE_ENDIAN);
-        sequenceOutputStream.write(bwt);
-        sequenceOutputStream.close();
-
-        OutputStream saOutputStream = new BufferedOutputStream(new FileOutputStream(saFile));
-        IntPackedOutputStream saIntWriter = new IntPackedOutputStream(saOutputStream,ByteOrder.LITTLE_ENDIAN);
-
-        // SA file format is 'primary' (= SA-1[0]?), occurrence array, interval, sequence length, SA[]
-        saIntWriter.write(inverseSuffixArray[0]);
-        saIntWriter.write(occurrences);
-        saIntWriter.write(1);
-        saIntWriter.write(suffixArray.length-1);
-        saIntWriter.write(suffixArray, 1, suffixArray.length-1);
-
-        saIntWriter.close();
-
-        File existingBwtFile = new File(inputFileName+".bwt");
-        InputStream existingBwtStream = new BufferedInputStream(new FileInputStream(existingBwtFile));
-
-        IntPackedInputStream existingIntReader = new IntPackedInputStream(existingBwtStream,ByteOrder.LITTLE_ENDIAN);
-
-        int existingFirstInverseSA = existingIntReader.read();
-
-        int[] existingOccurrences = new int[4];
-        existingIntReader.read(existingOccurrences);
-
-        BasePackedInputStream inputStream = new BasePackedInputStream<Integer>(Integer.class,existingBwtStream,ByteOrder.LITTLE_ENDIAN);
-        byte[] existingBwt = inputStream.read(existingOccurrences[3]);
-
-        String existingBwtAsString = new String(existingBwt);
+        String existingBwtAsString = new String(existingBWT.sequence);
         System.out.printf("Existing BWT: %s...%n",existingBwtAsString.substring(0,80));
 
-        for( int i = 0; i < bwt.length; i++ ) {
-            if( bwt[i] != existingBwt[i] ) {
-                System.out.printf("First bwt mismatch: %d%n",i);
-                break;
-            }
+        for( int i = 0; i < bwt.sequence.length; i++ ) {
+            if( bwt.sequence[i] != existingBWT.sequence[i] )
+                throw new StingException("BWT mismatch at " + i);
+        }
+
+        File existingSAFile = new File(inputFileName+".sa");
+        SuffixArrayReader existingSuffixArrayReader = new SuffixArrayReader(existingSAFile);
+        SuffixArray existingSuffixArray = existingSuffixArrayReader.read();
+
+        for( int i = 0; i < suffixArray.sequence.length; i++ ) {
+            if( suffixArray.sequence[i] != existingSuffixArray.sequence[i] )
+                throw new StingException("Suffix array mismatch at " + i);
         }
     }
 
