@@ -6,6 +6,18 @@ from datetime import date
 import glob
 import operator
 import itertools
+from urlparse import urlparse
+from ftplib import FTP
+import MergeBAMsUtils
+import time
+import re
+import hashlib
+
+
+FTPSERVER = None
+DEBUG = False
+
+CACHED_LIST = dict() # from directories to lists of lines
 
 class Status:
     def __init__(self, file, exists, size):
@@ -22,6 +34,13 @@ class Status:
         
     def viewSize(self):
         return MergeBAMsUtils.greek(self.size)
+        
+
+def md5(file):
+    m = hashlib.md5()
+    for line in open(file):
+        m.update(line)
+    return m.hexdigest()
 
 class ComparedFiles:
     def __init__(self, file, status, localStat, ftpStat):
@@ -45,17 +64,11 @@ class ComparedFiles:
             return 0
 
 def modTimeStr(t):
-    return time.strftime("%m/%d/%y", time.localtime(t))
+    if t == 0:
+        return 'N/A'
+    else:
+        return time.strftime("%m/%d/%y", time.localtime(t))
 
-from urlparse import urlparse
-from ftplib import FTP
-
-FTPSERVER = None
-
-DEBUG = False
-
-# from directories to lists of lines
-CACHED_LIST = dict()
 def getSizeForFile(dir, filename):
     global CACHED_LIST
     size = [0]    
@@ -95,6 +108,16 @@ def ftpStatus( ftpPath ):
     if DEBUG: print '  result was', size
     return Status( ftpPath, size <> 0, size )
 
+def fetchFtpFile( file ):
+    filename = os.path.split(file)[1]
+    destFile = filename + '.fetched.' + date.today().strftime("%m_%d_%y")
+    #print 'destFile', destFile
+    fd = open(destFile, 'w')
+    result = FTPSERVER.retrbinary('RETR ' + file, lambda x: fd.write(x))
+    fd.close()
+    #print "done"
+    return Status(destFile, True, os.path.getsize(destFile))
+
 def localStatus(file):
     exists = os.path.exists(file)
     size = 0
@@ -117,9 +140,6 @@ def validateFile(relPath, localRoot, ftpRoot):
         print 'STATUS %20s for %s ' % (compared.status, relPath)
     return compared
 
-import MergeBAMsUtils
-
-import time
 def compareFileStatus(localStat, ftpStat):
     if localStat.exists:
         if ftpStat.exists:
@@ -138,7 +158,6 @@ def compareFileStatus(localStat, ftpStat):
     return ComparedFiles(localStat.file, status, localStat, ftpStat)
 
 
-import re
 def filesInLocalPath(root, subdir):
     regex = re.compile(".*\.(bam|bai)$")
     localFiles = set()
@@ -161,6 +180,37 @@ def readAlignmentIndex(file):
            files.add(line.split()[4])
     return files
 
+def compareAlignmentIndices(remoteAlignmentIndex, alignmentIndex):
+    if remoteAlignmentIndex <> None and alignmentIndex <> None:
+        printHeaderSep()
+        print 'Comparing remote and local alignment indices: '
+        remotePath = os.path.join(ftpParsed[2], remoteAlignmentIndex)
+        remoteAlignmentIndexFile = fetchFtpFile( remotePath )
+        print '  Fetched', remotePath, 'to', remoteAlignmentIndexFile.file
+        raImd5 = md5(remoteAlignmentIndexFile.file)
+        laImd5 = md5(alignmentIndex)
+        print '  md5s: local=%s remote=%s' % (raImd5, laImd5)
+        if raImd5 <> laImd5:
+            print '  [FAIL] -- alignment indices do not have the same hash!'
+        else:
+            print '  [PASS] -- alignment indices are the same'
+
+def displayChangeLog( changelog ):
+    if changelog <> None:
+        printHeaderSep()
+        print 'Displaying remote changelog for examination '
+        remotePath = os.path.join(ftpParsed[2], changelog)
+        remoteChangeLog = fetchFtpFile( remotePath )
+        print '  Fetched', remotePath, 'to', remoteChangeLog.file
+        
+        print 
+        for line in itertools.islice(open(remoteChangeLog.file), 20):
+            print 'CHANGELOG', line,
+
+def printHeaderSep():
+    print
+    print ''.join(['-'] * 80)
+
 if __name__ == "__main__":
     usage = "usage: %prog -l and/or -a root ftpRoot"
     parser = OptionParser(usage=usage)
@@ -176,6 +226,12 @@ if __name__ == "__main__":
     parser.add_option("-q", "--quiet", dest="quiet",
                         action='store_true', default=False,
                         help="If provided, prints out the individual status of all files")
+    parser.add_option("-i", "--remoteAlignmentIndex", dest="remoteAlignmentIndex",
+                        type='string', default=None,
+                        help="relative path to the FTP's alignment.index file for comparison")
+    parser.add_option("-c", "--remoteChangeLog", dest="remoteChangeLog",
+                        type='string', default=None,
+                        help="relative path to the FTP's CHANGELOG file for display")
                         
     (OPTIONS, args) = parser.parse_args()
     if len(args) != 2:
@@ -195,21 +251,27 @@ if __name__ == "__main__":
             results[file] = compared
             #localIndex
         
+    compareAlignmentIndices(OPTIONS.remoteAlignmentIndex, OPTIONS.alignmentIndex)
+    displayChangeLog(OPTIONS.remoteChangeLog)
+
+    printHeaderSep()
     print 'SUMMARY: Total files examined', len(results)
     for status in ['in-sync', 'size-mismatch', 'unknown-local-file', 'local-file-missing', 'orphaned-file']:
-        print ''.join(['-'] * 80)
+        printHeaderSep()
         filesOfStatus = filter(lambda x: x.status == status, results.itervalues())
         n = len(filesOfStatus)
         print 'SUMMARY: %s' % ( status )
-        print 'SUMMARY: files                    %d (%.2f%% of total)' % ( n, n * 100.0 / len(results))
-
+        print 'SUMMARY: Files                    %d (%.2f%% of total)' % ( n, n * 100.0 / len(results))
+        
+        statusForFileListing = ['size-mismatch', 'local-file-missing']
+        maxFilesToList = 10
+        if status in statusForFileListing:
+            print 'SUMMARY: listing the first', maxFilesToList, 'of', n
+            for file in itertools.islice(filesOfStatus, maxFilesToList):
+                print 'SUMMARY: File: %8s %12s %s' % ( MergeBAMsUtils.greek(file.size()), modTimeStr(file.modTime()), file.file)
         if n > 0:
            fileSizes = MergeBAMsUtils.greek(reduce(operator.__add__, map( ComparedFiles.size, filesOfStatus ), 0 ))
-           mostRecentMod = apply(max, map( ComparedFiles.modTime, filesOfStatus ))
-           if mostRecentMod > 0:
-               modTime = modTimeStr(mostRecentMod)
-           else:
-               modTime = "N/A"
+           mostRecentMod = modTimeStr(apply(max, map( ComparedFiles.modTime, filesOfStatus )))
                
            print 'SUMMARY: total size               %s' % ( fileSizes )
-           print 'SUMMARY: last modification time   %s' % ( modTime )
+           print 'SUMMARY: last modification time   %s' % ( mostRecentMod )
