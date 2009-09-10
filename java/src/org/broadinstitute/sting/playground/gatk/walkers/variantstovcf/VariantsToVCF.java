@@ -46,10 +46,12 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
         Map<String, String> metaData = new HashMap<String, String>();
         List<String> additionalColumns = new ArrayList<String>();
 
-        Calendar cal = Calendar.getInstance();
+        // Don't output the data for now because it kills our unit test MD5s and is optional
+        // TODO - figure out what to do here
+        //Calendar cal = Calendar.getInstance();
+        //metaData.put("fileDate", String.format("%d%02d%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)));
 
         metaData.put("format", "VCRv3.2");
-        metaData.put("fileDate", String.format("%d%02d%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)));
         metaData.put("source", "VariantsToVCF");
         metaData.put("reference", args.referenceFile.getAbsolutePath());
 
