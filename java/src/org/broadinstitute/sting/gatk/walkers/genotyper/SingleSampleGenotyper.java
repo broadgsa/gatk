@@ -154,7 +154,8 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
      */
     public CallResult reduce(SSGenotypeCall call, CallResult sum) {
         sum.nCalledBases++;
-        
+
+        // todo -- aaron, fixme -- this should be using variation() in discovery mode and genotype if not
         if (call != null && (GENOTYPE || call.isVariant(call.getReference()))) {
             if (call.getNegLog10PError() >= LOD_THRESHOLD) {
                 sum.nConfidentCalls++;
