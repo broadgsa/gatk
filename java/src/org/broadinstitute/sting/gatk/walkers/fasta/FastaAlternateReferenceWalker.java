@@ -66,7 +66,7 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
                 return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[-/"+variant.getAltBasesFWD()+"]") : refBase.concat(variant.getAltBasesFWD())));
             } else if ( variant.isSNP() ) {
                 basesSeen++;
-                return new Pair<GenomeLoc, String>(context.getLocation(), (rod.getName().startsWith("snpmask") ? "N" : ("[" + refBase + "/" + variant.getAltBasesFWD() + "]")));
+                return new Pair<GenomeLoc, String>(context.getLocation(), (rod.getName().startsWith("snpmask") ? "N" : (SEQUENOM ? "[" + refBase + "/" + variant.getAltBasesFWD() + "]" : variant.getAltBasesFWD())));
             }
         }
 
