@@ -104,7 +104,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
             gl.add(pileup, true);
             gl.validate();
 
-            return new SSGenotypeCall(!GENOTYPE, context.getLocation(), ref,gl, pileup);
+            return new SSGenotypeCall(context.getLocation(), ref,gl, pileup);
         } else {
             return null;
         }
@@ -145,7 +145,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
     }
 
     /**
-     * If we've found a LOD >= 5 variant, output it to disk.
+     * If we've found a LOD variant or callable genotype, output it to disk.
      *
      * @param call an GenotypeCall object for the variant.
      * @param sum  accumulator for the reduce.
@@ -155,15 +155,14 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
     public CallResult reduce(SSGenotypeCall call, CallResult sum) {
         sum.nCalledBases++;
 
-        // todo -- aaron, fixme -- this should be using variation() in discovery mode and genotype if not
         if (call != null && (GENOTYPE || call.isVariant(call.getReference()))) {
-            if (call.getNegLog10PError() >= LOD_THRESHOLD) {
+            double confidence = (GENOTYPE) ? call.getNegLog10PError() : call.toVariation().getNegLog10PError();
+            if (confidence >= LOD_THRESHOLD) {
                 sum.nConfidentCalls++;
                 //System.out.printf("Call %s%n", call);
                 sum.writer.addGenotypeCall(call);
-            } else {
+            } else
                 sum.nNonConfidentCalls++;
-            }
         }
         return sum;
     }

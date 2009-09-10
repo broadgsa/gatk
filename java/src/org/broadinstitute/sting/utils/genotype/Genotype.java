@@ -79,6 +79,6 @@ public interface Genotype {
      *
      * @return the variant
      */
-    public Variant toVariation();
+    public Variation toVariation();
 
 }

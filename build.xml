@@ -3,6 +3,7 @@
 
     <property name="source.dir" value="java/src" />
     <property name="single" value="*Test" />
+    <property name="singleintegration" value="*IntegrationTest" />
     <property name="dist" value="dist" />
 
     <!-- should our junit test output go to a file or the screen?
@@ -271,7 +272,7 @@
 
             <batchtest fork="yes" todir="${report}">
                 <fileset dir="${test.classes}">
-                  <include name="**/*IntegrationTest.class"/>
+                  <include name="**/${singleintegration}.class"/>
                 </fileset>
             </batchtest>
         </junit>

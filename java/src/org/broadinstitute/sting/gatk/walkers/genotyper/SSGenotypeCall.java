@@ -29,23 +29,22 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
     // if this is null, we were constructed with the intention that we'd represent the best genotype
     private DiploidGenotype mGenotype = null;
 
-    // which genotype to compare to; if we're in discovery mode it's the ref allele, otherwise it's the next best
-    private DiploidGenotype mCompareTo = null;
+    // the reference genotype and the next best genotype, lazy loaded
+    private DiploidGenotype mRefGenotype = null;
+    private DiploidGenotype mNextGenotype = null;
 
     // are we best vrs ref or best vrs next - for internal consumption only
-    private final boolean mBestVrsRef;
+    //private final boolean mBestVrsRef;
 
     /**
      * Generate a single sample genotype object, containing everything we need to represent calls out of a genotyper object
      *
-     * @param discovery are we representing the best vrs next or best vrs ref
-     * @param location   the location we're working with
-     * @param refBase    the ref base
-     * @param gtlh       the genotype likelihoods object
-     * @param pileup     the pile-up of reads at the specified locus
+     * @param location  the location we're working with
+     * @param refBase   the ref base
+     * @param gtlh      the genotype likelihoods object
+     * @param pileup    the pile-up of reads at the specified locus
      */
-    public SSGenotypeCall(boolean discovery, GenomeLoc location, char refBase, GenotypeLikelihoods gtlh, ReadBackedPileup pileup) {
-        mBestVrsRef = discovery;
+    public SSGenotypeCall(GenomeLoc location, char refBase, GenotypeLikelihoods gtlh, ReadBackedPileup pileup) {
         mRefBase = String.valueOf(refBase).toUpperCase().charAt(0); // a round about way to make sure the ref base is up-case
         mGenotypeLikelihoods = gtlh;
         mLocation = location;
@@ -55,14 +54,12 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
     /**
      * Generate a single sample genotype object, containing everything we need to represent calls out of a genotyper object
      *
-     * @param discovery are we representing the best vrs next or best vrs ref
-     * @param location   the location we're working with
-     * @param refBase    the ref base
-     * @param gtlh       the genotype likelihoods object
-     * @param pileup     the pile-up of reads at the specified locus
+     * @param location  the location we're working with
+     * @param refBase   the ref base
+     * @param gtlh      the genotype likelihoods object
+     * @param pileup    the pile-up of reads at the specified locus
      */
-    SSGenotypeCall(boolean discovery, GenomeLoc location, char refBase, GenotypeLikelihoods gtlh, ReadBackedPileup pileup, DiploidGenotype genotype) {
-        mBestVrsRef = discovery;
+    SSGenotypeCall(GenomeLoc location, char refBase, GenotypeLikelihoods gtlh, ReadBackedPileup pileup, DiploidGenotype genotype) {
         mRefBase = String.valueOf(refBase).toUpperCase().charAt(0); // a round about way to make sure the ref base is up-case
         mGenotypeLikelihoods = gtlh;
         mLocation = location;
@@ -93,7 +90,7 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
     public String toString() {
         lazyEval();
         return String.format("%s best=%s cmp=%s ref=%s depth=%d negLog10PError = %.2f, likelihoods=%s",
-                getLocation(), mGenotype, mCompareTo, mRefBase, mPileup.getReads().size(),
+                getLocation(), mGenotype, mRefGenotype, mRefBase, mPileup.getReads().size(),
                 getNegLog10PError(), Arrays.toString(mGenotypeLikelihoods.getLikelihoods()));
     }
 
@@ -105,13 +102,12 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
         }
 
         // our comparison
-        if (mCompareTo == null) {
-            if (this.mBestVrsRef) {
-                mCompareTo = DiploidGenotype.valueOf(Utils.dupString(this.getReference(),2));
-            } else {
-                Integer sorted[] = Utils.SortPermutation(mGenotypeLikelihoods.getPosteriors());
-                mCompareTo = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 2]];
-            }
+        if (mRefGenotype == null) {
+            mRefGenotype = DiploidGenotype.valueOf(Utils.dupString(this.getReference(), 2));
+        }
+        if (mNextGenotype == null) {
+            Integer sorted[] = Utils.SortPermutation(mGenotypeLikelihoods.getPosteriors());
+            mNextGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 2]];
         }
     }
 
@@ -123,15 +119,13 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
      */
     @Override
     public double getNegLog10PError() {
-        getBestGenotype();
-        getAltGenotype();        
-        return Math.abs(mGenotypeLikelihoods.getPosterior(mGenotype) - mGenotypeLikelihoods.getPosterior(mCompareTo));
+        return Math.abs(mGenotypeLikelihoods.getPosterior(getBestGenotype()) - mGenotypeLikelihoods.getPosterior(getNextBest()));
     }
 
     /**
      * get the best genotype
      */
-    public DiploidGenotype getBestGenotype() {
+    private DiploidGenotype getBestGenotype() {
         lazyEval();
         return mGenotype;
     }
@@ -139,9 +133,17 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
     /**
      * get the alternate genotype
      */
-    public DiploidGenotype getAltGenotype() {
+    private DiploidGenotype getNextBest() {
         lazyEval();
-        return mCompareTo;
+        return mNextGenotype;
+    }
+
+    /**
+     * get the alternate genotype
+     */
+    private DiploidGenotype getRefGenotype() {
+        lazyEval();
+        return mRefGenotype;
     }
 
     /**
@@ -209,12 +211,11 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
      * given the reference, are we a variant? (non-ref)
      *
      * @param ref the reference base or bases
-     *
      * @return true if we're a variant
      */
     @Override
     public boolean isVariant(char ref) {
-        return !Utils.dupString(this.getReference(),2).equals(getBestGenotype().toString());
+        return !Utils.dupString(this.getReference(), 2).equals(getBestGenotype().toString());
     }
 
     /**
@@ -222,8 +223,9 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
      *
      * @return
      */
-    public Variant toVariation() {
-        return null;  // the next step is to implement the variant system
+    public Variation toVariation() {
+        double bestRef = Math.abs(mGenotypeLikelihoods.getPosterior(getBestGenotype()) - mGenotypeLikelihoods.getPosterior(getRefGenotype()));
+        return new BasicVariation(this.getBases(), this.getReference(), 0, this.mLocation, bestRef);
     }
 
     /**
@@ -268,7 +270,7 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
      * @return an array in lexigraphical order of the likelihoods
      */
     public Genotype getGenotype(DiploidGenotype x) {
-        return new SSGenotypeCall(mBestVrsRef,mLocation,mRefBase,mGenotypeLikelihoods,mPileup,x);
+        return new SSGenotypeCall(mLocation, mRefBase, mGenotypeLikelihoods, mPileup, x);
     }
 
     /**

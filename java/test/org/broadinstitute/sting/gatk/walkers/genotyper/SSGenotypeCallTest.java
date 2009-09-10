@@ -79,43 +79,43 @@ public class SSGenotypeCallTest extends BaseTest {
     @Test
     public void testBestVrsRefSame() {
         Pair<ReadBackedPileup, GenomeLoc> myPair = makePileup();
-        SSGenotypeCall call = new SSGenotypeCall(true, myPair.second, 'A', new GenotypeLikelihoodsImpl(), myPair.first);
-        Assert.assertEquals(0, call.getNegLog10PError(), 0.0000001);
+        SSGenotypeCall call = new SSGenotypeCall(myPair.second, 'A', new GenotypeLikelihoodsImpl(), myPair.first);
+        Assert.assertEquals(0, call.toVariation().getNegLog10PError(), 0.0000001);
     }
 
     @Test
     public void testBestVrsRef2() {
         Pair<ReadBackedPileup, GenomeLoc> myPair = makePileup();
-        SSGenotypeCall call2 = new SSGenotypeCall(true, myPair.second, 'T', new GenotypeLikelihoodsImpl(), myPair.first);
-        Assert.assertEquals(9, call2.getNegLog10PError(), 0.0000001);
+        SSGenotypeCall call2 = new SSGenotypeCall(myPair.second, 'T', new GenotypeLikelihoodsImpl(), myPair.first);
+        Assert.assertEquals(9, call2.toVariation().getNegLog10PError(), 0.0000001);
     }
 
     @Test
     public void testBestVrsRef3() {
         Pair<ReadBackedPileup, GenomeLoc> myPair = makePileup();
-        SSGenotypeCall call3 = new SSGenotypeCall(true, myPair.second, 'C', new GenotypeLikelihoodsImpl(), myPair.first);
-        Assert.assertEquals(4, call3.getNegLog10PError(), 0.0000001);
+        SSGenotypeCall call3 = new SSGenotypeCall(myPair.second, 'C', new GenotypeLikelihoodsImpl(), myPair.first);
+        Assert.assertEquals(4, call3.toVariation().getNegLog10PError(), 0.0000001);
     }
 
 
     @Test
     public void testBestVrsNextSame() {
         Pair<ReadBackedPileup, GenomeLoc> myPair = makePileup();
-        SSGenotypeCall call = new SSGenotypeCall(false, myPair.second, 'A', new GenotypeLikelihoodsImpl(), myPair.first);
+        SSGenotypeCall call = new SSGenotypeCall(myPair.second, 'A', new GenotypeLikelihoodsImpl(), myPair.first);
         Assert.assertEquals(1, call.getNegLog10PError(), 0.0000001);
     }
 
     @Test
     public void testBestVrsNext2() {
         Pair<ReadBackedPileup, GenomeLoc> myPair = makePileup();
-        SSGenotypeCall call2 = new SSGenotypeCall(false, myPair.second, 'A', new GenotypeLikelihoodsImpl(), myPair.first);
+        SSGenotypeCall call2 = new SSGenotypeCall(myPair.second, 'A', new GenotypeLikelihoodsImpl(), myPair.first);
         Assert.assertEquals(1, call2.getNegLog10PError(), 0.0000001);
     }
 
     @Test
     public void testBestVrsNext3() {
         Pair<ReadBackedPileup, GenomeLoc> myPair = makePileup();
-        SSGenotypeCall call3 = new SSGenotypeCall(false, myPair.second, 'C', new GenotypeLikelihoodsImpl(), myPair.first);
+        SSGenotypeCall call3 = new SSGenotypeCall(myPair.second, 'C', new GenotypeLikelihoodsImpl(), myPair.first);
         Assert.assertEquals(1, call3.getNegLog10PError(), 0.0000001);
     }
 }
