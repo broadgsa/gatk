@@ -22,6 +22,8 @@
     <class>org.broadinstitute.sting.gatk.walkers.indels.SNPClusterWalker</class>
     <!-- Variant filtration -->
     <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VariantFiltrationWalker</class>
+    <!-- Single sample genotyper -->
+    <class>org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper</class>
     <!-- And the filters -->
     <class>org.broadinstitute.sting.playground.gatk.walkers.variants.IVFSecondaryBases</class>
     <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECFisherStrand</class>
