@@ -8,7 +8,7 @@ package org.broadinstitute.sting.bwa;
  */
 public class SuffixArray {
     public final int inverseSA0;
-    public final int[] occurrences;
+    public final Counts occurrences;
     public final int[] sequence;
 
     /**
@@ -17,7 +17,7 @@ public class SuffixArray {
      * @param occurrences Cumulative number of occurrences of A,C,G,T, in order.
      * @param sequence The full suffix array.
      */
-    public SuffixArray(int inverseSA0, int[] occurrences, int[] sequence) {
+    public SuffixArray(int inverseSA0, Counts occurrences, int[] sequence) {
         this.inverseSA0 = inverseSA0;
         this.occurrences = occurrences;
         this.sequence = sequence;

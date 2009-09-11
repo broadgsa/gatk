@@ -39,7 +39,7 @@ public class SuffixArrayWriter {
 
         try {
             intPackedOutputStream.write(suffixArray.inverseSA0);
-            intPackedOutputStream.write(suffixArray.occurrences);
+            intPackedOutputStream.write(suffixArray.occurrences.toArray(true));
             // How frequently the suffix array entry is placed.
             intPackedOutputStream.write(1);
             // Length of the suffix array.

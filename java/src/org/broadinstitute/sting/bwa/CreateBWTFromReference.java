@@ -43,8 +43,6 @@ import org.broadinstitute.sting.utils.StingException;
  * @version 0.1
  */
 public class CreateBWTFromReference {
-    private static final int ALPHABET_SIZE = 4;
-
     private String loadReference( File inputFile ) {
         // Read in the first sequence in the input file
         ReferenceSequenceFile reference = ReferenceSequenceFileFactory.getReferenceSequenceFile(inputFile);
@@ -59,15 +57,10 @@ public class CreateBWTFromReference {
         return StringUtil.bytesToString(sequence.getBases());
     }
 
-    private int[] countOccurrences( String sequence ) {
-        int occurrences[] = new int[ALPHABET_SIZE];
+    private Counts countOccurrences( String sequence ) {
+        Counts occurrences = new Counts();
         for( char base: sequence.toCharArray() )
-            occurrences[PackUtils.packBase((byte)base)]++;
-
-        // Make occurrences cumulative
-        for( int i = 1; i < ALPHABET_SIZE; i++ )
-            occurrences[i] += occurrences[i-1];
-
+            occurrences.increment(Base.fromASCII((byte)base));
         return occurrences;
     }
 
@@ -151,8 +144,11 @@ public class CreateBWTFromReference {
         String reverseSequence = creator.loadReverseReference(inputFile);
 
         // Count the occurences of each given base.
-        int[] occurrences = creator.countOccurrences(sequence);
-        System.out.printf("Occurrences: a=%d, c=%d, g=%d, t=%d%n",occurrences[0],occurrences[1],occurrences[2],occurrences[3]);
+        Counts occurrences = creator.countOccurrences(sequence);
+        System.out.printf("Occurrences: a=%d, c=%d, g=%d, t=%d%n",occurrences.getCumulative(Base.A),
+                                                                  occurrences.getCumulative(Base.C),
+                                                                  occurrences.getCumulative(Base.G),
+                                                                  occurrences.getCumulative(Base.T));
 
         // Generate the suffix array and print diagnostics.
         int[] suffixArrayData = creator.createSuffixArray(sequence);

@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.bwa;
 
-import java.util.Arrays;
-
 /**
  * Represents the Burrows-Wheeler Transform of a reference sequence.
  *
@@ -16,29 +14,29 @@ public class BWT {
     public static final int SEQUENCE_BLOCK_SIZE = 128;    
 
     public final int inverseSA0;
-    public final int[] count;
+    public final Counts counts;
     public final SequenceBlock[] sequenceBlocks;
 
     /**
      * Creates a new BWT with the given inverse SA, counts, and sequence (in ASCII).
      * @param inverseSA0 Inverse SA entry for the first element.  Will be missing from the BWT sequence.
-     * @param count Cumulative count of bases, in A,C,G,T order.
+     * @param counts Cumulative count of bases, in A,C,G,T order.
      * @param sequenceBlocks The full BWT sequence, sans the '$'.
      */
-    public BWT( int inverseSA0, int[] count, SequenceBlock[] sequenceBlocks ) {
+    public BWT( int inverseSA0, Counts counts, SequenceBlock[] sequenceBlocks ) {
         this.inverseSA0 = inverseSA0;
-        this.count = count;
+        this.counts = counts;
         this.sequenceBlocks = sequenceBlocks;
     }
 
     /**
      * Creates a new BWT with the given inverse SA, occurrences, and sequence (in ASCII).
      * @param inverseSA0 Inverse SA entry for the first element.  Will be missing from the BWT sequence.
-     * @param count Cumulative count of bases, in A,C,G,T order.
+     * @param counts Count of bases, in A,C,G,T order.
      * @param sequence The full BWT sequence, sans the '$'.
      */
-    public BWT( int inverseSA0, int[] count, byte[] sequence ) {
-        this(inverseSA0,count,generateSequenceBlocks(sequence));    
+    public BWT( int inverseSA0, Counts counts, byte[] sequence ) {
+        this(inverseSA0,counts,generateSequenceBlocks(sequence));
     }
 
     /**
@@ -46,7 +44,7 @@ public class BWT {
      * @return The full BWT string as a byte array.
      */
     public byte[] getSequence() {
-        byte[] sequence = new byte[count[count.length-1]];
+        byte[] sequence = new byte[counts.getTotal()];
         for( SequenceBlock block: sequenceBlocks )
             System.arraycopy(block.sequence,0,sequence,block.sequenceStart,block.sequenceLength);
         return sequence;
@@ -57,7 +55,7 @@ public class BWT {
      * @return Number of bases.
      */
     public int length() {
-        return count[count.length-1];
+        return counts.getTotal();
     }
 
     /**
@@ -66,7 +64,7 @@ public class BWT {
      * @return Array of sequence blocks containing data from the sequence.
      */
     private static SequenceBlock[] generateSequenceBlocks( byte[] sequence ) {
-        int[] occurrences = {0,0,0,0};
+        Counts occurrences = new Counts();
 
         int numSequenceBlocks = PackUtils.numberOfPartitions(sequence.length,SEQUENCE_BLOCK_SIZE);
         SequenceBlock[] sequenceBlocks = new SequenceBlock[numSequenceBlocks];
@@ -78,10 +76,10 @@ public class BWT {
 
             System.arraycopy(sequence,blockStart,subsequence,0,blockLength);
 
-            sequenceBlocks[block] = new SequenceBlock(blockStart,blockLength,Arrays.copyOf(occurrences,occurrences.length),subsequence);
+            sequenceBlocks[block] = new SequenceBlock(blockStart,blockLength,occurrences.clone(),subsequence);
 
             for( byte base: subsequence )
-                occurrences[PackUtils.packBase(base)]++;
+                occurrences.increment(Base.fromASCII(base));
         }
 
         return sequenceBlocks;
@@ -106,7 +104,7 @@ class SequenceBlock {
     /**
      * Occurrences of each letter up to this sequence block.
      */
-    public final int[] occurrences;
+    public final Counts occurrences;
 
     /**
      * Sequence for this segment.
@@ -120,7 +118,7 @@ class SequenceBlock {
      * @param occurrences How many of each base has been seen before this sequence began.
      * @param sequence The actual sequence from the BWT.
      */
-    SequenceBlock( int sequenceStart, int sequenceLength, int[] occurrences, byte[] sequence ) {
+    SequenceBlock( int sequenceStart, int sequenceLength, Counts occurrences, byte[] sequence ) {
         this.sequenceStart = sequenceStart;
         this.sequenceLength = sequenceLength;
         this.occurrences = occurrences;

@@ -55,7 +55,7 @@ public class SuffixArrayReader {
             throw new StingException("Unable to read BWT from input stream.", ex);
         }
 
-        return new SuffixArray(inverseSA0, occurrences, suffixArray);
+        return new SuffixArray(inverseSA0, new Counts(occurrences,true), suffixArray);
     }
 
 

@@ -4,7 +4,6 @@ import org.broadinstitute.sting.utils.StingException;
 
 import java.io.*;
 import java.nio.ByteOrder;
-
 /**
  * Reads a BWT from a given file.
  *
@@ -60,14 +59,14 @@ public class BWTReader {
                 intPackedInputStream.read(occurrences);
                 basePackedInputStream.read(bwt);
 
-                sequenceBlocks[block] = new SequenceBlock(sequenceStart,sequenceLength,occurrences,bwt);
+                sequenceBlocks[block] = new SequenceBlock(sequenceStart,sequenceLength,new Counts(occurrences,false),bwt);
             }
         }
         catch( IOException ex ) {
             throw new StingException("Unable to read BWT from input stream.", ex);
         }
 
-        return new BWT(inverseSA0, count, sequenceBlocks);
+        return new BWT(inverseSA0, new Counts(count,true), sequenceBlocks);
     }
 
     /**
