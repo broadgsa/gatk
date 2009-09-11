@@ -52,6 +52,13 @@ public class CreateBWTFromReference {
         return StringUtil.bytesToString(sequence.getBases());
     }
 
+    private String loadReverseReference( File inputFile ) {
+        ReferenceSequenceFile reference = ReferenceSequenceFileFactory.getReferenceSequenceFile(inputFile);
+        ReferenceSequence sequence = reference.nextSequence();
+        PackUtils.reverse(sequence.getBases());
+        return StringUtil.bytesToString(sequence.getBases());
+    }
+
     private int[] countOccurrences( String sequence ) {
         int occurrences[] = new int[ALPHABET_SIZE];
         for( char base: sequence.toCharArray() )
@@ -118,8 +125,8 @@ public class CreateBWTFromReference {
     }
 
     public static void main( String argv[] ) throws IOException {
-        if( argv.length != 3 ) {
-            System.out.println("USAGE: CreateBWTFromReference <input>.fasta <output bwt> <output sa>");
+        if( argv.length != 5 ) {
+            System.out.println("USAGE: CreateBWTFromReference <input>.fasta <output bwt> <output rbwt> <output sa> <output rsa>");
             return;
         }
 
@@ -129,12 +136,19 @@ public class CreateBWTFromReference {
         String bwtFileName = argv[1];
         File bwtFile = new File(bwtFileName);
 
-        String saFileName = argv[2];
+        String rbwtFileName = argv[2];
+        File rbwtFile = new File(rbwtFileName);
+
+        String saFileName = argv[3];
         File saFile = new File(saFileName);
+
+        String rsaFileName = argv[4];
+        File rsaFile = new File(rsaFileName);
 
         CreateBWTFromReference creator = new CreateBWTFromReference();
 
         String sequence = creator.loadReference(inputFile);
+        String reverseSequence = creator.loadReverseReference(inputFile);
 
         // Count the occurences of each given base.
         int[] occurrences = creator.countOccurrences(sequence);
@@ -142,17 +156,23 @@ public class CreateBWTFromReference {
 
         // Generate the suffix array and print diagnostics.
         int[] suffixArrayData = creator.createSuffixArray(sequence);
+        int[] reverseSuffixArrayData = creator.createSuffixArray(reverseSequence);
 
         // Invert the suffix array and print diagnostics.
         int[] inverseSuffixArray = creator.invertSuffixArray(suffixArrayData);
+        int[] reverseInverseSuffixArray = creator.invertSuffixArray(reverseSuffixArrayData);
 
         SuffixArray suffixArray = new SuffixArray( inverseSuffixArray[0], occurrences, suffixArrayData );
+        SuffixArray reverseSuffixArray = new SuffixArray( reverseInverseSuffixArray[0], occurrences, reverseSuffixArrayData );
 
+        /*
         for( int i = 0; i < 8; i++ )
             System.out.printf("suffixArray[%d] = %d (%s...)%n", i, suffixArray.sequence[i], sequence.substring(suffixArray.sequence[i],Math.min(suffixArray.sequence[i]+100,sequence.length())));
         for( int i = 0; i < 8; i++ )
             System.out.printf("inverseSuffixArray[%d] = %d (%s...)%n", i, inverseSuffixArray[i], sequence.substring(i,Math.min(i+100,sequence.length())));
+        */
 
+        /*
         // Create the data structure for the compressed suffix array and print diagnostics.
         int[] compressedSuffixArray = creator.createCompressedSuffixArray(suffixArray.sequence,inverseSuffixArray);
         int reconstructedInverseSA = compressedSuffixArray[0];
@@ -166,30 +186,40 @@ public class CreateBWTFromReference {
         for( int i = 0; i < 8; i++ ) {
             System.out.printf("inverseCompressedSuffixArray[%d] = %d%n", i, inverseCompressedSuffixArray[i]);
         }
+        */
 
         // Create the BWT.
         BWT bwt = new BWT( inverseSuffixArray[0], occurrences, creator.createBWT(sequence, suffixArray.sequence) );
+        BWT reverseBWT = new BWT( reverseInverseSuffixArray[0], occurrences, creator.createBWT(reverseSequence, reverseSuffixArray.sequence));
 
-        String bwtAsString = new String(bwt.sequence);
-        System.out.printf("BWT: %s...%n", bwtAsString.substring(0,80));
+        byte[] bwtSequence = bwt.getSequence();
+        System.out.printf("BWT: %s... (length = %d)%n", new String(bwtSequence,0,80),bwt.length());
 
         BWTWriter bwtWriter = new BWTWriter(bwtFile);
         bwtWriter.write(bwt);
         bwtWriter.close();
 
+        BWTWriter reverseBWTWriter = new BWTWriter(rbwtFile);
+        reverseBWTWriter.write(reverseBWT);
+        reverseBWTWriter.close();
+
         SuffixArrayWriter saWriter = new SuffixArrayWriter(saFile);
         saWriter.write(suffixArray);
         saWriter.close();
+
+        SuffixArrayWriter reverseSAWriter = new SuffixArrayWriter(rsaFile);
+        reverseSAWriter.write(reverseSuffixArray);
+        reverseSAWriter.close();
 
         File existingBWTFile = new File(inputFileName+".bwt");
         BWTReader existingBWTReader = new BWTReader(existingBWTFile);
         BWT existingBWT = existingBWTReader.read();
 
-        String existingBwtAsString = new String(existingBWT.sequence);
-        System.out.printf("Existing BWT: %s...%n",existingBwtAsString.substring(0,80));
+        byte[] existingBWTSequence = existingBWT.getSequence();
+        System.out.printf("Existing BWT: %s... (length = %d)%n",new String(existingBWTSequence,0,80),existingBWT.length());
 
-        for( int i = 0; i < bwt.sequence.length; i++ ) {
-            if( bwt.sequence[i] != existingBWT.sequence[i] )
+        for( int i = 0; i < bwt.length(); i++ ) {
+            if( bwtSequence[i] != existingBWTSequence[i] )
                 throw new StingException("BWT mismatch at " + i);
         }
 

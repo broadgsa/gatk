@@ -15,7 +15,7 @@ public class BWTWriter {
     /**
      * Input stream from which to read BWT data.
      */
-    private OutputStream outputStream;
+    private final OutputStream outputStream;
 
     /**
      * Create a new BWT reader.
@@ -40,8 +40,22 @@ public class BWTWriter {
 
         try {
             intPackedOutputStream.write(bwt.inverseSA0);
-            intPackedOutputStream.write(bwt.occurrences);
-            basePackedOutputStream.write(bwt.sequence);
+            intPackedOutputStream.write(bwt.count);
+
+            for( SequenceBlock block: bwt.sequenceBlocks ) {
+                intPackedOutputStream.write(block.occurrences);
+                basePackedOutputStream.write(block.sequence);
+            }
+
+            // The last block is the last set of counts in the structure.
+            int[] finalCount = new int[bwt.count.length];
+            for( int i = 0; i < finalCount.length; i++ ) {
+                if(i != 0)
+                    finalCount[i] = bwt.count[i]-bwt.count[i-1];
+                else
+                    finalCount[i] = bwt.count[i];
+            }
+            intPackedOutputStream.write(finalCount);
         }
         catch( IOException ex ) {
             throw new StingException("Unable to read BWT from input stream.", ex);

@@ -43,14 +43,23 @@ public class BasePackedInputStream<T> {
 
     /**
      * Read the entire contents of the input stream.
-     * @param length number of bases to read from the stream.
+     * @param bwt array into which bases should be read.
      * @return a byte array of the given length.
      * @throws IOException if an I/O error occurs.
      */
-    public byte[] read( int length ) throws IOException {
-        byte[] bwt = new byte[length];
-        int packedWord = 0;
+    public void read(byte[] bwt) throws IOException {
+        read(bwt,0,bwt.length);
+    }
 
+    /**
+     * Read the next <code>length</code> bases into the bwt array, starting at the given offset.
+     * @param bwt array holding the given data.
+     * @param offset target position in the bases array into which bytes should be written.
+     * @param length number of bases to read from the stream.
+     * @throws IOException if an I/O error occurs.
+     */
+    public void read( byte[] bwt, int offset, int length ) throws IOException {
+        int packedWord = 0;
         final int basesPerEntry = PackUtils.bitsInType(Integer.class)/PackUtils.BITS_PER_BASE;
         for( int i = 0; i < length; i++ ) {
             if( i % basesPerEntry == 0 ) {
@@ -60,10 +69,7 @@ public class BasePackedInputStream<T> {
             }
 
             int position = basesPerEntry - i % basesPerEntry - 1;
-            bwt[i] = PackUtils.unpackBase((byte)((packedWord >> position*PackUtils.BITS_PER_BASE) & 0x3));
+            bwt[i+offset] = PackUtils.unpackBase((byte)((packedWord >> position*PackUtils.BITS_PER_BASE) & 0x3));
         }
-
-        return bwt;
     }
-
 }

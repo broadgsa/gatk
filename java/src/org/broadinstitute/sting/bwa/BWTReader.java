@@ -39,20 +39,35 @@ public class BWTReader {
         BasePackedInputStream basePackedInputStream = new BasePackedInputStream<Integer>(Integer.class, inputStream, ByteOrder.LITTLE_ENDIAN);
 
         int inverseSA0;
-        int[] occurrences;
-        byte[] bwt;
+        int[] count;
+        SequenceBlock[] sequenceBlocks;
 
         try {
             inverseSA0 = intPackedInputStream.read();
-            occurrences = new int[PackUtils.ALPHABET_SIZE];
-            intPackedInputStream.read(occurrences);
-            bwt = basePackedInputStream.read(occurrences[PackUtils.ALPHABET_SIZE-1]);
+            count = new int[PackUtils.ALPHABET_SIZE];
+            intPackedInputStream.read(count);
+
+            int bwtSize = count[PackUtils.ALPHABET_SIZE-1];
+            sequenceBlocks = new SequenceBlock[PackUtils.numberOfPartitions(bwtSize,BWT.SEQUENCE_BLOCK_SIZE)];
+            
+            for( int block = 0; block < sequenceBlocks.length; block++ ) {
+                int sequenceStart = block*BWT.SEQUENCE_BLOCK_SIZE;
+                int sequenceLength = Math.min(BWT.SEQUENCE_BLOCK_SIZE,bwtSize-sequenceStart);
+
+                int[] occurrences = new int[PackUtils.ALPHABET_SIZE];
+                byte[] bwt = new byte[sequenceLength];
+
+                intPackedInputStream.read(occurrences);
+                basePackedInputStream.read(bwt);
+
+                sequenceBlocks[block] = new SequenceBlock(sequenceStart,sequenceLength,occurrences,bwt);
+            }
         }
         catch( IOException ex ) {
             throw new StingException("Unable to read BWT from input stream.", ex);
         }
 
-        return new BWT(inverseSA0, occurrences, bwt);
+        return new BWT(inverseSA0, count, sequenceBlocks);
     }
 
     /**

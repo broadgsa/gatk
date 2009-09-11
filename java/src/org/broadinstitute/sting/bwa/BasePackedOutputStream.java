@@ -65,11 +65,22 @@ public class BasePackedOutputStream<T> {
      * @throws IOException if an I/O error occurs.
      */
     public void write( byte[] bases ) throws IOException {
+        write(bases,0,bases.length);
+    }
+
+    /**
+     * Writes a subset of the array of bases to the output stream.
+     * @param bases List of bases to write.
+     * @param offset site at which to start writing.
+     * @param length number of bases to write.
+     * @throws IOException if an I/O error occurs.
+     */
+    public void write( byte[] bases, int offset, int length ) throws IOException {
         int packedBases = 0;
         int positionInPack = 0;
 
-        for(byte base: bases) {
-            packedBases = packBase(base, packedBases, positionInPack);
+        for( int base = offset; base < offset+length; base++ ) {
+            packedBases = packBase(bases[base], packedBases, positionInPack);
 
             // Increment the packed counter.  If all possible bases have been squeezed into this byte, write it out.
             positionInPack = ++positionInPack % basesPerType;

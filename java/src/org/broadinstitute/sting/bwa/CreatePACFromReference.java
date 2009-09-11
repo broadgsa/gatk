@@ -41,8 +41,8 @@ import java.nio.ByteOrder;
 
 public class CreatePACFromReference {
     public static void main( String argv[] ) throws IOException {
-        if( argv.length != 2 ) {
-            System.out.println("USAGE: CreatePACFromReference <input>.fasta <output>");
+        if( argv.length != 3 ) {
+            System.out.println("USAGE: CreatePACFromReference <input>.fasta <output pac> <output rpac>");
             return;
         }
 
@@ -53,13 +53,22 @@ public class CreatePACFromReference {
         ReferenceSequence sequence = reference.nextSequence();
 
         // Target file for output
-        File outputFile = new File(argv[1]);
+        writeSequence( new File(argv[1]), sequence.getBases() );
+
+        // Reverse the bases in the reference
+        PackUtils.reverse(sequence.getBases());
+
+        // Target file for output
+        writeSequence( new File(argv[2]), sequence.getBases() );
+    }
+
+    private static void writeSequence( File outputFile, byte[] bases ) throws IOException {
         OutputStream outputStream = new FileOutputStream(outputFile);
 
         BasePackedOutputStream<Byte> basePackedOutputStream = new BasePackedOutputStream<Byte>(Byte.class, outputStream, ByteOrder.BIG_ENDIAN);
-        basePackedOutputStream.write(sequence.getBases());
+        basePackedOutputStream.write(bases);
 
-        outputStream.write(sequence.getBases().length%PackUtils.ALPHABET_SIZE);
+        outputStream.write(bases.length%PackUtils.ALPHABET_SIZE);
 
         outputStream.close();
     }
