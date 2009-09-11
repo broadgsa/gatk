@@ -6,7 +6,7 @@ import re
 
 #justPrintCommands = False
 
-def cmd(cmd_str_from_user, farm_queue=False, output_head=None, just_print_commands=False, outputFile = None, waitID = None):
+def cmd(cmd_str_from_user, farm_queue=False, output_head=None, just_print_commands=False, outputFile = None, waitID = None, jobName = None):
     # if farm_queue is non-False, submits to queue, other
 
     if farm_queue:
@@ -24,6 +24,9 @@ def cmd(cmd_str_from_user, farm_queue=False, output_head=None, just_print_comman
 
         if waitID <> None:
             cmd_str += " -w \"ended(%s)\"" % (str(waitID))
+
+        if jobName <> None:
+            cmd_str += " -J %s" % (jobName)
 
         cmd_str += " \""+cmd_str_from_user + "\""
         
