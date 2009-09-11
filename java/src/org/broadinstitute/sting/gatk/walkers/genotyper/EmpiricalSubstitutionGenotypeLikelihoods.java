@@ -43,7 +43,7 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihood
     }
 
     public static SequencerPlatform standardizeSequencerPlatform( final String sequencerString ) {
-        String lcSequencerString = sequencerString.toLowerCase();
+        String lcSequencerString = sequencerString == null ? null : sequencerString.toLowerCase();
         if ( sequencerString != null && PLFieldToSequencerPlatform.containsKey(lcSequencerString) ) {
             return PLFieldToSequencerPlatform.get(lcSequencerString);
         } else {
@@ -259,6 +259,7 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihood
                 throw new RuntimeException("Unknown Sequencer platform for read " + read.format());
             else {
                 pl = defaultPlatform;
+                //System.out.printf("Using default platform %s", pl);
             }
         }
 
