@@ -40,6 +40,9 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
 
     @Argument(fullName="minQScore", shortName="qm", doc="Threshold for the minimum quality score, filter out bases below",required=false)
         public byte minQScore = 0;
+
+    @Argument(fullName="outputUnthresholdedCoverage", shortName = "uc", doc="Print out the total coverage as well as the coverage above the quality threshold", required = false)
+        public boolean outputUnthreshCvg = false;
      
     private static final int BOOTSTRAP_ITERATIONS = 300;
 
@@ -69,9 +72,17 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
             filteredContext = new AlignmentContext(context.getLocation(),readsFilteredByQuality.getFirst(),readsFilteredByQuality.getSecond());
         }
         Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> readsByDirection = PoolUtils.splitReadsByReadDirection(filteredContext.getReads(),filteredContext.getOffsets());
-        if ( ! suppress_printing) {
+        if ( ! suppress_printing && ! outputUnthreshCvg ) {
             Pair<double[],byte[]> powers = calculatePower(readsByDirection, useBootstrap, filteredContext);
             out.printf("%s %d %d %d %d %d %d %f %f %f%n", filteredContext.getLocation(), readsByDirection.getFirst().getFirst().size(), readsByDirection.getFirst().getSecond().size(),
+            filteredContext.getReads().size(), powers.getSecond()[0], powers.getSecond()[1], powers.getSecond()[2],
+            powers.getFirst()[0], powers.getFirst()[1], powers.getFirst()[2]);
+        } else if (! suppress_printing && outputUnthreshCvg) {
+            Pair<double[],byte[]> powers = calculatePower(readsByDirection, useBootstrap, filteredContext);
+            Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> ufReadsByDirection = PoolUtils.splitReadsByReadDirection(context.getReads(),context.getOffsets());
+            out.printf("%s %d %d %d %d %d %d %d %d %d %f %f %f%n", filteredContext.getLocation(), ufReadsByDirection.getFirst().getFirst().size(),
+            ufReadsByDirection.getFirst().getSecond().size(), context.getReads().size(),
+            readsByDirection.getFirst().getFirst().size(), readsByDirection.getFirst().getSecond().size(),
             filteredContext.getReads().size(), powers.getSecond()[0], powers.getSecond()[1], powers.getSecond()[2],
             powers.getFirst()[0], powers.getFirst()[1], powers.getFirst()[2]);
         }
@@ -172,7 +183,13 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
     }
 
     public String createHeaderString() {
-        return "Chrom:Pos  ForwardCoverage  ReverseCoverage  CombinedCoverage  ForwardMedianQ  ReverseMedianQ  CombinedMedianQ  PowerForward  PowerReverse  PowerCombined";
+        String headString;
+        if(! outputUnthreshCvg ) {
+            headString = "Chrom:Pos  ForwardCoverage  ReverseCoverage  CombinedCoverage  ForwardMedianQ  ReverseMedianQ  CombinedMedianQ  PowerForward  PowerReverse  PowerCombined";
+        } else {
+            headString = "Chrom:Pos  ForwardCoverage  ReverseCoverage  CombinedCoverage  ForwardCoverageAboveThreshold  ReverseCoverageAboveThreshold  CombinedCoverageAboveThreshold  ForwardMedianQ  ReverseMedianQ  CombinedMedianQ  PowerForward  PowerReverse  PowerCombined";
+        }
+        return headString;
     }
 
     public byte getMinQualityScore() {
