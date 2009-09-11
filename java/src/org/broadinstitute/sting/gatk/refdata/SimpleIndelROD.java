@@ -58,6 +58,7 @@ public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVaria
     public double getHeterozygosity() { return 0.0; }
     public double getMAF() { return 0.0; }
     public int getPloidy() { return 2; }
+    public boolean isPooled() { return false; }
     public int length() {
         if ( is1KGFormat() )
              return Integer.parseInt(this.get("2"));

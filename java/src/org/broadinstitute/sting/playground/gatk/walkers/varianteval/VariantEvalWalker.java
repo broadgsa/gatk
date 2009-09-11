@@ -58,6 +58,9 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     @Argument(fullName = "numPeopleInPool", shortName="PS", doc="If using a variant file from a pooled caller, this field provides the number of individuals in each pool", required=false)
     public int numPeopleInPool = 1;
 
+    @Argument(fullName = "pathToHapmapPoolFile", shortName="HPF", doc="If using a variant file from a pooled caller on pools of hapmap individuals, this field provides a filepath to the pool construction file listing which hapmap individuals are in which pool", required=false)
+    public String pathToHapmapPoolFile = null;
+
     String analysisFilenameBase = null;
 
     final String knownSNPDBName = "dbSNP";

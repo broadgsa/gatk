@@ -144,4 +144,9 @@ public interface AllelicVariant extends ReferenceOrderedDatum {
     /** returns the length of the variant.  For SNPs this is just 1.
      */
     int length();
+
+    /**
+     * returns TRUE if the variant is one for pooled calls, FALSE if it is not
+     */
+    boolean isPooled();
 }
