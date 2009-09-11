@@ -145,8 +145,4 @@ public interface AllelicVariant extends ReferenceOrderedDatum {
      */
     int length();
 
-    /**
-     * returns TRUE if the variant is one for pooled calls, FALSE if it is not
-     */
-    boolean isPooled();
 }

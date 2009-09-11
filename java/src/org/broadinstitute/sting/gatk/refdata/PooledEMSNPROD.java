@@ -46,7 +46,6 @@ public class PooledEMSNPROD extends TabularROD implements SNPCallFromGenotypes {
     public int getPloidy() throws IllegalStateException { return 2; }
     public boolean isBiallelic()   { return true; }
     public int length() { return 1; }
-    public boolean isPooled() { return true; }
 
     // SNPCallFromGenotypes interface
     public int nIndividuals()      { return Integer.parseInt(this.get("EM_N")); }

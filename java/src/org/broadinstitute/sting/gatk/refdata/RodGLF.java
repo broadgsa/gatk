@@ -408,9 +408,5 @@ public class RodGLF implements ReferenceOrderedDatum, AllelicVariant, Iterator<R
         return glf;
     }
 
-    @Override
-    public boolean isPooled() {
-        return false;
-    }
 }
 

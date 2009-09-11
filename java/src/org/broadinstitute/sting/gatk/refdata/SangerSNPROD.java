@@ -32,7 +32,6 @@ public class SangerSNPROD extends TabularROD implements SNPCallFromGenotypes {
     public int getPloidy() throws IllegalStateException { return 2; }
     public boolean isBiallelic()   { return true; }
     public int length() { return 1; }
-    public boolean isPooled() { return false; }
 
     // SNPCallFromGenotypes interface
     public int nIndividuals()      { return -1; }

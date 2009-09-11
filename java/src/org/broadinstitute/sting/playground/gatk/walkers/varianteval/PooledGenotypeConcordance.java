@@ -80,7 +80,23 @@ public class PooledGenotypeConcordance extends BasicVariantAnalysis implements G
 
     public void inc(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context, int pool, int nameOffset) {
         AllelicVariant chip = (AllelicVariant) tracker.lookup(individualsByPool[pool][nameOffset],null);
+        if( (chip != null && !chip.isGenotype()) || ! isCorrectVariantType(eval)) {
+            String errMsg = "Trying to compare non-pooled data or non-genotype data."
+            throw new StingException(errMsg);
+        }
 
+        int truthIndex, callIndex;
+        if(chip == null) {
+            truthIndex = UNKNOWN;
+        } else if(chip.isReference()) // todo -- how do we want to do pooled concordance checking?
+
+    }
+
+    public boolean isCorrectVariantType(AllelicVariant eval) {
+        // todo -- this. Check if eval is a TypeOf some ROD class that's the right pooled call output that we
+        // todo -- want to deal with. For now this will work
+
+        return eval.isPooled();
     }
 
 

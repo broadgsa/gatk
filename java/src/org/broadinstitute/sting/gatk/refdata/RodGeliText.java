@@ -171,7 +171,6 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements AllelicVa
         return true;
     }
 
-    public boolean isPooled() { return false; }
 
     public int length() { return 1; }
 

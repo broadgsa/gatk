@@ -240,5 +240,4 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
 
     public int length() { return (int)(loc.getStop() - loc.getStart() + 1); }
 
-    public boolean isPooled() { return false; }
 }
