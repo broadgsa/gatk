@@ -111,7 +111,7 @@ if __name__ == "__main__":
                     def IndelIntervals(bam, outputFile, intervals): 
                         return config.gatkCmd('IndelIntervals') + " -o " + outputFile + " -L " + intervals + " -I " + bam
                     def MergeIntervals(bam, files, outputFile, intervals): 
-                        return config.gatkCmd('MergeIntervals') + " -o " + outputFile + " ".join(map( lambda x: " -intervals " + x, files )) + " -L " + intervals + " -I " + bam
+                        return config.gatkCmd('IntervalMerger') + " -o " + outputFile + " ".join(map( lambda x: " -intervals " + x, files )) + " -L " + intervals + " -I " + bam
                     def CleanIntervals(bam, outputFile, intervals, snpfile): 
                         return config.gatkCmd('IntervalCleaner') + " -O " + outputFile + " -L " + intervals + " -I " + bam
                     def Injector(bam, outputFile, intervals, inputfile): 
