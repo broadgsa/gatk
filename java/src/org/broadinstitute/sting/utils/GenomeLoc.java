@@ -256,19 +256,27 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
     }
 
     public int compareTo( GenomeLoc that ) {
-        if ( this == that ) return 0;
+        int result = 0;
+        if ( this == that ) {
+            result = 0;
+        } else {
+            final int cmpContig = compareContigs(that);
 
-        final int cmpContig = compareContigs(that);
+            if ( cmpContig != 0 ) {
+                result = cmpContig;
+            } else {
+                if ( this.getStart() < that.getStart() ) result = -1;
+                if ( this.getStart() > that.getStart() ) result = 1;
+            }
 
-        if ( cmpContig != 0 ) return cmpContig;
-        if ( this.getStart() < that.getStart() ) return -1;
-        if ( this.getStart() > that.getStart() ) return 1;
+            // TODO: and error is being thrown because we are treating reads with the same start positions
+            // but different stop as out of order
+            //if ( this.getStop() < that.getStop() ) return -1;
+            //if ( this.getStop() > that.getStop() ) return 1;
+        }
 
-        // TODO: and error is being thrown because we are treating reads with the same start positions
-        // but different stop as out of order
-        //if ( this.getStop() < that.getStop() ) return -1;
-        //if ( this.getStop() > that.getStop() ) return 1;
-        return 0;
+        //System.out.printf("this vs. that = %s %s => %d%n", this, that, result);
+        return result;
     }
 
     /**
