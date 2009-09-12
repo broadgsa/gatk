@@ -4,6 +4,7 @@ import org.apache.log4j.Logger;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 
 /**
  * This class represents the Reference Metadata available at a particular site in the genome.  It can be
@@ -83,6 +84,22 @@ public class RefMetaDataTracker {
      */
     public Collection<ReferenceOrderedDatum> getAllRods() {
         return map.values();
+    }
+
+    /**
+     * Get all of the RODs at the current site
+     *
+     * @return
+     */
+    public Collection<ReferenceOrderedDatum> getBoundRods() {
+        LinkedList<ReferenceOrderedDatum> bound = new LinkedList<ReferenceOrderedDatum>();
+        
+        for ( ReferenceOrderedDatum value : map.values() ) {
+            if ( value != null )
+            bound.add(value);
+        }
+
+        return bound;
     }
 
     /**
