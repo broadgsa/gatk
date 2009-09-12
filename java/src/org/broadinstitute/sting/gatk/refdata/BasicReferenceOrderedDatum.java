@@ -35,6 +35,7 @@ public abstract class BasicReferenceOrderedDatum implements ReferenceOrderedDatu
     public abstract GenomeLoc getLocation();
     
     public int compareTo( ReferenceOrderedDatum that ) {
+        //System.out.printf("Comparing %s to %s => %d%n", getLocation(), that.getLocation(), getLocation().compareTo(that.getLocation()));
         return getLocation().compareTo(that.getLocation());
     }
 

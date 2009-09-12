@@ -10,6 +10,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 
@@ -19,6 +20,8 @@ import java.util.ArrayList;
  * A simple solution to iterating over all reference positions over a series of genomic locations.
  */
 public class TraverseLoci extends TraversalEngine {
+    final private static String UNIT_STRING = "sites";
+
 
     /**
      * our log, which we want to capture anything from this class
@@ -45,32 +48,59 @@ public class TraverseLoci extends TraversalEngine {
         LocusWalker<M, T> locusWalker = (LocusWalker<M, T>)walker;
 
         LocusView locusView = getLocusView( walker, dataProvider );
-        LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
-        ReferenceOrderedView referenceOrderedDataView = new ReferenceOrderedView( dataProvider );
 
-        // We keep processing while the next reference location is within the interval
-        while( locusView.hasNext() ) {
-            AlignmentContext locus = locusView.next();
 
-            TraversalStatistics.nRecords++;
+        if ( WalkerManager.getWalkerDataSource(walker) == DataSource.REFERENCE_ORDERED_DATA )
+            throw new RuntimeException("Engine currently doesn't support RodWalkers");
 
-            // Iterate forward to get all reference ordered data covering this locus
-            final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation());
+        if ( locusView.hasNext() ) { // trivial optimization to avoid unnecessary processing when there's nothing here at all
 
-            ReferenceContext refContext = referenceView.getReferenceContext(locus.getLocation());
+            //ReferenceOrderedView referenceOrderedDataView = new ReferenceOrderedView( dataProvider );
+            ReferenceOrderedView referenceOrderedDataView = null;
+            if ( WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE_ORDERED_DATA )
+                referenceOrderedDataView = new ManagingReferenceOrderedView( dataProvider );
+            else
+                referenceOrderedDataView = (RodLocusView)locusView;
 
-            final boolean keepMeP = locusWalker.filter(tracker, refContext, locus);
-            if (keepMeP) {
-                M x = locusWalker.map(tracker, refContext, locus);
+            LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
+
+            // We keep processing while the next reference location is within the interval
+            while( locusView.hasNext() ) {
+                AlignmentContext locus = locusView.next();
+
+                TraversalStatistics.nRecords++;
+
+                // Iterate forward to get all reference ordered data covering this locus
+                final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation());
+
+                ReferenceContext refContext = referenceView.getReferenceContext(locus.getLocation());
+
+                final boolean keepMeP = locusWalker.filter(tracker, refContext, locus);
+                if (keepMeP) {
+                    M x = locusWalker.map(tracker, refContext, locus);
+                    sum = locusWalker.reduce(x, sum);
+                }
+
+                if (this.maximumIterations > 0 && TraversalStatistics.nRecords > this.maximumIterations) {
+                    logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + TraversalStatistics.nRecords));
+                    break;
+                }
+
+                printProgress(UNIT_STRING, locus.getLocation());
+            }
+        }
+
+            // We have a final map call to execute here to clean up the skipped based from the
+            // last position in the ROD to that in the interval
+        if ( WalkerManager.getWalkerDataSource(walker) == DataSource.REFERENCE_ORDERED_DATA ) {
+            RodLocusView rodLocusView = (RodLocusView)locusView;
+            long nSkipped = rodLocusView.getLastSkippedBases();
+            if ( nSkipped > 0 ) {
+                // no sense in making the call if you don't have anything interesting to say
+                AlignmentContext ac = new AlignmentContext(rodLocusView.getLocOneBeyondShard(), null, null, nSkipped);
+                M x = locusWalker.map(null, null, ac);
                 sum = locusWalker.reduce(x, sum);
             }
-
-            if (this.maximumIterations > 0 && TraversalStatistics.nRecords > this.maximumIterations) {
-                logger.warn(String.format("Maximum number of reads encountered, terminating traversal " + TraversalStatistics.nRecords));
-                break;
-            }
-
-            printProgress("loci", locus.getLocation());
         }
 
         return sum;
@@ -78,12 +108,12 @@ public class TraverseLoci extends TraversalEngine {
 
     /**
      * Temporary override of printOnTraversalDone.
-     * TODO: Add some sort of TE.getName() function once all TraversalEngines are ported.
+     * 
      * @param sum Result of the computation.
      * @param <T> Type of the result.
      */
     public <T> void printOnTraversalDone( T sum ) {
-        printOnTraversalDone( "loci", sum );
+        printOnTraversalDone( UNIT_STRING, sum );
     }
 
     /**
@@ -97,6 +127,8 @@ public class TraverseLoci extends TraversalEngine {
             return new CoveredLocusView(dataProvider);
         else if( dataSource == DataSource.REFERENCE )
             return new AllLocusView(dataProvider);
+        else if( dataSource == DataSource.REFERENCE_ORDERED_DATA )
+            return new RodLocusView(dataProvider);
         else
             throw new UnsupportedOperationException("Unsupported traversal type: " + dataSource);
     }

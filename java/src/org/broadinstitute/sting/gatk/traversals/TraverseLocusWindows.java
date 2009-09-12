@@ -2,10 +2,7 @@ package org.broadinstitute.sting.gatk.traversals;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.datasources.providers.LocusReferenceView;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
-import org.broadinstitute.sting.gatk.datasources.providers.ReferenceOrderedView;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.providers.*;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -39,7 +36,7 @@ public class TraverseLocusWindows extends TraversalEngine {
 
         ReadView readView = new ReadView( dataProvider );
         LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
-        ReferenceOrderedView referenceOrderedDataView = new ReferenceOrderedView( dataProvider );
+        ReferenceOrderedView referenceOrderedDataView = new ManagingReferenceOrderedView( dataProvider );
 
         AlignmentContext locus = getLocusContext(readView.iterator(), interval);
 

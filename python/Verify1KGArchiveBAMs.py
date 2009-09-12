@@ -23,17 +23,20 @@ class Status:
     def __init__(self, file, exists, size):
         self.file = file
         self.exists = exists
-        self.size = size
+        self._size = size
         
         if not exists: self.status = "missing"
         if size == 0: self.status = "no-data"
-        else: self.status = "exists: bytes=" + str(self.size)
+        else: self.status = "exists: bytes=" + str(self.size())
     
     def __str__(self):
-        return self.status
+        return self.file + " " + self.status
+
+    def size(self):
+        return self._size
         
     def viewSize(self):
-        return MergeBAMsUtils.greek(self.size)
+        return MergeBAMsUtils.greek(self.size())
         
 
 def md5(file):
@@ -50,10 +53,10 @@ class ComparedFiles:
         self.ftpStat = ftpStat
         
     def size(self):
-        if self.localStat.size <> 0:
-            return self.localStat.size
-        if self.ftpStat.size <> 0:
-            return self.ftpStat.size
+        if self.localStat.size() <> 0:
+            return self.localStat.size()
+        if self.ftpStat.size() <> 0:
+            return self.ftpStat.size()
         else:
             return 0
 
@@ -67,7 +70,7 @@ def modTimeStr(t):
     if t == 0:
         return 'N/A'
     else:
-        return time.strftime("%m/%d/%y", time.localtime(t))
+        return time.strftime("%m/%d/%y", time.localtime(int(t)))
 
 def getSizeForFile(dir, filename):
     global CACHED_LIST
@@ -141,9 +144,10 @@ def validateFile(relPath, localRoot, ftpRoot):
     return compared
 
 def compareFileStatus(localStat, ftpStat):
+    if DEBUG: print 'comparing', localStat, ftpStat
     if localStat.exists:
         if ftpStat.exists:
-            if localStat.size == ftpStat.size:
+            if localStat.size() == ftpStat.size():
                 status = 'in-sync'
             else:
                 status = 'size-mismatch'
@@ -165,6 +169,8 @@ def filesInLocalPath(root, subdir):
     if subdir <> None:
        for fullroot, dirs, files in os.walk(os.path.join(root, subdir)):
            for file in filter( regex.match, files ):
+               #if file <> "NA12761.SLX.WUGSC.Mosaik.SRP000033.2009_08.bam.bai":
+               #    continue   
                fullpath = os.path.join(fullroot, file)
                path = fullpath.split(root)[1]
                #print 'adding relpath=', path, 'fullpath=', fullpath
@@ -266,12 +272,15 @@ if __name__ == "__main__":
         statusForFileListing = ['size-mismatch', 'local-file-missing']
         maxFilesToList = 10
         if status in statusForFileListing:
-            print 'SUMMARY: listing the first', maxFilesToList, 'of', n
+            print 'SUMMARY: listing the first', min(maxFilesToList, n), 'of', n
             for file in itertools.islice(filesOfStatus, maxFilesToList):
-                print 'SUMMARY: File: %8s %12s %s' % ( MergeBAMsUtils.greek(file.size()), modTimeStr(file.modTime()), file.file)
+                if status == 'size-mismatch':
+                    print 'SUMMARY: File: ftp=%d bytes local=%d bytes %12s %s' % ( file.ftpStat.size(), file.localStat.size() , modTimeStr(file.modTime()), file.file)
+                else:
+                    print 'SUMMARY: File: %8s %12s %s' % ( MergeBAMsUtils.greek(file.size()), modTimeStr(file.modTime()), file.file)
         if n > 0:
-           fileSizes = MergeBAMsUtils.greek(reduce(operator.__add__, map( ComparedFiles.size, filesOfStatus ), 0 ))
-           mostRecentMod = modTimeStr(apply(max, map( ComparedFiles.modTime, filesOfStatus )))
-               
-           print 'SUMMARY: total size               %s' % ( fileSizes )
-           print 'SUMMARY: last modification time   %s' % ( mostRecentMod )
+            fileSizes = MergeBAMsUtils.greek(reduce(operator.__add__, map( ComparedFiles.size, filesOfStatus ), 0 ))
+            mostRecentMod = modTimeStr(apply(max, map( ComparedFiles.modTime, filesOfStatus ) + [0]))
+                
+            print 'SUMMARY: total size               %s' % ( fileSizes )
+            print 'SUMMARY: last modification time   %s' % ( mostRecentMod )

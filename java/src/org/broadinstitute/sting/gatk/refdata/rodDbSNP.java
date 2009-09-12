@@ -158,7 +158,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
             String contig = parts[1];
             long start = Long.parseLong(parts[2]) + 1; // The final is 0 based
             long stop = Long.parseLong(parts[3]) + 1;  // The final is 0 based
-            loc = GenomeLocParser.parseGenomeLoc(contig, start, stop-1);
+            loc = GenomeLocParser.parseGenomeLoc(contig, start, Math.max(start, stop-1));
 
             name = parts[4];
             strand = parts[6];

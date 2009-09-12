@@ -25,11 +25,11 @@ import java.util.Collections;
 /**
  * A view into the reference-ordered data in the provider.
  */
-public class ReferenceOrderedView implements View {
+public class ManagingReferenceOrderedView implements ReferenceOrderedView {
     /**
      * The provider that's supplying our backing data.
      */
-    private final ShardDataProvider provider;
+    //private final ShardDataProvider provider;
 
     /**
      * The data sources along with their current states.
@@ -40,8 +40,8 @@ public class ReferenceOrderedView implements View {
      * Create a new view of reference-ordered data.
      * @param provider
      */
-    public ReferenceOrderedView( ShardDataProvider provider ) {
-        this.provider = provider;
+    public ManagingReferenceOrderedView( ShardDataProvider provider ) {
+        //this.provider = provider;
         for( ReferenceOrderedDataSource dataSource: provider.getReferenceOrderedData() )
             states.add( new ReferenceOrderedDataState( dataSource, (RODIterator)dataSource.seek(provider.getShard()) ) );
 

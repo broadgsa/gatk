@@ -54,7 +54,7 @@ public class ReferenceOrderedViewTest extends BaseTest {
     public void testNoBindings() {
         Shard shard = new LocusShard(GenomeLocParser.createGenomeLoc("chrM",1,30));
         ShardDataProvider provider = new ShardDataProvider(shard, null, seq, Collections.<ReferenceOrderedDataSource>emptyList());
-        ReferenceOrderedView view = new ReferenceOrderedView( provider );
+        ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",10));
         Assert.assertNull("The tracker should not have produced any data", tracker.lookup("tableTest",null));
@@ -72,7 +72,7 @@ public class ReferenceOrderedViewTest extends BaseTest {
         Shard shard = new LocusShard(GenomeLocParser.createGenomeLoc("chrM",1,30));
 
         ShardDataProvider provider = new ShardDataProvider(shard, null, seq, Collections.singletonList(dataSource));
-        ReferenceOrderedView view = new ReferenceOrderedView( provider );
+        ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",20));
         TabularROD datum = (TabularROD)tracker.lookup("tableTest",null);
@@ -98,7 +98,7 @@ public class ReferenceOrderedViewTest extends BaseTest {
         Shard shard = new LocusShard(GenomeLocParser.createGenomeLoc("chrM",1,30));
 
         ShardDataProvider provider = new ShardDataProvider(shard, null, seq, Arrays.asList(dataSource1,dataSource2));
-        ReferenceOrderedView view = new ReferenceOrderedView( provider );
+        ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",20));
         TabularROD datum1 = (TabularROD)tracker.lookup("tableTest1",null);

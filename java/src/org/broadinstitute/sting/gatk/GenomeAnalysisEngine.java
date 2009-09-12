@@ -507,11 +507,14 @@ public class GenomeAnalysisEngine {
                                              ReferenceSequenceFile drivingDataSource,
                                              GenomeLocSortedSet intervals,
                                              Integer maxIterations) {
-        final long SHARD_SIZE = 100000L;
+        long SHARD_SIZE = 100000L;
 
         ShardStrategy shardStrategy = null;
         ShardStrategyFactory.SHATTER_STRATEGY shardType;
+
         if (walker instanceof LocusWalker) {
+            if ( walker instanceof RodWalker ) SHARD_SIZE *= 100;
+
             if (intervals != null) {
                 shardType = (walker.isReduceByInterval()) ?
                         ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL :
@@ -525,7 +528,6 @@ public class GenomeAnalysisEngine {
                 shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.LINEAR,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE, maxIterations);
-
         } else if (walker instanceof ReadWalker ||
                 walker instanceof DuplicateWalker) {
 

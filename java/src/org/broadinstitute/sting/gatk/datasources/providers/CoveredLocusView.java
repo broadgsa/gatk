@@ -23,19 +23,6 @@ import org.apache.log4j.Logger;
 
 public class CoveredLocusView extends LocusView {
     /**
-     * Gets the position to which the last seek was requested.
-     */
-    private GenomeLoc seekPoint;
-
-    /**
-     * What's the context for the last locus accessed?
-     * @param provider
-     */
-    private AlignmentContext nextLocusContext = null;
-
-    private static Logger logger = Logger.getLogger(CoveredLocusView.class);
-
-    /**
      * Create a new queue of locus contexts.
      * @param provider
      */
