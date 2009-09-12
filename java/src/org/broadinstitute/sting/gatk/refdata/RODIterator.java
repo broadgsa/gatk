@@ -30,7 +30,7 @@ public class RODIterator<ROD extends ReferenceOrderedDatum> implements Iterator<
 
     @Override
     public boolean hasNext() { return it.hasNext(); }
-    
+
     @Override
     public ROD next() {
         ROD next = it.next();
@@ -40,6 +40,26 @@ public class RODIterator<ROD extends ReferenceOrderedDatum> implements Iterator<
         }
         return next;
     }
+
+//    @Override
+//    public boolean hasNext() { return current != null || it.hasNext(); }
+//
+//    @Override
+//    public ROD next() {
+//        if ( current != null ) {
+//            ROD prev = current;
+//            current = null;
+//            return prev;
+//        } else {
+//            ROD next = it.next();
+//            if( next != null ) {
+//                position = next.getLocation().clone();
+//                //current = next;
+//            }
+//
+//            return next;
+//        }
+//    }
 
     /**
      * Returns the current position of this iterator.
