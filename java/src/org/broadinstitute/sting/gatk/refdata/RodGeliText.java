@@ -94,10 +94,6 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements AllelicVa
         );
     }
 
-    public int compareTo(ReferenceOrderedDatum referenceOrderedDatum) {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
-    }
-
     public GenomeLoc getLocation() { return loc; }
 
     public String getRefBasesFWD() {
