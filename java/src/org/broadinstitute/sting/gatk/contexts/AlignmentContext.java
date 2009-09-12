@@ -46,6 +46,12 @@ public class AlignmentContext {
     protected List<Integer> offsets = null;
 
     /**
+     * The number of bases we've skipped over in the reference since the last map invocation.
+     * Only filled in by RodTraversals right now.  By default, nothing is being skipped, so skippedBases == 0.
+     */
+    private long skippedBases = 0;
+
+    /**
      * Default constructor for AlignmentContext object
      * since private objects are already set to null we
      * don't need to do anything
@@ -69,6 +75,14 @@ public class AlignmentContext {
         this.reads = reads;
         this.offsets = offsets;
     }
+
+    public AlignmentContext(GenomeLoc loc, List<SAMRecord> reads, List<Integer> offsets, long skippedBases ) {
+        this.loc = loc;
+        this.reads = reads;
+        this.offsets = offsets;
+        this.skippedBases = skippedBases;
+    }
+
 
     /**
      * get all of the reads within this context
@@ -183,5 +197,15 @@ public class AlignmentContext {
         }
 
         return new AlignmentContext(ac.getLocation(), reads, offsets);
+    }
+
+    /**
+     * Returns the number of bases we've skipped over in the reference since the last map invocation.
+     * Only filled in by RodTraversals right now.  A value of 0 indicates that no bases were skipped.
+     *
+     * @return the number of skipped bases
+     */
+    public long getSkippedBases() {
+        return skippedBases;
     }
 }
