@@ -45,10 +45,10 @@ public class PowerAndCoverageWalker extends LocusWalker<SQuad<Integer>, SQuad<Lo
     @Argument(fullName="aboveQScoreOutputOnly", doc="Output only the information for reads that exceed the q-score threshold", required=false)
     public boolean aboveQScoreOutputOnly = false;
 
-    @Argument(fullName="outputRawStatistics", shortName="rp", doc="Walker outputs the median quality score and power for the un-thresholded reads as well as those that are thresholded", required=false)
+    @Argument(fullName="outputRawStatistics", shortName="rs", doc="Walker outputs the median quality score and power for the un-thresholded reads as well as those that are thresholded", required=false)
     public boolean outputRawStatistics = false;
 
-    @Argument(fullName="poolSize", shortName="pf", doc="Number of individuals in the pool", required = true)
+    @Argument(fullName="poolSize", shortName="ps", doc="Number of individuals in the pool", required = true)
     public int numIndividuals = 0;
 
     protected PrintStream outputWriter = null;
