@@ -19,7 +19,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalVariantROD() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("094c0adb8e4ae4de424f26482fd43152");
+        md5.add("013d13d405f33b0fe4038f5aea087e7f");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -50,7 +50,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalVariantRODConfSix() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("eb8716965fa1df93954c5a22b0aeda7c");
+        md5.add("422d94ab60a3db42b0a5dc9c254b78f4");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -82,7 +82,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
      @Test
     public void testEvalVariantRODOutputViolations() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("9449cfb668f5175013161d2f287c30ff");
+        md5.add("8e613d57fd770ff04eb6531f583f4448");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -114,7 +114,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalGenotypeROD() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("ff2bf8987e288198b28201b5c3121c0e");
+        md5.add("439c2983a6e1250cd845c686a0e5a085");
         /**
          * the above MD5 was calculated after running the following command:
          *

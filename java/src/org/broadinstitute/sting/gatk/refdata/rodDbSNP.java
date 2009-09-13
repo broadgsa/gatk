@@ -71,7 +71,8 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
      * @return reference allele, forward strand
      */
     public String getRefBasesFWD() {
-        return getAllelesFWD().get(0);
+        // fix - at least this way we ensure that we'll get the other base compared to getAltBasesFWD()
+        return (getAllelesFWD().get(0).equals(refBases)) ? getAllelesFWD().get(0) : getAllelesFWD().get(1);
         //if ( onFwdStrand() )
         //    return refBases;
         //else
@@ -87,7 +88,10 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
     public char getRefSnpFWD() throws IllegalStateException {
         //System.out.printf("refbases is %s but %s%n", refBases, toString());
         if ( isIndel() ) throw new IllegalStateException("Variant is not a SNP");
-        return getAllelesFWD().get(0).charAt(0);
+        // fix - at least this way we ensure that we'll get the other base compared to getAltBasesFWD()
+        List<String> alleles = getAllelesFWD();
+        String val = (alleles.get(0).equals(refBases) ? alleles.get(0) : alleles.get(1));
+        return val.charAt(0);
         // if ( onFwdStrand() ) return refBases.charAt(0);
        // else return SequenceUtil.reverseComplement(refBases).charAt(0);
     }
