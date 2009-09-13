@@ -53,6 +53,11 @@ public class Quad<W,X,Y,Z> {
         return getHash(first) ^ getHash(second) ^ getHash(third) ^ getHash(fourth);
     }
 
+    public String toString() {
+        return String.format("(%s, %s, %s, %s)", first.toString(), second.toString(),
+                                                 third.toString(), fourth.toString());
+    }
+
     public W getFirst() { return first; }
     public X getSecond() { return second; }
     public Y getThird() { return third; }
