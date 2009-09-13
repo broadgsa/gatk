@@ -41,6 +41,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
     int MAX_READS_FOR_CONSENSUSES = 120;
 
     public static final int MAX_QUAL = 99;
+    public static final long RANDOM_SEED = 1252863495;
 
     // fraction of mismatches that need to no longer mismatch for a column to be considered cleaned
     private static final double MISMATCH_COLUMN_CLEANED_FRACTION = 0.75;
@@ -72,7 +73,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
 
         logger.info("Writing into output BAM file");
         logger.info("Temporary space used: "+System.getProperty("java.io.tmpdir"));
-        generator = new Random();
+        generator = new Random(RANDOM_SEED);
 
         if ( OUT_INDELS != null ) {
             try {
