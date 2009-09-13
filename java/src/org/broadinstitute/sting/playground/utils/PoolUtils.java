@@ -26,7 +26,7 @@ public class PoolUtils {
     public static final int BASE_T_OFFSET = 3;
     public static final int BASE_INDEXED_ARRAY_SIZE = 4;
 
-    public static Pair<Pair<List<SAMRecord>, List<SAMRecord>>, Pair<List<Integer>, List<Integer>>> splitReadsByReadDirection(List<SAMRecord> reads, List<Integer> offsets) {
+    public static ReadOffsetQuad splitReadsByReadDirection(List<SAMRecord> reads, List<Integer> offsets) {
         ArrayList<SAMRecord> forwardReads;
         ArrayList<SAMRecord> reverseReads;
         ArrayList<Integer> forwardOffsets;
@@ -54,7 +54,7 @@ public class PoolUtils {
             }
         }
 
-        return new Pair(new Pair(forwardReads, reverseReads), new Pair(forwardOffsets, reverseOffsets));
+        return new ReadOffsetQuad(forwardReads,forwardOffsets,reverseReads,reverseOffsets);
     }
 
     public static Pair<List<SAMRecord>[], List<Integer>[]> splitReadsByBase(List<SAMRecord> reads, List<Integer> offsets) {
@@ -117,7 +117,11 @@ public class PoolUtils {
             }
         }
 
-        return new Pair(threshReads, threshOffsets);
+        return new Pair<List<SAMRecord>,List<Integer>>(threshReads, threshOffsets);
+    }
+
+    public static Pair<List<SAMRecord>,List<Integer>> thresholdReadsByQuality(Pair<List<SAMRecord>,List<Integer>> readPair, byte qThresh) {
+        return thresholdReadsByQuality(readPair.getFirst(),readPair.getSecond(),qThresh);
     }
 
     public static int getBaseOffset(char base) {
@@ -165,6 +169,14 @@ public class PoolUtils {
         return qualities;
     }
 
+    public static double calculateLogLikelihoodOfSample(ReadOffsetQuad readsBySupport, double alleleFreq) {
+        List<Byte> qSNP = getReadBaseQualities(readsBySupport.getFirstReads(), readsBySupport.getFirstOffsets());
+        List<Byte> qRef = getReadBaseQualities(readsBySupport.getSecondReads(), readsBySupport.getSecondOffsets());
+        Pair<Double,Double> logsumSNP = qListToSumLogProbabilities(true, qSNP, 1/alleleFreq);
+        Pair<Double,Double> logsumRef = qListToSumLogProbabilities(false, qRef, 1/alleleFreq);
+        return 0.0 - logsumSNP.getFirst() - logsumRef.getFirst() + logsumSNP.getSecond() + logsumRef.getSecond();
+    }
+
     public static double calculateLogLikelihoodOfSample(Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> snpReadsRefReads, int nIndivids) {
         List<Byte> qListSnps = getReadBaseQualities(snpReadsRefReads.getFirst().getFirst(),snpReadsRefReads.getSecond().getFirst());
         List<Byte> qListRefs = getReadBaseQualities(snpReadsRefReads.getFirst().getSecond(),snpReadsRefReads.getSecond().getSecond());
@@ -192,6 +204,25 @@ public class PoolUtils {
         }
 
         return new Pair<Double,Double>(logProbObserveXAndSNPTrue,logProbObserveXAndRefTrue);
+    }
+
+    public static ReadOffsetQuad coinTossPartition(List<SAMRecord> reads, List<Integer> offsets, double alleleFreq) {
+        ArrayList<SAMRecord> snpReads = new ArrayList<SAMRecord>();
+        ArrayList<Integer> snpOffsets = new ArrayList<Integer>();
+        ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();
+        ArrayList<Integer> refOffsets = new ArrayList<Integer>();
+
+        for( int i = 0; i < reads.size(); i ++ ) {
+            if ( Math.random() < alleleFreq ) {
+                snpReads.add(reads.get(i));
+                snpOffsets.add(offsets.get(i));
+            } else {
+                refReads.add(reads.get(i));
+                refOffsets.add(offsets.get(i));
+            }
+        }
+
+        return new ReadOffsetQuad(snpReads,snpOffsets,refReads,refOffsets);
     }
 
 }

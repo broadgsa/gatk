@@ -12,6 +12,7 @@ import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.playground.utils.PoolUtils;
+import org.broadinstitute.sting.playground.utils.ReadOffsetQuad;
 import net.sf.samtools.SAMRecord;
 
 import java.util.*;
@@ -71,7 +72,8 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
             Pair<List<SAMRecord>,List<Integer>> readsFilteredByQuality = filterByQuality(context.getReads(),context.getOffsets(), this.getMinQualityScore());
             filteredContext = new AlignmentContext(context.getLocation(),readsFilteredByQuality.getFirst(),readsFilteredByQuality.getSecond());
         }
-        Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> readsByDirection = PoolUtils.splitReadsByReadDirection(filteredContext.getReads(),filteredContext.getOffsets());
+        ReadOffsetQuad splitReads = PoolUtils.splitReadsByReadDirection(filteredContext.getReads(), filteredContext.getOffsets());
+        Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> readsByDirection = new Pair(new Pair(splitReads.getFirstReads(),splitReads.getSecondReads()),new Pair(splitReads.getFirstOffsets(),splitReads.getSecondOffsets()));
         if ( ! suppress_printing && ! outputUnthreshCvg ) {
             Pair<double[],byte[]> powers = calculatePower(readsByDirection, useBootstrap, filteredContext);
             out.printf("%s %d %d %d %d %d %d %f %f %f%n", filteredContext.getLocation(), readsByDirection.getFirst().getFirst().size(), readsByDirection.getFirst().getSecond().size(),
@@ -79,7 +81,8 @@ public class CoverageAndPowerWalker extends LocusWalker<Pair<Integer, Integer>, 
             powers.getFirst()[0], powers.getFirst()[1], powers.getFirst()[2]);
         } else if (! suppress_printing && outputUnthreshCvg) {
             Pair<double[],byte[]> powers = calculatePower(readsByDirection, useBootstrap, filteredContext);
-            Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> ufReadsByDirection = PoolUtils.splitReadsByReadDirection(context.getReads(),context.getOffsets());
+            ReadOffsetQuad readsByDir = PoolUtils.splitReadsByReadDirection(context.getReads(),context.getOffsets());
+            Pair<Pair<List<SAMRecord>,List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> ufReadsByDirection = new Pair(new Pair(readsByDir.getFirstReads(), readsByDir.getSecondReads()), new Pair(readsByDir.getFirstOffsets(), readsByDir.getSecondOffsets()));
             out.printf("%s %d %d %d %d %d %d %d %d %d %f %f %f%n", filteredContext.getLocation(), ufReadsByDirection.getFirst().getFirst().size(),
             ufReadsByDirection.getFirst().getSecond().size(), context.getReads().size(),
             readsByDirection.getFirst().getFirst().size(), readsByDirection.getFirst().getSecond().size(),
