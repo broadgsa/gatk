@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.playground.utils.PoolUtils;
+import org.broadinstitute.sting.playground.utils.ReadOffsetQuad;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -73,8 +74,8 @@ public class AnalyzePowerWalker extends CoverageAndPowerWalker{
             Pair<List<SAMRecord>,List<Integer>> readsFilteredByQuality = filterByQuality(rawContext.getReads(),rawContext.getOffsets(), super.getMinQualityScore());
             context = new AlignmentContext(rawContext.getLocation(),readsFilteredByQuality.getFirst(),readsFilteredByQuality.getSecond());
         }
-
-        Pair<Pair<List<SAMRecord>, List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> splitReads = PoolUtils.splitReadsByReadDirection(context.getReads(),context.getOffsets());
+        ReadOffsetQuad readsByDirection = PoolUtils.splitReadsByReadDirection(context.getReads(),context.getOffsets());
+        Pair<Pair<List<SAMRecord>, List<SAMRecord>>,Pair<List<Integer>,List<Integer>>> splitReads = new Pair(new Pair(readsByDirection.getFirstReads(),readsByDirection.getSecondReads()),new Pair(readsByDirection.getFirstOffsets(),readsByDirection.getSecondOffsets()));
         if ( !super.suppress_printing )
         {
             Pair<double[],byte[]> powPair = super.calculatePower(splitReads,false,context);
