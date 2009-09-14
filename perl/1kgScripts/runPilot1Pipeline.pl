@@ -26,22 +26,24 @@ my @samples = ("ceu","yri","chb_jpt");
 
 foreach my $sample (@samples) {
 
-    $inputBam = "$inputDir/low_coverage_$sample.bam";
-    $outputHead = "$outputDir/$sample";
-    clean($inputBam, $outputDir, "$outputHead.bam", $queue, $sting, $dry);
-#    call($outputBam, $outputHead, $queue, $sting, $dry);
+    my $inputBam = "$inputDir/low_coverage_$sample.bam";
+    my $outputHead = "$outputDir/$sample";
+    my $outputBam = "$outputHead.bam";
+    my $badsnps = "$outputBam.badsnps";
+    clean($inputBam, $outputBam, $queue, $sting, $dry, $badsnps);
+    call("-I $outputBam", $outputHead, $queue, $sting, $dry, "$inputBam.cleaningpipeline", $sample, $badsnps);
 }
 
 sub clean {
 
     my $inputBam = $_[0];
-    my $outputDir = $_[1];
-    my $outputBam = $_[2];
-    my $queue = $_[3];
-    my $sting = $_[4];
-    my $dry = $_[5];
+    my $outputBam = $_[1];
+    my $queue = $_[2];
+    my $sting = $_[3];
+    my $dry = $_[4];
+    my $badsnps = $_[5];
 
-    my $cmd = "perl $sting/perl/1kgScripts/runCleaningPipeline.pl -i $inputBam -odir $outputDir -obam $outputBam -q $queue -j $outputBam.cleaningpipeline -sting $sting";
+    my $cmd = "perl $sting/perl/1kgScripts/runCleaningPipeline.pl -i $inputBam -obam $outputBam -q $queue -j $outputBam.cleaningpipeline -sting $sting -badsnps $badsnps";
     if ($dry) {
 	$cmd .= " -dry";
     }
@@ -50,15 +52,21 @@ sub clean {
 
 sub call {
 
-    my $inputBam = $_[0];
+    my $inputBams = $_[0];
     my $outputHead = $_[1];
     my $queue = $_[2];
     my $sting = $_[3];
     my $dry = $_[4];
+    my $wait = $_[5];
+    my $sample = $_[6];
+    my $badsnps = $_[7];
 
-    $cmd = "perl $sting/perl/1kgScripts/runCallingPipeline.pl -i $inputBam -o $outputHead -q $queue -wait $inputBam.cleaningpipeline -sting $sting";
+    my $cmd = "perl $sting/perl/1kgScripts/runCallingPipeline.pl -i $inputBams -o $outputHead -q $queue -sting $sting -frac 0 -sample $sample -badsnps $badsnps";
     if ($dry) {
 	$cmd .= " -dry";
+    }
+    if ($wait) {
+	$cmd .= " -wait $wait";
     }
     system($cmd);
 }
