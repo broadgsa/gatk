@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import subprocess
 import re
 
 #justPrintCommands = False
 
-def cmd(cmd_str_from_user, farm_queue=False, output_head=None, just_print_commands=False, outputFile = None, waitID = None, jobName = None):
-    # if farm_queue is non-False, submits to queue, other
+def cmd(cmd_str_from_user, farm_queue=False, output_head=None, just_print_commands=False, outputFile = None, waitID = None, jobName = None, die_on_fail = False):
+    """if farm_queue != False, submits to queue, other
+die_on_fail_msg: if != None, die on command failure (non-zero return) and show die_on_fail_msg"""
 
     if farm_queue:
         if outputFile <> None:
@@ -47,5 +49,7 @@ def cmd(cmd_str_from_user, farm_queue=False, output_head=None, just_print_comman
         status = os.system(cmd_str)
         if not farm_queue:
             print "<<< Exit code:", status,"\n"
+        if die_on_fail != None and status != 0:
+            print "### Failed with exit code "+str(status)+" while executing command "+cmd_str_from_user
+            sys.exit()
         return int(status)
-        
