@@ -52,12 +52,17 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
     int[] HLAstoppos;
     int numHLAlleles = 0;
     int numInterval = 1;
-    double[][] Prob; String[][] Alleles;
+    double[][] LOD; String[][] Alleles;
+    double[][] ActualLikelihoods;
     int j1, k1, j2, k2;
     int iAstart = -1, iAstop = -1, iBstart = -1, iBstop = -1, iCstart = -1, iCstop = -1;
 
 
     Hashtable Scores = new Hashtable();
+    Hashtable SNPs = new Hashtable();
+    ArrayList<Integer> SNPlocations = new ArrayList<Integer>();
+    Integer SNPcount = 0;
+    int[][] SNPcorrelation;
 
     boolean DatabaseLoaded = false;
     boolean PrintedOutput = false;
@@ -98,7 +103,8 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                 in.close();
                 int n = HLApositions.size(); numHLAlleles = n;
                 HLAstartpos = new int[n]; HLAstoppos = new int[n];
-                Prob = new double[n][n];
+                LOD = new double[n][n];
+                ActualLikelihoods = new double[n][n];
 
                 for (i = 0; i < n; i++){
                     //Find start and stop positions for each allele
@@ -106,16 +112,17 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                     HLAstoppos[i]=HLAstartpos[i]+HLAreads.get(i).length()-1;
                     //Initialize matrix of probabilities / likelihoods
                     for (int j = 0; j <n; j++){
-                        Prob[i][j]=0;
+                        LOD[i][j]=0;
+                        ActualLikelihoods[i][j]=0;
                     }
                     //For debugging: get index for specific alleles
-                    if (HLAnames.get(i).equals("HLA_A*110101"))
+                    if (HLAnames.get(i).equals("HLA_B*0801"))
                         j1 = i;
-                    if (HLAnames.get(i).equals("HLA_A*01010101"))
+                    if (HLAnames.get(i).equals("HLA_B*5601"))
                         k1 = i;
-                    if (HLAnames.get(i).equals("HLA_A*110201"))
+                    if (HLAnames.get(i).equals("HLA_B*0813"))
                         j2 = i;
-                    if (HLAnames.get(i).equals("HLA_A*0109"))
+                    if (HLAnames.get(i).equals("HLA_B*5613"))
                         k2 = i;
                 }
                 out.printf("DONE!\n");
@@ -171,7 +178,16 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
 
                 //increment placeholders without adding inserted bases to sequence (effectively removes insertion).
                 cigarPlaceholder = i+1;
-                readPlaceholder = readPlaceholder + subreadLength;               
+                readPlaceholder = readPlaceholder + subreadLength;
+            } else if (c == 'H'){
+                //(Headers removed here)***
+
+                //If reaches H for insertion, get number before 'H' and skip that many characters in sequence
+                count = cigar.substring(cigarPlaceholder, i);
+                subreadLength = Integer.parseInt(count);
+
+                //increment cigar placeholder without adding inserted bases to sequence (effectively removes insertion).
+                cigarPlaceholder = i+1;
             } else if (c == 'D'){
                 //If reaches D for deletion, insert 'D' into sequence as placeholder
                 count = cigar.substring(cigarPlaceholder, i);
@@ -232,11 +248,6 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
 
             GenotypeLikelihoods G = new ThreeStateErrorGenotypeLikelihoods();
 
-
-            //I've tried simply adding the entire pileup to g, but quality scores are not checked, and 'N' bases throw an error
-            //(GenotypeLikelihoods potentially has bug on line 57)
-            //g.add(pileup);
-
             //Check for bad bases and ensure mapping quality myself. This works.
             for (int i = 0; i < context.getReads().size(); i++) {
                 
@@ -247,11 +258,13 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                 int mapquality = read.getMappingQuality();
                 if (mapquality >= 5 && BaseUtils.simpleBaseToBaseIndex(base) != -1) {
 
-                    //Adds read to list of reads for final phasing comparison
                     String name = read.getReadName();
                     if (!AllReadNames.contains(name)){
                         AllReadNames.add(name);
                         AllReads.add(read);
+                        if( DEBUG){
+                            //out.print("\n" + read.getReadName() + "\t" + read.getCigarString() + "\t" + read.getReadLength() + "\n");
+                        }
                     }
 
                     if (base == 'A'){numAs++; depth++;}
@@ -269,25 +282,43 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             if (depth > 0){
                 //Store confidence scores - this is a local hash that we use to get likelihood given a particular genotype
                 Scores = new Hashtable();
-                for ( DiploidGenotype g : DiploidGenotype.values() ) {
-                    Scores.put(g.toString(), G.getLikelihood(g));
-                    //also hash other combination not stored by DiploidGenotype
-                    if (g.toString().equals("AC")) Scores.put("CA", G.getLikelihood(g));
-                    if (g.toString().equals("AG")) Scores.put("GA", G.getLikelihood(g));
-                    if (g.toString().equals("AT")) Scores.put("TA", G.getLikelihood(g));
-                    if (g.toString().equals("CG")) Scores.put("GC", G.getLikelihood(g));
-                    if (g.toString().equals("CT")) Scores.put("TC", G.getLikelihood(g));
-                    if (g.toString().equals("GT")) Scores.put("TG", G.getLikelihood(g));
 
+                Double likelihood = 0.0;
+                
+                for ( DiploidGenotype g : DiploidGenotype.values() ) {
+                    likelihood = G.getLikelihood(g);
+
+                    Scores.put(g.toString(), likelihood);
+                    //also hash other combination not stored by DiploidGenotype
+                    if (g.toString().equals("AC")) {
+                        Scores.put("CA", likelihood);
+                    } else if (g.toString().equals("AG")){
+                        Scores.put("GA", likelihood);
+                    } else if (g.toString().equals("AT")){
+                        Scores.put("TA", likelihood);
+                    } else if (g.toString().equals("CG")){
+                        Scores.put("GC", likelihood);
+                    } else if (g.toString().equals("CT")){
+                        Scores.put("TC", likelihood);
+                    } else if (g.toString().equals("GT")){
+                        Scores.put("TG", likelihood);
+                    }
                 }
 
                 //Get likelihood score for homozygous ref: used to normalize likelihoood scores at 0.
                 String homref = String.valueOf(ref.getBase())+String.valueOf(ref.getBase());
                 Double homreflikelihood = Double.parseDouble((String) Scores.get(homref).toString());
 
+                //Add SNP if it is a SNP and hasn't been added before
+                for ( DiploidGenotype g : DiploidGenotype.values() ) {
+                    likelihood = G.getLikelihood(g);
+                    if (likelihood > homreflikelihood && !SNPs.containsKey(Long.toString(loc))){
+                        SNPcount++; SNPs.put(Long.toString(loc),SNPcount); SNPlocations.add(Integer.valueOf(Long.toString(loc)));
+                        
+                    }
+                }
 
                 //Update likelihood for each combinations of alleles
-                Double likelihood = 0.0;
                 String r1 = "", r2 = "", s1 = "", s2 = "";
                 for (int j = 0; j < numHLAlleles; j++){
 
@@ -302,7 +333,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                         if (j == j2) s1 = c1;
                         if (j == k2) s2 = c1;
 
-                        //Only check A-A, B-C, C-C combinations
+                        //Only check HLA A-A, B-B, C-C combinations
                         int kStart = 0, kStop = 0;
                         if (j >= iAstart && j <= iAstop){
                             kStart = iAstart; kStop = iAstop;
@@ -332,7 +363,9 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                                     if (Scores.containsKey(c1 + c2)){
                                         //out.printf("j[%s],k[%s],g[%s],s[%.0f]\t",j,k,c1+c2,Scores.get(c1 + c2));
                                         likelihood = Double.parseDouble((String) Scores.get(c1 + c2).toString());
-                                        Prob[j][k]= Prob[j][k]+ likelihood - homreflikelihood;
+                                        ActualLikelihoods[j][k] = LOD[j][k]+ likelihood;
+                                        LOD[j][k]= ActualLikelihoods[j][k] - homreflikelihood;
+
                                     } else{
                                         if (DEBUG){
                                         //out.printf("\nCharacters [%s] not found,j[%s],k[%s],%s,%s\n",c1+c2,j,k,HLAnames.get(j),HLAnames.get(k));
@@ -348,9 +381,9 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
 
                 if ( DEBUG ){
                     //Debugging: print updated likelihoods for 2 sets of HLA alleles, as well as normalized likelihoods for all 10 genotypes
-                    out.printf("%s%s:%5.0f\t%s%s:%5.0f\t",r1,r2,Prob[j1][k1],s1,s2,Prob[j2][k2]);
+                    out.printf("%s%s:%5.0f\t%s%s:%5.0f\t",r1,r2,LOD[j1][k1],s1,s2,LOD[j2][k2]);
                     for ( DiploidGenotype g : DiploidGenotype.values() ) {
-                        out.printf("%s %5.0f\t",g.toString(),likelihood - homreflikelihood);
+                        out.printf("%s %5.0f\t",g.toString(),Scores.get(g.toString()));
                     }
                     out.printf("\n");
                 }
@@ -360,6 +393,97 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
         return context.getReads().size();
     }
 
+    private int GetPhaseScore(int alleleindex){
+        int score = 0;
+        ArrayList<Integer> SNPsInRead = new ArrayList<Integer>();
+        ArrayList<Integer> readindex = new ArrayList<Integer>();
+        Hashtable indexer = new Hashtable();
+        indexer.put('A', (Integer) 0);
+        indexer.put('C', (Integer) 1);
+        indexer.put('G', (Integer) 2);
+        indexer.put('T', (Integer) 3);
+        indexer.put('D', (Integer) 4); // D for deletion
+
+        //Get HLA allele sequence and position given index
+        String allele = HLAreads.get(alleleindex);
+        int allelestart = HLAstartpos[alleleindex], allelestop = HLAstoppos[alleleindex];
+
+        //Finds SNPs in allele
+        for (int i = allelestart; i <= allelestop; i++){
+            if (SNPs.containsKey(String.valueOf(i))){
+                //Stores matrix index
+                SNPsInRead.add((Integer) SNPs.get(String.valueOf(i)));
+                //stores position along read
+                readindex.add((Integer) i - allelestart);
+            }
+        }
+
+        //sum score for every pair of SNPs in the allele
+        for (int i = 0; i < SNPsInRead.size(); i++){
+            for (int j = i+1; j < SNPsInRead.size(); j ++){
+                char c1 = allele.charAt((int) readindex.get(i));
+                char c2 = allele.charAt((int) readindex.get(j));
+                if (indexer.get(c1) != null && indexer.get(c2) != null){
+                    int a = (SNPsInRead.get(i)-1)*5 + (Integer) indexer.get(c1);
+                    int b = (SNPsInRead.get(j)-1)*5 + (Integer) indexer.get(c2);
+                    score += SNPcorrelation[a][b];
+                }
+            }
+        }
+        return score;
+    }
+
+    private void UpdateCorrelation(SAMRecord read, boolean PRINT){
+        //Updates correlation table with SNPs from specific read (for phasing)
+        String s = CigarFormatted(read.getCigarString(), read.getReadString());
+        ArrayList<Integer> SNPsInRead = new ArrayList<Integer>();
+        ArrayList<Integer> readindex = new ArrayList<Integer>();
+        Hashtable indexer = new Hashtable();
+
+        indexer.put('A', (Integer) 0);
+        indexer.put('C', (Integer) 1);
+        indexer.put('G', (Integer) 2);
+        indexer.put('T', (Integer) 3);
+        indexer.put('D', (Integer) 4); // D for deletion
+
+
+        int readstart = read.getAlignmentStart();
+
+        //Find all SNPs in read
+        for (int i = read.getAlignmentStart(); i <= read.getAlignmentEnd(); i++){
+            if (SNPs.containsKey(String.valueOf(i))){
+                //Stores matrix index
+                SNPsInRead.add((Integer) SNPs.get(String.valueOf(i)));
+
+                //stores position along read
+                readindex.add((Integer) i - readstart);
+            }
+        }
+
+        //Update correlation table; for each combination of SNP positions
+        for (int i = 0; i < SNPsInRead.size(); i++){
+            for (int j = i+1; j < SNPsInRead.size(); j ++){
+                char c1 = s.charAt((int) readindex.get(i));
+                char c2 = s.charAt((int) readindex.get(j));
+
+                if (indexer.get(c1) != null && indexer.get(c2) != null){
+
+                    int a = (SNPsInRead.get(i)-1)*5 + (Integer) indexer.get(c1);
+                    int b = (SNPsInRead.get(j)-1)*5 + (Integer) indexer.get(c2);
+                    if (PRINT){
+                        out.printf("ReadIndex[%s,%s] of %s\t", readindex.get(i),readindex.get(j),read.getAlignmentEnd()-readstart);
+                        out.printf("SNP#[%s,%s] of %s\tPOS:%s[%s]\t%s[%s]\t", SNPsInRead.get(i),SNPsInRead.get(j), SNPs.size(), readindex.get(i)+readstart,c1, readindex.get(j)+readstart,c2);
+                        out.printf("MatrixIndex[%s,%s] of %s",a,b,SNPcorrelation.length);
+                        out.printf("\tc1=%s,c2=%s",c1,c2);
+                        out.printf("\ta=%s,b=%s",a,b);
+                        out.printf("\tSNPcorrelation[a][b]=%s\n",SNPcorrelation[a][b]);
+                    }
+                    SNPcorrelation[a][b]+=1;
+                }
+            }
+        }
+    }
+    
     public boolean isReduceByInterval() {
         return true;
     }
@@ -371,7 +495,6 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
     }
 
     public void onTraversalDone(Pair<Long, Long> result) {
-
         //Print HLA allele combinations with highest likelihood sums
         if (!PrintedOutput){
             ArrayList<Integer> TopAlleles = new ArrayList<Integer>();
@@ -392,46 +515,71 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                 for (int j = i; j < numHLAlleles; j++){
                     //Print likelihoods for all alleles
                     if (!DEBUG){
-                        out.printf("%s\t%s\t%5.0f\n",HLAnames.get(i),HLAnames.get(j),Prob[i][j]);
+                        out.printf("%s\t%s\t%5.0f\n",HLAnames.get(i),HLAnames.get(j),LOD[i][j]);
                     }
 
                     if (HLAnames.get(i).indexOf("HLA_A") > -1 && HLAnames.get(j).indexOf("HLA_A") > -1){
-                        if (Prob[i][j] > maxA){
+                        if (LOD[i][j] > maxA){
                             maxA2 = maxA; i_maxA_2 = i_maxA; j_maxA_2 = j_maxA;
-                            maxA = Prob[i][j]; i_maxA = i; j_maxA = j;
+                            maxA = LOD[i][j]; i_maxA = i; j_maxA = j;
                         }
                     } else if (HLAnames.get(i).indexOf("HLA_B") > -1 && HLAnames.get(j).indexOf("HLA_B") > -1){
-                        if (Prob[i][j] > maxB){
+                        if (LOD[i][j] > maxB){
                             maxB2 = maxB; i_maxB_2 = i_maxB; j_maxB_2 = j_maxB;
-                            maxB = Prob[i][j]; i_maxB = i; j_maxB = j;
+                            maxB = LOD[i][j]; i_maxB = i; j_maxB = j;
                         }
                     } else if (HLAnames.get(i).indexOf("HLA_C") > -1 && HLAnames.get(j).indexOf("HLA_C") > -1){
-                        if (Prob[i][j] > maxC){
+                        if (LOD[i][j] > maxC){
                             maxC2 = maxC; i_maxC_2 = i_maxC; j_maxC_2 = j_maxC;
-                            maxC = Prob[i][j]; i_maxC = i; j_maxC = j;
+                            maxC = LOD[i][j]; i_maxC = i; j_maxC = j;
                         }
                     }
 		}
             }
 
-
-            //Print alleles with the highest likelihoods
+            /*
+            maxB = 12912;
             for (int i = 0; i < numHLAlleles; i++){
                 for (int j = i; j < numHLAlleles; j++){
+                    
+                    if (HLAnames.get(i).equals("HLA_B*1501") && HLAnames.get(j).equals("HLA_B*1801")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1501") && HLAnames.get(j).equals("HLA_B*1817N")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1505") && HLAnames.get(j).equals("HLA_B*1819")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1515") && HLAnames.get(j).equals("HLA_B*1812")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1801") && HLAnames.get(j).equals("HLA_B*9546")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1801") && HLAnames.get(j).equals("HLA_B*9502")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1801") && HLAnames.get(j).equals("HLA_B*9504")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1801") && HLAnames.get(j).equals("HLA_B*9540")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1801") && HLAnames.get(j).equals("HLA_B*1579N")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1817N") && HLAnames.get(j).equals("HLA_B*9546")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1817N") && HLAnames.get(j).equals("HLA_B*9502")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1817N") && HLAnames.get(j).equals("HLA_B*9504")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1817N") && HLAnames.get(j).equals("HLA_B*9540")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1817N") && HLAnames.get(j).equals("HLA_B*1579N")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1825") && HLAnames.get(j).equals("HLA_B*1571")){LOD[i][j] = 12912;}
+                    if (HLAnames.get(i).equals("HLA_B*1538") && HLAnames.get(j).equals("HLA_B*1811")){LOD[i][j] = 12912;}
+
+                }
+            }
+            */
+
+            //Print alleles with the highest likelihoods
+            for (Integer i = 0; i < numHLAlleles; i++){
+                for (Integer j = i; j < numHLAlleles; j++){
                     if (HLAnames.get(i).indexOf("HLA_A") > -1 && HLAnames.get(j).indexOf("HLA_A") > -1){
-                        if (Prob[i][j] == maxA && maxA > 0){
+                        if (LOD[i][j] == maxA && maxA > 0){
                             out.printf("%s\t%s\t%5.0f\t%5.0f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxA,maxA-maxA2);
                             if (!TopAlleles.contains(i)){TopAlleles.add(i);}
                             if (!TopAlleles.contains(j)){TopAlleles.add(j);}
                         }
                     } else if (HLAnames.get(i).indexOf("HLA_B") > -1 && HLAnames.get(j).indexOf("HLA_B") > -1){
-                        if (Prob[i][j] == maxB && maxB > 0){
+                        if (LOD[i][j] == maxB && maxB > 0){
                             out.printf("%s\t%s\t%5.0f\t%5.0f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxB,maxB-maxB2);
                             if (!TopAlleles.contains(i)){TopAlleles.add(i);}
                             if (!TopAlleles.contains(j)){TopAlleles.add(j);}
                         }
                     } else if (HLAnames.get(i).indexOf("HLA_C") > -1 && HLAnames.get(j).indexOf("HLA_C") > -1){
-                        if (Prob[i][j] == maxC && maxC > 0){
+                        if (LOD[i][j] == maxC && maxC > 0){
                             out.printf("%s\t%s\t%5.0f\t%5.0f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxC,maxC-maxC2);
                             if (!TopAlleles.contains(i)){TopAlleles.add(i);}
                             if (!TopAlleles.contains(j)){TopAlleles.add(j);}
@@ -441,20 +589,70 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                 }
             }
 
+            out.printf("\nSNP count: %s, Number of SNPs %s\n",SNPcount,SNPs.size());
+            SNPcorrelation = new int[SNPs.size()*5][SNPs.size()*5];
+
+            
+
+            //Create correlation matrix and update correlation scores for all reads
+            for (int i = 0; i < AllReads.size(); i++){
+                if (i == 2045){
+                    UpdateCorrelation(AllReads.get(i), false);
+                }else{
+                    UpdateCorrelation(AllReads.get(i), false);
+                }
+                //out.printf("[%s,%s]\n", ((Integer) SNPs.get("31431982")) * 4,((Integer) SNPs.get("31432003")) * 4 );
+                //out.printf("%s\t[%s,%s]\t31431982[A] 31432003[A]\t%s\n",i,((Integer) SNPs.get("31431982")) * 4,((Integer) SNPs.get("31432003")) * 4 , SNPcorrelation[((Integer) SNPs.get("31431982")) * 4][((Integer) SNPs.get("31432003")) * 4]);
+            }
+
+            Hashtable indexer = new Hashtable();
+            indexer.put('A', (Integer) 0);
+            indexer.put('C', (Integer) 1);
+            indexer.put('G', (Integer) 2);
+            indexer.put('T', (Integer) 3);
+            indexer.put('D', (Integer) 4); // D for deletion
+            char[] bases = {'A','C','G','T','D'};
+
+            if ( false ){
+                //prints entries in the correlation matrix that are > 0
+                out.print("\n");
+                for (int i = 0; i < SNPs.size(); i++){
+                    int loc1 = SNPlocations.get(i);
+                    for (int j = i ; j < SNPs.size(); j++){
+                        int loc2 = SNPlocations.get(j);
+                        for (char c1 : bases){
+                            for (char c2 : bases){
+                                int a = i*5 + (Integer) indexer.get(c1);
+                                int b = j*5 + (Integer) indexer.get(c2);
+                                if (SNPcorrelation[a][b] > 0){
+                                    out.printf("[i,j]=[%s,%s]\t[a,b]=[%s,%s]\tPOS:%s[%s],%s[%s]\tCorr=%s\n",i,j,a,b,loc1,c1,loc2,c2,SNPcorrelation[a][b]);
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+            int i, j, k, readstart, readstop, allelestart, allelestop, pos_k;
+            
+            out.printf("Number of top alleles: %s\n",TopAlleles.size());
             //Check top alleles for phasing
-            for (int i = 0; i< TopAlleles.size(); i++){
+            
+            for (i = 0; i < TopAlleles.size(); i++){
+                //String allele = HLAreads.get(TopAlleles.get(i));
+                int phasescore = GetPhaseScore(TopAlleles.get(i));
                 if ( DEBUG ){
-                //Debugging: print list of alleles to be checked for phasing
-                    out.printf("%s\t%s",TopAlleles.get(i),HLAnames.get(TopAlleles.get(i)));
-                    out.printf("\n");
+                    //Debugging: print list of alleles to be checked for phasing
+                    out.printf("index=%s\t%s\tscore=%s\n",TopAlleles.get(i),HLAnames.get(TopAlleles.get(i)),phasescore);
+                    
                 }
                 
             }
 
             //2nd Highest likelihoods
-            for (int i = 0; i < numHLAlleles; i++){
-                for (int j = i; j < numHLAlleles; j++){
-                    if (Prob[i][j] == maxA2){
+            for (i = 0; i < numHLAlleles; i++){
+                for (j = i; j < numHLAlleles; j++){
+                    if (LOD[i][j] == maxA2){
                         //out.printf("2nd Highest likelihood: %5.0f in %s and %s; i=%s, j=%s\n",maxA2,HLAnames.get(i),HLAnames.get(j),i,j);
                     }
                 }
