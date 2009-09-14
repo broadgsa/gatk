@@ -1,16 +1,19 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.StringTokenizer;
 import java.util.LinkedList;
+import java.util.StringTokenizer;
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,86 +21,165 @@ import java.util.LinkedList;
  * Date: Sep 9, 2009
  * Time: 4:45:21 PM
  * To change this template use File | Settings | File Templates.
- *
+ */
+
+//todo -- onTraversalDone
+
 public class PooledGenotypeConcordance extends BasicVariantAnalysis implements GenotypeAnalysis {
-    private String[][] individualsByPool = null;
-    private int nPools;
+    private String[] individuals = null;
+
+    private static final boolean DEBUG = true;
 
     private static final int REF = 0;
-    private static final int VAR_SINGLE = 1;
-    private static final int VAR_MULTI = 2;
+    private static final int VAR_MATCH = 1;
+    private static final int VAR_HET = 1;
+    private static final int VAR_MISMATCH = 2;
+    private static final int VAR_HOM = 2;
     private static final int UNKNOWN = 3;
     private static final int NO_CALL = 3;   // synonym
     private static final String[] TRUTH_NAMES = {"IS_REF", "IS_SINGLE_VARIANT", "IS_MULTIPLE_VARIANT", "UNKNOWN"};
     private static final String[] CALL_NAMES = {"CALLED_REF", "CALLED_SINGLE_VARIANT", "CALLED_MULTIPLE_VARIANT", "NO_CALL"};
-    // todo -- consider the resolution: single vs multi enough, or should there be deeper resolution?
 
-    private int[][][] table;
-    private int[][] truthTotalsByPool;
-    private int[][] callTotalsByPool;
+    private int[][][] tableByIndividual;
+    private int[][] truthTotalsByIndividual;
+    private int[][] callTotalsByIndividual;
 
     public PooledGenotypeConcordance(String pathToHapmapPoolFile) {
         super("genotype_concordance");
-        BufferedReader fileReader = null;
-        try {
-        fileReader = new BufferedReader(new FileReader(pathToHapmapPoolFile));
-        } catch (IOException e) {
-            String errorMsg = "Could not open any file at " + pathToHapmapPoolFile + " Please check to see if the path is accurate.";
-            throw new StingException(errorMsg, e);
-        }
+        if(pathToHapmapPoolFile == null) {
+            // do nothing
+        } else {
+            BufferedReader fileReader = null;
+            try {
+                fileReader = new BufferedReader(new FileReader(pathToHapmapPoolFile));
+            } catch (IOException e) {
+                String errorMsg = "Could not open any file at " + pathToHapmapPoolFile + " Please check to see if the path is accurate.";
+                throw new StingException(errorMsg, e);
+            }
 
-        generateNameTableFromFile(fileReader);
+            generateNameTableFromFile(fileReader);
 
-        truthTotalsByPool = new int[nPools][4];
-        callTotalsByPool = new int[nPools][4];
-        table = new int[nPools][4][4];
-        for(int pool = 0; pool < nPools; pool++) {
-            for(int call1 = 0; call1 < 4; call1++) {
-                for(int call2 = 0; call2 < 4; call2++)
-                {
-                    table[pool][call1][call2] = 0;
+            if(DEBUG) {
+                printAllToCheck(individuals);
+            }
+            
+            truthTotalsByIndividual = new int[individuals.length][4];
+            callTotalsByIndividual = new int[individuals.length][4];
+            tableByIndividual = new int[individuals.length][4][4];
+            for(int individual = 0; individual < individuals.length; individual ++) {
+                for(int call1 = 0; call1 < 4; call1++) {
+                    for(int call2 = 0; call2 < 4; call2++)
+                    {
+                        tableByIndividual[individual][call1][call2] = 0;
+                    }
+                    callTotalsByIndividual[individual][call1] = 0;
+                    truthTotalsByIndividual[individual][call1] = 0;
                 }
-                callTotalsByPool[pool][call1] = 0;
-                truthTotalsByPool[pool][call1] = 0;
             }
         }
-
     }
-
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context){
-        for(int pool = 0; pool < nPools; pool ++) {
-            incorporatePoolCall(eval, tracker, ref, context, pool);
+    public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context){
+        if(DEBUG && context != null) {
+            System.out.println( "Update Called at location: " + context.getLocation().toString() );
+        } else if (DEBUG) {
+            System.out.println("Update Called, but no alignment context was given.");
         }
 
+        for( int nameOffset = 0; nameOffset < individuals.length; nameOffset++ ) {
+            inc(eval, tracker, ref, context, nameOffset);
+        }
         return null;
     }
 
-    public void incorporatePoolCall(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context, int pool) {
-        for( int nameOffset = 0; nameOffset < individualsByPool[pool].length; nameOffset++) {
-            inc(eval, tracker, ref, context, pool, nameOffset);
-        }
-    }
 
-    public void inc(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context, int pool, int nameOffset) {
-        AllelicVariant chip = (AllelicVariant) tracker.lookup(individualsByPool[pool][nameOffset],null);
-        if( (chip != null && !chip.isGenotype()) || ! isCorrectVariantType(eval)) {
-            String errMsg = "Trying to compare non-pooled data or non-genotype data."
+    public void inc(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context, int nameOffset) {
+        Variation chip = (Variation) tracker.lookup(individuals[nameOffset],null);
+        if ((chip != null && !(chip instanceof VariantBackedByGenotype) || (eval != null && !(eval instanceof VariantBackedByGenotype)))) {
+            String errMsg = "Trying to compare non-pooled data or non-genotype data.";
             throw new StingException(errMsg);
         }
 
+        DiploidGenotype g = DiploidGenotype.valueOf(Utils.dupString(ref,2));
+
+        if(DEBUG) {
+            System.out.print(incDebugString(nameOffset, chip, eval, ref));
+        }
+
+        // todo -- is this how want to do pooled concordance checking?
         int truthIndex, callIndex;
-        if(chip == null) {
+        if( chip == null ) {
             truthIndex = UNKNOWN;
-        } else if(chip.isReference()) // todo -- how do we want to do pooled concordance checking?
+        } else if ( chip.getAlternateBases().equals(g.toString()) ) {
+            truthIndex = REF;
+        } else if ( chip.getAlternateBases().charAt(0) != chip.getAlternateBases().charAt(1)) {
+            truthIndex = VAR_HET;
+        } else {
+            truthIndex = VAR_HOM;
+        }
+
+        if( eval == null ) {
+            callIndex = UNKNOWN;
+        } else if ( eval.getAlternateBases().equals(g.toString()) ) {
+            callIndex = REF;
+        } else if ( callWrongBase(eval,chip,ref) ) {
+            callIndex = VAR_MISMATCH;
+        } else {
+            callIndex = VAR_MATCH;
+        }
+
+        if( chip != null || eval != null ) {
+            tableByIndividual[nameOffset][truthIndex][callIndex]++;
+            truthTotalsByIndividual[nameOffset][truthIndex]++;
+            if ( callIndex != NO_CALL ) {
+                callTotalsByIndividual[nameOffset][callIndex]++;
+            }
+        }
+
+        if(DEBUG) {
+            System.out.printf("TruthIndex: %d  CallIndex: %d%n", truthIndex, callIndex);
+        }
+
+
 
     }
 
-    public boolean isCorrectVariantType(AllelicVariant eval) {
+    public boolean isCorrectVariantType(Variation eval) {
         // todo -- this. Check if eval is a TypeOf some ROD class that's the right pooled call output that we
-        // todo -- want to deal with. For now this will work
+        // todo -- want to deal with.
 
-        return eval.isPooled();
+        return true;
     }
+
+    public boolean callWrongBase(Variation eval, Variation chip, char ref) {
+        boolean wrongCall;
+        if ( chip == null ) {
+            wrongCall = true;
+        } else if ( chip.getAlternateBases().charAt(0) == chip.getAlternateBases().charAt(1) ) { // homozygous nonref
+            if( eval.getAlternateBases().charAt(0) == chip.getAlternateBases().charAt(0) ||
+                eval.getAlternateBases().charAt(1) == chip.getAlternateBases().charAt(0) ) {
+                wrongCall = false;
+            } else {
+                wrongCall = true;
+            }
+        } else if ( chip.getAlternateBases().charAt(0) == ref || chip.getAlternateBases().charAt(1) == ref ) { // het nonref
+            wrongCall = ( getNonrefBase(eval,ref) != getNonrefBase(chip,ref) );
+        } else { // todo -- what do we really want to do if ref is C, but chip is AG ??
+            wrongCall = true;
+        }
+        return wrongCall;
+    }
+
+    public char getNonrefBase(Variation var, char ref) {
+        char nonRefBase;
+        if( var.getAlternateBases().charAt(0) == ref ) {
+            nonRefBase =  var.getAlternateBases().charAt(1);
+        } else {
+            nonRefBase = var.getAlternateBases().charAt(0);
+        }
+
+        return nonRefBase;
+    }
+
 
 
      //
@@ -105,34 +187,14 @@ public class PooledGenotypeConcordance extends BasicVariantAnalysis implements G
      //
 
     private void generateNameTableFromFile(BufferedReader reader) {
-        // first line is a special case
-        String firstline;
-        if(continueReading(reader)) {
-            firstline = readLine(reader);
-        } else {
-            String errMsg = "First line of the HapmapPoolFile " + reader.toString() + " could not be read. Please check that the path and file properly formatted.";
-            throw new StingException(errMsg);
-        }
-
-        StringTokenizer tokFirstLine = new StringTokenizer(firstline);
-        nPools = tokFirstLine.countTokens();
-        LinkedList<String>[] namesByPool = new LinkedList[nPools];
-
-        for( int firstLineIterator = 0; firstLineIterator < nPools; firstLineIterator ++) {
-            namesByPool[firstLineIterator] = new LinkedList();
-            namesByPool[firstLineIterator].add(tokFirstLine.nextToken());
-        }
+        LinkedList<String> nameList = new LinkedList<String>();
 
         while(continueReading(reader)) {
             String line = readLine(reader);
-            StringTokenizer tokLine = new StringTokenizer(line);
-            int newNames = tokLine.countTokens();
-            for(int lineIt = 0; lineIt < newNames; lineIt ++ ) {
-                namesByPool[lineIt].add(tokLine.nextToken());
-            }
+            nameList.add(line);
         }
 
-        convertListOfNamesToMatrix(namesByPool);
+        individuals = nameList.toArray(new String[nameList.size()]);
     }
 
     private boolean continueReading(BufferedReader reader) {
@@ -156,13 +218,32 @@ public class PooledGenotypeConcordance extends BasicVariantAnalysis implements G
         return line;
     }
 
-    private void convertListOfNamesToMatrix(LinkedList<String>[] names) {
-        // initialize matrix
-        for( int pool = 0; pool < nPools; pool ++) {
-            individualsByPool[pool] = new String[names[pool].size()];
-            individualsByPool[pool] = names[pool].toArray(individualsByPool[pool]);
+    // code strictly for debug
+
+    private void printAllToCheck(String[] blah) {
+        System.out.println("Checking:");
+        for( String s : blah) {
+            System.out.println(s);
+        }
+    }
+
+    private String incDebugString(int nameOffset, Variation chip, Variation eval, char ref) {
+        String truth;
+        if(chip == null) {
+            truth = "NoChip";
+        } else {
+            truth = chip.getAlternateBases();
         }
 
+        String call;
+        if(eval == null) {
+            call = "NoCall";
+        } else {
+            call = eval.getAlternateBases();
+        }
+        return String.format("Person: %s   Ref: %s   Truth: %s   Call: %s%n",
+                             individuals[nameOffset], Character.toString(ref), truth,
+                             call);
     }
+
 }
-*/
