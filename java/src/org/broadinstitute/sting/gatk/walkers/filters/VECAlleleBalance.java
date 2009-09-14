@@ -31,7 +31,7 @@ public class VECAlleleBalance extends RatioFilter {
      * Return the count of bases matching the major (first) and minor (second) alleles as a pair.
      *
      */
-    protected Pair<Integer, Integer> scoreVariant(char ref, ReadBackedPileup pileup, RodGeliText variant) {
+    protected Pair<Integer, Integer> getRatioCounts(char ref, ReadBackedPileup pileup, RodGeliText variant) {
         final String genotype = variant.getBestGenotype();
         final String bases = pileup.getBases();
 
@@ -47,7 +47,7 @@ public class VECAlleleBalance extends RatioFilter {
         int refCount = a == ref ? aCount : bCount;
         int altCount = a == ref ? bCount : aCount;
 
-        ratio = (double)refCount / (double)altCount;
+        ratio = (double)refCount / (double)(refCount + altCount);
         return new Pair<Integer, Integer>(refCount, altCount);
     }
 
@@ -69,7 +69,7 @@ public class VECAlleleBalance extends RatioFilter {
     }
 
     public String getVCFFilterString() {
-        return "AlleleBalance" + ratio;
+        return "AlleleBalance";
     }
 
 }

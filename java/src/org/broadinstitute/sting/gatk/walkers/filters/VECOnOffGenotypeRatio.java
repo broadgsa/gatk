@@ -26,7 +26,7 @@ public class VECOnOffGenotypeRatio extends RatioFilter {
      * best genotype).  On are in the first field, off in the second.
      *
     */
-    protected Pair<Integer, Integer> scoreVariant(char ref, ReadBackedPileup pileup, RodGeliText variant) {
+    protected Pair<Integer, Integer> getRatioCounts(char ref, ReadBackedPileup pileup, RodGeliText variant) {
         final String genotype = variant.getBestGenotype().toUpperCase();
         final String bases = pileup.getBases();
 
@@ -44,7 +44,7 @@ public class VECOnOffGenotypeRatio extends RatioFilter {
             //System.out.printf("count = %d, on=%d, off=%d for %c in %s%n", count, on, off, base, genotype);            
         }
 
-        ratio = (double)on / (double)off;
+        ratio = (double)on / (double)(on + off);
         return new Pair<Integer, Integer>(on, off);
     }
 
@@ -65,6 +65,6 @@ public class VECOnOffGenotypeRatio extends RatioFilter {
     }
 
     public String getVCFFilterString() {
-        return "onOffGenotype" + ratio;
+        return "onOffGenotype";
     }
 }

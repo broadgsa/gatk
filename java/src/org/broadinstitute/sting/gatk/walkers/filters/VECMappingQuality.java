@@ -42,7 +42,7 @@ public class VECMappingQuality implements VariantExclusionCriterion {
     }
 
     public String getVCFFilterString() {
-        return "MQ" + rms;
+        return "MQ";
     }
 
     public boolean useZeroQualityReads() { return true; }

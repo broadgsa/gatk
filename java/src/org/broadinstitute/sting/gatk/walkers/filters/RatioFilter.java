@@ -37,7 +37,7 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
         highThreshold = threshold;
     }
 
-    protected abstract Pair<Integer, Integer> scoreVariant(char ref, ReadBackedPileup pileup, RodGeliText variant);
+    protected abstract Pair<Integer, Integer> getRatioCounts(char ref, ReadBackedPileup pileup, RodGeliText variant);
     protected abstract boolean excludeHetsOnly();
 
     public boolean useZeroQualityReads() { return false; }
@@ -48,7 +48,7 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
         char ref = context.getReferenceContext().getBase();
 
         ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getAlignmentContext(useZeroQualityReads()));
-        Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
+        Pair<Integer, Integer> counts = getRatioCounts(ref, pileup, variant);
 
         boolean highGenotypeConfidence = variant.getConsensusConfidence() > minGenotypeConfidenceToTest;
         boolean excludable = !excludeHetsOnly() || GenotypeUtils.isHet((AllelicVariant)variant);
@@ -68,10 +68,10 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
 
     // TODO - this whole calculation needs to be redone correctly
     private boolean pointEstimateExclude(Pair<Integer, Integer> counts) {
-        if ( counts.first + counts.second < minDepthOfCoverage )
+        int n = counts.first + counts.second;
+        if ( n < minDepthOfCoverage )
             return false;
 
-        int n = counts.first + counts.second;
         double ratio = counts.first.doubleValue() / (double)n;
         return !passesThreshold(ratio);
     }

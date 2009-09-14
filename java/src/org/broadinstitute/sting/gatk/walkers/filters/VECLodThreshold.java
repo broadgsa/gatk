@@ -36,6 +36,6 @@ public class VECLodThreshold implements VariantExclusionCriterion {
     }
 
     public String getVCFFilterString() {
-        return "LOD" + lod;
+        return "LOD";
     }
 }

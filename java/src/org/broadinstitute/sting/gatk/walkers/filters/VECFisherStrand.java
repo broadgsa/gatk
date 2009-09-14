@@ -48,7 +48,7 @@ public class VECFisherStrand implements VariantExclusionCriterion {
     }
 
     public String getVCFFilterString() {
-        return "strand" + pValue;
+        return "strand";
     }
 
     public boolean useZeroQualityReads() { return false; }
