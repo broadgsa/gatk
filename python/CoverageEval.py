@@ -46,7 +46,9 @@ class call_stats:
         self.correct_genotype = 0
         self.correct_refvar = 0
 
+
     def add_stat(self, calls, conf_ref_calls, conf_het_calls, conf_hom_calls, conf_var_calls, conf_genotype_calls, conf_refvar_calls, correct_genotype, correct_refvar):
+        #print self, calls, conf_ref_calls, conf_het_calls, conf_hom_calls, conf_var_calls, conf_genotype_calls, conf_refvar_calls, correct_genotype, correct_refvar
         self.calls += calls
         self.conf_ref_calls += conf_ref_calls
         self.conf_het_calls += conf_het_calls
@@ -64,7 +66,7 @@ class call_stats:
         calls = 0
         for record in chunk:
             calls += 1
-            if abs(float(record["BtrLod"])) >= 5:
+            if float(record["BtrLod"]) >= 5 or call_type.from_record_2_state(record["ReferenceBase"][0],record["BestGenotype"]) == call_type.call_types_2_state.Reference and float(record["BtnbLod"]) >= 5:
                 conf_calls += 1
                 if call_type.discovery_call_correct(record):
                     correct_genotype += 1
@@ -78,7 +80,7 @@ class call_stats:
         calls = 0
         for record in chunk:
             calls += 1
-            if abs(float(record["BtnbLod"])) >= 5:
+            if float(record["BtnbLod"]) >= 5:
                 conf_calls += 1
                 if call_type.genotyping_call_correct(record):
                     correct_genotype += 1
@@ -205,22 +207,28 @@ class weighted_avg:
     def return_avg(self):
         return float(self.sum) / max(self.count,1)
 
-def stats_from_hist(depth_hist_filename, stats_filename, variant_eval_dir, depth_multiplier=1.0):
+def stats_from_hist(options, depth_hist_filename, stats_filename, variant_eval_dir, depth_multiplier=1.0):
 
     #hist_zero = {"CallType" : ,"Coverage","AccuracyConfidentCalls","ConfidentCallRate","CumCorrectCalls","CumCalls","CumgCorrectFraction"}
     #prob_genotype = [1e-5, 1e-3, 1-1e-3]
     #prob_genotype = [0.37, 0.62, .0]
     #prob_genotype = [0.203, 0.304, .491]
     #prob_genotype = [0.216, 0.302, .481]
-    #prob_genotype = [0.205, 0.306, 0.491] # Based on CEU NA12878 actual hapmap chip calls
-    prob_genotype = [0.213, 0.313, 0.474] # Based on YRB NA19240 actual hapmap chip calls
-
+    prob_genotype = [0.205, 0.306, 0.491] # Based on CEU NA12878 actual hapmap chip calls
+    #prob_genotype = [0.213, 0.313, 0.474] # Based on YRB NA19240 actual hapmap chip calls
+    theta = 1.0/1850 # expected heterozygosity
+    prob_genotype = [0.5 * theta, 1.0 * theta, 1 - 1.5*theta] # Based on CEU NA12878 actual hapmap chip calls
+    
+    
     hist = []
     hist_gen = FlatFileTable.record_generator(depth_hist_filename, sep=" ", skip_n_lines=3)
     for index, record in enumerate(hist_gen):
         assert int(record["depth"]) == index
         hist.append(int(record["count"]))
     
+    # If upsampling is not done in the CoverageEval GATK module, the number of observations of reads 
+    # with high depth of coverage can be very low giving 
+        
     stats_dict = dict()
     stats_gen = FlatFileTable.record_generator(stats_filename, sep=",")
     for record in stats_gen:
@@ -229,6 +237,12 @@ def stats_from_hist(depth_hist_filename, stats_filename, variant_eval_dir, depth
         #print key2
         stats_dict.setdefault(key1, dict()) # create a nested dict if it doesn't exist
         stats_dict[key1][key2] = record # create an entry for these keys
+
+        #highest_homref_calls = 0
+        #if record["TrueGenotype"] == "HomozygousReference":
+        #    calls = int(record["Calls"])
+        #    if calls > highest_homref_calls:
+        #        highest_homref_calls = calls
         
     acc = dict()
     call_rate = dict()
@@ -236,10 +250,13 @@ def stats_from_hist(depth_hist_filename, stats_filename, variant_eval_dir, depth
     
     start = 1
     end = 1000
+    max_usable_depth = 40 # Depth of coverage beyond which stats are not sampled enough and we take the stat at this depth instead
     for depth, depth_count in enumerate(hist[start:end+1],start): # For Cd = depth count
         #print "DEPTH: "+str(depth)
         try:
             depth = max(int(float(depth*depth_multiplier)),1)
+            if depth > max_usable_depth: # Ensure that high entries with bad stats use a good stat from a depth that we now is well sampled
+                depth = max_usable_depth
             depth_entries = stats_dict[depth]
         except KeyError:
             print "Stopped on depth",depth
@@ -267,12 +284,16 @@ def stats_from_hist(depth_hist_filename, stats_filename, variant_eval_dir, depth
     print "\nExpected performance given perfect accuracy and call rate:"
     print "%19s        %7s %7s %7s" % ("", "Actual", "Perfect", "Diff.")
     total_hist_sites = numpy.sum(hist)
+    total_predicted = 0
     for genotype in call_type.call_types_3_state:
         predicted = conf_calls[genotype]
+        total_predicted += predicted
         perfect = prob_genotype[genotype.index]*total_hist_sites
         diff = perfect - predicted
-        print "%19s calls: %7d %7d %7d" % (genotype, predicted, perfect, diff)
-
+        print "%19s calls: %7.0f %7.0f %7.0f" % (genotype, predicted, perfect, diff)
+        #repl_string += "%s %.0f\n" % (genotype, predicted)
+    print "              Total calls: %7d" % total_predicted
+    
     #stats_gen = FlatFileTable.record_generator(stats_filename, sep=",")
     #for chunk in chunk_generator(stats_gen, key_fields=("True_Genotype")):
     
@@ -281,7 +302,19 @@ def stats_from_hist(depth_hist_filename, stats_filename, variant_eval_dir, depth
     # STEM AND LEAF PLOT
     
     # If VariantEval directory given, compare with those results
-    
+    if options.variant_eval_file != None:
+        vareval_file = open(options.variant_eval_file)
+        num_hets = None; num_homs = None
+        for line in vareval_file:
+            if "UNKNOWN_CALLED_VAR_HET_NO_SITES" in line: num_hets = line.rstrip().split()[2]
+            if "UNKNOWN_CALLED_VAR_HOM_NO_SITES" in line: num_homs = line.rstrip().split()[2]
+            
+    if options.oneline_stats != None:
+        oneline_stats = open(options.oneline_stats, "w")
+        pred_hom = conf_calls[call_type.call_types_3_state[0]]
+        pred_het = conf_calls[call_type.call_types_3_state[1]]
+        print >>oneline_stats, "%s %.0f %s %.0f %s" % (options.oneline_stats, pred_hom, num_homs, pred_het, num_hets)  
+
 def usage(parser):
     parser.print_usage()
     sys.exit()
@@ -297,8 +330,9 @@ if __name__ == "__main__":
     parser.add_option("-e", "--evaluate", help="evaluate genotypes; requires a stats file and a histogram file", default=False, dest="evaluate_genotypes", action="store_true")
     parser.add_option("-d", "--debug", help="provide debugging output", default=False, dest="debug", action="store_true")
     parser.add_option("-p", "--depth_multiplier", help="multiply all depths in histogram by this value; for \"downsampling\" depth", default=1.0, dest="depth_multiplier", type=float)
-    parser.add_option("-v", "--variant_eval_dir", help="directory with output of VariantEval to compare this prediction to", default=None, dest="variant_eval_dir")
- 
+    parser.add_option("-v", "--variant_eval_file", help="file with output of VariantEval genotype concordance to compare this prediction to", default=None, dest="variant_eval_file")
+    parser.add_option("-o", "--oneline_stats_file", help="output single, tabular line of stats to this file", default=None, dest="oneline_stats")
+    
     (options, args) = parser.parse_args()
 
     if not options.evaluate_genotypes:
@@ -316,7 +350,7 @@ if __name__ == "__main__":
             sys.exit("Must provide -g histogram filename option")
         if options.stats_filename == None:
             sys.exit("Must provide -s stats fliname option")
-        stats_from_hist(options.hist_filename, options.stats_filename, options.variant_eval_dir, options.depth_multiplier)
-
+        stats_from_hist(options, options.hist_filename, options.stats_filename, options.variant_eval_file, options.depth_multiplier)
+        
 
 
