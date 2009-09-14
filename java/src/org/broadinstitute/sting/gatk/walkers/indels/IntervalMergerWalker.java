@@ -33,7 +33,6 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.*;
-import java.io.*;
 
 
 /**
@@ -52,42 +51,46 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
     int maxIntervalSize = 500;
 
     private LinkedList<GenomeLoc> intervals;
-    private GenomeLoc firstInterval = null;
+    private GenomeLoc currentInterval = null;
+    private boolean currentIntervalIsUsed = false;
 
     @Override
     public void initialize() {
         intervals = parseIntervals(intervalsSource);
-        firstInterval = intervals.removeFirst();
+        currentInterval = intervals.removeFirst();
     }
 
     @Override
     public Integer map(char[] ref, SAMRecord read) {
-        if ( firstInterval == null ||
+        if ( currentInterval == null ||
              (!allow454 && Utils.is454Read(read)) )
             return 0;
 
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(read);
 
-        // emit all intervals which we've passed
-        while ( loc.isPast(firstInterval) ) {
-            if ( firstInterval.getStop() - firstInterval.getStart() < maxIntervalSize)
-                out.println(firstInterval);
+        // ignore all intervals which we've passed
+        while ( loc.isPast(currentInterval) ) {
+            if ( currentIntervalIsUsed && currentInterval.getStop() - currentInterval.getStart() < maxIntervalSize) {
+                out.println(currentInterval);
+                currentIntervalIsUsed = false;
+            }
             if ( intervals.size() > 0 ) {
-                firstInterval = intervals.removeFirst();
+                currentInterval = intervals.removeFirst();
             } else {
-                firstInterval = null;
+                currentInterval = null;
                 return 0;
             }
         }
 
-        // if we're not yet in the first interval, we're done
-        if ( !loc.overlapsP(firstInterval))
+        // if we're not yet in the current interval, we're done
+        if ( !loc.overlapsP(currentInterval))
             return 0;
 
-        // at this point, we're in the first interval.
+        // at this point, we're in the current interval.
         // now we can merge any other intervals which we overlap
+        currentIntervalIsUsed = true;
         while ( intervals.size() > 0 && loc.overlapsP(intervals.getFirst()) )
-            firstInterval = GenomeLocParser.setStop(firstInterval,intervals.removeFirst().getStop());
+            currentInterval = GenomeLocParser.setStop(currentInterval, intervals.removeFirst().getStop());
 
         return 1;
     }
@@ -102,9 +105,9 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
 
     @Override
     public void onTraversalDone( Integer value ) {
-        if ( firstInterval != null &&
-             firstInterval.getStop() - firstInterval.getStart() < maxIntervalSize)
-            out.println(firstInterval);
+        if ( currentInterval != null && currentIntervalIsUsed &&
+             currentInterval.getStop() - currentInterval.getStart() < maxIntervalSize)
+            out.println(currentInterval);
     }
 
     /**
