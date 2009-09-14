@@ -1,27 +1,30 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.Utils;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The Broad Institute
  * SOFTWARE COPYRIGHT NOTICE AGREEMENT
  * This software and its documentation are copyright 2009 by the
  * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
- *
+ * <p/>
  * This software is supplied without any warranty or guaranteed support whatsoever. Neither
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
- *
  */
 public class CallableBasesAnalysis extends BasicVariantAnalysis implements GenotypeAnalysis {
     long all_bases = 0;
     long all_calls = 0;
     //final static double[] Qthresholds = { 10, 20, 30, 40, 50, 100, 200, 500, 1000 };
-    final static double[] thresholds = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 50, 100 };
+    final static double[] thresholds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 50, 100};
     long[] discoverable_bases = new long[thresholds.length];
     long[] genotypable_bases = new long[thresholds.length];
 
@@ -29,36 +32,54 @@ public class CallableBasesAnalysis extends BasicVariantAnalysis implements Genot
         super("callable_bases");
     }
 
-    public long nSites()                    { return all_bases; }
-    public long nCalls()                    { return all_calls; }
-    public long nDiscoverable(int index)    { return discoverable_bases[index]; }
-    public double percentDiscoverable(int index)     { return (100.0*nDiscoverable(index)) / nSites(); }
-    public long nGenotypable(int index)     { return genotypable_bases[index]; }
-    public double percentGenotypable(int index)     { return (100.0*nGenotypable(index)) / nSites(); }
+    public long nSites() {
+        return all_bases;
+    }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
+    public long nCalls() {
+        return all_calls;
+    }
+
+    public long nDiscoverable(int index) {
+        return discoverable_bases[index];
+    }
+
+    public double percentDiscoverable(int index) {
+        return (100.0 * nDiscoverable(index)) / nSites();
+    }
+
+    public long nGenotypable(int index) {
+        return genotypable_bases[index];
+    }
+
+    public double percentGenotypable(int index) {
+        return (100.0 * nGenotypable(index)) / nSites();
+    }
+
+    public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         all_bases++;
 
-        if ( eval == null )                     // no data here!
+        if (eval == null)                     // no data here!
             return null;
 
         // we actually have a record here
-        if ( ! eval.isGenotype() ) {            // evaluation record isn't a genotype, die!
+        if (!(eval instanceof VariantBackedByGenotype)) {            // evaluation record isn't a genotype, die!
             throw new RuntimeException("Evaluation track isn't an Genotype!");
         }
 
         all_calls++;
         // For every threshold, updated discoverable and callable
-        for ( int i = 0; i < thresholds.length; i++ ) {
+        for (int i = 0; i < thresholds.length; i++) {
             double threshold = thresholds[i];
-
+            DiploidGenotype g = DiploidGenotype.valueOf(Utils.dupString(ref, 2));
+            Genotype genotype = ((VariantBackedByGenotype) eval).getGenotype(g);
             // update discoverable
-            if ( eval.isSNP() && eval.getVariationConfidence() >= threshold )
+            if (eval.isSNP() && eval.getNegLog10PError() >= threshold)
                 discoverable_bases[i]++;
-            if ( eval.isReference() && eval.getConsensusConfidence() >= threshold )
+            if (!eval.isSNP() && genotype.getNegLog10PError() >= threshold)
                 discoverable_bases[i]++;
 
-            if ( eval.getConsensusConfidence() >= threshold )
+            if (genotype.getNegLog10PError() >= threshold)
                 genotypable_bases[i]++;
 
             //System.out.printf("Updating %s SNP=%b, REF=%b VarConf=%f ConConf=%f where threshold=%f: discoverable = %d, genotypable = %d%n",
@@ -76,7 +97,7 @@ public class CallableBasesAnalysis extends BasicVariantAnalysis implements Genot
         s.add(String.format(""));
         s.add(String.format("confidence_threshold\tdiscoverable_bases\tdiscoverable_bases_percent\tgenotypable_bases\tgenotypable_bases_percent"));
 
-        for ( int i = 0; i < thresholds.length; i++ ) {
+        for (int i = 0; i < thresholds.length; i++) {
             double threshold = thresholds[i];
             s.add(String.format("%6.2f\t%d\t%.6f\t%d\t%.6f", threshold, nDiscoverable(i), percentDiscoverable(i), nGenotypable(i), percentGenotypable(i)));
         }

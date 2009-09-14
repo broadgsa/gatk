@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -23,7 +23,7 @@ public interface VariantAnalysis {
     public PrintStream getCallPrintStream();
     public List<String> getParams();
     public void initialize(VariantEvalWalker master, PrintStream out, PrintStream callOut, String filename);
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context);
+    public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context);
     public void finalize(long nSites);
     public List<String> done();
 }

@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RodGeliText;
+import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.utils.*;
 import org.apache.log4j.Logger;
 
@@ -50,7 +51,7 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
         Pair<Integer, Integer> counts = scoreVariant(ref, pileup, variant);
 
         boolean highGenotypeConfidence = variant.getConsensusConfidence() > minGenotypeConfidenceToTest;
-        boolean excludable = !excludeHetsOnly() || GenotypeUtils.isHet(variant);
+        boolean excludable = !excludeHetsOnly() || GenotypeUtils.isHet((AllelicVariant)variant);
         exclude = excludable && highGenotypeConfidence && pointEstimateExclude(counts);
         //
         // for printing only

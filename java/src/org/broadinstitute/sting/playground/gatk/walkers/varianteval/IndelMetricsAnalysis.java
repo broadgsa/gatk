@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The Broad Institute
@@ -29,19 +29,19 @@ public class IndelMetricsAnalysis extends BasicVariantAnalysis implements Genoty
             sizes[0][i] = sizes[1][i] = 0;
     }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
-        if ( eval != null && eval.isIndel() ) {
+    public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
+        if ( eval != null && eval.isInsertion() ) {
             if ( eval.isInsertion() )
                 insertions++;
             else if ( eval.isDeletion() )
                 deletions++;
             else
-                throw new RuntimeException("Variant is indel, but isn't insertion or deletion!");
+                throw new RuntimeException("Variation is indel, but isn't insertion or deletion!");
 
-            if ( eval.length() < 100 ) {
-                sizes[eval.isDeletion() ? 0 : 1][eval.length()]++;
-                if ( eval.length() > maxSize )
-                    maxSize = eval.length();
+            if ( eval.getAlternateBases().length() < 100 ) {
+                sizes[eval.isDeletion() ? 0 : 1][eval.getAlternateBases().length()]++;
+                if ( eval.getAlternateBases().length() > maxSize )
+                    maxSize = eval.getAlternateBases().length();
             }
         }
 

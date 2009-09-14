@@ -1,9 +1,10 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,10 +14,9 @@ import java.util.List;
  * SOFTWARE COPYRIGHT NOTICE AGREEMENT
  * This software and its documentation are copyright 2009 by the
  * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
- *
+ * <p/>
  * This software is supplied without any warranty or guaranteed support whatsoever. Neither
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
- *
  */
 public class TransitionTranversionAnalysis extends BasicVariantAnalysis implements GenotypeAnalysis, PopulationAnalysis {
     long nTransitions = 0, nTransversions = 0;
@@ -25,13 +25,18 @@ public class TransitionTranversionAnalysis extends BasicVariantAnalysis implemen
         super("transitions_transversions");
     }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
-        if ( eval != null && eval.isSNP() ) {
-            char refBase = eval.getRefSnpFWD();
-            char altBase = eval.getAltSnpFWD();
+    public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
+        if (eval != null && eval.isSNP()) {
+            if (eval.getAlternateBases().length() != 2) {
+                throw new StingException("TransitionTranversionAnalysis works only with biallelic variants");
+            }
+
+
+            char refBase = eval.getReference();
+            char altBase = (eval.getAlternateBases().charAt(0) == refBase) ? eval.getAlternateBases().charAt(1) : eval.getAlternateBases().charAt(0);
 
             BaseUtils.BaseSubstitutionType subType = BaseUtils.SNPSubstitutionType(refBase, altBase);
-            if ( subType == BaseUtils.BaseSubstitutionType.TRANSITION )
+            if (subType == BaseUtils.BaseSubstitutionType.TRANSITION)
                 nTransitions++;
             else
                 nTransversions++;

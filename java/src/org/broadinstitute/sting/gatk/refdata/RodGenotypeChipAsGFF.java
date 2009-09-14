@@ -3,7 +3,9 @@ package org.broadinstitute.sting.gatk.refdata;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
-
+import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 import java.util.*;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
@@ -16,7 +18,7 @@ import java.util.regex.Pattern;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements AllelicVariant {
+public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements AllelicVariant, Variation, VariantBackedByGenotype {
     private String contig, source, feature, strand, frame;
     private long start, stop;
     private double score;
@@ -72,6 +74,26 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
 
     public GenomeLoc getLocation() {
         return GenomeLocParser.parseGenomeLoc(contig, start, stop);
+    }
+
+    /**
+     * get the reference base(s) at this position
+     *
+     * @return the reference base or bases, as a string
+     */
+    @Override
+    public char getReference() {
+        return 'N';
+    }
+
+    /**
+     * get the -1 * (log 10 of the error value)
+     *
+     * @return the log based error estimate
+     */
+    @Override
+    public double getNegLog10PError() {
+        return 4; // 1/10000 error
     }
 
     public String getAttribute(final String key) {
@@ -158,10 +180,49 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
     public String getAltBasesFWD() { return null; }
     public char getAltSnpFWD() throws IllegalStateException { return 0; }
     public boolean isReference() { return ! isSNP(); }
+
+    /**
+     * gets the alternate bases.  If this is homref, throws an UnsupportedOperationException
+     *
+     * @return
+     */
+    @Override
+    public String getAlternateBases() {
+        return this.feature;
+    }
+
+    /**
+     * get the frequency of this variant
+     *
+     * @return VariantFrequency with the stored frequency
+     */
+    @Override
+    public double getNonRefAlleleFrequency() {
+        return this.getMAF();
+    }
+
+    /** @return the VARIANT_TYPE of the current variant */
+    @Override
+    public VARIANT_TYPE getType() {
+        return VARIANT_TYPE.SNP;
+    }
+
     public boolean isSNP() { return false; }
     public boolean isInsertion() { return false; }
     public boolean isDeletion() { return false; }
     public boolean isIndel() { return false; }
+
+    /**
+     * gets the alternate base is the case of a SNP.  Throws an IllegalStateException in the case
+     * of
+     *
+     * @return a char, representing the alternate base
+     */
+    @Override
+    public char getAlternativeBaseForSNP() {
+        return this.getAltSnpFWD();
+    }
+
     public double getMAF() { return 0; }
     public double getHeterozygosity() { return 0; }
     public boolean isGenotype() { return true; }
@@ -175,4 +236,15 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
     public int getPloidy() throws IllegalStateException { return 2; }
     public boolean isBiallelic() { return true; }
     public int length() { return 1; }
+
+    /**
+     * get the likelihoods
+     *
+     * @return an array in lexigraphical order of the likelihoods
+     */
+    @Override
+    public Genotype getGenotype(DiploidGenotype x) {
+        if (!x.toString().equals(this.getAltBasesFWD())) throw new IllegalStateException("Unable to retrieve genotype");
+        return new BasicGenotype(this.getLocation(),this.feature,this.getRefSnpFWD(),this.getConsensusConfidence());
+    }
 }

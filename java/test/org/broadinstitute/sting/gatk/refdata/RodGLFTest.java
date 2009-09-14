@@ -8,14 +8,12 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -60,38 +58,7 @@ public class RodGLFTest extends BaseTest {
         assertEquals(finalRecordCount, counter);
     }
 
-    /** make sure we're returning true to biallelic */
-    @Test
-    public void testIsBiallelic() {
-        RodGLF glf = iter.next();
-        Assert.assertFalse(iter.isBiallelic());
-    }
 
-    // best vs next-best
-    @Test
-    public void testGetConsensusConfidence() {
-        RodGLF glf = iter.next();
-        assertEquals(120.0, iter.getConsensusConfidence(), 0.005);
-        glf = iter.next();
-        assertEquals(120.0, iter.getConsensusConfidence(), 0.005);
-    }
-
-    // best vs. ref
-    @Test
-    public void testGetVariationConfidence() {
-        RodGLF glf = iter.next();
-        assertEquals(0.0, iter.getVariationConfidence(), 0.005);
-        glf = iter.next();
-        assertEquals(250.0, iter.getVariationConfidence(), 0.005);
-    }
-
-
-    @Test
-    public void testGetGenotype() {
-        RodGLF glf = iter.next();
-        List<String> str = iter.getGenotype();
-        Assert.assertTrue(str.get(0).equals("AA"));
-    }
 
     @Test
     public void testIsSNP() {
@@ -112,7 +79,7 @@ public class RodGLFTest extends BaseTest {
         glf = iter.next();
         Assert.assertFalse(iter.isReference());
     }
-
+    /*
     @Test(expected = IllegalStateException.class)
     public void testGetAltSnpFWDIllegalException() {
         RodGLF glf = iter.next();
@@ -159,7 +126,7 @@ public class RodGLFTest extends BaseTest {
     /**
      * move to the second and third bases, and check that the
      * alternate bases are correct.
-     */
+     *
     @Test
     public void testGetAltBasesFWD() {
         RodGLF glf = iter.next();
@@ -169,7 +136,7 @@ public class RodGLFTest extends BaseTest {
         Assert.assertTrue("CT".equals(iter.getAltBasesFWD()));
 
     }
-
+*/
     @Test
     public void testRodLocations() {
         GenomeLoc loc = null;
@@ -177,7 +144,7 @@ public class RodGLFTest extends BaseTest {
             RodGLF glf = iter.next();
             if (loc != null) {
                 if (iter.getLocation().isBefore(loc)) {
-                    fail("locations in the GLF came out of order loc = " + loc.toString() + " new loc = " + iter.getLocation().toString());
+                    Assert.fail("locations in the GLF came out of order loc = " + loc.toString() + " new loc = " + iter.getLocation().toString());
                 }
             }
             loc = iter.getLocation();

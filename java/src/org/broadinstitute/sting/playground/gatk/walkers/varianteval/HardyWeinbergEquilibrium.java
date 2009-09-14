@@ -1,16 +1,15 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
+import cern.jet.math.Arithmetic;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SNPCallFromGenotypes;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.genotype.HardyWeinbergCalculation;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import cern.jet.math.Arithmetic;
 
 /**
  * The Broad Institute
@@ -32,7 +31,7 @@ public class HardyWeinbergEquilibrium extends BasicVariantAnalysis implements Po
         this.threshold = threshold;
     }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
+    public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         String r = null;
 
         if ( eval != null &&

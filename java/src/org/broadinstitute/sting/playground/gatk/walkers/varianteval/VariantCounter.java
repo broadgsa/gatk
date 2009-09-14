@@ -1,12 +1,13 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.utils.GenotypeUtils;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The Broad Institute
@@ -27,10 +28,10 @@ public class VariantCounter extends BasicVariantAnalysis implements GenotypeAnal
         super("variant_counts");
     }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
+    public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         nSNPs += eval == null ? 0 : 1;
 
-        if ( this.getMaster().evalContainsGenotypes && eval != null && eval.isSNP() && GenotypeUtils.isHet(eval) )
+        if ( this.getMaster().evalContainsGenotypes && eval != null && eval.isSNP() && ((VariantBackedByGenotype)eval).getGenotype( DiploidGenotype.valueOf(eval.getAlternateBases())).isHet() )
             nHets++;
 
         return null;

@@ -1,21 +1,20 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The Broad Institute
  * SOFTWARE COPYRIGHT NOTICE AGREEMENT
  * This software and its documentation are copyright 2009 by the
  * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
- *
+ * <p/>
  * This software is supplied without any warranty or guaranteed support whatsoever. Neither
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
- *
  */
 public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeAnalysis, PopulationAnalysis {
     private String dbName;
@@ -31,45 +30,81 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
         dbName = name;
     }
 
-    public void inc(AllelicVariant dbSNP, AllelicVariant eval) {
+    public void inc(Variation dbSNP, Variation eval) {
         boolean inDB = dbSNP != null;
         boolean inEval = eval != null;
 
-        if (inDB ) {
-            if ( dbSNP.isSNP() ) nDBSNPs++;
-            if ( dbSNP.isIndel() ) nDBIndels++;
-
-            //System.out.printf("snp=%b ins=%b del=%b indel=%b %s%n", dbSNP.isSNP(), dbSNP.isInsertion(), dbSNP.isDeletion(), dbSNP.isIndel(), dbSNP);
+        if (inDB) {
+            if (dbSNP.isSNP()) nDBSNPs++;
+            if (dbSNP.isIndel()) nDBIndels++;
         }
 
         if (inEval) nEvalObs++;
         if (inDB && inEval) {
-            if ( dbSNP.isSNP() ) { // changes the calculation a bit
+            if (dbSNP.isSNP()) { // changes the calculation a bit
                 nOverlapping++;
 
-                if ( ! discordantP(dbSNP, eval) )
+                if (!discordantP(dbSNP, eval))
                     nConcordant++;
             }
 
-            if ( dbSNP.isIndel() && eval.isSNP() )
+            if (dbSNP.isIndel() && eval.isSNP())
                 nSNPsCalledAtIndels++;
         }
     }
 
-    public int nDBSNPs()            { return nDBSNPs; }
-    public int nDBIndels()          { return nDBIndels; }
-    public int nEvalSites()         { return nEvalObs; }
-    public int nOverlappingSites()  { return nOverlapping; }
-    public int nConcordant()        { return nConcordant; }
-    public int nNovelSites()        { return Math.abs(nEvalSites() - nOverlappingSites()); }
-    public int nSNPsAtIndels()      { return nSNPsCalledAtIndels; }
+    public int callCount = 0;
 
-    public boolean discordantP(AllelicVariant dbSNP, AllelicVariant eval) {
-        if (dbSNP != null && dbSNP.isSNP() && eval != null ) {
-            return ! (dbSNP.getAltSnpFWD() == eval.getAltSnpFWD() || dbSNP.getRefSnpFWD() == eval.getAltSnpFWD());
-        } else {
-            return false;
+    public int nDBSNPs() {
+        return nDBSNPs;
+    }
+
+    public int nDBIndels() {
+        return nDBIndels;
+    }
+
+    public int nEvalSites() {
+        return nEvalObs;
+    }
+
+    public int nOverlappingSites() {
+        return nOverlapping;
+    }
+
+    public int nConcordant() {
+        return nConcordant;
+    }
+
+    public int nNovelSites() {
+        return Math.abs(nEvalSites() - nOverlappingSites());
+    }
+
+    public int nSNPsAtIndels() {
+        return nSNPsCalledAtIndels;
+    }
+    public static int count = 0;
+    public boolean discordantP(Variation dbSNP, Variation eval) {
+        if (eval != null) {
+            char alt = (eval.isSNP()) ? eval.getAlternativeBaseForSNP() : eval.getReference();
+
+            if (dbSNP != null && dbSNP.isSNP()) {
+
+                boolean val = !dbSNP.getAlternateBases().contains(String.valueOf(alt));
+
+                if (val) {
+                    //System.err.print(eval.getLocation());
+                    //System.err.print(" eval.alt = " + alt);
+                    //System.err.println(" dbsnp.bases = " + dbSNP.getAlternateBases());
+                    //System.err.println(val);
+
+                    //System.err.println(count);
+                }
+                 //else System.err.println("not count == " + count++);
+
+                return val; 
+            }
         }
+        return false;
     }
 
 
@@ -86,17 +121,19 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
         return nConcordant() / (1.0 * nOverlappingSites());
     }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
+    public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
+
         // There are four cases here:
-        AllelicVariant dbsnp = (AllelicVariant)tracker.lookup(dbName, null);
+        Variation dbsnp = (Variation) tracker.lookup(dbName, null);
         boolean isSNP = dbsnp != null && dbsnp.isSNP();
         inc(dbsnp, eval);
 
-        if ( dbsnp != null && eval != null ) {
-            if ( dbsnp.isSNP() && eval.isSNP() && discordantP(dbsnp, eval) ) {
+        if (dbsnp != null && eval != null) {
+
+            if (dbsnp.isSNP() && eval.isSNP() && discordantP(dbsnp, eval)) {
                 return String.format("Discordant [DBSNP %s] [EVAL %s]", dbsnp, eval);
-            } else if ( dbsnp.isIndel() && eval.isSNP() ) {
-                return String.format("SNP-at-indel DBSNP=%s %s", dbsnp.getGenotype().get(0), eval);
+            } else if (dbsnp.isIndel() && eval.isSNP()) {
+                return String.format("SNP-at-indel DBSNP=%s %s", dbsnp.getAlternateBases(), eval);
             } else {
                 return null;
                 // return "Novel      " + eval;
@@ -128,10 +165,10 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
         s.add(String.format("n_concordant             %d", nConcordant()));
         s.add(String.format("n_novel_sites            %d", nNovelSites()));
 
-        s.add(String.format("percent_eval_sites_in_db %.2f", 100*fractionEvalSitesCoveredByDB()));
-        s.add(String.format("concordance_rate         %.2f", 100*concordanceRate()));
+        s.add(String.format("percent_eval_sites_in_db %.2f", 100 * fractionEvalSitesCoveredByDB()));
+        s.add(String.format("concordance_rate         %.2f", 100 * concordanceRate()));
 
-        s.add(String.format("percent_db_sites_in_eval %.2f", 100*fractionDBSitesDiscoveredInEval()));
+        s.add(String.format("percent_db_sites_in_eval %.2f", 100 * fractionDBSitesDiscoveredInEval()));
 
         s.add(String.format("n_snp_calls_at_indels    %d", nSNPsAtIndels()));
         s.add(String.format("percent_calls_at_indels  %.2f", nSNPsAtIndels() / (0.01 * nEvalSites())));

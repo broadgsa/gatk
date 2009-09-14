@@ -1,0 +1,143 @@
+package org.broadinstitute.sting.utils.genotype;
+
+import org.broadinstitute.sting.utils.GenomeLoc;
+
+
+/**
+ * 
+ * @author aaron 
+ * 
+ * Class BasicGenotype
+ *
+ * represents a basic genotype object
+ */
+public class BasicGenotype implements Genotype {
+    // the genotype string
+    private String mGenotype;
+    private GenomeLoc mLocation;
+    private char mRef;
+    private double mNetLog10PError;
+
+    /**
+     * create a basic genotype
+     * @param genotype
+     */
+    public BasicGenotype(GenomeLoc location, String genotype, char ref, double netLog10PError) {
+        mNetLog10PError = netLog10PError;
+        mGenotype = genotype;
+        mLocation = location;
+        mRef = ref;
+    }
+
+    /**
+     * get the -1 * (log 10 of the error value)
+     *
+     * @return the log based error estimate
+     */
+    @Override
+    public double getNegLog10PError() {
+        return mNetLog10PError;
+    }
+
+    /**
+     * get the bases that represent this
+     *
+     * @return the bases, as a string
+     */
+    @Override
+    public String getBases() {
+        return mGenotype;
+    }
+
+    /**
+     * get the ploidy
+     *
+     * @return the ploidy value
+     */
+    @Override
+    public int getPloidy() {
+        return mGenotype.length();
+    }
+
+    /**
+     * Returns true if both observed alleles are the same (regardless of whether they are ref or alt)
+     *
+     * @return true if we're homozygous, false otherwise
+     */
+    @Override
+    public boolean isHom() {
+        if (mGenotype.length() < 1)
+            return false;
+
+        char base = mGenotype.charAt(0);
+        for (char cur : mGenotype.toCharArray()) {
+            if (base != cur) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Returns true if observed alleles differ (regardless of whether they are ref or alt)
+     *
+     * @return true if we're het, false otherwise
+     */
+    @Override
+    public boolean isHet() {
+        return !isHom();
+    }
+
+    /**
+     * get the genotype's location
+     *
+     * @return a GenomeLoc representing the location
+     */
+    @Override
+    public GenomeLoc getLocation() {
+        return mLocation;
+    }
+
+    /**
+     * returns true if the genotype is a point genotype, false if it's a indel / deletion
+     *
+     * @return true is a SNP
+     */
+    @Override
+    public boolean isPointGenotype() {
+        return true;
+    }
+
+    /**
+     * given the reference, are we a variant? (non-ref)
+     *
+     * @param ref the reference base or bases
+     *
+     * @return true if we're a variant
+     */
+    @Override
+    public boolean isVariant(char ref) {
+        return !(mGenotype.charAt(0) == ref && isHom());
+    }
+
+    /**
+     * get the reference base.
+     *
+     * @return a character, representing the reference base
+     */
+    @Override
+    public char getReference() {
+        return mRef;
+    }
+
+    /**
+     * return this genotype as a variant
+     *
+     * @return the variant
+     */
+    @Override
+    public Variation toVariation() {
+        if (!isVariant(this.mRef)) throw new IllegalStateException("this genotype is not a variant");
+        return new BasicVariation(this.getBases(),mRef,this.getBases().length(),mLocation,mNetLog10PError);
+    }
+}

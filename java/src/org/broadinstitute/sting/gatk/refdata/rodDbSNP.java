@@ -1,10 +1,12 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import net.sf.picard.util.SequenceUtil;
-
-import java.util.*;
-
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Example format:
@@ -16,7 +18,7 @@ import org.broadinstitute.sting.utils.*;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVariant {
+public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, VariantBackedByGenotype, AllelicVariant {
     public GenomeLoc loc;       // genome location of SNP
                                 // Reference sequence chromosome or scaffold
                                 // Start and stop positions in chrom
@@ -59,6 +61,26 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
     //
     // ----------------------------------------------------------------------
     public GenomeLoc getLocation() { return loc; }
+
+    /**
+     * get the reference base(s) at this position
+     *
+     * @return the reference base or bases, as a string
+     */
+    @Override
+    public char getReference() {
+        return getRefSnpFWD();
+    }
+
+    /**
+     * get the -1 * (log 10 of the error value)
+     *
+     * @return the log based error estimate
+     */
+    @Override
+    public double getNegLog10PError() {
+        return 4; // -log10(0.0001)
+    }
 
     public boolean onFwdStrand() {
         return strand.equals("+");
@@ -108,10 +130,24 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
     }
 
     public String getAllelesFWDString() {
-        return Utils.join("/", getAllelesFWD());
+        return Utils.join("", getAllelesFWD());
     }
 
-    // ----------------------------------------------------------------------
+    /**
+     * get the frequency of this variant
+     *
+     * @return VariantFrequency with the stored frequency
+     */
+    @Override
+    public double getNonRefAlleleFrequency() {
+        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    /** @return the VARIANT_TYPE of the current variant */
+    @Override
+    public VARIANT_TYPE getType() {
+        return VARIANT_TYPE.SNP;
+    }// ----------------------------------------------------------------------
     //
     // What kind of variant are we?
     //
@@ -119,7 +155,34 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
     public boolean isSNP()              { return varType.contains("single"); }
     public boolean isInsertion()        { return varType.contains("insertion"); }
     public boolean isDeletion()         { return varType.contains("deletion"); }
+
+    /**
+     * get the base representation of this Variant
+     *
+     * @return a string, of ploidy
+     */
+    @Override
+    public String getAlternateBases() {
+        return getAllelesFWDString();
+    }
+
     public boolean isIndel()            { return isInsertion() || isDeletion() || varType.contains("in-del"); }
+
+    /**
+     * gets the alternate base is the case of a SNP.  Throws an IllegalStateException in the case
+     * of
+     *
+     * @return a char, representing the alternate base
+     */
+    @Override
+    public char getAlternativeBaseForSNP() {
+        return getAltSnpFWD(); /*
+        if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
+        if (getAlternateBases().charAt(0) == this.getReference())
+            return getAlternateBases().charAt(1);
+        return getAlternateBases().charAt(0); */
+    }
+
     public boolean isReference()        { return false; } // snp locations are never "reference", there's always a variant
 
     public boolean isHapmap() { return validationStatus.contains("by-hapmap"); }
@@ -147,7 +210,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
         if ( isIndel() ) s += ":Indel";
         if ( isHapmap() ) s += ":Hapmap";
         if ( is2Hit2Allele() ) s += ":2Hit";
-        return s;        
+        return s;
     }
 
     public String repl() {
@@ -213,7 +276,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
 	}
 
 	public double getMAF() {
-		// Fixme: update to actually get MAF 
+		// Fixme: update to actually get MAF
 		//return avHet;
         return -1;
 	}
@@ -244,4 +307,14 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements AllelicVaria
 
     public int length() { return (int)(loc.getStop() - loc.getStart() + 1); }
 
+    /**
+     * get the likelihoods
+     *
+     * @return an array in lexigraphical order of the likelihoods
+     */
+    @Override
+    public org.broadinstitute.sting.utils.genotype.Genotype getGenotype(DiploidGenotype x) {
+        if (x.toString().equals(this.getAltBasesFWD())) throw new IllegalStateException("Unable to retrieve genotype");
+        return new BasicGenotype(this.getLocation(),this.getAltBasesFWD(),this.getRefSnpFWD(),this.getConsensusConfidence());
+    }
 }

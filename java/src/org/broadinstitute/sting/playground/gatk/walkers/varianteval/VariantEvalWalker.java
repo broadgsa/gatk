@@ -2,14 +2,12 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.SNPCallFromGenotypes;
-import org.broadinstitute.sting.gatk.refdata.IntervalRod;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -28,8 +26,8 @@ import java.util.*;
  *
  */
 @By(DataSource.REFERENCE)
-@Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="eval",type=AllelicVariant.class)})
-@Allows(value={DataSource.REFERENCE},referenceMetaData = {@RMD(name="eval",type=AllelicVariant.class), @RMD(name="dbsnp",type=AllelicVariant.class),@RMD(name="hapmap-chip",type=AllelicVariant.class), @RMD(name="interval",type=IntervalRod.class)})
+@Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="eval",type=RodGeliText.class)}) // right now we have no base variant class for rods, this should change
+@Allows(value={DataSource.REFERENCE},referenceMetaData = {@RMD(name="eval",type=RodGeliText.class), @RMD(name="dbsnp",type=rodDbSNP.class),@RMD(name="hapmap-chip",type=RodGenotypeChipAsGFF.class), @RMD(name="interval",type=IntervalRod.class)})
 public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     @Argument(shortName="minConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
     public int minConfidenceScore = -1;
@@ -181,19 +179,18 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         nSites++;
-
         // Iterate over each analysis, and update it
-        AllelicVariant eval = (AllelicVariant)tracker.lookup("eval", null);
+        Variation eval = (Variation)tracker.lookup("eval", null);
 
         //if ( eval!=null ) System.out.printf("Eval: %f %d %b%n", eval.getVariationConfidence(), minDiscoveryQ, eval.getVariationConfidence() < minDiscoveryQ);
         if ( eval != null ) {
             // comment to disable variant filtering by confidence score
             if ( evalContainsGenotypes ) {
                 // Genotyping - use best vs. next best lod
-                if ( eval.getConsensusConfidence() < minConfidenceScore ) eval = null;
+                if ( eval.getNegLog10PError() < minConfidenceScore ) eval = null;
             } else {
-                // Variant discovery - use best vs. reference lod
-                if ( Math.abs(eval.getVariationConfidence()) < minConfidenceScore ) eval = null;
+                // Variation discovery - use best vs. reference lod
+                if ( Math.abs(eval.getNegLog10PError()) < minConfidenceScore ) eval = null;
             }
         }
 
@@ -202,7 +199,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 
         // update the known / novel set by checking whether the knownSNPDBName track has an entry here
         if ( eval != null ) {
-            AllelicVariant dbsnp = (AllelicVariant)tracker.lookup(knownSNPDBName, null);
+            Variation dbsnp = (Variation)tracker.lookup(knownSNPDBName, null);
             String noveltySet = dbsnp == null ? NOVEL_SNPS : KNOWN_SNPS;
             updateAnalysisSet(noveltySet, eval, tracker, ref.getBase(), context);
         }
@@ -219,7 +216,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     }
 
 
-    public void updateAnalysisSet(final String analysisSetName, AllelicVariant eval,
+    public void updateAnalysisSet(final String analysisSetName, Variation eval,
                                   RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         // Iterate over each analysis, and update it
         if ( getAnalysisSet(analysisSetName) != null ) {

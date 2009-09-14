@@ -20,7 +20,7 @@ public class GenotypeUtils {
 //		VariantType() {}
 	}
 
-	/** This method accepts rods that implement either Genotype or GenotypeList interface (all others will result in an exception). Variant 
+	/** This method accepts rods that implement either Genotype or GenotypeList interface (all others will result in an exception). Variant
 	 * (Genotype object) of the specified type (point mutation or indel) will be extracted from GenotypeList rod if such variant exists, or the rod itself 
 	 * will be typecasted and returned back if it implements Genotype and represents the specified variant type. If the last argument is false, then 
 	 * null will be returned in all other cases. If the last argument is true and either a) rod is a GenotypeList that lacks a call of the specified type, but call

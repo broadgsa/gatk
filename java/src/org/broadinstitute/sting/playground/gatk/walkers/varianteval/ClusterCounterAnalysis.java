@@ -1,14 +1,14 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.IntervalRod;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.refdata.IntervalRod;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.HashSet;
+import java.util.List;
 
 /**
  * The Broad Institute
@@ -24,7 +24,7 @@ public class ClusterCounterAnalysis extends BasicVariantAnalysis implements Geno
     ArrayList<HashSet<GenomeLoc>> variantsWithClusters;
     int minDistanceForFlagging = 5;
     int[] neighborWiseBoundries = {1, 2, 5, 10, 20, 50, 100};
-    AllelicVariant lastVariant = null;
+    Variation lastVariation = null;
     GenomeLoc lastVariantInterval = null;
     int nSeen = 0;
 
@@ -36,16 +36,16 @@ public class ClusterCounterAnalysis extends BasicVariantAnalysis implements Geno
             variantsWithClusters.add(new HashSet<GenomeLoc>());
     }
 
-    public String update(AllelicVariant eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
+    public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         String r = null;
 
         if ( eval != null && eval.isSNP() ) {
             IntervalRod intervalROD = (IntervalRod)tracker.lookup("interval", null);
             GenomeLoc interval = intervalROD == null ? null : intervalROD.getLocation();
 
-            if (lastVariant != null) {
+            if (lastVariation != null) {
                 GenomeLoc eL = eval.getLocation();
-                GenomeLoc lvL = lastVariant.getLocation();
+                GenomeLoc lvL = lastVariation.getLocation();
                 if (eL.getContigIndex() == lvL.getContigIndex()) {
                     long d = eL.distance(lvL);
                     if ( lastVariantInterval != null && lastVariantInterval.compareTo(interval) != 0) {
@@ -66,7 +66,7 @@ public class ClusterCounterAnalysis extends BasicVariantAnalysis implements Geno
                 }
             }
 
-            lastVariant = eval;
+            lastVariation = eval;
             lastVariantInterval = interval;
         }
 

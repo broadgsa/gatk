@@ -47,13 +47,6 @@ public interface Variation {
     public boolean isDeletion();
 
     /**
-     * get the base representation of this Variant
-     *
-     * @return a string, of ploidy
-     */
-    public String getBases();
-
-    /**
      * get the location that this Variant represents
      *
      * @return a GenomeLoc
@@ -65,13 +58,7 @@ public interface Variation {
      *
      * @return the reference base or bases, as a string
      */
-    public String getReference();
-
-    /** is our base representation heterozygous */
-    public boolean isHet();
-
-    /** is our base representation homozygous */
-    public boolean isHom();
+    public char getReference();
 
     /**
      * get the -1 * (log 10 of the error value)
@@ -87,9 +74,22 @@ public interface Variation {
     public boolean isReference();
 
     /**
-     * gets the alternate base.  If this is homref, throws an UnsupportedOperationException
+     * gets the alternate bases.  If this is homref, throws an UnsupportedOperationException
      * @return
      */
-    public char getAlternateBase();
+    public String getAlternateBases();
+
+    /**
+     * are we an insertion or a deletion? yes, then return true.  No? Well, false it is.
+     * @return true if we're an insertion or deletion
+     */
+    public boolean isIndel();
+
+    /**
+     * gets the alternate base is the case of a SNP.  Throws an IllegalStateException in the case
+     * of 
+     * @return a char, representing the alternate base
+     */
+    public char getAlternativeBaseForSNP();
 
 }

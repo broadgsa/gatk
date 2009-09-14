@@ -25,14 +25,19 @@
 
 package org.broadinstitute.sting.gatk.refdata;
 
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.genotype.BasicGenotype;
+import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Arrays;
+import java.util.List;
 
-public class RodGeliText extends BasicReferenceOrderedDatum implements AllelicVariant {
+public class RodGeliText extends BasicReferenceOrderedDatum implements Variation, VariantBackedByGenotype, AllelicVariant {
     public enum Genotype { AA, AC, AG, AT, CC, CG, CT, GG, GT, TT }
     public GenomeLoc loc;
     public char refBase = 'N';
@@ -96,6 +101,27 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements AllelicVa
 
     public GenomeLoc getLocation() { return loc; }
 
+    /**
+     * get the reference base(s) at this position
+     *
+     * @return the reference base or bases, as a string
+     */
+    @Override
+    public char getReference() {
+        return this.refBase;
+    }
+
+
+    /**
+     * get the -1 * (log 10 of the error value)
+     *
+     * @return the log based error estimate
+     */
+    @Override
+    public double getNegLog10PError() {
+        return Math.abs(lodBtr);
+    }
+
     public String getRefBasesFWD() {
         return String.format("%c", getRefSnpFWD());
     }
@@ -118,8 +144,24 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements AllelicVa
         return refBase == bestGenotype.charAt(0) && refBase == bestGenotype.charAt(1);
     }
 
+    /**
+     * get the frequency of this variant
+     *
+     * @return VariantFrequency with the stored frequency
+     */
+    @Override
+    public double getNonRefAlleleFrequency() {
+        return 1.0;
+    }
+
+    /** @return the VARIANT_TYPE of the current variant */
+    @Override
+    public VARIANT_TYPE getType() {
+        return VARIANT_TYPE.SNP;
+    }
+
     public boolean isSNP() {
-        return !isReference();
+        return (!bestGenotype.equals(Utils.dupString(this.getReference(),2)));
     }
 
     public boolean isInsertion() {
@@ -130,8 +172,33 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements AllelicVa
         return false;
     }
 
+    /**
+     * get the base representation of this Variant
+     *
+     * @return a string, of ploidy
+     */
+    @Override
+    public String getAlternateBases() {
+        return this.bestGenotype;
+    }
+
     public boolean isIndel() {
         return false;
+    }
+
+    /**
+     * gets the alternate base is the case of a SNP.  Throws an IllegalStateException in the case
+     * of
+     *
+     * @return a char, representing the alternate base
+     */
+    @Override
+    public char getAlternativeBaseForSNP() {
+        if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
+        if(this.bestGenotype.toString().charAt(0) == this.getReference())
+            return this.bestGenotype.toString().charAt(1);
+        return this.bestGenotype.toString().charAt(0);
+
     }
 
     public double getMAF() {
@@ -253,4 +320,15 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements AllelicVa
     public int getPloidy() throws IllegalStateException { return 2; }
     public boolean isBiallelic() { return true; }
     */
+
+    /**
+     * get the likelihoods
+     *
+     * @return an array in lexigraphical order of the likelihoods
+     */
+    @Override
+    public org.broadinstitute.sting.utils.genotype.Genotype getGenotype(DiploidGenotype x) {
+        if (x.toString().equals(this.getAltBasesFWD())) throw new IllegalStateException("Unable to retrieve genotype");
+        return new BasicGenotype(this.getLocation(),this.bestGenotype,this.getRefSnpFWD(),this.getConsensusConfidence());
+    }
 }
