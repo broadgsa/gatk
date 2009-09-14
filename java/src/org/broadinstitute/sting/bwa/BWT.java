@@ -11,11 +11,22 @@ public class BWT {
      * Write an occurrence table after every SEQUENCE_BLOCK_SIZE bases.
      * For this implementation to behave correctly, SEQUENCE_BLOCK_SIZE % 8 == 0
      */
-    public static final int SEQUENCE_BLOCK_SIZE = 128;    
+    public static final int SEQUENCE_BLOCK_SIZE = 128;
 
-    public final int inverseSA0;
-    public final Counts counts;
-    public final SequenceBlock[] sequenceBlocks;
+    /**
+     * The inverse SA, used as a placeholder for determining where the special EOL character sits.
+     */
+    protected final int inverseSA0;
+
+    /**
+     * Cumulative counts for the entire BWT.
+     */
+    protected final Counts counts;
+
+    /**
+     * The individual sequence blocks, modelling how they appear on disk.
+     */
+    protected final SequenceBlock[] sequenceBlocks;
 
     /**
      * Creates a new BWT with the given inverse SA, counts, and sequence (in ASCII).
@@ -48,6 +59,38 @@ public class BWT {
         for( SequenceBlock block: sequenceBlocks )
             System.arraycopy(block.sequence,0,sequence,block.sequenceStart,block.sequenceLength);
         return sequence;
+    }
+
+    /**
+     * Get the total counts of bases lexicographically smaller than the given base, for Ferragina and Manzini's search.
+     * @param base The base.
+     * @return Total counts for all bases lexicographically smaller than this base.
+     */
+    public int counts(Base base) {
+        if( base.toPack() - 1 >= 0 )
+            return counts.getCumulative(Base.fromPack(base.toPack()-1));
+        else
+            return 0;
+    }
+
+    /**
+     * Get the total counts of bases lexicographically smaller than the given base, for Ferragina and Manzini's search.
+     * @param base The base.
+     * @param index The position to search within the BWT.
+     * @return Total counts for all bases lexicographically smaller than this base.
+     */
+    public int occurrences(Base base,int index) {
+        // If the index is above the SA-1[0], remap it to the appropriate coordinate space.
+        if( index > inverseSA0 ) index--;
+
+        SequenceBlock block = sequenceBlocks[index/SEQUENCE_BLOCK_SIZE];
+        int position = index % SEQUENCE_BLOCK_SIZE;
+        int accumulator = block.occurrences.get(base);
+        for(int i = 0; i <= position; i++) {
+            if(base == Base.fromASCII(block.sequence[i]))
+                accumulator++;
+        }
+        return accumulator;
     }
 
     /**
