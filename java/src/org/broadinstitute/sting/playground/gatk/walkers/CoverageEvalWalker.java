@@ -98,6 +98,8 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
         return "";
     }
 
+    public void onTraversalDone(String result) {} // Don't print the reduce result
+
     public String reduce(List<String> alleleFreqLines, String sum) {
         for (String line : alleleFreqLines) {
             out.println(line);
