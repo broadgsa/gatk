@@ -82,27 +82,11 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
     public int nSNPsAtIndels() {
         return nSNPsCalledAtIndels;
     }
-    public static int count = 0;
     public boolean discordantP(Variation dbSNP, Variation eval) {
         if (eval != null) {
-            char alt = (eval.isSNP()) ? eval.getAlternativeBaseForSNP() : eval.getReference();
-
-            if (dbSNP != null && dbSNP.isSNP()) {
-
-                boolean val = !dbSNP.getAlternateBases().contains(String.valueOf(alt));
-
-                if (val) {
-                    //System.err.print(eval.getLocation());
-                    //System.err.print(" eval.alt = " + alt);
-                    //System.err.println(" dbsnp.bases = " + dbSNP.getAlternateBases());
-                    //System.err.println(val);
-
-                    //System.err.println(count);
-                }
-                 //else System.err.println("not count == " + count++);
-
-                return val; 
-            }
+            char alt = (eval.isSNP()) ? eval.getAlternativeBaseForSNP() : eval.getReference().charAt(0);
+            if (dbSNP != null && dbSNP.isSNP())
+                return !dbSNP.getAlternateBases().contains(String.valueOf(alt));
         }
         return false;
     }
@@ -136,7 +120,6 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
                 return String.format("SNP-at-indel DBSNP=%s %s", dbsnp.getAlternateBases(), eval);
             } else {
                 return null;
-                // return "Novel      " + eval;
             }
         } else {
             return null;

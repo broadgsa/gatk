@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 
 /**
  * @author aaron

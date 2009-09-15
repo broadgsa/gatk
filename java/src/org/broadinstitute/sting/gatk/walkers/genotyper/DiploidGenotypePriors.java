@@ -2,14 +2,9 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.ReadBackedPileup;
+import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 
-import static java.lang.Math.log10;
-import static java.lang.Math.pow;
 import java.util.Arrays;
-
-import net.sf.samtools.SAMRecord;
 
 public class DiploidGenotypePriors {
     // --------------------------------------------------------------------------------------------------------------

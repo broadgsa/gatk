@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 /**
@@ -14,7 +13,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 public class BasicVariation implements Variation {
 
     protected final String mBases;
-    protected final char mRef;
+    protected final String mRef;
     protected final int mLength;
     protected final GenomeLoc mLocation;
     protected final double mConfidence;
@@ -23,11 +22,11 @@ public class BasicVariation implements Variation {
      * the constructor
      *
      * @param bases     the bases that this variant represents
-     * @param reference the reference base
+     * @param reference the reference bases
      * @param length    are we a single base variant, or a indel/deletion? length is negitive for an indel,
      *                  positive for a indel, and 0 for a substitution
      */
-    public BasicVariation(String bases, char reference, int length, GenomeLoc location, double confidence) {
+    public BasicVariation(String bases, String reference, int length, GenomeLoc location, double confidence) {
         mBases = bases;
         mRef = reference;
         mLength = length;
@@ -49,7 +48,7 @@ public class BasicVariation implements Variation {
 
     @Override
     public boolean isSNP() {
-        if (mLength == 0 && Utils.dupString(mRef, 2).equals(mBases)) return true;
+        if (mLength == 0) return true;
         return false;
     }
 
@@ -74,7 +73,7 @@ public class BasicVariation implements Variation {
     }
 
     @Override
-    public char getReference() {
+    public String getReference() {
         return (mRef);
     }
 
@@ -85,8 +84,12 @@ public class BasicVariation implements Variation {
 
     @Override
     public boolean isReference() {
-        if (mLength == 0 && mBases.charAt(0) == mRef && mRef != mBases.charAt(1)) return true;
-        return false;
+        if (mLength != 0) return true;
+        int refIndex = 0;
+        for (char c : mBases.toCharArray()) {
+            if (mRef.charAt(refIndex) != c) return false;
+        }
+        return true;
     }
 
     /**
@@ -108,9 +111,22 @@ public class BasicVariation implements Variation {
     @Override
     public char getAlternativeBaseForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-        if (getAlternateBases().charAt(0) == this.getReference())
+        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
             return getAlternateBases().charAt(1);
         return getAlternateBases().charAt(0);
+    }
+
+    /**
+     * gets the reference base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP
+     *
+     * @return a char, representing the alternate base
+     */
+    @Override
+    public char getReferenceForSNP() {
+        if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
+        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
+            return getAlternateBases().charAt(0);
+        return getAlternateBases().charAt(1);
     }
 
 

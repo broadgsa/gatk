@@ -225,7 +225,7 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
      */
     public Variation toVariation() {
         double bestRef = Math.abs(mGenotypeLikelihoods.getPosterior(getBestGenotype()) - mGenotypeLikelihoods.getPosterior(getRefGenotype()));
-        return new BasicVariation(this.getBases(), this.getReference(), 0, this.mLocation, bestRef);
+        return new BasicVariation(this.getBases(), String.valueOf(this.getReference()), 0, this.mLocation, bestRef);
     }
 
     /**

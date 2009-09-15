@@ -61,7 +61,7 @@ public class LikelihoodObjectTest extends BaseTest {
         for (int x = 0; x < 10; x++) {
             ray[x] = ( x * 25 );
         }
-        mLO = new LikelihoodObject(ray,LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);
+        mLO = new LikelihoodObject(ray,LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);
         assertTrue(mLO.likelihoods.size() == LikelihoodObject.GENOTYPE.values().length);
 
         int index = 0;
@@ -77,7 +77,7 @@ public class LikelihoodObjectTest extends BaseTest {
         for (int x = 0; x < 10; x++) {
             ray[x] = ( x * 25.0 );
         }
-        mLO = new LikelihoodObject(ray,LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);
+        mLO = new LikelihoodObject(ray,LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);
         assertTrue(mLO.likelihoods.size() == LikelihoodObject.GENOTYPE.values().length);
 
         int index = 0;
@@ -104,7 +104,7 @@ public class LikelihoodObjectTest extends BaseTest {
             ray[x] = ( 240.0 );
         }
         ray [5] = 0;
-        mLO = new LikelihoodObject(ray, LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);
+        mLO = new LikelihoodObject(ray, LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);
         assertTrue(mLO.likelihoods.size() == LikelihoodObject.GENOTYPE.values().length);
         short smallest = (short)mLO.getBestLikelihood();
         assertTrue(smallest == 0);

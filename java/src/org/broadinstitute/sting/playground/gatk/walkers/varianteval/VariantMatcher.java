@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
@@ -25,7 +24,7 @@ public class VariantMatcher extends BasicVariantAnalysis implements GenotypeAnal
 
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         String r = null;
-        AllelicVariant db = (AllelicVariant)tracker.lookup(dbName, null);
+        Variation db = (Variation)tracker.lookup(dbName, null);
         
         if ( eval != null || db != null ) {
             String matchFlag = "    ";

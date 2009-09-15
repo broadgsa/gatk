@@ -27,21 +27,13 @@ public class TransitionTranversionAnalysis extends BasicVariantAnalysis implemen
 
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         if (eval != null && eval.isSNP()) {
-            if (eval.getAlternateBases().length() != 2) {
-                throw new StingException("TransitionTranversionAnalysis works only with biallelic variants");
-            }
-
-
-            char refBase = eval.getReference();
-            char altBase = (eval.getAlternateBases().charAt(0) == refBase) ? eval.getAlternateBases().charAt(1) : eval.getAlternateBases().charAt(0);
-
-            BaseUtils.BaseSubstitutionType subType = BaseUtils.SNPSubstitutionType(refBase, altBase);
+            char altBase = eval.getAlternativeBaseForSNP();
+            BaseUtils.BaseSubstitutionType subType = BaseUtils.SNPSubstitutionType(ref, altBase);
             if (subType == BaseUtils.BaseSubstitutionType.TRANSITION)
                 nTransitions++;
             else
                 nTransversions++;
         }
-
         return null;
     }
 

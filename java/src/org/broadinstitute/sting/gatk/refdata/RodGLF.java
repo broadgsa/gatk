@@ -119,8 +119,8 @@ public class RodGLF implements ReferenceOrderedDatum, Variation, Iterator<RodGLF
      * @return the reference base or bases, as a string
      */
     @Override
-    public char getReference() {
-        return mRecord.getRefBase().toChar();
+    public String getReference() {
+        return mRecord.getRefBase().toString();
     }
 
     /**
@@ -154,9 +154,23 @@ public class RodGLF implements ReferenceOrderedDatum, Variation, Iterator<RodGLF
     @Override
     public char getAlternativeBaseForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-        if (getAlternateBases().charAt(0) == this.getReference())
+        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
             return getAlternateBases().charAt(1);
         return getAlternateBases().charAt(0);
+
+    }
+
+    /**
+     * gets the reference base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP
+     *
+     * @return a char, representing the alternate base
+     */
+    @Override
+    public char getReferenceForSNP() {
+        if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
+        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
+            return getAlternateBases().charAt(0);
+        return getAlternateBases().charAt(1);
 
     }
 

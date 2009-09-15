@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.walkers.genotyper;
+package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.Utils;
 
@@ -51,5 +51,14 @@ public enum DiploidGenotype {
             case TT: return false;
             default: return true;
         }
+    }
+
+    /**
+     * create a diploid genotype, given a character to make into a hom genotype
+     * @param hom the character to turn into a hom genotype, i.e. if it is A, then returned will be AA
+     * @return the diploid genotype
+     */
+    public static DiploidGenotype createGenotype(char hom) {
+        return DiploidGenotype.valueOf((String.valueOf(hom) + String.valueOf(hom)).toUpperCase());     
     }
 }

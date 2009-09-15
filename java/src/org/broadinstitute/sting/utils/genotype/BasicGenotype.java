@@ -138,6 +138,6 @@ public class BasicGenotype implements Genotype {
     @Override
     public Variation toVariation() {
         if (!isVariant(this.mRef)) throw new IllegalStateException("this genotype is not a variant");
-        return new BasicVariation(this.getBases(),mRef,this.getBases().length(),mLocation,mNetLog10PError);
+        return new BasicVariation(this.getBases(),String.valueOf(mRef),this.getBases().length(),mLocation,mNetLog10PError);
     }
 }

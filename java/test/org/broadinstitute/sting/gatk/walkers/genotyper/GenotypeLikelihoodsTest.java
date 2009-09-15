@@ -1,15 +1,11 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.walkers.recalibration.RecalData;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.Assert;
 
 import static java.lang.Math.log10;
-import static java.lang.Math.pow;
 
 public class GenotypeLikelihoodsTest extends BaseTest {
     private final static double DELTA = 1e-8;

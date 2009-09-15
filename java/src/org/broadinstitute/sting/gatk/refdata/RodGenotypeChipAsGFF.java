@@ -4,7 +4,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.*;
-import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import java.util.*;
 import java.util.regex.MatchResult;
@@ -82,8 +82,8 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      * @return the reference base or bases, as a string
      */
     @Override
-    public char getReference() {
-        return 'N';
+    public String getReference() {
+        throw new IllegalStateException("Chip data is unable to determine the reference");
     }
 
     /**
@@ -223,6 +223,16 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
         return this.getAltSnpFWD();
     }
 
+    /**
+     * gets the reference base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP
+     *
+     * @return a char, representing the alternate base
+     */
+    @Override
+    public char getReferenceForSNP() {
+        return this.getRefSnpFWD();
+    }
+
     public double getMAF() { return 0; }
     public double getHeterozygosity() { return 0; }
     public boolean isGenotype() { return true; }
@@ -246,5 +256,19 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
     public Genotype getGenotype(DiploidGenotype x) {
         if (!x.toString().equals(this.getAltBasesFWD())) throw new IllegalStateException("Unable to retrieve genotype");
         return new BasicGenotype(this.getLocation(),this.feature,this.getRefSnpFWD(),this.getConsensusConfidence());
+    }
+
+    /**
+     * do we have the specified genotype?  not all backedByGenotypes
+     * have all the genotype data.
+     *
+     * @param x the genotype
+     *
+     * @return true if available, false otherwise
+     */
+    @Override
+    public boolean hasGenotype(DiploidGenotype x) {
+        if (!x.toString().equals(this.getAltBasesFWD())) return false;
+        return true;
     }
 }

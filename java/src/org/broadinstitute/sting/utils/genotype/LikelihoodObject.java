@@ -57,11 +57,11 @@ public class LikelihoodObject {
     // possible types of likihoods to store
 
     public enum LIKELIHOOD_TYPE {
-        NEGITIVE_LOG, LOG, RAW;
+        NEGATIVE_LOG, LOG, RAW;
     }
 
     // our liklihood storage type
-    protected LIKELIHOOD_TYPE mLikelihoodType = LIKELIHOOD_TYPE.NEGITIVE_LOG;
+    protected LIKELIHOOD_TYPE mLikelihoodType = LIKELIHOOD_TYPE.NEGATIVE_LOG;
 
     // default the bestGenotype likelihoods to the allele AA
     protected GENOTYPE bestGenotype = GENOTYPE.AA;
@@ -199,7 +199,7 @@ public class LikelihoodObject {
         double[] ft = toDoubleArray();
         float[] db = new float[ft.length];
         int index = 0;
-        if (this.mLikelihoodType == LIKELIHOOD_TYPE.NEGITIVE_LOG) {
+        if (this.mLikelihoodType == LIKELIHOOD_TYPE.NEGATIVE_LOG) {
             for (; index < ft.length; index++) {
                 db[index] = ((float) ft[index] * -1.0f);
             }
@@ -229,9 +229,9 @@ public class LikelihoodObject {
     public void validateScore(double score) {
         int x = 0;
         switch (mLikelihoodType) {
-            case NEGITIVE_LOG:
+            case NEGATIVE_LOG:
                 if (score < 0)
-                    throw new StingException("Likelikhood score of " + score + " is invalid, for NEGITIVE_LOG it must be greater than or equal to 0");
+                    throw new StingException("Likelikhood score of " + score + " is invalid, for NEGATIVE_LOG it must be greater than or equal to 0");
                 break;
             case LOG:
                 if (score > 0)
@@ -256,7 +256,7 @@ public class LikelihoodObject {
             return;
         if (mLikelihoodType == LIKELIHOOD_TYPE.RAW) {
             double mult = 1.0;
-            if (likelihood == LIKELIHOOD_TYPE.NEGITIVE_LOG) {
+            if (likelihood == LIKELIHOOD_TYPE.NEGATIVE_LOG) {
                 mult = -1.0;
             }
             // one of us in log, the other negitive log, it doesn't matter which
@@ -265,7 +265,7 @@ public class LikelihoodObject {
             }
         } else if (likelihood == LIKELIHOOD_TYPE.RAW) {
             double mult = 1.0;
-            if (mLikelihoodType == LIKELIHOOD_TYPE.NEGITIVE_LOG) {
+            if (mLikelihoodType == LIKELIHOOD_TYPE.NEGATIVE_LOG) {
                 mult = -1.0;
             }
             // one of us in log, the other negitive log, it doesn't matter which

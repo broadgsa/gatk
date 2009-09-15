@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.refdata;
 import net.sf.picard.util.SequenceUtil;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.*;
-import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 
 import java.util.Arrays;
 import java.util.List;
@@ -68,8 +68,8 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
      * @return the reference base or bases, as a string
      */
     @Override
-    public char getReference() {
-        return getRefSnpFWD();
+    public String getReference() {
+        return getRefBasesFWD();
     }
 
     /**
@@ -181,6 +181,16 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
         if (getAlternateBases().charAt(0) == this.getReference())
             return getAlternateBases().charAt(1);
         return getAlternateBases().charAt(0); */
+    }
+
+    /**
+     * gets the reference base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP
+     *
+     * @return a char, representing the alternate base
+     */
+    @Override
+    public char getReferenceForSNP() {
+        return 0;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     public boolean isReference()        { return false; } // snp locations are never "reference", there's always a variant
@@ -314,7 +324,20 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
      */
     @Override
     public org.broadinstitute.sting.utils.genotype.Genotype getGenotype(DiploidGenotype x) {
-        if (x.toString().equals(this.getAltBasesFWD())) throw new IllegalStateException("Unable to retrieve genotype");
+        if (!x.toString().equals(this.getAltBasesFWD())) throw new IllegalStateException("Unable to retrieve genotype");
         return new BasicGenotype(this.getLocation(),this.getAltBasesFWD(),this.getRefSnpFWD(),this.getConsensusConfidence());
+    }
+
+    /**
+     * do we have the specified genotype?  not all backedByGenotypes
+     * have all the genotype data.
+     *
+     * @param x the genotype
+     *
+     * @return true if available, false otherwise
+     */
+    @Override
+    public boolean hasGenotype(DiploidGenotype x) {
+        return (!x.toString().equals(this.getAltBasesFWD())) ?  false : true;
     }
 }

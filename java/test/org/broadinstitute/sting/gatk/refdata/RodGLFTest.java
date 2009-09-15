@@ -184,7 +184,7 @@ public class RodGLFTest extends BaseTest {
         for (int x = 0; x < vals.size(); x++) {
             ret[x] = vals.get(x);
         }
-        return new LikelihoodObject(ret, LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);
+        return new LikelihoodObject(ret, LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);
     }
 
 

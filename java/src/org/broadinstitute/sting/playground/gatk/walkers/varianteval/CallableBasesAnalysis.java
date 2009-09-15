@@ -2,7 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.Genotype;
@@ -78,13 +78,8 @@ public class CallableBasesAnalysis extends BasicVariantAnalysis implements Genot
                 discoverable_bases[i]++;
             if (!eval.isSNP() && genotype.getNegLog10PError() >= threshold)
                 discoverable_bases[i]++;
-
             if (genotype.getNegLog10PError() >= threshold)
                 genotypable_bases[i]++;
-
-            //System.out.printf("Updating %s SNP=%b, REF=%b VarConf=%f ConConf=%f where threshold=%f: discoverable = %d, genotypable = %d%n",
-            //        eval.getLocation(), eval.isSNP(), eval.isReference(), eval.getVariationConfidence(),
-            //        eval.getConsensusConfidence(), threshold, discoverable_bases[i], genotypable_bases[i]);
         }
 
         return null;

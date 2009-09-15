@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.io.PrintStream;
 import java.util.List;
@@ -53,6 +53,6 @@ public abstract class BasicPoolVariantAnalysis implements VariantAnalysis{
         // no need to finalize data in general
     }
 
-    public abstract String update(AllelicVariant variant, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context);
+    public abstract String update(Variation variant, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context);
 
 }

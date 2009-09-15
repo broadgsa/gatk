@@ -2,8 +2,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -182,17 +182,8 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         // Iterate over each analysis, and update it
         Variation eval = (Variation)tracker.lookup("eval", null);
 
-        //if ( eval!=null ) System.out.printf("Eval: %f %d %b%n", eval.getVariationConfidence(), minDiscoveryQ, eval.getVariationConfidence() < minDiscoveryQ);
-        if ( eval != null ) {
-            // comment to disable variant filtering by confidence score
-            if ( evalContainsGenotypes ) {
-                // Genotyping - use best vs. next best lod
-                if ( eval.getNegLog10PError() < minConfidenceScore ) eval = null;
-            } else {
-                // Variation discovery - use best vs. reference lod
-                if ( Math.abs(eval.getNegLog10PError()) < minConfidenceScore ) eval = null;
-            }
-        }
+        if ( eval != null )
+               if ( eval.getNegLog10PError() < minConfidenceScore ) eval = null;
 
         // update stats about all of the SNPs
         updateAnalysisSet(ALL_SNPS, eval, tracker, ref.getBase(), context);
@@ -204,14 +195,14 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
             updateAnalysisSet(noveltySet, eval, tracker, ref.getBase(), context);
         }
 
-        if ( eval instanceof SNPCallFromGenotypes ) {
+        // are we a population backed call? then update
+        if ( eval instanceof SNPCallFromGenotypes) {
             SNPCallFromGenotypes call = (SNPCallFromGenotypes)eval;
             int nVarGenotypes = call.nHetGenotypes() + call.nHomVarGenotypes();
             //System.out.printf("%d variant genotypes at %s%n", nVarGenotypes, calls);
             final String s = nVarGenotypes == 1 ? SINGLETON_SNPS : TWOHIT_SNPS;
             updateAnalysisSet(s, eval, tracker, ref.getBase(), context);
         }
-
         return 1;
     }
 

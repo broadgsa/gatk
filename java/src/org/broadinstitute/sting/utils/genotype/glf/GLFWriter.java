@@ -6,7 +6,6 @@ import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.DataOutputStream;
@@ -121,7 +120,7 @@ public class GLFWriter implements GenotypeWriter {
             Arrays.fill(values,-255.0);
             obj = new LikelihoodObject(values, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
         }
-        obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.NEGITIVE_LOG);  // transform! ... to negitive log likelihoods
+        obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);  // transform! ... to negitive log likelihoods
 
         double rms = -1;
         // calculate the RMS mapping qualities and the read depth

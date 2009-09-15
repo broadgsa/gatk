@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.refdata.RodGenotypeChipAsGFF;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.SSGenotypeCall;
 import org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper;
-import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.ListUtils;
 import org.broadinstitute.sting.utils.Utils;

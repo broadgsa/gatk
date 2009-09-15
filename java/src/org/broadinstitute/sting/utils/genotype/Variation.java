@@ -58,7 +58,7 @@ public interface Variation {
      *
      * @return the reference base or bases, as a string
      */
-    public char getReference();
+    public String getReference();
 
     /**
      * get the -1 * (log 10 of the error value)
@@ -80,16 +80,22 @@ public interface Variation {
     public String getAlternateBases();
 
     /**
-     * are we an insertion or a deletion? yes, then return true.  No? Well, false it is.
+     * are we an insertion or a deletion? yes, then return true.  No? Well, false then.
      * @return true if we're an insertion or deletion
      */
     public boolean isIndel();
 
     /**
-     * gets the alternate base is the case of a SNP.  Throws an IllegalStateException in the case
+     * gets the alternate base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP
      * of 
      * @return a char, representing the alternate base
      */
     public char getAlternativeBaseForSNP();
+
+    /**
+     * gets the reference base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP
+     * @return a char, representing the alternate base
+     */
+    public char getReferenceForSNP();
 
 }
