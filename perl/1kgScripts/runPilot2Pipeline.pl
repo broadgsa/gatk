@@ -15,7 +15,7 @@ my $queue = "gsa";
 my $sting = "/humgen/gsa-scr1/ebanks/Sting";
 
 GetOptions( "i=s" => \$inputDir,
-	    "odir=s" => \$outputDir,
+	    "o=s" => \$outputDir,
 	    "q:s" => \$queue,
 	    "dry!" => \$dry,
 	    "sting:s" => \$sting );
@@ -44,7 +44,7 @@ foreach my $sample (@samples) {
     my $inputBamSLX = "$inputDir/$sample.pilot2.SLX.bam";
     my $outputHeadSLX = "$outputDir/$sample.SLX";
     my $outputBamSLX = "$outputHeadSLX.bam";
-    my $badsnpsSLX = "$outputDir/$outputBamSLX.badsnps";
+    my $badsnpsSLX = "$outputBamSLX.badsnps";
     clean($inputBamSLX, $outputBamSLX, $queue, $sting, $dry, $badsnpsSLX);
     call("-I $outputBamSLX", $outputHeadSLX, $queue, $sting, $dry, "$inputBamSLX.cleaningpipeline", $sample, $badsnpsSLX, $DoC_slx{$sample}, $MQ_hash{"SLX"});
 
@@ -52,7 +52,7 @@ foreach my $sample (@samples) {
 	my $inputBamSOLID = "$inputDir/$sample.pilot2.SOLID.bam";
 	my $outputHeadSOLID = "$outputDir/$sample.SOLID";
 	my $outputBamSOLID = "$outputHeadSOLID.bam";
-	my $badsnpsSOLID = "$outputDir/$outputBamSOLID.badsnps";
+	my $badsnpsSOLID = "$outputBamSOLID.badsnps";
 	clean($inputBamSOLID, $outputBamSOLID, $queue, $sting, $dry, $badsnpsSOLID);
 	call("-I $outputBamSOLID", $outputHeadSOLID, $queue, $sting, $dry, "$inputBamSOLID.cleaningpipeline", $sample, $badsnpsSOLID, $DoC_solid{$sample}, $MQ_hash{"SOLID"});
 

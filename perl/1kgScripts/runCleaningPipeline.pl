@@ -63,33 +63,37 @@ if ($inject) {
 } else {
     $cleanedBam = "$outputBam";
 }
-$command = "perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IntervalCleaner -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam -compress 1";
+$command = "bsub -q $queue -o $outputBam.cleaner.script1 -w \"ended($outputBam.merged)\" -J $outputBam.cleaner.script perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IntervalCleaner -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam -compress 1";
 if ($inject) {
     $command .= " -cleanedOnly\" -j $outputBam.cleaned";
 } else {
     $command .= "\" -j $jobName";
 }
-$command .= " -o $cleanedBam -oarg O -wait $outputBam.merged -q $queue -bam -i $mergedIntervals -n 50";
+$command .= " -o $cleanedBam -oarg O -q $queue -bam -i $mergedIntervals -n 50";
 if ($dry) {
     $command .= " -dry";
+    print "$command\n";
+} else {
+    system($command);
 }
-system($command);
 
 my $snpsFile = $badsnps;
 if (!$snpsFile) {
     $snpsFile = "$outputBam.badsnps";
 }
-$command = "perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IntervalCleaner -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam\"";
+$command = "bsub -q $queue -o $outputBam.cleaner.script2 -w \"ended($outputBam.merged)\" -J $outputBam.cleaner.script perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IntervalCleaner -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam\"";
 if ($inject) {
     $command .= " -j $outputBam.cleaned";
 } else {
     $command .= " -j $jobName";
 }
-$command .= "\" -o $snpsFile -oarg snps -wait $outputBam.merged -q $queue -i $mergedIntervals -n 50";
+$command .= " -o $snpsFile -oarg snps -q $queue -i $mergedIntervals -n 50";
 if ($dry) {
     $command .= " -dry";
+    print "$command\n";
+} else {
+    system($command);
 }
-system($command);
 
 if ($inject) {
     my $bam = "$outputBam";
