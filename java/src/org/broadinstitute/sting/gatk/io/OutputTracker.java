@@ -10,6 +10,7 @@ import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
 import org.broadinstitute.sting.gatk.io.storage.Storage;
+import org.broadinstitute.sting.gatk.io.storage.OutputStreamStorage;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -65,16 +66,16 @@ public abstract class OutputTracker {
         // Otherwise, initialize them separately.
         if( outFileName != null && outFileName.equals(errFileName) ) {
             outStub = errStub = new OutputStreamStub(new File(outFileName));
-            addOutput(outStub);
+            addOutput(outStub,new OutputStreamStorage(outStub));
         }
         else {
             outStub = (outFileName != null) ? new OutputStreamStub(new File(outFileName))
                                             : new OutputStreamStub(System.out);
-            addOutput(outStub);
+            addOutput(outStub,new OutputStreamStorage(outStub));
 
             errStub = (errFileName != null) ? new OutputStreamStub(new File(errFileName))
                                             : new OutputStreamStub(System.err);
-            addOutput(errStub);
+            addOutput(errStub,new OutputStreamStorage(outStub));
         }
     }
 
@@ -120,8 +121,16 @@ public abstract class OutputTracker {
      * @param stub Stream to manage.
      */
     public <T> void addOutput(Stub<T> stub) {
+        addOutput(stub,null);
+    }
+
+    /**
+     * Provide a mechanism for injecting supplemental streams for external management.
+     * @param stub Stream to manage.
+     */
+    public <T> void addOutput(Stub<T> stub, Storage<T> storage) {
         stub.register(this);
-        outputs.put(stub,null);
+        outputs.put(stub,storage);        
     }
 
     /**
