@@ -65,19 +65,16 @@ public abstract class OutputTracker {
         // Otherwise, initialize them separately.
         if( outFileName != null && outFileName.equals(errFileName) ) {
             outStub = errStub = new OutputStreamStub(new File(outFileName));
-            outStub.register(this);
-            outputs.put(outStub,null);
+            addOutput(outStub);
         }
         else {
             outStub = (outFileName != null) ? new OutputStreamStub(new File(outFileName))
                                             : new OutputStreamStub(System.out);
-            outStub.register(this);
-            outputs.put(outStub,null);
+            addOutput(outStub);
 
             errStub = (errFileName != null) ? new OutputStreamStub(new File(errFileName))
                                             : new OutputStreamStub(System.err);
-            errStub.register(this);
-            outputs.put(errStub,null);            
+            addOutput(errStub);
         }
     }
 
@@ -125,6 +122,20 @@ public abstract class OutputTracker {
     public <T> void addOutput(Stub<T> stub) {
         stub.register(this);
         outputs.put(stub,null);
+    }
+
+    /**
+     * Close down all existing output streams.
+     */
+    public void close() {
+        for( Stub stub: outputs.keySet() ) {
+            // If the stream hasn't yet been created, create it so that there's at least an empty file present.
+            if( outputs.get(stub) == null )
+                getTargetStream(stub);
+
+            // Close down the storage.
+            outputs.get(stub).close();
+        }
     }
 
     /**

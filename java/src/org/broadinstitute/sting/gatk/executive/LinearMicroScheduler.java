@@ -59,6 +59,8 @@ public class LinearMicroScheduler extends MicroScheduler {
 
         printOnTraversalDone(result);
 
+        getOutputTracker().close();
+
         return accumulator;
     }
 

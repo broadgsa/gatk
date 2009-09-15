@@ -142,6 +142,8 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
         printOnTraversalDone(result);
 
+        getOutputTracker().close();
+
         return result;
     }
 
