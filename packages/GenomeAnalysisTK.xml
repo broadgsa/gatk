@@ -35,6 +35,7 @@
     <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECClusteredSnps</class>
   </dependencies>
   <resources>
+    <!-- GATK sample code and build scripts -->
     <file>java/src/org/broadinstitute/sting/gatk/walkers/CountReadsWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/walkers/CountLociWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/walkers/DepthOfCoverageWalker.java</file>
@@ -43,10 +44,20 @@
     <file>java/src/org/broadinstitute/sting/gatk/walkers/ValidatingPileupWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/examples/HelloWalker.java</file>
     <file>java/src/org/broadinstitute/sting/gatk/examples/build.xml</file>
+    <!-- Sample reads and reference files -->
     <file>testdata/exampleBAM.bam</file>
     <file>testdata/exampleBAM.bam.bai</file>
     <file>testdata/exampleFASTA.fasta</file>
     <file>testdata/exampleFASTA.fasta.fai</file>
     <file>testdata/exampleFASTA.dict</file>
+    <!-- Supplemental scripts for graph generation, etc. -->
+    <file>python/analyzeRecalQuals.py</file>
+    <file>python/analyzeRecalQuals_1KG.py</file>
+    <file>testdata/defaultGATKConfig.cfg</file>
+    <file>testdata/recalConfig_1KG.cfg</file>
+    <file>R/logistic_regression.R</file>
+    <file>R/plot_q_emp_stated_hst.R</file>
+    <file>R/plot_qual_diff_v_cycle.R</file>
+    <file>R/plot_qual_diff_v_dinuc.R</file>
   </resources>
 </package>
