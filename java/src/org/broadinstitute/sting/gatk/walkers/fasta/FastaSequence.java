@@ -13,9 +13,13 @@ public class FastaSequence {
     private long sequenceCounter = 1;
     private boolean printedHeader = false;
     private String name = null;
+    private int lineWidth = -1;
+    private boolean noHeader = false;
 
-	public FastaSequence(PrintStream out) {
+	public FastaSequence(PrintStream out, int lineWidth, boolean noHeader) {
         this.out = out;
+        this.lineWidth = lineWidth;
+        this.noHeader = noHeader;
     }
 
     public void setName(String name) {
@@ -45,18 +49,18 @@ public class FastaSequence {
     }
 
     private void printFasta(boolean printAll) {
-        if ( sb.length() == 0 || (!printAll && sb.length() < 60) )
+        if ( sb.length() == 0 || (!printAll && sb.length() < lineWidth) )
             return;
-        if ( !printedHeader ) {
+        if ( !printedHeader && !noHeader) {
             if ( name == null ) out.println(">" + sequenceCounter);
-            else  out.println(">" + name);
+            else out.println(">" + name);
             printedHeader = true;
         }
-        int lines = sb.length() / 60;
+        int lines = sb.length() / lineWidth;
         int currentStart = 0;
         for (int i=0; i < lines; i++) {
-            out.println(sb.substring(currentStart, currentStart+60));
-            currentStart += 60;
+            out.println(sb.substring(currentStart, currentStart+lineWidth));
+            currentStart += lineWidth;
         }
         if ( printAll ) {
             out.println(sb.substring(currentStart));

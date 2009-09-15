@@ -8,16 +8,20 @@ import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 // create a fasta sequence file from a reference and intervals
 
 @WalkerName("FastaReferenceMaker")
 public class FastaReferenceWalker extends RefWalker<Pair<GenomeLoc, String>, GenomeLoc> {
+    @Argument(fullName="lineWidth", shortName="lw", doc="Maximum length of sequence to write per line", required=false) public int fastaLineWidth=60;
+    @Argument(fullName="rawOnelineSeq", shortName="raw", doc="Print sequences with no FASTA header lines, one line per interval (i.e. lineWidth = infinity) - CAUTION: adjacent intervals will automatically be merged", required=false) public boolean fastaRawSeqs=false;
 
     protected FastaSequence fasta;
 
     public void initialize() {
-        fasta = new FastaSequence(out);
+        if (fastaRawSeqs) fastaLineWidth = Integer.MAX_VALUE;
+        fasta = new FastaSequence(out, fastaLineWidth, fastaRawSeqs);
     }
 
 	public Pair<GenomeLoc, String> map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
