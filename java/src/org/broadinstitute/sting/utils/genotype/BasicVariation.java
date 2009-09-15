@@ -3,23 +3,31 @@ package org.broadinstitute.sting.utils.genotype;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 /**
- * Created by IntelliJ IDEA.
- * User: aaronmckenna
+ * User: aaron
  * Date: Sep 9, 2009
  * Time: 9:32:34 PM
  * <p/>
- * a basic implementation of variant
+ * a basic implementation of the Variation interface.
  */
 public class BasicVariation implements Variation {
 
+    // the bases that make up this variant
     protected final String mBases;
+
+    // the reference base
     protected final String mRef;
+
+    // the length of the event, 0 for a SNP, negitive for deletions, positive for insertions
     protected final int mLength;
+
+    // the location on the genome of the event
     protected final GenomeLoc mLocation;
+
+    // our confidence in this event, and a -(log10(Error))
     protected final double mConfidence;
 
     /**
-     * the constructor
+     * create a basic variation, given the following parameters:
      *
      * @param bases     the bases that this variant represents
      * @param reference the reference bases
@@ -34,11 +42,21 @@ public class BasicVariation implements Variation {
         mConfidence = confidence;
     }
 
+    /**
+     * we don't know the minor allele freq. is this implementation
+     *
+     * @return -1.0.  If the freq is less than zero it means we don't know
+     */
     @Override
     public double getNonRefAlleleFrequency() {
         return -1.0;
     }
 
+    /**
+     * get the type of variation we are
+     *
+     * @return VARIANT_TYPE
+     */
     @Override
     public VARIANT_TYPE getType() {
         if (mLength > 0) return VARIANT_TYPE.INDEL;
@@ -84,7 +102,7 @@ public class BasicVariation implements Variation {
 
     @Override
     public boolean isReference() {
-        if (mLength != 0) return true;
+        if (mLength != 0) return false;
         int refIndex = 0;
         for (char c : mBases.toCharArray()) {
             if (mRef.charAt(refIndex) != c) return false;
@@ -93,7 +111,7 @@ public class BasicVariation implements Variation {
     }
 
     /**
-     * are we an insertion or a deletion? yes, then return true.  No? Well, false it is.
+     * are we an insertion or a deletion? yes, then return true.
      *
      * @return true if we're an insertion or deletion
      */
@@ -111,6 +129,8 @@ public class BasicVariation implements Variation {
     @Override
     public char getAlternativeBaseForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
+
+        // we know that if we're a snp, the reference is a single base, so charAt(0) is safe
         if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
             return getAlternateBases().charAt(1);
         return getAlternateBases().charAt(0);
@@ -124,6 +144,8 @@ public class BasicVariation implements Variation {
     @Override
     public char getReferenceForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
+
+        // we know that if we're a snp, the reference is a single base, so charAt(0) is safe
         if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
             return getAlternateBases().charAt(0);
         return getAlternateBases().charAt(1);

@@ -4,26 +4,38 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 
 
 /**
- * 
- * @author aaron 
- * 
- * Class BasicGenotype
- *
- * represents a basic genotype object
+ * @author aaron
+ *         <p/>
+ *         Class BasicGenotype
+ *         <p/>
+ *         represents a basic genotype object.  That means that is
+ *         an implementation for a basic genotype call, given the genotype
+ *         string, the ref base, the confidence score, and the location. This
+ *         class currently only represents point genotypes, not indels
  */
 public class BasicGenotype implements Genotype {
     // the genotype string
     private String mGenotype;
+
+    // our location
     private GenomeLoc mLocation;
+
+    // the reference base.
     private char mRef;
-    private double mNetLog10PError;
+
+    // the confidence score
+    private double mNegLog10PError;
 
     /**
-     * create a basic genotype
-     * @param genotype
+     * create a basic genotype, given the following fields
+     *
+     * @param location       the genomic location
+     * @param genotype       the genotype, as a string, where ploidy = string.length
+     * @param ref            the reference base as a char
+     * @param negLog10PError the confidence score
      */
-    public BasicGenotype(GenomeLoc location, String genotype, char ref, double netLog10PError) {
-        mNetLog10PError = netLog10PError;
+    public BasicGenotype(GenomeLoc location, String genotype, char ref, double negLog10PError) {
+        mNegLog10PError = negLog10PError;
         mGenotype = genotype;
         mLocation = location;
         mRef = ref;
@@ -32,15 +44,15 @@ public class BasicGenotype implements Genotype {
     /**
      * get the -1 * (log 10 of the error value)
      *
-     * @return the log based error estimate
+     * @return the negitive log based error estimate
      */
     @Override
     public double getNegLog10PError() {
-        return mNetLog10PError;
+        return mNegLog10PError;
     }
 
     /**
-     * get the bases that represent this
+     * get the bases that represent this genotype
      *
      * @return the bases, as a string
      */
@@ -60,7 +72,7 @@ public class BasicGenotype implements Genotype {
     }
 
     /**
-     * Returns true if both observed alleles are the same (regardless of whether they are ref or alt)
+     * Returns true if both observed allele bases are the same (regardless of whether they are ref or alt)
      *
      * @return true if we're homozygous, false otherwise
      */
@@ -79,7 +91,7 @@ public class BasicGenotype implements Genotype {
     }
 
     /**
-     * Returns true if observed alleles differ (regardless of whether they are ref or alt)
+     * Returns true if observed allele bases differ (regardless of whether they are ref or alt)
      *
      * @return true if we're het, false otherwise
      */
@@ -138,6 +150,6 @@ public class BasicGenotype implements Genotype {
     @Override
     public Variation toVariation() {
         if (!isVariant(this.mRef)) throw new IllegalStateException("this genotype is not a variant");
-        return new BasicVariation(this.getBases(),String.valueOf(mRef),this.getBases().length(),mLocation,mNetLog10PError);
+        return new BasicVariation(this.getBases(), String.valueOf(mRef), this.getBases().length(), mLocation, mNegLog10PError);
     }
 }

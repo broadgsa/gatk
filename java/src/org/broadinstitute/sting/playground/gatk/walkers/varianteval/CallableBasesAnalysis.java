@@ -3,10 +3,9 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.Utils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +22,6 @@ import java.util.List;
 public class CallableBasesAnalysis extends BasicVariantAnalysis implements GenotypeAnalysis {
     long all_bases = 0;
     long all_calls = 0;
-    //final static double[] Qthresholds = { 10, 20, 30, 40, 50, 100, 200, 500, 1000 };
     final static double[] thresholds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 50, 100};
     long[] discoverable_bases = new long[thresholds.length];
     long[] genotypable_bases = new long[thresholds.length];
@@ -64,14 +62,14 @@ public class CallableBasesAnalysis extends BasicVariantAnalysis implements Genot
 
         // we actually have a record here
         if (!(eval instanceof VariantBackedByGenotype)) {            // evaluation record isn't a genotype, die!
-            throw new RuntimeException("Evaluation track isn't an Genotype!");
+            throw new RuntimeException("Evaluation track isn't backed by a Genotype!");
         }
 
         all_calls++;
         // For every threshold, updated discoverable and callable
         for (int i = 0; i < thresholds.length; i++) {
             double threshold = thresholds[i];
-            DiploidGenotype g = DiploidGenotype.valueOf(Utils.dupString(ref, 2));
+            DiploidGenotype g = DiploidGenotype.createHomGenotype(ref);
             Genotype genotype = ((VariantBackedByGenotype) eval).getGenotype(g);
             // update discoverable
             if (eval.isSNP() && eval.getNegLog10PError() >= threshold)

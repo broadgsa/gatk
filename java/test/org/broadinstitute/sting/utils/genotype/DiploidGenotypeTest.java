@@ -83,19 +83,19 @@ public class DiploidGenotypeTest extends BaseTest {
     @Test
       public void testCreateGenotype() {
         char ref = 'A';
-        DiploidGenotype g = DiploidGenotype.createGenotype(ref);
+        DiploidGenotype g = DiploidGenotype.createHomGenotype(ref);
         Assert.assertTrue("AA".equals(g.toString()));
 
         ref = 'a';
-        g = DiploidGenotype.createGenotype(ref);
+        g = DiploidGenotype.createHomGenotype(ref);
         Assert.assertTrue("AA".equals(g.toString()));
 
         ref = 't';
-        g = DiploidGenotype.createGenotype(ref);
+        g = DiploidGenotype.createHomGenotype(ref);
         Assert.assertTrue("TT".equals(g.toString()));
 
         ref = 'T';
-        g = DiploidGenotype.createGenotype(ref);
+        g = DiploidGenotype.createHomGenotype(ref);
         Assert.assertTrue("TT".equals(g.toString()));
 
     }

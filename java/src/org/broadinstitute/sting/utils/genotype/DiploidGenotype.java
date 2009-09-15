@@ -58,7 +58,7 @@ public enum DiploidGenotype {
      * @param hom the character to turn into a hom genotype, i.e. if it is A, then returned will be AA
      * @return the diploid genotype
      */
-    public static DiploidGenotype createGenotype(char hom) {
+    public static DiploidGenotype createHomGenotype(char hom) {
         return DiploidGenotype.valueOf((String.valueOf(hom) + String.valueOf(hom)).toUpperCase());     
     }
 }
