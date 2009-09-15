@@ -29,26 +29,18 @@ import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
 import org.broadinstitute.sting.gatk.io.storage.Storage;
 
-import java.util.Map;
-import java.util.HashMap;
-
 /**
- * Javadoc goes here.
+ * Maps creation of storage directly to output streams in parent.
  *
  * @author mhanna
  * @version 0.1
  */
 public class DirectOutputTracker extends OutputTracker {
-    /**
-     * Direct storage for output streams.
-     */
-    private final Map<Stub, Storage> storage = new HashMap<Stub,Storage>();
-
     public <T> T getStorage( Stub<T> stub ) {
-        Storage target = storage.get(stub);
+        Storage target = outputs.get(stub);
         if( target == null ) {
             target = StorageFactory.createStorage(stub);
-            storage.put(stub, target);
+            outputs.put(stub, target);
         }
         return (T)target;
     }
