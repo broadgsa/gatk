@@ -81,7 +81,7 @@ public class OutputTrackerTest extends BaseTest {
         Assert.assertSame("OutputTracker: Error stream incorrectly initialized.", System.err, errStream.getOutputStream());
     }
 
-    @Test
+    //@Test
     public void testErrorStreamAlone() throws FileNotFoundException {
         OutputTracker ot = new DirectOutputTracker();
         ot.initializeCoreIO(null,ERROR_FILENAME);
@@ -102,7 +102,7 @@ public class OutputTrackerTest extends BaseTest {
         Assert.assertEquals("OutputTracker: Written error text is incorrect", errText, ERROR_TEXT);
     }
 
-    @Test
+    //@Test
     public void testIndependentStreams() throws FileNotFoundException {
         OutputTracker ot = new DirectOutputTracker();
         ot.initializeCoreIO(OUTPUT_FILENAME,ERROR_FILENAME);
