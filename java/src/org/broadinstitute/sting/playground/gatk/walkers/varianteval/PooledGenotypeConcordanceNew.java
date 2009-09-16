@@ -12,91 +12,13 @@ import java.io.*;
 import java.util.LinkedList;
 import java.util.List;
 
-/**
- * Created by IntelliJ IDEA.
- * User: Ghost
- * Date: Sep 15, 2009
- * Time: 6:06:37 PM
- * To change this template use File | Settings | File Templates.
- */
-public class PooledGenotypeConcordanceNew extends BasicVariantAnalysis {
-
-    private String[] hapmapNames;
-    private DebugWriter debug;
-    private HapmapConcordanceTable table;
-
-    public PooledGenotypeConcordanceNew(String pathToPoolFile, String pathToDebugFile, int verbosity) {
-        super("Pooled Genotype Concordance");
-        if( pathToPoolFile == null ) {
-            debug = new DebugWriter();
-        } else {
-            if( pathToDebugFile != null ) {
-                debug = new DebugWriter( pathToDebugFile, verbosity );
-            }
-            generateNameTableFromFile( pathToPoolFile );
-            table = new HapmapConcordanceTable( hapmapNames.length );
-        }
-    }
-
-    public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
-        table.updateTable(tracker, ref, hapmapNames, eval, context.getLocation(), debug);
-        return null;
-    }
-
-    public List<String> done() {
-        return table.standardOutput();
-    }
-
-    // methods for reading pool information from file
-
-    private void generateNameTableFromFile(String file) {
-        BufferedReader reader;
-        try {
-            reader = new BufferedReader(new FileReader(file));
-        } catch( FileNotFoundException e) {
-            String errMsg = "Hapmap pool file at "+file+" was not found. Please check filepath.";
-            throw new StingException(errMsg, e);
-        }
-
-        LinkedList<String> nameList = new LinkedList<String>();
-
-        while(continueReading(reader)) {
-            String line = readLine(reader);
-            nameList.add(line);
-        }
-
-        hapmapNames = nameList.toArray(new String[nameList.size()]);
-    }
-
-    private boolean continueReading(BufferedReader reader) {
-        boolean continueReading;
-        try {
-            continueReading = reader.ready();
-        } catch(IOException e) {
-            continueReading = false;
-        }
-        return continueReading;
-    }
-
-    private String readLine(BufferedReader reader) {
-        String line;
-        try {
-            line = reader.readLine();
-        } catch( IOException e) {
-            String errMsg = "BufferedReader pointing to "+reader.toString()+" was declared ready but no line could be read from it.";
-            throw new StingException(errMsg,e);
-        }
-        return line;
-    }
-}
-
-class HapmapConcordanceTable {
+class HapmapConcordanceTableOld {
 
     private int[][][] truthTableByName;
     private int[][] poolCallConcordance;
     private int[][] callsByName;
     private int[][] truthByName;
-    private int absoluteFalseNegatives;
+    private int absoluteFalsePositives;
     private int sitesWithFullDataAndNoSNPs;
 
     private final int REF = 0;
@@ -107,14 +29,15 @@ class HapmapConcordanceTable {
     private final int MATCH = 1;
     private final int MISMATCH = 2;
     private final int NO_CALL = 3;
+    private final int DE_NOVO_CALL = 3; //synonym
     private final int ONE_SNP = 0;
     private final int MULTI_SNP = 1;
     private final int DE_NOVO = 2;
     private final int TRUE_INT = 1;
     private final int FALSE_INT = 0;
 
-    public HapmapConcordanceTable( int numberOfPeople ) {
-        absoluteFalseNegatives = 0;
+    public HapmapConcordanceTableOld( int numberOfPeople ) {
+        absoluteFalsePositives = 0;
         sitesWithFullDataAndNoSNPs = 0;
         truthTableByName = new int[numberOfPeople][4][4];
         callsByName = new int[numberOfPeople][4];
@@ -145,12 +68,12 @@ class HapmapConcordanceTable {
             int hapmapCoverage = 0;
             for ( int name = 0; name < names.length; name ++ ) {
                 Variation chip = (Variation) tracker.lookup(names[name], null);
-                debug.printLocusInfo(eval, names[name], ref, chip, loc);
                 SQuad<Integer> variantAndCall = update(eval, name, chip, Character.toUpperCase(ref), debug);
                 nHapmapVariants += variantAndCall.getFirst();
                 nCorrectCalls += variantAndCall.getSecond();
                 hapmapCoverage += variantAndCall.getThird();
-                updateFalseNegatives(hapmapCoverage,nHapmapVariants,variantAndCall.getFourth());
+                updateFalsePositives(hapmapCoverage,nHapmapVariants,variantAndCall.getFourth());
+                debug.printLocusInfo(eval, names[name], ref, chip, loc, variantAndCall.getFourth());
             }
             updatePoolCallConcordance(nHapmapVariants,nCorrectCalls);
             debug.printVerbose(String.format("%s   Variants In Pool: %d     Correctly Called: %d%n", loc.toString(), nHapmapVariants, nCorrectCalls));
@@ -187,12 +110,12 @@ class HapmapConcordanceTable {
         poolCallConcordance[hapmapAllelesIndex][callConcordanceIndex]++;
     }
 
-    public void updateFalseNegatives(int coverage, int nHapmapVariants, int callConcordanceIndex) {
+    public void updateFalsePositives(int coverage, int nHapmapVariants, int callConcordanceIndex) {
         if( coverage == truthByName.length ) {
-            if( nHapmapVariants == 0 ) {
+            if( nHapmapVariants == 0  ) {
                 if( callConcordanceIndex != NO_CALL ) {
                     if (callConcordanceIndex != NOVARIANT ) {
-                        absoluteFalseNegatives++;
+                        absoluteFalsePositives++;
                         sitesWithFullDataAndNoSNPs++;
                     } else {
                         sitesWithFullDataAndNoSNPs++;
@@ -225,7 +148,10 @@ class HapmapConcordanceTable {
         if( eval == null ) {
             callIndex = NO_CALL;
             isCorrectCallAndThereIsVariant = FALSE_INT;
-        } else if ( eval.getAlternateBases().charAt(0) == ref && chip.getAlternateBases().charAt(1) == ref ) {
+        } else if ( chip == null ) {
+            callIndex = DE_NOVO_CALL;
+            isCorrectCallAndThereIsVariant = FALSE_INT;
+        } else if ( eval.getAlternateBases().charAt(0) == ref && eval.getAlternateBases().charAt(1) == ref ) {
             callIndex = NOVARIANT;
             isCorrectCallAndThereIsVariant = FALSE_INT;
         } else if ( callWrongBase(eval, chip, ref, debug) ) {
@@ -249,6 +175,7 @@ class HapmapConcordanceTable {
         // eval and chip guaranteed to be non-null
         char evalRef;
         char evalSNP;
+
         if ( eval.getAlternateBases().charAt(0) == ref ) {
             evalRef = eval.getAlternateBases().charAt(0);
             evalSNP = eval.getAlternateBases().charAt(1);
@@ -266,14 +193,32 @@ class HapmapConcordanceTable {
         LinkedList<String> outLines = new LinkedList<String>();
         int numSingleSNPSites = poolCallConcordance[ONE_SNP][MATCH] + poolCallConcordance[ONE_SNP][MISMATCH];
         int numMultiSNPSites = poolCallConcordance[MULTI_SNP][MATCH] + poolCallConcordance[MULTI_SNP][MISMATCH];
-        outLines.add(String.format("Sites with variants in One hapmap individual: %d%n", numSingleSNPSites));
-        outLines.add(String.format("\tNumber called correctly:   %d   (%f)%n",poolCallConcordance[ONE_SNP][MATCH], ((double)poolCallConcordance[ONE_SNP][MATCH]/numSingleSNPSites)));
-        outLines.add(String.format("\tNumber called incorrectly: %d   (%f)%n", poolCallConcordance[ONE_SNP][MISMATCH], ((double)poolCallConcordance[ONE_SNP][MISMATCH])/numSingleSNPSites));
-        outLines.add(String.format("Sites with variants in multiple hapmap individuals: %d%n", numMultiSNPSites));
-        outLines.add(String.format("\tNumber called correctly:   %d   (%f)%n", poolCallConcordance[MULTI_SNP][MATCH], ((double)poolCallConcordance[MULTI_SNP][MISMATCH])/numMultiSNPSites));
-        outLines.add(String.format("\tNumber called incorrectly: %d   (%f)%n", poolCallConcordance[MULTI_SNP][MISMATCH], ((double)poolCallConcordance[MULTI_SNP][MISMATCH])/numMultiSNPSites));
-        outLines.add(String.format("Number of called sites with chip data on all individuals: %d%n", sitesWithFullDataAndNoSNPs));
-        outLines.add(String.format("\tNumber incorrectly called SNPs: %d   (%f)%n", absoluteFalseNegatives, ((double)absoluteFalseNegatives)/sitesWithFullDataAndNoSNPs));
+        int numSNPSites = numSingleSNPSites + numMultiSNPSites;
+        int numCorrect = poolCallConcordance[ONE_SNP][MATCH] + poolCallConcordance[MULTI_SNP][MATCH];
+        int numIncorrect = poolCallConcordance[ONE_SNP][MISMATCH] + poolCallConcordance[MULTI_SNP][MISMATCH];
+        outLines.add(String.format("Number of Hapmap SNP Sites:  %d", numSNPSites));
+        outLines.add(String.format("\tNumber correctly called:   %d  (%f)", numCorrect, ((double) numCorrect)/numSNPSites));
+        outLines.add(String.format("\tNumber incorrectly called: %d  (%f)", numIncorrect, ((double) numIncorrect)/numSNPSites));
+        outLines.add(String.format("\tSites with variants in One hapmap individual: %d", numSingleSNPSites));
+        outLines.add(String.format("\t\tNumber called correctly:   %d   (%f)",poolCallConcordance[ONE_SNP][MATCH], ((double)poolCallConcordance[ONE_SNP][MATCH]/numSingleSNPSites)));
+        outLines.add(String.format("\t\tNumber called incorrectly: %d   (%f)", poolCallConcordance[ONE_SNP][MISMATCH], ((double)poolCallConcordance[ONE_SNP][MISMATCH])/numSingleSNPSites));
+        outLines.add(String.format("\tSites with variants in multiple hapmap individuals: %d", numMultiSNPSites));
+        outLines.add(String.format("\t\tNumber called correctly:   %d   (%f)", poolCallConcordance[MULTI_SNP][MATCH], ((double)poolCallConcordance[MULTI_SNP][MATCH])/numMultiSNPSites));
+        outLines.add(String.format("\t\tNumber called incorrectly: %d   (%f)", poolCallConcordance[MULTI_SNP][MISMATCH], ((double)poolCallConcordance[MULTI_SNP][MISMATCH])/numMultiSNPSites));
+        outLines.add(String.format("\tNumber of called sites with homozygous reference chip data on all individuals: %d", sitesWithFullDataAndNoSNPs));
+        outLines.add(String.format("\t\tNumber incorrectly called SNPs: %d   (%f)", absoluteFalsePositives, ((double)absoluteFalsePositives)/sitesWithFullDataAndNoSNPs));
+        return outLines;
+    }
+
+    public List<String> verboseOutput(String[] names) {
+        LinkedList<String> outLines = (LinkedList<String>) this.standardOutput();
+        for( int nameOffset = 0; nameOffset < names.length; nameOffset ++ ) {
+            outLines.add(String.format("Concordance for Hapmap individual %s:", names[nameOffset]));
+            int numSNPSites = truthByName[nameOffset][HET] + truthByName[nameOffset][HOM];
+            int numCallSites = callsByName[nameOffset][MATCH] + callsByName[nameOffset][MISMATCH];
+            outLines.add(String.format("hi %s", "hello"));
+        }
+        
         return outLines;
     }
 
@@ -347,11 +292,11 @@ class DebugWriter {
         return verbosity;
     }
 
-    public void printLocusInfo(Variation eval, String name, char ref, Variation chip, GenomeLoc loc) {
+    public void printLocusInfo(Variation eval, String name, char ref, Variation chip, GenomeLoc loc, int callIndex) {
         if(verbosity == INFO || verbosity == ALL) {
             String callStr = (eval == null) ? "NoCall" : eval.getAlternateBases();
             String varStr = (chip == null) ? "NoChip" : chip.getAlternateBases();
-            this.print(String.format("%s %s   Call: %s     Chip: %s     Ref: %s%n", name, loc, callStr, varStr, ref));
+            this.print(String.format("%s %s   Call: %s     Chip: %s     Ref: %s   CallIndex: %d%n", name, loc, callStr, varStr, ref, callIndex));
         }
     }
 
