@@ -22,13 +22,22 @@ public class ExpandingArrayList<E> extends ArrayList<E> {
             return null;
     }
 
-    public E set(int index, E element) {
+    public E expandingGet(int index, E default_value) throws IndexOutOfBoundsException {
+        maybeExpand(index, default_value);
+        return super.get(index);
+    }
+
+    private void maybeExpand(int index, E value) {
         if ( index >= size() ) {
             // We need to add null items until we can safely set index to element
             for ( int i = size(); i <= index; i++ )
-                add(null);
+                add(value);
         }
+    }
 
+
+    public E set(int index, E element) {
+        maybeExpand(index, null);
         return super.set(index, element);
     }
 }
