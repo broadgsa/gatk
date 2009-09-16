@@ -154,7 +154,7 @@ class PooledConcordanceTable {
             } else {
                 if ( pooledCallIsRef( eval, ref ) ) {
                     callIndex = REF_CALL;
-                } else if (truthIndex == TRUTH_REF ) {
+                } else if ( truthIndex == TRUTH_REF ) {
                     callIndex = VARIANT_CALL;
                 } else if (truthIndex == TRUTH_UNKNOWN) {
                     callIndex = VARIANT_CALL_UNKNOWN;
@@ -308,24 +308,53 @@ class PooledConcordanceTable {
         int nSNPsAtNonHapmap = table[NO_TRUTH_DATA][VARIANT_CALL_NONHAPMAP];
         int nSNPsAtHapmapWithRefDataOnSubsetOfIndividuals = table[TRUTH_UNKNOWN][VARIANT_CALL_UNKNOWN];
 
-        out.add(String.format("Total Number of SNP Calls:                 %d", nSNPCallSites));
-        out.add(String.format("Total SNP calls on non-Hapmap sites        %d", nSNPsAtNonHapmap));
-        out.add(String.format("Number of Hapmap Sites:                    %d", nHapmapSites));
-        out.add("Data on Hapmap Reference Sites");
-        out.add(String.format("\tSites where all Hapmap chips were ref:     %d", nFullHapmapRefSites));
-        out.add(String.format("\t\tReference sites correctly called:    %d   (%f)", nRefsCalledCorrectly, ((double)nRefsCalledCorrectly/nFullHapmapRefSites)));
-        out.add(String.format("\t\tReference sites called as variant:   %d   (%f)", nRefsCalledAsSNP, ((double)nRefsCalledAsSNP/nFullHapmapRefSites)));
-        out.add(String.format("\tSites where all seen Hapmap chips were ref, but not all Hapmap chips available: %d", nUnknownHapmapSites));
-        out.add(String.format("\t\tPutative reference sites called ref: %d   (%f)", table[TRUTH_UNKNOWN][REF_CALL], ((double)table[TRUTH_UNKNOWN][REF_CALL]/nUnknownHapmapSites)));
-        out.add(String.format("\t\tPutative reference sites called SNP: %d   (%f)", nSNPsAtHapmapWithRefDataOnSubsetOfIndividuals, ((double)nSNPsAtHapmapWithRefDataOnSubsetOfIndividuals/nUnknownHapmapSites)));
-        out.add("Data on Hapmap Variant Sites");
-        out.add(String.format("\tNumber of Hapmap SNP Sites:                %d", nHapmapSNPSites));
-        out.add(String.format("\t\tSNP sites incorrectly called ref:    %d   (%f)", nSNPsCalledAsRef, ((double)nSNPsCalledAsRef/nHapmapSNPSites)));
-        out.add(String.format("\tSNP calls on Hapmap SNP Sites:             %d", nSNPsOnHapmapSNP));
-        out.add(String.format("\t\tSNP sites correctly called SNP:      %d   (%f)", nSNPsCalledCorrectly, ((double)nSNPsCalledCorrectly/nSNPsOnHapmapSNP)));
-        out.add(String.format("\t\tSNP sites called a different base:   %d   (%f)", nSNPsCalledIncorrectly, ((double)nSNPsCalledIncorrectly/nSNPsOnHapmapSNP)));
-        out.add(String.format("Calls on reference N:                       %d", variantCallsAtRefN));
+        out.add(String.format("| Total Number of SNP Calls:                 %d", nSNPCallSites));
+        out.add(String.format("| Total SNP calls on non-Hapmap sites        %d", nSNPsAtNonHapmap));
+        out.add(String.format("| Number of Hapmap Sites:                    %d", nHapmapSites));
+        out.add("| Data on Hapmap Reference Sites");
+        out.add(String.format("| \t+ Sites where all Hapmap chips were ref:     %d", nFullHapmapRefSites));
+        out.add(String.format("| \t\t- Reference sites correctly called:    %d   (%f)", nRefsCalledCorrectly, ((double)nRefsCalledCorrectly/nFullHapmapRefSites)));
+        out.add(String.format("| \t\t- Reference sites called as variant:   %d   (%f)", nRefsCalledAsSNP, ((double)nRefsCalledAsSNP/nFullHapmapRefSites)));
+        out.add(String.format("| \t+ Sites where all seen Hapmap chips were ref, but not all Hapmap chips available: %d", nUnknownHapmapSites));
+        out.add(String.format("| \t\t- Putative reference sites called ref: %d   (%f)", table[TRUTH_UNKNOWN][REF_CALL], ((double)table[TRUTH_UNKNOWN][REF_CALL]/nUnknownHapmapSites)));
+        out.add(String.format("| \t\t- Putative reference sites called SNP: %d   (%f)", nSNPsAtHapmapWithRefDataOnSubsetOfIndividuals, ((double)nSNPsAtHapmapWithRefDataOnSubsetOfIndividuals/nUnknownHapmapSites)));
+        out.add("| Data on Hapmap Variant Sites");
+        out.add(String.format("| \t+ Number of Hapmap SNP Sites:                %d", nHapmapSNPSites));
+        out.add(String.format("| \t\t- SNP sites incorrectly called ref:    %d   (%f)", nSNPsCalledAsRef, ((double)nSNPsCalledAsRef/nHapmapSNPSites)));
+        out.add(String.format("| \t+ SNP calls on Hapmap SNP Sites:             %d", nSNPsOnHapmapSNP));
+        out.add(String.format("| \t\t- SNP sites correctly called SNP:      %d   (%f)", nSNPsCalledCorrectly, ((double)nSNPsCalledCorrectly/nSNPsOnHapmapSNP)));
+        out.add(String.format("| \t\t- SNP sites called a different base:   %d   (%f)", nSNPsCalledIncorrectly, ((double)nSNPsCalledIncorrectly/nSNPsOnHapmapSNP)));
+        out.add(String.format("| Calls on reference N:                       %d", variantCallsAtRefN));
+        out.add("----------------------- Output By Allele Frequency ------------------------");
+        out.add("");
+        out.add("FREQUENCY \tFALSE POSITIVES\tTRUE NEGATIVES\tFALSE NEGATIVES\tTRUE POSITIVES\tMISCALLS\tFALSE NEGATIVE RATE\tFALSE POSITIVE RATE");
+        for( int i = 0; i < getLargestOutputAlleleFrequencyIndex(); i ++) {
+            double freq = freqIndexToFrequency(i);
+            int nRefsCalledAsSNPFreq = tableByHMFrequency[i][TRUTH_REF][VARIANT_CALL];
+            int nRefsCalledCorrectFreq = tableByHMFrequency[i][TRUTH_REF][REF_CALL];
+            int nSNPsCalledIncorrectlyFreq = tableByHMFrequency[i][TRUTH_VAR][VARIANT_CALL_MISMATCH];
+            int nSNPsCalledCorrectlyFreq = tableByHMFrequency[i][TRUTH_VAR][VARIANT_CALL_MATCH];
+            int nSNPsCalledAsRefFreq = tableByHMFrequency[i][TRUTH_VAR][REF_CALL];
+            int nSnpsCalledAtFreq = nSNPsCalledIncorrectlyFreq + nSNPsCalledCorrectlyFreq + nSNPsCalledAsRefFreq;
+            double fnrate = ((double) nSNPsCalledAsRefFreq / nSnpsCalledAtFreq);
+            double fprate = ((double) nRefsCalledAsSNPFreq / (nRefsCalledAsSNPFreq + nRefsCalledCorrectFreq));
+            out.add(String.format("%f\t%d\t\t%d\t\t%d\t\t\t%d\t%d\t\t%f\t\t\t%f",
+                     freq, nRefsCalledAsSNPFreq, nRefsCalledCorrectFreq, nSNPsCalledAsRefFreq, nSNPsCalledCorrectlyFreq, nSNPsCalledIncorrectlyFreq, fnrate, fprate));
+        }
 
         return out;
+    }
+
+    public int getLargestOutputAlleleFrequencyIndex() {
+        int nHapmapSitesAtFreq = 1;
+        int freqIndex = -1;
+        while ( nHapmapSitesAtFreq > 0 && freqIndex < calculateNumFrequencyIndeces(poolSize) ) {
+            freqIndex ++;
+            for ( int i = 0; i < CALL_INDECES; i ++) {
+                nHapmapSitesAtFreq += table[TRUTH_REF][i] + table[TRUTH_VAR][i] + table[TRUTH_UNKNOWN][i];
+            }
+        }
+
+        return freqIndex;
     }
 }
