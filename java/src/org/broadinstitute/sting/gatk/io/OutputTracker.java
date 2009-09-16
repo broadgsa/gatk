@@ -75,7 +75,7 @@ public abstract class OutputTracker {
 
             errStub = (errFileName != null) ? new OutputStreamStub(new File(errFileName))
                                             : new OutputStreamStub(System.err);
-            addOutput(errStub,new OutputStreamStorage(outStub));
+            addOutput(errStub,new OutputStreamStorage(errStub));
         }
     }
 
