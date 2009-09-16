@@ -186,6 +186,10 @@ public class VECFisherStrand implements VariantExclusionCriterion {
             SAMRecord read = reads.get(readIndex);
             int offset = offsets.get(readIndex);
 
+	    // skip over deletion sites
+	    if ( offset == -1 )
+		continue;
+
             int readAllele = BaseUtils.simpleBaseToBaseIndex(read.getReadString().charAt(offset));
             boolean isFW = !read.getReadNegativeStrandFlag();
 

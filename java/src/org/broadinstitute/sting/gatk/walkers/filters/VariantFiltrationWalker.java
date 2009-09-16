@@ -197,6 +197,14 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
      */
     public Integer reduceInit() { return 0; }
 
+    
+    /**
+     * We want reads that span deletions
+     *
+     * @return true
+     */
+    public boolean includeReadsWithDeletionAtLoci() { return true; }
+
     /**
      * For each site of interest, rescore the genotype likelihoods by applying the specified feature set.
      *
