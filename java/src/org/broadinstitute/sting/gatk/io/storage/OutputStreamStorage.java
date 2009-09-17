@@ -87,6 +87,11 @@ public class OutputStreamStorage extends OutputStream implements Storage<OutputS
      * @{inheritDoc}
      */
     public void close() {
+        // Don't close System.out or System.err; this'll cause trouble
+        // with subsequent code running in this VM.
+        if( outputStream == System.out || outputStream == System.err )
+            return;
+        
         try {
             outputStream.close();
         }

@@ -105,7 +105,7 @@ public class OutputStreamStub extends OutputStream implements Stub<OutputStream>
      * @{inheritDoc}
      */
     public void flush() throws IOException {
-        outputTracker.getStorage(this).close();
+        outputTracker.getStorage(this).flush();
     }
 
     /**
