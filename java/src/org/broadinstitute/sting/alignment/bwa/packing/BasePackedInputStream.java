@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.bwa;
+package org.broadinstitute.sting.alignment.bwa.packing;
 
 import org.broadinstitute.sting.utils.StingException;
 
@@ -38,7 +38,7 @@ public class BasePackedInputStream<T> {
 
         this.targetInputStream = inputStream;
         this.type = type;
-        this.buffer = ByteBuffer.allocate(PackUtils.bitsInType(type)/PackUtils.BITS_PER_BYTE).order(byteOrder);
+        this.buffer = ByteBuffer.allocate(PackUtils.bitsInType(type)/ PackUtils.BITS_PER_BYTE).order(byteOrder);
     }
 
     /**

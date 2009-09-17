@@ -1,7 +1,9 @@
-package org.broadinstitute.sting.bwa;
+package org.broadinstitute.sting.alignment.bwa;
 
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.alignment.bwa.bwt.SuffixArrayReader;
+import org.broadinstitute.sting.alignment.bwa.bwt.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;

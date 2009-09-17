@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.bwa;
+package org.broadinstitute.sting.alignment.bwa.bwt;
 
 import org.broadinstitute.sting.utils.StingException;
 
@@ -25,7 +25,7 @@ public class Counts implements Cloneable {
      * @param data Count data, broken down by base.
      * @param cumulative Whether the counts are cumulative, (count_G=numA+numC+numG,for example).
      */
-    Counts( int[] data, boolean cumulative ) {
+    public Counts( int[] data, boolean cumulative ) {
         for( Base base: EnumSet.allOf(Base.class))
             counts[base.toPack()] = data[base.toPack()];
 

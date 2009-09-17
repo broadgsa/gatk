@@ -1,9 +1,15 @@
-package org.broadinstitute.sting.bwa;
+package org.broadinstitute.sting.alignment;
 
 import net.sf.samtools.SAMRecord;
 
 import java.io.File;
 import java.util.List;
+
+import org.broadinstitute.sting.alignment.bwa.*;
+import org.broadinstitute.sting.alignment.bwa.bwt.BWT;
+import org.broadinstitute.sting.alignment.bwa.bwt.SuffixArray;
+import org.broadinstitute.sting.alignment.bwa.bwt.BWTReader;
+import org.broadinstitute.sting.alignment.bwa.bwt.SuffixArrayReader;
 
 /**
  * Create perfect alignments from the read to the genome represented by the given BWT / suffix array. 

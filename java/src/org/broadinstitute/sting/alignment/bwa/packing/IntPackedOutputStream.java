@@ -23,7 +23,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.bwa;
+package org.broadinstitute.sting.alignment.bwa.packing;
 
 import java.io.*;
 import java.nio.ByteBuffer;

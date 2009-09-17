@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.bwa;
+package org.broadinstitute.sting.alignment.bwa.packing;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -38,7 +38,7 @@ public class IntPackedInputStream {
      */
     public IntPackedInputStream(InputStream inputStream, ByteOrder byteOrder) {
         this.targetInputStream = inputStream;
-        this.buffer = ByteBuffer.allocate(PackUtils.bitsInType(Integer.class)/PackUtils.BITS_PER_BYTE).order(byteOrder);        
+        this.buffer = ByteBuffer.allocate(PackUtils.bitsInType(Integer.class)/ PackUtils.BITS_PER_BYTE).order(byteOrder);
     }
 
     /**

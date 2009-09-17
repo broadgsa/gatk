@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.bwa;
+package org.broadinstitute.sting.alignment;
 
 /**
  * Represents an alignment of a read to a site in the reference genome.

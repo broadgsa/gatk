@@ -1,4 +1,6 @@
-package org.broadinstitute.sting.bwa;
+package org.broadinstitute.sting.alignment.bwa;
+
+import org.broadinstitute.sting.alignment.Alignment;
 
 /**
  * An alignment object to be used incrementally as the BWA aligner

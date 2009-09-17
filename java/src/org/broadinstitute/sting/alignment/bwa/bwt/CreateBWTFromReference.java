@@ -23,7 +23,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.bwa;
+package org.broadinstitute.sting.alignment.bwa.bwt;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
@@ -35,6 +35,7 @@ import java.util.TreeSet;
 import java.util.Comparator;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.alignment.bwa.packing.PackUtils;
 
 /**
  * Create a suffix array data structure.

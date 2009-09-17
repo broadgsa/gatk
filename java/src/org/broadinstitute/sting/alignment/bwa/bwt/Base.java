@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.bwa;
+package org.broadinstitute.sting.alignment.bwa.bwt;
 
 import java.util.EnumSet;
 import java.util.Map;

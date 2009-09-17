@@ -1,6 +1,9 @@
-package org.broadinstitute.sting.bwa;
+package org.broadinstitute.sting.alignment.bwa.bwt;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.alignment.bwa.packing.IntPackedInputStream;
+import org.broadinstitute.sting.alignment.bwa.packing.BasePackedInputStream;
+import org.broadinstitute.sting.alignment.bwa.packing.PackUtils;
 
 import java.io.*;
 import java.nio.ByteOrder;
@@ -50,7 +53,7 @@ public class BWTReader {
             sequenceBlocks = new SequenceBlock[PackUtils.numberOfPartitions(bwtSize,BWT.SEQUENCE_BLOCK_SIZE)];
             
             for( int block = 0; block < sequenceBlocks.length; block++ ) {
-                int sequenceStart = block*BWT.SEQUENCE_BLOCK_SIZE;
+                int sequenceStart = block* BWT.SEQUENCE_BLOCK_SIZE;
                 int sequenceLength = Math.min(BWT.SEQUENCE_BLOCK_SIZE,bwtSize-sequenceStart);
 
                 int[] occurrences = new int[PackUtils.ALPHABET_SIZE];

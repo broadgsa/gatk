@@ -1,6 +1,7 @@
-package org.broadinstitute.sting.bwa;
+package org.broadinstitute.sting.alignment.bwa.bwt;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.alignment.bwa.packing.IntPackedOutputStream;
 
 import java.io.*;
 import java.nio.ByteOrder;

@@ -1,9 +1,12 @@
-package org.broadinstitute.sting.bwa;
+package org.broadinstitute.sting.alignment.bwa;
 
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 import java.util.ArrayList;
+
+import org.broadinstitute.sting.alignment.bwa.bwt.Base;
+import org.broadinstitute.sting.alignment.bwa.bwt.BWT;
 
 /**
  * At any point along the given read, what is a good lower bound for the
