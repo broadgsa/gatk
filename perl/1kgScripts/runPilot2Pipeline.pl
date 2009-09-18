@@ -97,7 +97,7 @@ sub call {
     my $doc = $_[8];
     my $mq = $_[9];
 
-    my $cmd = "perl $sting/perl/1kgScripts/runCallingPipeline.pl -i $inputBams -o $outputHead -q $queue -snps -sting $sting -sample $sample -badsnps $badsnps -doc $doc -mq $mq";
+    my $cmd = "perl $sting/perl/1kgScripts/runCallingPipeline.pl -i \"$inputBams\" -o $outputHead -q $queue -snps -sting $sting -sample $sample -badsnps $badsnps -doc $doc -mq $mq";
     if ($dry) {
 	$cmd .= " -dry";
     }
