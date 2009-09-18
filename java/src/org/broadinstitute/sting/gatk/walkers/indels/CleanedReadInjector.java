@@ -74,7 +74,8 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
 	// If there are intervals specified by the user,record them so we can make sure not
 	// to emit reads outside the intervals.  For now, we'll group them by chromosome to
 	// make lookup a bit faster.
-        if ( this.getToolkit().getArguments().intervals != null ) {
+        if ( this.getToolkit() != null &&
+	     this.getToolkit().getArguments().intervals != null ) {
 	    intervals = new HashMap<String, ArrayList<GenomeLoc>>();
 	    List<GenomeLoc> locs = GenomeAnalysisEngine.parseIntervalRegion(this.getToolkit().getArguments().intervals);
 	    Iterator<GenomeLoc> iter = GenomeLocSortedSet.createSetFromList(locs).iterator();
