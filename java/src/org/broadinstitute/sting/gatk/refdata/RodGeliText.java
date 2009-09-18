@@ -69,7 +69,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
             depth = Integer.valueOf(parts[3]);
             maxMappingQuality = Integer.valueOf(parts[4]);
 
-            System.out.printf("%s%n", parts[5]);
+            // UPPER case and sort
             char[] x = parts[5].toUpperCase().toCharArray();
             Arrays.sort(x);
             bestGenotype = new String(x);
