@@ -55,7 +55,7 @@ public class SimpleVenn implements ConcordanceType {
             printVariant(set2_writer, call2);
 
         // intersection (concordant)
-        else if ( call1.getAltBasesFWD().equals(call2.getAltBasesFWD()) )
+        else if ( call1.getAltBasesFWD().equalsIgnoreCase(call2.getAltBasesFWD()) )
             printVariant(intersect_writer, call1);
 
         // intersection (discordant)
