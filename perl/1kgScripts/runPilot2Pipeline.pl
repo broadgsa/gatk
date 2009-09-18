@@ -46,7 +46,7 @@ foreach my $sample (@samples) {
     my $outputBamSLX = "$outputHeadSLX.bam";
     my $badsnpsSLX = "$outputBamSLX.badsnps";
     clean($inputBamSLX, $outputBamSLX, $queue, $sting, $dry, $badsnpsSLX);
-    call("-I $outputBamSLX", $outputHeadSLX, $queue, $sting, $dry, "$inputBamSLX.cleaningpipeline", $sample, $badsnpsSLX, $DoC_slx{$sample}, $MQ_hash{"SLX"});
+    call("-I $outputBamSLX", $outputHeadSLX, $queue, $sting, $dry, "$outputBamSLX.cleaner.*", $sample, $badsnpsSLX, $DoC_slx{$sample}, $MQ_hash{"SLX"});
 
     if ($sample eq "NA12878" || $sample eq "NA19240") {
 	my $inputBamSOLID = "$inputDir/$sample.pilot2.SOLID.bam";
@@ -54,17 +54,17 @@ foreach my $sample (@samples) {
 	my $outputBamSOLID = "$outputHeadSOLID.bam";
 	my $badsnpsSOLID = "$outputBamSOLID.badsnps";
 	clean($inputBamSOLID, $outputBamSOLID, $queue, $sting, $dry, $badsnpsSOLID);
-	call("-I $outputBamSOLID", $outputHeadSOLID, $queue, $sting, $dry, "$inputBamSOLID.cleaningpipeline", $sample, $badsnpsSOLID, $DoC_solid{$sample}, $MQ_hash{"SOLID"});
+	call("-I $outputBamSOLID", $outputHeadSOLID, $queue, $sting, $dry, "$outputBamSOLID.cleaner.*", $sample, $badsnpsSOLID, $DoC_solid{$sample}, $MQ_hash{"SOLID"});
 
 	my $inputBam454 = "$inputDir/$sample.pilot2.454.bam";
 	my $outputHead454 = "$outputDir/$sample.454";
 	call("-I $inputBam454", $outputHead454, $queue, $sting, $dry, undef, $sample, $badsnpsSLX, $DoC_454{$sample}, $MQ_hash{"454"});
 
 	my $outputHead = "$outputDir/$sample.SOLID_454";
-	call("-I $outputBamSOLID -I $inputBam454", $outputHead, $queue, $sting, $dry, "$inputBamSOLID.cleaningpipeline", $sample, $badsnpsSOLID, $DoC_454solid{$sample}, $MQ_hash{"454SOLID"});
+	call("-I $outputBamSOLID -I $inputBam454", $outputHead, $queue, $sting, $dry, "$outputBamSOLID.cleaner.*", $sample, $badsnpsSOLID, $DoC_454solid{$sample}, $MQ_hash{"454SOLID"});
 
 	$outputHead = "$outputDir/$sample.allTechs";
-	call("-I $outputBamSLX -I $outputBamSOLID -I $inputBam454", $outputHead, $queue, $sting, $dry, "*.cleaningpipeline", $sample, $badsnpsSLX, $DoC_all{$sample}, $MQ_hash{"ALL"});
+	call("-I $outputBamSLX -I $outputBamSOLID -I $inputBam454", $outputHead, $queue, $sting, $dry, "*.cleaner.*", $sample, $badsnpsSLX, $DoC_all{$sample}, $MQ_hash{"ALL"});
     }
 }
 
@@ -77,7 +77,7 @@ sub clean {
     my $dry = $_[4];
     my $badsnps = $_[5];
 
-    my $cmd = "perl $sting/perl/1kgScripts/runCleaningPipeline.pl -i $inputBam -obam $outputBam -q $queue -inject -j $outputBam.cleaningpipeline -sting $sting -badsnps $badsnps";
+    my $cmd = "perl $sting/perl/1kgScripts/runCleaningPipeline.pl -i $inputBam -obam $outputBam -q $queue -inject -j $outputBam.cleaner.pipeline -sting $sting -badsnps $badsnps";
     if ($dry) {
 	$cmd .= " -dry";
     }

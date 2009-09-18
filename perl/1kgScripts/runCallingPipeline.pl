@@ -41,7 +41,7 @@ my $bsub = "bsub -q $queue -o $indelsHigh.sdout";
 if ($wait) {
     $bsub .= " -w \"ended($wait)\"";
 }
-my $command = "java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IndelGenotyper -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -minConsensusFraction 0.5 -minCnt 2 -1kg -minFraction 0.".$indelFractionMultiplier."3 -o $indelsHigh";
+my $command = "java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IndelGenotyper -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -minConsensusFraction 0.5 -minCnt 2 -1kg -minFraction 0.".$indelFractionMultiplier."3 -O $indelsHigh";
 execute("$bsub $command", $dry);
 
 my $indelsLow = "$outputHead.indels.low.calls";
@@ -49,7 +49,7 @@ $bsub = "bsub -q $queue -o $indelsLow.sdout -J $outputHead";
 if ($wait) {
     $bsub .= " -w \"ended($wait)\"";
 }
-$command = "java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IndelGenotyper -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -minConsensusFraction 0.5 -minCnt 2 -1kg -minFraction 0.".$indelFractionMultiplier."1 -o $indelsLow";
+$command = "java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IndelGenotyper -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -minConsensusFraction 0.5 -minCnt 2 -1kg -minFraction 0.".$indelFractionMultiplier."1 -O $indelsLow";
 execute("$bsub $command", $dry);
 
 if ($snps) {

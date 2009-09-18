@@ -31,7 +31,7 @@ foreach my $sample (@samples) {
     my $outputBam = "$outputHead.bam";
     my $badsnps = "$outputBam.badsnps";
     clean($inputBam, $outputBam, $queue, $sting, $dry, $badsnps);
-    call("-I $outputBam", $outputHead, $queue, $sting, $dry, "$inputBam.cleaningpipeline", $sample, $badsnps);
+    call("-I $outputBam", $outputHead, $queue, $sting, $dry, "$inputBam.cleaner.*", $sample, $badsnps);
 }
 
 sub clean {
@@ -43,7 +43,7 @@ sub clean {
     my $dry = $_[4];
     my $badsnps = $_[5];
 
-    my $cmd = "perl $sting/perl/1kgScripts/runCleaningPipeline.pl -i $inputBam -obam $outputBam -q $queue -j $outputBam.cleaningpipeline -sting $sting -badsnps $badsnps";
+    my $cmd = "perl $sting/perl/1kgScripts/runCleaningPipeline.pl -i $inputBam -obam $outputBam -q $queue -j $outputBam.cleaner.pipeline -sting $sting -badsnps $badsnps";
     if ($dry) {
 	$cmd .= " -dry";
     }

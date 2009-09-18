@@ -128,11 +128,11 @@ sub mergeResults {
 	    $cmd .= "$output.$i.bam ";
 	}
     } else {
-	$cmd .= " cat ";
+	$cmd .= " \"cat ";
 	for (my $i = 1; $i <= $intervalcount; $i++) {
 	    $cmd .= "$output.$i ";
 	}
-	$cmd .= "> $output";
+	$cmd .= "> $output\"";
     }
 
     execute($cmd, $dry);
