@@ -68,7 +68,12 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
             refBase = parts[2].charAt(0);
             depth = Integer.valueOf(parts[3]);
             maxMappingQuality = Integer.valueOf(parts[4]);
-            bestGenotype = parts[5];
+
+            System.out.printf("%s%n", parts[5]);
+            char[] x = parts[5].toUpperCase().toCharArray();
+            Arrays.sort(x);
+            bestGenotype = new String(x);
+
             lodBtr = Double.valueOf(parts[6]);
             lodBtnb = Double.valueOf(parts[7]);
 
@@ -349,7 +354,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      */
     @Override
     public Genotype getGenotype(DiploidGenotype x) {
-        if (x.toString() != this.getAltBasesFWD()) throw new IllegalStateException("We don't contain that genotype!"); 
+        if (x.toString() != this.getAltBasesFWD()) throw new IllegalStateException("We don't contain genotype " + x); 
         return new BasicGenotype(getLocation(), x.toString(), refBase, lodBtnb);
     }
 

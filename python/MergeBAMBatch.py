@@ -37,6 +37,9 @@ if __name__ == "__main__":
     parser.add_option("-n", "--naIDPops", dest="NAIDS2POP",
                         type="string", default=None,
                         help="Path to file contains NAID POP names.  If provided, input files will be merged by population")
+    parser.add_option("-p", "--pop", dest="onlyPop",
+                        type="string", default=None,
+                        help="If provided, only this population will be processed")
                         
     (OPTIONS, args) = parser.parse_args()
     if len(args) != 1:
@@ -58,6 +61,9 @@ if __name__ == "__main__":
             allSources = reduce( operator.__add__, map( glob.glob, s[1:] ), [] )
             print 'Merging info:'
             for spec in splitSourcesByPopulation(allSources, merged_filename_base, NAID2Pop):
+                if OPTIONS.onlyPop <> None and spec.group() <> OPTIONS.onlyPop:
+                    continue
+            
                 spec.setPath(directory)
                 spec.pprint()
                 

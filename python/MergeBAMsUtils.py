@@ -68,7 +68,8 @@ class MergeFilesSpec:
         print ' Population:         ', self.group()
         print ' Merged filename:    ', self.getMergedBAM()
         print ' N sources:          ', len(self.sources())
-        print ' Sources:            ', self.sources()
+        for source in sorted(self.sources()):
+            print ' Source:             ', source
         print ' Sizes:              ', self.sourceSizes(humanReadable=True)
         print ' Est. merged size:   ', greek(reduce(operator.__add__, self.sourceSizes(), 0))
         

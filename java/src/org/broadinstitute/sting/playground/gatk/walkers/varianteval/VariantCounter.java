@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,8 +32,12 @@ public class VariantCounter extends BasicVariantAnalysis implements GenotypeAnal
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         nSNPs += eval == null ? 0 : 1;
 
-        if ( this.getMaster().evalContainsGenotypes && eval != null && eval.isSNP() && ((VariantBackedByGenotype)eval).getGenotype( DiploidGenotype.valueOf(eval.getAlternateBase())).isHet() )
-            nHets++;
+        if ( this.getMaster().evalContainsGenotypes && eval != null ) {
+            List<Genotype> genotypes = ((VariantBackedByGenotype)eval).getGenotypes();
+            if ( eval.isSNP() && eval.isBiallelic() && genotypes.get(0).isHet() ) {
+                nHets++;
+            }
+        }
 
         return null;
     }
