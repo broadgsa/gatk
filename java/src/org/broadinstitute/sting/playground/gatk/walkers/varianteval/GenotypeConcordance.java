@@ -2,6 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
@@ -49,6 +50,10 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
         if ((chip != null && !(chip instanceof VariantBackedByGenotype) || (eval != null && !(eval instanceof VariantBackedByGenotype))))
             throw new StingException("Failure: trying to analyze genotypes of non-genotype data");
 
+	// This shouldn't happen, but let's check anyways
+	if ( BaseUtils.simpleBaseToBaseIndex(ref) == -1 )
+	    return;
+
         DiploidGenotype g = DiploidGenotype.createHomGenotype(ref);
         int truthIndex, callIndex;
         if (chip == null)
@@ -79,7 +84,8 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
 
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         Variation chip = (Variation) tracker.lookup(dbName, null);
-        inc(chip, eval, ref);
+	if ( eval != null || chip != null )
+	    inc(chip, eval, ref);
         return null;
     }
 
