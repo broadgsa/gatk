@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 @WalkerName("SNPClusters")
-@Requires(value={},referenceMetaData={@RMD(name="snps",type=AllelicVariant.class)})
+@Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="snps",type=AllelicVariant.class)})
 public class SNPClusterWalker extends RefWalker<GenomeLoc, GenomeLoc> {
     @Argument(fullName="windowSize", shortName="window", doc="window size for calculating clusters", required=false)
     int windowSize = 10;

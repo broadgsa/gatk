@@ -27,7 +27,7 @@ import java.util.*;
  * Copies reads from the input stream into the <code>outputBAM</code>, replacing those
  * reads which have been cleaned with their new clean copies.
  */
-@Requires({DataSource.READS})
+@Requires({DataSource.READS, DataSource.REFERENCE})
 public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
 
     /**

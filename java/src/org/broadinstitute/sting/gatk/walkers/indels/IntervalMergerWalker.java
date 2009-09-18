@@ -39,7 +39,7 @@ import java.util.*;
  * Merges intervals based on reads which overlap them.
  */
 @WalkerName("IntervalMerger")
-@Requires({DataSource.READS})
+@Requires({DataSource.READS, DataSource.REFERENCE})
 @ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class})
 public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
 

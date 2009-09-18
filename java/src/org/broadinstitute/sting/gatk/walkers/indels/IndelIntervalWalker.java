@@ -16,7 +16,7 @@ import java.util.List;
 // although this can easily be changed if necessary.
 
 @WalkerName("IndelIntervals")
-@Requires({DataSource.READS})
+@Requires({DataSource.READS, DataSource.REFERENCE})
 @ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class})
 public class IndelIntervalWalker extends ReadWalker<IndelIntervalWalker.Interval, IndelIntervalWalker.Interval> {
     @Argument(fullName="allow454Reads", shortName="454", doc="process 454 reads", required=false)
