@@ -15,6 +15,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
+import java.util.ArrayList;
 
 
 /**
@@ -123,6 +125,12 @@ public class RodGLF implements ReferenceOrderedDatum, Variation, Iterator<RodGLF
         return mRecord.getRefBase().toString();
     }
 
+    /** are we bi-allelic? */
+    @Override
+    public boolean isBiallelic() {
+        return true;
+    }
+
     /**
      * Returns true if all observed alleles are reference alleles. All is<Variant> methods (where Variant=SNP,Insertion, etc) should
      * return false at such site to ensure consistency. This method is included for use with genotyping calls (isGenotype()==true), it makes
@@ -154,9 +162,9 @@ public class RodGLF implements ReferenceOrderedDatum, Variation, Iterator<RodGLF
     @Override
     public char getAlternativeBaseForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
-            return getAlternateBases().charAt(1);
-        return getAlternateBases().charAt(0);
+        if (getAlternateBase().charAt(0) == this.getReference().charAt(0))
+            return getAlternateBase().charAt(1);
+        return getAlternateBase().charAt(0);
 
     }
 
@@ -168,9 +176,9 @@ public class RodGLF implements ReferenceOrderedDatum, Variation, Iterator<RodGLF
     @Override
     public char getReferenceForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
-            return getAlternateBases().charAt(0);
-        return getAlternateBases().charAt(1);
+        if (getAlternateBase().charAt(0) == this.getReference().charAt(0))
+            return getAlternateBase().charAt(0);
+        return getAlternateBase().charAt(1);
 
     }
 
@@ -252,8 +260,20 @@ public class RodGLF implements ReferenceOrderedDatum, Variation, Iterator<RodGLF
      * @return a string, of ploidy
      */
     @Override
-    public String getAlternateBases() {
+    public String getAlternateBase() {
         return this.getBestGenotype(0).toString();
+    }
+
+    /**
+     * gets the alternate bases.  Use this method if teh allele count is greater then 2
+     *
+     * @return
+     */
+    @Override
+    public List<String> getAlternateBases() {
+        List<String> list = new ArrayList<String>();
+        list.add(this.getAlternateBase());
+        return list; 
     }
 
     /**
@@ -270,8 +290,7 @@ public class RodGLF implements ReferenceOrderedDatum, Variation, Iterator<RodGLF
     @Override
     public VARIANT_TYPE getType() {
         if (this.isSNP()) return VARIANT_TYPE.SNP;
-        else if (this.isInsertion()) return VARIANT_TYPE.INDEL;
-        else if (this.isDeletion()) return VARIANT_TYPE.DELETION;
+        else if (this.isInsertion() || this.isDeletion()) return VARIANT_TYPE.INDEL;
         else return VARIANT_TYPE.REFERENCE;
     }
 

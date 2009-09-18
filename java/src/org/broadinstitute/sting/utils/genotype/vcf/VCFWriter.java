@@ -61,33 +61,13 @@ public class VCFWriter {
             throw new RuntimeException("Record has " + record.getColumnCount() +
                     " columns, when is should have " + mHeader.getColumnCount());
         }
-        StringBuilder builder = new StringBuilder();
+        String vcfString = record.toString();
+        try {
+            mWriter.write(vcfString + "\n");
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to write the VCF object to a file");
+        }
 
-        // first output the required fields in order
-        boolean first = true;
-        for (VCFHeader.HEADER_FIELDS field : mHeader.getHeaderFields()) {
-            if (first) {
-                first = false;
-                builder.append(record.getValue(field));
-            } else builder.append(FIELD_SEPERATOR + record.getValue(field));
-        }
-        if (record.hasGenotypeData()) {
-            builder.append(FIELD_SEPERATOR + record.getFormatString());
-            for (VCFGenotypeRecord rec : record.getVCFGenotypeRecords()) {
-                builder.append(FIELD_SEPERATOR);
-                boolean ft = true;
-                for (String s : rec.getFields().keySet()) {
-                    if (!ft) builder.append(":");
-                    else ft = true;
-                    builder.append(rec.getFields().get(s));
-                }
-            }
-            try {
-                mWriter.write(builder.toString() + "\n");
-            } catch (IOException e) {
-                throw new RuntimeException("Unable to write the VCF object to a file");
-            }
-        }
     }
 
     /** attempt to close the VCF file */

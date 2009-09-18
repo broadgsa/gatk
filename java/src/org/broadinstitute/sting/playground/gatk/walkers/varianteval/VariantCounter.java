@@ -31,7 +31,7 @@ public class VariantCounter extends BasicVariantAnalysis implements GenotypeAnal
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         nSNPs += eval == null ? 0 : 1;
 
-        if ( this.getMaster().evalContainsGenotypes && eval != null && eval.isSNP() && ((VariantBackedByGenotype)eval).getGenotype( DiploidGenotype.valueOf(eval.getAlternateBases())).isHet() )
+        if ( this.getMaster().evalContainsGenotypes && eval != null && eval.isSNP() && ((VariantBackedByGenotype)eval).getGenotype( DiploidGenotype.valueOf(eval.getAlternateBase())).isHet() )
             nHets++;
 
         return null;

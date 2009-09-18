@@ -77,7 +77,7 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
         List<VCFGenotypeRecord> gt = new ArrayList<VCFGenotypeRecord>();
         Map<VCFHeader.HEADER_FIELDS,String> map = new HashMap<VCFHeader.HEADER_FIELDS,String>();
         if ( generateVCFRecord(tracker, ref, context, vcfheader, gt, map, sampleNames, out, SUPPRESS_MULTISTATE, VERBOSE) ) {
-            vcfwriter.addRecord(new VCFRecord(vcfheader, map, "GT:GQ:DP", gt));
+            vcfwriter.addRecord(new VCFRecord(map, "GT:GQ:DP", gt));
             //vcfwriter.addRecord(new VCFRecord(vcfheader, map, "GT", gt));
             return  1;
         }
@@ -123,7 +123,7 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
                 int allele2 = BaseUtils.simpleBaseToBaseIndex(alleles.get(0).charAt(1));
                 if (allele2 >= 0 && allele2 != refbase) { alleleCounts[allele2]++; }
 
-                gt.add(new VCFGenotypeRecord(name, str, alleles, VCFGenotypeRecord.PHASE.UNPHASED, ref.getBase()));
+                gt.add(new VCFGenotypeRecord(name, alleles, VCFGenotypeRecord.PHASE.UNPHASED, str ));
 
                 numSNPs++;
                 snpQual += av.getVariationConfidence();
@@ -134,7 +134,7 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
                 List<String> alleles = new ArrayList<String>();
                 alleles.add(ref.getBase() + "" + ref.getBase());
 
-                gt.add(new VCFGenotypeRecord(name, str, alleles, VCFGenotypeRecord.PHASE.UNPHASED, ref.getBase()));
+                gt.add(new VCFGenotypeRecord(name, alleles, VCFGenotypeRecord.PHASE.UNPHASED, str ));
                 
                 numRefs++;
             }
@@ -184,7 +184,7 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
             } else if (field == VCFHeader.HEADER_FIELDS.QUAL) {
                 map.put(field, String.format("%d", snpQual > 99 ? 99 : (int) snpQual));
             } else if (field == VCFHeader.HEADER_FIELDS.FILTER) {
-                map.put(field, String.valueOf("0"));
+                map.put(field, "0");
             } else if (field == VCFHeader.HEADER_FIELDS.INFO) {
                 String infostr = ".";
                 ArrayList<String> info = new ArrayList<String>();

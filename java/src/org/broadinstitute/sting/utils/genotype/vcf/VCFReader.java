@@ -195,9 +195,9 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
                 genotypeRecords.add(getVCFGenotype(str, mFormatString, tokens[index], values.get(VCFHeader.HEADER_FIELDS.ALT).split(","), values.get(VCFHeader.HEADER_FIELDS.REF).charAt(0)));
                 index++;
             }
-            return new VCFRecord(mHeader, values, mFormatString, genotypeRecords);
+            return new VCFRecord(values, mFormatString, genotypeRecords);
         }
-        return new VCFRecord(mHeader, values);
+        return new VCFRecord(values);
     }
 
     /**
@@ -216,7 +216,6 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         Map<String, String> tagToValue = new HashMap<String, String>();
         VCFGenotypeRecord.PHASE phase = VCFGenotypeRecord.PHASE.UNKNOWN;
         List<String> bases = new ArrayList<String>();
-        int addedCount = 0;
         String keyStrings[] = formatString.split(":");
         for (String key : keyStrings) {
             String parse;
@@ -236,19 +235,20 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
                 addAllele(m.group(1), altAlleles, referenceBase, bases);
                 if (m.group(3).length() > 0) addAllele(m.group(3), altAlleles, referenceBase, bases);
             }
-            tagToValue.put(key, parse);
-            addedCount++;
+            else {
+                tagToValue.put(key, parse);
+            }
             if (nextDivider + 1 >= genotypeString.length()) nextDivider = genotypeString.length() - 1;
             genotypeString = genotypeString.substring(nextDivider + 1, genotypeString.length());
         }
         // catch some common errors, either there are too many field keys or there are two many field values
-        if (keyStrings.length != tagToValue.size())
+        if (keyStrings.length != tagToValue.size() + ((bases.size() > 0) ? 1 : 0))
             throw new RuntimeException("VCFReader: genotype value count doesn't match the key count (expected "
                     + keyStrings.length + " but saw " + tagToValue.size() + ")");
         else if (genotypeString.length() > 0)
             throw new RuntimeException("VCFReader: genotype string contained additional unprocessed fields: " + genotypeString
                     + ".  This most likely means that the format string is shorter then the value fields.");
-        return new VCFGenotypeRecord(sampleName, tagToValue, bases, phase, referenceBase);
+        return new VCFGenotypeRecord(sampleName, bases, phase, tagToValue);
     }
 
 

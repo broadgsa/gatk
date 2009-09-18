@@ -25,20 +25,21 @@
 
 package org.broadinstitute.sting.gatk.refdata;
 
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.BasicGenotype;
+import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class RodGeliText extends BasicReferenceOrderedDatum implements Variation, VariantBackedByGenotype, AllelicVariant {
-    public enum Genotype {
+    public enum Genotype_Strings {
         AA, AC, AG, AT, CC, CG, CT, GG, GT, TT
     }
 
@@ -187,8 +188,20 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      * @return a string, of ploidy
      */
     @Override
-    public String getAlternateBases() {
+    public String getAlternateBase() {
         return this.bestGenotype;
+    }
+
+    /**
+     * gets the alternate bases.  If this is homref, throws an UnsupportedOperationException
+     *
+     * @return
+     */
+    @Override
+    public List<String> getAlternateBases() {
+        List<String> list = new ArrayList<String>();
+        list.add(this.getAlternateBase());
+        return list; 
     }
 
     public boolean isIndel() {
@@ -306,7 +319,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
             if (genotypeLikelihoods[likelihoodIndex] > bestLikelihood) {
                 bestLikelihood = genotypeLikelihoods[likelihoodIndex];
 
-                bestGenotype = Genotype.values()[likelihoodIndex].toString();
+                bestGenotype = Genotype_Strings.values()[likelihoodIndex].toString();
             }
         }
 
@@ -317,8 +330,8 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
         }
 
         for (int likelihoodIndex = 0; likelihoodIndex < likelihoods.length; likelihoodIndex++) {
-            if (refBase == Genotype.values()[likelihoodIndex].toString().charAt(0) &&
-                    refBase == Genotype.values()[likelihoodIndex].toString().charAt(1)) {
+            if (refBase == Genotype_Strings.values()[likelihoodIndex].toString().charAt(0) &&
+                    refBase == Genotype_Strings.values()[likelihoodIndex].toString().charAt(1)) {
                 refLikelihood = genotypeLikelihoods[likelihoodIndex];
             }
         }
@@ -328,19 +341,28 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
         this.lodBtnb = (bestLikelihood - nextBestLikelihood);
     }
 
+
     /**
      * get the likelihoods
      *
      * @return an array in lexigraphical order of the likelihoods
      */
     @Override
-    public org.broadinstitute.sting.utils.genotype.Genotype getGenotype(DiploidGenotype x) {
-        // figure out the best -switch to this
-        /*Integer values[] = Utils.SortPermutation(this.genotypeLikelihoods);
-        int indexThis = x.ordinal(); 
-        int other = (x.toString().equals(Genotype.values()[values[1]])) ? values[9] : values[8];  
-        double lod = (genotypeLikelihoods[indexThis] - genotypeLikelihoods[other]);*/
-        return new BasicGenotype(getLocation(),x.toString(), refBase, lodBtnb);
+    public Genotype getGenotype(DiploidGenotype x) {
+        if (x.toString() != this.getAltBasesFWD()) throw new IllegalStateException("We don't contain that genotype!"); 
+        return new BasicGenotype(getLocation(), x.toString(), refBase, lodBtnb);
+    }
+
+    /**
+     * get the likelihoods
+     *
+     * @return an array in lexigraphical order of the likelihoods
+     */
+    @Override
+    public List<Genotype> getGenotypes() {
+        List<Genotype> ret = new ArrayList<Genotype>();
+        ret.add(new BasicGenotype(getLocation(), this.getAltBasesFWD(), refBase, lodBtnb));
+        return ret;
     }
 
     /**

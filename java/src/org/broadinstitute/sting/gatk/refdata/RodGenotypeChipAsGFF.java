@@ -187,8 +187,20 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      * @return
      */
     @Override
-    public String getAlternateBases() {
+    public String getAlternateBase() {
         return this.feature;
+    }
+
+    /**
+     * gets the alternate bases.  Use this method if teh allele count is greater then 2
+     *
+     * @return
+     */
+    @Override
+    public List<String> getAlternateBases() {
+        List<String> list = new ArrayList<String>();
+        list.add(this.getAlternateBase());
+        return list; 
     }
 
     /**
@@ -253,11 +265,23 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      * @return an array in lexigraphical order of the likelihoods
      */
     @Override
+    public List<Genotype> getGenotypes() {
+        List<Genotype> ret = new ArrayList<Genotype>();
+        ret.add(new BasicGenotype(this.getLocation(),this.feature,this.getRefSnpFWD(),this.getConsensusConfidence()));
+        return ret;
+    }
+
+    /**
+     * get the likelihoods
+     *
+     * @return an array in lexigraphical order of the likelihoods
+     */
+    @Override
     public Genotype getGenotype(DiploidGenotype x) {
         if (!x.toString().equals(this.getAltBasesFWD())) throw new IllegalStateException("Unable to retrieve genotype");
         return new BasicGenotype(this.getLocation(),this.feature,this.getRefSnpFWD(),this.getConsensusConfidence());
     }
-
+    
     /**
      * do we have the specified genotype?  not all backedByGenotypes
      * have all the genotype data.

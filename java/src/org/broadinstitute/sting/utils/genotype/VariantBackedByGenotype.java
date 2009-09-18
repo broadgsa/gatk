@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import java.util.List;
 
 /**
  * @author aaron
@@ -13,13 +13,16 @@ public interface VariantBackedByGenotype {
     /**
      * get the likelihoods
      *
-     * @param x the genotype
+     * @return a map in lexigraphical order of the likelihoods
+     */
+    public List<Genotype> getGenotypes();
+
+    /**
+     * get the likelihoods
      *
-     * @return an array in lexigraphical order of the likelihoods
+     * @return a map in lexigraphical order of the likelihoods
      */
     public Genotype getGenotype(DiploidGenotype x);
-
-
     /**
      * do we have the specified genotype?  not all backedByGenotypes
      * have all the genotype data.

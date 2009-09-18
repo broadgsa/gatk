@@ -318,7 +318,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         if ( VariantsToVCF.generateVCFRecord(context.getTracker(), context.getReferenceContext(), context.getAlignmentContext(true), vcfHeader, gt, map, sampleNames, out, false, false) ) {
             if ( !filterFailureString.equals("") )
                 map.put(VCFHeader.HEADER_FIELDS.FILTER, filterFailureString);           
-            vcfWriter.addRecord(new VCFRecord(vcfHeader, map, "GT:GQ:DP", gt));
+            vcfWriter.addRecord(new VCFRecord(map, "GT:GQ:DP", gt));
         }
     }
 

@@ -2,6 +2,9 @@ package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 
+import java.util.List;
+import java.util.ArrayList;
+
 /**
  * User: aaron
  * Date: Sep 9, 2009
@@ -59,8 +62,7 @@ public class BasicVariation implements Variation {
      */
     @Override
     public VARIANT_TYPE getType() {
-        if (mLength > 0) return VARIANT_TYPE.INDEL;
-        if (mLength < 0) return VARIANT_TYPE.DELETION;
+        if (mLength != 0) return VARIANT_TYPE.INDEL;
         return (isSNP()) ? VARIANT_TYPE.SNP : VARIANT_TYPE.REFERENCE;
     }
 
@@ -81,8 +83,20 @@ public class BasicVariation implements Variation {
     }
 
     @Override
-    public String getAlternateBases() {
+    public String getAlternateBase() {
         return mBases;
+    }
+
+    /**
+     * gets the alternate bases.  Use this method if teh allele count is greater then 2
+     *
+     * @return
+     */
+    @Override
+    public List<String> getAlternateBases() {
+        List<String> list = new ArrayList<String>();
+        list.add(this.getAlternateBase());
+        return list;
     }
 
     @Override
@@ -93,6 +107,12 @@ public class BasicVariation implements Variation {
     @Override
     public String getReference() {
         return (mRef);
+    }
+
+    /** are we bi-allelic? */
+    @Override
+    public boolean isBiallelic() {
+        return true;
     }
 
     @Override
@@ -131,9 +151,9 @@ public class BasicVariation implements Variation {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
 
         // we know that if we're a snp, the reference is a single base, so charAt(0) is safe
-        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
-            return getAlternateBases().charAt(1);
-        return getAlternateBases().charAt(0);
+        if (getAlternateBase().charAt(0) == this.getReference().charAt(0))
+            return getAlternateBase().charAt(1);
+        return getAlternateBase().charAt(0);
     }
 
     /**
@@ -146,9 +166,9 @@ public class BasicVariation implements Variation {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
 
         // we know that if we're a snp, the reference is a single base, so charAt(0) is safe
-        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
-            return getAlternateBases().charAt(0);
-        return getAlternateBases().charAt(1);
+        if (getAlternateBase().charAt(0) == this.getReference().charAt(0))
+            return getAlternateBase().charAt(0);
+        return getAlternateBase().charAt(1);
     }
 
 

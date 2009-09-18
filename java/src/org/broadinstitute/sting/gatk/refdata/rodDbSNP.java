@@ -2,17 +2,20 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import net.sf.picard.util.SequenceUtil;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * Example format:
- *   585 chr1 433 433 rs56289060  0  +  - - -/C  genomic  insertion unknown 0  0  unknown  between  1
- *   585 chr1 491 492 rs55998931  0  +  C C C/T  genomic  single   unknown 0 0 unknown exact 1
- *
+ * 585 chr1 433 433 rs56289060  0  +  - - -/C  genomic  insertion unknown 0  0  unknown  between  1
+ * 585 chr1 491 492 rs55998931  0  +  C C C/T  genomic  single   unknown 0 0 unknown exact 1
+ * <p/>
  * User: mdepristo
  * Date: Feb 27, 2009
  * Time: 10:47:14 AM
@@ -60,7 +63,9 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
     // manipulating the SNP information
     //
     // ----------------------------------------------------------------------
-    public GenomeLoc getLocation() { return loc; }
+    public GenomeLoc getLocation() {
+        return loc;
+    }
 
     /**
      * get the reference base(s) at this position
@@ -86,7 +91,8 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
         return strand.equals("+");
     }
 
-    /** Returns bases in the reference allele as a String. String can be empty (as in insertion into
+    /**
+     * Returns bases in the reference allele as a String. String can be empty (as in insertion into
      * the reference), can contain a single character (as in SNP or one-base deletion), or multiple characters
      * (for longer indels).
      *
@@ -109,18 +115,18 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
      */
     public char getRefSnpFWD() throws IllegalStateException {
         //System.out.printf("refbases is %s but %s%n", refBases, toString());
-        if ( isIndel() ) throw new IllegalStateException("Variant is not a SNP");
+        if (isIndel()) throw new IllegalStateException("Variant is not a SNP");
         // fix - at least this way we ensure that we'll get the other base compared to getAltBasesFWD()
         List<String> alleles = getAllelesFWD();
         String val = (alleles.get(0).equals(refBases) ? alleles.get(0) : alleles.get(1));
         return val.charAt(0);
         // if ( onFwdStrand() ) return refBases.charAt(0);
-       // else return SequenceUtil.reverseComplement(refBases).charAt(0);
+        // else return SequenceUtil.reverseComplement(refBases).charAt(0);
     }
 
     public List<String> getAllelesFWD() {
         List<String> alleles = null;
-        if ( onFwdStrand() )
+        if (onFwdStrand())
             alleles = Arrays.asList(observed.split("/"));
         else
             alleles = Arrays.asList(SequenceUtil.reverseComplement(observed).split("/"));
@@ -148,13 +154,22 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
     public VARIANT_TYPE getType() {
         return VARIANT_TYPE.SNP;
     }// ----------------------------------------------------------------------
+
     //
     // What kind of variant are we?
     //
     // ----------------------------------------------------------------------
-    public boolean isSNP()              { return varType.contains("single"); }
-    public boolean isInsertion()        { return varType.contains("insertion"); }
-    public boolean isDeletion()         { return varType.contains("deletion"); }
+    public boolean isSNP() {
+        return varType.contains("single");
+    }
+
+    public boolean isInsertion() {
+        return varType.contains("insertion");
+    }
+
+    public boolean isDeletion() {
+        return varType.contains("deletion");
+    }
 
     /**
      * get the base representation of this Variant
@@ -162,11 +177,25 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
      * @return a string, of ploidy
      */
     @Override
-    public String getAlternateBases() {
+    public String getAlternateBase() {
         return getAllelesFWDString();
     }
 
-    public boolean isIndel()            { return isInsertion() || isDeletion() || varType.contains("in-del"); }
+    /**
+     * gets the alternate bases.  Use this method if teh allele count is greater then 2
+     *
+     * @return
+     */
+    @Override
+    public List<String> getAlternateBases() {
+        List<String> list = new ArrayList<String>();
+        list.add(this.getAlternateBase());
+        return list;
+    }
+
+    public boolean isIndel() {
+        return isInsertion() || isDeletion() || varType.contains("in-del");
+    }
 
     /**
      * gets the alternate base is the case of a SNP.  Throws an IllegalStateException in the case
@@ -178,9 +207,9 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
     public char getAlternativeBaseForSNP() {
         return getAltSnpFWD(); /*
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-        if (getAlternateBases().charAt(0) == this.getReference())
-            return getAlternateBases().charAt(1);
-        return getAlternateBases().charAt(0); */
+        if (getAlternateBase().charAt(0) == this.getReference())
+            return getAlternateBase().charAt(1);
+        return getAlternateBase().charAt(0); */
     }
 
     /**
@@ -193,10 +222,17 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
         return 0;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
-    public boolean isReference()        { return false; } // snp locations are never "reference", there's always a variant
+    public boolean isReference() {
+        return false;
+    } // snp locations are never "reference", there's always a variant
 
-    public boolean isHapmap() { return validationStatus.contains("by-hapmap"); }
-    public boolean is2Hit2Allele() { return validationStatus.contains("by-2hit-2allele"); }
+    public boolean isHapmap() {
+        return validationStatus.contains("by-hapmap");
+    }
+
+    public boolean is2Hit2Allele() {
+        return validationStatus.contains("by-2hit-2allele");
+    }
 
     // ----------------------------------------------------------------------
     //
@@ -205,9 +241,9 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
     // ----------------------------------------------------------------------
     public String toString() {
         return String.format("%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\t%d",
-                getLocation().getContig(), getLocation().getStart(), getLocation().getStop()+1,
-                name, strand, refBases, observed, molType,
-                varType, validationStatus, avHet, avHetSE, func, locType, weight );
+                             getLocation().getContig(), getLocation().getStart(), getLocation().getStop() + 1,
+                             name, strand, refBases, observed, molType,
+                             varType, validationStatus, avHet, avHetSE, func, locType, weight);
     }
 
     public String toSimpleString() {
@@ -216,18 +252,18 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
 
     public String toMediumString() {
         String s = String.format("%s:%s:%s", getLocation().toString(), name, getAllelesFWDString());
-        if ( isSNP() ) s += ":SNP";
-        if ( isIndel() ) s += ":Indel";
-        if ( isHapmap() ) s += ":Hapmap";
-        if ( is2Hit2Allele() ) s += ":2Hit";
+        if (isSNP()) s += ":SNP";
+        if (isIndel()) s += ":Indel";
+        if (isHapmap()) s += ":Hapmap";
+        if (is2Hit2Allele()) s += ":2Hit";
         return s;
     }
 
     public String repl() {
         return String.format("%d\t%s\t%d\t%d\t%s\t0\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\t%d",
-                585, getLocation().getContig(), getLocation().getStart()-1, getLocation().getStop(),
-                name, strand, refBases, refBases, observed, molType,
-                varType, validationStatus, avHet, avHetSE, func, locType, weight );
+                             585, getLocation().getContig(), getLocation().getStart() - 1, getLocation().getStop(),
+                             name, strand, refBases, refBases, observed, molType,
+                             varType, validationStatus, avHet, avHetSE, func, locType, weight);
     }
 
     public boolean parseLine(final Object header, final String[] parts) {
@@ -235,12 +271,12 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
             String contig = parts[1];
             long start = Long.parseLong(parts[2]) + 1; // The final is 0 based
             long stop = Long.parseLong(parts[3]) + 1;  // The final is 0 based
-            loc = GenomeLocParser.parseGenomeLoc(contig, start, Math.max(start, stop-1));
+            loc = GenomeLocParser.parseGenomeLoc(contig, start, Math.max(start, stop - 1));
 
             name = parts[4];
             strand = parts[6];
             refBases = parts[7];
-            if ( strand == "-" )
+            if (strand == "-")
                 refBases = BaseUtils.simpleReverseComplement(refBases);
             observed = parts[9];
             molType = parts[10];
@@ -253,69 +289,83 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
             weight = Integer.parseInt(parts[17]);
             //System.out.printf("Parsed %s%n", toString());
             return true;
-        } catch( MalformedGenomeLocException ex ) {
+        } catch (MalformedGenomeLocException ex) {
             // Just rethrow malformed genome locs; the ROD system itself will deal with these.
             throw ex;
-        } catch( ArrayIndexOutOfBoundsException ex ) {
+        } catch (ArrayIndexOutOfBoundsException ex) {
             // Just rethrow malformed genome locs; the ROD system itself will deal with these.
             throw new RuntimeException("Badly formed dbSNP line: " + ex);
-        } catch ( RuntimeException e ) {
+        } catch (RuntimeException e) {
             System.out.printf("  Exception caught during parsing DBSNP line %s%n", Utils.join(" <=> ", parts));
             throw e;
         }
     }
 
-	public String getAltBasesFWD() {
+    public String getAltBasesFWD() {
         List<String> alleles = getAllelesFWD();
         return (alleles.get(0).equals(refBases) ? alleles.get(1) : alleles.get(0));
-	}
+    }
 
-	public char getAltSnpFWD() throws IllegalStateException {
-        if ( !isSNP() )
+    public char getAltSnpFWD() throws IllegalStateException {
+        if (!isSNP())
             throw new IllegalStateException("I'm not a SNP");
         return getAltBasesFWD().charAt(0);
-	}
+    }
 
-	public double getConsensusConfidence() {
-		// TODO Auto-generated method stub
-		return Double.MAX_VALUE;
-	}
+    public double getConsensusConfidence() {
+        // TODO Auto-generated method stub
+        return Double.MAX_VALUE;
+    }
 
-	public List<String> getGenotype() throws IllegalStateException {
-		return Arrays.asList(Utils.join("", getAllelesFWD()));
-	}
+    public List<String> getGenotype() throws IllegalStateException {
+        return Arrays.asList(Utils.join("", getAllelesFWD()));
+    }
 
-	public double getMAF() {
-		// Fixme: update to actually get MAF
-		//return avHet;
+    public double getMAF() {
+        // Fixme: update to actually get MAF
+        //return avHet;
         return -1;
-	}
+    }
 
     public double getHeterozygosity() {
         return avHet;
     }
 
-	public int getPloidy() throws IllegalStateException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
+    public int getPloidy() throws IllegalStateException {
+        // TODO Auto-generated method stub
+        return 0;
+    }
 
-	public double getVariationConfidence() {
-		// TODO Auto-generated method stub
-		return Double.MAX_VALUE;
-	}
+    public double getVariationConfidence() {
+        // TODO Auto-generated method stub
+        return Double.MAX_VALUE;
+    }
 
-	public boolean isGenotype() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    public boolean isGenotype() {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	public boolean isBiallelic() {
-		// TODO Auto-generated method stub
-		return observed.indexOf('/')==observed.lastIndexOf('/');
-	}
+    public boolean isBiallelic() {
+        // TODO Auto-generated method stub
+        return observed.indexOf('/') == observed.lastIndexOf('/');
+    }
 
-    public int length() { return (int)(loc.getStop() - loc.getStart() + 1); }
+    public int length() {
+        return (int) (loc.getStop() - loc.getStart() + 1);
+    }
+
+    /**
+     * get the likelihoods
+     *
+     * @return an array in lexigraphical order of the likelihoods
+     */
+    @Override
+    public List<org.broadinstitute.sting.utils.genotype.Genotype> getGenotypes() {
+        List<org.broadinstitute.sting.utils.genotype.Genotype> list = new ArrayList<org.broadinstitute.sting.utils.genotype.Genotype>();
+        list.add(new BasicGenotype(this.getLocation(), this.getAltBasesFWD(), this.getRefSnpFWD(), this.getConsensusConfidence()));
+        return list;
+    }
 
     /**
      * get the likelihoods
@@ -325,7 +375,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
     @Override
     public org.broadinstitute.sting.utils.genotype.Genotype getGenotype(DiploidGenotype x) {
         if (!x.toString().equals(this.getAltBasesFWD())) throw new IllegalStateException("Unable to retrieve genotype");
-        return new BasicGenotype(this.getLocation(),this.getAltBasesFWD(),this.getRefSnpFWD(),this.getConsensusConfidence());
+        return new BasicGenotype(this.getLocation(), this.getAltBasesFWD(), this.getRefSnpFWD(), this.getConsensusConfidence());
     }
 
     /**
@@ -338,6 +388,6 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
      */
     @Override
     public boolean hasGenotype(DiploidGenotype x) {
-        return (!x.toString().equals(this.getAltBasesFWD())) ?  false : true;
+        return (!x.toString().equals(this.getAltBasesFWD())) ? false : true;
     }
 }

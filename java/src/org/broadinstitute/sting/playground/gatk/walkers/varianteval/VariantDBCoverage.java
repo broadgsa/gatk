@@ -86,7 +86,7 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
         if (eval != null) {
             char alt = (eval.isSNP()) ? eval.getAlternativeBaseForSNP() : eval.getReference().charAt(0);
             if (dbSNP != null && dbSNP.isSNP())
-                return !dbSNP.getAlternateBases().contains(String.valueOf(alt));
+                return !dbSNP.getAlternateBase().contains(String.valueOf(alt));
         }
         return false;
     }
@@ -117,7 +117,7 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
             if (dbsnp.isSNP() && eval.isSNP() && discordantP(dbsnp, eval)) {
                 return String.format("Discordant [DBSNP %s] [EVAL %s]", dbsnp, eval);
             } else if (dbsnp.isIndel() && eval.isSNP()) {
-                return String.format("SNP-at-indel DBSNP=%s %s", dbsnp.getAlternateBases(), eval);
+                return String.format("SNP-at-indel DBSNP=%s %s", dbsnp.getAlternateBase(), eval);
             } else {
                 return null;
             }

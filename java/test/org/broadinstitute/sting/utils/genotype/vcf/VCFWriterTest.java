@@ -60,18 +60,24 @@ public class VCFWriterTest extends BaseTest {
      * @return a VCFRecord
      */
     private VCFRecord createVCFRecord(VCFHeader header) {
-        Map<VCFHeader.HEADER_FIELDS,String> map = new HashMap<VCFHeader.HEADER_FIELDS,String>();
-        for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values())
-            map.put(field,String.valueOf(1));
+        List<String> altBases = new ArrayList<String>();
+        altBases.add("C");
+        altBases.add("D1");
+        Map<String,String> infoFields = new HashMap<String,String>();
+        infoFields.put("DP","50");
+
         List<VCFGenotypeRecord> gt = new ArrayList<VCFGenotypeRecord>();
         for (String name : header.getGenotypeSamples()) {
             Map<String,String> str = new HashMap<String,String>();
-            str.put("key","0|0");
-            List<String> alleles = new ArrayList<String>();
-            alleles.add("AAA");
-            gt.add(new VCFGenotypeRecord(name,str,alleles, VCFGenotypeRecord.PHASE.PHASED,'A'));
+            str.put("bb","0");
+
+            List<String> myAlleles = new ArrayList<String>();
+            myAlleles.add("C");
+            myAlleles.add("D1");
+            gt.add(new VCFGenotypeRecord(name, myAlleles, VCFGenotypeRecord.PHASE.PHASED, str));
         }
-        return new VCFRecord(header,map,"GT",gt);
+        return new VCFRecord('A',"chr1",1,"RANDOM",altBases,0,".",infoFields, "GT:AA",gt);
+
     }
 
 

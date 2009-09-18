@@ -2,6 +2,8 @@ package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 
+import java.util.List;
+
 /**
  * @author aaron
  *         <p/>
@@ -12,7 +14,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 public interface Variation {
     // the types of variants we currently allow
     public enum VARIANT_TYPE {
-        SNP, INDEL, DELETION, REFERENCE // though reference is not really a variant
+        SNP, INDEL, REFERENCE // though reference is not really a variant
     }
 
     /**
@@ -60,6 +62,9 @@ public interface Variation {
      */
     public String getReference();
 
+    /** are we bi-allelic? */
+    public boolean isBiallelic();
+
     /**
      * get the -1 * (log 10 of the error value)
      *
@@ -69,31 +74,43 @@ public interface Variation {
 
     /**
      * are we truely a variant, given a reference
+     *
      * @return false if we're a variant(indel, delete, SNP, etc), true if we're not
      */
     public boolean isReference();
 
     /**
-     * gets the alternate bases.  If this is homref, throws an UnsupportedOperationException
+     * gets the alternate base.  Use this method if we're biallelic
+     *
      * @return
      */
-    public String getAlternateBases();
+    public String getAlternateBase();
+
+    /**
+     * gets the alternate bases.  Use this method if teh allele count is greater then 2
+     *
+     * @return
+     */
+    public List<String> getAlternateBases();
 
     /**
      * are we an insertion or a deletion? yes, then return true.  No? Well, false then.
+     *
      * @return true if we're an insertion or deletion
      */
     public boolean isIndel();
 
     /**
      * gets the alternate base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP
-     * of 
+     * of
+     *
      * @return a char, representing the alternate base
      */
     public char getAlternativeBaseForSNP();
 
     /**
      * gets the reference base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP
+     *
      * @return a char, representing the alternate base
      */
     public char getReferenceForSNP();

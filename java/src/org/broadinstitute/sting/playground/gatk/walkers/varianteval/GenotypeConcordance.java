@@ -58,18 +58,18 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
         int truthIndex, callIndex;
         if (chip == null)
             truthIndex = UNKNOWN;
-        else if (chip.getAlternateBases().equals(g.toString()))
+        else if (chip.getAlternateBase().equals(g.toString()))
             truthIndex = REF;
-        else if (chip.getAlternateBases().charAt(0) != chip.getAlternateBases().charAt(1)) 
+        else if (chip.getAlternateBase().charAt(0) != chip.getAlternateBase().charAt(1))
             truthIndex = VAR_HET;
         else
             truthIndex = VAR_HOM;
 
         if (eval == null)
             callIndex = NO_CALL;
-        else if (eval.getAlternateBases().equals(g.toString()))
+        else if (eval.getAlternateBase().equals(g.toString()))
             callIndex = REF;
-        else if (eval.getAlternateBases().charAt(0) != eval.getAlternateBases().charAt(1))
+        else if (eval.getAlternateBase().charAt(0) != eval.getAlternateBase().charAt(1))
             callIndex = VAR_HET;
         else
             callIndex = VAR_HOM;
