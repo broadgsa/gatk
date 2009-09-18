@@ -265,7 +265,7 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      * @return a map in lexigraphical order of the genotypes
      */
     @Override
-    public Genotype getCallexGenotype() {
+    public Genotype getCalledGenotype() {
         return new BasicGenotype(this.getLocation(),this.feature,this.getRefSnpFWD(),this.getConsensusConfidence());
     }
 

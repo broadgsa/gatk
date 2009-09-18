@@ -15,7 +15,7 @@ public interface VariantBackedByGenotype {
      *
      * @return a specific genotype that represents the called genotype
      */
-    public Genotype getCallexGenotype();
+    public Genotype getCalledGenotype();
 
     /**
      * get the genotype

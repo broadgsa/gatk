@@ -255,7 +255,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements Variation, Var
      * @return a map in lexigraphical order of the genotypes
      */
     @Override
-    public Genotype getCallexGenotype() {
+    public Genotype getCalledGenotype() {
         throw new UnsupportedOperationException("We don't support this right now"); 
     }
 
@@ -284,6 +284,27 @@ public class RodVCF extends BasicReferenceOrderedDatum implements Variation, Var
     }
 
     /**
+     * a private helper method
+     *
+     * @return an array in lexigraphical order of the likelihoods
+     */
+    private Genotype getGenotype(DiploidGenotype x) {
+        if (x.toString().equals(getReference()))
+            return new BasicGenotype(this.getLocation(), getReference(), this.getReference().charAt(0), 0);
+        for (VCFGenotypeRecord record : mCurrentRecord.getVCFGenotypeRecords()) {
+            if (Utils.join("", record.getAlleles()).equals(x.toString())) {
+                double qual = 0.0;
+                if (record.getAlleles().equals(this.getReference()))
+                    qual = this.getNegLog10PError();
+                else if (record.getFields().containsKey("GQ"))
+                    qual = Double.valueOf(record.getFields().get("GQ")) / 10.0;
+                return new BasicGenotype(this.getLocation(), Utils.join("", record.getAlleles()), this.getReference().charAt(0), qual);
+            }
+        }
+        return null;
+    }
+
+    /**
      * do we have the specified genotype?  not all backedByGenotypes
      * have all the genotype data.
      *
@@ -293,7 +314,9 @@ public class RodVCF extends BasicReferenceOrderedDatum implements Variation, Var
      */
     @Override
     public boolean hasGenotype(DiploidGenotype x) {
-        return (this.getAlternateBases().contains(x.toString()));
+        if (getGenotype(x) != null)
+            return true;
+        return false;
     }
 
     @Override

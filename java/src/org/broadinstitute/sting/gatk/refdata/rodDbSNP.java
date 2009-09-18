@@ -358,7 +358,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
      * @return a map in lexigraphical order of the genotypes
      */
     @Override
-    public org.broadinstitute.sting.utils.genotype.Genotype getCallexGenotype() {
+    public org.broadinstitute.sting.utils.genotype.Genotype getCalledGenotype() {
         return new BasicGenotype(this.getLocation(), this.getAltBasesFWD(), this.getRefSnpFWD(), this.getConsensusConfidence());
     }
 

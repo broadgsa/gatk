@@ -352,7 +352,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      * @return a map in lexigraphical order of the genotypes
      */
     @Override
-    public Genotype getCallexGenotype() {
+    public Genotype getCalledGenotype() {
         return new BasicGenotype(getLocation(), this.getAltBasesFWD(), refBase, lodBtnb);
     }
 
