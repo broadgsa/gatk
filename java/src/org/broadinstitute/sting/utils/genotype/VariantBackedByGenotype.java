@@ -11,18 +11,18 @@ import java.util.List;
  */
 public interface VariantBackedByGenotype {
     /**
-     * get the likelihoods
+     * get the genotype
      *
-     * @return a map in lexigraphical order of the likelihoods
+     * @return a specific genotype that represents the called genotype
      */
-    public List<Genotype> getGenotypes();
+    public Genotype getCallexGenotype();
 
     /**
-     * get the likelihoods
+     * get the genotype
      *
-     * @return a map in lexigraphical order of the likelihoods
+     * @return a map in lexigraphical order of the genotypes
      */
-    public Genotype getGenotype(DiploidGenotype x);
+    public List<Genotype> getGenotypes();
     /**
      * do we have the specified genotype?  not all backedByGenotypes
      * have all the genotype data.

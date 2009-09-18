@@ -260,6 +260,16 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
     public int length() { return 1; }
 
     /**
+     * get the genotype
+     *
+     * @return a map in lexigraphical order of the genotypes
+     */
+    @Override
+    public Genotype getCallexGenotype() {
+        return new BasicGenotype(this.getLocation(),this.feature,this.getRefSnpFWD(),this.getConsensusConfidence());
+    }
+
+    /**
      * get the likelihoods
      *
      * @return an array in lexigraphical order of the likelihoods
@@ -269,17 +279,6 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
         List<Genotype> ret = new ArrayList<Genotype>();
         ret.add(new BasicGenotype(this.getLocation(),this.feature,this.getRefSnpFWD(),this.getConsensusConfidence()));
         return ret;
-    }
-
-    /**
-     * get the likelihoods
-     *
-     * @return an array in lexigraphical order of the likelihoods
-     */
-    @Override
-    public Genotype getGenotype(DiploidGenotype x) {
-        if (!x.toString().equals(this.getAltBasesFWD())) throw new IllegalStateException("Unable to retrieve genotype");
-        return new BasicGenotype(this.getLocation(),this.feature,this.getRefSnpFWD(),this.getConsensusConfidence());
     }
     
     /**

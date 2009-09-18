@@ -250,6 +250,16 @@ public class RodVCF extends BasicReferenceOrderedDatum implements Variation, Var
     }
 
     /**
+     * get the genotype
+     *
+     * @return a map in lexigraphical order of the genotypes
+     */
+    @Override
+    public Genotype getCallexGenotype() {
+        throw new UnsupportedOperationException("We don't support this right now"); 
+    }
+
+    /**
      * get the genotypes
      *
      * @return a list of the genotypes
@@ -273,29 +283,6 @@ public class RodVCF extends BasicReferenceOrderedDatum implements Variation, Var
         return genotypes;
     }
 
-
-    /**
-     * get the likelihoods
-     *
-     * @return an array in lexigraphical order of the likelihoods
-     */
-    @Override
-    public Genotype getGenotype(DiploidGenotype x) {
-        if (x.toString().equals(getReference()))
-            return new BasicGenotype(this.getLocation(), getReference(), this.getReference().charAt(0), 0);
-        for (VCFGenotypeRecord record : mCurrentRecord.getVCFGenotypeRecords()) {
-            if (Utils.join("", record.getAlleles()).equals(x.toString())) {
-                double qual = 0.0;
-                if (record.getAlleles().equals(this.getReference()))
-                    qual = this.getNegLog10PError();
-                else if (record.getFields().containsKey("GQ"))
-                    qual = Double.valueOf(record.getFields().get("GQ")) / 10.0;
-                return new BasicGenotype(this.getLocation(), Utils.join("", record.getAlleles()), this.getReference().charAt(0), qual);
-            }
-        }
-        return null;
-    }
-
     /**
      * do we have the specified genotype?  not all backedByGenotypes
      * have all the genotype data.
@@ -306,9 +293,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements Variation, Var
      */
     @Override
     public boolean hasGenotype(DiploidGenotype x) {
-        if (getGenotype(x) != null)
-            return true;
-        return false;
+        return (this.getAlternateBases().contains(x.toString()));
     }
 
     @Override

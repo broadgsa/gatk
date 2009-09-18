@@ -2,10 +2,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import net.sf.picard.util.SequenceUtil;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.BasicGenotype;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
-import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -356,6 +353,16 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
     }
 
     /**
+     * get the genotype
+     *
+     * @return a map in lexigraphical order of the genotypes
+     */
+    @Override
+    public org.broadinstitute.sting.utils.genotype.Genotype getCallexGenotype() {
+        return new BasicGenotype(this.getLocation(), this.getAltBasesFWD(), this.getRefSnpFWD(), this.getConsensusConfidence());
+    }
+
+    /**
      * get the likelihoods
      *
      * @return an array in lexigraphical order of the likelihoods
@@ -365,17 +372,6 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
         List<org.broadinstitute.sting.utils.genotype.Genotype> list = new ArrayList<org.broadinstitute.sting.utils.genotype.Genotype>();
         list.add(new BasicGenotype(this.getLocation(), this.getAltBasesFWD(), this.getRefSnpFWD(), this.getConsensusConfidence()));
         return list;
-    }
-
-    /**
-     * get the likelihoods
-     *
-     * @return an array in lexigraphical order of the likelihoods
-     */
-    @Override
-    public org.broadinstitute.sting.utils.genotype.Genotype getGenotype(DiploidGenotype x) {
-        if (!x.toString().equals(this.getAltBasesFWD())) throw new IllegalStateException("Unable to retrieve genotype");
-        return new BasicGenotype(this.getLocation(), this.getAltBasesFWD(), this.getRefSnpFWD(), this.getConsensusConfidence());
     }
 
     /**

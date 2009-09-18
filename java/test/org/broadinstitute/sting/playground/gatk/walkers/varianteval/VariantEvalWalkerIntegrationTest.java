@@ -114,7 +114,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalGenotypeROD() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("439c2983a6e1250cd845c686a0e5a085");
+        md5.add("d337f22057d2e9cfda03af3be70ce35a");
         /**
          * the above MD5 was calculated after running the following command:
          *
@@ -143,6 +143,33 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
                 1, // just one output file
                 md5);
         List<File> result = executeTest("testEvalGenotypeROD", spec).getFirst();
+    }
+
+    @Test
+    public void testEvalMarksGenotypingExample() {
+        List<String> md5 = new ArrayList<String>();
+        md5.add("39ea64299cad44f816f033db54c8e622");
+        /**
+         * Run with the following commands:
+         * 
+         * java -Xmx2048m -jar /humgen/gsa-hphome1/depristo/dev/GenomeAnalysisTK/trunk/dist/GenomeAnalysisTK.jar
+         * -T VariantEval -R /broad/1KG/reference/human_b36_both.fasta -l INFO
+         * -B eval,Variants,/humgen/gsa-scr1/ebanks/concordanceForMark/UMichVsBroad.venn.set1Only.calls
+         * -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod -hc /humgen/gsa-scr1/GATK_Data/1KG_gffs/NA12878.1kg.gff
+         * -G -L 1 -o /humgen/gsa-scr1/ebanks/concordanceForMark/UMichVsBroad.venn.set1Only.calls.eval
+         */
+
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T VariantEval -R /broad/1KG/reference/human_b36_both.fasta " +
+                "-B eval,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/UMichVsBroad.venn.set1Only.calls " +
+                "-D /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod -hc /humgen/gsa-scr1/GATK_Data/1KG_gffs/NA12878.1kg.gff " +
+                "-G " +
+                "--supressDateInformation " +
+                "-L 1:1-10,000,000 " +
+                "--outerr %s",
+                1, // just one output file
+                md5);
+        List<File> result = executeTest("testEvalMarksGenotypingExample", spec).getFirst();
     }
 }
 

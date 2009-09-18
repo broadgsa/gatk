@@ -266,7 +266,6 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
 
     public List<String> getGenotype() throws IllegalStateException {
         return Arrays.asList(getBestGenotype());
-        //throw new IllegalStateException("huh?");
     }
 
     public int getPloidy() throws IllegalStateException {
@@ -348,14 +347,13 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
 
 
     /**
-     * get the likelihoods
+     * get the genotype
      *
-     * @return an array in lexigraphical order of the likelihoods
+     * @return a map in lexigraphical order of the genotypes
      */
     @Override
-    public Genotype getGenotype(DiploidGenotype x) {
-        if (x.toString() != this.getAltBasesFWD()) throw new IllegalStateException("We don't contain genotype " + x); 
-        return new BasicGenotype(getLocation(), x.toString(), refBase, lodBtnb);
+    public Genotype getCallexGenotype() {
+        return new BasicGenotype(getLocation(), this.getAltBasesFWD(), refBase, lodBtnb);
     }
 
     /**
