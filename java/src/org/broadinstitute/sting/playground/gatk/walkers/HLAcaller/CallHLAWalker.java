@@ -26,6 +26,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.lang.Math;
 /**
  *
  * @author shermanjia
@@ -57,11 +58,13 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
     int numInterval = 1;
     double[] SingleAlleleFrequencies;
     double[][] LOD; String[][] Alleles;
-    double[][] ActualLikelihoods;
+    double[][] LikelihoodScores;
     int[][] PhasingScores;
     double[][] CombinedAlleleFrequencies;
     int j1, k1, j2, k2;
     int iAstart = -1, iAstop = -1, iBstart = -1, iBstop = -1, iCstart = -1, iCstop = -1;
+    double likelihoodsumA = 0.0, likelihoodsumB = 0.0, likelihoodsumC = 0.0;
+    double inverseMaxProbA = 0.0, inverseMaxProbB = 0.0, inverseMaxProbC = 0.0;
 
     Hashtable AlleleFrequencies = new Hashtable();
 
@@ -112,7 +115,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                 HLAstartpos = new int[n]; HLAstoppos = new int[n];
                 SingleAlleleFrequencies = new double[n];
                 LOD = new double[n][n];
-                ActualLikelihoods = new double[n][n];
+                LikelihoodScores = new double[n][n];
                 PhasingScores = new int[n][n];
                 CombinedAlleleFrequencies = new double[n][n];
 
@@ -124,7 +127,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                     //Initialize matrix of probabilities / likelihoods
                     for (int j = 0; j <n; j++){
                         LOD[i][j]=0;
-                        ActualLikelihoods[i][j]=0;
+                        LikelihoodScores[i][j]=0;
                         PhasingScores[i][j]=0;
                         CombinedAlleleFrequencies[i][j]=0.0;
                     }
@@ -133,9 +136,9 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                         j1 = i;
                     if (HLAnames.get(i).equals("HLA_B*5601"))
                         k1 = i;
-                    if (HLAnames.get(i).equals("HLA_B*0813"))
+                    if (HLAnames.get(i).equals("HLA_B*0766"))
                         j2 = i;
-                    if (HLAnames.get(i).equals("HLA_B*5613"))
+                    if (HLAnames.get(i).equals("HLA_B*0726"))
                         k2 = i;
                 }
                 out.printf("DONE! Read %s alleles\n",HLAreads.size());
@@ -248,7 +251,6 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         
         List<SAMRecord> reads = context.getReads();
-
         List<Integer> offsets = context.getOffsets();
         GenomeLoc Gloc = context.getLocation();
 
@@ -256,55 +258,38 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
         ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(), context);
 
         long loc = context.getPosition();
-
         if( context.getReads().size() > 0 ) {
             //out.printf("RG for first read: %s%n",context.getReads().get(0).getReadName());
-            int numAs = 0;
-            int numCs = 0;
-            int numGs = 0;
-            int numTs = 0;
-            int depth = 0;
-            String c1 = ""; String c2 = "";
-            long pos_k = 0; long pos_j = 0;
+            int numAs = 0, numCs = 0, numGs = 0, numTs = 0,depth = 0;
+            String c1 = "", c2 = "";
+            long pos_k = 0, pos_j = 0;
             
             //Debugging purposes: print location, reference base, pileup, and count (before quality filtering)
             if (DEBUG){
                 out.printf("%s\t", context.getLocation());
                 out.printf("ref=%s\t", ref.getBase());
-                //out.printf("%s\t",pileup.getBases().toString());
-                //out.printf("%s\t",pileup.getBasePileupAsCountsString());
             }
 
-            //Calculate posterior probabilities!
-
-
+            //Calculate posterior probabilities
             GenotypeLikelihoods G = new ThreeStateErrorGenotypeLikelihoods();
+            SAMRecord read; int offset; char base; byte qual; int mapquality; String readname;
 
             //Check for bad bases and ensure mapping quality myself. This works.
             for (int i = 0; i < context.getReads().size(); i++) {
-                
-                SAMRecord read = context.getReads().get(i);
-                int offset = context.getOffsets().get(i);
-                char base = read.getReadString().charAt(offset);
-                byte qual = read.getBaseQualities()[offset];
-                int mapquality = read.getMappingQuality();
+                read = context.getReads().get(i);
+                offset = context.getOffsets().get(i);
+                base = read.getReadString().charAt(offset);
+                qual = read.getBaseQualities()[offset];
+                mapquality = read.getMappingQuality();
                 if (mapquality >= 5 && BaseUtils.simpleBaseToBaseIndex(base) != -1) {
-
-                    String name = read.getReadName();
-                    if (!AllReadNames.contains(name)){
-                        AllReadNames.add(name);
-                        AllReads.add(read);
-                        if( DEBUG){
-                            //out.print("\n" + read.getReadName() + "\t" + read.getCigarString() + "\t" + read.getReadLength() + "\n");
-                        }
-                    }
-
-                    if (base == 'A'){numAs++; depth++;}
-                    if (base == 'C'){numCs++; depth++;}
-                    if (base == 'T'){numTs++; depth++;}
-                    if (base == 'G'){numGs++; depth++;}
                     //consider base in likelihood calculations if it looks good and has high mapping score
                     G.add(base, qual, read, offset);
+                    readname = read.getReadName();
+                    if (!AllReadNames.contains(readname)){AllReadNames.add(readname); AllReads.add(read);}
+                    if (base == 'A'){numAs++; depth++;}
+                    else if (base == 'C'){numCs++; depth++;}
+                    else if (base == 'T'){numTs++; depth++;}
+                    else if (base == 'G'){numGs++; depth++;}
                 }
             }
 
@@ -314,12 +299,9 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             if (depth > 0){
                 //Store confidence scores - this is a local hash that we use to get likelihood given a particular genotype
                 Scores = new Hashtable();
-
                 Double likelihood = 0.0;
-                
                 for ( DiploidGenotype g : DiploidGenotype.values() ) {
                     likelihood = G.getLikelihood(g);
-
                     Scores.put(g.toString(), likelihood);
                     //also hash other combination not stored by DiploidGenotype
                     if (g.toString().equals("AC")) {
@@ -345,15 +327,13 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                 for ( DiploidGenotype g : DiploidGenotype.values() ) {
                     likelihood = G.getLikelihood(g);
                     if (likelihood > homreflikelihood && !SNPs.containsKey(Long.toString(loc))){
-                        SNPcount++; SNPs.put(Long.toString(loc),SNPcount); SNPlocations.add(Integer.valueOf(Long.toString(loc)));
-                        
+                        SNPcount++; SNPs.put(Long.toString(loc),SNPcount); SNPlocations.add(Integer.valueOf(Long.toString(loc)));                        
                     }
                 }
 
                 //Update likelihood for each combinations of alleles
                 String r1 = "", r2 = "", s1 = "", s2 = "";
                 for (int j = 0; j < numHLAlleles; j++){
-
                     //check if allele 1 overlaps current position
                     if (loc >= HLAstartpos[j] && loc <= HLAstoppos[j]){
                         pos_j = loc - HLAstartpos[j];
@@ -395,8 +375,8 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                                     if (Scores.containsKey(c1 + c2)){
                                         //out.printf("j[%s],k[%s],g[%s],s[%.0f]\t",j,k,c1+c2,Scores.get(c1 + c2));
                                         likelihood = Double.parseDouble((String) Scores.get(c1 + c2).toString());
-                                        ActualLikelihoods[j][k] = LOD[j][k]+ likelihood;
-                                        LOD[j][k]= ActualLikelihoods[j][k] - homreflikelihood;
+                                        LikelihoodScores[j][k] = LikelihoodScores[j][k] + likelihood;
+                                        LOD[j][k]= LOD[j][k] + likelihood - homreflikelihood;
 
                                     } else{
                                         if (DEBUG){
@@ -406,11 +386,8 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                                 }
                             }
                         }
-
                     }
                 }
-            
-
                 if ( DEBUG ){
                     //Debugging: print updated likelihoods for 2 sets of HLA alleles, as well as normalized likelihoods for all 10 genotypes
                     out.printf("%s%s:%5.0f\t%s%s:%5.0f\t",r1,r2,LOD[j1][k1],s1,s2,LOD[j2][k2]);
@@ -421,7 +398,6 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                 }
             }
         }
-        
         return context.getReads().size();
     }
 
@@ -533,63 +509,79 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
 
             ArrayList<Integer> TopAlleles = new ArrayList<Integer>();
 
-            double maxA = 0;  int i_maxA =0;   int j_maxA = 0; int maxAphase = 0; double maxAfreq = 0.0;
+            double maxA = 0;  int i_maxA =0;   int j_maxA = 0; int maxAphase = 0; double maxAfreq = 0.0; double maxlikelihoodA = 0.0;
             double maxA2 = 0; int i_maxA_2 =0; int j_maxA_2 = 0;
 
-            double maxB = 0;  int i_maxB =0;   int j_maxB = 0; int maxBphase = 0; double maxBfreq = 0.0;
+            double maxB = 0;  int i_maxB =0;   int j_maxB = 0; int maxBphase = 0; double maxBfreq = 0.0; double maxlikelihoodB = 0.0;
             double maxB2 = 0; int i_maxB_2 =0; int j_maxB_2 = 0;
 
-            double maxC = 0;  int i_maxC =0;   int j_maxC = 0; int maxCphase = 0; double maxCfreq = 0.0;
+            double maxC = 0;  int i_maxC =0;   int j_maxC = 0; int maxCphase = 0; double maxCfreq = 0.0; double maxlikelihoodC = 0.0;
             double maxC2 = 0; int i_maxC_2 =0; int j_maxC_2 = 0;
 
             
             out.print("Finding allele pair with highest likelihood\n");
-            //Find max likelihood scores for each HLA gene.
+            //Find the maximum likelihood scores for each HLA gene,
             for (int i = 0; i < numHLAlleles; i++){
                 for (int j = i; j < numHLAlleles; j++){
                     //Print likelihoods for all alleles
-                    if (DEBUG){
-                        out.printf("%s\t%s\t%5.0f\n",HLAnames.get(i),HLAnames.get(j),LOD[i][j]);
-                    }
+                    if (DEBUG){}//out.printf("%s\t%s\t%5.0f\n",HLAnames.get(i),HLAnames.get(j),LOD[i][j]);}
                     if (HLAnames.get(i).indexOf("HLA_A") > -1 && HLAnames.get(j).indexOf("HLA_A") > -1){
                         if (LOD[i][j] > maxA){
                             maxA2 = maxA; i_maxA_2 = i_maxA; j_maxA_2 = j_maxA;
-                            maxA = LOD[i][j]; i_maxA = i; j_maxA = j;
+                            maxA = LOD[i][j]; i_maxA = i; j_maxA = j; maxlikelihoodA = LikelihoodScores[i][j];
                         }
                     } else if (HLAnames.get(i).indexOf("HLA_B") > -1 && HLAnames.get(j).indexOf("HLA_B") > -1){
                         if (LOD[i][j] > maxB){
                             maxB2 = maxB; i_maxB_2 = i_maxB; j_maxB_2 = j_maxB;
-                            maxB = LOD[i][j]; i_maxB = i; j_maxB = j;
+                            maxB = LOD[i][j]; i_maxB = i; j_maxB = j; maxlikelihoodB = LikelihoodScores[i][j];
                         }
                     } else if (HLAnames.get(i).indexOf("HLA_C") > -1 && HLAnames.get(j).indexOf("HLA_C") > -1){
                         if (LOD[i][j] > maxC){
                             maxC2 = maxC; i_maxC_2 = i_maxC; j_maxC_2 = j_maxC;
-                            maxC = LOD[i][j]; i_maxC = i; j_maxC = j;
+                            maxC = LOD[i][j]; i_maxC = i; j_maxC = j; maxlikelihoodC = LikelihoodScores[i][j];
                         }
                     }
 		}
             }
 
-            //Record alleles in highest likelihood combinations
+
+            //Record alleles with the highest likelihood combinations, sum likelihoods (within 5 orders of magnitide of best score) to calculate posterior probabilities for each allele combination
             for (Integer i = 0; i < numHLAlleles; i++){
                 for (Integer j = i; j < numHLAlleles; j++){
-                    if (HLAnames.get(i).indexOf("HLA_A") > -1 && HLAnames.get(j).indexOf("HLA_A") > -1){
-                        if (LOD[i][j] == maxA && maxA > 0){
+                    if (HLAnames.get(i).indexOf("HLA_A") > -1 && HLAnames.get(j).indexOf("HLA_A") > -1 && maxA > 0){
+                        if (maxA - LOD[i][j] <= 5 && maxA - LOD[i][j] >= 0){
+                            inverseMaxProbA = inverseMaxProbA + java.lang.Math.pow(10,LikelihoodScores[i][j]-maxlikelihoodA);
+                            if (DEBUG){
+                                out.printf("HLA-A: likelihood=%.5f\tmaxlikelihood=%.5f\tdelta_likelihood=%.5f\tinvP=%.5f\n",LikelihoodScores[i][j],maxlikelihoodA,LikelihoodScores[i][j]-maxlikelihoodA,inverseMaxProbA);
+                            }
+                        }
+                        if (LOD[i][j] == maxA){
                             if (!TopAlleles.contains(i)){TopAlleles.add(i);}
                             if (!TopAlleles.contains(j)){TopAlleles.add(j);}
                         }
-                    } else if (HLAnames.get(i).indexOf("HLA_B") > -1 && HLAnames.get(j).indexOf("HLA_B") > -1){
-                        if (LOD[i][j] == maxB && maxB > 0){
+                    } else if (HLAnames.get(i).indexOf("HLA_B") > -1 && HLAnames.get(j).indexOf("HLA_B") > -1 && maxB > 0){
+                        if (maxB - LOD[i][j] <= 5 && maxB - LOD[i][j] >= 0){
+                            inverseMaxProbB = inverseMaxProbB + java.lang.Math.pow(10,LikelihoodScores[i][j]-maxlikelihoodB);
+                            if (DEBUG){
+                                out.printf("HLA-B: likelihood=%.5f\tmaxlikelihood=%.5f\tdelta_likelihood=%.5f\tinvP=%.5f\n",LikelihoodScores[i][j],maxlikelihoodB,LikelihoodScores[i][j]-maxlikelihoodA,inverseMaxProbB);
+                            }
+                        }
+                        if (LOD[i][j] == maxB){
                             if (!TopAlleles.contains(i)){TopAlleles.add(i);}
                             if (!TopAlleles.contains(j)){TopAlleles.add(j);}
                         }
-                    } else if (HLAnames.get(i).indexOf("HLA_C") > -1 && HLAnames.get(j).indexOf("HLA_C") > -1){
-                        if (LOD[i][j] == maxC && maxC > 0){
+                    } else if (HLAnames.get(i).indexOf("HLA_C") > -1 && HLAnames.get(j).indexOf("HLA_C") > -1 && maxC > 0){
+                        if (maxC - LOD[i][j] <= 5 && maxC - LOD[i][j] >= 0){
+                            inverseMaxProbC = inverseMaxProbC + java.lang.Math.pow(10,LikelihoodScores[i][j]-maxlikelihoodC);
+                            if (DEBUG){
+                                out.printf("HLA-C: likelihood=%.5f\tmaxlikelihood=%.5f\tdelta_likelihood=%.5f\tinvP=%.5f\n",LikelihoodScores[i][j],maxlikelihoodC,LikelihoodScores[i][j]-maxlikelihoodA,inverseMaxProbC);
+                            }
+                        }
+                        if (LOD[i][j] == maxC){
                             if (!TopAlleles.contains(i)){TopAlleles.add(i);}
                             if (!TopAlleles.contains(j)){TopAlleles.add(j);}
                         }
                     }
-
                 }
             }
 
@@ -651,9 +643,10 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             }
 
             out.print("Calculating phasing score for pairs of alleles\n");
-            //Calculate phasing score and population frequencies for pairs of alleles, and find pairs with the highest scores
+            //Calculate phasing score and population frequencies for pairs of alleles, and find pairs with the highest scores, and sum combined probabilities
             String alleleA, alleleB;
             Double freq1 = 0.0, freq2 = 0.0;
+            Double ProbSumA = 0.0, ProbSumB = 0.0, ProbSumC = 0.0, likelihoodPrior;
             for (Integer i = 0; i < numHLAlleles; i++){
                 for (Integer j = i; j < numHLAlleles; j++){
                     if (HLAnames.get(i).indexOf("HLA_A") > -1 && HLAnames.get(j).indexOf("HLA_A") > -1){
@@ -664,6 +657,8 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                             alleleB=HLAnames.get(j).substring(4); if (AlleleFrequencies.containsKey(alleleB)){freq2 = Double.parseDouble((String) AlleleFrequencies.get(alleleB).toString());}else{freq2=0.0001;}
                             SingleAlleleFrequencies[i]=freq1; SingleAlleleFrequencies[j]=freq2; CombinedAlleleFrequencies[i][j]=freq1*freq2;
                             if (CombinedAlleleFrequencies[i][j] > maxAfreq){maxAfreq = CombinedAlleleFrequencies[i][j];}
+                            likelihoodPrior = java.lang.Math.pow(10,LikelihoodScores[i][j]-maxlikelihoodA)/inverseMaxProbA;
+                            ProbSumA = ProbSumA + likelihoodPrior*CombinedAlleleFrequencies[i][j];
                         }
                     } else if (HLAnames.get(i).indexOf("HLA_B") > -1 && HLAnames.get(j).indexOf("HLA_B") > -1){
                         if (LOD[i][j] == maxB && maxB > 0){
@@ -673,6 +668,8 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                             alleleB=HLAnames.get(j).substring(4); if (AlleleFrequencies.containsKey(alleleB)){freq2 = Double.parseDouble((String) AlleleFrequencies.get(alleleB).toString());}else{freq2=0.0001;}
                             SingleAlleleFrequencies[i]=freq1; SingleAlleleFrequencies[j]=freq2; CombinedAlleleFrequencies[i][j]=freq1*freq2;
                             if (freq1*freq2 > maxBfreq){maxBfreq = freq1*freq2;}
+                            likelihoodPrior = java.lang.Math.pow(10,LikelihoodScores[i][j]-maxlikelihoodB)/inverseMaxProbB;
+                            ProbSumB = ProbSumB + likelihoodPrior*CombinedAlleleFrequencies[i][j];
                         }
                     } else if (HLAnames.get(i).indexOf("HLA_C") > -1 && HLAnames.get(j).indexOf("HLA_C") > -1){
                         if (LOD[i][j] == maxC && maxC > 0){
@@ -682,31 +679,37 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                             alleleB=HLAnames.get(j).substring(4); if (AlleleFrequencies.containsKey(alleleB)){freq2 = Double.parseDouble((String) AlleleFrequencies.get(alleleB).toString());}else{freq2=0.0001;}
                             SingleAlleleFrequencies[i]=freq1; SingleAlleleFrequencies[j]=freq2; CombinedAlleleFrequencies[i][j]=freq1*freq2;
                             if (freq1*freq2 > maxCfreq){maxCfreq = freq1*freq2;}
+                            likelihoodPrior = java.lang.Math.pow(10,LikelihoodScores[i][j]-maxlikelihoodC)/inverseMaxProbC;
+                            ProbSumC = ProbSumC + likelihoodPrior*CombinedAlleleFrequencies[i][j];
                         }
                     }
                 }
             }
 
             //Print allele pairs with highest likelihood score and highest phasing score
+            
             for (Integer i = 0; i < numHLAlleles; i++){
                 for (Integer j = i; j < numHLAlleles; j++){
                     if (HLAnames.get(i).indexOf("HLA_A") > -1 && HLAnames.get(j).indexOf("HLA_A") > -1){
-                        if (LOD[i][j] == maxA && maxA > 0 && PhasingScores[i][j] == maxAphase && CombinedAlleleFrequencies[i][j] == maxAfreq){
-                            out.printf("%s\t%s\tLOD=%5.0f\tCONF=%5.0f\tPhase=%s\tfreq1=%s\tfreq2=%s\tCombined_Freq=%.6f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxA,maxA-maxA2,PhasingScores[i][j],SingleAlleleFrequencies[i],SingleAlleleFrequencies[j],CombinedAlleleFrequencies[i][j]);
-                        }else if(LOD[i][j] == maxA && maxA > 0 && PhasingScores[i][j] == maxAphase){
-                            out.printf("%s\t%s\tLOD=%5.0f\tCONF=%5.0f\tPhase=%s\tfreq1=%s\tfreq2=%s\tCombined_Freq=%.6f\n",HLAnames.get(i),HLAnames.get(j),maxA,maxA-maxA2,PhasingScores[i][j],SingleAlleleFrequencies[i],SingleAlleleFrequencies[j],CombinedAlleleFrequencies[i][j]);
+                        if(LOD[i][j] == maxA && maxA > 0 && PhasingScores[i][j] == maxAphase){
+                            likelihoodPrior = java.lang.Math.pow(10,LikelihoodScores[i][j]-maxlikelihoodA)/inverseMaxProbA;
+                            out.printf("%s\t%s\tloglikelihood=%5.0f\tmax=%5.0f\tinvP=%.2f\tPrior=%.3f\tPhase=%s\tfreq1=%s\tfreq2=%s\tf1*f2=%.8f\tProb=%.3f",HLAnames.get(i),HLAnames.get(j),LikelihoodScores[i][j],maxlikelihoodA,inverseMaxProbA,likelihoodPrior,PhasingScores[i][j],SingleAlleleFrequencies[i],SingleAlleleFrequencies[j],CombinedAlleleFrequencies[i][j],likelihoodPrior*CombinedAlleleFrequencies[i][j]/ProbSumA);
+                            if (CombinedAlleleFrequencies[i][j] == maxAfreq){out.printf("\tBEST");}
+                            out.printf("\n");
                         }
                     } else if (HLAnames.get(i).indexOf("HLA_B") > -1 && HLAnames.get(j).indexOf("HLA_B") > -1){
-                        if (LOD[i][j] == maxB && maxB > 0 && PhasingScores[i][j] == maxBphase && CombinedAlleleFrequencies[i][j] == maxBfreq){
-                            out.printf("%s\t%s\tLOD=%5.0f\tCONF=%5.0f\tPhase=%s\tfreq1=%s\tfreq2=%s\tCombined_Freq=%.6f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxB,maxB-maxB2,PhasingScores[i][j],SingleAlleleFrequencies[i],SingleAlleleFrequencies[j],CombinedAlleleFrequencies[i][j]);
-                        }else if(LOD[i][j] == maxB && maxB > 0 && PhasingScores[i][j] == maxBphase){
-                            out.printf("%s\t%s\tLOD=%5.0f\tCONF=%5.0f\tPhase=%s\tfreq1=%s\tfreq2=%s\tCombined_Freq=%.6f\n",HLAnames.get(i),HLAnames.get(j),maxB,maxB-maxB2,PhasingScores[i][j],SingleAlleleFrequencies[i],SingleAlleleFrequencies[j],CombinedAlleleFrequencies[i][j]);
+                        if(LOD[i][j] == maxB && maxB > 0 && PhasingScores[i][j] == maxBphase){
+                            likelihoodPrior = java.lang.Math.pow(10,LikelihoodScores[i][j]-maxlikelihoodB)/inverseMaxProbB;
+                            out.printf("%s\t%s\tloglikelihood=%5.0f\tmax=%5.0f\tinvP=%.2f\tPrior=%.3f\tPhase=%s\tfreq1=%s\tfreq2=%s\tf1*f2=%.8f\tProb=%.3f",HLAnames.get(i),HLAnames.get(j),LikelihoodScores[i][j],maxlikelihoodB,inverseMaxProbB,likelihoodPrior,PhasingScores[i][j],SingleAlleleFrequencies[i],SingleAlleleFrequencies[j],CombinedAlleleFrequencies[i][j],likelihoodPrior*CombinedAlleleFrequencies[i][j]/ProbSumB);
+                            if (CombinedAlleleFrequencies[i][j] == maxBfreq){out.printf("\tBEST");}
+                            out.printf("\n");
                         }
                     } else if (HLAnames.get(i).indexOf("HLA_C") > -1 && HLAnames.get(j).indexOf("HLA_C") > -1){
-                        if (LOD[i][j] == maxC && maxC > 0 && PhasingScores[i][j] == maxCphase && CombinedAlleleFrequencies[i][j] == maxCfreq){
-                            out.printf("%s\t%s\tLOD=%5.0f\tCONF=%5.0f\tPhase=%s\tfreq1=%s\tfreq2=%s\tCombined_Freq=%.6f\tBEST\n",HLAnames.get(i),HLAnames.get(j),maxC,maxC-maxC2,PhasingScores[i][j],SingleAlleleFrequencies[i],SingleAlleleFrequencies[j],CombinedAlleleFrequencies[i][j]);
-                        }else if (LOD[i][j] == maxC && maxC > 0 && PhasingScores[i][j] == maxCphase){
-                            out.printf("%s\t%s\tLOD=%5.0f\tCONF=%5.0f\tPhase=%s\tfreq1=%s\tfreq2=%s\tCombined_Freq=%.6f\n",HLAnames.get(i),HLAnames.get(j),maxC,maxC-maxC2,PhasingScores[i][j],SingleAlleleFrequencies[i],SingleAlleleFrequencies[j],CombinedAlleleFrequencies[i][j]);
+                        if(LOD[i][j] == maxC && maxC > 0 && PhasingScores[i][j] == maxCphase){
+                            likelihoodPrior = java.lang.Math.pow(10,LikelihoodScores[i][j]-maxlikelihoodC)/inverseMaxProbC;
+                            out.printf("%s\t%s\tloglikelihood=%5.0f\tmax=%5.0f\tinvP=%.2f\tPrior=%.3f\tPhase=%s\tfreq1=%s\tfreq2=%s\tf1*f2=%.8f\tProb=%.3f",HLAnames.get(i),HLAnames.get(j),LikelihoodScores[i][j],maxlikelihoodC,inverseMaxProbC,likelihoodPrior,PhasingScores[i][j],SingleAlleleFrequencies[i],SingleAlleleFrequencies[j],CombinedAlleleFrequencies[i][j],likelihoodPrior*CombinedAlleleFrequencies[i][j]/ProbSumC);
+                            if (CombinedAlleleFrequencies[i][j] == maxCfreq){out.printf("\tBEST");}
+                            out.printf("\n");
                         }
                     }
                 }
