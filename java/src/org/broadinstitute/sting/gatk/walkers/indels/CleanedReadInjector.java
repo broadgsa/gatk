@@ -4,7 +4,8 @@ import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
@@ -26,6 +27,7 @@ import java.util.*;
  * Copies reads from the input stream into the <code>outputBAM</code>, replacing those
  * reads which have been cleaned with their new clean copies.
  */
+@Requires({DataSource.READS})
 public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
 
     /**
@@ -46,6 +48,11 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
     private Queue<SAMRecord> cleanedReads = new LinkedList<SAMRecord>();
 
     /**
+     * The intervals specified by the user
+     */
+    private HashMap<String, ArrayList<GenomeLoc>> intervals = null;
+
+    /**
      * A fast lookup table for uniquified read info
      */
     private HashSet<String> cleanedReadHash = new HashSet<String>();
@@ -63,6 +70,21 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
             cleanedReadHash.add(getUniquifiedReadName(read));
         }
         allReads.close();
+
+	// If there are intervals specified by the user,record them so we can make sure not
+	// to emit reads outside the intervals.  For now, we'll group them by chromosome to
+	// make lookup a bit faster.
+        if ( this.getToolkit().getArguments().intervals != null ) {
+	    intervals = new HashMap<String, ArrayList<GenomeLoc>>();
+	    List<GenomeLoc> locs = GenomeAnalysisEngine.parseIntervalRegion(this.getToolkit().getArguments().intervals);
+	    Iterator<GenomeLoc> iter = GenomeLocSortedSet.createSetFromList(locs).iterator();
+	    while ( iter.hasNext() ) {
+		GenomeLoc loc = iter.next();
+		if ( intervals.get(loc.getContig()) == null )
+		    intervals.put(loc.getContig(), new ArrayList<GenomeLoc>());
+		intervals.get(loc.getContig()).add(loc);
+	    }
+        }
     }
 
     /**
@@ -81,15 +103,46 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
         while ( firstCleanedRead != null &&
                 firstCleanedRead.getReferenceIndex() <= read.getReferenceIndex() &&
                 firstCleanedRead.getAlignmentStart() <= read.getAlignmentStart() ) {
-            outputBAM.addAlignment(firstCleanedRead);
-            cleanedReadCount++;
-            cleanedReads.remove();
+	    if ( emit(firstCleanedRead) )
+		cleanedReadCount++;
+	    cleanedReads.remove();
             firstCleanedRead = cleanedReads.peek();
         }
 
         if ( !cleanedReadHash.contains(getUniquifiedReadName(read)) )
             outputBAM.addAlignment(read);
         return cleanedReadCount;
+    }
+
+    /**
+     * Determine whether to emit the given read; if so, return true.
+     */
+    private boolean emit(SAMRecord read) {
+	// if no intervals were specified, emit everything
+	if ( intervals == null ) {
+	    outputBAM.addAlignment(read);
+	    return true;
+	}
+
+	ArrayList<GenomeLoc> intervalList = intervals.get(read.getReferenceName());
+	if ( intervalList == null )
+	    return false;
+
+	GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
+	for ( GenomeLoc interval : intervalList ) {
+	    // if it overlaps an interval, then we can emit it
+	    if ( interval.overlapsP(readLoc) ) {
+		outputBAM.addAlignment(read);
+		return true;
+	    }
+
+	    // once we've passed any interval that could overlap it, just quit
+	    if ( interval.isPast(readLoc) )
+		return false;
+	}
+
+	// it didn't overlap an interval
+	return false;
     }
 
     /**

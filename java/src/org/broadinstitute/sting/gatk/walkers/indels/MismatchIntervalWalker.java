@@ -1,4 +1,3 @@
-
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.*;
