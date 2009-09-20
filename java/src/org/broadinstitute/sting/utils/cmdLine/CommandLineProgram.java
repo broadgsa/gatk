@@ -339,7 +339,7 @@ public abstract class CommandLineProgram {
     private static void printExitSystemMsg(final String msg) {
         System.out.printf("------------------------------------------------------------------------------------------%n");
         System.out.printf("An error has occurred.  Please check your command line arguments for any typos or inconsistencies.%n%n");
-        System.out.printf("For assistance, please email us at gsadevelopers@broad.mit.edu, or review our documentation at http://www.broadinstitute.org/gsa/wiki.%n");
+        System.out.printf("For assistance, please email us at gsahelp@broad.mit.edu, or review our documentation at http://www.broadinstitute.org/gsa/wiki.%n");
     }
 
     /**

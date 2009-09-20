@@ -81,7 +81,7 @@ public class CommandLineGATK extends CommandLineExecutable {
         header.add("The Genome Analysis Toolkit (GATK)");
         header.add("Copyright (c) 2009 The Broad Institute");
         header.add("Please view our documentation at http://www.broadinstitute.org/gsa/wiki");
-        header.add("For support, email gsadevelopers@broadinstitute.org");
+        header.add("For support, email gsahelp@broadinstitute.org");
         header.add("");
         return header;
     }
