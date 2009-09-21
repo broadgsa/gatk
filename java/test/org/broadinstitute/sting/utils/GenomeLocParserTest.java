@@ -3,9 +3,15 @@ package org.broadinstitute.sting.utils;
 import static junit.framework.Assert.assertTrue;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 
 /**
@@ -117,10 +123,20 @@ public class GenomeLocParserTest extends BaseTest {
 
     @Test
     public void testCreateGenomeLoc5() {
-        GenomeLoc loc = GenomeLocParser.createGenomeLoc(0,1,100);
+        GenomeLoc loc = GenomeLocParser.createGenomeLoc(0, 1, 100);
         GenomeLoc copy = GenomeLocParser.createGenomeLoc(loc);
         assertEquals(copy.getContigIndex(), 0);
         assertEquals(100, copy.getStop());
-        assertEquals(1, copy .getStart());
+        assertEquals(1, copy.getStart());
+    }
+
+    @Test
+    public void testGenomeLocParserList() {
+        long start = System.currentTimeMillis();
+        List<GenomeLoc> parsedIntervals = GenomeAnalysisEngine.parseIntervalRegion(Arrays.asList(new String[]{"/humgen/gsa-scr1/GATK_Data/Validation_Data/bigChr1IntervalList.list"}));
+        Collections.sort(parsedIntervals);
+        LinkedList<GenomeLoc> loc = new LinkedList<GenomeLoc>(GenomeLocParser.mergeOverlappingLocations(parsedIntervals));
+        long stop = System.currentTimeMillis();
+        logger.warn("Elapsed time = " + (stop - start));
     }
 }

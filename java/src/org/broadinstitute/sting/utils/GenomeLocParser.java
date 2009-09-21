@@ -52,10 +52,7 @@ import java.util.regex.Pattern;
 public class GenomeLocParser {
     private static Logger logger = Logger.getLogger(GenomeLocParser.class);
 
-    private static final Pattern regex1 = Pattern.compile("([\\w&&[^:]]+)$");                      // matches case 1
-    private static final Pattern regex2 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)$");            // matches case 2
-    private static final Pattern regex3 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)-([\\d,]+)$");  // matches case 3
-    private static final Pattern regex4 = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)\\+");          // matches case 4
+    private static final Pattern mPattern = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)?\\+?(-)?([\\d,]+)?$");  // matches case 3
 
 
     // --------------------------------------------------------------------------------------------------------------
@@ -143,57 +140,61 @@ public class GenomeLocParser {
     public static GenomeLoc parseGenomeLoc(final String str) {
         // 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
         //System.out.printf("Parsing location '%s'%n", str);
-
+        /*try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } */
 
         String contig = null;
         long start = 1;
         long stop = Integer.MAX_VALUE;
         boolean bad = false;
 
-        Matcher match1 = regex1.matcher(str);
-        Matcher match2 = regex2.matcher(str);
-        Matcher match3 = regex3.matcher(str);
-        Matcher match4 = regex4.matcher(str);
+        Matcher match = mPattern.matcher(str);
 
         try {
-            if (match1.matches()) {
-                contig = match1.group(1);
-            } else if (match2.matches()) {
-                contig = match2.group(1);
-                start = parsePosition(match2.group(2));
-                stop = start;
-            } else if (match4.matches()) {
-                contig = match4.group(1);
-                start = parsePosition(match4.group(2));
-            } else if (match3.matches()) {
-                contig = match3.group(1);
-                start = parsePosition(match3.group(2));
-                stop = parsePosition(match3.group(3));
+            if (match.matches()) {
+                contig = match.group(1);
+                if (match.groupCount() > 1) {
+                switch (match.groupCount()) {
+                    case 2:
+                        start = stop = parsePosition(match.group(2));
+                        break;
+                    case 3:
+                        start = parsePosition(match.group(2));
+                        if (!match.group(3).equals("+")) bad = true;
+                        break;
+                    case 4:
+                        start = parsePosition(match.group(2));
+                        stop = parsePosition(match.group(4));
+                        break;
+                    default:
+                        bad = true;
+                        break;
 
-                if (start > stop)
-                    bad = true;
+                }
+                }
             } else {
                 bad = true;
             }
-        } catch (Exception e) {
-            bad = true;
         }
 
-        if (bad) {
-            throw new StingException("Invalid Genome Location string: " + str);
+        catch (Exception e) {
+        bad = true;
         }
 
-        if (stop == Integer.MAX_VALUE && hasKnownContigOrdering()) {
+        if (bad)
+            throw new StingException("Invalid Genome Location string: "); // + str);
+
+
+        if (stop == Integer.MAX_VALUE && hasKnownContigOrdering())
             // lookup the actually stop position!
             stop = getContigInfo(contig).getSequenceLength();
-        }
 
         if (!isContigValid(contig))
             throw new MalformedGenomeLocException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference.");
-
         GenomeLoc loc = parseGenomeLoc(contig, start, stop);
-        //       System.out.printf("  => Parsed location '%s' into %s%n", str, loc);
-
         return loc;
     }
 
