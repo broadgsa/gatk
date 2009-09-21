@@ -2,10 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.indels;
 
 import net.sf.samtools.*;
 
-import org.broadinstitute.sting.gatk.refdata.RODIterator;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.Transcript;
-import org.broadinstitute.sting.gatk.refdata.rodRefSeq;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
@@ -70,7 +67,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	private java.io.Writer output = null;
 	private GenomeLoc location = null;
 	
-	private RODIterator<rodRefSeq> refseqIterator=null;
+	private SeekableRODIterator<rodRefSeq> refseqIterator=null;
 
 	private Set<String> normalReadGroups;
 	private Set<String> tumorReadGroups ;
@@ -412,8 +409,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			}
 			
 			location = GenomeLocParser.setStart(location,pos); location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
-			rodRefSeq annotation = (refseqIterator == null ? null : refseqIterator.seekForward(location));
-
+			RODRecordList<rodRefSeq> annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
+            rodRefSeq annotation = ( annotationList == null ? null : annotationList.getRecords().get(0) ) ;
 			Pair<IndelVariant,Integer> p = findConsensus(variants);
 			if ( isCall(p,cov) ) { 	
 				String message = makeBedLine(p,cov,pos,output);
@@ -513,7 +510,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 				continue; // too dirty
 			}
 			location = GenomeLocParser.setStart(location,pos); location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
-			rodRefSeq annotation = (refseqIterator == null ? null : refseqIterator.seekForward(location));
+            RODRecordList<rodRefSeq> annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
+            rodRefSeq annotation = ( annotationList == null ? null : annotationList.getRecords().get(0) ) ;
 			
 			Pair<IndelVariant,Integer> p_tumor = findConsensus(tumor_variants);
 			if ( isCall(p_tumor,tumor_cov) ) { 	
