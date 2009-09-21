@@ -136,7 +136,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      * @param argCollection Collection of arguments to preprocess.
      */
     private void processArguments( GATKArgumentCollection argCollection ) {
-        argCollection.samFiles = unpackReads( argCollection.samFiles );
+        argCollection.samFiles = unpackList( argCollection.samFiles );
     }
 
     /**
@@ -147,7 +147,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      *
      * @return
      */
-    private List<File> unpackReads( List<File> inputFiles ) {
+    public static List<File> unpackList( List<File> inputFiles ) {
         List<File> unpackedReads = new ArrayList<File>();
         for( File inputFile: inputFiles ) {
             if (inputFile.getName().endsWith(".list") ) {
