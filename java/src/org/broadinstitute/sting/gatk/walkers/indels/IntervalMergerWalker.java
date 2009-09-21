@@ -118,10 +118,7 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
      */
     private LinkedList<GenomeLoc> parseIntervals(List<String> intervalsSource) {
         List<GenomeLoc> parsedIntervals = GenomeAnalysisEngine.parseIntervalRegion(intervalsSource);
-        GenomeLocSortedSet intervalSortedSet = new GenomeLocSortedSet();
-        for ( GenomeLoc parsedInterval : parsedIntervals )
-            intervalSortedSet.addRegion(parsedInterval);
-
-        return new LinkedList<GenomeLoc>( intervalSortedSet );
+	Collections.sort(parsedIntervals);
+	return new LinkedList<GenomeLoc>(GenomeLocParser.mergeOverlappingLocations(parsedIntervals));
     }
 }
