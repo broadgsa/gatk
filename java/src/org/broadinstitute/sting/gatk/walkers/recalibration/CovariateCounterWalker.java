@@ -4,14 +4,11 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.*;
 
 import java.util.*;
 import java.io.PrintStream;
@@ -54,6 +51,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long counted_bases = 0; // number of bases used to count covariates
     private long skipped_sites = 0; // number of sites skipped because of a dbSNP entry
 
+    // THIS IS A HACK required in order to reproduce the behavior of old (and imperfect) RODIterator and
+    // hence to pass the integration test. The new iterator this code is now using does see ALL the SNPs,
+    // whether masked by overlapping indels/other events or not.
+    //TODO process correctly all the returned dbSNP rods at each location
+
+
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0l, 0l);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0l, 0l);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -74,6 +77,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
 
         covariateCounter = new CovariateCounter(readGroups, collapsePos, collapseDinuc, assumeFaultyHeader);
+        // THIS IS A HACK required in order to reproduce the behavior of old (and imperfect) RODIterator and
+        // hence to pass the integration test. The new iterator this code is now using does see ALL the SNPs,
+        // whether masked by overlapping indels/other events or not.
+        //TODO process correctly all the returned dbSNP rods at each location
+        BrokenRODSimulator.attach("dbSNP");
         logger.info(String.format("Created recalibration data collectors for %d read group(s)", covariateCounter.getNReadGroups()));
     }
 
@@ -93,10 +101,21 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @return
      */
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        rodDbSNP dbsnp = (rodDbSNP)tracker.lookup("dbSNP", null);
+
+        rodDbSNP dbsnp = (rodDbSNP)BrokenRODSimulator.simulate_lookup("dbSNP",ref.getLocus(),tracker);
+//        long testpos =  10410913 ;
+//        if ( ref.getLocus().getStart() ==  testpos ) {
+//            System.out.println(rods.size()+" rods:");
+//            for ( ReferenceOrderedDatum d : rods.getRecords() ) System.out.println((((rodDbSNP)d).isSNP()?"SNP":"non-SNP")+" at " + d.getLocation());
+//          System.exit(1);
+//        }
+
+
+
         if ( dbsnp == null || !dbsnp.isSNP() ) {
             // We aren't at a dbSNP position that's a SNP, so update the read
 
+ //           if ( ref.getLocus().getStart() == testpos)  System.out.println("NOT A SNP INDEED");
             List<SAMRecord> reads = context.getReads();
             List<Integer> offsets = context.getOffsets();
             for (int i =0; i < reads.size(); i++ ) {
@@ -123,6 +142,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             counted_sites += 1;
             updateMismatchCounts(novel_counts, context, ref.getBase());
         } else {
+ //           if ( ref.getLocus().getStart() == testpos)  System.out.println("TREATED AS A SNP");
+   //         out.println(ref.getLocus()+" SNP at "+dbsnp.getLocation() );
             updateMismatchCounts(dbSNP_counts, context, ref.getBase());
             skipped_sites += 1;
         }
@@ -226,6 +247,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         //out.printf("...done%n");
 
         recalTableStream.close();
+
     }
 
     /**
