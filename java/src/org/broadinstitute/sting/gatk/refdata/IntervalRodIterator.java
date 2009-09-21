@@ -1,14 +1,10 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
-import org.broadinstitute.sting.gatk.refdata.BasicReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Pair;
 
 public class IntervalRodIterator implements Iterator<IntervalRod> {
     private List<GenomeLoc> locations = null;
