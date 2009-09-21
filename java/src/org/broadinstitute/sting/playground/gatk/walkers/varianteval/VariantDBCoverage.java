@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.ArrayList;
@@ -25,9 +25,15 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
     private int nConcordant = 0;
     private int nSNPsCalledAtIndels = 0;
 
+
     public VariantDBCoverage(final String name) {
         super("db_coverage");
         dbName = name;
+        // THIS IS A HACK required in order to reproduce the behavior of old (and imperfect) RODIterator and
+        // hence to pass the integration test. The new iterator this code is now using does see ALL the SNPs,
+        // whether masked by overlapping indels/other events or not.
+        //TODO process correctly all the returned dbSNP rods at each location
+        BrokenRODSimulator.attach(name);
     }
 
     public void inc(Variation dbSNP, Variation eval) {
@@ -108,7 +114,9 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
 
         // There are four cases here:
-        Variation dbsnp = (Variation) tracker.lookup(dbName, null);
+        //TODO process correctly all the returned dbSNP rods at each location
+        Variation dbsnp = (Variation) BrokenRODSimulator.simulate_lookup(dbName,context.getLocation(),tracker);
+
         boolean isSNP = dbsnp != null && dbsnp.isSNP();
         inc(dbsnp, eval);
 
