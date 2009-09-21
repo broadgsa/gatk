@@ -134,7 +134,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
     }
 
     private Collection<RODRecordList<ReferenceOrderedDatum>> getSpanningTracks(ReferenceOrderedDatum marker) {
-        RODRecordList<ReferenceOrderedDatum> wrapper = new RODRecordList<ReferenceOrderedDatum>(marker.getName(),Collections.singletonList(marker));
+        RODRecordList<ReferenceOrderedDatum> wrapper = new RODRecordList<ReferenceOrderedDatum>(marker.getName(),Collections.singletonList(marker),marker.getLocation());
         return rodQueue.allElementsLTE(wrapper);
     }
 
