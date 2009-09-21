@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RODRecordList;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
@@ -55,8 +56,8 @@ public class CountRodWalker extends RodWalker<CountRodWalker.Datum, Pair<Expandi
             nRodsHere = -1; // don't update this
             nTotalBases = context.getSkippedBases();
         } else {
-            Collection<ReferenceOrderedDatum> rods = new LinkedList<ReferenceOrderedDatum>();
-            for ( ReferenceOrderedDatum rod : tracker.getBoundRods() ) {
+            Collection<RODRecordList<ReferenceOrderedDatum>> rods = new LinkedList<RODRecordList<ReferenceOrderedDatum>>();
+            for ( RODRecordList<ReferenceOrderedDatum> rod : tracker.getBoundRodTracks() ) {
                 //System.out.printf("Considering rod %s%n", rod);
                 if ( rod.getLocation().getStart() == context.getLocation().getStart() && ! rod.getName().equals("interval") ) {
                     // only consider the first element
@@ -70,7 +71,7 @@ public class CountRodWalker extends RodWalker<CountRodWalker.Datum, Pair<Expandi
             if ( nRodsHere > 0 ) {
                 if ( verbose ) {
                     List<String> names = new ArrayList<String>();
-                    for ( ReferenceOrderedDatum rod : rods ) {
+                    for ( RODRecordList<ReferenceOrderedDatum> rod : rods ) {
                         names.add(rod.getName());
                     }
 

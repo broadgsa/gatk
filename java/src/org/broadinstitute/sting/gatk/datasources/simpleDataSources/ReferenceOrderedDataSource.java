@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.RODIterator;
+import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
@@ -59,7 +59,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * @return Iterator through the data.
      */
     public Iterator seek( Shard shard ) {
-        RODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(shard.getGenomeLoc()) );
+        SeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(shard.getGenomeLoc()) );
         return iterator;
     }
 
@@ -67,7 +67,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * Close the specified iterator, returning it to the pool.
      * @param iterator Iterator to close.
      */
-    public void close( RODIterator iterator ) {
+    public void close( SeekableRODIterator iterator ) {
         this.iteratorPool.release(iterator);        
     }
 
@@ -76,7 +76,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
 /**
  * A pool of reference-ordered data iterators.
  */
-class ReferenceOrderedDataPool extends ResourcePool<RODIterator,RODIterator> {
+class ReferenceOrderedDataPool extends ResourcePool<SeekableRODIterator,SeekableRODIterator> {
     private final ReferenceOrderedData<? extends ReferenceOrderedDatum> rod;
 
     public ReferenceOrderedDataPool( ReferenceOrderedData<? extends ReferenceOrderedDatum> rod ) {
@@ -88,7 +88,7 @@ class ReferenceOrderedDataPool extends ResourcePool<RODIterator,RODIterator> {
      * to be completely independent of any other iterator.
      * @return The newly created resource.
      */
-    public RODIterator createNewResource() {
+    public SeekableRODIterator createNewResource() {
         return rod.iterator();
     }
 
@@ -99,13 +99,13 @@ class ReferenceOrderedDataPool extends ResourcePool<RODIterator,RODIterator> {
      * @param resources @{inheritedDoc}
      * @return @{inheritedDoc}
      */
-    public RODIterator selectBestExistingResource( DataStreamSegment segment, List<RODIterator> resources ) {
+    public SeekableRODIterator selectBestExistingResource( DataStreamSegment segment, List<SeekableRODIterator> resources ) {
         if( !(segment instanceof MappedStreamSegment) )
             throw new StingException("Reference-ordered data cannot utilitize unmapped segments.");
 
         GenomeLoc position = ((MappedStreamSegment)segment).locus;
 
-        for( RODIterator iterator: resources ) {
+        for( SeekableRODIterator iterator: resources ) {
             if( (iterator.position() == null && iterator.hasNext()) ||
                 (iterator.position() != null && iterator.position().isBefore(position)) )
                 return iterator;
@@ -116,14 +116,14 @@ class ReferenceOrderedDataPool extends ResourcePool<RODIterator,RODIterator> {
     /**
      * In this case, the iterator is the resource.  Pass it through.
      */
-    public RODIterator createIteratorFromResource( DataStreamSegment segment, RODIterator resource ) {
+    public SeekableRODIterator createIteratorFromResource( DataStreamSegment segment, SeekableRODIterator resource ) {
         return resource;
     }
 
     /**
      * Don't worry about closing the resource; let the file handles expire naturally for the moment.
      */
-    public void closeResource(  RODIterator resource ) {
+    public void closeResource(  SeekableRODIterator resource ) {
         
     }
 }

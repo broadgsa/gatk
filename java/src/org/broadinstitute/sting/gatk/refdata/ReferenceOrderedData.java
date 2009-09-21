@@ -1,14 +1,10 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.MalformedGenomeLocException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.xReadLines;
 
 import java.io.*;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -20,13 +16,13 @@ import java.util.*;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements Iterable<ROD> {
+public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements Iterable<RODRecordList<ROD>> {
     private String name;
     private File file = null;
-    private String fieldDelimiter;
+//    private String fieldDelimiter;
 
     /** Header object returned from the datum */
-    private Object header = null;
+//    private Object header = null;
 
     private Class<ROD> type = null; // runtime type information for object construction
 
@@ -180,8 +176,8 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         this.file = file;
         this.type = type;
         this.name = name;
-        this.header = initializeROD(name, file, type);
-        this.fieldDelimiter = newROD(name, type).delimiterRegex();
+//        this.header = initializeROD(name, file, type);
+//        this.fieldDelimiter = newROD(name, type).delimiterRegex();
     }
 
     public String getName() { return name; }
@@ -200,13 +196,13 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         return this.name.equals(name) && type.isAssignableFrom(this.type);
     }
 
-    public RODIterator<ROD> iterator() {
+    public SeekableRODIterator<ROD> iterator() {
         Iterator<ROD> it;
         try {
             Method m = type.getDeclaredMethod("createIterator", String.class, java.io.File.class);
             it = (Iterator<ROD>) m.invoke(null, name, file);
         } catch (java.lang.NoSuchMethodException e) {
-            it = new SimpleRODIterator();
+            it = new RODRecordIterator(file,name,type);
         } catch (java.lang.NullPointerException e) {
             throw new RuntimeException(e);
         } catch (java.lang.SecurityException e) {
@@ -218,7 +214,8 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         } catch (java.lang.reflect.InvocationTargetException e) {
             throw new RuntimeException(e);
         }
-        return new RODIterator<ROD>(it);
+  //      return new RODIterator<ROD>(it);
+        return new SeekableRODIterator(it);
     }
 
     // ----------------------------------------------------------------------
@@ -227,10 +224,10 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     //
     // ----------------------------------------------------------------------
     public void testMe() {
-        for (ReferenceOrderedDatum rec : this) {
-            System.out.println(rec.toString());
+        for (RODRecordList<ROD> rec : this) {
+            System.out.println(rec.getRecords().get(0).toString());
 
-            RodGenotypeChipAsGFF gff = (RodGenotypeChipAsGFF) rec;
+            RodGenotypeChipAsGFF gff = (RodGenotypeChipAsGFF) rec.getRecords().get(0);
             String[] keys = {"LENGTH", "ALT", "FOBARBAR"};
             for (String key : keys) {
                 System.out.printf("  -> %s is (%s)%n", key, gff.containsAttribute(key) ? gff.getAttribute(key) : "none");
@@ -246,8 +243,10 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     // ----------------------------------------------------------------------
     public ArrayList<ReferenceOrderedDatum> readAll() {
         ArrayList<ReferenceOrderedDatum> elts = new ArrayList<ReferenceOrderedDatum>();
-        for (ReferenceOrderedDatum rec : this) {
-            elts.add(rec);
+        for ( RODRecordList<ROD> l : this ) {
+            for (ReferenceOrderedDatum rec : l) {
+                elts.add(rec);
+            }
         }
         elts.trimToSize();
         return elts;
@@ -269,12 +268,14 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
 
     public boolean validateFile() throws Exception {
         ReferenceOrderedDatum last = null;
-        for (ReferenceOrderedDatum rec : this) {
-            if (last != null && last.compareTo(rec) == 1) {
-                // It's out of order
-                throw new Exception("Out of order elements at \n" + last.toString() + "\n" + rec.toString());
+        for ( RODRecordList<ROD> l : this ) {
+            for (ReferenceOrderedDatum rec : l) {
+                if (last != null && last.compareTo(rec) > 1) {
+                    // It's out of order
+                    throw new Exception("Out of order elements at \n" + last.toString() + "\n" + rec.toString());
+                }
+                last = rec;
             }
-            last = rec;
         }
         return true;
     }
@@ -288,103 +289,103 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     // Iteration
     //
     // ----------------------------------------------------------------------
-    private class SimpleRODIterator implements Iterator<ROD> {
-        private xReadLines parser = null;
-
-        public SimpleRODIterator() {
-            try {
-                parser = new xReadLines(file);
-            } catch (FileNotFoundException e) {
-                Utils.scareUser("Couldn't open file: " + file);
-            }
-        }
-
-        public boolean hasNext() {
-            //System.out.printf("Parser has next: %b%n", parser.hasNext());
-            return parser.hasNext();
-        }
-
-        public ROD next() {
-            ROD n = null;
-            boolean success = false;
-            boolean firstFailure = true;
-
-            do {
-                final String line = parser.next();
-                //System.out.printf("Line is '%s'%n", line);
-                String parts[] = line.split(fieldDelimiter);
-
-                try {
-                    n = parseLine(parts);
-                    // Two failure conditions:
-                    // 1) parseLine throws an exception.
-                    // 2) parseLine returns null.
-                    // 3) parseLine throws a RuntimeException.
-                    // TODO: Clean this up so that all errors are handled in one spot.
-                    success = (n != null);
-                }
-                catch (MalformedGenomeLocException ex) {
-                    if (firstFailure) {
-                        Utils.warnUser("Failed to parse contig on line '" + line + "'.  The reason given was: " + ex.getMessage() + " Skipping ahead to the next recognized GenomeLoc. ");
-                        firstFailure = false;
-                    }
-                    if (!parser.hasNext())
-                        Utils.warnUser("Unable to find more valid reference-ordered data.  Giving up.");
-                }
-
-            } while (!success && parser.hasNext());
-
-            return n;
-        }
-
-        public void remove() {
-            throw new UnsupportedOperationException();
-        }
-    }
+//    private class SimpleRODIterator implements Iterator<ROD> {
+//        private xReadLines parser = null;
+//
+//        public SimpleRODIterator() {
+//            try {
+//                parser = new xReadLines(file);
+//            } catch (FileNotFoundException e) {
+//                Utils.scareUser("Couldn't open file: " + file);
+//            }
+//        }
+//
+//        public boolean hasNext() {
+//            //System.out.printf("Parser has next: %b%n", parser.hasNext());
+//            return parser.hasNext();
+//        }
+//
+//        public ROD next() {
+//            ROD n = null;
+//            boolean success = false;
+//            boolean firstFailure = true;
+//
+//            do {
+//                final String line = parser.next();
+//                //System.out.printf("Line is '%s'%n", line);
+//                String parts[] = line.split(fieldDelimiter);
+//
+//                try {
+//                    n = parseLine(parts);
+//                    // Two failure conditions:
+//                    // 1) parseLine throws an exception.
+//                    // 2) parseLine returns null.
+//                    // 3) parseLine throws a RuntimeException.
+//                    // TODO: Clean this up so that all errors are handled in one spot.
+//                    success = (n != null);
+//                }
+//                catch (MalformedGenomeLocException ex) {
+//                    if (firstFailure) {
+//                        Utils.warnUser("Failed to parse contig on line '" + line + "'.  The reason given was: " + ex.getMessage() + " Skipping ahead to the next recognized GenomeLoc. ");
+//                        firstFailure = false;
+//                   }
+//                    if (!parser.hasNext())
+//                        Utils.warnUser("Unable to find more valid reference-ordered data.  Giving up.");
+//                }
+//
+//           } while (!success && parser.hasNext());
+//
+//            return n;
+//        }
+//
+//        public void remove() {
+//            throw new UnsupportedOperationException();
+//        }
+//    }
 
     // ----------------------------------------------------------------------
     //
     // Parsing
     //
     // ----------------------------------------------------------------------
-    private Constructor<ROD> parsing_constructor;
+//    private Constructor<ROD> parsing_constructor;
 
-    private ROD newROD(final String name, final Class<ROD> type) {
-        try {
-            return (ROD) parsing_constructor.newInstance(name);
-        } catch (java.lang.InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (java.lang.IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
-    }
+//    private ROD newROD(final String name, final Class<ROD> type) {
+//        try {
+//            return (ROD) parsing_constructor.newInstance(name);
+//        } catch (java.lang.InstantiationException e) {
+//            throw new RuntimeException(e);
+//        } catch (java.lang.IllegalAccessException e) {
+//            throw new RuntimeException(e);
+//        } catch (InvocationTargetException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
 
-    private Object initializeROD(final String name, final File file, final Class<ROD> type) {
-        try {
-            parsing_constructor = type.getConstructor(String.class);
-        }
-        catch (java.lang.NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-        ROD rod = newROD(name, type);
-        try {
-            return rod.initialize(file);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-    }
+//    private Object initializeROD(final String name, final File file, final Class<ROD> type) {
+//        try {
+//            parsing_constructor = type.getConstructor(String.class);
+//        }
+//        catch (java.lang.NoSuchMethodException e) {
+//            throw new RuntimeException(e);
+//        }
+//        ROD rod = newROD(name, type);
+//        try {
+//            return rod.initialize(file);
+//        } catch (FileNotFoundException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
 
-    private ROD parseLine(final String[] parts) {
-        //System.out.printf("Parsing GFFLine %s%n", Utils.join(" ", parts));
-        ROD obj = newROD(name, type);
-        try {
-            if (!obj.parseLine(header, parts))
-                obj = null;
-        } catch (IOException e) {
-            throw new RuntimeException("Badly formed ROD: " + e);
-        }
-        return obj;
-    }
+//    private ROD parseLine(final String[] parts) {
+//        //System.out.printf("Parsing GFFLine %s%n", Utils.join(" ", parts));
+//        ROD obj = newROD(name, type);
+//        try {
+//            if (!obj.parseLine(header, parts))
+//                obj = null;
+//        } catch (IOException e) {
+//            throw new RuntimeException("Badly formed ROD: " + e);
+//        }
+//        return obj;
+//    }
 }

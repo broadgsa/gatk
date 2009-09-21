@@ -2,9 +2,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.apache.log4j.Logger;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.*;
 
 /**
  * This class represents the Reference Metadata available at a particular site in the genome.  It can be
@@ -23,31 +21,68 @@ import java.util.LinkedList;
  * Time: 3:05:23 PM
  */
 public class RefMetaDataTracker {
-    final HashMap<String, ReferenceOrderedDatum> map = new HashMap<String, ReferenceOrderedDatum>();
+    final HashMap<String, RODRecordList<ReferenceOrderedDatum>> map = new HashMap<String, RODRecordList<ReferenceOrderedDatum>>();
     protected static Logger logger = Logger.getLogger(RefMetaDataTracker.class);
 
     /**
-     * Finds the reference meta data named name, if it exists, otherwise returns the defaultValue
-     *
+     * Finds the reference meta data named name, if it exists, otherwise returns the defaultValue.
+     * This is a legacy method that works with "singleton" tracks, in which a single ROD record can be associated
+     * with any given site. If track provides multiple records associated with a site, this method will return
+     * the first one.
      * @param name
      * @param defaultValue
      * @return
      */
+    @Deprecated
     public ReferenceOrderedDatum lookup(final String name, ReferenceOrderedDatum defaultValue) {
+        //logger.debug(String.format("Lookup %s%n", name));
+        final String luName = canonicalName(name);
+        if ( map.containsKey(luName) ) {
+            RODRecordList<ReferenceOrderedDatum> value = map.get(luName) ;
+            if ( value != null ) {
+                List<ReferenceOrderedDatum> l = value.getRecords();
+                if ( l != null & l.size() > 0 ) return value.getRecords().get(0);
+            }
+        } 
+        return defaultValue;
+    }
+
+    /**
+     * Finds the reference metadata track named 'name' and returns all ROD records from that track associated
+     * with the current site as a RODRecordList collection object. If no data track with specified name is available,
+     * returns defaultValue wrapped as RODRecordList object. NOTE: if defaultValue is null, it will be wrapped up
+     * with track name set to 'name' and location set to null; otherwise the wrapper object will have name and
+     * location set to defaultValue.getName() and defaultValue.getLocation(), respectively (use caution,
+     * defaultValue.getLocation() may be not equal to what RODRecordList's location would be expected to be otherwise:
+     * for instance, on locus traversal, location is usually expected to be a single base we are currently looking at,
+     * regardless of the presence of "extended" RODs overlapping with that location).
+     * @param name
+     * @param defaultValue
+     * @return
+     */
+    public RODRecordList<ReferenceOrderedDatum> getTrackData(final String name, ReferenceOrderedDatum defaultValue) {
         //logger.debug(String.format("Lookup %s%n", name));
         final String luName = canonicalName(name);
         if ( map.containsKey(luName) )
             return map.get(luName);
-        else
-            return defaultValue;
-    }
+        else {
 
+            if ( defaultValue == null ) {
+                return new RODRecordList<ReferenceOrderedDatum>(luName, Collections.singletonList(defaultValue), null);
+            } else {
+                return new RODRecordList<ReferenceOrderedDatum>(defaultValue.getName(),
+                                                                Collections.singletonList(defaultValue),
+                                                                defaultValue.getLocation());
+            }
+        }
+    }
     /**
      * @see this.lookup
      * @param name
      * @param defaultValue
      * @return
      */
+    @Deprecated
     public Object lookup(final String name, Object defaultValue) {
         final String luName = canonicalName(name);
         if ( map.containsKey(luName) )
@@ -68,7 +103,7 @@ public class RefMetaDataTracker {
     }
 
     /**
-     * Is there a binding at this site to a ROD with name?
+     * Is there a binding at this site to a ROD/track with the specified name?
      *
      * @param name the name of the rod
      * @return true if it has the rod
@@ -78,39 +113,64 @@ public class RefMetaDataTracker {
     }
 
     /**
-     * Get all of the RODs at the current site
+     * Get all of the RODs at the current site. The collection is "flattened": for any track that has multiple records
+     * at the current site, they all will be added to the list as separate elements.
      * 
      * @return
      */
     public Collection<ReferenceOrderedDatum> getAllRods() {
-        return map.values();
+        List<ReferenceOrderedDatum> l = new ArrayList<ReferenceOrderedDatum>();
+        for ( RODRecordList<ReferenceOrderedDatum> rl : map.values() ) {
+            if ( rl == null ) continue; // how do we get null value stored for a track? shouldn't the track be missing from the map alltogether?
+            l.addAll(rl.getRecords());
+        }
+        return l;
+
     }
 
     /**
-     * Get all of the RODs at the current site
+     * Get all of the ROD tracks at the current site. Each track is returned as a single compound
+     * object (RODRecordList) that may contain multiple ROD records associated with the current site.
      *
      * @return
      */
-    public Collection<ReferenceOrderedDatum> getBoundRods() {
-        LinkedList<ReferenceOrderedDatum> bound = new LinkedList<ReferenceOrderedDatum>();
+    public Collection<RODRecordList<ReferenceOrderedDatum>> getBoundRodTracks() {
+        LinkedList<RODRecordList<ReferenceOrderedDatum>> bound = new LinkedList<RODRecordList<ReferenceOrderedDatum>>();
         
-        for ( ReferenceOrderedDatum value : map.values() ) {
-            if ( value != null )
-            bound.add(value);
+        for ( RODRecordList<ReferenceOrderedDatum> value : map.values() ) {
+             if ( value != null && value.size() != 0 ) bound.add(value);
         }
 
         return bound;
     }
 
+    public Collection<ReferenceOrderedDatum> getBoundRodRecords() {
+        LinkedList<ReferenceOrderedDatum> bound = new LinkedList<ReferenceOrderedDatum>();
+
+        for ( RODRecordList<ReferenceOrderedDatum> valueList : map.values() ) {
+            for ( ReferenceOrderedDatum value : valueList ) {
+                if ( value != null )
+                bound.add(value);
+            }
+        }
+
+        return bound;
+    }
     /**
-     * Binds the reference ordered datum ROD to name at this site.  Should be used only but the traversal
+     * Binds the list of reference ordered data records (RODs) to track name at this site.  Should be used only by the traversal
      * system to provide access to RODs in a structured way to the walkers.
      *
      * @param name
      * @param rod
      */
+    public void bind(final String name, RODRecordList<ReferenceOrderedDatum>  rod) {
+        //logger.debug(String.format("Binding %s to %s", name, rod));
+        map.put(canonicalName(name), rod);
+    }
+/*
     public void bind(final String name, ReferenceOrderedDatum rod) {
         //logger.debug(String.format("Binding %s to %s", name, rod));
         map.put(canonicalName(name), rod);
     }
+    */
 }
