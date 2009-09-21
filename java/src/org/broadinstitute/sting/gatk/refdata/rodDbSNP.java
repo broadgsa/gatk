@@ -157,7 +157,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
     //
     // ----------------------------------------------------------------------
     public boolean isSNP() {
-        return varType.contains("single");
+        return varType.contains("single") && locType.contains("exact");
     }
 
     public boolean isInsertion() {
