@@ -57,7 +57,7 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
     @Override
     public void initialize() {
         intervals = parseIntervals(intervalsSource);
-        currentInterval = intervals.removeFirst();
+        currentInterval = (intervals.size() > 0 ? intervals.removeFirst() : null);
     }
 
     @Override
