@@ -3,15 +3,10 @@ package org.broadinstitute.sting.utils;
 import static junit.framework.Assert.assertTrue;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import static org.junit.Assert.assertEquals;
+import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 
 
 /**
@@ -22,15 +17,22 @@ import java.util.List;
  *         Test out the functionality of the new genome loc parser
  */
 public class GenomeLocParserTest extends BaseTest {
-
     @Test(expected = StingException.class)
     public void testUnsetupException() {
+        GenomeLocParser.contigInfo = null;
         GenomeLocParser.createGenomeLoc(0, 0, 0);
+    }
+
+    @BeforeClass
+    public static void init() {
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
+        GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
     }
 
     @Test
     public void testKnownContigOrder() {
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
+        GenomeLocParser.contigInfo = null;
         // assert that it's false when the contig ordering is not setup
         assertTrue(!GenomeLocParser.hasKnownContigOrdering());
         GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
@@ -98,6 +100,14 @@ public class GenomeLocParserTest extends BaseTest {
     }
 
     @Test
+    public void testCreateGenomeLoc1point5() { // in honor of VAAL!
+        GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1");
+        assertEquals(loc.getContigIndex(), 0);
+        assertEquals(1, loc.getStop());
+        assertEquals(1, loc.getStart());
+    }
+
+    @Test
     public void testCreateGenomeLoc2() {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(0, 1, 100);
         assertEquals(loc.getContigIndex(), 0);
@@ -130,7 +140,7 @@ public class GenomeLocParserTest extends BaseTest {
         assertEquals(1, copy.getStart());
     }
 
-    @Test
+    /*@Test // - uncomment if you want to test speed
     public void testGenomeLocParserList() {
         long start = System.currentTimeMillis();
         List<GenomeLoc> parsedIntervals = GenomeAnalysisEngine.parseIntervalRegion(Arrays.asList(new String[]{"/humgen/gsa-scr1/GATK_Data/Validation_Data/bigChr1IntervalList.list"}));
@@ -138,5 +148,21 @@ public class GenomeLocParserTest extends BaseTest {
         LinkedList<GenomeLoc> loc = new LinkedList<GenomeLoc>(GenomeLocParser.mergeOverlappingLocations(parsedIntervals));
         long stop = System.currentTimeMillis();
         logger.warn("Elapsed time = " + (stop - start));
+    }*/
+
+    @Test
+    public void testGenomeLocPlusSign() {
+        GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1+");
+        assertEquals(0, loc.getContigIndex());
+        assertEquals(10, loc.getStop()); // the size
+        assertEquals(1, loc.getStart());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testGenomeLocBad() {
+        GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1-");
+        assertEquals(0, loc.getContigIndex());
+        assertEquals(10, loc.getStop()); // the size
+        assertEquals(1, loc.getStart());
     }
 }

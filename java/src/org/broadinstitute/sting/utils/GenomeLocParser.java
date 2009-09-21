@@ -52,7 +52,7 @@ import java.util.regex.Pattern;
 public class GenomeLocParser {
     private static Logger logger = Logger.getLogger(GenomeLocParser.class);
 
-    private static final Pattern mPattern = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)?\\+?(-)?([\\d,]+)?$");  // matches case 3
+    private static final Pattern mPattern = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)?(\\+)?(-)?([\\d,]+)?$");  // matches case 3
 
 
     // --------------------------------------------------------------------------------------------------------------
@@ -61,7 +61,7 @@ public class GenomeLocParser {
     //
     // --------------------------------------------------------------------------------------------------------------
     //public static Map<String, Integer> refContigOrdering = null;
-    private static SAMSequenceDictionary contigInfo = null;
+    protected static SAMSequenceDictionary contigInfo = null;
 
     /**
      * do we have a contig ordering setup?
@@ -140,12 +140,7 @@ public class GenomeLocParser {
     public static GenomeLoc parseGenomeLoc(final String str) {
         // 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
         //System.out.printf("Parsing location '%s'%n", str);
-        /*try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        } */
-
+        
         String contig = null;
         long start = 1;
         long stop = Integer.MAX_VALUE;
@@ -156,32 +151,24 @@ public class GenomeLocParser {
         try {
             if (match.matches()) {
                 contig = match.group(1);
-                if (match.groupCount() > 1) {
-                switch (match.groupCount()) {
-                    case 2:
-                        start = stop = parsePosition(match.group(2));
-                        break;
-                    case 3:
-                        start = parsePosition(match.group(2));
-                        if (!match.group(3).equals("+")) bad = true;
-                        break;
-                    case 4:
-                        start = parsePosition(match.group(2));
-                        stop = parsePosition(match.group(4));
-                        break;
-                    default:
+                if (match.groupCount() == 5) {
+                    start = parsePosition(match.group(2));
+                    if (match.group(3) != null && match.group(3).equals("+") && match.group(5) == null) {
+                        // do nothing
+                    } else if (match.group(5) != null)
+                        stop = parsePosition(match.group(5));
+                    else if (match.group(5) == null && match.group(4) == null && match.group(3) == null)
+                        stop = start;
+                    else
                         bad = true;
-                        break;
-
+                } else {
+                    bad = true;
                 }
-                }
-            } else {
-                bad = true;
             }
         }
 
         catch (Exception e) {
-        bad = true;
+            bad = true;
         }
 
         if (bad)
@@ -194,6 +181,7 @@ public class GenomeLocParser {
 
         if (!isContigValid(contig))
             throw new MalformedGenomeLocException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference.");
+
         GenomeLoc loc = parseGenomeLoc(contig, start, stop);
         return loc;
     }

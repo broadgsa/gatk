@@ -75,7 +75,7 @@ public class rodDbSNPTest extends BaseTest {
                 stop = (var.getLocation().getContig().equals("1") && var.getLocation().getStart() > 11000000);
                 line = stream.readLine();
             }
-            Assert.assertEquals(3717,snpCount);
+            Assert.assertEquals(3615,snpCount);
             Assert.assertEquals(9902,indelCount);
 
         } catch (IOException e) {
