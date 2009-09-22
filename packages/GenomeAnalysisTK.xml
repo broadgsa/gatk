@@ -21,18 +21,18 @@
     <class>org.broadinstitute.sting.gatk.walkers.indels.MismatchIntervalWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.indels.SNPClusterWalker</class>
     <!-- Variant filtration -->
-    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VariantFiltrationWalker</class>
+    <class>org.broadinstitute.sting.gatk.walkers.filters.VariantFiltrationWalker</class>
     <!-- Single sample genotyper -->
     <class>org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper</class>
     <!-- And the filters -->
-    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.IVFSecondaryBases</class>
-    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECFisherStrand</class>
-    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECAlleleBalance</class>
-    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECDepthOfCoverage</class>
-    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECLodThreshold</class>
-    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECMappingQualityZero</class>
-    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECIndelArtifact</class>
-    <class>org.broadinstitute.sting.playground.gatk.walkers.variants.VECClusteredSnps</class>
+    <class>org.broadinstitute.sting.gatk.walkers.filters.IVFSecondaryBases</class>
+    <class>org.broadinstitute.sting.gatk.walkers.filters.VECFisherStrand</class>
+    <class>org.broadinstitute.sting.gatk.walkers.filters.VECAlleleBalance</class>
+    <class>org.broadinstitute.sting.gatk.walkers.filters.VECDepthOfCoverage</class>
+    <class>org.broadinstitute.sting.gatk.walkers.filters.VECLodThreshold</class>
+    <class>org.broadinstitute.sting.gatk.walkers.filters.VECMappingQualityZero</class>
+    <class>org.broadinstitute.sting.gatk.walkers.filters.VECIndelArtifact</class>
+    <class>org.broadinstitute.sting.gatk.walkers.filters.VECClusteredSnps</class>
   </dependencies>
   <resources>
     <!-- GATK sample code and build scripts -->
