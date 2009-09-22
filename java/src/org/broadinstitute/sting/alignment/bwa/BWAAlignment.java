@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.alignment.bwa;
 
 import org.broadinstitute.sting.alignment.Alignment;
+import org.broadinstitute.sting.alignment.bwa.bwt.BWT;
+import net.sf.samtools.SAMRecord;
 
 /**
  * An alignment object to be used incrementally as the BWA aligner
@@ -10,6 +12,18 @@ import org.broadinstitute.sting.alignment.Alignment;
  * @version 0.1
  */
 public class BWAAlignment implements Alignment {
+    enum State { MATCH, INSERTION, DELETION }
+
+    /**
+     * Working variable.  How many bases have been matched at this point.
+     */
+    protected int position;
+
+    /**
+     * Working variable.  How many mismatches have been encountered at this point.
+     */
+    protected int mismatches;
+
     /**
      * Working variable.  The lower bound of the alignment within the BWT.
      */
@@ -21,16 +35,16 @@ public class BWAAlignment implements Alignment {
     protected int hiBound;
 
     /**
-     * Current score for this alignment.
+     * Indicates the current state of an alignment.  Are we in an insertion?  Deletion?
      */
-    protected int score;
+    protected State alignmentState;    
 
     /**
      * Gets the BWA score of this alignment.
      * @return BWA-style scores.  0 is best.
      */
     public int getScore() {
-        return score;
+        return mismatches;
     }
 
     /**
@@ -38,7 +52,16 @@ public class BWAAlignment implements Alignment {
      * @param other Other alignment to which to compare.
      * @return < 0 if this < other, == 0 if this == other, > 0 if this > other
      */
-    public int compareTo( Alignment other ) {
-        return Integer.valueOf(score).compareTo(other.getScore());
+    public int compareTo(Alignment other) {
+        // If the scores are equal, use the position to disambiguate order.
+        int scoreComparison = Integer.valueOf(getScore()).compareTo(other.getScore());
+        if( scoreComparison != 0 )
+            return scoreComparison;
+        else
+            return Integer.valueOf(position).compareTo(((BWAAlignment)other).position);
+    }
+
+    public String toString() {
+        return String.format("position = %d, mismatches = %d, loBound = %d, hiBound = %d, score = %d", position, mismatches, loBound, hiBound, getScore());
     }
 }
