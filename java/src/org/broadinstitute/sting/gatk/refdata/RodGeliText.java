@@ -176,7 +176,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
 
     public boolean isSNP() {
         if (this.getReference().length() == 1)
-            return (!bestGenotype.equals(this.getReference() + this.getReference()));
+            return (this.refBase != this.bestGenotype.charAt(0) || this.refBase != this.bestGenotype.charAt(1));
         return false;
     }
 
@@ -223,7 +223,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
     @Override
     public char getAlternativeBaseForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-        // we know that if we're a SNP, the reference is a single base
+        // we know that if we're a SNP, the alt is a single base
         if (this.bestGenotype.toString().charAt(0) == getReference().charAt(0))
             return this.bestGenotype.toString().charAt(1);
         return this.bestGenotype.toString().charAt(0);
@@ -354,7 +354,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      */
     @Override
     public Genotype getCalledGenotype() {
-        return new BasicGenotype(getLocation(), this.getAltBasesFWD(), refBase, lodBtnb);
+        return new BasicGenotype(getLocation(), bestGenotype, refBase, lodBtnb);
     }
 
     /**
@@ -365,7 +365,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
     @Override
     public List<Genotype> getGenotypes() {
         List<Genotype> ret = new ArrayList<Genotype>();
-        ret.add(new BasicGenotype(getLocation(), this.getAltBasesFWD(), refBase, lodBtnb));
+        ret.add(new BasicGenotype(getLocation(), bestGenotype, refBase, lodBtnb));
         return ret;
     }
 

@@ -80,7 +80,6 @@ public class BasicGenotype implements Genotype {
     public boolean isHom() {
         if (mGenotype.length() < 1)
             return false;
-
         char base = mGenotype.charAt(0);
         for (char cur : mGenotype.toCharArray()) {
             if (base != cur) {
@@ -97,6 +96,8 @@ public class BasicGenotype implements Genotype {
      */
     @Override
     public boolean isHet() {
+        if (mGenotype.length() < 1)
+            return false;
         return !isHom();
     }
 

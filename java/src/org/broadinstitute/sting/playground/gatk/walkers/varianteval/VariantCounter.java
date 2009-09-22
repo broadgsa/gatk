@@ -2,10 +2,9 @@ package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.genotype.Genotype;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,8 +32,8 @@ public class VariantCounter extends BasicVariantAnalysis implements GenotypeAnal
         nSNPs += eval == null ? 0 : 1;
 
         if ( this.getMaster().evalContainsGenotypes && eval != null ) {
-            List<Genotype> genotypes = ((VariantBackedByGenotype)eval).getGenotypes();
-            if ( eval.isSNP() && eval.isBiallelic() && genotypes.get(0).isHet() ) {
+            Genotype genotype = ((VariantBackedByGenotype)eval).getCalledGenotype();
+            if ( eval.isSNP() && eval.isBiallelic() && genotype.isHet() ) {
                 nHets++;
             }
         }
