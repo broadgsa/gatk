@@ -58,7 +58,7 @@ foreach my $sample (@samples) {
 
 	my $inputBam454 = "$inputDir/$sample.pilot2.454.bam";
 	my $outputHead454 = "$outputDir/$sample.454";
-	call("-I $inputBam454", $outputHead454, $queue, $sting, $dry, undef, $sample, $badsnpsSLX, $DoC_454{$sample}, $MQ_hash{"454"});
+	call("-I $inputBam454", $outputHead454, $queue, $sting, $dry, "$outputBamSLX.cleaner.*", $sample, $badsnpsSLX, $DoC_454{$sample}, $MQ_hash{"454"});
 
 	my $outputHead = "$outputDir/$sample.SOLID_454";
 	call("-I $outputBamSOLID -I $inputBam454", $outputHead, $queue, $sting, $dry, "$outputBamSOLID.cleaner.*", $sample, $badsnpsSOLID, $DoC_454solid{$sample}, $MQ_hash{"454SOLID"});
