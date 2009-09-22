@@ -52,7 +52,7 @@ import java.util.regex.Pattern;
 public class GenomeLocParser {
     private static Logger logger = Logger.getLogger(GenomeLocParser.class);
 
-    private static final Pattern mPattern = Pattern.compile("([\\w&&[^:]]+):([\\d,]+)?(\\+)?(-)?([\\d,]+)?$");  // matches case 3
+    private static final Pattern mPattern = Pattern.compile("([\\w&&[^:]]+):*([\\d,]+)?([\\+-])?([\\d,]+)?$");  // matches case 3
 
 
     // --------------------------------------------------------------------------------------------------------------
@@ -154,45 +154,39 @@ public class GenomeLocParser {
         
         String contig = null;
         long start = 1;
-        long stop = Integer.MAX_VALUE;
+        long stop = -1;
         boolean bad = false;
 
         Matcher match = mPattern.matcher(str);
-
-        try {
-            if (match.matches()) {
-                contig = match.group(1);
-                if (match.groupCount() == 5) {
-                    start = parsePosition(match.group(2));
-                    if (match.group(3) != null && match.group(3).equals("+") && match.group(5) == null) {
-                        // do nothing
-                    } else if (match.group(5) != null)
-                        stop = parsePosition(match.group(5));
-                    else if (match.group(5) == null && match.group(4) == null && match.group(3) == null)
-                        stop = start;
-                    else
-                        bad = true;
-                } else {
-                    bad = true;
-                }
-            }
+		try {
+			if (match.matches() && match.groupCount() == 4) {
+				if (match.group(1) != null) contig = match.group(1);
+				if (match.group(2) != null) start = parsePosition(match.group(2));
+				if ((match.group(3) != null && match.group(3).equals("+")) ||							// chr:1+
+					(match.group(3) == null && match.group(4) == null && match.group(2) == null)) 		// chr1
+					stop = Integer.MAX_VALUE;
+				else if (match.group(3) != null && match.group(3).equals("-")) 							// chr1:1-1
+					stop = parsePosition(match.group(4));
+				else if (match.group(3) == null && match.group(4) == null)								// chr1:1
+					stop = start;
+				else {
+					bad = true;
+				}
+			}			
+		} catch (Exception e) {
+			bad = true;
         }
 
-        catch (Exception e) {
-            bad = true;
-        }
+        if (bad || start < 0 || stop < 0 || contig == null)
+		    throw new StingException("Invalid Genome Location string: " + str);
+		
+		if (!isContigValid(contig))
+            throw new StingException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference.");
 
-        if (bad)
-            throw new StingException("Invalid Genome Location string: "); // + str);
-
-
-        if (stop == Integer.MAX_VALUE && hasKnownContigOrdering())
+		if (stop == Integer.MAX_VALUE && hasKnownContigOrdering())
             // lookup the actually stop position!
             stop = getContigInfo(contig).getSequenceLength();
-
-        if (!isContigValid(contig))
-            throw new MalformedGenomeLocException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference.");
-
+        
         GenomeLoc loc = parseGenomeLoc(contig, start, stop);
         return loc;
     }

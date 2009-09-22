@@ -7,7 +7,7 @@ import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import static org.junit.Assert.assertEquals;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
+import java.util.Arrays;
 
 /**
  * @author aaron
@@ -158,9 +158,41 @@ public class GenomeLocParserTest extends BaseTest {
         assertEquals(1, loc.getStart());
     }
 
-    @Test(expected = RuntimeException.class)
+	@Test
+    public void testGenomeLocParseOnlyChrome() {
+		GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1");
+        assertEquals(0, loc.getContigIndex());
+        assertEquals(10, loc.getStop()); // the size
+        assertEquals(1, loc.getStart());
+    }
+	
+	@Test(expected = StingException.class)
+    public void testGenomeLocParseOnlyBadChrome() {
+		GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr12");
+        assertEquals(0, loc.getContigIndex());
+        assertEquals(10, loc.getStop()); // the size
+        assertEquals(1, loc.getStart());
+    }
+	
+    @Test(expected = StingException.class)
     public void testGenomeLocBad() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1-");
+        assertEquals(0, loc.getContigIndex());
+        assertEquals(10, loc.getStop()); // the size
+        assertEquals(1, loc.getStart());
+    }
+	
+	@Test(expected = StingException.class)
+    public void testGenomeLocBad2() {
+        GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1-500-0");
+        assertEquals(0, loc.getContigIndex());
+        assertEquals(10, loc.getStop()); // the size
+        assertEquals(1, loc.getStart());
+    }
+	
+	@Test(expected = StingException.class)
+    public void testGenomeLocBad3() {
+        GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1--0");
         assertEquals(0, loc.getContigIndex());
         assertEquals(10, loc.getStop()); // the size
         assertEquals(1, loc.getStart());
