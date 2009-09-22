@@ -18,7 +18,16 @@
     <property name="package.dir" value="{concat($dist.dir,'/packages/',$project.name)}" />
 
     <target name="package">
+      <!-- Verify that all classes specified are present -->
+      <xsl:for-each select="dependencies/class">
+	<available property="is.{current()}.present" classpath="{$staging.dir}" classname="{current()}"/>
+	<fail message="Class {current()} not found" unless="is.{current()}.present" />
+      </xsl:for-each>
+
+      <!-- Create an output directory for the package -->
       <mkdir dir="{$package.dir}"/>
+
+      <!-- Create a jar file containing the specified classes / packages and all their dependencies -->
       <jar jarfile="{concat($package.dir,$project.name,'.jar')}">
         <classfileset dir="{$staging.dir}">
           <root classname="{main-class}"/>
@@ -36,12 +45,16 @@
           <attribute name="Main-Class" value="{main-class}"/>
         </manifest>
       </jar>
+
+      <!-- Include various script files -->
       <xsl:for-each select="scripts/file">
         <xsl:call-template name="symlink">
           <xsl:with-param name="file.name" select="." />
           <xsl:with-param name="target.dir" select="$package.dir" />
         </xsl:call-template>
       </xsl:for-each>
+
+      <!-- Include various resource files -->
       <xsl:for-each select="resources/file">
         <mkdir dir="{$resources.dir}"/>
         <xsl:call-template name="symlink">
