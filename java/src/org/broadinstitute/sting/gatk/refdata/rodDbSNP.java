@@ -386,4 +386,19 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements Variation, V
     public boolean hasGenotype(DiploidGenotype x) {
         return (!x.toString().equals(this.getAltBasesFWD())) ? false : true;
     }
+
+    public static rodDbSNP getFirstRealSNP(RODRecordList<ReferenceOrderedDatum> dbsnpList) {
+	if ( dbsnpList == null )
+	    return null;
+
+	rodDbSNP dbsnp = null;
+	for ( ReferenceOrderedDatum d : dbsnpList ) {
+	    if ( ((rodDbSNP)d).isSNP() ) {
+		dbsnp = (rodDbSNP)d;
+		break;
+	    }
+	}
+
+	return dbsnp;
+    }
 }

@@ -77,11 +77,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
 
         covariateCounter = new CovariateCounter(readGroups, collapsePos, collapseDinuc, assumeFaultyHeader);
-        // THIS IS A HACK required in order to reproduce the behavior of old (and imperfect) RODIterator and
-        // hence to pass the integration test. The new iterator this code is now using does see ALL the SNPs,
-        // whether masked by overlapping indels/other events or not.
-        //TODO process correctly all the returned dbSNP rods at each location
-        BrokenRODSimulator.attach("dbSNP");
         logger.info(String.format("Created recalibration data collectors for %d read group(s)", covariateCounter.getNReadGroups()));
     }
 
@@ -102,7 +97,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
-        rodDbSNP dbsnp = (rodDbSNP)BrokenRODSimulator.simulate_lookup("dbSNP",ref.getLocus(),tracker);
+	rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
+
 //        long testpos =  10410913 ;
 //        if ( ref.getLocus().getStart() ==  testpos ) {
 //            System.out.println(rods.size()+" rods:");
@@ -110,9 +106,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 //          System.exit(1);
 //        }
 
-
-
-        if ( dbsnp == null || !dbsnp.isSNP() ) {
+        if ( dbsnp == null ) {
             // We aren't at a dbSNP position that's a SNP, so update the read
 
  //           if ( ref.getLocus().getStart() == testpos)  System.out.println("NOT A SNP INDEED");
