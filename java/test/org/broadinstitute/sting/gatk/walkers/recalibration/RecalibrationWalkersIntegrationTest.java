@@ -15,9 +15,9 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariates1() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.SLX.SRP000031.2009_06.chr1.10_20mb.bam", "47664c48992f593258932583576b47e4" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.SLX.SRP000031.2009_06.chr1.10_20mb.bam", "7be0b7a624d22187e712131f12aae546" );
         //e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "" );
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "b58185dc5fbdd88ca9539d940dff6c1a" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "dc1a1b6e99f4a47525cc1dce7b6eb1dc" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -40,9 +40,9 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibrator1() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.SLX.SRP000031.2009_06.chr1.10_20mb.bam", "c98525aca6493179f084159df0264782" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.SLX.SRP000031.2009_06.chr1.10_20mb.bam", "8d2194cf8134800def32d5268033de70" );
         //e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "" );
-        //e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "28c5026359a952a5c652b1ccc2acac04" );
+        //e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
