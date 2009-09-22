@@ -81,6 +81,8 @@
       <xsl:with-param name="file" select="$file.name" />
     </xsl:call-template>
   </xsl:variable>
+  <available property="is.{$short.name}.present" file="{$file.name}"/>
+  <fail message="File {$file.name} not found" unless="is.{$short.name}.present" />
   <delete file="{concat($target.dir,'/',$short.name)}" />
   <symlink link="{concat($target.dir,'/',$short.name)}" resource="{$full.path}" overwrite="true" />
 </xsl:template>
