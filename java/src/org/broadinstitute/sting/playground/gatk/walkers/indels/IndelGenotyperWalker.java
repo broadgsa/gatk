@@ -7,6 +7,8 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
+import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
 import org.broadinstitute.sting.playground.utils.CircularArray;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -23,7 +25,7 @@ import java.util.List;
 import java.util.Set;
 
 
-@ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class})
+@ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class, PlatformUnitFilter.class})
 public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
     @Argument(fullName="outputFile", shortName="O", doc="output file name (defaults to BED format)", required=true)
     java.io.File bed_file;
@@ -56,7 +58,11 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	@Argument(fullName="refseq", shortName="refseq", 
 			doc="Name of RefSeq transcript annotation file. If specified, indels will be annotated as GENOMIC/UTR/INTRON/CODING", required=false)
 	String RefseqFileName = null;
-    @Argument(fullName="indel_debug", shortName="idebug", doc="Detailed printout for debugging",required=false) Boolean DEBUG = false;
+    @Argument(fullName="blacklistedLanes", shortName="BL",
+            doc="Name of lanes (platform units) that should be ignored. Reads coming from these lanes will never be seen "+
+                    "by this application, so they will not contribute indels to consider and will not be counted.", required=false)
+        PlatformUnitFilterHelper dummy;
+     @Argument(fullName="indel_debug", shortName="idebug", doc="Detailed printout for debugging",required=false) Boolean DEBUG = false;
 	 
 	private static int WINDOW_SIZE = 200;
 	private RunningCoverage coverage;
