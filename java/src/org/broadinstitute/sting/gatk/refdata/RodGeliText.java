@@ -65,7 +65,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
             throw new IOException("Invalid rodVariant row found -- too few elements.  Expected 18+, got " + parts.length);
         if (!parts[0].startsWith("#")) {
             loc = GenomeLocParser.createGenomeLoc(parts[0], Long.valueOf(parts[1]));
-            refBase = parts[2].charAt(0);
+            refBase = Character.toUpperCase(parts[2].charAt(0));
             depth = Integer.valueOf(parts[3]);
             maxMappingQuality = Integer.valueOf(parts[4]);
 
@@ -148,6 +148,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
     }
 
     public char getAltSnpFWD() throws IllegalStateException {
+	// both ref and bestGenotype have been uppercased, so it's safe to use ==
         char c = (bestGenotype.charAt(0) == refBase) ? bestGenotype.charAt(1) : bestGenotype.charAt(0);
         //System.out.printf("%s : %c and %c%n", bestGenotype, refBase, c);
         return c;
