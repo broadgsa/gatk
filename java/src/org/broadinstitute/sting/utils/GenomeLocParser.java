@@ -131,6 +131,17 @@ public class GenomeLocParser {
     }
 
     /**
+     * Load one or more intervals sources, sorting and merging overlapping intervals.
+     * @param intervalsSource Source of intervals.
+     * @return a list of sorted, merged intervals.
+     */
+    public static List<GenomeLoc> parseIntervals(List<String> intervalsSource) {
+        List<GenomeLoc> parsedIntervals = GenomeAnalysisEngine.parseIntervalRegion(intervalsSource);
+	Collections.sort(parsedIntervals);
+	return GenomeLocParser.mergeOverlappingLocations(parsedIntervals);
+    }
+
+    /**
      * parse a genome location, from a location string
      *
      * @param str the string to parse

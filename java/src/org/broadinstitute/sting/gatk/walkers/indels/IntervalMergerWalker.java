@@ -56,7 +56,7 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
 
     @Override
     public void initialize() {
-        intervals = parseIntervals(intervalsSource);
+        intervals = new LinkedList<GenomeLoc>(GenomeLocParser.parseIntervals(intervalsSource));
         currentInterval = (intervals.size() > 0 ? intervals.removeFirst() : null);
     }
 
@@ -109,16 +109,5 @@ public class IntervalMergerWalker extends ReadWalker<Integer,Integer> {
              currentInterval.getStop() - currentInterval.getStart() < maxIntervalSize)
             out.println(currentInterval);
     }
-
-    /**
-     * Load the intervals directly from the command-line or from file, as appropriate.
-     * Merge overlapping intervals.
-     * @param intervalsSource Source of intervals.
-     * @return a linked list of sorted, merged intervals.
-     */
-    private LinkedList<GenomeLoc> parseIntervals(List<String> intervalsSource) {
-        List<GenomeLoc> parsedIntervals = GenomeAnalysisEngine.parseIntervalRegion(intervalsSource);
-	Collections.sort(parsedIntervals);
-	return new LinkedList<GenomeLoc>(GenomeLocParser.mergeOverlappingLocations(parsedIntervals));
-    }
 }
+
