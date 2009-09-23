@@ -4,6 +4,7 @@ import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -203,4 +204,31 @@ public class GenomeLocSortedSetTest extends BaseTest {
         }
         assertTrue(seqNumber == GenomeLocSortedSetTest.NUMBER_OF_CHROMOSOMES);
     }
+
+    @Test
+    public void testAddAll() {
+        mSortedSet = GenomeLocSortedSet.createSetFromSequenceDictionary(this.header.getSequenceDictionary());
+        GenomeLocSortedSet set = GenomeLocSortedSet.createSetFromSequenceDictionary(this.header.getSequenceDictionary());
+        // we should have sequence
+        assertTrue(mSortedSet.size() == GenomeLocSortedSetTest.NUMBER_OF_CHROMOSOMES);
+        mSortedSet.addAllRegions(set.toList());
+        assertTrue(mSortedSet.size() == GenomeLocSortedSetTest.NUMBER_OF_CHROMOSOMES);                        
+    }
+
+    @Test
+    public void testAddAll2() {
+        mSortedSet = new GenomeLocSortedSet();
+        GenomeLocSortedSet mSortedSet2 = new GenomeLocSortedSet();
+        for (int x=0; x < 200; x = x + 2) {
+            mSortedSet.add(GenomeLocParser.createGenomeLoc(1,x));
+        }
+        assertEquals(100, mSortedSet.size());
+        for (int x=1; x < 201; x = x + 2) {
+            mSortedSet2.add(GenomeLocParser.createGenomeLoc(1,x));
+        }
+        assertEquals(100, mSortedSet2.size());
+        mSortedSet.addAllRegions(mSortedSet2.toList());
+        assertEquals(1, mSortedSet.size());
+    }
+
 }

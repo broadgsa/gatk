@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
+import org.apache.log4j.Logger;
 
 import java.util.*;
 
@@ -34,8 +35,10 @@ import java.util.*;
  *         that element.
  */
 public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
+    private static Logger logger = Logger.getLogger(GenomeLocSortedSet.class);
+
     // our private storage for the GenomeLoc's
-    private final ArrayList<GenomeLoc> mArray = new ArrayList<GenomeLoc>();
+    private List<GenomeLoc> mArray = new ArrayList<GenomeLoc>();
 
     /** default constructor */
     public GenomeLocSortedSet() {
@@ -118,6 +121,9 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
             } else if ((g.getContigIndex() == e.getContigIndex()) &&
                     (e.getStart() < g.getStart()) && !haveAdded) {
                 mArray.add(mArray.indexOf(g), e);
+                return true;
+            } else if (haveAdded && ((e.getContigIndex() > e.getContigIndex()) ||
+                    (g.getContigIndex() == e.getContigIndex() && e.getStart() > g.getStart()))) {
                 return true;
             }
         }
@@ -260,6 +266,51 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
             ret.mArray.add(GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart(), loc.getStop()));
         }
         return ret;
+    }
+
+
+    public boolean addAllRegions(List<GenomeLoc> locations) {
+        this.mArray.addAll(locations);
+        Collections.sort(this.mArray);
+        this.mArray = GenomeLocSortedSet.mergeOverlappingLocations(this.mArray);
+        return true;
+    }
+
+/**
+     * merge a list of genome locs that may be overlapping, returning the list of unique genomic locations
+     *
+     * @param raw the unchecked genome loc list
+     *
+     * @return the list of merged locations
+     */
+    public static List<GenomeLoc> mergeOverlappingLocations(final List<GenomeLoc> raw) {
+        logger.debug("  Raw locations are: " + Utils.join(", ", raw));
+        if (raw.size() <= 1)
+            return raw;
+        else {
+            ArrayList<GenomeLoc> merged = new ArrayList<GenomeLoc>();
+            Iterator<GenomeLoc> it = raw.iterator();
+            GenomeLoc prev = it.next();
+            while (it.hasNext()) {
+                GenomeLoc curr = it.next();
+                if (prev.contiguousP(curr)) {
+                    prev = prev.merge(curr);
+                } else {
+                    merged.add(prev);
+                    prev = curr;
+                }
+            }
+            merged.add(prev);
+            return merged;
+        }
+    }
+
+    /**
+     * convert this object to a list
+     * @return the lists
+     */
+    public List<GenomeLoc> toList() {
+        return this.mArray;
     }
 
 }
