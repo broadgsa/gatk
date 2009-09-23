@@ -58,17 +58,18 @@ public class CreateHaplotypesWalker extends ReadWalker<Integer, Integer> {
             String s = formatter.FormatRead(read.getCigarString(),read.getReadString());
             String name = read.getReadName();
 
-            out.printf("%s->%s HAPLO01",name,name);
+            out.printf("%s->%s HAPLO01 ",name,name);
+
             for (int i = start; i <= end; i++){
                 
-                if (i - readstart < s.length() && i - readstart >= 0){
+                if (i - readstart < s.length()){
                     c = s.charAt(i-readstart);
                     out.printf("%s",indexer.get(c));
                 }else{
                     out.print("0");
                 }
             }
-            out.print("\n");
+            out.printf("\n");
         }
         return 1;
     }
@@ -83,7 +84,7 @@ public class CreateHaplotypesWalker extends ReadWalker<Integer, Integer> {
     public void onTraversalDone(Integer value) {
         out.print("\nSNP names:\n");
         for (int pos = start; pos <= end; pos++){
-            SNPname = "CHR6POS" + String.valueOf(pos);
+            SNPname = "CHR6_POS" + String.valueOf(pos);
             SNPnames[pos-start]=SNPname;
             out.printf("%s\n",SNPname);
         }
