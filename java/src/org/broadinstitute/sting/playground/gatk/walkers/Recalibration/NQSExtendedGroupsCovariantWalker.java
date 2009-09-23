@@ -94,7 +94,7 @@ public class NQSExtendedGroupsCovariantWalker extends LocusWalker<LocalMapType, 
      * etc
      */
     public int calcGroupNumberFromQualities( int baseQuality, int minNeighborhoodQuality ) {
-        int groupNumber = (baseQuality)*(baseQuality+1)/2 + baseQuality;
+        int groupNumber = (baseQuality)*(baseQuality+1)/2;
         if ( minNeighborhoodQuality <= baseQuality ) {
             groupNumber += minNeighborhoodQuality;
         } else {
