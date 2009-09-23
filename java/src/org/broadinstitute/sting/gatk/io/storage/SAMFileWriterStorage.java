@@ -31,7 +31,6 @@ import net.sf.samtools.util.CloseableIterator;
 import java.io.*;
 
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
-import org.broadinstitute.sting.gatk.io.storage.Storage;
 
 /**
  * Provides temporary storage for SAMFileWriters.
@@ -49,7 +48,7 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
 
     public SAMFileWriterStorage( SAMFileWriterStub stub, File file ) {
         this.file = file;
-        this.writer = new SAMFileWriterFactory().makeBAMWriter( stub.getSAMFileHeader(), true, file );
+        this.writer = new SAMFileWriterFactory().makeBAMWriter( stub.getSAMFileHeader(), true, file, stub.getCompressionLevel() );
     }
 
     public void addAlignment( SAMRecord read ) {
