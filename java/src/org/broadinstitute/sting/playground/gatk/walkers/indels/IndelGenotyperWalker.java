@@ -73,7 +73,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	private java.io.Writer output = null;
 	private GenomeLoc location = null;
 	
-	private SeekableRODIterator<rodRefSeq> refseqIterator=null;
+    private SeekableRODIterator<rodRefSeq> refseqIterator=null;
 
 	private Set<String> normalReadGroups;
 	private Set<String> tumorReadGroups ;
@@ -99,7 +99,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 		
 		if ( RefseqFileName != null ) {
 			ReferenceOrderedData<rodRefSeq> refseq = new ReferenceOrderedData<rodRefSeq>("refseq",
-					new java.io.File(RefseqFileName),rodRefSeq.class);
+					new java.io.File(RefseqFileName), rodRefSeq.class);
 		
 			refseqIterator = refseq.iterator();
 			System.out.println("Using RefSeq annotations from "+RefseqFileName);
@@ -416,11 +416,11 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			
 			location = GenomeLocParser.setStart(location,pos); location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
 			RODRecordList<rodRefSeq> annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
-            rodRefSeq annotation = ( annotationList == null ? null : annotationList.getRecords().get(0) ) ;
+
 			Pair<IndelVariant,Integer> p = findConsensus(variants);
 			if ( isCall(p,cov) ) { 	
 				String message = makeBedLine(p,cov,pos,output);
-				String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotation));
+				String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
 				
 				if ( verbose ) out.println(message + "\t"+ annotationString);
 			}
@@ -517,12 +517,11 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 			}
 			location = GenomeLocParser.setStart(location,pos); location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
             RODRecordList<rodRefSeq> annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
-            rodRefSeq annotation = ( annotationList == null ? null : annotationList.getRecords().get(0) ) ;
 			
 			Pair<IndelVariant,Integer> p_tumor = findConsensus(tumor_variants);
 			if ( isCall(p_tumor,tumor_cov) ) { 	
 				String message = makeBedLine(p_tumor,tumor_cov,pos);
-				String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotation));
+				String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
 				
 			
 				if ( normal_variants.size() == 0 ) { 		
@@ -560,20 +559,20 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	}
 
 
-	private String getAnnotationString(rodRefSeq ann) {
+	private String getAnnotationString(RODRecordList<rodRefSeq> ann) {
 		if ( ann == null ) return annGenomic;
 		else {
 			StringBuilder b = new StringBuilder();
-			if ( ann.isExon() ) {
-				if ( ann.isCoding() ) b.append(annCoding);
-				else b.append(annUTR);
+
+			if ( rodRefSeq.isExon(ann) ) {
+				if ( rodRefSeq.isCoding(ann) ) b.append(annCoding); // both exon and coding = coding exon sequence
+				else b.append(annUTR); // exon but not coding = UTR
 			} else {
-				if ( ann.isCoding() ) b.append(annIntron);
-				else b.append(annUnknown);
+				if ( rodRefSeq.isCoding(ann) ) b.append(annIntron); // not in exon, but within the coding region = intron
+				else b.append(annUnknown); // we have no idea what this is. this may actually happen when we have a fully non-coding exon...
 			}
 			b.append('\t');
-			Iterator<Transcript> it = ann.getTranscripts().iterator();
-			b.append(it.next().getGeneName()); // there is at least one transcript in the list, guaranteed
+			b.append(((Transcript)ann.getRecords().get(0)).getGeneName()); // there is at least one transcript in the list, guaranteed
 //			while ( it.hasNext() ) { // 
 //				t.getGeneName()
 //			}
