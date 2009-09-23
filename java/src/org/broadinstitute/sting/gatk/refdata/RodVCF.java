@@ -25,7 +25,7 @@ import java.util.List;
  *         <p/>
  *         An implementation of the ROD for VCF.
  */
-public class RodVCF extends BasicReferenceOrderedDatum implements Variation, VariantBackedByGenotype, Iterator<RodVCF> {
+public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype, Iterator<RodVCF> {
     // our VCF related information
     private VCFReader mReader;
     public VCFRecord mCurrentRecord;

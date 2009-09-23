@@ -3,9 +3,10 @@ package org.broadinstitute.sting.gatk.refdata;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
-public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVariant {
+public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVariant, VariationRod {
 
     private boolean KGENOMES_FORMAT = false, checkedFormat = false;
 
@@ -16,6 +17,16 @@ public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVaria
     public GenomeLoc getLocation() {
         long pos = Long.parseLong(this.get("1"));
         return GenomeLocParser.createGenomeLoc(this.get("0"), pos, (isDeletion() ? pos+length() : pos+1));
+    }
+
+    /**
+     * get the reference base(s) at this position
+     *
+     * @return the reference base or bases, as a string
+     */
+    @Override
+    public String getReference() {
+        return String.valueOf(getRef());
     }
 
     public List<String> getFWDAlleles() {
@@ -36,8 +47,46 @@ public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVaria
     public boolean isGenotype() { return false; }
     public boolean isPointGenotype() { return false; }
     public boolean isIndelGenotype() { return true; }
+
+    /**
+     * get the frequency of this variant
+     *
+     * @return VariantFrequency with the stored frequency
+     */
+    @Override
+    public double getNonRefAlleleFrequency() {
+        return 0.0;
+    }
+
+    /** @return the VARIANT_TYPE of the current variant */
+    @Override
+    public VARIANT_TYPE getType() {
+        return VARIANT_TYPE.INDEL;
+    }
+
     public boolean isSNP() { return false; }
     public boolean isReference() { return false; }
+
+    /**
+     * gets the alternate base.  Use this method if we're biallelic
+     *
+     * @return
+     */
+    @Override
+    public String getAlternateBase() {
+       return "";
+    }
+
+    /**
+     * gets the alternate bases.  Use this method if teh allele count is greater then 2
+     *
+     * @return
+     */
+    @Override
+    public List<String> getAlternateBases() {
+        return Arrays.asList(new String[]{""});
+    }
+
     public boolean isInsertion() {
         if ( is1KGFormat() )
             return this.get("3").equals("I");
@@ -49,10 +98,43 @@ public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVaria
         return this.get("3").charAt(0) == '-';
     }
     public boolean isIndel() { return true; }
+
+    /**
+     * gets the alternate base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP
+     * of
+     *
+     * @return a char, representing the alternate base
+     */
+    @Override
+    public char getAlternativeBaseForSNP() {
+        return getAltSnpFWD();
+    }
+
+    /**
+     * gets the reference base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP
+     *
+     * @return a char, representing the alternate base
+     */
+    @Override
+    public char getReferenceForSNP() {
+        return getRefSnpFWD();
+    }
+
     public double getVariantConfidence() { return 0.0; }
     public double getVariationConfidence() { return 0.0; }
     public double getConsensusConfidence() { return 0.0; }
     public boolean isBiallelic() { return true; }
+
+    /**
+     * get the -1 * (log 10 of the error value)
+     *
+     * @return the log based error estimate
+     */
+    @Override
+    public double getNegLog10PError() {
+        return getVariationConfidence();
+    }
+
     public boolean isHom() { return false; }
     public boolean isHet() { return false; }
     public double getHeterozygosity() { return 0.0; }

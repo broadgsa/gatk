@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements AllelicVariant, Variation, VariantBackedByGenotype {
+public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements AllelicVariant, VariationRod, VariantBackedByGenotype {
     private String contig, source, feature, strand, frame;
     private long start, stop;
     private double score;

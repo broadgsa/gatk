@@ -29,16 +29,15 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
-import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class RodGeliText extends BasicReferenceOrderedDatum implements Variation, VariantBackedByGenotype, AllelicVariant {
+public class RodGeliText extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype, AllelicVariant {
     public enum Genotype_Strings {
         AA, AC, AG, AT, CC, CG, CT, GG, GT, TT
     }

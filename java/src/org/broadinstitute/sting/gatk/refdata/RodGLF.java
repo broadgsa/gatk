@@ -5,7 +5,6 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.glf.GLFReader;
 import org.broadinstitute.sting.utils.genotype.glf.GLFRecord;
 import org.broadinstitute.sting.utils.genotype.glf.SinglePointCall;
@@ -14,9 +13,9 @@ import org.broadinstitute.sting.utils.genotype.glf.VariableLengthCall;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ArrayList;
 
 
 /**
@@ -26,7 +25,7 @@ import java.util.ArrayList;
  *         <p/>
  *         the rod class for GLF data.
  */
-public class RodGLF implements ReferenceOrderedDatum, Variation, Iterator<RodGLF> {
+public class RodGLF implements VariationRod, Iterator<RodGLF> {
     static int count = 0;
     public GLFReader mReader;
     private final String mName;
