@@ -31,4 +31,12 @@ public class SuffixArray {
         return sequence.length;
     }
 
+    /**
+     * Get the suffix array value at a given sequence.
+     * @param index
+     * @return
+     */
+    public int get( int index ) {
+        return sequence[index];
+    }
 }

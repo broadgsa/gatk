@@ -15,6 +15,16 @@ public class BWAAlignment implements Alignment {
     enum State { MATCH, INSERTION, DELETION }
 
     /**
+     * Start of the final alignment.
+     */
+    protected int alignmentStart;
+
+    /**
+     * Working variable.  Is this match being treated as a negative or positive strand?
+     */
+    protected boolean negativeStrand;
+
+    /**
      * Working variable.  How many bases have been matched at this point.
      */
     protected int position;
@@ -37,7 +47,23 @@ public class BWAAlignment implements Alignment {
     /**
      * Indicates the current state of an alignment.  Are we in an insertion?  Deletion?
      */
-    protected State alignmentState;    
+    protected State alignmentState;
+
+    /**
+     * Gets the starting position for the given alignment.
+     * @return Starting position.
+     */
+    public int getAlignmentStart() {
+        return alignmentStart;
+    }
+
+    /**
+     * Is the given alignment on the reverse strand?
+     * @return True if the alignment is on the reverse strand.
+     */
+    public boolean isNegativeStrand() {
+        return negativeStrand;    
+    }
 
     /**
      * Gets the BWA score of this alignment.
@@ -58,7 +84,7 @@ public class BWAAlignment implements Alignment {
         if( scoreComparison != 0 )
             return scoreComparison;
         else
-            return Integer.valueOf(position).compareTo(((BWAAlignment)other).position);
+            return -Integer.valueOf(position).compareTo(((BWAAlignment)other).position);
     }
 
     public String toString() {
