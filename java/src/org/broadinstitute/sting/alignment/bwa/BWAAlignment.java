@@ -11,6 +11,11 @@ import org.broadinstitute.sting.alignment.Alignment;
  */
 public class BWAAlignment implements Alignment {
     /**
+     * The aligner performing the alignments.
+     */
+    protected BWAAligner aligner;
+
+    /**
      * Start of the final alignment.
      */
     protected int alignmentStart;
@@ -76,12 +81,20 @@ public class BWAAlignment implements Alignment {
      * @return BWA-style scores.  0 is best.
      */
     public int getScore() {
-        return mismatches + gapOpens + gapExtensions;
+        return mismatches*aligner.MISMATCH_PENALTY + gapOpens*aligner.GAP_OPEN_PENALTY + gapExtensions*aligner.GAP_EXTENSION_PENALTY;
     }
 
     public int getMismatches() { return mismatches; }
     public int getGapOpens() { return gapOpens; }
-    public int getGapExtensions() { return gapExtensions; }   
+    public int getGapExtensions() { return gapExtensions; }
+
+    /**
+     * Create a new alignment with the given parent aligner.
+     * @param aligner Aligner being used.
+     */
+    public BWAAlignment( BWAAligner aligner ) {
+        this.aligner = aligner;
+    }
 
     /**
      * Compare this alignment to another alignment.

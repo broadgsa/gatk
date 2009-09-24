@@ -38,17 +38,32 @@ public class BWAAligner implements Aligner {
     /**
      * Maximum edit distance (-n option from original BWA).
      */
-    private static final int MAXIMUM_EDIT_DISTANCE = 4;
+    private final int MAXIMUM_EDIT_DISTANCE = 4;
 
     /**
      * Maximum number of gap opens (-o option from original BWA).
      */
-    private static final int MAXIMUM_GAP_OPENS = 1;
+    private final int MAXIMUM_GAP_OPENS = 1;
 
     /**
      * Maximum number of gap extensions (-e option from original BWA).
      */
-    private static final int MAXIMUM_GAP_EXTENSIONS = 6;
+    private final int MAXIMUM_GAP_EXTENSIONS = 6;
+
+    /**
+     * Penalty for straight mismatches (-M option from original BWA).
+     */
+    public final int MISMATCH_PENALTY = 3;
+
+    /**
+     * Penalty for gap opens (-O option from original BWA).
+     */
+    public final int GAP_OPEN_PENALTY = 11;
+
+    /**
+     * Penalty for gap extensions (-E option from original BWA).
+     */
+    public final int GAP_EXTENSION_PENALTY = 4;
 
     public BWAAligner( File forwardBWTFile, File reverseBWTFile, File reverseSuffixArrayFile ) {
         forwardBWT = new BWTReader(forwardBWTFile).read();
@@ -71,7 +86,7 @@ public class BWAAligner implements Aligner {
 
         // Create a fictional initial alignment, with the position just off the end of the read, and the limits
         // set as the entire BWT.
-        BWAAlignment initial = new BWAAlignment();
+        BWAAlignment initial = new BWAAlignment(this);
         initial.negativeStrand = true;
         initial.position = 0;
         initial.loBound = 0;
@@ -79,7 +94,7 @@ public class BWAAligner implements Aligner {
         initial.state = AlignmentState.MATCH_MISMATCH;
         initial.mismatches = 0;
 
-        BWAAlignment initialReverse = new BWAAlignment();
+        BWAAlignment initialReverse = new BWAAlignment(this);
         initialReverse.negativeStrand = false;
         initialReverse.position = 0;
         initialReverse.loBound = 0;
@@ -116,7 +131,7 @@ public class BWAAligner implements Aligner {
             if( alignment.state == AlignmentState.MATCH_MISMATCH ) {
                 if( alignment.gapOpens < MAXIMUM_GAP_OPENS ) {
                     // Add a potential insertion.
-                    BWAAlignment newAlignment = new BWAAlignment();
+                    BWAAlignment newAlignment = new BWAAlignment(this);
                     newAlignment.negativeStrand = alignment.negativeStrand;
                     newAlignment.position = alignment.position + 1;
                     newAlignment.state = AlignmentState.INSERTION;
@@ -130,7 +145,7 @@ public class BWAAligner implements Aligner {
 
                     // Add a potential deletion by marking a deletion and augmenting the position.
                     for(Base base: EnumSet.allOf(Base.class)) {
-                        newAlignment = new BWAAlignment();
+                        newAlignment = new BWAAlignment(this);
                         newAlignment.negativeStrand = alignment.negativeStrand;
                         newAlignment.position = alignment.position;
                         newAlignment.state = AlignmentState.DELETION;
@@ -148,7 +163,7 @@ public class BWAAligner implements Aligner {
             else if( alignment.state == AlignmentState.INSERTION ) {
                 if( alignment.gapExtensions < MAXIMUM_GAP_EXTENSIONS ) {
                     // Add a potential insertion extension.
-                    BWAAlignment newAlignment = new BWAAlignment();
+                    BWAAlignment newAlignment = new BWAAlignment(this);
                     newAlignment.negativeStrand = alignment.negativeStrand;
                     newAlignment.position = alignment.position + 1;
                     newAlignment.state = AlignmentState.INSERTION;
@@ -166,7 +181,7 @@ public class BWAAligner implements Aligner {
                 if( alignment.gapExtensions < MAXIMUM_GAP_EXTENSIONS ) {
                     // Add a potential deletion by marking a deletion and augmenting the position.
                     for(Base base: EnumSet.allOf(Base.class)) {
-                        BWAAlignment newAlignment = new BWAAlignment();
+                        BWAAlignment newAlignment = new BWAAlignment(this);
                         newAlignment.negativeStrand = alignment.negativeStrand;
                         newAlignment.position = alignment.position;
                         newAlignment.state = AlignmentState.DELETION;
@@ -184,7 +199,7 @@ public class BWAAligner implements Aligner {
             // Mismatches
             for(Base base: EnumSet.allOf(Base.class)) {
                 // Create and initialize a new alignment, given that base as the candidate.
-                BWAAlignment newAlignment = new BWAAlignment();
+                BWAAlignment newAlignment = new BWAAlignment(this);
                 newAlignment.negativeStrand = alignment.negativeStrand;
                 newAlignment.position = alignment.position + 1;
                 newAlignment.state = AlignmentState.MATCH_MISMATCH;
