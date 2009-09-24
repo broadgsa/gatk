@@ -18,7 +18,7 @@ public interface Genotype {
     public double getNegLog10PError();
 
     /**
-     * get the bases that represent this
+     * get the bases that represent this genotype
      *
      * @return the bases, as a string
      */

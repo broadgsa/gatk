@@ -256,7 +256,21 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
      */
     @Override
     public Genotype getCalledGenotype() {
-        throw new UnsupportedOperationException("We don't support this right now"); 
+        double refQual = (this.getNegLog10PError());
+
+        if (this.mCurrentRecord != null && this.mCurrentRecord.hasGenotypeData()) {
+            List<VCFGenotypeRecord> lst = this.mCurrentRecord.getVCFGenotypeRecords();
+            if (lst.size() != 1) {
+                throw new IllegalStateException("VCF object does not have one and only one genotype record");
+            }
+            double qual = 0;
+            if (lst.get(0).getAlleles().equals(this.getReference()))
+                qual = refQual;
+            else if (lst.get(0).getFields().containsKey("GQ"))
+                qual = Double.valueOf(lst.get(0).getFields().get("GQ")) / 10.0;
+            return new BasicGenotype(this.getLocation(), Utils.join("", lst.get(0).getAlleles()), this.getReference().charAt(0), qual);
+        }
+        return null;
     }
 
     /**

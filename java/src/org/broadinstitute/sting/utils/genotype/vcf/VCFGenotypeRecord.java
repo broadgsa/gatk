@@ -42,9 +42,9 @@ public class VCFGenotypeRecord {
      */
     public VCFGenotypeRecord(String sampleName, List<String> genotypes, PHASE phasing, Map<String, String> otherFlags) {
         this.mSampleName = sampleName;
-        this.mGenotypeAlleles.addAll(genotypes);
+        if (genotypes != null) this.mGenotypeAlleles.addAll(genotypes);
         this.mPhaseType = phasing;
-        this.mFields.putAll(otherFlags);        
+        if (otherFlags != null) this.mFields.putAll(otherFlags);        
     }
 
 
@@ -104,8 +104,9 @@ public class VCFGenotypeRecord {
                 }
                 first = false;
             }
-        }
+        }        
         return str;
+
     }
 
 

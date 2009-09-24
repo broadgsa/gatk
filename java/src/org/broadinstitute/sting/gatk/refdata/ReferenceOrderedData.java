@@ -75,6 +75,8 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         addModule("Intervals", IntervalRod.class);
         addModule("Variants", RodGeliText.class);
         addModule("GLF", RodGLF.class);
+        addModule("VCF", RodVCF.class);
+
     }
 
 

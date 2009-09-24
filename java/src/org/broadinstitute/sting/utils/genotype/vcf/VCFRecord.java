@@ -3,10 +3,7 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broadinstitute.sting.utils.Utils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /** the basic VCF record type */
 public class VCFRecord {
@@ -204,9 +201,7 @@ public class VCFRecord {
      * @return an array of strings representing the filtering criteria, or null if none were applied
      */
     public String[] getFilteringCodes() {
-        //if (this.mFilterString.equals("0")) {
-        //    return null;
-        //}
+        if (mFilterString == null) return new String[]{"0"};
         return this.mFilterString.split(";");
     }
 
@@ -220,6 +215,11 @@ public class VCFRecord {
      * @return a map, of the info key-value pairs
      */
     public Map<String, String> getInfoValues() {
+        if (this.mInfoFields.size() < 1) {
+            Map<String,String> map = new HashMap<String, String>();
+            map.put(".","");
+            return map;
+        }
         return this.mInfoFields;
     }
 
@@ -316,7 +316,7 @@ public class VCFRecord {
         builder.append(getReferenceBase() + FIELD_SEPERATOR);
         String alts = "";
         for (String str : this.getAlternateAlleles()) alts += str + ",";
-        builder.append(alts.substring(0, alts.length() - 1) + FIELD_SEPERATOR);
+        builder.append((alts.length() > 0) ? alts.substring(0, alts.length() - 1) + FIELD_SEPERATOR : "." + FIELD_SEPERATOR);
         builder.append(getQual() + FIELD_SEPERATOR);
         builder.append(Utils.join(";", getFilteringCodes()) + FIELD_SEPERATOR);
         String info = "";

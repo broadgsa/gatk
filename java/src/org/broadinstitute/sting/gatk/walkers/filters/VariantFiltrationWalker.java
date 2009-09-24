@@ -315,10 +315,11 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
 
         List<VCFGenotypeRecord> gt = new ArrayList<VCFGenotypeRecord>();
         Map<VCFHeader.HEADER_FIELDS,String> map = new HashMap<VCFHeader.HEADER_FIELDS,String>();
-        if ( VariantsToVCF.generateVCFRecord(context.getTracker(), context.getReferenceContext(), context.getAlignmentContext(true), vcfHeader, gt, map, sampleNames, out, false, false) ) {
+        VCFRecord rec = VariantsToVCF.generateVCFRecord(context.getTracker(), context.getReferenceContext(), context.getAlignmentContext(true), vcfHeader, gt, map, sampleNames, out, false, false);
+        if ( rec != null) {
             if ( !filterFailureString.equals("") )
-                map.put(VCFHeader.HEADER_FIELDS.FILTER, filterFailureString);           
-            vcfWriter.addRecord(new VCFRecord(map, "GT:GQ:DP", gt));
+                rec.setFilterString(filterFailureString);           
+            vcfWriter.addRecord(rec);
         }
     }
 

@@ -3,17 +3,24 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantstovcf;
 import org.broadinstitute.sting.gatk.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RodGeliText;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
 
-import java.io.*;
+import java.io.File;
+import java.io.PrintStream;
 import java.util.*;
 
 public class VariantsToVCF extends RefWalker<Integer, Integer> {
@@ -24,6 +31,7 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
     private VCFWriter vcfwriter = null;
     private VCFHeader vcfheader = null;
     private TreeMap<String, String> sampleNames = null;
+    private static String format = "GT:GQ:DP";
 
     public void initialize() {
         sampleNames = new TreeMap<String, String>();
@@ -62,7 +70,9 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
     }
 
     public boolean filter(RefMetaDataTracker tracker, char ref, AlignmentContext context) {
-        if (BaseUtils.simpleBaseToBaseIndex(ref) > -1) { return true; }
+        if (BaseUtils.simpleBaseToBaseIndex(ref) > -1) {
+            return true;
+        }
 
         for (ReferenceOrderedDatum rod : tracker.getAllRods()) {
             if (rod != null && sampleNames.keySet().contains(rod.getName().toUpperCase())) {
@@ -75,73 +85,73 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         List<VCFGenotypeRecord> gt = new ArrayList<VCFGenotypeRecord>();
-        Map<VCFHeader.HEADER_FIELDS,String> map = new HashMap<VCFHeader.HEADER_FIELDS,String>();
-        if ( generateVCFRecord(tracker, ref, context, vcfheader, gt, map, sampleNames, out, SUPPRESS_MULTISTATE, VERBOSE) ) {
-            vcfwriter.addRecord(new VCFRecord(map, "GT:GQ:DP", gt));
-            //vcfwriter.addRecord(new VCFRecord(vcfheader, map, "GT", gt));
-            return  1;
+        Map<VCFHeader.HEADER_FIELDS, String> map = new HashMap<VCFHeader.HEADER_FIELDS, String>();
+        VCFRecord rec = generateVCFRecord(tracker, ref, context, vcfheader, gt, map, sampleNames, out, SUPPRESS_MULTISTATE, VERBOSE);
+        if (rec != null) {
+            vcfwriter.addRecord(rec);
+            return 1;
         }
         return 0;
     }
 
-    public static boolean generateVCFRecord(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context,
-                                            VCFHeader vcfheader, List<VCFGenotypeRecord> gt, Map<VCFHeader.HEADER_FIELDS,String> map,
-                                            Map<String, String> sampleNamesToRods, PrintStream out, boolean SUPPRESS_MULTISTATE, boolean VERBOSE) {
+    public static VCFRecord generateVCFRecord(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context,
+                                              VCFHeader vcfheader, List<VCFGenotypeRecord> gt, Map<VCFHeader.HEADER_FIELDS, String> map,
+                                              Map<String, String> sampleNamesToRods, PrintStream out, boolean SUPPRESS_MULTISTATE, boolean VERBOSE) {
         int[] alleleCounts = new int[4];
         int numSNPs = 0;
         int numRefs = 0;
-        int[] alleleNames = { 0, 1, 2, 3 };
+        int[] alleleNames = {0, 1, 2, 3};
         double snpQual = 0.0;
         int refbase = BaseUtils.simpleBaseToBaseIndex(ref.getBase());
-
+        List<String> alts = new ArrayList<String>();
         for (String name : vcfheader.getGenotypeSamples()) {
             ReferenceOrderedDatum rod = tracker.lookup(sampleNamesToRods.get(name), null);
             if (rod != null) {
-                AllelicVariant av = (AllelicVariant) rod;
-                String lod = String.format("%d", av.getVariationConfidence() > 99 ? 99 : (int) av.getVariationConfidence());
+                Variation av = (Variation) rod;
+                String lod = String.format("%d", av.getNegLog10PError() > 99 ? 99 : (int) av.getNegLog10PError());
                 int depth = 0;
 
                 if (rod instanceof RodGeliText) {
                     RodGeliText rv = (RodGeliText) rod;
                     depth = rv.depth;
                 }
-
-                Map<String,String> str = new HashMap<String,String>();
-                if (av.getGenotype().get(0).charAt(0) == av.getGenotype().get(0).charAt(1)) {
-                    str.put("key","1/1:" + lod + (depth > 0 ? ":" + depth : ""));
-                    //str.put("key","1/1");
-                } else {
-                    str.put("key","0/1:" + lod + (depth > 0 ? ":" + depth : ""));
-                    //str.put("key","0/1");
+                if (!(rod instanceof VariantBackedByGenotype))
+                    throw new IllegalArgumentException("The passed in variant type must be backed by genotype data");
+                Genotype genotype = ((VariantBackedByGenotype) rod).getCalledGenotype();
+                List<String> alleles = new ArrayList<String>();
+                for (char base : genotype.getBases().toCharArray()) {
+                    alleles.add(String.valueOf(base));
+                    if (base != ref.getBase() && !alts.contains(String.valueOf(base))) alts.add(String.valueOf(base));
                 }
-                
-                List<String> alleles = av.getGenotype();
+                int allele1 = BaseUtils.simpleBaseToBaseIndex(genotype.getBases().charAt(0));
+                int allele2 = BaseUtils.simpleBaseToBaseIndex(genotype.getBases().charAt(1));
+                if (allele1 >= 0 && allele1 != refbase) {
+                    alleleCounts[allele1]++;
+                }
+                if (allele2 >= 0 && allele2 != refbase) {
+                    alleleCounts[allele2]++;
+                }
+                Map<String, String> str = new HashMap<String, String>();
+                str.put("GQ", lod);
+                if (depth > 0) str.put("DP", String.valueOf(depth));
 
-                int allele1 = BaseUtils.simpleBaseToBaseIndex(alleles.get(0).charAt(0));
-                if (allele1 >= 0 && allele1 != refbase) { alleleCounts[allele1]++; }
-
-                int allele2 = BaseUtils.simpleBaseToBaseIndex(alleles.get(0).charAt(1));
-                if (allele2 >= 0 && allele2 != refbase) { alleleCounts[allele2]++; }
-
-                gt.add(new VCFGenotypeRecord(name, alleles, VCFGenotypeRecord.PHASE.UNPHASED, str ));
+                gt.add(new VCFGenotypeRecord(name, alleles, VCFGenotypeRecord.PHASE.UNPHASED, str));
 
                 numSNPs++;
-                snpQual += av.getVariationConfidence();
+                snpQual += av.getNegLog10PError();
             } else {
-                Map<String,String> str = new HashMap<String,String>();
-                str.put("key","0/0");
-
+                Map<String, String> str = new HashMap<String, String>();
                 List<String> alleles = new ArrayList<String>();
-                alleles.add(ref.getBase() + "" + ref.getBase());
+                alleles.add(String.valueOf(ref.getBase()));
+                alleles.add(String.valueOf(ref.getBase()));
+                gt.add(new VCFGenotypeRecord(name, alleles, VCFGenotypeRecord.PHASE.UNPHASED, str));
 
-                gt.add(new VCFGenotypeRecord(name, alleles, VCFGenotypeRecord.PHASE.UNPHASED, str ));
-                
                 numRefs++;
             }
         }
 
         if (numSNPs == 0)
-            return false;
+            return null;
 
 
         Integer[] perm = Utils.SortPermutation(alleleCounts);
@@ -151,61 +161,38 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
         rodDbSNP dbsnp = (rodDbSNP) tracker.lookup("dbsnp", null);
 
         String infoString = String.format("locus=%s ref=%c allele_count=( %c:%d %c:%d %c:%d %c:%d )",
-            context.getLocation(),
-            ref.getBase(),
-            BaseUtils.baseIndexToSimpleBase(sortedNames[0]), sortedCounts[0],
-            BaseUtils.baseIndexToSimpleBase(sortedNames[1]), sortedCounts[1],
-            BaseUtils.baseIndexToSimpleBase(sortedNames[2]), sortedCounts[2],
-            BaseUtils.baseIndexToSimpleBase(sortedNames[3]), sortedCounts[3]
+                                          context.getLocation(),
+                                          ref.getBase(),
+                                          BaseUtils.baseIndexToSimpleBase(sortedNames[0]), sortedCounts[0],
+                                          BaseUtils.baseIndexToSimpleBase(sortedNames[1]), sortedCounts[1],
+                                          BaseUtils.baseIndexToSimpleBase(sortedNames[2]), sortedCounts[2],
+                                          BaseUtils.baseIndexToSimpleBase(sortedNames[3]), sortedCounts[3]
         );
 
         if (SUPPRESS_MULTISTATE && sortedCounts[2] > 0) {
             out.println("[multistate] " + infoString);
-            return false;
+            return null;
         } else {
             if (VERBOSE) {
                 out.println("[locus_info] " + infoString);
             }
         }
 
-        for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
-            map.put(field,String.valueOf(1));
+        Map<String,String> info = new HashMap<String,String>();
+        if (dbsnp != null) info.put("DB","1");
+        if (dbsnp != null && dbsnp.isHapmap()) info.put("H2","1");
 
-            if (field == VCFHeader.HEADER_FIELDS.CHROM) {
-                map.put(field, context.getContig());
-            } else if (field == VCFHeader.HEADER_FIELDS.POS) {
-                map.put(field, String.valueOf(context.getPosition()));
-            } else if (field == VCFHeader.HEADER_FIELDS.REF) {
-                map.put(field, String.valueOf(ref.getBases()));
-            } else if (field == VCFHeader.HEADER_FIELDS.ALT) {
-                map.put(field, String.valueOf(BaseUtils.baseIndexToSimpleBase(sortedNames[3])));
-            } else if (field == VCFHeader.HEADER_FIELDS.ID) {
-                map.put(field, (dbsnp == null) ? "." : dbsnp.name);
-            } else if (field == VCFHeader.HEADER_FIELDS.QUAL) {
-                map.put(field, String.format("%d", snpQual > 99 ? 99 : (int) snpQual));
-            } else if (field == VCFHeader.HEADER_FIELDS.FILTER) {
-                map.put(field, "0");
-            } else if (field == VCFHeader.HEADER_FIELDS.INFO) {
-                String infostr = ".";
-                ArrayList<String> info = new ArrayList<String>();
+        return new VCFRecord(ref.getBase(),
+                             context.getContig(),
+                             (int) context.getPosition(),
+                             (dbsnp == null) ? "." : dbsnp.name,
+                             alts,
+                             snpQual > 99 ? 99 : (int) snpQual,
+                             "0",
+                             info,
+                             format,
+                             gt);
 
-                if (dbsnp != null) { info.add("DB=1"); }
-                if (dbsnp != null && dbsnp.isHapmap()) { info.add("H2=1"); }
-
-                for (int i = 0; i < info.size(); i++) {
-                    if (i == 0) { infostr = ""; }
-
-                    infostr += info.get(i);
-
-                    if (i < info.size() - 1) {
-                        infostr += ";";
-                    }
-                }
-
-                map.put(field, infostr);
-            }
-        }
-        return true;
     }
 
     public Integer reduceInit() {
