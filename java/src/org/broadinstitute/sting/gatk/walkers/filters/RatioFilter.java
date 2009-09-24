@@ -1,8 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.gatk.contexts.VariantContext;
-import org.broadinstitute.sting.gatk.refdata.RodGeliText;
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.*;
 import org.apache.log4j.Logger;
 
@@ -21,6 +20,11 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
     protected double lowThreshold = -1;
     protected double highThreshold = -1;
 
+    protected enum AnalysisType { POINT_ESTIMATE, FAIR_COIN_TEST };
+    protected AnalysisType analysis = AnalysisType.POINT_ESTIMATE;
+    protected double integralPValueThreshold = 0.05;
+    private final static double SEARCH_INCREMENT = 0.01;
+
     protected boolean exclude = false;
 
     public RatioFilter(final String name, Class myClass, Tail tail ) {
@@ -37,6 +41,10 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
         highThreshold = threshold;
     }
 
+    protected void setIntegralPvalue(double pvalue) {
+        integralPValueThreshold = pvalue;
+    }
+
     protected abstract Pair<Integer, Integer> getRatioCounts(char ref, ReadBackedPileup pileup, RodGeliText variant);
     protected abstract boolean excludeHetsOnly();
 
@@ -51,8 +59,13 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
         Pair<Integer, Integer> counts = getRatioCounts(ref, pileup, variant);
 
         boolean highGenotypeConfidence = variant.getConsensusConfidence() > minGenotypeConfidenceToTest;
-        boolean excludable = !excludeHetsOnly() || GenotypeUtils.isHet((AllelicVariant)variant);
-        exclude = excludable && highGenotypeConfidence && pointEstimateExclude(counts);
+        boolean excludable = !excludeHetsOnly() || GenotypeUtils.isHet(variant);
+
+        if ( analysis == AnalysisType.POINT_ESTIMATE )
+            exclude = excludable && highGenotypeConfidence && pointEstimateExclude(counts);
+        else if ( analysis == AnalysisType.FAIR_COIN_TEST )
+            exclude = excludable && highGenotypeConfidence && integralExclude(counts);
+
         //
         // for printing only
         //
@@ -63,10 +76,7 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
                 value, exclude, variant.getLocation(), pileup.getBases()));
     }
 
-    private final static double SEARCH_INCREMENT = 0.01;
-    private final static double integralPValueThreshold = 0.05;
-
-    // TODO - this whole calculation needs to be redone correctly
+    // TODO - this calculation needs to be parameterized correctly
     private boolean pointEstimateExclude(Pair<Integer, Integer> counts) {
         int n = counts.first + counts.second;
         if ( n < minDepthOfCoverage )
@@ -90,6 +100,7 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
         }
 
         double percentExcluded = sumExclude / sumP;
+
         return 1 - percentExcluded <= integralPValueThreshold ;
     }
 

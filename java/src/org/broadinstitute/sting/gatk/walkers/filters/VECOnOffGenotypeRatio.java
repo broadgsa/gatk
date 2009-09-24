@@ -14,6 +14,14 @@ public class VECOnOffGenotypeRatio extends RatioFilter {
     }
 
     public void initialize(HashMap<String,String> args) {
+        if ( args.get("analysis") != null ) {
+            if ( args.get("analysis").equalsIgnoreCase("fair_coin_test") )
+                analysis = AnalysisType.FAIR_COIN_TEST;
+            else if ( args.get("analysis").equalsIgnoreCase("point_estimate") )
+                analysis = AnalysisType.POINT_ESTIMATE;
+        }
+        if ( args.get("pvalue") != null )
+            setIntegralPvalue(Double.valueOf(args.get("pvalue")));
         if ( args.get("threshold") != null )
             threshold = Double.valueOf(args.get("threshold"));
         if ( args.get("confidence") != null )
