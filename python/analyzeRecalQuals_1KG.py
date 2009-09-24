@@ -361,8 +361,7 @@ def analyzeRawData(rawDataFile):
                 analyzeReadGroup(readGroup, data, outputRoot)
 
 plottersByFile = {
-    "raw_data.csv$" : analyzeRawData,
-    "recal_data.csv$" : analyzeRawData,
+    ".csv$" : analyzeRawData,
     "empirical_v_reported_quality" : 'PlotQEmpStated',
     "quality_difference_v_dinucleotide" : 'PlotQDiffByDinuc',
     "quality_difference_v_cycle" : 'PlotQDiffByCycle' }
