@@ -48,22 +48,7 @@ public class BWAAligner implements Aligner {
     /**
      * Maximum number of gap extensions (-e option from original BWA).
      */
-    private static final int MAXIMUM_GAP_EXTENSIONS = -1;
-
-    /**
-     * Penalty for straight mismatches (-M option from original BWA).
-     */
-    private static final int MISMATCH_PENALTY = 3;
-
-    /**
-     * Penalty for gap opens (-O option from original BWA).
-     */
-    private static final int GAP_OPEN_PENALTY = 11;
-
-    /**
-     * Penalty for gap extensions (-E option from original BWA).
-     */
-    private static final int GAP_EXTENSION_PENALTY = 4;
+    private static final int MAXIMUM_GAP_EXTENSIONS = 6;
 
     public BWAAligner( File forwardBWTFile, File reverseBWTFile, File reverseSuffixArrayFile ) {
         forwardBWT = new BWTReader(forwardBWTFile).read();
@@ -91,6 +76,7 @@ public class BWAAligner implements Aligner {
         initial.position = 0;
         initial.loBound = 0;
         initial.hiBound = forwardBWT.length();
+        initial.state = AlignmentState.MATCH_MISMATCH;
         initial.mismatches = 0;
 
         BWAAlignment initialReverse = new BWAAlignment();
@@ -98,6 +84,7 @@ public class BWAAligner implements Aligner {
         initialReverse.position = 0;
         initialReverse.loBound = 0;
         initialReverse.hiBound = reverseBWT.length();
+        initialReverse.state = AlignmentState.MATCH_MISMATCH;
         initialReverse.mismatches = 0;
 
         alignments.add(initial);
@@ -112,32 +99,103 @@ public class BWAAligner implements Aligner {
 
             // Done with this particular alignment.
             if(alignment.position == read.getReadLength()-1) {
-                alignment.alignmentStart = reverseBWT.length() - (reverseSuffixArray.get(alignment.loBound)+read.getReadLength()) + 1;
+                alignment.alignmentStart = reverseBWT.length() - (reverseSuffixArray.get(alignment.loBound)+read.getReadLength()-alignment.gapOpens-alignment.gapExtensions) + 1;
                 return Collections.<Alignment>singletonList(alignment);
             }
 
-            //System.out.printf("Processing alignments; queue size = %d, alignment = %s, bound = %d%n", alignments.size(), alignment, lowerBounds.get(alignment.position).value);
+            //System.out.printf("Processing alignments; queue size = %d, alignment = %s, bound = %d%n", alignments.size(), alignment, lowerBounds.get(alignment.position+1).value);
 
             // if z < D(i) then return {}
-            int mismatches = MAXIMUM_EDIT_DISTANCE - alignment.mismatches;            
+            int mismatches = MAXIMUM_EDIT_DISTANCE - alignment.mismatches - alignment.gapOpens;            
             if( mismatches < lowerBounds.get(alignment.position+1).value )
                 continue;
 
             if( alignment.mismatches > MAXIMUM_EDIT_DISTANCE )
                 continue;
 
-            // For each base in { A, C, G, T }
+            if( alignment.state == AlignmentState.MATCH_MISMATCH ) {
+                if( alignment.gapOpens < MAXIMUM_GAP_OPENS ) {
+                    // Add a potential insertion.
+                    BWAAlignment newAlignment = new BWAAlignment();
+                    newAlignment.negativeStrand = alignment.negativeStrand;
+                    newAlignment.position = alignment.position + 1;
+                    newAlignment.state = AlignmentState.INSERTION;
+                    newAlignment.gapOpens = alignment.gapOpens + 1;
+                    newAlignment.gapExtensions = alignment.gapExtensions;
+
+                    newAlignment.loBound = alignment.loBound;
+                    newAlignment.hiBound = alignment.hiBound;
+
+                    alignments.add(newAlignment);
+
+                    // Add a potential deletion by marking a deletion and augmenting the position.
+                    for(Base base: EnumSet.allOf(Base.class)) {
+                        newAlignment = new BWAAlignment();
+                        newAlignment.negativeStrand = alignment.negativeStrand;
+                        newAlignment.position = alignment.position;
+                        newAlignment.state = AlignmentState.DELETION;
+                        newAlignment.gapOpens = alignment.gapOpens + 1;
+                        newAlignment.gapExtensions = alignment.gapExtensions;
+
+                        newAlignment.loBound = bwt.counts(base) + bwt.occurrences(base,alignment.loBound-1) + 1;
+                        newAlignment.hiBound = bwt.counts(base) + bwt.occurrences(base,alignment.hiBound);
+
+                        if( newAlignment.loBound <= newAlignment.hiBound )
+                            alignments.add(newAlignment);
+                    }
+                }
+            }
+            else if( alignment.state == AlignmentState.INSERTION ) {
+                if( alignment.gapExtensions < MAXIMUM_GAP_EXTENSIONS ) {
+                    // Add a potential insertion extension.
+                    BWAAlignment newAlignment = new BWAAlignment();
+                    newAlignment.negativeStrand = alignment.negativeStrand;
+                    newAlignment.position = alignment.position + 1;
+                    newAlignment.state = AlignmentState.INSERTION;
+                    newAlignment.gapOpens = alignment.gapOpens;
+                    newAlignment.gapExtensions = alignment.gapExtensions+1;
+
+                    newAlignment.loBound = alignment.loBound;
+                    newAlignment.hiBound = alignment.hiBound;                    
+
+                    if( newAlignment.loBound <= newAlignment.hiBound )
+                        alignments.add(newAlignment);
+                }
+            }
+            else if( alignment.state == AlignmentState.DELETION ) {
+                if( alignment.gapExtensions < MAXIMUM_GAP_EXTENSIONS ) {
+                    // Add a potential deletion by marking a deletion and augmenting the position.
+                    for(Base base: EnumSet.allOf(Base.class)) {
+                        BWAAlignment newAlignment = new BWAAlignment();
+                        newAlignment.negativeStrand = alignment.negativeStrand;
+                        newAlignment.position = alignment.position;
+                        newAlignment.state = AlignmentState.DELETION;
+                        newAlignment.gapOpens = alignment.gapOpens;
+                        newAlignment.gapExtensions = alignment.gapExtensions + 1;
+
+                        newAlignment.loBound = bwt.counts(base) + bwt.occurrences(base,alignment.loBound-1) + 1;
+                        newAlignment.hiBound = bwt.counts(base) + bwt.occurrences(base,alignment.hiBound);
+
+                        alignments.add(newAlignment);
+                    }
+                }
+            }
+
+            // Mismatches
             for(Base base: EnumSet.allOf(Base.class)) {
                 // Create and initialize a new alignment, given that base as the candidate.
                 BWAAlignment newAlignment = new BWAAlignment();
                 newAlignment.negativeStrand = alignment.negativeStrand;
                 newAlignment.position = alignment.position + 1;
-
-                newAlignment.loBound = bwt.counts(base) + bwt.occurrences(base,alignment.loBound-1) + 1;
-                newAlignment.hiBound = bwt.counts(base) + bwt.occurrences(base,alignment.hiBound);
+                newAlignment.state = AlignmentState.MATCH_MISMATCH;
                 newAlignment.mismatches = alignment.mismatches;
                 if( base.toASCII() != bases[newAlignment.position] )
                     newAlignment.mismatches++;
+                newAlignment.gapOpens = alignment.gapOpens;
+                newAlignment.gapExtensions = alignment.gapExtensions;
+
+                newAlignment.loBound = bwt.counts(base) + bwt.occurrences(base,alignment.loBound-1) + 1;
+                newAlignment.hiBound = bwt.counts(base) + bwt.occurrences(base,alignment.hiBound);
 
                 // If this alignment is valid, add it to the list.
                 if( newAlignment.loBound <= newAlignment.hiBound )

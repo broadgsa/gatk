@@ -8,20 +8,28 @@ package org.broadinstitute.sting.alignment;
  */
 public interface Alignment extends Comparable<Alignment> {
     /**
-     * Gets the starting position for the given alignment.
-     * @return Starting position.
-     */
-    public int getAlignmentStart();
-
-    /**
      * Is the given alignment on the reverse strand?
      * @return True if the alignment is on the reverse strand.
      */
     public boolean isNegativeStrand();
 
     /**
+     * Gets the starting position for the given alignment.
+     * @return Starting position.
+     */
+    public int getAlignmentStart();
+
+    /**
      * Gets the score of this alignment.
      * @return The score.
      */
     public int getScore();
+
+    /**
+     * Temporary getters.
+     * @return
+     */
+    public int getMismatches();
+    public int getGapOpens();
+    public int getGapExtensions();
 }

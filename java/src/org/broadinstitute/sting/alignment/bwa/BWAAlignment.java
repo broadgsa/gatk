@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.alignment.bwa;
 
 import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.alignment.bwa.bwt.BWT;
-import net.sf.samtools.SAMRecord;
 
 /**
  * An alignment object to be used incrementally as the BWA aligner
@@ -12,8 +10,6 @@ import net.sf.samtools.SAMRecord;
  * @version 0.1
  */
 public class BWAAlignment implements Alignment {
-    enum State { MATCH, INSERTION, DELETION }
-
     /**
      * Start of the final alignment.
      */
@@ -35,6 +31,16 @@ public class BWAAlignment implements Alignment {
     protected int mismatches;
 
     /**
+     * Number of gap opens in alignment.
+     */
+    protected int gapOpens;
+
+    /**
+     * Number of gap extensions in alignment.
+     */
+    protected int gapExtensions;
+
+    /**
      * Working variable.  The lower bound of the alignment within the BWT.
      */
     protected int loBound;
@@ -47,7 +53,7 @@ public class BWAAlignment implements Alignment {
     /**
      * Indicates the current state of an alignment.  Are we in an insertion?  Deletion?
      */
-    protected State alignmentState;
+    protected AlignmentState state;
 
     /**
      * Gets the starting position for the given alignment.
@@ -70,8 +76,12 @@ public class BWAAlignment implements Alignment {
      * @return BWA-style scores.  0 is best.
      */
     public int getScore() {
-        return mismatches;
+        return mismatches + gapOpens + gapExtensions;
     }
+
+    public int getMismatches() { return mismatches; }
+    public int getGapOpens() { return gapOpens; }
+    public int getGapExtensions() { return gapExtensions; }   
 
     /**
      * Compare this alignment to another alignment.
@@ -88,6 +98,6 @@ public class BWAAlignment implements Alignment {
     }
 
     public String toString() {
-        return String.format("position = %d, mismatches = %d, loBound = %d, hiBound = %d, score = %d", position, mismatches, loBound, hiBound, getScore());
+        return String.format("position: %d, state: %s, mismatches: %d, gap opens: %d, gap extensions: %d, loBound: %d, hiBound: %d, score: %d", position, state, mismatches, gapOpens, gapExtensions, loBound, hiBound, getScore());
     }
 }

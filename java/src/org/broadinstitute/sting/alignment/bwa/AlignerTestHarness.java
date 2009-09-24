@@ -12,8 +12,6 @@ import java.util.List;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
 
 /**
  * A test harness to ensure that the perfect aligner works.
@@ -51,19 +49,21 @@ public class AlignerTestHarness {
 
         for(SAMRecord read: reader) {
             count++;
-            //if( count > 500 ) break;
-            //if( count != 39 /*&& count != 15*/ ) continue;
+            //if( count > 5000 ) break;
+            //if( count != 10959 ) continue;
             //if( !read.getReadName().endsWith("1507:1636#0") )
             //    continue;
 
             boolean skipRead = false;
 
+            /*
             for( CigarElement cigarElement: read.getCigar().getCigarElements() ) {
                 if( cigarElement.getOperator() != CigarOperator.M ) {
                     System.out.printf("Skipping read %s because it features indels%n", read.getReadName());
                     skipRead = true;
                 }
             }
+            */
 
             if(read.getReadString().indexOf("N") >= 0) {
                 System.out.printf("Skipping read %s because it contains Ns%n", read.getReadName());
@@ -74,11 +74,12 @@ public class AlignerTestHarness {
 
             List<Alignment> alignments = aligner.align(read);
             if(alignments.size() == 0 )
-                throw new StingException(String.format("Unable to align read %s to reference.",read.getReadName()));
-
-            //System.out.printf("%s: Aligned read to reference at position %d with %d mismatches.%n", read.getReadName(), alignments.get(0).getAlignmentStart(), alignments.get(0).getScore());
+                throw new StingException(String.format("Unable to align read %s to reference; count = %d",read.getReadName(),count));
 
             Alignment alignment = alignments.get(0);
+
+            System.out.printf("%s: Aligned read to reference at position %d with %d mismatches, %d gap opens, and %d gap extensions.%n", read.getReadName(), alignment.getAlignmentStart(), alignment.getMismatches(), alignment.getGapOpens(), alignment.getGapExtensions());
+
             if( read.getAlignmentStart() != alignment.getAlignmentStart() ) {
                 IndexedFastaSequenceFile reference = new IndexedFastaSequenceFile(referenceFile);
                 String expectedRef = new String(reference.getSubsequenceAt(reference.getSequenceDictionary().getSequences().get(0).getSequenceName(),read.getAlignmentStart(),read.getAlignmentStart()+read.getReadLength()-1).getBases());
