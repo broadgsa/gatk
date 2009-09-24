@@ -54,9 +54,14 @@ public class LowerBound {
         int loIndex = 0, hiIndex = bwt.length(), mismatches = 0;
         for( int i = bases.length-1; i >= 0; i-- ) {
             Base base = Base.fromASCII(bases[i]);
-            loIndex = bwt.counts(base) + bwt.occurrences(base,loIndex-1) + 1;
-            hiIndex = bwt.counts(base) + bwt.occurrences(base,hiIndex);
-            if( loIndex > hiIndex ) {
+
+            // Ignore non-ACGT bases.
+            if( base != null ) {
+                loIndex = bwt.counts(base) + bwt.occurrences(base,loIndex-1) + 1;
+                hiIndex = bwt.counts(base) + bwt.occurrences(base,hiIndex);            
+            }
+
+            if( base == null || loIndex > hiIndex ) {
                 loIndex = 0;
                 hiIndex = bwt.length();
                 mismatches++;

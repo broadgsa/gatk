@@ -20,9 +20,6 @@ import net.sf.samtools.SAMFileReader;
  * @version 0.1
  */
 public class AlignerTestHarness {
-    private static BWT bwt;
-    private static SuffixArray suffixArray;
-
     public static void main( String argv[] ) throws FileNotFoundException {
         if( argv.length != 5 ) {
             System.out.println("PerfectAlignerTestHarness <fasta> <bwt> <rbwt> <sa> <bam>");
@@ -49,28 +46,10 @@ public class AlignerTestHarness {
 
         for(SAMRecord read: reader) {
             count++;
-            //if( count > 5000 ) break;
-            //if( count != 10959 ) continue;
+            //if( count > 39 ) break;
+            //if( count != 39 ) continue;
             //if( !read.getReadName().endsWith("1507:1636#0") )
             //    continue;
-
-            boolean skipRead = false;
-
-            /*
-            for( CigarElement cigarElement: read.getCigar().getCigarElements() ) {
-                if( cigarElement.getOperator() != CigarOperator.M ) {
-                    System.out.printf("Skipping read %s because it features indels%n", read.getReadName());
-                    skipRead = true;
-                }
-            }
-            */
-
-            if(read.getReadString().indexOf("N") >= 0) {
-                System.out.printf("Skipping read %s because it contains Ns%n", read.getReadName());
-                skipRead = true;
-            }
-
-            if(skipRead) continue;
 
             List<Alignment> alignments = aligner.align(read);
             if(alignments.size() == 0 )
