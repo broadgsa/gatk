@@ -67,13 +67,11 @@ public class RefMetaDataTracker {
             return map.get(luName);
         else {
 
-            if ( defaultValue == null ) {
-                return new RODRecordList<ReferenceOrderedDatum>(luName, Collections.singletonList(defaultValue), null);
-            } else {
-                return new RODRecordList<ReferenceOrderedDatum>(defaultValue.getName(),
-                                                                Collections.singletonList(defaultValue),
-                                                                defaultValue.getLocation());
-            }
+            if ( defaultValue == null )
+                return null;
+            return new RODRecordList<ReferenceOrderedDatum>(defaultValue.getName(),
+                                                            Collections.singletonList(defaultValue),
+                                                            defaultValue.getLocation());
         }
     }
     /**
