@@ -7,8 +7,9 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
 import java.util.HashMap;
+import java.lang.Cloneable;
 
-public class ClassicGenotypeLikelihoods {
+public class ClassicGenotypeLikelihoods implements Cloneable {
     // precalculate these for performance (pow/log10 is expensive!)
     private static final double[] oneMinusData = new double[Byte.MAX_VALUE];
 
@@ -44,29 +45,50 @@ public class ClassicGenotypeLikelihoods {
     private double priorHomRef;
     private double priorHet;
     private double priorHomVar;
+    public String[] sorted_genotypes;
+    public double[] sorted_likelihoods;
+    double ref_likelihood = Double.NaN;
+	private IndelLikelihood indel_likelihood;
 
     // Store the 2nd-best base priors for on-genotype primary bases
-    private HashMap<String, Double> onNextBestBasePriors = new HashMap<String, Double>();
+    //private HashMap<String, Double> onNextBestBasePriors = new HashMap<String, Double>();
 
     // Store the 2nd-best base priors for off-genotype primary bases
-    private HashMap<String, Double> offNextBestBasePriors = new HashMap<String, Double>();
+    //private HashMap<String, Double> offNextBestBasePriors = new HashMap<String, Double>();
+
+    private static double[] p2ndon = {0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000};
+    private static double[] p2ndoff = {0.480, 0.769, 0.744, 0.538, 0.575, 0.727, 0.768, 0.589, 0.762, 0.505};
 
     public ClassicGenotypeLikelihoods() {
-        double[] p2ndon = {0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000};
-        double[] p2ndoff = {0.480, 0.769, 0.744, 0.538, 0.575, 0.727, 0.768, 0.589, 0.762, 0.505};
-
         initialize(1.0 - 1e-3, 1e-3, 1e-5, p2ndon, p2ndoff);
     }
 
-    public ClassicGenotypeLikelihoods(double priorHomRef, double priorHet, double priorHomVar) {
-        double[] p2ndon = {0.000, 0.302, 0.366, 0.142, 0.000, 0.548, 0.370, 0.000, 0.319, 0.000};
-        double[] p2ndoff = {0.480, 0.769, 0.744, 0.538, 0.575, 0.727, 0.768, 0.589, 0.762, 0.505};
+    public ClassicGenotypeLikelihoods(boolean foo) {
+    }
 
+    public ClassicGenotypeLikelihoods(double priorHomRef, double priorHet, double priorHomVar) {
         initialize(priorHomRef, priorHet, priorHomVar, p2ndon, p2ndoff);
     }
 
     public ClassicGenotypeLikelihoods(double priorHomRef, double priorHet, double priorHomVar, double[] p2ndon, double[] p2ndoff) {
         initialize(priorHomRef, priorHet, priorHomVar, p2ndon, p2ndoff);
+    }
+
+    public ClassicGenotypeLikelihoods clone() {
+        ClassicGenotypeLikelihoods c = new ClassicGenotypeLikelihoods(false);
+        c.likelihoods = this.likelihoods.clone();
+        c.genotypes = this.genotypes.clone();
+	    c.coverage = this.coverage;
+
+        // The genotype priors;
+	    c.priorHomRef = this.priorHomRef;
+	    c.priorHet = this.priorHet;
+	    c.priorHomVar = this.priorHomVar;
+        //public String[] sorted_genotypes;
+        //public double[] sorted_likelihoods;
+        //double ref_likelihood = Double.NaN;
+	    //private IndelLikelihood indel_likelihood;
+	    return c;
     }
 
     private void initialize(double priorHomRef, double priorHet, double priorHomVar, double[] p2ndon, double[] p2ndoff) {
@@ -91,10 +113,10 @@ public class ClassicGenotypeLikelihoods {
         genotypes[8] = "GT";
         genotypes[9] = "TT";
 
-        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
-            onNextBestBasePriors.put(genotypes[genotypeIndex], p2ndon[genotypeIndex]);
-            offNextBestBasePriors.put(genotypes[genotypeIndex], p2ndoff[genotypeIndex]);
-        }
+        //for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
+        //    onNextBestBasePriors.put(genotypes[genotypeIndex], p2ndon[genotypeIndex]);
+        //    offNextBestBasePriors.put(genotypes[genotypeIndex], p2ndoff[genotypeIndex]);
+        //}
     }
 
     public double getHomRefPrior() {
@@ -121,37 +143,37 @@ public class ClassicGenotypeLikelihoods {
         this.priorHomVar = priorHomVar;
     }
 
-    public double[] getOnGenotypeSecondaryPriors() {
-        double[] p2ndon = new double[10];
-
-        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
-            p2ndon[genotypeIndex] = onNextBestBasePriors.get(genotypes[genotypeIndex]);
-        }
-
-        return p2ndon;
-    }
-
-    public void setOnGenotypeSecondaryPriors(double[] p2ndon) {
-        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
-            onNextBestBasePriors.put(genotypes[genotypeIndex], p2ndon[genotypeIndex]);
-        }
-    }
-
-    public double[] getOffGenotypeSecondaryPriors() {
-        double[] p2ndoff = new double[10];
-
-        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
-            p2ndoff[genotypeIndex] = offNextBestBasePriors.get(genotypes[genotypeIndex]);
-        }
-
-        return p2ndoff;
-    }
-
-    public void setOffGenotypeSecondaryPriors(double[] p2ndoff) {
-        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
-            offNextBestBasePriors.put(genotypes[genotypeIndex], p2ndoff[genotypeIndex]);
-        }
-    }
+//    public double[] getOnGenotypeSecondaryPriors() {
+//        double[] p2ndon = new double[10];
+//
+//        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
+//            p2ndon[genotypeIndex] = onNextBestBasePriors.get(genotypes[genotypeIndex]);
+//        }
+//
+//        return p2ndon;
+//    }
+//
+//    public void setOnGenotypeSecondaryPriors(double[] p2ndon) {
+//        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
+//            onNextBestBasePriors.put(genotypes[genotypeIndex], p2ndon[genotypeIndex]);
+//        }
+//    }
+//
+//    public double[] getOffGenotypeSecondaryPriors() {
+//        double[] p2ndoff = new double[10];
+//
+//        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
+//            p2ndoff[genotypeIndex] = offNextBestBasePriors.get(genotypes[genotypeIndex]);
+//        }
+//
+//        return p2ndoff;
+//    }
+//
+//    public void setOffGenotypeSecondaryPriors(double[] p2ndoff) {
+//        for (int genotypeIndex = 0; genotypeIndex < 10; genotypeIndex++) {
+//            offNextBestBasePriors.put(genotypes[genotypeIndex], p2ndoff[genotypeIndex]);
+//        }
+//    }
 
     public void add(char ref, char read, byte qual) 
 	{ 
@@ -289,9 +311,6 @@ public class ClassicGenotypeLikelihoods {
         return p_base;
     }
 
-    public String[] sorted_genotypes;
-    public double[] sorted_likelihoods;
-
     public void sort() {
         Integer[] permutation = Utils.SortPermutation(likelihoods);
 
@@ -382,55 +401,54 @@ public class ClassicGenotypeLikelihoods {
 
 	public void ApplyWeight(double weight)
 	{
-		for (int i = 0; i < genotypes.length; i++) { likelihoods[i] += Math.log10(weight); }
+	    double log10weight = Math.log10(weight);
+		for (int i = 0; i < genotypes.length; i++) { likelihoods[i] += log10weight; }
 		this.sort();
 	}
 
-    public void applySecondBaseDistributionPrior(String primaryBases, String secondaryBases) {
-        for (int genotypeIndex = 0; genotypeIndex < genotypes.length; genotypeIndex++) {
-            char firstAllele = genotypes[genotypeIndex].charAt(0);
-            char secondAllele = genotypes[genotypeIndex].charAt(1);
-
-            int offIsGenotypic = 0;
-            int offTotal = 0;
-
-            int onIsGenotypic = 0;
-            int onTotal = 0;
-
-            for (int pileupIndex = 0; pileupIndex < primaryBases.length(); pileupIndex++) {
-                char primaryBase = primaryBases.charAt(pileupIndex);
-
-                if (secondaryBases != null) {
-                    char secondaryBase = secondaryBases.charAt(pileupIndex);
-
-                    if (primaryBase != firstAllele && primaryBase != secondAllele) {
-                        if (secondaryBase == firstAllele || secondaryBase == secondAllele) {
-                            offIsGenotypic++;
-                        }
-                        offTotal++;
-                    } else {
-                        if (secondaryBase == firstAllele || secondaryBase == secondAllele) {
-                            onIsGenotypic++;
-                        }
-                        onTotal++;
-                    }
-                }
-            }
-
-            double offPrior = MathUtils.binomialProbability(offIsGenotypic, offTotal, offNextBestBasePriors.get(genotypes[genotypeIndex]));
-            double onPrior = MathUtils.binomialProbability(onIsGenotypic, onTotal, onNextBestBasePriors.get(genotypes[genotypeIndex]));
-
-            likelihoods[genotypeIndex] += Math.log10(offPrior) + Math.log10(onPrior);
-        }
-        this.sort();
-    }
+//    public void applySecondBaseDistributionPrior(String primaryBases, String secondaryBases) {
+//        for (int genotypeIndex = 0; genotypeIndex < genotypes.length; genotypeIndex++) {
+//            char firstAllele = genotypes[genotypeIndex].charAt(0);
+//            char secondAllele = genotypes[genotypeIndex].charAt(1);
+//
+//            int offIsGenotypic = 0;
+//            int offTotal = 0;
+//
+//            int onIsGenotypic = 0;
+//            int onTotal = 0;
+//
+//            for (int pileupIndex = 0; pileupIndex < primaryBases.length(); pileupIndex++) {
+//                char primaryBase = primaryBases.charAt(pileupIndex);
+//
+//                if (secondaryBases != null) {
+//                    char secondaryBase = secondaryBases.charAt(pileupIndex);
+//
+//                    if (primaryBase != firstAllele && primaryBase != secondAllele) {
+//                        if (secondaryBase == firstAllele || secondaryBase == secondAllele) {
+//                            offIsGenotypic++;
+//                        }
+//                        offTotal++;
+//                    } else {
+//                        if (secondaryBase == firstAllele || secondaryBase == secondAllele) {
+//                            onIsGenotypic++;
+//                        }
+//                        onTotal++;
+//                    }
+//                }
+//            }
+//
+//            double offPrior = MathUtils.binomialProbability(offIsGenotypic, offTotal, offNextBestBasePriors.get(genotypes[genotypeIndex]));
+//            double onPrior = MathUtils.binomialProbability(onIsGenotypic, onTotal, onNextBestBasePriors.get(genotypes[genotypeIndex]));
+//
+//            likelihoods[genotypeIndex] += Math.log10(offPrior) + Math.log10(onPrior);
+//        }
+//        this.sort();
+//    }
 
     public double LodVsNextBest() {
         this.sort();
         return sorted_likelihoods[0] - sorted_likelihoods[1];
     }
-
-    double ref_likelihood = Double.NaN;
 
     public double LodVsRef(char ref) {
         if ((this.BestGenotype().charAt(0) == ref) && (this.BestGenotype().charAt(1) == ref)) {
@@ -462,7 +480,6 @@ public class ClassicGenotypeLikelihoods {
 		return this.ref_likelihood;
 	}
 
-	private IndelLikelihood indel_likelihood;
 	public void addIndelLikelihood(IndelLikelihood indel_likelihood) { this.indel_likelihood = indel_likelihood; }
 	public IndelLikelihood getIndelLikelihood() { return this.indel_likelihood; }
 
