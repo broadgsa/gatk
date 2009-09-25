@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.io.*;
 import java.util.Iterator;
@@ -26,7 +27,7 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
     public void initialize() {
         super.initialize();
-        if ( indelsFile != null ) {
+        if (indelsFile != null) {
             try {
                 indelsWriter = new PrintWriter(indelsFile);
             } catch (IOException e) {
@@ -38,46 +39,45 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
     public Pair<GenomeLoc, String> map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
         String refBase = String.valueOf(ref.getBase());
 
-        if ( deletionBasesRemaining > 0 ) {
+        if (deletionBasesRemaining > 0) {
             deletionBasesRemaining--;
             return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? (deletionBasesRemaining == 0 ? refBase.concat("/-]") : refBase) : ""));
         }
 
         Iterator<ReferenceOrderedDatum> rods = rodData.getAllRods().iterator();
-        while ( rods.hasNext() ) {
+        while (rods.hasNext()) {
             ReferenceOrderedDatum rod = rods.next();
-            if ( !(rod instanceof AllelicVariant) )
+            if (!(rod instanceof Variation))
                 continue;
-
             // if we have multiple variants at a locus, just take the first damn one we see for now
-            AllelicVariant variant = (AllelicVariant)rod;
-            if ( !rod.getName().startsWith("snpmask") && variant.isDeletion() ) {
-                deletionBasesRemaining = variant.length();
+            Variation variant = (Variation) rod;
+            if (!rod.getName().startsWith("snpmask") && variant.isDeletion()) {
+                deletionBasesRemaining = variant.getAlternateBases().length();
                 basesSeen++;
-                if ( indelsWriter != null )
-                    indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.length()));
+                if (indelsWriter != null)
+                    indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.getAlternateBases().length()));
                 // delete the next n bases, not this one
                 return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[") : refBase));
-            } else if ( !rod.getName().startsWith("snpmask") && variant.isInsertion() ) {
+            } else if (!rod.getName().startsWith("snpmask") && variant.isInsertion()) {
                 basesSeen++;
-                if ( indelsWriter != null )
-                    indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.length()));
-                basesSeen += variant.length();
-                return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[-/"+variant.getAltBasesFWD()+"]") : refBase.concat(variant.getAltBasesFWD())));
-            } else if ( variant.isSNP() ) {
+                if (indelsWriter != null)
+                    indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.getAlternateBases().length()));
+                basesSeen += variant.getAlternateBases().length();
+                return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[-/" + variant.getAlternateBases() + "]") : refBase.concat(variant.getAlternateBases())));
+            } else if (variant.isSNP()) {
                 basesSeen++;
-                return new Pair<GenomeLoc, String>(context.getLocation(), (rod.getName().startsWith("snpmask") ? "N" : (SEQUENOM ? "[" + refBase + "/" + variant.getAltBasesFWD() + "]" : variant.getAltBasesFWD())));
+                return new Pair<GenomeLoc, String>(context.getLocation(), (rod.getName().startsWith("snpmask") ? "N" : (SEQUENOM ? "[" + refBase + "/" + variant.getAlternativeBaseForSNP() + "]" : String.valueOf(variant.getAlternativeBaseForSNP()))));
             }
         }
 
         // if we got here then we're just ref
         basesSeen++;
         return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
-	}
+    }
 
     public void onTraversalDone(GenomeLoc sum) {
         super.onTraversalDone(sum);
-        if ( indelsWriter != null )
+        if (indelsWriter != null)
             indelsWriter.close();
     }
 

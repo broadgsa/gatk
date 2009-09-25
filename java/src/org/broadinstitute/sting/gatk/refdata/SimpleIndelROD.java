@@ -74,7 +74,7 @@ public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVaria
      */
     @Override
     public String getAlternateBases() {
-       return "";
+       return getFWDAlleles().get(0);
     }
 
     /**
@@ -84,7 +84,7 @@ public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVaria
      */
     @Override
     public List<String> getAlternateBaseList() {
-        return Arrays.asList(new String[]{""});
+        return getFWDAlleles();
     }
 
     public boolean isInsertion() {
