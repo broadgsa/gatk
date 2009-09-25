@@ -20,6 +20,7 @@
     <class>org.broadinstitute.sting.gatk.walkers.indels.IntervalMergerWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.indels.MismatchIntervalWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.indels.SNPClusterWalker</class>
+    <class>org.broadinstitute.sting.gatk.walkers.indels.IndelGenotyperWalker</class>
     <!-- Variant filtration -->
     <class>org.broadinstitute.sting.gatk.walkers.filters.VariantFiltrationWalker</class>
     <!-- Single sample genotyper -->
