@@ -71,6 +71,7 @@ public class MismatchIntervalWalker extends LocusWalker<Pair<GenomeLoc, Boolean>
     public Pair<LinkedList<Boolean>, GenomeLoc> reduce(Pair<GenomeLoc, Boolean> value, Pair<LinkedList<Boolean>, GenomeLoc> sum) {
         // if we hit a new contig, clear the list
         if ( sum.second != null && sum.second.getContigIndex() != value.first.getContigIndex() ) {
+            out.println(sum.second);
             sum.first.clear();
             sum.second = null;
         }
