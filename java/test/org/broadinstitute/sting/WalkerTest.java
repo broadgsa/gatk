@@ -101,7 +101,9 @@ public class WalkerTest extends BaseTest {
         List<File> tmpFiles = new ArrayList<File>();
         for ( int i = 0; i < spec.nOutputFiles; i++ ) {
             try {
-                tmpFiles.add( File.createTempFile(String.format("walktest.tmp_param.%d", i), ".tmp" ) );
+                File fl = File.createTempFile(String.format("walktest.tmp_param.%d", i), ".tmp" );
+                fl.deleteOnExit();
+                tmpFiles.add( fl );
             } catch (IOException ex) {
                 System.err.println("Cannot create temp file: " + ex.getMessage());
             }
