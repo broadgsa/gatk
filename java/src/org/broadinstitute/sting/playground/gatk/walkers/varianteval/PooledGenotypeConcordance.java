@@ -23,7 +23,7 @@ public class PooledGenotypeConcordance extends BasicVariantAnalysis implements G
     private String[] hapmapNames;
 
     public PooledGenotypeConcordance( String pathToPoolFile ) {
-        super("Pooled Genotype Concordance");
+        super("Pooled_Genotype_Concordance");
         if( pathToPoolFile == null ) {
             table = null;
             hapmapNames = null;
@@ -34,8 +34,12 @@ public class PooledGenotypeConcordance extends BasicVariantAnalysis implements G
     }
 
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
-        table.updateTable(tracker, ref, eval, hapmapNames);
-        return null;
+       String s = table.updateTable(tracker, ref, eval, hapmapNames);
+       if ( s == null ) {
+           return null;
+       } else {
+           return s + " " + context.getLocation().toString();
+       }
     }
 
     public List<String> done() {
@@ -122,8 +126,8 @@ class PooledConcordanceTable {
         }
     }
 
-    public void updateTable(RefMetaDataTracker tracker, char ref, Variation eval, String[] names) {
-        int truthIndex, callIndex, frequencyIndex;
+    public String updateTable(RefMetaDataTracker tracker, char ref, Variation eval, String[] names) {
+        int truthIndex, callIndex, frequencyIndex = -1;
         List<Variation> chips = getChips(names, tracker);
         if ( ref == 'N' || ref == 'n' ) {
             variantCallsAtRefN += ( eval == null ) ? 0 : 1;
@@ -167,6 +171,20 @@ class PooledConcordanceTable {
         }
 
         table[truthIndex][callIndex] ++;
+
+        String interest;
+
+        if ( truthIndex == TRUTH_VAR && ( callIndex == NO_CALL || callIndex == REF_CALL ) ) {
+            interest = "False_Negative_with_frequency: "+ Double.toString(freqIndexToFrequency(frequencyIndex));
+        } else if ( truthIndex == TRUTH_REF && ( callIndex == VARIANT_CALL )) {
+            interest = "False_Positive";
+        } else if ( callIndex == VARIANT_CALL_MISMATCH ) {
+            interest = "Mismatching_call";
+        } else {
+            interest = null;
+        }
+
+        return interest;
     }
 
     public List<Variation> getChips(String[] names, RefMetaDataTracker tracker) {
@@ -315,11 +333,11 @@ class PooledConcordanceTable {
         out.add(String.format("| \t+ Sites where all Hapmap chips were ref: \t\t%d", nFullHapmapRefSites));
         out.add(String.format("| \t\t- Reference sites correctly called:\t\t%d\t(%d%%)", nRefsCalledCorrectly, divideToPercent(nRefsCalledCorrectly, nFullHapmapRefSites)));
         out.add(String.format("| \t\t- Reference sites called as variant:\t\t%d\t(%d%%)", nRefsCalledAsSNP, divideToPercent(nRefsCalledAsSNP, nFullHapmapRefSites)));
-        out.add(String.format("| \t\t- Reference sites not confidently called:\t%d\t(%f)", nHapmapRefsNotCalled, ((double)nHapmapRefsNotCalled)/nFullHapmapRefSites));
+        out.add(String.format("| \t\t- Reference sites not confidently called SNP:\t%d\t(%d%%)", nHapmapRefsNotCalled, divideToPercent(nHapmapRefsNotCalled, nFullHapmapRefSites)));
         out.add(String.format("| \t+ Sites where all seen Hapmap chips were ref, but not all Hapmap chips available: %d", nUnknownHapmapSites));
         out.add(String.format("| \t\t- Putative reference sites called ref:\t\t\t%d\t(%d%%)", table[TRUTH_UNKNOWN][REF_CALL], divideToPercent(table[TRUTH_UNKNOWN][REF_CALL], nUnknownHapmapSites)));
         out.add(String.format("| \t\t- Putative reference sites called SNP:\t\t\t%d\t(%d%%)", nSNPsAtHapmapWithRefDataOnSubsetOfIndividuals, divideToPercent(nSNPsAtHapmapWithRefDataOnSubsetOfIndividuals, nUnknownHapmapSites)));
-        out.add(String.format("| \t\t- Putative reference sites not confidently called:\t%d\t(%d%%)", table[TRUTH_UNKNOWN][NO_CALL], divideToPercent(table[TRUTH_UNKNOWN][NO_CALL], nUnknownHapmapSites)));
+        out.add(String.format("| \t\t- Putative reference sites not confidently called SNP:\t%d\t(%d%%)", table[TRUTH_UNKNOWN][NO_CALL], divideToPercent(table[TRUTH_UNKNOWN][NO_CALL], nUnknownHapmapSites)));
         out.add("| Data on Hapmap Variant Sites");
         out.add(String.format("| \t+ Number of Hapmap SNP Sites:\t\t\t%d", nHapmapSNPSites));
         out.add(String.format("| \t\t- SNP sites incorrectly called ref:\t%d\t(%d%%)", nSNPsCalledAsRef, divideToPercent(nSNPsCalledAsRef, nHapmapSNPSites)));
@@ -355,6 +373,8 @@ class PooledConcordanceTable {
     }
 
     public int getLargestOutputAlleleFrequencyIndex() {
+        // TODO -- this code may be bugged -- is the first index at which no hapmap sites appear
+        // TODO -- also the index above which no hapmap sites are guaranteed to appear with said frequency
         int nHapmapSitesAtFreq = 1;
         int freqIndex = -1;
         while ( nHapmapSitesAtFreq > 0 && freqIndex < calculateNumFrequencyIndeces(poolSize) ) {
