@@ -28,7 +28,7 @@ public class PooledEMSNPROD extends TabularROD implements SNPCallFromGenotypes, 
      * @return
      */
     @Override
-    public String getAlternateBase() {
+    public String getAlternateBases() {
         return getAltBasesFWD();
     }
 
@@ -38,7 +38,7 @@ public class PooledEMSNPROD extends TabularROD implements SNPCallFromGenotypes, 
      * @return
      */
     @Override
-    public List<String> getAlternateBases() {
+    public List<String> getAlternateBaseList() {
         List<String> str = new ArrayList<String>();
         str.add(this.getAltBasesFWD());
         return str;

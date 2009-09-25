@@ -193,7 +193,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      * @return a string, of ploidy
      */
     @Override
-    public String getAlternateBase() {
+    public String getAlternateBases() {
         return this.bestGenotype;
     }
 
@@ -203,9 +203,9 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      * @return
      */
     @Override
-    public List<String> getAlternateBases() {
+    public List<String> getAlternateBaseList() {
         List<String> list = new ArrayList<String>();
-        list.add(this.getAlternateBase());
+        list.add(this.getAlternateBases());
         return list; 
     }
 

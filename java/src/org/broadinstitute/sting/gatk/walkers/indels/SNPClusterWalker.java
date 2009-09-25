@@ -1,11 +1,14 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
-import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 @WalkerName("SNPClusters")
 @Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="snps",type=AllelicVariant.class)})
@@ -19,7 +22,7 @@ public class SNPClusterWalker extends RefWalker<GenomeLoc, GenomeLoc> {
     }
 
     public GenomeLoc map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        AllelicVariant snp = (AllelicVariant)tracker.lookup("snps", null);
+        Variation snp = (Variation)tracker.lookup("snps", null);
         return (snp != null && snp.isSNP()) ? context.getLocation() : null;
     }
 

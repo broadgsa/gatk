@@ -83,7 +83,7 @@ public class BasicVariation implements Variation {
     }
 
     @Override
-    public String getAlternateBase() {
+    public String getAlternateBases() {
         return mBases;
     }
 
@@ -93,9 +93,9 @@ public class BasicVariation implements Variation {
      * @return
      */
     @Override
-    public List<String> getAlternateBases() {
+    public List<String> getAlternateBaseList() {
         List<String> list = new ArrayList<String>();
-        list.add(this.getAlternateBase());
+        list.add(this.getAlternateBases());
         return list;
     }
 
@@ -151,9 +151,9 @@ public class BasicVariation implements Variation {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
 
         // we know that if we're a snp, the reference is a single base, so charAt(0) is safe
-        if (getAlternateBase().charAt(0) == this.getReference().charAt(0))
-            return getAlternateBase().charAt(1);
-        return getAlternateBase().charAt(0);
+        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
+            return getAlternateBases().charAt(1);
+        return getAlternateBases().charAt(0);
     }
 
     /**
@@ -166,9 +166,9 @@ public class BasicVariation implements Variation {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
 
         // we know that if we're a snp, the reference is a single base, so charAt(0) is safe
-        if (getAlternateBase().charAt(0) == this.getReference().charAt(0))
-            return getAlternateBase().charAt(0);
-        return getAlternateBase().charAt(1);
+        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
+            return getAlternateBases().charAt(0);
+        return getAlternateBases().charAt(1);
     }
 
 

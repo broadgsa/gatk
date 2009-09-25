@@ -161,9 +161,9 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
     @Override
     public char getAlternativeBaseForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-        if (getAlternateBase().charAt(0) == this.getReference().charAt(0))
-            return getAlternateBase().charAt(1);
-        return getAlternateBase().charAt(0);
+        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
+            return getAlternateBases().charAt(1);
+        return getAlternateBases().charAt(0);
 
     }
 
@@ -175,9 +175,9 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
     @Override
     public char getReferenceForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-        if (getAlternateBase().charAt(0) == this.getReference().charAt(0))
-            return getAlternateBase().charAt(0);
-        return getAlternateBase().charAt(1);
+        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
+            return getAlternateBases().charAt(0);
+        return getAlternateBases().charAt(1);
 
     }
 
@@ -259,7 +259,7 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      * @return a string, of ploidy
      */
     @Override
-    public String getAlternateBase() {
+    public String getAlternateBases() {
         return this.getBestGenotype(0).toString();
     }
 
@@ -269,9 +269,9 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      * @return
      */
     @Override
-    public List<String> getAlternateBases() {
+    public List<String> getAlternateBaseList() {
         List<String> list = new ArrayList<String>();
-        list.add(this.getAlternateBase());
+        list.add(this.getAlternateBases());
         return list; 
     }
 

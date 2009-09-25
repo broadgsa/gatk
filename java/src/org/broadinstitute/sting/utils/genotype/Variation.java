@@ -18,17 +18,21 @@ public interface Variation {
     }
 
     /**
-     * get the frequency of this variant
+     * get the frequency of this variant, if we're a variant.  If we're reference this method
+     * should return 0.
      *
-     * @return VariantFrequency with the stored frequency
+     * @return double with the stored frequency
      */
     public double getNonRefAlleleFrequency();
 
-    /** @return the VARIANT_TYPE of the current variant */
+    /**
+     * A convenience method, for switching over the variation type
+     * @return the VARIANT_TYPE of the current variant
+     **/
     public VARIANT_TYPE getType();
 
     /**
-     * are we a SNP? If not we're a Indel/deletion
+     * are we a SNP? If not we're a Indel/deletion or the reference
      *
      * @return true if we're a SNP
      */
@@ -42,11 +46,18 @@ public interface Variation {
     public boolean isInsertion();
 
     /**
-     * are we an insertion?
+     * are we an deletion?
      *
      * @return true if we are, false otherwise
      */
     public boolean isDeletion();
+
+    /**
+     * are we a variant that represents the reference allele?
+     *
+     * @return false if we're a variant(indel, delete, SNP, etc), true if we're hom ref
+     */
+    public boolean isReference();
 
     /**
      * get the location that this Variant represents
@@ -68,33 +79,26 @@ public interface Variation {
     /**
      * get the -1 * (log 10 of the error value)
      *
-     * @return the log based error estimate
+     * @return the postive number space log based error estimate
      */
     public double getNegLog10PError();
-
-    /**
-     * are we truely a variant, given a reference
-     *
-     * @return false if we're a variant(indel, delete, SNP, etc), true if we're not
-     */
-    public boolean isReference();
 
     /**
      * gets the alternate base.  Use this method if we're biallelic
      *
      * @return
      */
-    public String getAlternateBase();
+    public String getAlternateBases();
 
     /**
-     * gets the alternate bases.  Use this method if teh allele count is greater then 2
+     * gets the alternate bases.  Use this method if the allele count is greater then 2 (not biallelic)
      *
      * @return
      */
-    public List<String> getAlternateBases();
+    public List<String> getAlternateBaseList();
 
     /**
-     * are we an insertion or a deletion? yes, then return true.  No? Well, false then.
+     * are we an insertion or a deletion? yes, then return true.  No? false.
      *
      * @return true if we're an insertion or deletion
      */

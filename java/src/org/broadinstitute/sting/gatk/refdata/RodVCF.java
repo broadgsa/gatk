@@ -171,7 +171,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     /** are we bi-allelic? */
     @Override
     public boolean isBiallelic() {
-        return (this.getAlternateBases().size() == 1);
+        return (this.getAlternateBaseList().size() == 1);
     }
 
     /**
@@ -201,8 +201,8 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
      * @return
      */
     @Override
-    public String getAlternateBase() {
-        if (!this.isBiallelic()) throw new UnsupportedOperationException("We're not biallelic, so please call getAlternateBases instead");
+    public String getAlternateBases() {
+        if (!this.isBiallelic()) throw new UnsupportedOperationException("We're not biallelic, so please call getAlternateBaseList instead");
         return this.mCurrentRecord.getAlternateAlleles().get(0);
     }
 
@@ -212,7 +212,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
      * @return
      */
     @Override
-    public List<String> getAlternateBases() {
+    public List<String> getAlternateBaseList() {
         return this.mCurrentRecord.getAlternateAlleles();
     }
 

@@ -1,7 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.gatk.contexts.VariantContext;
-import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.CleanedOutSNPROD;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.HashMap;
 
@@ -23,7 +26,7 @@ public class VECIndelArtifact implements VariantExclusionCriterion {
             return;
         }
 
-        AllelicVariant indelCall = (AllelicVariant)tracker.lookup("indels", null);
+        Variation indelCall = (Variation)tracker.lookup("indels", null);
         if ( indelCall != null ) {
             exclude = true;
             source = "IndelCall";

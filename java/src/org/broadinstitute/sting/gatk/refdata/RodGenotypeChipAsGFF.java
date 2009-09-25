@@ -187,7 +187,7 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      * @return
      */
     @Override
-    public String getAlternateBase() {
+    public String getAlternateBases() {
         return this.feature;
     }
 
@@ -197,9 +197,9 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
      * @return
      */
     @Override
-    public List<String> getAlternateBases() {
+    public List<String> getAlternateBaseList() {
         List<String> list = new ArrayList<String>();
-        list.add(this.getAlternateBase());
+        list.add(this.getAlternateBases());
         return list; 
     }
 

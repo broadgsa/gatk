@@ -38,10 +38,10 @@ public class IndelMetricsAnalysis extends BasicVariantAnalysis implements Genoty
             else
                 throw new RuntimeException("Variation is indel, but isn't insertion or deletion!");
 
-            if ( eval.getAlternateBase().length() < 100 ) {
-                sizes[eval.isDeletion() ? 0 : 1][eval.getAlternateBase().length()]++;
-                if ( eval.getAlternateBase().length() > maxSize )
-                    maxSize = eval.getAlternateBase().length();
+            if ( eval.getAlternateBases().length() < 100 ) {
+                sizes[eval.isDeletion() ? 0 : 1][eval.getAlternateBases().length()]++;
+                if ( eval.getAlternateBases().length() > maxSize )
+                    maxSize = eval.getAlternateBases().length();
             }
         }
 

@@ -73,7 +73,7 @@ public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVaria
      * @return
      */
     @Override
-    public String getAlternateBase() {
+    public String getAlternateBases() {
        return "";
     }
 
@@ -83,7 +83,7 @@ public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVaria
      * @return
      */
     @Override
-    public List<String> getAlternateBases() {
+    public List<String> getAlternateBaseList() {
         return Arrays.asList(new String[]{""});
     }
 
@@ -171,4 +171,4 @@ public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVaria
         }
         return KGENOMES_FORMAT;
     }
- }
+}

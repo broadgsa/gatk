@@ -174,7 +174,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      * @return a string, of ploidy
      */
     @Override
-    public String getAlternateBase() {
+    public String getAlternateBases() {
         return getAllelesFWDString();
     }
 
@@ -184,9 +184,9 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      * @return
      */
     @Override
-    public List<String> getAlternateBases() {
+    public List<String> getAlternateBaseList() {
         List<String> list = new ArrayList<String>();
-        list.add(this.getAlternateBase());
+        list.add(this.getAlternateBases());
         return list;
     }
 
@@ -204,9 +204,9 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
     public char getAlternativeBaseForSNP() {
         return getAltSnpFWD(); /*
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-        if (getAlternateBase().charAt(0) == this.getReference())
-            return getAlternateBase().charAt(1);
-        return getAlternateBase().charAt(0); */
+        if (getAlternateBases().charAt(0) == this.getReference())
+            return getAlternateBases().charAt(1);
+        return getAlternateBases().charAt(0); */
     }
 
     /**
