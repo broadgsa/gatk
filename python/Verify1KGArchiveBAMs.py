@@ -182,8 +182,10 @@ def readAlignmentIndex(file):
     files = set()
     if file <> None:
        for line in open(file):
-           files.add(line.split()[0])
-           files.add(line.split()[4])
+           parts = line.split()
+           files.add(parts[0])
+           if len(parts) > 4: # we have an index, we're not unmapped
+               files.add(line.split()[4])
     return files
 
 def compareAlignmentIndices(remoteAlignmentIndex, alignmentIndex):
