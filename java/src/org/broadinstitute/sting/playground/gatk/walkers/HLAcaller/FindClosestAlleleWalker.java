@@ -23,11 +23,11 @@ import java.lang.Math;
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
-    String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.4digitUnique.sam";
+    String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.sam";
     String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
     
     boolean DatabaseLoaded = false;
-    boolean DEBUG = true;
+    boolean DEBUG = false;
 
     ArrayList<String> HLAreads = new ArrayList<String>();
     ArrayList<String> HLAcigars = new ArrayList<String>();
@@ -38,6 +38,13 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
     int numHLAlleles = 0;
     int[] HLAstartpos;
     int[] HLAstoppos;
+    int minstartpos = 0;
+    int maxstoppos = 0;
+
+    int HLA_A_start = 30018310;
+    int HLA_A_end = 30021211;
+    
+    ArrayList<String> PolymorphicSites = new ArrayList<String>();
 
     Hashtable AlleleFrequencies = new Hashtable();
     int iAstart = -1, iAstop = -1, iBstart = -1, iBstop = -1, iCstart = -1, iCstop = -1;
@@ -46,7 +53,7 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
     public Integer reduceInit() { 
     if (!DatabaseLoaded){
             try{
-                out.printf("Reading HLA database ...");
+                out.printf("Reading HLA database ...\n");
                 FileInputStream fstream = new FileInputStream(HLAdatabaseFile);
                 DataInputStream in = new DataInputStream(fstream);
                 BufferedReader br = new BufferedReader(new InputStreamReader(in));
@@ -55,11 +62,13 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
                 int i = 0;
                 while ((strLine = br.readLine()) != null)   {
                     s = strLine.split("\\t");
+                    
                     if (s.length>=10){
                         //Parse the reads with cigar parser
                         HLAreads.add(formatter.FormatRead(s[5],s[9]));
                         HLAcigars.add(s[5]);
                         HLAnames.add(s[0]);
+                        
                         HLApositions.add(s[3]);
                         if (s[0].indexOf("HLA_A") > -1){
                             if (iAstart < 0){iAstart=i;}
@@ -83,6 +92,9 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
                     //Find start and stop positions for each allele
                     HLAstartpos[i]=Integer.parseInt(HLApositions.get(i));
                     HLAstoppos[i]=HLAstartpos[i]+HLAreads.get(i).length()-1;
+                    if (minstartpos == 0){minstartpos = HLAstartpos[i];}
+                    minstartpos = Math.min(minstartpos, HLAstartpos[i]);
+                    maxstoppos = Math.max(maxstoppos, HLAstoppos[i]);
                     SingleAlleleFrequencies[i]=0.0;
                     //Initialize matrix of probabilities / likelihoods
 
@@ -102,7 +114,7 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
                 int count = 0;
                 while ((strLine = br.readLine()) != null)   {
                     s = strLine.split("\\t");
-                    AlleleFrequencies.put(s[0], s[1]);
+                    AlleleFrequencies.put(s[0].substring(0, 6), s[1]);
                     count++;
                 }
                 in.close();
@@ -111,7 +123,23 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
               System.err.println("Error: " + e.getMessage());
             }
 
+            char c;
             DatabaseLoaded = true;
+            //Find polymorphic sites in dictionary
+            for (int pos = minstartpos; pos <= maxstoppos; pos++){
+                c = '0';
+                for (int i = 0; i < HLAreads.size(); i++){
+                    if (pos >= HLAstartpos[i] && pos <= HLAstoppos[i]){
+                        if (c == '0'){c = HLAreads.get(i).charAt(pos-HLAstartpos[i]);}
+                        if (HLAreads.get(i).charAt(pos-HLAstartpos[i]) != c){
+                            PolymorphicSites.add(String.valueOf(pos));
+                            break;
+                        }
+                    }
+                }
+            }
+            out.printf("%s polymorphic sites found in HLA dictionary\n",PolymorphicSites.size());
+
             out.printf("Comparing reads to database ...\n");
 
             if (DEBUG){
@@ -149,22 +177,34 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
                         //out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\n",read.getReadName(),HLAnames.get(i),j,j-readstart,j-HLAstartpos[i],c1,c2);
                     }
                     if (c1 != 'D'){
-                        numcompared[i]++;
-                        if (c1 == c2){
-                            nummatched[i]++;
+                        if (PolymorphicSites.contains(String.valueOf(j))){
+                            numcompared[i]++;
+                            if (c1 == c2){
+                                nummatched[i]++;
+                            }
+                        }else if (c1 != c2){
+                            numcompared[i]++;
                         }
                     }
                 }
             }
             concordance[i]=nummatched[i]/numcompared[i];
+            
             if (concordance[i] > maxConcordance){maxConcordance = concordance[i];}
         }
-        double freq, maxFreq = 0.0;
+        double freq, freq2, maxFreq = 0.0;
         for (int i = 0; i < HLAreads.size(); i++){
             if (concordance[i] == maxConcordance && maxConcordance > 0){
-                name=HLAnames.get(i).substring(4);
+                if (HLAnames.get(i).length() >= 10){
+                    name=HLAnames.get(i).substring(4,10);
+                }else{
+                    name=HLAnames.get(i).substring(4);
+                }
                 if (AlleleFrequencies.containsKey(name)){
                     freq = Double.parseDouble((String) AlleleFrequencies.get(name).toString());
+                    if (DEBUG){
+                        out.printf("%s\t%s\t%s\t%s\t%s\t%.4f\n",read.getReadName(),name,nummatched[i],numcompared[i],concordance[i],freq);
+                    }
                 }else{
                     freq=0.0001;
                 }
@@ -172,17 +212,34 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
             }
         }
 
-        out.printf("%s", read.getReadName());
+        if (read.getReadName().length() >= 10){
+            name=read.getReadName().substring(4,10);
+        }else{
+            name=read.getReadName().substring(4);
+        }
+        
+        if (AlleleFrequencies.containsKey(name)){
+            freq = Double.parseDouble((String) AlleleFrequencies.get(name).toString());
+        }else{
+            freq=0.0001;
+        }
+
+        out.printf("%s\t%.4f", read.getReadName(),freq);
         for (int i = 0; i < HLAreads.size(); i++){
             if (concordance[i] == maxConcordance && maxConcordance > 0){
-                name=HLAnames.get(i).substring(4);
+                if (HLAnames.get(i).length() >= 10){
+                    name=HLAnames.get(i).substring(4,10);
+                }else{
+                    name=HLAnames.get(i).substring(4);
+                }
                 if (AlleleFrequencies.containsKey(name)){
                     freq = Double.parseDouble((String) AlleleFrequencies.get(name).toString());
                 }else{
                     freq=0.0001;
                 }
                 if (freq == maxFreq){
-                    out.printf("\t%s\t%.3f\t%.0f\t%.0f\t%.3f",HLAnames.get(i),concordance[i],numcompared[i],numcompared[i]-nummatched[i],freq);
+
+                    out.printf("\t%s\t%.4f\t%.3f\t%.0f\t%.0f",HLAnames.get(i),freq,concordance[i],numcompared[i],numcompared[i]-nummatched[i]);
                 }
             }
         }

@@ -42,7 +42,7 @@ public class CreateHaplotypesWalker extends ReadWalker<Integer, Integer> {
         indexer.put('C', (Integer) 2);
         indexer.put('G', (Integer) 3);
         indexer.put('T', (Integer) 4);
-        indexer.put('D', (Integer) 0); // D for deletion
+        indexer.put('D', (Integer) 5); // D for deletion
         out.print("Reads:\n");
         return 0;
     }
@@ -66,7 +66,7 @@ public class CreateHaplotypesWalker extends ReadWalker<Integer, Integer> {
                     c = s.charAt(i-readstart);
                     out.printf("%s",indexer.get(c));
                 }else{
-                    out.print("0");
+                    out.print("5");
                 }
             }
             out.printf("\n");
