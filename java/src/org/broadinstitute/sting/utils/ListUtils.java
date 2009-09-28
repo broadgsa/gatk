@@ -18,16 +18,16 @@ public class ListUtils {
     /**
      * Returns n random indices drawn with replacement from the range 0..(k-1)
      *
-     * @param n  the number of random indices to draw (with replacement)
-     * @param k  the total number of indices allowed
-     * @return a list of random indices ranging from 0 to (k-1) with possible duplicates
+     * @param n the total number of indices sampled from
+     * @param k the number of random indices to draw (with replacement)
+     * @return a list of k random indices ranging from 0 to (n-1) with possible duplicates
      */
     static public ArrayList<Integer> sampleIndicesWithReplacement(int n, int k) {
 
-        ArrayList<Integer> chosen_balls = new ArrayList <Integer>();
-        for (int i=0; i<n; i++) {
+        ArrayList<Integer> chosen_balls = new ArrayList <Integer>(k);
+        for (int i=0; i< k; i++) {
             //Integer chosen_ball = balls[rand.nextInt(k)];
-            chosen_balls.add(rand.nextInt(k));
+            chosen_balls.add(rand.nextInt(n));
             //balls.remove(chosen_ball);
         }
 
@@ -37,9 +37,9 @@ public class ListUtils {
     /**
      * Returns n random indices drawn without replacement from the range 0..(k-1)
      *
-     * @param n  the number of random indices to draw (without replacement)
-     * @param k  the total number of indices allowed
-     * @return a list of random indices ranging from 0 to (k-1) without duplicates
+     * @param n the total number of indices sampled from
+     * @param k the number of random indices to draw (without replacement)
+     * @return a list of k random indices ranging from 0 to (n-1) without duplicates
      */
     static public ArrayList<Integer> sampleIndicesWithoutReplacement(int n, int k) {
         ArrayList<Integer> chosen_balls = new ArrayList<Integer>(k);

@@ -75,7 +75,7 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
             for (int coverage : coverage_levels) {
                 coverage = Math.min(coverage_available, coverage); // don't exceed max available coverage
                 for (int r=0; r<downsampling_repeats; r++) {
-                    List<Integer> subset_indices = ListUtils.sampleIndicesWithReplacement(coverage, coverage_available);
+                    List<Integer> subset_indices = ListUtils.sampleIndicesWithReplacement(coverage_available, coverage);
                     List<SAMRecord> sub_reads = ListUtils.sliceListByIndices(subset_indices, reads);
                     List<Integer> sub_offsets = ListUtils.sliceListByIndices(subset_indices, offsets);
 
