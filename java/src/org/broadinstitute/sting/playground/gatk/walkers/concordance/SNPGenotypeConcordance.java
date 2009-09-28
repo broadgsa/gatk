@@ -1,12 +1,14 @@
 package org.broadinstitute.sting.playground.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
-import java.util.HashMap;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.util.HashMap;
 
 /**
  * Split up two call sets into their various concordance sets
@@ -50,24 +52,26 @@ public class SNPGenotypeConcordance implements ConcordanceType {
     }
 
     public void computeConcordance(RefMetaDataTracker tracker, ReferenceContext ref) {
-        AllelicVariant call1 = (AllelicVariant)tracker.lookup("callset1", null);
-        AllelicVariant call2 = (AllelicVariant)tracker.lookup("callset2", null);
+        Variation call1 = (Variation)tracker.lookup("callset1", null);
+        Variation call2 = (Variation)tracker.lookup("callset2", null);
 
         // the only reason they would be null is a lack of coverage
         if ( call1 == null || call2 == null ) {
-            if ( call1 != null && call1.isSNP() && call1.getVariationConfidence() >= LOD )
+            if ( call1 != null && call1.isSNP() && call1.getNegLog10PError() >= LOD )
                 printVariant(coverageVar1Writer, call1);
-            else if ( call2 != null && call2.isSNP() && call2.getVariationConfidence() >= LOD )
+            else if ( call2 != null && call2.isSNP() && call2.getNegLog10PError() >= LOD )
                 printVariant(coverageVar2Writer, call2);
             return;
         }
+        if (!(call1 instanceof VariantBackedByGenotype) || !(call2 instanceof VariantBackedByGenotype))
+                    throw new StingException("Both parents ROD tracks must be backed by genotype data. Ensure that your rod(s) contain genotyping information");
 
-        double bestVsRef1 = call1.getVariationConfidence();
-        double bestVsRef2 = call2.getVariationConfidence();
+        double bestVsRef1 = call1.getNegLog10PError();
+        double bestVsRef2 = call2.getNegLog10PError();
         //double bestVsNext1 = call1.getConsensusConfidence();
         //double bestVsNext2 = call2.getConsensusConfidence();
-        String genotype1 = call1.getGenotype().get(0);
-        String genotype2 = call2.getGenotype().get(0);
+        String genotype1 = ((VariantBackedByGenotype)call1).getCalledGenotype().getBases();
+        String genotype2 = ((VariantBackedByGenotype)call2).getCalledGenotype().getBases();
 
         // are they both variant SNPs?
         if ( call1.isSNP() && call2.isSNP() ) {
@@ -113,7 +117,7 @@ public class SNPGenotypeConcordance implements ConcordanceType {
         return altAllele1 == altAllele2;
     }
 
-    private static void printVariant(PrintWriter writer, AllelicVariant variant) {
+    private static void printVariant(PrintWriter writer, Variation variant) {
         writer.println(variant.toString());
     }
 

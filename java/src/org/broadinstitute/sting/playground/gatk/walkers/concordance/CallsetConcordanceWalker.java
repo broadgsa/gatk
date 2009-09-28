@@ -13,11 +13,11 @@ import java.util.*;
  * CallsetConcordanceWalker finds the concordance between multiple callsets (different tests are available).
  */
 @Requires(value={DataSource.REFERENCE},
-          referenceMetaData={@RMD(name="callset1",type=AllelicVariant.class),
-                             @RMD(name="callset2",type=AllelicVariant.class)})
+          referenceMetaData={@RMD(name="callset1",type=VariationRod.class),
+                             @RMD(name="callset2",type=VariationRod.class)})
 @Reference(window=@Window(start=-20,stop=20))
 public class CallsetConcordanceWalker extends RefWalker<Integer, Integer> {
-    @Argument(fullName="concordance_output_path", shortName="O", doc="File path to which split sets should be written", required=false)
+    @Argument(fullName="concordance_output_path", shortName="O", doc="File path to which split sets should be written", required=true)
     private String OUTPUT_PATH = null;
     @Argument(fullName="concordanceType", shortName="CT", doc="Concordance subset types to apply to given callsets.   Syntax: 'type[:key1=arg1,key2=arg2,...]'", required=false)
     private String[] TYPES = null;
@@ -52,10 +52,6 @@ public class CallsetConcordanceWalker extends RefWalker<Integer, Integer> {
                 out.println("\t" + types.next());
             System.exit(0);
         }
-
-        if ( OUTPUT_PATH == null )
-            throw new StingException("--concordance_output_path must be specified");
-
         requestedTypes = new ArrayList<ConcordanceType>();
 
         // initialize requested concordance types

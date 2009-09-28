@@ -1,8 +1,9 @@
 package org.broadinstitute.sting.playground.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -37,8 +38,8 @@ public class SimpleVenn implements ConcordanceType {
     }
 
     public void computeConcordance(RefMetaDataTracker tracker, ReferenceContext ref) {
-        AllelicVariant call1 = (AllelicVariant)tracker.lookup("callset1", null);
-        AllelicVariant call2 = (AllelicVariant)tracker.lookup("callset2", null);
+        Variation call1 = (Variation)tracker.lookup("callset1", null);
+        Variation call2 = (Variation)tracker.lookup("callset2", null);
 
         if ( call1 == null && call2 == null )
             return;
@@ -55,7 +56,7 @@ public class SimpleVenn implements ConcordanceType {
             printVariant(set2_writer, call2);
 
         // intersection (concordant)
-        else if ( call1.getAltBasesFWD().equalsIgnoreCase(call2.getAltBasesFWD()) )
+        else if ( call1.getAlternativeBaseForSNP() == call2.getAlternativeBaseForSNP())
             printVariant(intersect_writer, call1);
 
         // intersection (discordant)
@@ -63,7 +64,7 @@ public class SimpleVenn implements ConcordanceType {
             printVariant(discord_writer, call1);
     }
 
-    private static void printVariant(PrintWriter writer, AllelicVariant variant) {
+    private static void printVariant(PrintWriter writer, Variation variant) {
         writer.println(variant.toString());
     }
 

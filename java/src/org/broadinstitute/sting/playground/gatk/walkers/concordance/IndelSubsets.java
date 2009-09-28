@@ -1,12 +1,13 @@
 package org.broadinstitute.sting.playground.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
-import java.io.PrintWriter;
 import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.HashMap;
 
 /**
@@ -54,8 +55,8 @@ public class IndelSubsets implements ConcordanceType {
     }
 
     public void computeConcordance(RefMetaDataTracker tracker, ReferenceContext ref) {
-        AllelicVariant indel1 = (AllelicVariant)tracker.lookup("callset1", null);
-        AllelicVariant indel2 = (AllelicVariant)tracker.lookup("callset2", null);
+        Variation indel1 = (Variation)tracker.lookup("callset1", null);
+        Variation indel2 = (Variation)tracker.lookup("callset2", null);
 
         int set1 = ( indel1 != null && indel1.isIndel() ? 0 : 1 );
         int set2 = ( indel2 != null && indel2.isIndel() ? 0 : 1 );
@@ -65,21 +66,21 @@ public class IndelSubsets implements ConcordanceType {
             return;
 
         // only deal with a valid indel
-        AllelicVariant indel = ( indel1 != null ? indel1 : indel2 );
+        Variation indel = ( indel1 != null ? indel1 : indel2 );
 
-        int size = ( indel.length() <= sizeCutoff ? 0 : 1 );
+        int size = ( indel.getAlternateBases().length() <= sizeCutoff ? 0 : 1 );
         int homopol = ( homopolymerRunSize(ref, indel) <= homopolymerCutoff ? 0 : 1 );
 
         writers[set1][set2][size][homopol].println(indel.toString());
     }
 
-    private int homopolymerRunSize(ReferenceContext ref, AllelicVariant indel) {
+    private int homopolymerRunSize(ReferenceContext ref, Variation indel) {
         char[] bases = ref.getBases();
         GenomeLoc window = ref.getWindow();
         GenomeLoc locus = ref.getLocus();
 
         int refBasePos = (int)(locus.getStart() - window.getStart());
-        char indelBase = indel.isDeletion() ? bases[refBasePos+1] : indel.getAltBasesFWD().charAt(0);
+        char indelBase = indel.isDeletion() ? bases[refBasePos+1] : indel.getAlternateBases().charAt(0);
         int leftRun = 0;
         for ( int i = refBasePos; i >= 0; i--) {
             if ( bases[i] != indelBase )
@@ -87,9 +88,9 @@ public class IndelSubsets implements ConcordanceType {
             leftRun++;
         }
 
-        indelBase = indel.isDeletion() ? bases[Math.min(refBasePos+indel.length(),bases.length-1)] : indel.getAltBasesFWD().charAt(indel.getAltBasesFWD().length()-1);
+        indelBase = indel.isDeletion() ? bases[Math.min(refBasePos+indel.getAlternateBases().length(),bases.length-1)] : indel.getAlternateBases().charAt(indel.getAlternateBases().length()-1);
         int rightRun = 0;
-        for ( int i = refBasePos + (indel.isDeletion() ? 1+indel.length() : 1); i < bases.length; i++) {
+        for ( int i = refBasePos + (indel.isDeletion() ? 1+indel.getAlternateBases().length() : 1); i < bases.length; i++) {
             if ( bases[i] != indelBase )
                 break;
             rightRun++;
