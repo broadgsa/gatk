@@ -90,7 +90,7 @@ public class UnifiedGenotyper extends LocusWalker<Integer, Integer> {
             return 0;
 
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
-        return ( gcm.calculateGenotype(ref, context, priors) ?  1 : 0 );
+        return ( gcm.calculateGenotype(tracker, ref, context, priors) ?  1 : 0 );
     }
 
     /**

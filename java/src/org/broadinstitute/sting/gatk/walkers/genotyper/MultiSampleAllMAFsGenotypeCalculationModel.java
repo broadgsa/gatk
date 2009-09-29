@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
 import java.util.Set;
 
@@ -28,7 +29,7 @@ public class MultiSampleAllMAFsGenotypeCalculationModel extends GenotypeCalculat
         return super.clone();
     }
 
-    public boolean calculateGenotype(char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public boolean calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
         // This is just a stub...
         // TODO --- implement me

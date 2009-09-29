@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 
@@ -37,7 +38,7 @@ public class SingleSampleGenotypeCalculationModel extends GenotypeCalculationMod
         return super.clone();
     }
 
-    public boolean calculateGenotype(char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public boolean calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
         GenotypeLikelihoods gl = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, priors, defaultPlatform);
         gl.setVerbose(VERBOSE);

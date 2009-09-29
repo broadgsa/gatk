@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 
 import java.util.*;
@@ -82,7 +83,8 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      *
      * @return true if valid locus
      */
-    public abstract boolean calculateGenotype(char ref,
+    public abstract boolean calculateGenotype(RefMetaDataTracker tracker,
+                                              char ref,
                                               AlignmentContext context,
                                               DiploidGenotypePriors priors);
 }
