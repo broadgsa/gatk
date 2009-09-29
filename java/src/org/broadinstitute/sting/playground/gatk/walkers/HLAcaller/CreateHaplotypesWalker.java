@@ -4,25 +4,15 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.playground.gatk.walkers.HLAcaller.ReadCigarFormatter;
 import org.broadinstitute.sting.gatk.walkers.*;
-
-import java.io.FileInputStream;
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
-import java.lang.Math;
 /**
  *
  * @author shermanjia
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CreateHaplotypesWalker extends ReadWalker<Integer, Integer> {
-    ReadCigarFormatter formatter = new ReadCigarFormatter();
+    CigarParser formatter = new CigarParser();
     char c;
     boolean DEBUG = false;
     int HLA_A_start = 30018310;

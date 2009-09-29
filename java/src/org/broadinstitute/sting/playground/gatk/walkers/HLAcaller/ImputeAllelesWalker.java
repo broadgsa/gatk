@@ -5,8 +5,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.playground.gatk.walkers.HLAcaller.ReadCigarFormatter;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.*;
 
 import java.io.FileInputStream;
@@ -15,8 +13,6 @@ import java.io.DataInputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
-import java.lang.Math;
 /**
  *
  * @author shermanjia
@@ -53,7 +49,7 @@ public class ImputeAllelesWalker extends ReadWalker<Integer, Integer> {
 
     Hashtable ClosestAllele = new Hashtable();
     int iAstart = -1, iAstop = -1, iBstart = -1, iBstop = -1, iCstart = -1, iCstop = -1;
-    ReadCigarFormatter formatter = new ReadCigarFormatter();
+    CigarParser formatter = new CigarParser();
 
     public Integer reduceInit() {
     if (!DatabaseLoaded){
@@ -106,7 +102,7 @@ public class ImputeAllelesWalker extends ReadWalker<Integer, Integer> {
                 }
                 out.printf("DONE! Read %s alleles\n",HLAreads.size());
             }catch (Exception e){//Catch exception if any
-              System.err.println("Error: " + e.getMessage());
+              System.err.println("ImputeAllelsWalker Error: " + e.getMessage());
             }
 
             try{
@@ -126,7 +122,7 @@ public class ImputeAllelesWalker extends ReadWalker<Integer, Integer> {
                 in.close();
                 out.printf("Done! Read %s alleles\n",count);
             }catch (Exception e){//Catch exception if any
-              System.err.println("Error: " + e.getMessage());
+              System.err.println("ImputeAllelsWalker Error: " + e.getMessage());
             }
 
             char c;

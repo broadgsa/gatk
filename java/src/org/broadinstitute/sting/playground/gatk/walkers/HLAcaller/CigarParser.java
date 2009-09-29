@@ -12,10 +12,19 @@ package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
  *
  * @author shermanjia
  */
-public class ReadCigarFormatter {
+public class CigarParser {
+    String formattedRead;
+
+    public String GetFormattedRead(){
+        return formattedRead;
+    }
+
+
     public String FormatRead(String cigar, String read){
         // returns a cigar-formatted sequence (removes insertions, inserts 'D' to where deletions occur
-        String formattedRead = ""; char c; String count;
+        formattedRead = "";
+        
+        char c; String count;
         int cigarPlaceholder = 0; int subcigarLength = 0;
         int readPlaceholder = 0; int subreadLength = 0;
 
@@ -43,15 +52,25 @@ public class ReadCigarFormatter {
                 //increment placeholders without adding inserted bases to sequence (effectively removes insertion).
                 cigarPlaceholder = i+1;
                 readPlaceholder = readPlaceholder + subreadLength;
-            } else if (c == 'H' || c == 'S'){
-                //(H = Headers or S = Soft clipped removed here)***
+            } else if (c == 'H'){
+                //(H = hard clip)
 
-                //If reaches H for insertion, get number before 'H' and skip that many characters in sequence
+                //If reaches H for hard clip, simply carry on
                 count = cigar.substring(cigarPlaceholder, i);
                 subreadLength = Integer.parseInt(count);
 
                 //increment cigar placeholder without adding inserted bases to sequence (effectively removes insertion).
                 cigarPlaceholder = i+1;
+            } else if (c == 'S'){
+                //(S = Soft clipped bases discarded here)***
+
+                //If reaches S for soft clip, get number before 'S' and skip that many characters in sequence
+                count = cigar.substring(cigarPlaceholder, i);
+                subreadLength = Integer.parseInt(count);
+
+                //increment cigar placeholder without adding inserted bases to sequence (effectively removes insertion).
+                cigarPlaceholder = i+1;
+                readPlaceholder = readPlaceholder + subreadLength;
             } else if (c == 'D'){
                 //If reaches D for deletion, insert 'D' into sequence as placeholder
                 count = cigar.substring(cigarPlaceholder, i);
