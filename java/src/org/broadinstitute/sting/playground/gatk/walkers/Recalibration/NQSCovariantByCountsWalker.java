@@ -111,7 +111,7 @@ public class NQSCovariantByCountsWalker extends LocusWalker< LocalMapType, int[]
     }
 
     public boolean isMismatch( SAMRecord read, int offset, ReferenceContext ref ) {
-        return ( ((char)read.getReadBases()[offset]) == ref.getBase() );
+        return ( Character.toUpperCase((char)read.getReadBases()[offset]) != ref.getBase() );
     }
 
     public String header() {
