@@ -12,6 +12,7 @@ import java.util.LinkedList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
+import org.apache.log4j.Logger;
 
 import net.sf.samtools.SAMRecord;
 
@@ -38,7 +39,7 @@ public class NQSTabularDistributionWalker extends LocusWalker<LocalMapType, NQSD
     }
                                   
     public NQSDistributionTable reduceInit() {
-        return new NQSDistributionTable(WINDOW_SIZE, qBins, QSCORE_BIN_SIZE);
+        return new NQSDistributionTable(WINDOW_SIZE, qBins, QSCORE_BIN_SIZE, logger);
     }
 
     public LocalMapType map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -90,15 +91,16 @@ class NQSDistributionTable {
     public final int MATCH_OFFSET = 1;
 
     protected int [][][][][][][][] table;
+    protected Logger logger;
 
     protected int OFF_END_OFFSET;
     protected int OFF_START_OFFSET;
 
-    public NQSDistributionTable (int winSize, int qBins, int qStep) {
-        if ( table.length != winSize ) {
+    public NQSDistributionTable (int winSize, int qBins, int qStep, Logger logger) {
+        if ( 7 != winSize ) {
             throw new StingException("Size positied in tabular distribution is not the size of the distribution table");
         }
-
+        this.logger = logger;
         table = new int[qBins][qBins][qBins][qBins][qBins][qBins][qBins][2];
         // yes, this is absolutely positively horrendous brute-force code.
         // ... Knuth would be proud. These could be lists for a decrease
@@ -129,6 +131,11 @@ class NQSDistributionTable {
         // note: there are two extra bins, one for "No quality: off the end of read"
         // and one for "No quality: off the beginning of read"
         List<Integer> coordinates = getQscoreCoordinates(read,offset,winSize, binSize);
+        if ( isMatch(read, offset, ref) ) {
+            coordinates.add(MATCH_OFFSET);
+        } else {
+            coordinates.add(MM_OFFSET);
+        }
         ListIterator<Integer> o = coordinates.listIterator();
         table[o.next()][o.next()][o.next()][o.next()][o.next()][o.next()][o.next()][o.next()] ++;
         // i'm sure i could use recursion for this but my brain is too tired after swimming to figure
@@ -137,9 +144,10 @@ class NQSDistributionTable {
 
     public List<Integer> getQscoreCoordinates( SAMRecord read, int offset, int win, int binSize ) {
         LinkedList<Integer> coords = new LinkedList<Integer>();
-        for ( int i = offset - win; i < offset + win ; i ++ ) {
+        for ( int i = offset - win; i <= offset + win ; i ++ ) {
             coords.add(getQscoreBin(getQScoreAsInt(read,i), binSize));
         }
+        logger.debug(Integer.toString(coords.size()));
         return coords;
     }
 
@@ -147,7 +155,7 @@ class NQSDistributionTable {
         int qscore;
         if ( offset < 0 ) {
             qscore = read.getReadNegativeStrandFlag() ? OFF_END_OFFSET : OFF_START_OFFSET;
-        } else if ( offset > read.getReadLength() ) {
+        } else if ( offset >= read.getReadLength() ) {
             qscore = read.getReadNegativeStrandFlag() ? OFF_START_OFFSET : OFF_END_OFFSET;
         } else {
             qscore = (int) read.getBaseQualities()[offset];
@@ -165,5 +173,9 @@ class NQSDistributionTable {
         int ma = table[a][b][c][d][e][f][g][MATCH_OFFSET];
 
         return new Pair<Integer,Integer>(mm,ma);
+    }
+
+    public boolean isMatch( SAMRecord read, int offset, ReferenceContext ref ) {
+        return ( Character.toUpperCase( (char) read.getReadBases()[offset] ) == ref.getBase() || ref.getBase() == 'N');
     }
 }
