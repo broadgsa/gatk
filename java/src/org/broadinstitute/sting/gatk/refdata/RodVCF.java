@@ -34,6 +34,12 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         super(name);
     }
 
+    private RodVCF(String name, VCFRecord currentRecord, VCFReader reader) {
+        super(name);
+        mCurrentRecord = currentRecord;
+        mReader = reader;
+    }
+
     public void assertNotNull() {
         if (mCurrentRecord == null) {
             throw new UnsupportedOperationException("The current Record is null");
@@ -46,9 +52,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     }
 
     public Object initialize(final File source) throws FileNotFoundException {
-        if (mReader == null) {
-            mReader = new VCFReader(source);
-        }
+        if (mReader == null) mReader = new VCFReader(source);
         return mReader.getHeader();
     }
 
@@ -60,7 +64,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
             return "";
     }
 
-    public Iterator<RodVCF> createIterator(String name, File file) {
+    public static RodVCF createIterator(String name, File file) {
         RodVCF vcf = new RodVCF(name);
         try {
             vcf.initialize(file);
@@ -125,7 +129,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
      */
     @Override
     public boolean isInsertion() {
-         this.assertNotNull();
+        this.assertNotNull();
         if (!mCurrentRecord.hasAlternateAllele())
             return false;
         for (String alt : this.mCurrentRecord.getAlternateAlleles()) {
@@ -142,7 +146,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
      */
     @Override
     public boolean isDeletion() {
-         this.assertNotNull();
+        this.assertNotNull();
         if (!mCurrentRecord.hasAlternateAllele())
             return false;
         for (String alt : this.mCurrentRecord.getAlternateAlleles()) {
@@ -155,7 +159,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     @Override
     public GenomeLoc getLocation() {
         this.assertNotNull();
-        return GenomeLocParser.createGenomeLoc(mCurrentRecord.getChromosome(), mCurrentRecord.getPosition());
+        return GenomeLocParser.createGenomeLoc(mCurrentRecord.getChromosome(), mCurrentRecord.getPosition(), mCurrentRecord.getPosition());
     }
 
     /**
@@ -202,7 +206,8 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
      */
     @Override
     public String getAlternateBases() {
-        if (!this.isBiallelic()) throw new UnsupportedOperationException("We're not biallelic, so please call getAlternateBaseList instead");
+        if (!this.isBiallelic())
+            throw new UnsupportedOperationException("We're not biallelic, so please call getAlternateBaseList instead");
         return this.mCurrentRecord.getAlternateAlleles().get(0);
     }
 
@@ -341,7 +346,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     @Override
     public RodVCF next() {
         mCurrentRecord = mReader.next();
-        return this;
+        return new RodVCF(this.name, mCurrentRecord, mReader);
     }
 
     @Override

@@ -4,7 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
@@ -50,26 +50,31 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
         if ((chip != null && !(chip instanceof VariantBackedByGenotype) || (eval != null && !(eval instanceof VariantBackedByGenotype))))
             throw new StingException("Failure: trying to analyze genotypes of non-genotype data");
 
-	// This shouldn't happen, but let's check anyways
-	if ( BaseUtils.simpleBaseToBaseIndex(ref) == -1 )
-	    return;
+        // This shouldn't happen, but let's check anyways
+        if (BaseUtils.simpleBaseToBaseIndex(ref) == -1)
+            return;
 
-        DiploidGenotype g = DiploidGenotype.createHomGenotype(ref);
+        // get the genotyping data
+        Genotype chipGenotype = null;
+        Genotype evalGenotype = null;
+        if (chip != null) chipGenotype = ((VariantBackedByGenotype)chip).getCalledGenotype();
+        if (eval != null) evalGenotype = ((VariantBackedByGenotype)eval).getCalledGenotype();
+
         int truthIndex, callIndex;
         if (chip == null)
             truthIndex = UNKNOWN;
-        else if (chip.getAlternateBases().equals(g.toString()))
+        else if (!chipGenotype.isVariant(ref))
             truthIndex = REF;
-        else if (chip.getAlternateBases().charAt(0) != chip.getAlternateBases().charAt(1))
+        else if (chipGenotype.isHet())
             truthIndex = VAR_HET;
         else
             truthIndex = VAR_HOM;
 
         if (eval == null)
             callIndex = NO_CALL;
-        else if (eval.getAlternateBases().equals(g.toString()))
+        else if (!evalGenotype.isVariant(ref))
             callIndex = REF;
-        else if (eval.getAlternateBases().charAt(0) != eval.getAlternateBases().charAt(1))
+        else if (evalGenotype.isHet())
             callIndex = VAR_HET;
         else
             callIndex = VAR_HOM;
@@ -84,8 +89,8 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
 
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         Variation chip = (Variation) tracker.lookup(dbName, null);
-	if ( eval != null || chip != null )
-	    inc(chip, eval, ref);
+        if (eval != null || chip != null)
+            inc(chip, eval, ref);
         return null;
     }
 
@@ -102,9 +107,7 @@ public class GenotypeConcordance extends BasicVariantAnalysis implements Genotyp
         s.add(sb.toString());
     }
 
-    /**
-     * How many overall calls where made that aren't NO_CALLS or UNKNOWNS?
-     */
+    /** How many overall calls where made that aren't NO_CALLS or UNKNOWNS? */
     private int getNCalled() {
         int n = 0;
         for (int i = 0; i < 4; i++)
