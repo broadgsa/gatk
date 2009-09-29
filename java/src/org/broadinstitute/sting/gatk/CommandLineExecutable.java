@@ -47,7 +47,6 @@ import java.util.Arrays;
 public abstract class CommandLineExecutable extends CommandLineProgram {
     public Object GATKResult = null;
 
-
     /**
      * The actual engine which performs the analysis.
      */
@@ -77,19 +76,16 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     }
 
     protected Object executeGATK() {
-        GATKArgumentCollection arguments = getArgumentCollection();
-
         Walker<?,?> mWalker = GATKEngine.getWalkerByName(getAnalysisName());
 
         // load the arguments into the walkers
-        loadArgumentsIntoObject(arguments);
         loadArgumentsIntoObject(mWalker);
 
         // process any arguments that need a second pass
+        GATKArgumentCollection arguments = getArgumentCollection();
         processArguments(arguments);
 
         // set the analysis name in the argument collection
-        arguments.analysisName = getAnalysisName();
         return GATKEngine.execute(arguments, mWalker);
     }
 

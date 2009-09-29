@@ -25,8 +25,6 @@
 
 package org.broadinstitute.sting.utils.cmdLine;
 
-import org.broadinstitute.sting.utils.StingException;
-
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.List;
@@ -96,11 +94,12 @@ public class ArgumentSource {
     }
 
     /**
-     * Injects the specified value into the selected field of the instance.
-     * @param targetInstance Instance into which to inject the parsed value.
+     * Parses the specified value based on the specified type.
+     * @param source The type of value to be parsed.
      * @param values String representation of all values passed.
+     * @return the parsed value of the object.
      */
-    public Object parse( ArgumentSource source, Object targetInstance, ArgumentMatches values ) {
+    public Object parse( ArgumentSource source, ArgumentMatches values ) {
         Object value = null;
         if( !isFlag() ) {
             ArgumentTypeDescriptor typeDescriptor = ArgumentTypeDescriptor.create( field.getType() );
@@ -127,5 +126,13 @@ public class ArgumentSource {
     public boolean isMultiValued() {
         Class argumentType = field.getType();
         return Collection.class.isAssignableFrom(argumentType) || field.getType().isArray();
+    }
+
+    /**
+     * Gets a string representation of the argument source for debugging.
+     * @return String representation of the argument source.
+     */
+    public String toString() {
+        return clazz.getSimpleName() + ": " + field.getName();    
     }
 }

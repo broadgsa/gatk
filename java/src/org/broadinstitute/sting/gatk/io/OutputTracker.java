@@ -103,7 +103,7 @@ public abstract class OutputTracker {
                 targetValue = builder.build();
             }
 
-            JVMUtils.setField( targetField.field, walker, targetValue );
+            JVMUtils.setFieldValue( targetField.field, walker, targetValue );
         }
     }
 
@@ -171,6 +171,6 @@ public abstract class OutputTracker {
      */
     private void installStub( Walker walker, String fieldName, OutputStream outputStream ) {
         Field field = JVMUtils.findField( walker.getClass(), fieldName );
-        JVMUtils.setField( field, walker, outputStream );
+        JVMUtils.setFieldValue( field, walker, outputStream );
     }    
 }

@@ -75,13 +75,29 @@ public class JVMUtils {
      * @param instance Instance in which to set the field.
      * @param value The value to which to set the given field in the given instance.
      */
-    public static void setField( Field field, Object instance, Object value ) {
+    public static void setFieldValue( Field field, Object instance, Object value ) {
         try {
             field.setAccessible(true);
             field.set(instance, value);
         }
         catch( IllegalAccessException ex ) {
             throw new StingException(String.format("Could not set %s in instance %s to %s",field.getName(),instance.getClass().getName(),value.toString()));
+        }
+    }
+
+    /**
+     * Gets the value stored in the provided field in the given instance.
+     * @param field Field to set in the given object.
+     * @param instance Instance in which to set the field.
+     * @return Value currently stored in the given field.
+     */
+    public static Object getFieldValue( Field field, Object instance ) {
+        try {
+            field.setAccessible(true);
+            return field.get(instance);
+        }
+        catch( IllegalAccessException ex ) {
+            throw new StingException(String.format("Could not retrieve %s in instance %s",field.getName(),instance.getClass().getName()));
         }
     }
 

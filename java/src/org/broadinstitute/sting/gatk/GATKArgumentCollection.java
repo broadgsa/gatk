@@ -47,9 +47,6 @@ public class GATKArgumentCollection {
     public GATKArgumentCollection() {
     }
 
-    @Element(required = false)
-    public String analysisName = null;
-
     @ElementMap(entry = "analysis_argument", key = "key", attribute = true, inline = true, required = false)
     public Map<String, String> walkerArgs = new HashMap<String, String>();
 
@@ -233,9 +230,6 @@ public class GATKArgumentCollection {
             return false;
         }
         if (!other.intervals.equals(this.intervals)) {
-            return false;
-        }
-        if (!other.analysisName.equals(this.analysisName)) {
             return false;
         }
         if (!other.DBSNPFile.equals(this.DBSNPFile)) {

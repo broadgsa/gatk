@@ -88,7 +88,7 @@ public class ParsingEngine {
      */
     public void addArgumentSource( String sourceName, Class sourceClass ) {
         List<ArgumentDefinition> argumentsFromSource = new ArrayList<ArgumentDefinition>();
-        for( ArgumentSource argumentSource: extractArgumentSources(sourceClass,true) )
+        for( ArgumentSource argumentSource: extractArgumentSources(sourceClass) )
             argumentsFromSource.addAll( argumentSource.createArgumentDefinitions() );
         argumentDefinitions.add( new ArgumentDefinitionGroup(sourceName, argumentsFromSource) );
     }
@@ -246,31 +246,46 @@ public class ParsingEngine {
      * @param object Object into which to add arguments.
      */
     public void loadArgumentsIntoObject( Object object ) {
-        // Get a list of argument sources, not including the children of this argument.  For now, skip loading
-        // arguments into the object recursively.
-        List<ArgumentSource> argumentSources = extractArgumentSources( object.getClass(), false );
+        List<ArgumentSource> argumentSources = extractArgumentSources(object.getClass());
         for( ArgumentSource argumentSource: argumentSources )
             loadMatchesIntoObject( argumentSource, object, argumentMatches.findMatches(argumentSource) );
     }
 
     /**
-     * Loads a single argument into the object.
+     * Loads a single argument into the object and that objects children.
      * @param argumentMatches Argument matches to load into the object.
-     * @param target
+     * @param source Argument source to load into the object.
+     * @param instance Object into which to inject the value.  The target might be in a container within the instance.
      */
-    private void loadMatchesIntoObject( ArgumentSource source, Object target, ArgumentMatches argumentMatches ) {
+    private void loadMatchesIntoObject( ArgumentSource source, Object instance, ArgumentMatches argumentMatches ) {
         // Nothing to load
         if( argumentMatches.size() == 0 )
             return;
 
-        if( source.clazz.isAssignableFrom(target.getClass()) ) {
-            Object value = source.parse( source, target, argumentMatches );
-            JVMUtils.setField( source.field, target, value );
+        // Target instance into which to inject the value.
+        List<Object> targets = new ArrayList<Object>();
+
+        // Check to see whether the instance itself can be the target.
+        if( source.clazz.isAssignableFrom(instance.getClass()) ) {
+            targets.add(instance);
+        }
+
+        // Check to see whether a contained class can be the target.
+        targets.addAll(getContainersMatching(instance,source.clazz));
+
+        // Abort if no home is found for the object.
+        if( targets.size() == 0 )
+            throw new StingException("Internal command-line parser error: unable to find a home for argument matches " + argumentMatches);
+
+        for( Object target: targets ) {
+            Object value = source.parse( source, argumentMatches );
+            JVMUtils.setFieldValue( source.field, target, value );
         }
     }
 
     /**
      * Prints out the help associated with these command-line argument definitions.
+     * @param applicationDetails Details about the specific GATK-based application being run.
      */
     public void printHelp( ApplicationDetails applicationDetails ) {
         new HelpFormatter().printHelp(applicationDetails,argumentDefinitions);
@@ -279,18 +294,17 @@ public class ParsingEngine {
     /**
      * Extract all the argument sources from a given object.
      * @param sourceClass class to act as sources for other arguments.
-     * @param recursive Whether to recursively look for argument collections and add their contents.
      * @return A list of sources associated with this object and its aggregated objects.
      */
-    private List<ArgumentSource> extractArgumentSources( Class sourceClass, boolean recursive ) {
+    private List<ArgumentSource> extractArgumentSources(Class sourceClass) {
         List<ArgumentSource> argumentSources = new ArrayList<ArgumentSource>();
         while( sourceClass != null ) {
             Field[] fields = sourceClass.getDeclaredFields();
             for( Field field: fields ) {
                 if( field.isAnnotationPresent(Argument.class) )
                     argumentSources.add( new ArgumentSource(sourceClass,field) );
-                if( field.isAnnotationPresent(ArgumentCollection.class) && recursive )
-                    argumentSources.addAll( extractArgumentSources(field.getType(),recursive) );
+                if( field.isAnnotationPresent(ArgumentCollection.class) )
+                    argumentSources.addAll( extractArgumentSources(field.getType()) );
             }
             sourceClass = sourceClass.getSuperclass();
         }
@@ -314,6 +328,7 @@ public class ParsingEngine {
     /**
      * Parse a short name into an ArgumentMatch.
      * @param token The token to parse.  The token should pass the isLongArgumentForm test.
+     * @param position The position of the token in question.
      * @return ArgumentMatch associated with this token, or null if no match exists.
      */    
     private ArgumentMatch parseArgument( String token, int position ) {
@@ -327,6 +342,24 @@ public class ParsingEngine {
 
         // No parse results found.
         return null;
+    }
+
+    /**
+     * Gets a list of the container instances of the given type stored within the given target.
+     * @param target Class holding the container.
+     * @param type Container type.
+     * @return A list of containers matching the given type.
+     */
+    private List<Object> getContainersMatching(Object target, Class<?> type) {
+        List<Object> containers = new ArrayList<Object>();
+
+        Field[] fields = target.getClass().getDeclaredFields();
+        for( Field field: fields ) {
+            if( field.isAnnotationPresent(ArgumentCollection.class) && type.isAssignableFrom(field.getType()) )
+                containers.add(JVMUtils.getFieldValue(field,target));
+        }
+
+        return containers;
     }
 }
 

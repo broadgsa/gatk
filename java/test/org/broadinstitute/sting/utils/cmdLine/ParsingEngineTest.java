@@ -201,7 +201,7 @@ public class ParsingEngineTest extends BaseTest {
         Assert.assertEquals("Enum value is not correct", TestEnum.THREE, argProvider.testEnum);
     }
 
-    public enum TestEnum { ONE, TWO, THREE };
+    public enum TestEnum { ONE, TWO, THREE }
 
     private class EnumArgProvider {
         @Argument(fullName="test_enum",shortName="ti",doc="test enum",required=false)
@@ -561,5 +561,36 @@ public class ParsingEngineTest extends BaseTest {
     private class ValidatingArgProvider {
         @Argument(doc="value",validation="\\d+")
         Integer value;
+    }
+
+    @Test
+    public void argumentCollectionTest() {
+        String[] commandLine = new String[] { "--value", "5" };
+
+        parsingEngine.addArgumentSource( ArgumentCollectionProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        ArgumentCollectionProvider argProvider = new ArgumentCollectionProvider();
+        parsingEngine.loadArgumentsIntoObject(argProvider);
+
+        Assert.assertEquals("Argument is not correctly initialized", 5, argProvider.rap.value.intValue() );
+    }
+
+    private class ArgumentCollectionProvider {
+        @ArgumentCollection
+        RequiredArgProvider rap = new RequiredArgProvider();
+    }
+
+    @Test(expected=StingException.class)
+    public void multipleArgumentCollectionTest() {
+        parsingEngine.addArgumentSource( MultipleArgumentCollectionProvider.class );
+    }
+
+    private class MultipleArgumentCollectionProvider {
+        @ArgumentCollection
+        RequiredArgProvider rap1 = new RequiredArgProvider();
+        @ArgumentCollection
+        RequiredArgProvider rap2 = new RequiredArgProvider();
     }
 }

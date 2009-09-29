@@ -105,6 +105,7 @@ public class GenomeAnalysisEngine {
      * Actually run the GATK with the specified walker.
      * @param args      the argument collection, where we get all our setup information from
      * @param my_walker Walker to run over the dataset.  Must not be null.
+     * @return the value of this traversal.
      */
     public Object execute(GATKArgumentCollection args, Walker<?,?> my_walker) {
         // validate our parameters
@@ -225,7 +226,7 @@ public class GenomeAnalysisEngine {
                 Utils.scareUser(String.format("Read-based traversals require a reference file but none was given"));
             microScheduler = MicroScheduler.create(my_walker, readsDataSource, referenceDataSource, rodDataSources, argCollection.numberOfThreads);
         } else {
-            Utils.scareUser(String.format("Unable to create the appropriate TraversalEngine for analysis type " + argCollection.analysisName));
+            Utils.scareUser(String.format("Unable to create the appropriate TraversalEngine for analysis type %s", WalkerManager.getWalkerName(my_walker.getClass())));
         }
 
         return microScheduler;
@@ -615,6 +616,7 @@ public class GenomeAnalysisEngine {
      * Initialize the output streams as specified by the user.
      *
      * @param walker the walker to initialize output streams for
+     * @param outputTracker the tracker supplying the initialization data.
      */
     private void initializeOutputStreams(Walker walker, OutputTracker outputTracker) {
         if( argCollection.outErrFileName != null )

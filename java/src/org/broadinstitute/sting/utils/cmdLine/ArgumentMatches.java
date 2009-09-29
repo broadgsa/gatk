@@ -124,6 +124,7 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
 
     /**
      * Find all successful matches (a 'successful' match is one paired with a definition).
+     * @return All successful matches.
      */
     ArgumentMatches findSuccessfulMatches() {
         ArgumentMatches matches = new ArgumentMatches();
@@ -151,7 +152,6 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      * Merges the given argument match into the set of existing argument matches.
      * If multiple arguments are present, those arguments will end up grouped.
      * @param match The match to merge into.
-     * @return The merged match.
      */
     void mergeInto( ArgumentMatch match ) {
         boolean definitionExists = false;
@@ -226,6 +226,14 @@ class ArgumentMatch implements Iterable<ArgumentMatch> {
         if( value != null )
             values.add(value);
         indices.put(index,values );
+    }
+
+    /**
+     * Return a string representation of the given argument match, for debugging purposes.
+     * @return String representation of the match.
+     */
+    public String toString() {
+        return label;
     }
 
     /**
