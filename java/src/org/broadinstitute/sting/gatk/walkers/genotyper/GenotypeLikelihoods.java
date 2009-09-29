@@ -78,6 +78,27 @@ public abstract class GenotypeLikelihoods implements Cloneable {
         initialize();
     }
 
+    public static GenotypeLikelihoods merge(GenotypeLikelihoods gl1, GenotypeLikelihoods gl2) {
+        // GL = GL_i + GL_j
+
+        GenotypeLikelihoods gl;
+        try {
+            gl = (GenotypeLikelihoods)gl1.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new StingException(e.getMessage());
+        }
+        assert(gl1.likelihoods.length == gl1.posteriors.length);
+        assert(gl1.likelihoods.length == gl2.likelihoods.length);
+        assert(gl1.posteriors.length == gl2.posteriors.length);
+
+        for (int i = 0; i < gl1.likelihoods.length; i++) {
+            gl.likelihoods[i] += gl2.likelihoods[i];
+            gl.posteriors[i] += gl2.posteriors[i];
+        }
+
+        return gl;
+    }
+
     /**
      * Cloning of the object
      * @return
@@ -218,8 +239,12 @@ public abstract class GenotypeLikelihoods implements Cloneable {
         int n = 0;
 
         for (int i = 0; i < pileup.getReads().size(); i++) {
-            SAMRecord read = pileup.getReads().get(i);
             int offset = pileup.getOffsets().get(i);
+            // ignore deletions
+            if ( offset == -1 )
+                continue;
+
+            SAMRecord read = pileup.getReads().get(i);
             char base = read.getReadString().charAt(offset);
             byte qual = read.getBaseQualities()[offset];
             if ( ! ignoreBadBases || ! badBase(base) ) {
