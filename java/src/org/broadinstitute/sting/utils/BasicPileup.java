@@ -15,6 +15,15 @@ import java.util.Random;
  * To change this template use File | Settings | File Templates.
  */
 abstract public class BasicPileup implements Pileup {
+
+    public static final char DELETION_CHAR = 'D';
+
+    protected boolean includeDeletions = false;
+
+    public void setIncludeDeletionsInPileupString(boolean value) {
+	includeDeletions = value;
+    }
+
     public String getPileupString()
     {
         return String.format("%s: %s %s %s", getLocation(), getRef(), getBases(), getQuals());
@@ -29,8 +38,12 @@ abstract public class BasicPileup implements Pileup {
     }
 
     public static String basePileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
+	return basePileupAsString( reads, offsets, false );
+    }
+
+    public static String basePileupAsString( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
         StringBuilder bases = new StringBuilder();
-        for ( byte base : basePileup(reads, offsets)) {
+        for ( byte base : basePileup(reads, offsets, includeDeletions)) {
             bases.append((char)base);
         }
         return bases.toString();
@@ -50,7 +63,7 @@ abstract public class BasicPileup implements Pileup {
 	    char base;
 	    if ( offset == -1 ) {
 		if ( includeDeletions )
-		    base = 'D';
+		    base = DELETION_CHAR;
 		else
 		    continue;
 	    } else {
@@ -79,7 +92,7 @@ abstract public class BasicPileup implements Pileup {
             int offset = offsets.get(i);
 	    if ( offset == -1 ) {
 		if ( includeDeletions )
-		    bases.add((byte)'D');
+		    bases.add((byte)DELETION_CHAR);
 	    } else {
 		bases.add(read.getReadBases()[offset]);
 	    }

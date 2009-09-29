@@ -17,7 +17,6 @@ public class ReadBackedPileup extends BasicPileup {
     char ref;
     List<SAMRecord> reads;
     List<Integer> offsets;
-    boolean includeDeletions = false;
 
     public ReadBackedPileup(char ref, AlignmentContext context ) {
         this(context.getLocation(), ref, context.getReads(), context.getOffsets());
@@ -38,8 +37,6 @@ public class ReadBackedPileup extends BasicPileup {
     public List<SAMRecord> getReads() { return reads; }
     public List<Integer> getOffsets() { return offsets; }
 
-    public void includeDeletionsInPileupString() { includeDeletions = true; }
-
     public GenomeLoc getLocation() {
         return loc;
     }
@@ -49,11 +46,11 @@ public class ReadBackedPileup extends BasicPileup {
     }
 
     public String getBases() {
-        return basePileupAsString(reads, offsets);
+        return basePileupAsString(reads, offsets, includeDeletions);
     }
 
     public String getBasesWithStrand() {
-        return baseWithStrandPileupAsString(reads, offsets);
+        return baseWithStrandPileupAsString(reads, offsets, includeDeletions);
     }
 
     public String getQuals() {
@@ -82,7 +79,7 @@ public class ReadBackedPileup extends BasicPileup {
     }
 
     public String getBasePileupAsCountsString() {
-        String bases = basePileupAsString(reads, offsets);
+        String bases = basePileupAsString(reads, offsets, includeDeletions);
 
 	int[] counts = new int[4];
 	for (int i = 0; i < reads.size(); i++)
