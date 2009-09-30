@@ -78,7 +78,12 @@ public abstract class GenotypeLikelihoods implements Cloneable {
         initialize();
     }
 
-    public static GenotypeLikelihoods merge(GenotypeLikelihoods gl1, GenotypeLikelihoods gl2) {
+    public static GenotypeLikelihoods combineLikelihoods(GenotypeLikelihoods gl1, GenotypeLikelihoods gl2) {
+        if ( gl1 == null )
+            return gl2;
+        if ( gl2 == null )
+            return gl1;
+
         // GL = GL_i + GL_j
 
         GenotypeLikelihoods gl;
@@ -180,6 +185,14 @@ public abstract class GenotypeLikelihoods implements Cloneable {
      */
     public double[] getPriors() {
         return priors.getPriors();
+    }
+
+    /**
+     * Sets the priors and clears the likelihoods cache.
+     */
+    public void setPriors(DiploidGenotypePriors priors) {
+        this.priors = priors;
+        clearCache();
     }
 
     /**
@@ -334,6 +347,10 @@ public abstract class GenotypeLikelihoods implements Cloneable {
      */
     protected abstract GenotypeLikelihoods getSetCache( char observedBase, byte qualityScore, int ploidy,
                                                         SAMRecord read, int offset, GenotypeLikelihoods val );
+    /**
+     * Method for clearing the cache (in case we change the priors)
+     */
+    protected abstract void clearCache();
 
     protected GenotypeLikelihoods simpleGetSetCache( GenotypeLikelihoods[][][][] cache,
                                                      char observedBase, byte qualityScore, int ploidy,

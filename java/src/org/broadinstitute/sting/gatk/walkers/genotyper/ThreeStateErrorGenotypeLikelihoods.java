@@ -40,4 +40,5 @@ public class ThreeStateErrorGenotypeLikelihoods extends GenotypeLikelihoods {
                                              SAMRecord read, int offset, GenotypeLikelihoods val ) {
         return simpleGetSetCache(THREE_STATE_CACHE, observedBase, qualityScore, ploidy, read, offset, val);
     }
+    protected void clearCache() { THREE_STATE_CACHE = new GenotypeLikelihoods[BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][MAX_PLOIDY][2]; }
 }
