@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.alignment.bwa;
 
 import org.broadinstitute.sting.alignment.Alignment;
+import org.broadinstitute.sting.utils.StingException;
 
 /**
  * An alignment object to be used incrementally as the BWA aligner
@@ -9,7 +10,7 @@ import org.broadinstitute.sting.alignment.Alignment;
  * @author mhanna
  * @version 0.1
  */
-public class BWAAlignment implements Alignment {
+public class BWAAlignment implements Alignment, Cloneable {
     /**
      * The aligner performing the alignments.
      */
@@ -94,6 +95,19 @@ public class BWAAlignment implements Alignment {
      */
     public BWAAlignment( BWAAligner aligner ) {
         this.aligner = aligner;
+    }
+
+    /**
+     * Clone the alignment.
+     * @return New instance of the alignment.
+     */
+    public BWAAlignment clone() {
+        try {
+            return (BWAAlignment)super.clone();
+        }
+        catch( CloneNotSupportedException ex ) {
+            throw new StingException("Unable to clone BWAAlignment.");
+        }
     }
 
     /**
