@@ -30,6 +30,11 @@ public class BWAAligner implements Aligner {
     /**
      * Suffix array in the forward direction.
      */
+    private SuffixArray forwardSuffixArray;
+
+    /**
+     * Suffix array in the reverse direction.
+     */
     private SuffixArray reverseSuffixArray;
 
     /**
@@ -62,41 +67,47 @@ public class BWAAligner implements Aligner {
      */
     public final int GAP_EXTENSION_PENALTY = 4;
 
-    public BWAAligner( File forwardBWTFile, File reverseBWTFile, File reverseSuffixArrayFile ) {
+    public BWAAligner( File forwardBWTFile, File reverseBWTFile, File forwardSuffixArrayFile, File reverseSuffixArrayFile ) {
         forwardBWT = new BWTReader(forwardBWTFile).read();
         reverseBWT = new BWTReader(reverseBWTFile).read();
+        forwardSuffixArray = new SuffixArrayReader(forwardSuffixArrayFile).read();
         reverseSuffixArray = new SuffixArrayReader(reverseSuffixArrayFile).read();
     }
 
     public List<Alignment> align( SAMRecord read ) {
-        byte[] forwardBases = read.getReadBases();
-        byte[] reverseBases = BaseUtils.simpleReverseComplement(forwardBases);
+        byte[] uncomplementedBases = read.getReadBases();
+        byte[] complementedBases = BaseUtils.reverse(BaseUtils.simpleReverseComplement(uncomplementedBases));
 
-        List<LowerBound> forwardLowerBounds = LowerBound.create(forwardBases,forwardBWT);
-        List<LowerBound> reverseLowerBounds = LowerBound.create(reverseBases,reverseBWT);
+        List<LowerBound> forwardLowerBounds = LowerBound.create(uncomplementedBases,forwardBWT);
+        List<LowerBound> reverseLowerBounds = LowerBound.create(complementedBases,reverseBWT);
 
-        //for( int i = 0; i < forwardLowerBounds.size(); i++ )
-        //    System.out.printf("ForwardBWT: lb[%d] = %s%n",i,forwardLowerBounds.get(i));
-        //for( int i = 0; i < reverseLowerBounds.size(); i++ )
-        //    System.out.printf("ReverseBWT: lb[%d] = %s%n",i,reverseLowerBounds.get(i));
+        /*
+        for( int i = 0; i < forwardLowerBounds.size(); i++ )
+            System.out.printf("ForwardBWT: lb[%d] = %s%n",i,forwardLowerBounds.get(i));
+        for( int i = 0; i < reverseLowerBounds.size(); i++ )
+            System.out.printf("ReverseBWT: lb[%d] = %s%n",i,reverseLowerBounds.get(i));
+            */
 
         PriorityQueue<BWAAlignment> alignments = new PriorityQueue<BWAAlignment>();
 
         // Create a fictional initial alignment, with the position just off the end of the read, and the limits
         // set as the entire BWT.
         alignments.add(createSeedAlignment(forwardBWT));
-        //alignments.add(createSeedAlignment(reverseBWT));
+        alignments.add(createSeedAlignment(reverseBWT));
 
         while(!alignments.isEmpty()) {
             BWAAlignment alignment = alignments.remove();
 
-            byte[] bases = alignment.negativeStrand ? forwardBases : reverseBases;
-            BWT bwt = alignment.negativeStrand ? reverseBWT : forwardBWT;
-            List<LowerBound> lowerBounds = alignment.negativeStrand ? forwardLowerBounds : reverseLowerBounds;
+            byte[] bases = alignment.negativeStrand ? complementedBases : uncomplementedBases;
+            BWT bwt = alignment.negativeStrand ? forwardBWT : reverseBWT;
+            List<LowerBound> lowerBounds = alignment.negativeStrand ? reverseLowerBounds : forwardLowerBounds;
 
             // Done with this particular alignment.
             if(alignment.position == read.getReadLength()-1) {
-                alignment.alignmentStart = reverseBWT.length() - (reverseSuffixArray.get(alignment.loBound)+read.getReadLength()-alignment.gapOpens-alignment.gapExtensions) + 1;
+                if( !alignment.isNegativeStrand() )
+                    alignment.alignmentStart = reverseBWT.length() - (reverseSuffixArray.get(alignment.loBound)+read.getReadLength()-alignment.gapOpens-alignment.gapExtensions) + 1;
+                else
+                    alignment.alignmentStart = forwardSuffixArray.get(alignment.loBound) + 1;
                 return Collections.<Alignment>singletonList(alignment);
             }
 
@@ -211,6 +222,7 @@ public class BWAAligner implements Aligner {
 
     /**
      * Create new alignments representing a deletion a this point in the read.
+     * @param bwt source BWT for inferring deletion info.
      * @param alignment Alignment from which to derive the deletion.
      * @return New alignments reflecting all possible deletions.
      */

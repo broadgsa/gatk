@@ -4,6 +4,7 @@ import org.broadinstitute.sting.alignment.bwa.bwt.*;
 import org.broadinstitute.sting.alignment.Aligner;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
@@ -21,24 +22,23 @@ import net.sf.samtools.SAMFileReader;
  */
 public class AlignerTestHarness {
     public static void main( String argv[] ) throws FileNotFoundException {
-        if( argv.length != 5 ) {
-            System.out.println("PerfectAlignerTestHarness <fasta> <bwt> <rbwt> <sa> <bam>");
+        if( argv.length != 6 ) {
+            System.out.println("PerfectAlignerTestHarness <fasta> <bwt> <rbwt> <sa> <rsa> <bam>");
             System.exit(1);
         }
 
         File referenceFile = new File(argv[0]);
         File bwtFile = new File(argv[1]);
         File rbwtFile = new File(argv[2]);
-        File reverseSuffixArrayFile = new File(argv[3]);
-        File bamFile = new File(argv[4]);
+        File suffixArrayFile = new File(argv[3]);
+        File reverseSuffixArrayFile = new File(argv[4]);
+        File bamFile = new File(argv[5]);
 
-        align(referenceFile,bwtFile,rbwtFile,reverseSuffixArrayFile,bamFile);
+        align(referenceFile,bwtFile,rbwtFile,suffixArrayFile,reverseSuffixArrayFile,bamFile);
     }
 
-    private static void align(File referenceFile, File bwtFile, File rbwtFile, File reverseSuffixArrayFile, File bamFile) throws FileNotFoundException {
-        BWT bwt = new BWTReader(bwtFile).read();
-
-        Aligner aligner = new BWAAligner(bwtFile,rbwtFile,reverseSuffixArrayFile);
+    private static void align(File referenceFile, File bwtFile, File rbwtFile, File suffixArrayFile, File reverseSuffixArrayFile, File bamFile) throws FileNotFoundException {
+        Aligner aligner = new BWAAligner(bwtFile,rbwtFile,suffixArrayFile,reverseSuffixArrayFile);
         int count = 0;
 
         SAMFileReader reader = new SAMFileReader(bamFile);
@@ -46,18 +46,40 @@ public class AlignerTestHarness {
 
         for(SAMRecord read: reader) {
             count++;
-            //if( count > 39 ) break;
+            //if( count > 25000 ) break;
             //if( count != 39 ) continue;
             //if( !read.getReadName().endsWith("1507:1636#0") )
             //    continue;
 
-            List<Alignment> alignments = aligner.align(read);
+            SAMRecord alignmentCleaned = null;
+            try {
+                alignmentCleaned = (SAMRecord)read.clone();
+            }
+            catch( CloneNotSupportedException ex ) {
+                throw new StingException("SAMRecord clone not supported", ex);
+            }
+
+            if( alignmentCleaned.getReadNegativeStrandFlag() )
+                alignmentCleaned.setReadBases(BaseUtils.simpleReverseComplement(alignmentCleaned.getReadBases()));
+
+            alignmentCleaned.setReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);
+            alignmentCleaned.setAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
+            alignmentCleaned.setMappingQuality(SAMRecord.NO_MAPPING_QUALITY);
+            alignmentCleaned.setCigarString(SAMRecord.NO_ALIGNMENT_CIGAR);
+
+            // Clear everything except flags pertaining to pairing and set 'unmapped' status to true.
+            alignmentCleaned.setFlags(alignmentCleaned.getFlags() & 0x00A1 | 0x000C);
+
+            List<Alignment> alignments = aligner.align(alignmentCleaned);
             if(alignments.size() == 0 )
                 throw new StingException(String.format("Unable to align read %s to reference; count = %d",read.getReadName(),count));
 
             Alignment alignment = alignments.get(0);
 
             System.out.printf("%s: Aligned read to reference at position %d with %d mismatches, %d gap opens, and %d gap extensions.%n", read.getReadName(), alignment.getAlignmentStart(), alignment.getMismatches(), alignment.getGapOpens(), alignment.getGapExtensions());
+
+            if( read.getReadNegativeStrandFlag() != alignment.isNegativeStrand() )
+                throw new StingException("Read has been aligned in wrong direction");
 
             if( read.getAlignmentStart() != alignment.getAlignmentStart() ) {
                 IndexedFastaSequenceFile reference = new IndexedFastaSequenceFile(referenceFile);
@@ -71,7 +93,7 @@ public class AlignerTestHarness {
                 String alignedRef = new String(reference.getSubsequenceAt(reference.getSequenceDictionary().getSequences().get(0).getSequenceName(),alignments.get(0).getAlignmentStart(),alignments.get(0).getAlignmentStart()+read.getReadLength()-1).getBases());
                 int actualMismatches = 0;
                 for( int i = 0; i < read.getReadLength(); i++ ) {
-                    if( read.getReadBases()[i] != expectedRef.charAt(i) )
+                    if( read.getReadBases()[i] != alignedRef.charAt(i) )
                         actualMismatches++;
                 }
 
