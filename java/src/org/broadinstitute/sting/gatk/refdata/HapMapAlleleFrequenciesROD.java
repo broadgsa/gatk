@@ -1,13 +1,12 @@
 package org.broadinstitute.sting.gatk.refdata;
 
+import net.sf.samtools.util.SequenceUtil;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.Utils;
 
-import java.util.List;
 import java.util.Arrays;
-
-import net.sf.picard.util.SequenceUtil;
+import java.util.List;
 
 /**
  * ReferenceOrderedDatum class to hold HapMap AlleleFrequency Data

@@ -1,28 +1,27 @@
 package org.broadinstitute.sting.utils.fasta;
 
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.PicardException;
 import net.sf.picard.io.IoUtil;
+import net.sf.picard.reference.ReferenceSequence;
+import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.SAMTextHeaderCodec;
+import net.sf.samtools.util.AsciiLineReader;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
 import java.nio.ByteBuffer;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.Charset;
+import java.nio.channels.FileChannel;
 import java.nio.charset.CharacterCodingException;
-import java.util.Scanner;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
 import java.util.Iterator;
-
-import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMTextHeaderCodec;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.util.AsciiLineReader;
-import org.broadinstitute.sting.utils.StingException;
+import java.util.Scanner;
 
 /**
  * Created by IntelliJ IDEA.
@@ -253,6 +252,11 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
         if( !indexIterator.hasNext() )
             return null;
         return getSequence( indexIterator.next().getContig() );
+    }
+
+    @Override
+    public void reset() {
+        // TODO: FOR MATT TO IMPL.
     }
 
     public String toString() {

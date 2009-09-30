@@ -163,9 +163,6 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
             while ( iter.hasNext() )
                 writer.addAlignment(iter.next().getRecord());
         }
-        if ( writer != null ) {
-            writer.close();
-        }
         if ( OUT_INDELS != null ) {
             try {
                 indelOutput.close();

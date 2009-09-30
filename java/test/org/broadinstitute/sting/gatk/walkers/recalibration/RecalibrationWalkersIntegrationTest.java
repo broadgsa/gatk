@@ -40,7 +40,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibrator1() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.SLX.SRP000031.2009_06.chr1.10_20mb.bam", "8d2194cf8134800def32d5268033de70" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.SLX.SRP000031.2009_06.chr1.10_20mb.bam", "3ace4b9b8495429cc32e7008145f4996" );
         //e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "" );
         //e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "" );
 

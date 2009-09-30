@@ -25,21 +25,21 @@
 
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMRecord;
+import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.*;
-import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.util.*;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.lang.reflect.Method;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @WalkerName("TableRecalibration")
 @Requires({DataSource.READS}) // , DataSource.REFERENCE})
@@ -318,17 +318,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
 
         return recalQuals;
-    }
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // Standard I/O routines
-    //
-    // --------------------------------------------------------------------------------------------------------------
-    public void onTraversalDone(SAMFileWriter output) {
-        if ( output != null ) {
-            output.close();
-        }
     }
 
     public SAMFileWriter reduceInit() {
