@@ -113,7 +113,7 @@ public class GLFWriter implements GenotypeWriter {
 
         // get likelihood information if available
         LikelihoodObject obj;
-        if (locus instanceof GenotypesBacked) {
+        if (locus instanceof LikelihoodsBacked) {
             obj = new LikelihoodObject(((LikelihoodsBacked) locus).getLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
         } else {
             double values[] = new double[10];
@@ -122,12 +122,14 @@ public class GLFWriter implements GenotypeWriter {
         }
         obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);  // transform! ... to negitive log likelihoods
 
-        double rms = -1;
+        double rms = 0;
+        int readCount = 0;
         // calculate the RMS mapping qualities and the read depth
         if (locus instanceof ReadBacked) {
             rms = calculateRMS(((ReadBacked)locus).getReads());
+            readCount = ((ReadBacked)locus).getReadCount();
         }
-        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),(int)locus.getLocation().getStart(),(float)rms,ref,((ReadBacked)locus).getReadCount(),obj);
+        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),(int)locus.getLocation().getStart(),(float)rms,ref,readCount,obj);
     }
 
 

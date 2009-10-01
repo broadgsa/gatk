@@ -40,7 +40,7 @@ import org.broadinstitute.sting.utils.StingException;
  *         field values.
  */
 public abstract class GLFRecord {
-    public final static double LIKELIHOOD_SCALE_FACTOR = 1;                    
+    public final static double LIKELIHOOD_SCALE_FACTOR = 10;                    
 
 
     // fields common to all records
@@ -247,9 +247,9 @@ public abstract class GLFRecord {
         if (vals.length < 1) throw new StingException("findMin: an array of size < 1 was passed in");
 
         double min = vals[0];
-        for (double d : vals) {
+        for (double d : vals)
             if (d < min) min = d;
-        }
+
         return GLFRecord.toCappedShort(min);
     }
 

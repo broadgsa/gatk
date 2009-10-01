@@ -62,10 +62,15 @@ public class SinglePointCall extends GLFRecord {
      */
     void write(BinaryCodec out) {
         super.write(out);
-        try {
-        for (double likelihood : likelihoods) {
-            out.writeUByte(GLFRecord.toCappedShort(likelihood));
+        short[] adjusted = new short[likelihoods.length];
+        // we want to scale our values
+        for (int x = 0; x < likelihoods.length; x++) {
+            adjusted[x] = GLFRecord.toCappedShort(LIKELIHOOD_SCALE_FACTOR * (Math.round(likelihoods[x]) - this.minimumLikelihood));
         }
+        try {
+            for (short value : adjusted) {
+                out.writeUByte(value);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

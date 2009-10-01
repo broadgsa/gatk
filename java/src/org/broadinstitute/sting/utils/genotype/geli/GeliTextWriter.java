@@ -50,7 +50,7 @@ public class GeliTextWriter implements GenotypeWriter {
      * @param locus the locus to add
      */
     public void addGenotypeCall(Genotype locus) {
-        double likelihoods[];
+        double posteriors[];
         int readDepth = -1;
         double nextVrsBest = 0;
         double nextVrsRef = 0;
@@ -61,17 +61,17 @@ public class GeliTextWriter implements GenotypeWriter {
             readDepth = ((ReadBacked)locus).getReadCount();
         }
         if (!(locus instanceof GenotypesBacked)) {
-            likelihoods = new double[10];
-            Arrays.fill(likelihoods, 0.0);
+            posteriors = new double[10];
+            Arrays.fill(posteriors, 0.0);
         } else {
-            likelihoods = ((LikelihoodsBacked) locus).getLikelihoods();
+            posteriors = ((PosteriorsBacked) locus).getPosteriors();
             double[] lks;
-            lks = Arrays.copyOf(likelihoods,likelihoods.length);
+            lks = Arrays.copyOf(posteriors,posteriors.length);
             Arrays.sort(lks);
             nextVrsBest = lks[9] - lks[8];
             if (ref != 'X')  {
                 int index = (DiploidGenotype.valueOf(Utils.dupString(ref,2)).ordinal());
-                nextVrsRef = lks[9] - likelihoods[index];
+                nextVrsRef = lks[9] - posteriors[index];
             }
         }
         // we have to calcuate our own
@@ -85,16 +85,16 @@ public class GeliTextWriter implements GenotypeWriter {
                                       locus.getBases(),
                                       nextVrsRef,
                                       nextVrsBest,
-                                      likelihoods[0],
-                                      likelihoods[1],
-                                      likelihoods[2],
-                                      likelihoods[3],
-                                      likelihoods[4],
-                                      likelihoods[5],
-                                      likelihoods[6],
-                                      likelihoods[7],
-                                      likelihoods[8],
-                                      likelihoods[9]));
+                                      posteriors[0],
+                                      posteriors[1],
+                                      posteriors[2],
+                                      posteriors[3],
+                                      posteriors[4],
+                                      posteriors[5],
+                                      posteriors[6],
+                                      posteriors[7],
+                                      posteriors[8],
+                                      posteriors[9]));
     }
 
     /**

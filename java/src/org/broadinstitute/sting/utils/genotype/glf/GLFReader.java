@@ -108,7 +108,7 @@ public class GLFReader implements Iterator<GLFRecord> {
         short rmsMapping = inputBinaryCodec.readUByte();
         double[] lkValues = new double[LikelihoodObject.GENOTYPE.values().length];
         for (int x = 0; x < LikelihoodObject.GENOTYPE.values().length; x++) {
-            lkValues[x] = inputBinaryCodec.readUByte();
+            lkValues[x] = (inputBinaryCodec.readUByte() / GLFRecord.LIKELIHOOD_SCALE_FACTOR + min_lk);
         }
         return new SinglePointCall(refBase, offset, readDepth, rmsMapping, lkValues);
     }

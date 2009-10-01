@@ -18,7 +18,7 @@ import java.util.List;
  *         The single sample implementation of the genotype interface, which contains
  *         extra information for the various genotype outputs
  */
-public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, LikelihoodsBacked {
+public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, LikelihoodsBacked, PosteriorsBacked {
     private final char mRefBase;
     private final GenotypeLikelihoods mGenotypeLikelihoods;
 
@@ -279,11 +279,19 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
      * @return
      */
     public double[] getLikelihoods() {
-        // TODO: this is wrong, obviously, but we've kept it for now to stay backward compatible with previous calls
-        return this.mGenotypeLikelihoods.getPosteriors();
+        return this.mGenotypeLikelihoods.getLikelihoods();
     }
 
 
+    /**
+     * get the likelihood information for this
+     *
+     * @return
+     */
+    @Override
+    public double[] getPosteriors() {
+        return this.mGenotypeLikelihoods.getPosteriors();
+    }
 }
 
 

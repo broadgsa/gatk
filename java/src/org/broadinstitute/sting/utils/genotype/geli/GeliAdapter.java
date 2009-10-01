@@ -98,15 +98,15 @@ public class GeliAdapter implements GenotypeWriter {
      */
     @Override
     public void addGenotypeCall(Genotype locus) {
-        double likelihoods[];
+        double posteriors[];
         int readDepth = -1;
         double nextVrsBest = 0;
         double nextVrsRef = 0;
         if (!(locus instanceof GenotypesBacked)) {
-            likelihoods = new double[10];
-            Arrays.fill(likelihoods, Double.MIN_VALUE);
+            posteriors = new double[10];
+            Arrays.fill(posteriors, Double.MIN_VALUE);
         } else {
-            likelihoods = ((LikelihoodsBacked) locus).getLikelihoods();
+            posteriors = ((PosteriorsBacked) locus).getPosteriors();
 
         }
         char ref = locus.getReference();
