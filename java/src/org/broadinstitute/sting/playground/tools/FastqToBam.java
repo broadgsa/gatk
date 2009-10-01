@@ -79,7 +79,7 @@ public class FastqToBam extends CommandLineProgram {
                 sr2.setReadPairedFlag(true);
                 sr2.setAttribute("RG", READ_GROUP_NAME);
                 sr2.setFirstOfPairFlag(false);
-                sr2.setSecondOfPairFlag(false);
+                sr2.setSecondOfPairFlag(true);
                 sr2.setMateUnmappedFlag(true);
             }
 
