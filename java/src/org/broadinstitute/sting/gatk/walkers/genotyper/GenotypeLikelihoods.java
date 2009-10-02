@@ -188,11 +188,14 @@ public abstract class GenotypeLikelihoods implements Cloneable {
     }
 
     /**
-     * Sets the priors and clears the likelihoods cache.
+     * Sets the priors
      */
     public void setPriors(DiploidGenotypePriors priors) {
         this.priors = priors;
-        clearCache();
+        for ( DiploidGenotype g : DiploidGenotype.values() ) {
+            int i = g.ordinal();
+            posteriors[i] = priors.getPriors()[i] + likelihoods[i];
+        }
     }
 
     /**
@@ -347,10 +350,6 @@ public abstract class GenotypeLikelihoods implements Cloneable {
      */
     protected abstract GenotypeLikelihoods getSetCache( char observedBase, byte qualityScore, int ploidy,
                                                         SAMRecord read, int offset, GenotypeLikelihoods val );
-    /**
-     * Method for clearing the cache (in case we change the priors)
-     */
-    protected abstract void clearCache();
 
     protected GenotypeLikelihoods simpleGetSetCache( GenotypeLikelihoods[][][][] cache,
                                                      char observedBase, byte qualityScore, int ploidy,

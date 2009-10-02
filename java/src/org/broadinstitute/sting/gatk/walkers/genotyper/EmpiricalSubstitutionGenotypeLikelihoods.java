@@ -240,8 +240,6 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihood
 
         return EMPIRICAL_CACHE[a][i][j][k][x];
     }
-  
-    protected void clearCache() { EMPIRICAL_CACHE = new GenotypeLikelihoods[EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][MAX_PLOIDY][2]; }
 
 
     // -----------------------------------------------------------------------------------------------------------------
