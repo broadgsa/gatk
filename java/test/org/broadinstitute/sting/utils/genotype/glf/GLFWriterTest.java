@@ -110,7 +110,7 @@ public class GLFWriterTest extends BaseTest {
     @Test
     public void basicWriteThenRead() {
         File writeTo = new File("testGLF2.glf");
-        //writeTo.deleteOnExit();
+        writeTo.deleteOnExit();
         List<FakeGenotype> types = new ArrayList<FakeGenotype>();
         rec = new GLFWriter(header, writeTo);
         for (int x = 0; x < 100; x++) {

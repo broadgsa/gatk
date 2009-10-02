@@ -1,16 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMReadGroupRecord;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.Utils;
-
-import java.io.PrintStream;
-import java.io.FileNotFoundException;
-import java.io.File;
-import java.util.Random;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -121,14 +114,4 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
         return output;
     }
 
-
-    /**
-     * when we're done traversing, close the reads file
-     * @param output the SAMFileWriter we've used in the reduce phase
-     */
-    public void onTraversalDone( SAMFileWriter output ) {
-        if (output != null) {
-            output.close();
-        }
-    }
 }

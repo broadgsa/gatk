@@ -104,14 +104,5 @@ public class PrintReadsWalkerTest extends BaseTest {
         assertTrue(writer.getRecords().size() == 1);
     }
 
-    /** test that we close the output source */
-    @Test
-    public void testClosingOnTraversalDone() {
-       ArtificialSAMFileWriter writer = new ArtificialSAMFileWriter();
-        assertTrue(!writer.isClosed());
-        PrintReadsWalker walker = new PrintReadsWalker();
-        walker.onTraversalDone(writer);
-        assertTrue(writer.isClosed());
-
-    }
+    
 }

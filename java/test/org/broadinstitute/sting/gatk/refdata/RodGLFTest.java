@@ -3,9 +3,7 @@ package org.broadinstitute.sting.gatk.refdata;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
 import org.junit.Before;
@@ -13,7 +11,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
-import java.util.ArrayList;
 
 /**
  * Created by IntelliJ IDEA.
@@ -31,9 +28,9 @@ import java.util.ArrayList;
  */
 public class RodGLFTest extends BaseTest {
     static final File glfFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/glfTestFile.glf");
-    static final int finalRecordCount = 3; // the number of records in the above file
+    static final int finalRecordCount = 100; // the number of records in the above file
     static final int contigCount = 1;
-    static final String ref = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
+    static final String ref = "/broad/1KG/reference/human_b36_both.fasta";
     static ReferenceSequenceFile r;
     private RodGLF iter = null;
 
@@ -79,11 +76,11 @@ public class RodGLFTest extends BaseTest {
         glf = iter.next();
         Assert.assertFalse(iter.isReference());
     }
-    /*
+    
     @Test(expected = IllegalStateException.class)
     public void testGetAltSnpFWDIllegalException() {
         RodGLF glf = iter.next();
-        iter.getAltSnpFWD();
+        iter.getAlternativeBaseForSNP();
     }
 
 
@@ -105,23 +102,18 @@ public class RodGLFTest extends BaseTest {
     public void testGetAltSnpFWD() {
         RodGLF glf = iter.next();
         glf = iter.next();
-        Assert.assertEquals('T', iter.getAltSnpFWD());
+        Assert.assertEquals('C', iter.getAlternativeBaseForSNP());
     }
 
     @Test
     public void testGetRefSnpFWD() {
         RodGLF glf = iter.next();
         glf = iter.next();
-        Assert.assertEquals('A', iter.getRefSnpFWD());
+        glf = iter.next();
+        Assert.assertEquals('A', iter.getReferenceForSNP());
     }
 
-    @Test
-    public void testGetRefBasesFWD() {
-        RodGLF glf = iter.next();
-        Assert.assertTrue("A".equals(iter.getRefBasesFWD()));
-        glf = iter.next();
-        Assert.assertTrue("A".equals(iter.getRefBasesFWD()));
-    }
+   
 
     /**
      * move to the second and third bases, and check that the
@@ -136,7 +128,7 @@ public class RodGLFTest extends BaseTest {
         Assert.assertTrue("CT".equals(iter.getAltBasesFWD()));
 
     }
-*/
+
     @Test
     public void testRodLocations() {
         GenomeLoc loc = null;
@@ -172,7 +164,7 @@ public class RodGLFTest extends BaseTest {
      * @param ref the reference base
      *
      * @return the likelihood object
-     */
+     *
     private LikelihoodObject createLikelihood(char ref) {
         ArrayList<Double> vals = new ArrayList<Double>();
         for (LikelihoodObject.GENOTYPE type : LikelihoodObject.GENOTYPE.values()) {
@@ -185,7 +177,7 @@ public class RodGLFTest extends BaseTest {
             ret[x] = vals.get(x);
         }
         return new LikelihoodObject(ret, LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);
-    }
+    }*/
 
 
     /**

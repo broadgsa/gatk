@@ -260,7 +260,7 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      */
     @Override
     public String getAlternateBases() {
-        return this.getBestGenotype(0).toString();
+        return this.getBestGenotype(1).toString();
     }
 
     /**
