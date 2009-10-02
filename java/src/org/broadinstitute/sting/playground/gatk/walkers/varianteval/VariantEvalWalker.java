@@ -131,7 +131,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
             VariantAnalysis analysis = iter.next();
             boolean disableForGenotyping = evalContainsGenotypes && ! (analysis instanceof GenotypeAnalysis);
             boolean disableForPopulation = ! evalContainsGenotypes && ! (analysis instanceof PopulationAnalysis);
-            boolean disableForPools = pathToHapmapPoolFile == null;
+            boolean disableForPools = (pathToHapmapPoolFile == null && analysis instanceof PooledGenotypeConcordance);
             boolean disable = disableForGenotyping | disableForPopulation | disableForPools;
             String causeName = disableForGenotyping ? "population" : (disableForPopulation ? "genotype" : ( disableForPools ? "pool" : null ));
             if ( disable ) {
