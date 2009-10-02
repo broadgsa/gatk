@@ -112,6 +112,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         //
         // Add new analyses here!
         //
+        analyses.add(new PooledGenotypeConcordance(pathToHapmapPoolFile));
         analyses.add(new VariantCounter());
         analyses.add(new VariantDBCoverage(knownSNPDBName));
         analyses.add(new GenotypeConcordance(genotypeChipName));
@@ -130,8 +131,9 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
             VariantAnalysis analysis = iter.next();
             boolean disableForGenotyping = evalContainsGenotypes && ! (analysis instanceof GenotypeAnalysis);
             boolean disableForPopulation = ! evalContainsGenotypes && ! (analysis instanceof PopulationAnalysis);
-            boolean disable = disableForGenotyping | disableForPopulation;
-            String causeName = disableForGenotyping ? "population" : (disableForPopulation ? "genotype" : null);
+            boolean disableForPools = pathToHapmapPoolFile == null;
+            boolean disable = disableForGenotyping | disableForPopulation | disableForPools;
+            String causeName = disableForGenotyping ? "population" : (disableForPopulation ? "genotype" : ( disableForPools ? "pool" : null ));
             if ( disable ) {
                 logger.info(String.format("Disabling %s-only analysis %s in set %s", causeName, analysis, setName));
                 iter.remove();
