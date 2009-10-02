@@ -33,12 +33,6 @@ public class SSGenotypeCallTest extends BaseTest {
             return null;
         }
 
-        /** Method for clearing the cache (in case we change the priors) */
-        @Override
-        protected void clearCache() {
-            // do nothing
-        }
-
         /**
          * Must be overridden by concrete subclasses
          *
