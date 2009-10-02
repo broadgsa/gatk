@@ -126,15 +126,15 @@ public class NQSCovariantByCountsWalker extends LocusWalker< LocalMapType, int[]
         for ( int i = 0; i < MAX_Q_SCORE; i ++ ) {
             match += qScores[i][MATCH_OFFSET];
             mismatch += qScores[i][MM_OFFSET];
-            expErr += QualityUtils.qualToProb(i)*qScores[i][MATCH_OFFSET];
-            expErr += QualityUtils.qualToProb(i)*qScores[i][MM_OFFSET];
+            expErr += QualityUtils.qualToErrorProb((byte)i)*qScores[i][MATCH_OFFSET];
+            expErr += QualityUtils.qualToErrorProb((byte)i)*qScores[i][MM_OFFSET];
         }
 
         expErr = expErr/(match + mismatch);
-        int expAsQ = QualityUtils.probToQual(expErr);
+        int expAsQ = QualityUtils.probToQual(1-expErr);
 
         double empErr = ((double)mismatch)/(match+mismatch);
-        int empAsQ = QualityUtils.probToQual(empErr);
+        int empAsQ = QualityUtils.probToQual(1-empErr);
 
         return String.format(DATA_FORMAT, smDev, lgDev, match, mismatch, expErr, empErr, expAsQ, empAsQ);
     }

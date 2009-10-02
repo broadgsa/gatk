@@ -20,9 +20,9 @@ import net.sf.samtools.SAMRecord;
  * To change this template use File | Settings | File Templates.
  */
 public class NQSClusteredZScoreWalker extends LocusWalker<LocalMapType, int[][][]> {
-    static final int WIN_SIDE_SIZE = 4;
-    static final int Z_SCORE_MAX = 4;
-    static final int Z_SCORE_MULTIPLIER = 3; // bins are Z_SCORE * (this) rounded to the nearst int
+    static final int WIN_SIDE_SIZE = 5;
+    static final int Z_SCORE_MAX = 7;
+    static final int Z_SCORE_MULTIPLIER = 30; // bins are Z_SCORE * (this) rounded to the nearst int
     static final int MM_OFFSET = 1;
     static final int MATCH_OFFSET = 0;
     static final int MAX_Q_SCORE = 2 + QualityUtils.MAX_REASONABLE_Q_SCORE;
@@ -129,8 +129,8 @@ public class NQSClusteredZScoreWalker extends LocusWalker<LocalMapType, int[][][
     }
 
     public String header() {
-        String format = "%s\t%s\t%s\t%s\t%s%n";
-        return String.format(format, "ZScore", "Expected_Mismatch", "Empirical_Mismatch", "Expected_MM_As_Q", "Empirical_MM_As_Q");
+        String format = "%s\t%s\t%s\t%s\t%s\t%s%n";
+        return String.format(format, "ZScore", "N_obs", "Expected_Mismatch", "Empirical_Mismatch", "Expected_MM_As_Q", "Empirical_MM_As_Q");
     }
 
     public String formatData ( int[][] matchMismatchQ, int zScoreBin ) {
@@ -142,18 +142,18 @@ public class NQSClusteredZScoreWalker extends LocusWalker<LocalMapType, int[][][
         for ( int i = 0; i < MAX_Q_SCORE; i ++ ) {
             match += matchMismatchQ[i][MATCH_OFFSET];
             mismatch += matchMismatchQ[i][MM_OFFSET];
-            expMMR += QualityUtils.qualToProb(i)*matchMismatchQ[i][MATCH_OFFSET];
-            expMMR += QualityUtils.qualToProb(i)*matchMismatchQ[i][MM_OFFSET];
+            expMMR += QualityUtils.qualToErrorProb((byte)i)*matchMismatchQ[i][MATCH_OFFSET];
+            expMMR += QualityUtils.qualToErrorProb((byte)i)*matchMismatchQ[i][MM_OFFSET];
         }
         
         expMMR = (expMMR / ( match + mismatch ));
         double empMMR = ((double) mismatch)/(match + mismatch);
-        int expMMRAsQ = QualityUtils.probToQual(expMMR);
-        int empMMRAsQ = QualityUtils.probToQual(empMMR);
+        int expMMRAsQ = QualityUtils.probToQual(1-expMMR);
+        int empMMRAsQ = QualityUtils.probToQual(1-empMMR);
 
-        String format = "%f\t%f\t%f\t%d\t%d%n";
+        String format = "%f\t%d\t%f\t%f\t%d\t%d%n";
         
-        return String.format(format, zScore, expMMR, empMMR, expMMRAsQ, empMMRAsQ);
+        return String.format(format, zScore, match+mismatch, expMMR, empMMR, expMMRAsQ, empMMRAsQ);
     }
 
 }

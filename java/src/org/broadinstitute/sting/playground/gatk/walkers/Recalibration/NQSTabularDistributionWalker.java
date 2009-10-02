@@ -87,6 +87,7 @@ public class NQSTabularDistributionWalker extends LocusWalker<LocalMapType, NQSD
 
 class NQSDistributionTable {
 
+    
     public final int MM_OFFSET = 0;
     public final int MATCH_OFFSET = 1;
 

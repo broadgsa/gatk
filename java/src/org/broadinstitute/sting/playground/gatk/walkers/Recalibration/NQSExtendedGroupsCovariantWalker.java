@@ -26,7 +26,7 @@ public class NQSExtendedGroupsCovariantWalker extends LocusWalker<LocalMapType, 
     final int MAX_QSCORE = QualityUtils.MAX_REASONABLE_Q_SCORE+1;
     int NQS_GROUPS;
 
-    public static final String DATA_FORMAT = "%d\t%d\t%d\t%d\t%f%n";
+    public static final String DATA_FORMAT = "%d\t%d\t%d\t%d\t%d%n";
     public static final String TEXT_FORMAT = "%s\t%s\t%s\t%s\t%s%n";
 
 
@@ -143,7 +143,7 @@ public class NQSExtendedGroupsCovariantWalker extends LocusWalker<LocalMapType, 
     }
 
     public String createHeader() {
-        return String.format(TEXT_FORMAT, "Qscore_Reported", "NQS_Group", "Mismatches", "Total", "Mismatch_Rate");
+        return String.format(TEXT_FORMAT, "Qscore_Reported", "NQS_Group", "Mismatches", "Total", "Empirical_Qscore");
     }
 
     public String formatNQSMismatchCountString(int qscore, int group, long[][][] cumulativeBins) {
@@ -151,6 +151,6 @@ public class NQSExtendedGroupsCovariantWalker extends LocusWalker<LocalMapType, 
         long ct = cumulativeBins[group][COUNT_OFFSET][qscore];
         double mmr = (ct > 0) ? mm/ct : -1;
 
-        return String.format(DATA_FORMAT, qscore, group, mm, ct, mmr);
+        return String.format(DATA_FORMAT, qscore, group, mm, ct, QualityUtils.probToQual(1-mmr));
     }
 }
