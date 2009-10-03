@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.alignment.bwa;
 
-import org.broadinstitute.sting.alignment.bwa.bwt.*;
 import org.broadinstitute.sting.alignment.Aligner;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.utils.StingException;
@@ -44,10 +43,12 @@ public class AlignerTestHarness {
         SAMFileReader reader = new SAMFileReader(bamFile);
         reader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
 
+        int mismatches = 0;        
+
         for(SAMRecord read: reader) {
             count++;
-            //if( count > 25000 ) break;
-            //if( count != 39 ) continue;
+            if( count > 10000 ) break;
+            //if( count != 2 ) continue;
             //if( !read.getReadName().endsWith("1507:1636#0") )
             //    continue;
 
@@ -78,8 +79,10 @@ public class AlignerTestHarness {
 
             System.out.printf("%s: Aligned read to reference at position %d with %d mismatches, %d gap opens, and %d gap extensions.%n", read.getReadName(), alignment.getAlignmentStart(), alignment.getMismatches(), alignment.getGapOpens(), alignment.getGapExtensions());
 
-            if( read.getReadNegativeStrandFlag() != alignment.isNegativeStrand() )
-                throw new StingException("Read has been aligned in wrong direction");
+            if( read.getReadNegativeStrandFlag() != alignment.isNegativeStrand() ) {
+                System.out.println("Read has been aligned in wrong direction");
+                mismatches++;
+            }
 
             if( read.getAlignmentStart() != alignment.getAlignmentStart() ) {
                 IndexedFastaSequenceFile reference = new IndexedFastaSequenceFile(referenceFile);
@@ -101,7 +104,8 @@ public class AlignerTestHarness {
                     System.out.printf("read          = %s%n", read.getReadString());
                     System.out.printf("expected ref  = %s%n", expectedRef);
                     System.out.printf("actual ref    = %s%n", alignedRef);
-                    throw new StingException(String.format("Read %s was placed at incorrect location; target alignment = %d; actual alignment = %d%n",read.getReadName(),read.getAlignmentStart(),alignment.getAlignmentStart()));
+                    mismatches++;
+                    //throw new StingException(String.format("Read %s was placed at incorrect location; target alignment = %d; actual alignment = %d; count = %d%n",read.getReadName(),read.getAlignmentStart(),alignment.getAlignmentStart(),count));
                 }
             }
 
@@ -109,7 +113,7 @@ public class AlignerTestHarness {
                 System.out.printf("%d reads examined.%n",count);                
         }
 
-        System.out.printf("%d reads examined.%n",count);
+        System.out.printf("%d reads examined; %d mismatches.%n",count,mismatches);
     }
 
 }

@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.alignment.bwa;
 
 /**
- * The current state of an alignment.
+ * The state of a given base in the alignment.
  *
  * @author mhanna
  * @version 0.1

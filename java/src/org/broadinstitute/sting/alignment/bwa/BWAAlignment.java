@@ -12,6 +12,16 @@ import org.broadinstitute.sting.utils.StingException;
  */
 public class BWAAlignment implements Alignment, Cloneable {
     /**
+     * Track the number of alignments that have been created.
+     */
+    private static long numCreated;
+
+    /**
+     * Which number alignment is this?
+     */
+    private long creationNumber;
+
+    /**
      * The aligner performing the alignments.
      */
     protected BWAAligner aligner;
@@ -22,9 +32,14 @@ public class BWAAlignment implements Alignment, Cloneable {
     protected int alignmentStart;
 
     /**
-     * Working variable.  Is this match being treated as a negative or positive strand?
+     * Is this match being treated as a negative or positive strand?
      */
     protected boolean negativeStrand;
+
+    /**
+     * The sequence of matches/mismatches/insertions/deletions.
+     */
+    private AlignmentMatchSequence alignmentMatchSequence = new AlignmentMatchSequence();
 
     /**
      * Working variable.  How many bases have been matched at this point.
@@ -57,11 +72,6 @@ public class BWAAlignment implements Alignment, Cloneable {
     protected int hiBound;
 
     /**
-     * Indicates the current state of an alignment.  Are we in an insertion?  Deletion?
-     */
-    protected AlignmentState state;
-
-    /**
      * Gets the starting position for the given alignment.
      * @return Starting position.
      */
@@ -75,6 +85,22 @@ public class BWAAlignment implements Alignment, Cloneable {
      */
     public boolean isNegativeStrand() {
         return negativeStrand;    
+    }
+
+    /**
+     * Gets the current state of this alignment (state of the last base viewed)..
+     * @return Current state of the alignment.
+     */
+    public AlignmentState getCurrentState() {
+        return alignmentMatchSequence.getCurrentState();
+    }
+
+    /**
+     * Adds the given state to the current alignment.
+     * @param state State to add to the given alignment.
+     */
+    public void addState( AlignmentState state ) {
+        alignmentMatchSequence.addNext(state);    
     }
 
     /**
@@ -95,6 +121,7 @@ public class BWAAlignment implements Alignment, Cloneable {
      */
     public BWAAlignment( BWAAligner aligner ) {
         this.aligner = aligner;
+        this.creationNumber = numCreated++;
     }
 
     /**
@@ -102,29 +129,45 @@ public class BWAAlignment implements Alignment, Cloneable {
      * @return New instance of the alignment.
      */
     public BWAAlignment clone() {
+        BWAAlignment newAlignment = null;
         try {
-            return (BWAAlignment)super.clone();
+            newAlignment = (BWAAlignment)super.clone();
         }
         catch( CloneNotSupportedException ex ) {
             throw new StingException("Unable to clone BWAAlignment.");
         }
+        newAlignment.creationNumber = numCreated++;
+        newAlignment.alignmentMatchSequence = alignmentMatchSequence.clone();
+
+        return newAlignment;
+    }
+
+    /**
+     * How many bases in the read match the given state.
+     * @param state State to test.
+     * @return number of bases which match that state.
+     */
+    public int getNumberOfBasesMatchingState(AlignmentState state) {
+        return alignmentMatchSequence.getNumberOfBasesMatchingState(state);
     }
 
     /**
      * Compare this alignment to another alignment.
-     * @param other Other alignment to which to compare.
+     * @param rhs Other alignment to which to compare.
      * @return < 0 if this < other, == 0 if this == other, > 0 if this > other
      */
-    public int compareTo(Alignment other) {
-        // If the scores are equal, use the position to disambiguate order.
+    public int compareTo(Alignment rhs) {
+        BWAAlignment other = (BWAAlignment)rhs;
+
+        // If the scores are equal, use the score to disambiguate.
         int scoreComparison = Integer.valueOf(getScore()).compareTo(other.getScore());
         if( scoreComparison != 0 )
             return scoreComparison;
-        else
-            return -Integer.valueOf(position).compareTo(((BWAAlignment)other).position);
+
+        return -Long.valueOf(this.creationNumber).compareTo(other.creationNumber);
     }
 
     public String toString() {
-        return String.format("position: %d, state: %s, mismatches: %d, gap opens: %d, gap extensions: %d, loBound: %d, hiBound: %d, score: %d", position, state, mismatches, gapOpens, gapExtensions, loBound, hiBound, getScore());
+        return String.format("position: %d, state: %s, mismatches: %d, gap opens: %d, gap extensions: %d, loBound: %d, hiBound: %d, score: %d, creationNumber: %d", position, alignmentMatchSequence.getCurrentState(), mismatches, gapOpens, gapExtensions, loBound, hiBound, getScore(), creationNumber);
     }
 }
