@@ -168,6 +168,6 @@ public class BWAAlignment implements Alignment, Cloneable {
     }
 
     public String toString() {
-        return String.format("position: %d, state: %s, mismatches: %d, gap opens: %d, gap extensions: %d, loBound: %d, hiBound: %d, score: %d, creationNumber: %d", position, alignmentMatchSequence.getCurrentState(), mismatches, gapOpens, gapExtensions, loBound, hiBound, getScore(), creationNumber);
+        return String.format("position: %d, strand: %b, state: %s, mismatches: %d, gap opens: %d, gap extensions: %d, loBound: %d, hiBound: %d, score: %d, creationNumber: %d", position, negativeStrand, alignmentMatchSequence.getCurrentState(), mismatches, gapOpens, gapExtensions, loBound, hiBound, getScore(), creationNumber);
     }
 }

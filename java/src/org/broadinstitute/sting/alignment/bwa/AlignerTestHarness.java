@@ -43,13 +43,14 @@ public class AlignerTestHarness {
         SAMFileReader reader = new SAMFileReader(bamFile);
         reader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
 
-        int mismatches = 0;        
+        int mismatches = 0;
+        int failures = 0;
 
         for(SAMRecord read: reader) {
             count++;
-            if( count > 10000 ) break;
+            //if( count > 100000 ) break;
             //if( count != 2 ) continue;
-            //if( !read.getReadName().endsWith("1507:1636#0") )
+            //if( !read.getReadName().endsWith("SL-XBC:1:90:15:1280#0") )
             //    continue;
 
             SAMRecord alignmentCleaned = null;
@@ -72,48 +73,46 @@ public class AlignerTestHarness {
             alignmentCleaned.setFlags(alignmentCleaned.getFlags() & 0x00A1 | 0x000C);
 
             List<Alignment> alignments = aligner.align(alignmentCleaned);
-            if(alignments.size() == 0 )
-                throw new StingException(String.format("Unable to align read %s to reference; count = %d",read.getReadName(),count));
-
-            Alignment alignment = alignments.get(0);
-
-            System.out.printf("%s: Aligned read to reference at position %d with %d mismatches, %d gap opens, and %d gap extensions.%n", read.getReadName(), alignment.getAlignmentStart(), alignment.getMismatches(), alignment.getGapOpens(), alignment.getGapExtensions());
-
-            if( read.getReadNegativeStrandFlag() != alignment.isNegativeStrand() ) {
-                System.out.println("Read has been aligned in wrong direction");
-                mismatches++;
+            if(alignments.size() == 0 ) {
+                //throw new StingException(String.format("Unable to align read %s to reference; count = %d",read.getReadName(),count));
+                System.out.printf("Unable to align read %s to reference; count = %d%n",read.getReadName(),count);
+                failures++;
             }
 
-            if( read.getAlignmentStart() != alignment.getAlignmentStart() ) {
+            Alignment foundAlignment = null;
+            for( Alignment alignment: alignments ) {
+                if( read.getReadNegativeStrandFlag() != alignment.isNegativeStrand() )
+                    continue;
+                if( read.getAlignmentStart() != alignment.getAlignmentStart() )
+                    continue;
+
+                foundAlignment = alignment;
+            }
+
+            if( foundAlignment != null ) {
+                //System.out.printf("%s: Aligned read to reference at position %d with %d mismatches, %d gap opens, and %d gap extensions.%n", read.getReadName(), foundAlignment.getAlignmentStart(), foundAlignment.getMismatches(), foundAlignment.getGapOpens(), foundAlignment.getGapExtensions());
+            }
+            else {
+                mismatches++;
+                //throw new StingException(String.format("Read %s was placed at incorrect location; target alignment = %d; actual alignment = %d; count = %d%n",read.getReadName(),read.getAlignmentStart(),alignment.getAlignmentStart(),count));
+
                 IndexedFastaSequenceFile reference = new IndexedFastaSequenceFile(referenceFile);
                 String expectedRef = new String(reference.getSubsequenceAt(reference.getSequenceDictionary().getSequences().get(0).getSequenceName(),read.getAlignmentStart(),read.getAlignmentStart()+read.getReadLength()-1).getBases());
-                int expectedMismatches = 0;
-                for( int i = 0; i < read.getReadLength(); i++ ) {
-                    if( read.getReadBases()[i] != expectedRef.charAt(i) )
-                        expectedMismatches++;
-                }
-
-                String alignedRef = new String(reference.getSubsequenceAt(reference.getSequenceDictionary().getSequences().get(0).getSequenceName(),alignments.get(0).getAlignmentStart(),alignments.get(0).getAlignmentStart()+read.getReadLength()-1).getBases());
-                int actualMismatches = 0;
-                for( int i = 0; i < read.getReadLength(); i++ ) {
-                    if( read.getReadBases()[i] != alignedRef.charAt(i) )
-                        actualMismatches++;
-                }
-
-                if( expectedMismatches != actualMismatches ) {
-                    System.out.printf("read          = %s%n", read.getReadString());
-                    System.out.printf("expected ref  = %s%n", expectedRef);
-                    System.out.printf("actual ref    = %s%n", alignedRef);
-                    mismatches++;
-                    //throw new StingException(String.format("Read %s was placed at incorrect location; target alignment = %d; actual alignment = %d; count = %d%n",read.getReadName(),read.getAlignmentStart(),alignment.getAlignmentStart(),count));
+                System.out.printf("read          = %s, strand = %b%n", read.getReadString(), read.getReadNegativeStrandFlag());
+                System.out.printf("expected ref  = %s%n", expectedRef);
+                for( Alignment alignment: alignments ) {
+                    String alignedRef = new String(reference.getSubsequenceAt(reference.getSequenceDictionary().getSequences().get(0).getSequenceName(),alignments.get(0).getAlignmentStart(),alignments.get(0).getAlignmentStart()+read.getReadLength()-1).getBases());
+                    System.out.printf("actual ref    = %s, strand = %b%n", alignedRef, read.getReadNegativeStrandFlag());
+                    //System.out.printf("(reversed)    = %s, strand = %b%n", BaseUtils.simpleReverseComplement(alignedRef), !read.getReadNegativeStrandFlag());
                 }
             }
+
 
             if( count % 1000 == 0 )
                 System.out.printf("%d reads examined.%n",count);                
         }
 
-        System.out.printf("%d reads examined; %d mismatches.%n",count,mismatches);
+        System.out.printf("%d reads examined; %d mismatches; %d failures.%n",count,mismatches,failures);
     }
 
 }

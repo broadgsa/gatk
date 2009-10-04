@@ -120,17 +120,21 @@ public class BWAAligner implements Aligner {
 
             // Found a valid alignment; store it and move on.
             if(alignment.position == read.getReadLength()-1) {
-                if( !alignment.isNegativeStrand() ) {
-                    int sizeAlongReference = alignment.getNumberOfBasesMatchingState(AlignmentState.MATCH_MISMATCH)+alignment.getNumberOfBasesMatchingState(AlignmentState.DELETION);
-                    alignment.alignmentStart = reverseBWT.length() - reverseSuffixArray.get(alignment.loBound) - sizeAlongReference + 1;
-                }
-                else
-                    alignment.alignmentStart = forwardSuffixArray.get(alignment.loBound) + 1;
-                successfulMatches.add(alignment);
+                for( int bwtIndex = alignment.loBound; bwtIndex <= alignment.hiBound; bwtIndex++ ) {
+                    BWAAlignment finalAlignment = alignment.clone();
 
-                bestScore = Math.min(alignment.getScore(),bestScore);
-                bestDiff = Math.min(alignment.mismatches+alignment.gapOpens+alignment.gapExtensions,bestDiff);
-                maxDiff = bestDiff + 1;
+                    if( finalAlignment.isNegativeStrand() )
+                        finalAlignment.alignmentStart = forwardSuffixArray.get(bwtIndex) + 1;
+                    else {
+                        int sizeAlongReference = finalAlignment.getNumberOfBasesMatchingState(AlignmentState.MATCH_MISMATCH)+finalAlignment.getNumberOfBasesMatchingState(AlignmentState.DELETION);
+                        finalAlignment.alignmentStart = reverseBWT.length() - reverseSuffixArray.get(bwtIndex) - sizeAlongReference + 1;
+                    }
+                    successfulMatches.add(finalAlignment);
+
+                    bestScore = Math.min(finalAlignment.getScore(),bestScore);
+                    bestDiff = Math.min(finalAlignment.mismatches+finalAlignment.gapOpens+finalAlignment.gapExtensions,bestDiff);
+                    maxDiff = bestDiff + 1;
+                }
 
                 continue;
             }
