@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -16,7 +17,7 @@ import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import java.io.File;
 
 @ReadFilters(ZeroMappingQualityReadFilter.class)
-public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSampleGenotyper.CallResult> {
+public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSampleGenotyper.CallResult> implements TreeReducible<SingleSampleGenotyper.CallResult> {
     // Control output settings
     @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = false)
     public File VARIANTS_FILE = null;
@@ -47,17 +48,16 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
     @Argument(fullName = "disableCache", doc = "[ADVANCED] If true, we won't use the caching system.  This argument is for testing purposes only", required = false)
     public boolean disableCache = false;
 
+    /**
+     * Writer for genotype data.
+     */
+    private GenotypeWriter genotypeWriter;
 
     public class CallResult {
         long nConfidentCalls = 0;
         long nNonConfidentCalls = 0;
         long nCalledBases = 0;
-        GenotypeWriter writer;
 
-        CallResult(GenotypeWriter writer) {
-            this.writer = writer;
-        }
-        
         public String toString() {
             return String.format("SSG: %d confident and %d non-confident calls were made at %d bases", 
                     nConfidentCalls, nNonConfidentCalls, nCalledBases);
@@ -80,7 +80,10 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
     /** Initialize the walker with some sensible defaults */
     public void initialize() {
         //GenotypeLikelihoods.clearCache();
-        // nothing to do
+        if ( VARIANTS_FILE != null )
+            genotypeWriter = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE);
+        else
+            genotypeWriter = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out);
     }
 
     /**
@@ -138,10 +141,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
      * @return an empty string
      */
     public CallResult reduceInit() {
-        if ( VARIANTS_FILE != null )
-            return new CallResult(GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE));
-        else
-            return new CallResult(GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out));
+        return new CallResult();
     }
 
     /**
@@ -160,16 +160,34 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
             if (confidence >= LOD_THRESHOLD) {
                 sum.nConfidentCalls++;
                 //System.out.printf("Call %s%n", call);
-                sum.writer.addGenotypeCall(call);
+                genotypeWriter.addGenotypeCall(call);
             } else
                 sum.nNonConfidentCalls++;
         }
         return sum;
     }
 
+    /**
+     * Combine adjacent call results.
+     *
+     * @param lhs first set of partial call results from genotyper; guaranteed to have come from 'earlier' in genome.
+     * @param rhs second set of partial call results from genotyper; guaranteed to have come from 'later' in genome.
+     *
+     * @return combined call results.
+     */
+    public CallResult treeReduce( CallResult lhs, CallResult rhs ) {
+        CallResult combined = new CallResult();
+        combined.nCalledBases = lhs.nCalledBases + rhs.nCalledBases;
+        combined.nConfidentCalls = lhs.nConfidentCalls + rhs.nConfidentCalls;
+        combined.nNonConfidentCalls = lhs.nNonConfidentCalls + rhs.nNonConfidentCalls;
+        return combined;
+    }
+
     /** Close the variant file. */
     public void onTraversalDone(CallResult sum) {
-        sum.writer.close();
+        // If the VARIANTS_FILE is null, the GATK is managing the output stream.  Close the file.
+        if ( VARIANTS_FILE == null )
+            genotypeWriter.close();        
     }
 }
 
