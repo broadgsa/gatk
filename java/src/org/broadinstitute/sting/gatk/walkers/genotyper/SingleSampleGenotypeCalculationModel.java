@@ -4,38 +4,31 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.apache.log4j.Logger;
 
 import java.util.Set;
 
 
 public class SingleSampleGenotypeCalculationModel extends GenotypeCalculationModel {
 
-    private CallResult callsMetrics;
+    private CallResult callsMetrics = new CallResult();
 
-    public SingleSampleGenotypeCalculationModel(BaseMismatchModel baseModel,
-                                                Set<String> samples,
-                                                EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform platform,
-                                                GenotypeWriter out,
-                                                boolean genotypeMode,
-                                                double lod,
-                                                int maxDeletions,
-                                                boolean verbose) {
-        super(baseModel, samples, platform, out, genotypeMode, lod, maxDeletions, verbose);
+    protected SingleSampleGenotypeCalculationModel() {}
+
+    public void initialize(BaseMismatchModel baseModel,
+                           Set<String> samples,
+                           EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform platform,
+                           GenotypeWriter out,
+                           Logger logger,
+                           boolean genotypeMode,
+                           double lod,
+                           int maxDeletions,
+                           boolean verbose) {
+        super.initialize(baseModel, samples, platform, out, logger, genotypeMode, lod, maxDeletions, verbose);
 
         // check that this truly is a single-sample bam
         if ( samples.size() > 1 )
             throw new StingException("Single-sample genotype calculation model used on multi-sample bam... aborting");
-
-        callsMetrics = new CallResult();
-    }
-
-    /**
-     * Cloning of the object
-     * @return clone
-     * @throws CloneNotSupportedException
-     */
-    protected Object clone() throws CloneNotSupportedException {
-        return super.clone();
     }
 
     public boolean calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {

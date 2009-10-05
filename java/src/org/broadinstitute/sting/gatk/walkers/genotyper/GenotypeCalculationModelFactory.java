@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import static org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model.*;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.apache.log4j.Logger;
 
 import java.util.Set;
 
@@ -47,17 +48,29 @@ public class GenotypeCalculationModelFactory {
      *
      * @param UAC           The unified argument  collection
      * @param samples       samples in bam
-     * @param out           output
+     * @param out           output writer
+     * @param logger        logger
      * @return model
      */
     public static GenotypeCalculationModel makeGenotypeCalculation(UnifiedArgumentCollection UAC,
                                                                    Set<String> samples,
-                                                                   GenotypeWriter out) {
+                                                                   GenotypeWriter out,
+                                                                   Logger logger) {
+        GenotypeCalculationModel gcm;
         switch ( UAC.genotypeModel ) {
-            case SINGLE_SAMPLE: return new SingleSampleGenotypeCalculationModel(UAC.baseModel, samples, UAC.defaultPlatform, out, UAC.GENOTYPE, UAC.LOD_THRESHOLD, UAC.MAX_DELETIONS, UAC.VERBOSE);
-            //case MULTI_SAMPLE_EM: return new MultiSampleEMGenotypeCalculationModel(UAC.baseModel, samples, UAC.defaultPlatform, out, UAC.GENOTYPE, UAC.LOD_THRESHOLD, UAC.MAX_DELETIONS, UAC.VERBOSE);
-            case MULTI_SAMPLE_ALL_MAFS: return new MultiSampleAllMAFsGenotypeCalculationModel(UAC.baseModel, samples, UAC.defaultPlatform, out, UAC.GENOTYPE, UAC.LOD_THRESHOLD, UAC.MAX_DELETIONS, UAC.VERBOSE);
+            case SINGLE_SAMPLE:
+                gcm = new SingleSampleGenotypeCalculationModel();
+                break;
+            case MULTI_SAMPLE_EM:
+                gcm = new MultiSampleEMGenotypeCalculationModel();
+                break;
+            case MULTI_SAMPLE_ALL_MAFS:
+                gcm = new MultiSampleAllMAFsGenotypeCalculationModel();
+                break;
             default: throw new RuntimeException("Unexpected GenotypeCalculationModel " + UAC.genotypeModel);
         }
+
+        gcm.initialize(UAC.baseModel, samples, UAC.defaultPlatform, out, logger, UAC.GENOTYPE, UAC.LOD_THRESHOLD, UAC.MAX_DELETIONS, UAC.VERBOSE);
+        return gcm;
     }
 }

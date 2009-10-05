@@ -95,7 +95,7 @@ public class UnifiedGenotyper extends LocusWalker<Integer, Integer> {
         else
             writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out);
 
-        gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(UAC, samples, writer);
+        gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(UAC, samples, writer, logger);
     }
 
     /**

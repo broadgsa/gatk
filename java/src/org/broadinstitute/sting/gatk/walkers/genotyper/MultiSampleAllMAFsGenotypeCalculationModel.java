@@ -3,31 +3,13 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.apache.log4j.Logger;
 
 import java.util.Set;
 
 public class MultiSampleAllMAFsGenotypeCalculationModel extends GenotypeCalculationModel {
 
-    public MultiSampleAllMAFsGenotypeCalculationModel(BaseMismatchModel baseModel,
-                                                      Set<String> samples,
-                                                      EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform platform,
-                                                      GenotypeWriter out,
-                                                      boolean genotypeMode,
-                                                      double lod,
-                                                      int maxDeletions,
-                                                      boolean verbose) {
-        super(baseModel, samples, platform, out, genotypeMode, lod, maxDeletions, verbose);
-    }
-
-
-    /**
-     * Cloning of the object
-     * @return clone
-     * @throws CloneNotSupportedException
-     */
-    protected Object clone() throws CloneNotSupportedException {
-        return super.clone();
-    }
+    protected MultiSampleAllMAFsGenotypeCalculationModel() {}
 
     public boolean calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 

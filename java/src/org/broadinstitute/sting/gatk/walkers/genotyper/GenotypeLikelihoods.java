@@ -192,6 +192,7 @@ public abstract class GenotypeLikelihoods implements Cloneable {
      */
     public void setPriors(DiploidGenotypePriors priors) {
         this.priors = priors;
+        posteriors = zeros.clone();
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             int i = g.ordinal();
             posteriors[i] = priors.getPriors()[i] + likelihoods[i];
