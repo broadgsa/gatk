@@ -6,6 +6,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.GATKArgumentCollection;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.ArrayList;
@@ -32,9 +33,14 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
     @Argument(fullName = "debugAlleles", shortName = "debugAlleles", doc = "Print likelihood scores for these alleles", required = false)
     public String debugAlleles = "";
 
+    @Argument(fullName = "phaseInterval", shortName = "phaseInterval", doc = "Use only these intervals in phase calculation", required = false)
+    public String phaseIntervalFile = "";
+
     @Argument(fullName = "onlyfrequent", shortName = "onlyfrequent", doc = "Only consider alleles with frequency > 0.0001", required = false)
     public boolean ONLYFREQUENT = false;
 
+    GATKArgumentCollection args = this.getToolkit().getArguments();
+    
     String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
     String BlackAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_BlackUSA.freq";
     String AlleleFrequencyFile;
@@ -45,11 +51,13 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
     String[] HLAnames, HLAreads;
     ArrayList<String> ReadsToDiscard;
     Integer[] HLAstartpos, HLAstoppos, PolymorphicSites;
-    
-    int[][] numObservations, totalObservations;
+
+
+    int[][] numObservations, totalObservations, intervals;
     int[] SNPnumInRead, SNPposInRead;
     CigarParser cigarparser = new CigarParser();
     Hashtable AlleleFrequencies;
+    int numIntervals;
 
     public Integer reduceInit() {
 
@@ -109,10 +117,37 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
             PolymorphicSites = FindPolymorphicSites(HLADictionaryReader.GetMinStartPos(),HLADictionaryReader.GetMaxStopPos());
             */
 
+            //Determine intervals
+            if (!phaseIntervalFile.equals("")){
+                TextFileReader fileReader = new TextFileReader();
+                fileReader.ReadFile(phaseIntervalFile);
+                String[] lines = fileReader.GetLines();
+                intervals = new int[lines.length][2];
+                for (int i = 0; i < lines.length; i++) {
+                    String[] s = lines[i].split(":");
+                    String[] intervalPieces = s[0].split("-");
+                    intervals[i][0] = Integer.valueOf(intervalPieces[0]);
+                    intervals[i][1] = Integer.valueOf(intervalPieces[1]);
+                }
+                numIntervals = intervals.length;
+                for (int i = 0; i < numIntervals; i++){
+                    out.printf("INFO  Interval %s: %s-%s\n",i+1,intervals[i][0],intervals[i][1]);
+                }
+            }
         }
         return 0;
     }
 
+    private boolean IsWithinInterval(int pos){
+        boolean isWithinInterval = false;
+        for (int i = 0; i < numIntervals; i++){
+            if (pos >= intervals[i][0] && pos <= intervals[i][1]){
+                isWithinInterval = true;
+                break;
+            }
+        }
+        return isWithinInterval;
+    }
 
     public Integer map(char[] ref, SAMRecord read) {
         if (!ReadsToDiscard.contains(read.getReadName())){
@@ -264,7 +299,7 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
 
         //Find all SNPs in read
         for (i = 0; i < numPositions; i++){
-            if (PolymorphicSites[i] > combinedstart && PolymorphicSites[i] < combinedstop){
+            if (PolymorphicSites[i] > combinedstart && PolymorphicSites[i] < combinedstop && IsWithinInterval(PolymorphicSites[i])){
                 SNPnumInRead[i] = SNPcount;
                 SNPposInRead[i] = PolymorphicSites[i]-combinedstart;
                 SNPcount++;

@@ -8,10 +8,6 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.io.FileInputStream;
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Hashtable;
 

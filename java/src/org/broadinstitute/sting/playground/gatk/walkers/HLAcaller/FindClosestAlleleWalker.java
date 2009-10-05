@@ -177,7 +177,7 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
                     if (pos >= readstart && pos <= readstop && pos >= allelestart && pos <= allelestop){
                         c1 = s1.charAt(pos-readstart);
                         c2 = s2.charAt(pos-allelestart);
-                        if (c1 != 'D'){
+                        if (c1 != 'D'){//allow for deletions (sequencing errors)
                             numcompared[i]++;
                             if (c1 == c2){
                                 nummatched[i]++;
@@ -197,7 +197,7 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
                     if (pos >= readstart && pos <= readstop && pos >= allelestart && pos <= allelestop){
                         c1 = s1.charAt(pos-readstart);
                         c2 = s2.charAt(pos-allelestart);
-                        if (c1 != c2){
+                        if (c1 != c2 && c1 != 'D'){//allow for deletions (sequencing errors)
                             numcompared[i]++;
                             if (debugRead.equals(read.getReadName()) && debugAllele.equals(HLAnames[i])){
                                 out.printf("%s\t%s\t%s\t%s\t%s\n",read.getReadName(), HLAnames[i], j, c1,c2);
@@ -241,7 +241,7 @@ public class FindClosestAlleleWalker extends ReadWalker<Integer, Integer> {
         String readname = read.getReadName(), allelename = ""; double freq;
         //For input bam files that contain HLA alleles, find and print allele frequency
         freq = GetAlleleFrequency(readname);
-        out.printf("%s\t%.4f", readname,freq);
+        out.printf("%s\t%s-%s", readname,read.getAlignmentStart(),read.getAlignmentEnd());
 
         //Find the maximum frequency of the alleles most concordant with the read
         double maxFreq = FindMaxAlleleFrequency(maxConcordance);

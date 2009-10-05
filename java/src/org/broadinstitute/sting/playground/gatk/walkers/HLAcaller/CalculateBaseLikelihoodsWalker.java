@@ -85,6 +85,9 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
                 similarityReader.ReadFile(filterFile);
                 ReadsToDiscard = similarityReader.GetReadsToDiscard();
                 out.printf("Done! Found %s misaligned reads to discard.\n",ReadsToDiscard.size());
+                for (int i = 0; i < ReadsToDiscard.size(); i++){
+                    out.printf("MISALIGNED %s\n", ReadsToDiscard.get(i).toString());
+                }
             }
         }
         return new Pair<Long,Long>(0l,0l);
@@ -130,12 +133,12 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
                     
                     //consider base in likelihood calculations if it looks good and has high mapping score
                     G.add(base, qual, read, offset);
-                    if (DEBUG){
+                    //if (DEBUG){
                         if (base == 'A'){numAs++;}
                         else if (base == 'C'){numCs++;}
                         else if (base == 'T'){numTs++;}
                         else if (base == 'G'){numGs++;}
-                    }
+                    //}
 
                 }
             }
