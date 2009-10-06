@@ -19,7 +19,7 @@ import java.util.List;
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
 public class CallableBasesAnalysis extends BasicVariantAnalysis implements GenotypeAnalysis {
-    long all_bases = 0;
+    //long all_bases = 0;
     long all_calls = 0;
     final static double[] thresholds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 50, 100};
     long[] discoverable_bases = new long[thresholds.length];
@@ -30,7 +30,7 @@ public class CallableBasesAnalysis extends BasicVariantAnalysis implements Genot
     }
 
     public long nSites() {
-        return all_bases;
+        return super.getMaster().getNMappedSites();
     }
 
     public long nCalls() {
@@ -54,7 +54,7 @@ public class CallableBasesAnalysis extends BasicVariantAnalysis implements Genot
     }
 
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
-        all_bases++;
+        //all_bases++;
 
         if (eval == null)                     // no data here!
             return null;

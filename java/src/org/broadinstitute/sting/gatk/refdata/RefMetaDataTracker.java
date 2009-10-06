@@ -142,6 +142,24 @@ public class RefMetaDataTracker {
         return bound;
     }
 
+    public int getNBoundRodTracks() {
+        return getNBoundRodTracks(null);
+    }
+
+    public int getNBoundRodTracks(final String excludeIn ) {
+        final String exclude = excludeIn == null ? null : canonicalName(excludeIn);
+
+        int n = 0;
+        for ( RODRecordList<ReferenceOrderedDatum> value : map.values() ) {
+             if ( value != null && ! value.isEmpty() ) {
+                 if ( exclude == null || ! value.getName().equals(exclude) )
+                    n++;
+             }
+        }
+
+        return n;
+    }
+
     public Collection<ReferenceOrderedDatum> getBoundRodRecords() {
         LinkedList<ReferenceOrderedDatum> bound = new LinkedList<ReferenceOrderedDatum>();
 

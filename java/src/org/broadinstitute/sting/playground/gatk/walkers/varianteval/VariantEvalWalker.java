@@ -67,7 +67,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 
     PrintStream perLocusStream = null;
 
-    long nSites = 0;
+    long nMappedSites = 0;
 
     final String ALL_SNPS = "all";
     final String SINGLETON_SNPS = "singletons";
@@ -78,7 +78,6 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     final String[] GENOTYPE_ANALYSIS_NAMES = { ALL_SNPS, KNOWN_SNPS, NOVEL_SNPS };
     final String[] SIMPLE_ANALYSIS_NAMES = { ALL_SNPS };
     String[] ALL_ANALYSIS_NAMES = null;
-
 
     public void initialize() {
         ALL_ANALYSIS_NAMES = SIMPLE_ANALYSIS_NAMES;
@@ -99,6 +98,11 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         // whether masked by overlapping indels/other events or not.
         //TODO process correctly all the returned dbSNP rods at each location
         BrokenRODSimulator.attach("dbSNP");
+    }
+
+
+    public long getNMappedSites() {
+        return nMappedSites;
     }
 
     private ArrayList<VariantAnalysis> getAnalysisSet(final String name) {
@@ -185,49 +189,39 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        nSites++;
-        // Iterate over each analysis, and update it
-        Variation eval = (Variation)tracker.lookup("eval", null);
+        nMappedSites++;
 
-        if ( eval != null )
-               if ( eval.getNegLog10PError() < minConfidenceScore ) eval = null;
+        int nBoundGoodRods = tracker.getNBoundRodTracks("interval");
+        if ( nBoundGoodRods > 0 ) {
+            //System.out.printf("%s: n = %d%n", context.getLocation(), nBoundGoodRods );
+        
+            // Iterate over each analysis, and update it
+            Variation eval = (Variation)tracker.lookup("eval", null);
 
-        // update stats about all of the SNPs
-        updateAnalysisSet(ALL_SNPS, eval, tracker, ref.getBase(), context);
+            if ( eval != null )
+                if ( eval.getNegLog10PError() < minConfidenceScore ) eval = null;
 
-        // update the known / novel set by checking whether the knownSNPDBName track has an entry here
-        if ( eval != null ) {
-//            if ( ref.getLocus().getStart() >= 10168704 && ref.getLocus().getStop() <= 10168728) System.out.println("###DbSNP from MAP: ");
-            Variation dbsnp = (Variation)BrokenRODSimulator.simulate_lookup("dbSNP",ref.getLocus(),tracker);
-//            if ( ref.getLocus().getStart() >= 10168704 && ref.getLocus().getStop() <= 10168728) System.out.println("###\n");
+            // update stats about all of the SNPs
+            updateAnalysisSet(ALL_SNPS, eval, tracker, ref.getBase(), context);
 
-//            RODRecordList<ReferenceOrderedDatum> rods = tracker.getTrackData("dbSNP",null);
+            // update the known / novel set by checking whether the knownSNPDBName track has an entry here
+            if ( eval != null ) {
+                Variation dbsnp = (Variation)BrokenRODSimulator.simulate_lookup("dbSNP",ref.getLocus(),tracker);
 
-            //
-            //TODO process correctly all the returned dbSNP rods at each location
-//            if ( last_interval.containsP(ref.getLocus()) ) dbsnp = last_rod; // old RODIterator kept returning the same ROD until we completely walk out of it
-//            else {
-//                if ( rods != null && rods.size() > 0 ) dbsnp = (Variation)rods.getRecords().get(0);
-//                if ( dbsnp != null ) {
-//                     last_rod = dbsnp;
-//                     last_interval = dbsnp.getLocation(); // remember what we just read
-//                }
-//            }
+                String noveltySet = dbsnp == null ? NOVEL_SNPS : KNOWN_SNPS;
+                updateAnalysisSet(noveltySet, eval, tracker, ref.getBase(), context);
+            }
 
-//            Variation dbsnp = (Variation)tracker.lookup(knownSNPDBName, null);
-            String noveltySet = dbsnp == null ? NOVEL_SNPS : KNOWN_SNPS;
-//            if ( dbsnp != null ) out.println(ref.getLocus()+" DBSNP RECORD "+dbsnp.getLocation());
-            updateAnalysisSet(noveltySet, eval, tracker, ref.getBase(), context);
+            // are we a population backed call? then update
+            if ( eval instanceof SNPCallFromGenotypes) {
+                SNPCallFromGenotypes call = (SNPCallFromGenotypes)eval;
+                int nVarGenotypes = call.nHetGenotypes() + call.nHomVarGenotypes();
+                //System.out.printf("%d variant genotypes at %s%n", nVarGenotypes, calls);
+                final String s = nVarGenotypes == 1 ? SINGLETON_SNPS : TWOHIT_SNPS;
+                updateAnalysisSet(s, eval, tracker, ref.getBase(), context);
+            }
         }
 
-        // are we a population backed call? then update
-        if ( eval instanceof SNPCallFromGenotypes) {
-            SNPCallFromGenotypes call = (SNPCallFromGenotypes)eval;
-            int nVarGenotypes = call.nHetGenotypes() + call.nHomVarGenotypes();
-            //System.out.printf("%d variant genotypes at %s%n", nVarGenotypes, calls);
-            final String s = nVarGenotypes == 1 ? SINGLETON_SNPS : TWOHIT_SNPS;
-            updateAnalysisSet(s, eval, tracker, ref.getBase(), context);
-        }
         return 1;
     }
 
@@ -270,7 +264,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         Date now = new Date();
         for ( VariantAnalysis analysis : getAnalysisSet(analysisSetName) ) {
             String header = getLineHeader(analysisSetName, "summary", analysis.getName());
-            analysis.finalize(nSites);
+            analysis.finalize(getNMappedSites());
             PrintStream stream = analysis.getSummaryPrintStream();
             stream.printf("%s%s%n", header, Utils.dupString('-', 78));
             //stream.printf("%s Analysis set       %s%n", analysisSetName, , analysisSetName);

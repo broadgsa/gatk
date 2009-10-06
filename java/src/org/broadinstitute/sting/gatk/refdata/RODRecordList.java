@@ -63,6 +63,7 @@ public class RODRecordList<ROD extends ReferenceOrderedDatum> implements Iterabl
     public List<ROD> getRecords() { return records; }
     public Iterator<ROD> iterator() { return records.iterator() ; }
     public void clear() { records.clear(); }
+    public boolean isEmpty() { return records.isEmpty(); }
     public void add(ROD record) {
         if ( record != null ) {
             if ( ! name.equals(record.getName() ) )
