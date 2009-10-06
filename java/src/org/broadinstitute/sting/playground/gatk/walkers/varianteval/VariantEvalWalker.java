@@ -25,9 +25,8 @@ import java.util.*;
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  *
  */
-@By(DataSource.REFERENCE)
-@Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="eval",type=VariationRod.class)}) // right now we have no base variant class for rods, this should change
-@Allows(value={DataSource.REFERENCE},referenceMetaData = {@RMD(name="eval",type=VariationRod.class), @RMD(name="dbsnp",type=rodDbSNP.class),@RMD(name="hapmap-chip",type=RodGenotypeChipAsGFF.class), @RMD(name="interval",type=IntervalRod.class)})
+@Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="eval",type=ReferenceOrderedDatum.class)}) // right now we have no base variant class for rods, this should change
+@Allows(value={DataSource.REFERENCE},referenceMetaData = {@RMD(name="eval",type=ReferenceOrderedDatum.class), @RMD(name="dbsnp",type=rodDbSNP.class),@RMD(name="hapmap-chip",type=ReferenceOrderedDatum.class), @RMD(name="interval",type=IntervalRod.class)})
 public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     @Argument(shortName="minConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
     public int minConfidenceScore = -1;
