@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.refdata;
 
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.List;
@@ -12,6 +11,7 @@ import java.util.List;
  * Time: 11:02:03 AM
  * To change this template use File | Settings | File Templates.
  */
+@Deprecated
 public interface Genotype extends Comparable<ReferenceOrderedDatum> {
     // ----------------------------------------------------------------------
     //

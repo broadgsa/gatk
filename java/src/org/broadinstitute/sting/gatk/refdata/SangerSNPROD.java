@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-
+import org.broadinstitute.sting.utils.GenomeLocParser; 
+import org.broadinstitute.sting.utils.genotype.Genotype;
 import java.util.Arrays;
 import java.util.List;
 

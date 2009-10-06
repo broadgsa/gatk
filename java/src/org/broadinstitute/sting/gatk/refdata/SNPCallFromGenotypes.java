@@ -2,6 +2,8 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.genotype.Variation;
 
+import org.broadinstitute.sting.utils.genotype.Genotype;
+
 import java.util.List;
 
 /**
