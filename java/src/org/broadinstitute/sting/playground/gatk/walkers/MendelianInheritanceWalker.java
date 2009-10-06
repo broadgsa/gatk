@@ -1,19 +1,19 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 
-import java.util.List;
-
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.Genotype;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.Genotype;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.playground.utils.GenotypingCallStats;
 import org.broadinstitute.sting.playground.utils.TrioConcordanceRecord;
 import org.broadinstitute.sting.utils.GenotypeUtils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+
+import java.util.List;
 
 //@Requires(value=DataSource.REFERENCE,referenceMetaData={@RMD(name="mother",type=rodSAMPileup.class),
 //                                                        @RMD(name="father",type=rodSAMPileup.class),

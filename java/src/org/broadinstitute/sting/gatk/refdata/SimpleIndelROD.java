@@ -6,7 +6,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import java.util.Arrays;
 import java.util.List;
 
-public class SimpleIndelROD extends TabularROD implements Genotype, AllelicVariant, VariationRod {
+public class SimpleIndelROD extends TabularROD implements Genotype, VariationRod {
 
     private boolean KGENOMES_FORMAT = false, checkedFormat = false;
 

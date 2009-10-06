@@ -2,8 +2,8 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.AllelicVariant;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.VariationRod;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -11,7 +11,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
 @WalkerName("SNPClusters")
-@Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="snps",type=AllelicVariant.class)})
+@Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="snps",type= VariationRod.class)})
 public class SNPClusterWalker extends RefWalker<GenomeLoc, GenomeLoc> {
     @Argument(fullName="windowSize", shortName="window", doc="window size for calculating clusters", required=false)
     int windowSize = 10;

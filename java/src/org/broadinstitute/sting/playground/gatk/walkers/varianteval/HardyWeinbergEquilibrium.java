@@ -83,7 +83,7 @@ public class HardyWeinbergEquilibrium extends BasicVariantAnalysis implements Po
 
         if ( false ) {
             System.out.printf("HWE-violation at %s %f < %f %1.2f %5d %5d %5d %5d %5d %.2e %.2e %.2e => %.6e [%s]%n",
-                    call.getLocation(), p, threshold, call.getMAF(), nAA, nAa, naa, nA, n, m, b, tosses, p, call);
+                    call.getLocation(), p, threshold, call.getNonRefAlleleFrequency(), nAA, nAa, naa, nA, n, m, b, tosses, p, call);
             System.out.printf("(factorial(%d) / (factorial(%d) * factorial(%d) * factorial(%d))) / choose(%d, %d) * 2^%d - %f < 1e-3%n",
                     nAA + nAa + naa, nAA, nAa, naa, 2 * n, nA, nAa, p);
         }

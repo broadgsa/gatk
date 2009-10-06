@@ -20,7 +20,7 @@ import java.util.List;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype, AllelicVariant {
+public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype {
     public GenomeLoc loc;       // genome location of SNP
                                 // Reference sequence chromosome or scaffold
                                 // Start and stop positions in chrom

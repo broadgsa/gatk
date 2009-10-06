@@ -37,7 +37,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class RodGeliText extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype, AllelicVariant {
+public class RodGeliText extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype {
     public enum Genotype_Strings {
         AA, AC, AG, AT, CC, CG, CT, GG, GT, TT
     }
