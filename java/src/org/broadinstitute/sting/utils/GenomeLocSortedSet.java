@@ -247,9 +247,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      */
     public static GenomeLocSortedSet createSetFromList(List<GenomeLoc> locs) {
         GenomeLocSortedSet set = new GenomeLocSortedSet();
-        for (GenomeLoc l : locs) {
-            set.add(l);
-        }
+        set.addAll(locs);
         return set;
     }
 

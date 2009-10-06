@@ -42,6 +42,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.bed.BedParser;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentException;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentSource;
@@ -75,17 +76,25 @@ public class GenomeAnalysisEngine {
     // our argument collection
     private GATKArgumentCollection argCollection;
 
-    /** Collection of inputs used by the walker. */
-    private Map<ArgumentSource,Object> inputs = new HashMap<ArgumentSource,Object>();
+    /**
+     * Collection of inputs used by the walker.
+     */
+    private Map<ArgumentSource, Object> inputs = new HashMap<ArgumentSource, Object>();
 
-    /** Collection of outputs used by the walker. */
+    /**
+     * Collection of outputs used by the walker.
+     */
     private Collection<Stub<?>> outputs = new ArrayList<Stub<?>>();
 
 
-    /** our log, which we want to capture anything from this class */
+    /**
+     * our log, which we want to capture anything from this class
+     */
     private static Logger logger = Logger.getLogger(GenomeAnalysisEngine.class);
 
-    /** our walker manager */
+    /**
+     * our walker manager
+     */
     private final WalkerManager walkerManager;
 
     /**
@@ -93,7 +102,6 @@ public class GenomeAnalysisEngine {
      * <p/>
      * legacy traversal types are sent to legacyTraversal function; as we move more of the traversals to the
      * new MicroScheduler class we'll be able to delete that function.
-     *
      */
     public GenomeAnalysisEngine() {
         // make sure our instance variable points to this analysis engine
@@ -103,11 +111,12 @@ public class GenomeAnalysisEngine {
 
     /**
      * Actually run the GATK with the specified walker.
+     *
      * @param args      the argument collection, where we get all our setup information from
      * @param my_walker Walker to run over the dataset.  Must not be null.
      * @return the value of this traversal.
      */
-    public Object execute(GATKArgumentCollection args, Walker<?,?> my_walker) {
+    public Object execute(GATKArgumentCollection args, Walker<?, ?> my_walker) {
         // validate our parameters
         if (args == null) {
             throw new StingException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
@@ -121,7 +130,7 @@ public class GenomeAnalysisEngine {
         this.argCollection = args;
 
         // Prepare the data for traversal.
-        initializeDataSources( my_walker, argCollection );
+        initializeDataSources(my_walker, argCollection);
 
         // our microscheduler, which is in charge of running everything
         MicroScheduler microScheduler = createMicroscheduler(my_walker);
@@ -142,23 +151,26 @@ public class GenomeAnalysisEngine {
 
     /**
      * Add additional, externally managed IO streams for walker input.
+     *
      * @param argumentSource Field in the walker into which to inject the value.
-     * @param value Instance to inject.
+     * @param value          Instance to inject.
      */
-    public void addInput( ArgumentSource argumentSource, Object value ) {
-        inputs.put(argumentSource,value);
+    public void addInput(ArgumentSource argumentSource, Object value) {
+        inputs.put(argumentSource, value);
     }
 
     /**
      * Add additional, externally managed IO streams for walker output.
+     *
      * @param stub Instance to inject.
      */
-    public void addOutput( Stub<?> stub ) {
+    public void addOutput(Stub<?> stub) {
         outputs.add(stub);
     }
 
     /**
      * Gets a set of the names of all walkers that the GATK has discovered.
+     *
      * @return A set of the names of all discovered walkers.
      */
     public Set<String> getWalkerNames() {
@@ -167,19 +179,20 @@ public class GenomeAnalysisEngine {
 
     /**
      * Retrieves an instance of the walker based on the walker name.
+     *
      * @param walkerName Name of the walker.  Must not be null.  If the walker cannot be instantiated, an exception will be thrown.
      * @return An instance of the walker.
      */
-    public Walker<?,?> getWalkerByName( String walkerName ) {
+    public Walker<?, ?> getWalkerByName(String walkerName) {
         return walkerManager.createWalkerByName(walkerName);
     }
 
-    private void initializeDataSources( Walker my_walker, GATKArgumentCollection argCollection ) {
-        validateSuppliedReadsAgainstWalker( my_walker, argCollection );        
+    private void initializeDataSources(Walker my_walker, GATKArgumentCollection argCollection) {
+        validateSuppliedReadsAgainstWalker(my_walker, argCollection);
         logger.info("Strictness is " + argCollection.strictnessLevel);
-        readsDataSource = createReadsDataSource(extractSourceInfo(my_walker,argCollection));
+        readsDataSource = createReadsDataSource(extractSourceInfo(my_walker, argCollection));
 
-        validateSuppliedReferenceAgainstWalker( my_walker, argCollection );
+        validateSuppliedReferenceAgainstWalker(my_walker, argCollection);
         referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
 
         validateReadsAndReferenceAreCompatible(readsDataSource, referenceDataSource);
@@ -203,13 +216,14 @@ public class GenomeAnalysisEngine {
         // parse out the rod bindings
         ReferenceOrderedData.parseBindings(argCollection.RODBindings, rods);
 
-        validateSuppliedReferenceOrderedDataAgainstWalker( my_walker, rods );
+        validateSuppliedReferenceOrderedDataAgainstWalker(my_walker, rods);
 
         rodDataSources = getReferenceOrderedDataSources(rods);
     }
 
     /**
      * setup a microscheduler
+     *
      * @param my_walker our walker of type LocusWalker
      * @return a new microscheduler
      */
@@ -236,14 +250,19 @@ public class GenomeAnalysisEngine {
      * setup the interval regions, from either the interval file of the genome region string
      *
      * @param intervals the list of intervals to parse
-     *
      * @return a list of genomeLoc representing the interval file
      */
     public static List<GenomeLoc> parseIntervalRegion(final List<String> intervals) {
         List<GenomeLoc> locs = new ArrayList<GenomeLoc>();
         for (String interval : intervals) {
             if (new File(interval).exists()) {
-                locs.addAll(GenomeLocParser.intervalFileToList(interval));
+                // support for the bed style interval format
+                if (interval.endsWith(".bed") || interval.endsWith(".BED")) {
+                    BedParser parser = new BedParser(new File(interval));
+                    locs.addAll(parser.getSortedAndMergedLocations());
+                } else {
+                    locs.addAll(GenomeLocParser.intervalFileToList(interval));
+                }
             } else {
                 locs.addAll(GenomeLocParser.parseGenomeLocs(interval));
             }
@@ -252,128 +271,131 @@ public class GenomeAnalysisEngine {
         return locs;
     }
 
-	/**
-	 * Returns sets of samples present in the (merged) input SAM stream, grouped by readers (i.e. underlying
-	 * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
-	 * returned by this method will contain 3 elements (one for each reader), with each element being a set of sample names
-	 * found in the corresponding bam file.
-	 * @return
-	 */
-	public List< Set<String> > getSamplesByReaders() {
-		
-		
-		SamFileHeaderMerger hm = getDataSource().getHeaderMerger(); 
-		
-		List< Set<String> > sample_sets = new ArrayList<Set<String>>(hm.getReaders().size()); 
-		
-		for ( SAMFileReader r : hm.getReaders() ) {
-			
-			Set<String> samples = new HashSet<String>(1);
-			sample_sets.add(samples);
-			
-			for ( SAMReadGroupRecord g : r.getFileHeader().getReadGroups() ) {
-				samples.add(g.getSample());
-			}
-		}
-		
-		return sample_sets;
-		
-	}
+    /**
+     * Returns sets of samples present in the (merged) input SAM stream, grouped by readers (i.e. underlying
+     * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
+     * returned by this method will contain 3 elements (one for each reader), with each element being a set of sample names
+     * found in the corresponding bam file.
+     *
+     * @return
+     */
+    public List<Set<String>> getSamplesByReaders() {
 
-	/**
-	 * Returns sets of libraries present in the (merged) input SAM stream, grouped by readers (i.e. underlying
-	 * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
-	 * returned by this method will contain 3 elements (one for each reader), with each element being a set of library names
-	 * found in the corresponding bam file.
-	 * @return
-	 */
-	public List< Set<String> > getLibrariesByReaders() {
-		
-		
-		SamFileHeaderMerger hm = getDataSource().getHeaderMerger(); 
-		
-		List< Set<String> > lib_sets = new ArrayList<Set<String>>(hm.getReaders().size()); 
-		
-		for ( SAMFileReader r : hm.getReaders() ) {
-			
-			Set<String> libs = new HashSet<String>(2);
-			lib_sets.add(libs);
-			
-			for ( SAMReadGroupRecord g : r.getFileHeader().getReadGroups() ) {
-				libs.add(g.getLibrary());
-			}
-		}
-		
-		return lib_sets;
-		
-	}
 
-	/**
-	 * Returns sets of (remapped) read groups in input SAM stream, grouped by readers (i.e. underlying
-	 * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
-	 * returned by this method will contain 3 elements (one for each reader), with each element being a set of remapped read groups
-	 * (i.e. as seen by read.getReadGroup().getReadGroupId() in the merged stream) that come from the corresponding bam file.
-	 * @return
-	 */
-	public List< Set<String> > getMergedReadGroupsByReaders() {
-		
-		
-		SamFileHeaderMerger hm = getDataSource().getHeaderMerger(); 
-		
-		List< Set<String> > rg_sets = new ArrayList<Set<String>>(hm.getReaders().size()); 
-		
-		for ( SAMFileReader r : hm.getReaders() ) {
-			
-			Set<String> groups = new HashSet<String>(5);
-			rg_sets.add(groups);
-			
-			for ( SAMReadGroupRecord g : r.getFileHeader().getReadGroups() ) {
-				if (hm.hasGroupIdDuplicates()) { // Check if there were read group clashes with hasGroupIdDuplicates and if so:
-					// use HeaderMerger to translate original read group id from the reader into the read group id in the
-					// merged stream, and save that remapped read group id to associate it with specific reader
-					groups.add( hm.getReadGroupId(r, g.getReadGroupId()) );
-				}else{
-					// otherwise, pass through the unmapped read groups since this is what Picard does as well
-					groups.add( g.getReadGroupId() );
-				}
-			}
-		}
-		
-		return rg_sets;
-		
-	}
-    
+        SamFileHeaderMerger hm = getDataSource().getHeaderMerger();
+
+        List<Set<String>> sample_sets = new ArrayList<Set<String>>(hm.getReaders().size());
+
+        for (SAMFileReader r : hm.getReaders()) {
+
+            Set<String> samples = new HashSet<String>(1);
+            sample_sets.add(samples);
+
+            for (SAMReadGroupRecord g : r.getFileHeader().getReadGroups()) {
+                samples.add(g.getSample());
+            }
+        }
+
+        return sample_sets;
+
+    }
+
+    /**
+     * Returns sets of libraries present in the (merged) input SAM stream, grouped by readers (i.e. underlying
+     * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
+     * returned by this method will contain 3 elements (one for each reader), with each element being a set of library names
+     * found in the corresponding bam file.
+     *
+     * @return
+     */
+    public List<Set<String>> getLibrariesByReaders() {
+
+
+        SamFileHeaderMerger hm = getDataSource().getHeaderMerger();
+
+        List<Set<String>> lib_sets = new ArrayList<Set<String>>(hm.getReaders().size());
+
+        for (SAMFileReader r : hm.getReaders()) {
+
+            Set<String> libs = new HashSet<String>(2);
+            lib_sets.add(libs);
+
+            for (SAMReadGroupRecord g : r.getFileHeader().getReadGroups()) {
+                libs.add(g.getLibrary());
+            }
+        }
+
+        return lib_sets;
+
+    }
+
+    /**
+     * Returns sets of (remapped) read groups in input SAM stream, grouped by readers (i.e. underlying
+     * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
+     * returned by this method will contain 3 elements (one for each reader), with each element being a set of remapped read groups
+     * (i.e. as seen by read.getReadGroup().getReadGroupId() in the merged stream) that come from the corresponding bam file.
+     *
+     * @return
+     */
+    public List<Set<String>> getMergedReadGroupsByReaders() {
+
+
+        SamFileHeaderMerger hm = getDataSource().getHeaderMerger();
+
+        List<Set<String>> rg_sets = new ArrayList<Set<String>>(hm.getReaders().size());
+
+        for (SAMFileReader r : hm.getReaders()) {
+
+            Set<String> groups = new HashSet<String>(5);
+            rg_sets.add(groups);
+
+            for (SAMReadGroupRecord g : r.getFileHeader().getReadGroups()) {
+                if (hm.hasGroupIdDuplicates()) { // Check if there were read group clashes with hasGroupIdDuplicates and if so:
+                    // use HeaderMerger to translate original read group id from the reader into the read group id in the
+                    // merged stream, and save that remapped read group id to associate it with specific reader
+                    groups.add(hm.getReadGroupId(r, g.getReadGroupId()));
+                } else {
+                    // otherwise, pass through the unmapped read groups since this is what Picard does as well
+                    groups.add(g.getReadGroupId());
+                }
+            }
+        }
+
+        return rg_sets;
+
+    }
+
     /**
      * Bundles all the source information about the reads into a unified data structure.
      *
-     * @param walker The walker for which to extract info.
+     * @param walker        The walker for which to extract info.
      * @param argCollection The collection of arguments passed to the engine.
-     *
      * @return The reads object providing reads source info.
      */
-    private Reads extractSourceInfo( Walker walker, GATKArgumentCollection argCollection ) {
+    private Reads extractSourceInfo(Walker walker, GATKArgumentCollection argCollection) {
         List<SamRecordFilter> filters = new ArrayList<SamRecordFilter>();
 
-        filters.addAll( WalkerManager.getReadFilters(walker) );
-        if( argCollection.filterZeroMappingQualityReads != null && argCollection.filterZeroMappingQualityReads )
-            filters.add( new ZeroMappingQualityReadFilter() );
+        filters.addAll(WalkerManager.getReadFilters(walker));
+        if (argCollection.filterZeroMappingQualityReads != null && argCollection.filterZeroMappingQualityReads)
+            filters.add(new ZeroMappingQualityReadFilter());
 
-        return new Reads( argCollection.samFiles,
-                          argCollection.strictnessLevel,
-                          argCollection.downsampleFraction,
-                          argCollection.downsampleCoverage,
-                          !argCollection.unsafe,
-                          filters,
-                          argCollection.readMaxPileup,
-                          walker.includeReadsWithDeletionAtLoci() );
+        return new Reads(argCollection.samFiles,
+                argCollection.strictnessLevel,
+                argCollection.downsampleFraction,
+                argCollection.downsampleCoverage,
+                !argCollection.unsafe,
+                filters,
+                argCollection.readMaxPileup,
+                walker.includeReadsWithDeletionAtLoci());
     }
 
     /**
      * Verifies that the supplied set of reads files mesh with what the walker says it requires.
-     * @param walker Walker to test.
+     *
+     * @param walker    Walker to test.
      * @param arguments Supplied reads files.
      */
-    private void validateSuppliedReadsAgainstWalker( Walker walker, GATKArgumentCollection arguments ) {
+    private void validateSuppliedReadsAgainstWalker(Walker walker, GATKArgumentCollection arguments) {
         // Check what the walker says is required against what was provided on the command line.
         if (WalkerManager.isRequired(walker, DataSource.READS) && (arguments.samFiles == null || arguments.samFiles.size() == 0))
             throw new ArgumentException("Walker requires reads but none were provided.  If this is incorrect, alter the walker's @Requires annotation.");
@@ -385,10 +407,11 @@ public class GenomeAnalysisEngine {
 
     /**
      * Verifies that the supplied reference file mesh with what the walker says it requires.
-     * @param walker Walker to test.
+     *
+     * @param walker    Walker to test.
      * @param arguments Supplied reads files.
      */
-    private void validateSuppliedReferenceAgainstWalker( Walker walker, GATKArgumentCollection arguments ) {
+    private void validateSuppliedReferenceAgainstWalker(Walker walker, GATKArgumentCollection arguments) {
         // Check what the walker says is required against what was provided on the command line.
         if (WalkerManager.isRequired(walker, DataSource.REFERENCE) && arguments.referenceFile == null)
             throw new ArgumentException("Walker requires a reference but none was provided.  If this is incorrect, alter the walker's @Requires annotation.");
@@ -401,10 +424,11 @@ public class GenomeAnalysisEngine {
     /**
      * Verifies that all required reference-ordered data has been supplied, and any reference-ordered data that was not
      * 'allowed' is still present.
+     *
      * @param walker Walker to test.
-     * @param rods Reference-ordered data to load.
+     * @param rods   Reference-ordered data to load.
      */
-    private void validateSuppliedReferenceOrderedDataAgainstWalker( Walker walker, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods ) {
+    private void validateSuppliedReferenceOrderedDataAgainstWalker(Walker walker, List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
         // Check to make sure that all required metadata is present.
         List<RMD> allRequired = WalkerManager.getRequiredMetaData(walker);
         for (RMD required : allRequired) {
@@ -426,28 +450,29 @@ public class GenomeAnalysisEngine {
 
     /**
      * Now that all files are open, validate the sequence dictionaries of the reads vs. the reference.
-     * @param reads Reads data source.
+     *
+     * @param reads     Reads data source.
      * @param reference Reference data source.
      */
-    private void validateReadsAndReferenceAreCompatible( SAMDataSource reads, ReferenceSequenceFile reference ) {
-        if( reads == null || reference == null )
+    private void validateReadsAndReferenceAreCompatible(SAMDataSource reads, ReferenceSequenceFile reference) {
+        if (reads == null || reference == null)
             return;
 
         // Compile a set of sequence names that exist in the BAM files.
         SAMSequenceDictionary readsDictionary = reads.getHeader().getSequenceDictionary();
 
         Set<String> readsSequenceNames = new TreeSet<String>();
-        for( SAMSequenceRecord dictionaryEntry: readsDictionary.getSequences() )
+        for (SAMSequenceRecord dictionaryEntry : readsDictionary.getSequences())
             readsSequenceNames.add(dictionaryEntry.getSequenceName());
 
         // Compile a set of sequence names that exist in the reference file.
         SAMSequenceDictionary referenceDictionary = reference.getSequenceDictionary();
 
         Set<String> referenceSequenceNames = new TreeSet<String>();
-        for( SAMSequenceRecord dictionaryEntry: referenceDictionary.getSequences() )
+        for (SAMSequenceRecord dictionaryEntry : referenceDictionary.getSequences())
             referenceSequenceNames.add(dictionaryEntry.getSequenceName());
 
-        if( readsSequenceNames.size() == 0 ) {
+        if (readsSequenceNames.size() == 0) {
             logger.info("Reads file is unmapped.  Skipping validation against reference.");
             return;
         }
@@ -455,7 +480,7 @@ public class GenomeAnalysisEngine {
         // If there's no overlap between reads and reference, data will be bogus.  Throw an exception.
         Set<String> intersectingSequenceNames = new HashSet<String>(readsSequenceNames);
         intersectingSequenceNames.retainAll(referenceSequenceNames);
-        if( intersectingSequenceNames.size() == 0 ) {
+        if (intersectingSequenceNames.size() == 0) {
             StringBuilder error = new StringBuilder();
             error.append("No overlap exists between sequence dictionary of the reads and the sequence dictionary of the reference.  Perhaps you're using the wrong reference?\n");
             error.append(System.getProperty("line.separator"));
@@ -466,9 +491,9 @@ public class GenomeAnalysisEngine {
         }
 
         // If the two datasets are not equal and neither is a strict subset of the other, warn the user.
-        if( !readsSequenceNames.equals(referenceSequenceNames) &&
-            !readsSequenceNames.containsAll(referenceSequenceNames) &&
-            !referenceSequenceNames.containsAll(readsSequenceNames)) {
+        if (!readsSequenceNames.equals(referenceSequenceNames) &&
+                !readsSequenceNames.containsAll(referenceSequenceNames) &&
+                !referenceSequenceNames.containsAll(readsSequenceNames)) {
             StringBuilder warning = new StringBuilder();
             warning.append("Limited overlap exists between sequence dictionary of the reads and the sequence dictionary of the reference.  Perhaps you're using the wrong reference?\n");
             warning.append(System.getProperty("line.separator"));
@@ -478,10 +503,10 @@ public class GenomeAnalysisEngine {
         }
     }
 
-    private String prettyPrintSequenceRecords( SAMSequenceDictionary sequenceDictionary ) {
-        String[] sequenceRecordNames = new String[ sequenceDictionary.size() ];
+    private String prettyPrintSequenceRecords(SAMSequenceDictionary sequenceDictionary) {
+        String[] sequenceRecordNames = new String[sequenceDictionary.size()];
         int sequenceRecordIndex = 0;
-        for( SAMSequenceRecord sequenceRecord: sequenceDictionary.getSequences() )
+        for (SAMSequenceRecord sequenceRecord : sequenceDictionary.getSequences())
             sequenceRecordNames[sequenceRecordIndex++] = sequenceRecord.getSequenceName();
         return Arrays.deepToString(sequenceRecordNames);
     }
@@ -506,7 +531,6 @@ public class GenomeAnalysisEngine {
      * @param drivingDataSource Data on which to shard.
      * @param intervals         Intervals to use when limiting sharding.
      * @param maxIterations     the maximum number of iterations to run through
-     *
      * @return Sharding strategy for this driving data source.
      */
     protected ShardStrategy getShardStrategy(Walker walker,
@@ -519,7 +543,7 @@ public class GenomeAnalysisEngine {
         ShardStrategyFactory.SHATTER_STRATEGY shardType;
 
         if (walker instanceof LocusWalker) {
-            if ( walker instanceof RodWalker ) SHARD_SIZE *= 100;
+            if (walker instanceof RodWalker) SHARD_SIZE *= 100;
 
             if (intervals != null) {
                 shardType = (walker.isReduceByInterval()) ?
@@ -550,7 +574,7 @@ public class GenomeAnalysisEngine {
                         SHARD_SIZE, maxIterations);
             }
         } else if (walker instanceof LocusWindowWalker) {
-            if( intervals == null )
+            if (intervals == null)
                 throw new StingException("Unable to shard: walker is of type LocusWindow, but no intervals were provided");
             shardStrategy = ShardStrategyFactory.shatter(ShardStrategyFactory.SHATTER_STRATEGY.INTERVAL,
                     drivingDataSource.getSequenceDictionary(),
@@ -565,8 +589,7 @@ public class GenomeAnalysisEngine {
     /**
      * Gets a data source for the given set of reads.
      *
-     * @param reads   the read source information
-     *
+     * @param reads the read source information
      * @return A data source for the given set of reads.
      */
     private SAMDataSource createReadsDataSource(Reads reads) {
@@ -583,7 +606,6 @@ public class GenomeAnalysisEngine {
      * Opens a reference sequence file paired with an index.
      *
      * @param refFile Handle to a reference sequence file.  Non-null.
-     *
      * @return A thread-safe file wrapper.
      */
     private IndexedFastaSequenceFile openReferenceSequenceFile(File refFile) {
@@ -602,7 +624,6 @@ public class GenomeAnalysisEngine {
      * Open the reference-ordered data sources.
      *
      * @param rods the reference order data to execute using
-     *
      * @return A list of reference-ordered data sources.
      */
     private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(List<ReferenceOrderedData<? extends ReferenceOrderedDatum>> rods) {
@@ -615,18 +636,18 @@ public class GenomeAnalysisEngine {
     /**
      * Initialize the output streams as specified by the user.
      *
-     * @param walker the walker to initialize output streams for
+     * @param walker        the walker to initialize output streams for
      * @param outputTracker the tracker supplying the initialization data.
      */
     private void initializeOutputStreams(Walker walker, OutputTracker outputTracker) {
-        if( argCollection.outErrFileName != null )
-            outputTracker.initializeCoreIO( argCollection.outErrFileName, argCollection.outErrFileName );
+        if (argCollection.outErrFileName != null)
+            outputTracker.initializeCoreIO(argCollection.outErrFileName, argCollection.outErrFileName);
         else
-            outputTracker.initializeCoreIO( argCollection.outFileName, argCollection.errFileName );
+            outputTracker.initializeCoreIO(argCollection.outFileName, argCollection.errFileName);
 
-        for( Map.Entry<ArgumentSource,Object> input: inputs.entrySet() )
-            outputTracker.addInput(input.getKey(),input.getValue());
-        for( Stub<?> stub: outputs )
+        for (Map.Entry<ArgumentSource, Object> input : inputs.entrySet())
+            outputTracker.addInput(input.getKey(), input.getValue());
+        for (Stub<?> stub : outputs)
             outputTracker.addOutput(stub);
 
         outputTracker.prepareWalker(walker);
@@ -639,6 +660,7 @@ public class GenomeAnalysisEngine {
     /**
      * Returns data source object encapsulating all essential info and handlers used to traverse
      * reads; header merger, individual file readers etc can be accessed through the returned data source object.
+     *
      * @return
      */
     public SAMDataSource getDataSource() {
