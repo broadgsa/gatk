@@ -36,9 +36,9 @@ public interface GenotypeWriter {
 
     /**
      * Add a genotype, given a genotype locus
-     * @param locus the locus to add
+     * @param call the locus to add
      */
-    public void addGenotypeCall(Genotype locus);
+    public void addGenotypeCall(Genotype call);
 
     /**
      * add a no call to the genotype file, if supported.

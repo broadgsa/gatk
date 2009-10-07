@@ -17,9 +17,9 @@ public class SingleSampleGenotyperIntegrationTest extends WalkerTest {
         return baseTestString() + " --variant_output_format GELI -lod 5";
     }
 
-    private static String OneMb1StateMD5 = "d5404668e76f206055f03d97162ea6d9";
-    private static String OneMb3StateMD5 = "46fb7b66da3dac341e9c342f751d74cd";
-    private static String OneMbEmpiricalMD5 = "ea0be2fd074a6c824a0670ad5b3e0aca";
+    private static String OneMb1StateMD5 = "ca300adf2442d8874b4f13819547a7fb";
+    private static String OneMb3StateMD5 = "45caee5f71a30c7175c7389b594369b1";
+    private static String OneMbEmpiricalMD5 = "c8602b745b5c024f09938a9f87f923cf";
 
 //    private static String oneMbMD5(BaseMismatchModel m) {
 //        switch (m) {
@@ -50,7 +50,7 @@ public class SingleSampleGenotyperIntegrationTest extends WalkerTest {
                         " -L 1:10,000,000-10,100,000" +
                         " -m empirical",
                 1,
-                Arrays.asList("b8975b303952edff3b0273165ba91001"));
+                Arrays.asList("09f7ea954a44e68b80726147aee10944"));
 
         executeTest(String.format("testMultiTechnologies"), spec);
     }    
@@ -85,7 +85,7 @@ public class SingleSampleGenotyperIntegrationTest extends WalkerTest {
     public void genotypeTest() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 testGeliLod5() + " -L 1:10,000,000-10,100,000 -m empirical --genotype", 1,
-                Arrays.asList("7e5dec6481bbbc890493925da9a8f691"));
+                Arrays.asList("b4c6d84ea14f9c34b04b799d3edd199a"));
         executeTest("genotypeTest", spec);
     }
 
@@ -144,8 +144,8 @@ public class SingleSampleGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testLOD() {
         HashMap<Double, String> e = new HashMap<Double, String>();
-        e.put( 10.0, "e4c51dca6f1fa999f4399b7412829534" );
-        e.put( 3.0, "d804c24d49669235e3660e92e664ba1a" );
+        e.put( 10.0, "3c6c40551c42f693736dab5e29f7a76c" );
+        e.put( 3.0, "5c82a81f5919b29058f9ca031c00b7ef" );
 
         for ( Map.Entry<Double, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -163,9 +163,9 @@ public class SingleSampleGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testHeterozyosity() {
         HashMap<Double, String> e = new HashMap<Double, String>();
-        e.put( 0.01, "ca9986b32aac0d6ad6058f4bf10e7df2" );
-        e.put( 0.0001, "55d4e3e73215b70b22a8e689a4e16d37" );
-        e.put( 1.0 / 1850, "1ae2126f1a6490d6edd15d95bce726c4" );
+        e.put( 0.01, "c6fc697d31cfda563145138126561c77" );
+        e.put( 0.0001, "1a1466b7599c60fad75d0513a0c8496e" );
+        e.put( 1.0 / 1850, "5758dbcdea158fb053fcea22b06befe8" );
         
         for ( Map.Entry<Double, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -174,4 +174,16 @@ public class SingleSampleGenotyperIntegrationTest extends WalkerTest {
             executeTest(String.format("testHeterozyosity[%s]", entry.getKey()), spec);
         }
     }
+
+    /**
+     * test the output of a binary geli file
+      */
+    @Test
+    public void empirical1MbTestBinaryGeli() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                baseTestString() + " -L 1:10,000,000-11,000,000 -m empirical --variant_output_format GELI_BINARY -lod 5", 1,
+                Arrays.asList("17e9fc04b2a05cafc53562997c28e127"));
+        executeTest("empirical1MbTest", spec);
+    }
+
 }

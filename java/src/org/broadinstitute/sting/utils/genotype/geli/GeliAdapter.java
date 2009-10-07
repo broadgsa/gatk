@@ -1,7 +1,9 @@
 package org.broadinstitute.sting.utils.genotype.geli;
 
 import edu.mit.broad.picard.genotype.geli.GeliFileWriter;
+import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.gatk.walkers.genotyper.SSGenotypeCall;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -9,6 +11,7 @@ import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.List;
 
 
 /*
@@ -68,11 +71,17 @@ public class GeliAdapter implements GenotypeWriter {
      * @param referenceBase the reference base
      * @param likelihoods   the likelihoods of each of the possible alleles
      */
-    public void addGenotypeCall(SAMSequenceRecord contig,
+    private void addGenotypeCall(SAMSequenceRecord contig,
                                 int position,
                                 char referenceBase,
+                                double maxMappingQuality,
+                                int readCount,
                                 LikelihoodObject likelihoods) {
-        writer.addGenotypeLikelihoods(likelihoods.convert(writer.getFileHeader(), 1, position, (byte) referenceBase));
+        GenotypeLikelihoods lk = likelihoods.convertToGenotypeLikelihoods(writer.getFileHeader(), contig.getSequenceIndex(), position, (byte) referenceBase);
+        lk.setNumReads(readCount);
+
+        lk.setMaxMappingQuality(maxMappingQuality > Short.MAX_VALUE ? (short)Short.MAX_VALUE : (short)Math.round(maxMappingQuality));
+        writer.addGenotypeLikelihoods(lk);
     }
 
     /**
@@ -110,13 +119,22 @@ public class GeliAdapter implements GenotypeWriter {
 
         }
         char ref = locus.getReference();
-
-
+        int readCount = 0;
+        double maxMappingQual = 0;
+        if (locus instanceof ReadBacked) {
+            List<SAMRecord> recs = ((ReadBacked)locus).getReads();
+            readCount = recs.size();
+            for (SAMRecord rec : recs) {
+                if (maxMappingQual < rec.getMappingQuality()) maxMappingQual = rec.getMappingQuality();
+            }
+        }
         SSGenotypeCall call = (SSGenotypeCall)locus;
         LikelihoodObject obj = new LikelihoodObject(call.getProbabilities(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
         this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),
                              (int)locus.getLocation().getStart(),
                              ref,
+                             maxMappingQual,
+                             readCount,
                              obj);
     }
 

@@ -195,7 +195,7 @@ public class LikelihoodObject {
      *
      * @return a GenotypeLikelihoods object representing our data
      */
-    public GenotypeLikelihoods convert(SAMFileHeader samHeader, int seqIndex, int seqPosition, byte refBase) {
+    public GenotypeLikelihoods convertToGenotypeLikelihoods(SAMFileHeader samHeader, int seqIndex, int seqPosition, byte refBase) {
         double[] ft = toDoubleArray();
         float[] db = new float[ft.length];
         int index = 0;
@@ -207,6 +207,9 @@ public class LikelihoodObject {
             for (; index < ft.length; index++) {
                 db[index] = (float) Math.log(ft[index]);
             }
+        } else {
+            for (int x = 0; x < ft.length; x++)
+                db[x] = (float)ft[x];
         }
         return new GenotypeLikelihoods(samHeader, seqIndex, seqPosition, refBase, db);
     }

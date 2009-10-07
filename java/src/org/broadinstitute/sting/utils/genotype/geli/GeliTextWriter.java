@@ -1,6 +1,7 @@
+
 package org.broadinstitute.sting.utils.genotype.geli;
 
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.*;
@@ -10,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.List;
 
 
 /**
@@ -57,9 +59,7 @@ public class GeliTextWriter implements GenotypeWriter {
 
         char ref = locus.getReference();
 
-        if (locus instanceof ReadBacked) {
-            readDepth = ((ReadBacked)locus).getReadCount();
-        }
+
         if (!(locus instanceof GenotypesBacked)) {
             posteriors = new double[10];
             Arrays.fill(posteriors, 0.0);
@@ -74,14 +74,20 @@ public class GeliTextWriter implements GenotypeWriter {
                 nextVrsRef = lks[9] - posteriors[index];
             }
         }
-        // we have to calcuate our own
-        
-        mWriter.println(String.format("%s    %16d  %c  %8d  %d  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
+        double maxMappingQual = 0;
+        if (locus instanceof ReadBacked) {
+            List<SAMRecord> recs = ((ReadBacked)locus).getReads();
+            readDepth = recs.size();
+            for (SAMRecord rec : recs) {
+                if (maxMappingQual < rec.getMappingQuality()) maxMappingQual = rec.getMappingQuality();
+            }
+        }
+        mWriter.println(String.format("%s    %16d  %c  %8d  %.0f  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
                                       locus.getLocation().getContig(),
                                       locus.getLocation().getStart(),
                                       ref,
                                       readDepth,
-                                      -1,
+                                      maxMappingQual,
                                       locus.getBases(),
                                       nextVrsRef,
                                       nextVrsBest,
