@@ -21,8 +21,8 @@ import net.sf.samtools.SAMRecord;
  */
 public class NQSClusteredZScoreWalker extends LocusWalker<LocalMapType, int[][][]> {
     static final int WIN_SIDE_SIZE = 5;
-    static final int Z_SCORE_MAX = 7;
-    static final int Z_SCORE_MULTIPLIER = 30; // bins are Z_SCORE * (this) rounded to the nearst int
+    static final int Z_SCORE_MAX = 8;
+    static final int Z_SCORE_MULTIPLIER = 50; // bins are Z_SCORE * (this) rounded to the nearst int
     static final int MM_OFFSET = 1;
     static final int MATCH_OFFSET = 0;
     static final int MAX_Q_SCORE = 2 + QualityUtils.MAX_REASONABLE_Q_SCORE;
@@ -68,7 +68,9 @@ public class NQSClusteredZScoreWalker extends LocusWalker<LocalMapType, int[][][
     public void onTraversalDone( int[][][] zScoreBins ) {
         out.print( header() );
         for ( int i = 0; i < Z_SCORE_MAX*Z_SCORE_MULTIPLIER; i ++ ) {
-            out.print( formatData(zScoreBins[i],i) );
+            for ( int j = 0; j < MAX_Q_SCORE; j ++ ) {
+                out.print( formatData(zScoreBins[i][j], i, j) );
+            }
         }
     }
 
@@ -133,27 +135,20 @@ public class NQSClusteredZScoreWalker extends LocusWalker<LocalMapType, int[][][
         return String.format(format, "ZScore", "N_obs", "Expected_Mismatch", "Empirical_Mismatch", "Expected_MM_As_Q", "Empirical_MM_As_Q");
     }
 
-    public String formatData ( int[][] matchMismatchQ, int zScoreBin ) {
-        double zScore = ( (double) zScoreBin )/Z_SCORE_MULTIPLIER;
-        int match = 0;
-        int mismatch = 0;
-        double expMMR = 0.0;
+    public String formatData ( int[] matchMismatch, int zScoreBin, int q ) {
+        String format = "%f\t%d\t%f\t%f\t%d\t%d%n";
 
         for ( int i = 0; i < MAX_Q_SCORE; i ++ ) {
-            match += matchMismatchQ[i][MATCH_OFFSET];
-            mismatch += matchMismatchQ[i][MM_OFFSET];
-            expMMR += QualityUtils.qualToErrorProb((byte)i)*matchMismatchQ[i][MATCH_OFFSET];
-            expMMR += QualityUtils.qualToErrorProb((byte)i)*matchMismatchQ[i][MM_OFFSET];
-        }
-        
-        expMMR = (expMMR / ( match + mismatch ));
-        double empMMR = ((double) mismatch)/(match + mismatch);
-        int expMMRAsQ = QualityUtils.probToQual(1-expMMR);
-        int empMMRAsQ = QualityUtils.probToQual(1-empMMR);
 
-        String format = "%f\t%d\t%f\t%f\t%d\t%d%n";
+        }
+
+        double zScore = ( (double) zScoreBin )/Z_SCORE_MULTIPLIER;
+        int counts = matchMismatch[MATCH_OFFSET] + matchMismatch[MM_OFFSET];
+        double empMMR = (((double)matchMismatch[MM_OFFSET])/counts);
+        double expMMR = QualityUtils.qualToErrorProb((byte) q);
+        int empMMRAsQ = QualityUtils.probToQual(1-empMMR);
         
-        return String.format(format, zScore, match+mismatch, expMMR, empMMR, expMMRAsQ, empMMRAsQ);
+        return String.format(format, zScore, counts, expMMR, empMMR, q, empMMRAsQ);
     }
 
 }
