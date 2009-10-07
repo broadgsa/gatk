@@ -125,15 +125,15 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
                 intervals = new int[lines.length][2];
                 for (int i = 0; i < lines.length; i++) {
                     String[] s = lines[i].split(":");
-                    String[] intervalPieces = s[0].split("-");
+                    out.printf("INFO  Interval: %s\n",lines[i], s[1]);
+                    String[] intervalPieces = s[1].split("-");
                     intervals[i][0] = Integer.valueOf(intervalPieces[0]);
                     intervals[i][1] = Integer.valueOf(intervalPieces[1]);
                 }
                 numIntervals = intervals.length;
-                for (int i = 0; i < numIntervals; i++){
-                    out.printf("INFO  Interval %s: %s-%s\n",i+1,intervals[i][0],intervals[i][1]);
-                }
             }
+
+            
         }
         return 0;
     }
@@ -172,6 +172,7 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
             String s[] = debugAlleles.split(",");
             int index1 = HLADictionaryReader.GetReadIndex(s[0]);
             int index2 = HLADictionaryReader.GetReadIndex(s[1]);
+            //out.printf("INFO: debugging %s\t%s\t%s\t%s\n",s[0],s[0],index1,index2);
             if (index1 > -1 && index2 > -1){
                 likelihood = CalculatePhaseLikelihood(index1,index2,true);
             }
@@ -294,7 +295,8 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
         int numPositions = PolymorphicSites.length, SNPcount = 0;
         int i, j, a1, a2, b1, b2;
         char c11, c12, c21, c22;
-        int numInPhase = 0, numOutOfPhase;
+        int numInPhase = 0;
+        double sumInPhase = 0.0, sumObservations = 0.0;
 
 
         //Find all SNPs in read
@@ -333,10 +335,14 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
                                     numInPhase = numObservations[a1][b1] + numObservations[a2][b2];
                                 }
                                 prob = Math.max((double) numInPhase / (double) totalObservations[i][j], 0.0001);
+                                sumInPhase += (double) numInPhase;
+                                sumObservations += (double) totalObservations[i][j];
+                                
                                 likelihood += Math.log10(prob);
+                                //likelihood = Math.max(Math.log10(sumInPhase / sumObservations),-10);
                             
                                 if (PRINTDEBUG){
-                                    out.printf("DEBUG  %s %s %s[%s%s] %s[%s%s]\t[%s,%s]\t[%s,%s] [%s,%s]\t%s / %s\t%.4f\t%.2f\n",HLAnames[alleleIndex1],HLAnames[alleleIndex2],PolymorphicSites[i],c11,c21,PolymorphicSites[j],c12,c22, i,j,a1,b1,a2,b2,numInPhase,totalObservations[i][j],prob,likelihood);
+                                    out.printf("DEBUG  %s %s %s[%s%s] %s[%s%s]\t[%s,%s]\t[%s,%s] [%s,%s]\t%s / %s\t%s / %s\t%.4f\t%.2f\n",HLAnames[alleleIndex1],HLAnames[alleleIndex2],PolymorphicSites[i],c11,c21,PolymorphicSites[j],c12,c22, i,j,a1,b1,a2,b2,numInPhase,totalObservations[i][j],sumInPhase,sumObservations,prob,likelihood);
                                 }
                             }
                         }

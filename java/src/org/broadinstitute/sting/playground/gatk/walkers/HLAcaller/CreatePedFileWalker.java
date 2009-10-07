@@ -32,12 +32,15 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
     char c;
     boolean DEBUG = false;
     boolean FilesLoaded = false;
-    int HLA_A_start = 30018310;
-    int HLA_A_end = 30021211;
-    int HLA_B_start = 31430239;
-    int HLA_B_end = 31432914;
-    int HLA_C_start = 31344925;
-    int HLA_C_end = 31347827;
+    int HLA_A_start    = 30018310, HLA_A_end    = 30021211;
+    int HLA_C_start    = 31344925, HLA_C_end    = 31347827;
+    int HLA_B_start    = 31430239, HLA_B_end    = 31432914;
+    int HLA_DRB1_start = 32654846, HLA_DRB1_end = 32665497;
+    int HLA_DQA1_start = 32713214, HLA_DQA1_end = 32718519;
+    int HLA_DQB1_start = 32735991, HLA_DQB1_end = 32742362;
+    int HLA_DPA1_start = 33144405, HLA_DPA1_end = 33149325;
+    int HLA_DPB1_start = 33151797, HLA_DPB1_end = 33161993;
+
 
     String[] SNPnames;
     String SNPname;
@@ -99,7 +102,9 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
         return 1;
     }
 
-    private void PrintGenotypes(String alleleName1, String alleleName2, int startpos, int stoppos){
+    private String PrintGenotypes(String ID, String alleleName1, String alleleName2, int startpos, int stoppos){
+
+        String error = "";
         //prints genotypes for allele1 and allele2 at given interval
         int i1 = GetAlleleIndex(alleleName1);
         int i2 = GetAlleleIndex(alleleName2);
@@ -112,6 +117,7 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
             start1 = HLAstartpos[i1];
             stop1 = HLAstoppos[i1];
         }else{
+            error = error + "INFO  " + alleleName1 + " for " + ID + " not found in HLA dictionary\n";
             s1 = "";
             start1 = -1;
             stop1 = -1;
@@ -122,6 +128,7 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
             start2 = HLAstartpos[i2];
             stop2 = HLAstoppos[i2];
         }else{
+            error = error + "INFO  " + alleleName2 + " for " + ID + " not found in HLA dictionary\n";
             s2 = "";
             start2 = -1;
             stop2 = -1;
@@ -144,6 +151,7 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
 
             out.printf("\t%s %s",c1,c2);
         }
+        return error;
     }
 
     private int GetAlleleIndex(String alleleName){
@@ -166,22 +174,42 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
         HLAreads = HLAreadsAL.toArray(new String[numreads]);
         HLAstartpos = HLAstartposAL.toArray(new Integer[numreads]);
         HLAstoppos = HLAstopposAL.toArray(new Integer[numreads]);
+        String star = "*";
+        String error = "";
 
         //Print individual info and genotypes
         for (int i = 0; i < inputFileContents.length; i++){
             String[] s = inputFileContents[i].split(" ");
             //out.printf("%s\t%s\n",inputFileContents[i],s.length);
             if (s.length > 10){
+                error = "";
                 out.printf("%s\t%s\t%s\t%s\t%s\t%s",s[0],s[1],s[2],s[3],s[4],s[5]);
-                String HLA_A1 = "HLA_A" + s[6];
-                String HLA_A2 = "HLA_A" + s[7];
-                String HLA_B1 = "HLA_B" + s[8];
-                String HLA_B2 = "HLA_B" + s[9];
-                String HLA_C1 = "HLA_C" + s[10];
-                String HLA_C2 = "HLA_C" + s[11];
-                PrintGenotypes(HLA_A1,HLA_A2, HLA_A_start,HLA_A_end);
-                PrintGenotypes(HLA_C1,HLA_C2, HLA_C_start,HLA_C_end);
-                PrintGenotypes(HLA_B1,HLA_B2, HLA_B_start,HLA_B_end);
+                String HLA_A_1 = "HLA_A" + star + s[6];
+                String HLA_A_2 = "HLA_A" + star + s[7];
+                String HLA_B_1 = "HLA_B" + star + s[8];
+                String HLA_B_2 = "HLA_B" + star + s[9];
+                String HLA_C_1 = "HLA_C" + star + s[10];
+                String HLA_C_2 = "HLA_C" + star + s[11];
+                String HLA_DPA1_1 = "HLA_DPA1" + star + s[12];
+                String HLA_DPA1_2 = "HLA_DPA1" + star + s[13];
+                String HLA_DPB1_1 = "HLA_DPB1" + star + s[14];
+                String HLA_DPB1_2 = "HLA_DPB1" + star + s[15];
+                String HLA_DQA1_1 = "HLA_DQA1" + star + s[16];
+                String HLA_DQA1_2 = "HLA_DQA1" + star + s[17];
+                String HLA_DQB1_1 = "HLA_DQB1" + star + s[18];
+                String HLA_DQB1_2 = "HLA_DQB1" + star + s[19];
+                String HLA_DRB1_1 = "HLA_DRB1" + star + s[20];
+                String HLA_DRB1_2 = "HLA_DRB1" + star + s[21];
+
+                error = error + PrintGenotypes(s[1], HLA_A_1,HLA_A_2, HLA_A_start,HLA_A_end);
+                error = error + PrintGenotypes(s[1], HLA_C_1,HLA_C_2, HLA_C_start,HLA_C_end);
+                error = error + PrintGenotypes(s[1], HLA_B_1,HLA_B_2, HLA_B_start,HLA_B_end);
+                error = error + PrintGenotypes(s[1], HLA_DRB1_1,HLA_DRB1_2, HLA_DRB1_start,HLA_DRB1_end);
+                error = error + PrintGenotypes(s[1], HLA_DQA1_1,HLA_DQA1_2, HLA_DQA1_start,HLA_DQA1_end);
+                error = error + PrintGenotypes(s[1], HLA_DQB1_1,HLA_DQB1_2, HLA_DQB1_start,HLA_DQB1_end);
+                error = error + PrintGenotypes(s[1], HLA_DPA1_1,HLA_DPA1_2, HLA_DPA1_start,HLA_DPA1_end);
+                error = error + PrintGenotypes(s[1], HLA_DPB1_1,HLA_DPB1_2, HLA_DPB1_start,HLA_DPB1_end);
+                out.printf("%s",error);
                 out.printf("\n");
             }
         }
@@ -190,6 +218,11 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
         PrintSNPS(HLA_A_start,HLA_A_end);
         PrintSNPS(HLA_C_start,HLA_C_end);
         PrintSNPS(HLA_B_start,HLA_B_end);
+        PrintSNPS(HLA_DRB1_start,HLA_DRB1_end);
+        PrintSNPS(HLA_DQA1_start,HLA_DQA1_end);
+        PrintSNPS(HLA_DQB1_start,HLA_DQB1_end);
+        PrintSNPS(HLA_DPA1_start,HLA_DPA1_end);
+        PrintSNPS(HLA_DPB1_start,HLA_DPB1_end);
     }
 
     private void PrintSNPS(int startpos, int stoppos){
