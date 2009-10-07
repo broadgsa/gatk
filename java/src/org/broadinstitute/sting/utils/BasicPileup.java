@@ -21,7 +21,7 @@ abstract public class BasicPileup implements Pileup {
     protected boolean includeDeletions = false;
 
     public void setIncludeDeletionsInPileupString(boolean value) {
-	includeDeletions = value;
+        includeDeletions = value;
     }
 
     public String getPileupString()
@@ -38,7 +38,7 @@ abstract public class BasicPileup implements Pileup {
     }
 
     public static String basePileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
-	return basePileupAsString( reads, offsets, false );
+        return basePileupAsString( reads, offsets, false );
     }
 
     public static String basePileupAsString( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
@@ -50,7 +50,7 @@ abstract public class BasicPileup implements Pileup {
     }
 
     public static String baseWithStrandPileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
-	return baseWithStrandPileupAsString( reads, offsets, false );
+        return baseWithStrandPileupAsString( reads, offsets, false );
     }
 
     public static String baseWithStrandPileupAsString( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
@@ -60,15 +60,15 @@ abstract public class BasicPileup implements Pileup {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
 
-	    char base;
-	    if ( offset == -1 ) {
-		if ( includeDeletions )
-		    base = DELETION_CHAR;
-		else
-		    continue;
-	    } else {
-		base = (char) read.getReadBases()[offset];
-	    }
+            char base;
+            if ( offset == -1 ) {
+                if ( includeDeletions )
+                    base = DELETION_CHAR;
+                else
+                    continue;
+            } else {
+                base = (char) read.getReadBases()[offset];
+            }
 
             base = Character.toUpperCase(base);
             if (read.getReadNegativeStrandFlag()) {
@@ -82,7 +82,7 @@ abstract public class BasicPileup implements Pileup {
     }
 
     public static ArrayList<Byte> basePileup( List<SAMRecord> reads, List<Integer> offsets ) {
-	return basePileup( reads, offsets, false );
+        return basePileup( reads, offsets, false );
     }
 
     public static ArrayList<Byte> basePileup( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
@@ -90,24 +90,24 @@ abstract public class BasicPileup implements Pileup {
         for ( int i = 0; i < reads.size(); i++ ) {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
-	    if ( offset == -1 ) {
-		if ( includeDeletions )
-		    bases.add((byte)DELETION_CHAR);
-	    } else {
-		bases.add(read.getReadBases()[offset]);
-	    }
+            if ( offset == -1 ) {
+                if ( includeDeletions )
+                    bases.add((byte)DELETION_CHAR);
+            } else {
+                bases.add(read.getReadBases()[offset]);
+            }
         }
         return bases;
-    }
+     }
 
     public static ArrayList<Byte> qualPileup( List<SAMRecord> reads, List<Integer> offsets ) {
         ArrayList<Byte> quals = new ArrayList<Byte>(reads.size());
         for ( int i = 0; i < reads.size(); i++ ) {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
-	    // skip deletion sites
-	    if ( offset == -1 )
-		continue;
+            // skip deletion sites
+            if ( offset == -1 )
+                continue;
             byte qual = (byte)read.getBaseQualities()[offset];
             quals.add(qual);
         }
@@ -238,8 +238,8 @@ abstract public class BasicPileup implements Pileup {
 
             String bases = read.getReadString();
             int offset = offsets.get(readIndex);
-	    if ( offset == -1 )
-		continue;
+            if ( offset == -1 )
+                continue;
 
             int bestBaseIndex = BaseUtils.simpleBaseToBaseIndex(bases.charAt(offset));
 
