@@ -209,8 +209,9 @@ public class CreatePedFileWalker extends ReadWalker<Integer, Integer> {
                 error = error + PrintGenotypes(s[1], HLA_DQB1_1,HLA_DQB1_2, HLA_DQB1_start,HLA_DQB1_end);
                 error = error + PrintGenotypes(s[1], HLA_DPA1_1,HLA_DPA1_2, HLA_DPA1_start,HLA_DPA1_end);
                 error = error + PrintGenotypes(s[1], HLA_DPB1_1,HLA_DPB1_2, HLA_DPB1_start,HLA_DPB1_end);
-                out.printf("%s",error);
+                
                 out.printf("\n");
+                out.printf("%s",error);
             }
         }
 
