@@ -68,7 +68,7 @@ public class PickSequenomProbes extends RefWalker<String, String>
 		long   offset = context.getLocation().getStart();
 
 		char[] context_bases = ref.getBases();
-		long true_offset = offset - 400; 
+		long true_offset = offset - 200; 
 		for (long i = 0; i < 401; i++)
 		{
 			GenomeLoc loc = GenomeLocParser.parseGenomeLoc(context.getLocation().getContig() + ":" + true_offset + "-" + true_offset);
