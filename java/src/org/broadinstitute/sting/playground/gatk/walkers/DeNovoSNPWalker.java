@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariationRod;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCall;
-import org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.ArrayList;
@@ -30,12 +30,12 @@ import java.util.Set;
 
 public class DeNovoSNPWalker extends RefWalker<String, Integer>{
 
-    SingleSampleGenotyper SSG;
+    UnifiedGenotyper UG;
     private List<Set<String>> readGroupSets;
 
     public void initialize() {
-         SSG = new SingleSampleGenotyper();
-         SSG.initialize();
+         UG = new UnifiedGenotyper();
+         UG.initialize();
 
          readGroupSets = getToolkit().getMergedReadGroupsByReaders();
      }
@@ -70,34 +70,38 @@ public class DeNovoSNPWalker extends RefWalker<String, Integer>{
                 }
 
                 AlignmentContext parent1_subContext = new AlignmentContext(context.getLocation(), parent1_reads, parent1_offsets);
-                GenotypeCall parent1 = SSG.map(tracker, ref, parent1_subContext);
+                List<GenotypeCall> parent1 = UG.map(tracker, ref, parent1_subContext);
 
                 AlignmentContext parent2_subContext = new AlignmentContext(context.getLocation(), parent2_reads, parent2_offsets);
-                GenotypeCall parent2 = SSG.map(tracker, ref, parent2_subContext);
+                List<GenotypeCall> parent2 = UG.map(tracker, ref, parent2_subContext);
 
-                if (!parent1.isVariant(parent1.getReference()) &&
-                    parent1.getNegLog10PError() > 5 &&
-                    !parent2.isVariant(parent2.getReference()) &&
-                    parent2.getNegLog10PError() > 5
-                ) {
+                if ( parent1 != null && parent2 != null ) {
+                    GenotypeCall parent1call = parent1.get(0);
+                    GenotypeCall parent2call = parent2.get(0);
 
-                    double sumConfidences = 0.5 * (0.5 * child.getNegLog10PError() +
-                            Math.min(parent1.getNegLog10PError(), parent2.getNegLog10PError()));
+                    if (!parent1call.isVariant(parent1call.getReference()) &&
+                        parent1call.getNegLog10PError() > 5 &&
+                        !parent2call.isVariant(parent2call.getReference()) &&
+                        parent2call.getNegLog10PError() > 5) {
 
-                    out.format("%s\t", child.getLocation().getContig());
-                    out.format("%s\t", child.getLocation().getStart());
-                    out.format("%.4f\t", sumConfidences);
-                    out.format("%.4f\t", child.getNegLog10PError());
-                    out.format("%.4f\t", parent1.getNegLog10PError());
-                    out.format("%.4f\t", parent2.getNegLog10PError());
-                    out.format("%s\t", dbsnp != null);
+                        double sumConfidences = 0.5 * (0.5 * child.getNegLog10PError() +
+                                Math.min(parent1call.getNegLog10PError(), parent2call.getNegLog10PError()));
 
-                    out.format ("%s\t", child.toString());
-                    out.format ("%s\t", parent1.toString());
-                    out.format ("%s", parent2.toString());
-                    if (dbsnp != null)
-                        out.format ("\tDBSNP\t:%s", dbsnp.toString());
-                    out.println();
+                        out.format("%s\t", child.getLocation().getContig());
+                        out.format("%s\t", child.getLocation().getStart());
+                        out.format("%.4f\t", sumConfidences);
+                        out.format("%.4f\t", child.getNegLog10PError());
+                        out.format("%.4f\t", parent1call.getNegLog10PError());
+                        out.format("%.4f\t", parent2call.getNegLog10PError());
+                        out.format("%s\t", dbsnp != null);
+
+                        out.format ("%s\t", child.toString());
+                        out.format ("%s\t", parent1.toString());
+                        out.format ("%s", parent2.toString());
+                        if (dbsnp != null)
+                            out.format ("\tDBSNP\t:%s", dbsnp.toString());
+                        out.println();
+                    }
                 }
             }
         }

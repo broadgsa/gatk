@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.RodGenotypeChipAsGFF;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCall;
-import org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.ListUtils;
@@ -36,11 +36,11 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
     @Argument(fullName="max_coverage", shortName="maxcov", doc="Maximum coverage to downsample to", required=false) public int max_coverage=Integer.MAX_VALUE;
     @Argument(fullName="downsampling_repeats", shortName="repeat", doc="Number of times to repeat downsampling at each coverage level", required=false) public int downsampling_repeats=1;
 
-    SingleSampleGenotyper SSG;
+    UnifiedGenotyper UG;
 
     public void initialize() {
-        SSG = new SingleSampleGenotyper();
-        SSG.initialize();
+        UG = new UnifiedGenotyper();
+        UG.initialize();
 
         String header = "#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod AA      AC      AG      AT      CC      CG      CT      GG      GT      TT";
         out.println("DownsampledCoverage\tAvailableCoverage\tHapmapChipGenotype\tGenotypeCallType\t"+header.substring(1));
@@ -80,10 +80,10 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
                     List<Integer> sub_offsets = ListUtils.sliceListByIndices(subset_indices, offsets);
 
                     AlignmentContext subContext = new AlignmentContext(context.getLocation(), sub_reads, sub_offsets);
-                    GenotypeCall call = SSG.map(tracker, ref, subContext);
-
-                    String callType = (call.isVariant(call.getReference())) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
-                    if (call != null) {
+                    List<GenotypeCall> calls = UG.map(tracker, ref, subContext);
+                    if (calls != null) {
+                        GenotypeCall call = calls.get(0);
+                        String callType = (call.isVariant(call.getReference())) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
                         GenotypeCalls.add(coverage+"\t"+coverage_available+"\t"+hc_genotype+"\t"+callType+"\t"+toGeliString(call));
                     }
                 }

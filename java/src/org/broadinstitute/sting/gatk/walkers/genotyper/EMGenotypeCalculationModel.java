@@ -8,9 +8,7 @@ import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class EMGenotypeCalculationModel extends GenotypeCalculationModel {
 
@@ -26,7 +24,7 @@ public class EMGenotypeCalculationModel extends GenotypeCalculationModel {
 
     protected EMGenotypeCalculationModel() {}
 
-    public boolean calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public List<GenotypeCall> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
         // keep track of the GenotypeLikelihoods for each sample, separated by strand
         HashMap<String, UnifiedGenotypeLikelihoods> GLs = new HashMap<String, UnifiedGenotypeLikelihoods>();
@@ -51,7 +49,7 @@ public class EMGenotypeCalculationModel extends GenotypeCalculationModel {
             if ( offset == -1 ) {
                 // are there too many deletions in the pileup?
                 if ( ++deletionsInPile > maxDeletionsInPileup )
-                    return false;
+                    return null;
                 continue;
             }
 
@@ -84,7 +82,7 @@ public class EMGenotypeCalculationModel extends GenotypeCalculationModel {
             UnifiedGenotypeLikelihoods UGL = GLs.get(sample);
             // if there were no good bases, the likelihoods object wouldn't exist
             if ( UGL == null )
-                return false;
+                return null;
 
             callsMetrics.nCalledBases++;
             UGL.setPriors(priors);
@@ -99,10 +97,10 @@ public class EMGenotypeCalculationModel extends GenotypeCalculationModel {
                     callsMetrics.nNonConfidentCalls++;
                 }
             }
-            return true;
+            return Arrays.asList(call);
         }
 
-        callsMetrics.nCalledBases++;
+         callsMetrics.nCalledBases++;
 
         // Next, we need to create initial allele frequencies.
         // An intelligent guess would be the observed base ratios (plus some small number to account for sampling issues).
@@ -186,8 +184,9 @@ public class EMGenotypeCalculationModel extends GenotypeCalculationModel {
 */
         
         //return new GenotypeCall(context.getLocation(), ref,gl, pileup);
+        //out.addMultiSampleCall((Genotype)calls);
 
-        return true;
+        return null;
     }
 
     double[] getPosteriorWeightedFrequencies(Collection<UnifiedGenotypeLikelihoods> UGLs) {

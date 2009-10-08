@@ -92,10 +92,10 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      * @param context   alignment context
      * @param priors    priors to use for GL
      *
-     * @return true if valid locus
+     * @return list of calls
      */
-    public abstract boolean calculateGenotype(RefMetaDataTracker tracker,
-                                              char ref,
-                                              AlignmentContext context,
-                                              DiploidGenotypePriors priors);
+    public abstract List<GenotypeCall> calculateGenotype(RefMetaDataTracker tracker,
+                                                         char ref,
+                                                         AlignmentContext context,
+                                                         DiploidGenotypePriors priors);
 }

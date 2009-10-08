@@ -47,7 +47,7 @@ import java.util.List;
 
 
 @ReadFilters({ZeroMappingQualityReadFilter.class, MissingReadGroupFilter.class})
-public class UnifiedGenotyper extends LocusWalker<Integer, Integer> {
+public class UnifiedGenotyper extends LocusWalker<List<GenotypeCall>, Integer> {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
@@ -113,17 +113,17 @@ public class UnifiedGenotyper extends LocusWalker<Integer, Integer> {
      * @param refContext the reference base
      * @param context contextual information around the locus
      */
-    public Integer map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
+    public List<GenotypeCall> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
         char ref = Character.toUpperCase(refContext.getBase());
         if ( !BaseUtils.isRegularBase(ref) )
-            return 0;
+            return null;
 
         // an optimization to speed things up when overly covered
         if ( UAC.MAX_READS_IN_PILEUP > 0 && context.getReads().size() > UAC.MAX_READS_IN_PILEUP )
-            return 0;
+            return null;
 
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
-        return ( gcm.calculateGenotype(tracker, ref, context, priors) ?  1 : 0 );
+        return gcm.calculateGenotype(tracker, ref, context, priors);
     }
 
     /**
@@ -150,8 +150,8 @@ public class UnifiedGenotyper extends LocusWalker<Integer, Integer> {
 
     public Integer reduceInit() { return 0; }
 
-    public Integer reduce(Integer value, Integer sum) {
-        return sum + value;
+    public Integer reduce(List<GenotypeCall> value, Integer sum) {
+        return sum + 1;
     }
 
     /** Close the variant file. */

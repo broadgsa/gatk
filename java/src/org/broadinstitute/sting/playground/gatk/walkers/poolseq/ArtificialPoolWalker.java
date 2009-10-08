@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.poolseq;
 
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -39,11 +39,11 @@ public class ArtificialPoolWalker extends LocusWalker<ArtificialPoolContext, Art
 
     public ArtificialPoolContext reduceInit() { // try to initialize the file writer
         ArtificialPoolContext apContext = new ArtificialPoolContext();
-        apContext.setSingleSampleGenotyper(new SingleSampleGenotyper());
+        apContext.setSingleSampleGenotyper(new UnifiedGenotyper());
         apContext.setReadGroupSets(getToolkit().getMergedReadGroupsByReaders());
         apContext.setAuxWriter(initializeAuxFileWriter(apContext.getTotalNumberOfPeople()));
         apContext.setSAMFileWriter(outputBamFile);
-        apContext.initializeSSG();
+        apContext.initializeUG();
 
         return apContext;
     }

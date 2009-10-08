@@ -5,7 +5,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 
@@ -25,7 +25,7 @@ import java.util.Set;
 public class ArtificialPoolContext {
     private PrintWriter writerToAuxiliaryFile;
     private SAMFileWriter writerToSamFile;
-    private SingleSampleGenotyper ssg;
+    private UnifiedGenotyper ug;
     private List<Set<String>> readGroupSets;
     private long[] runningCoverage;
     private RefMetaDataTracker refTracker;
@@ -36,7 +36,7 @@ public class ArtificialPoolContext {
         readGroupSets = null;
         writerToAuxiliaryFile = null;
         writerToSamFile = null;
-        ssg = null;
+        ug = null;
         refTracker = null;
         aliContext = null;
         refContext = null;
@@ -50,14 +50,14 @@ public class ArtificialPoolContext {
         readGroupSets = null;
         writerToAuxiliaryFile = null;
         writerToSamFile=null;
-        ssg = null;
+        ug = null;
         runningCoverage = null;
     }
 
-    public ArtificialPoolContext(PrintWriter pw, SAMFileWriter sw, SingleSampleGenotyper g, List<Set<String>> rgs, long [] runcvg, RefMetaDataTracker rt, ReferenceContext rc, AlignmentContext ac) {
+    public ArtificialPoolContext(PrintWriter pw, SAMFileWriter sw, UnifiedGenotyper g, List<Set<String>> rgs, long [] runcvg, RefMetaDataTracker rt, ReferenceContext rc, AlignmentContext ac) {
         writerToAuxiliaryFile = pw;
         writerToSamFile = sw;
-        ssg = g;
+        ug = g;
         readGroupSets = rgs;
         runningCoverage = runcvg;
         refTracker = rt;
@@ -69,12 +69,12 @@ public class ArtificialPoolContext {
         writerToAuxiliaryFile = writer;
     }
 
-    public void setSingleSampleGenotyper(SingleSampleGenotyper typer) {
-        ssg = typer;
+    public void setSingleSampleGenotyper(UnifiedGenotyper typer) {
+        ug = typer;
     }
 
-    public void initializeSSG() {
-        ssg.initialize();
+    public void initializeUG() {
+        ug.initialize();
     }
 
     public void setReadGroupSets(List<Set<String>> rgSets) {
@@ -121,8 +121,8 @@ public class ArtificialPoolContext {
         return writerToAuxiliaryFile;
     }
 
-    public SingleSampleGenotyper getSingleSampleGenotyper() {
-        return ssg;
+    public UnifiedGenotyper getSingleSampleGenotyper() {
+        return ug;
     }
 
     public List<Set<String>> getReadGroupSets() {
@@ -257,8 +257,9 @@ public class ArtificialPoolContext {
     public Genotype getGenotype(int group) {
         AlignmentContext alicon = this.getAlignmentContext();
         Pair<List<SAMRecord>[],List<Integer>[]> byGroupSplitPair = this.splitByGroup(alicon.getReads(),alicon.getOffsets());
-        return ssg.map(this.getRefMetaDataTracker(),this.getReferenceContext(),
+        List<? extends Genotype> result = ug.map(this.getRefMetaDataTracker(),this.getReferenceContext(),
                 new AlignmentContext(this.getAlignmentContext().getLocation(), byGroupSplitPair.first[group],byGroupSplitPair.second[group]));
+        return (result == null ? null : result.get(0));
     }
 
     public static List<SAMRecord>[] sampleReads(List<SAMRecord>[] reads, double[] propEstGlobal) {
