@@ -2,6 +2,7 @@ package org.broadinstitute.sting.alignment.bwa;
 
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.utils.StingException;
+import net.sf.samtools.Cigar;
 
 /**
  * An alignment object to be used incrementally as the BWA aligner
@@ -85,6 +86,10 @@ public class BWAAlignment implements Alignment, Cloneable {
      */
     public boolean isNegativeStrand() {
         return negativeStrand;    
+    }
+
+    public Cigar getCigar() {
+        return alignmentMatchSequence.convertToCigar(isNegativeStrand());
     }
 
     /**

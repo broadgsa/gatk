@@ -10,8 +10,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.List;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.*;
 
 /**
  * A test harness to ensure that the perfect aligner works.
@@ -48,9 +47,12 @@ public class AlignerTestHarness {
 
         for(SAMRecord read: reader) {
             count++;
-            //if( count > 100000 ) break;
+            //if( count > 144000 ) break;
+            if( count < 366000 ) continue;
             //if( count != 2 ) continue;
-            //if( !read.getReadName().endsWith("SL-XBC:1:90:15:1280#0") )
+            //if( !read.getReadName().endsWith("SL-XBC:1:82:506:404#0") )
+            //    continue;
+            //if( !read.getReadName().endsWith("SL-XBC:1:36:30:1926#0") )
             //    continue;
 
             SAMRecord alignmentCleaned = null;
@@ -94,17 +96,31 @@ public class AlignerTestHarness {
             }
             else {
                 mismatches++;
-                //throw new StingException(String.format("Read %s was placed at incorrect location; target alignment = %d; actual alignment = %d; count = %d%n",read.getReadName(),read.getAlignmentStart(),alignment.getAlignmentStart(),count));
 
                 IndexedFastaSequenceFile reference = new IndexedFastaSequenceFile(referenceFile);
-                String expectedRef = new String(reference.getSubsequenceAt(reference.getSequenceDictionary().getSequences().get(0).getSequenceName(),read.getAlignmentStart(),read.getAlignmentStart()+read.getReadLength()-1).getBases());
-                System.out.printf("read          = %s, strand = %b%n", read.getReadString(), read.getReadNegativeStrandFlag());
-                System.out.printf("expected ref  = %s%n", expectedRef);
+
+                System.out.printf("read          = %s, position = %d, negative strand = %b%n", formatBasesBasedOnCigar(read.getReadString(),read.getCigar(),CigarOperator.DELETION),
+                                                                                               read.getAlignmentStart(),
+                                                                                               read.getReadNegativeStrandFlag());
+                int numDeletions = numDeletionsInCigar(read.getCigar());
+                String expectedRef = new String(reference.getSubsequenceAt(reference.getSequenceDictionary().getSequences().get(0).getSequenceName(),read.getAlignmentStart(),read.getAlignmentStart()+read.getReadLength()+numDeletions-1).getBases());
+                System.out.printf("expected ref  = %s%n", formatBasesBasedOnCigar(expectedRef,read.getCigar(),CigarOperator.INSERTION));
+
                 for( Alignment alignment: alignments ) {
-                    String alignedRef = new String(reference.getSubsequenceAt(reference.getSequenceDictionary().getSequences().get(0).getSequenceName(),alignments.get(0).getAlignmentStart(),alignments.get(0).getAlignmentStart()+read.getReadLength()-1).getBases());
-                    System.out.printf("actual ref    = %s, strand = %b%n", alignedRef, read.getReadNegativeStrandFlag());
-                    //System.out.printf("(reversed)    = %s, strand = %b%n", BaseUtils.simpleReverseComplement(alignedRef), !read.getReadNegativeStrandFlag());
+                    System.out.println();
+
+                    Cigar cigar = ((BWAAlignment)alignment).getCigar();
+
+                    System.out.printf("read          = %s%n", formatBasesBasedOnCigar(read.getReadString(),cigar,CigarOperator.DELETION));
+
+                    int deletionCount = ((BWAAlignment)alignment).getNumberOfBasesMatchingState(AlignmentState.DELETION);
+                    String alignedRef = new String(reference.getSubsequenceAt(reference.getSequenceDictionary().getSequences().get(0).getSequenceName(),alignment.getAlignmentStart(),alignment.getAlignmentStart()+read.getReadLength()+deletionCount-1).getBases());
+                    System.out.printf("actual ref    = %s, position = %d, negative strand = %b%n", formatBasesBasedOnCigar(alignedRef,cigar,CigarOperator.INSERTION),
+                                                                                                   alignment.getAlignmentStart(),
+                                                                                                   alignment.isNegativeStrand());
                 }
+
+                //throw new StingException(String.format("Read %s was placed at incorrect location; count = %d%n",read.getReadName(),count));                
             }
 
 
@@ -115,4 +131,28 @@ public class AlignerTestHarness {
         System.out.printf("%d reads examined; %d mismatches; %d failures.%n",count,mismatches,failures);
     }
 
+    private static String formatBasesBasedOnCigar( String bases, Cigar cigar, CigarOperator toBlank ) {
+        StringBuilder formatted = new StringBuilder();
+        int readIndex = 0;
+        for(CigarElement cigarElement: cigar.getCigarElements()) {
+            if(cigarElement.getOperator() == toBlank) {
+                int number = cigarElement.getLength();
+                while( number-- > 0 ) formatted.append(' ');
+            }
+            else {
+                int number = cigarElement.getLength();
+                while( number-- > 0 ) formatted.append(bases.charAt(readIndex++));
+            }
+        }
+        return formatted.toString();
+    }
+
+    private static int numDeletionsInCigar( Cigar cigar ) {
+        int numDeletions = 0;
+        for(CigarElement cigarElement: cigar.getCigarElements()) {
+            if(cigarElement.getOperator() == CigarOperator.DELETION)
+                numDeletions += cigarElement.getLength();
+        }
+        return numDeletions;
+    }
 }

@@ -126,9 +126,12 @@ public class BWAAligner implements Aligner {
                     if( finalAlignment.isNegativeStrand() )
                         finalAlignment.alignmentStart = forwardSuffixArray.get(bwtIndex) + 1;
                     else {
-                        int sizeAlongReference = finalAlignment.getNumberOfBasesMatchingState(AlignmentState.MATCH_MISMATCH)+finalAlignment.getNumberOfBasesMatchingState(AlignmentState.DELETION);
+                        int sizeAlongReference = read.getReadLength() -
+                                finalAlignment.getNumberOfBasesMatchingState(AlignmentState.INSERTION) +
+                                finalAlignment.getNumberOfBasesMatchingState(AlignmentState.DELETION);
                         finalAlignment.alignmentStart = reverseBWT.length() - reverseSuffixArray.get(bwtIndex) - sizeAlongReference + 1;
                     }
+
                     successfulMatches.add(finalAlignment);
 
                     bestScore = Math.min(finalAlignment.getScore(),bestScore);

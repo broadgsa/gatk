@@ -4,6 +4,11 @@ import org.broadinstitute.sting.utils.StingException;
 
 import java.util.Deque;
 import java.util.ArrayDeque;
+import java.util.Iterator;
+
+import net.sf.samtools.Cigar;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
 
 /**
  * Represents a sequence of matches.
@@ -35,6 +40,23 @@ public class AlignmentMatchSequence implements Cloneable {
             copy.entries.add(entry.clone());
 
         return copy;
+    }
+
+    public Cigar convertToCigar(boolean negativeStrand) {
+        Cigar cigar = new Cigar();
+        Iterator<AlignmentMatchSequenceEntry> iterator = negativeStrand ? entries.descendingIterator() : entries.iterator();
+        while( iterator.hasNext() ) {
+            AlignmentMatchSequenceEntry entry = iterator.next();
+            CigarOperator operator;
+            switch( entry.getAlignmentState() ) {
+                case MATCH_MISMATCH: operator = CigarOperator.MATCH_OR_MISMATCH; break;
+                case INSERTION: operator = CigarOperator.INSERTION; break;
+                case DELETION: operator = CigarOperator.DELETION; break;
+                default: throw new StingException("convertToCigar: cannot process state: " + entry.getAlignmentState());
+            }
+            cigar.add( new CigarElement(entry.count,operator) );
+        }
+        return cigar;
     }
 
     /**
