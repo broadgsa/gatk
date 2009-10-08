@@ -80,9 +80,9 @@ public class PickSequenomProbes extends RefWalker<String, String>
 
 		if (snp != null) 
 		{
-			String snp_string = new String(leading_bases) + new String("[" + refBase + "/" + snp.getAlternativeBaseForSNP() + "]") + new String(trailing_bases);
-			String fasta_string = new String(">" + context.getLocation().toString() + "_" + ref.getWindow().toString());
-			return fasta_string + "\n" + snp_string + "\n";
+			String assay_sequence = new String(leading_bases) + new String("[" + refBase + "/" + snp.getAlternativeBaseForSNP() + "]") + new String(trailing_bases);
+			String assay_id = new String(context.getLocation().toString() + "_" + ref.getWindow().toString()).replace(':', '_');
+			return assay_id + "\t" + assay_sequence + "\n";
 		}
 		else
 		{
