@@ -58,7 +58,7 @@ if ($snps) {
     if ($wait) {
 	$bsub .= " -w \"ended($wait)\"";
     }
-    $command = "java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T SingleSampleGenotyper -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -varout $snpsFile -lod 5.0";
+    $command = "java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -varout $snpsFile -lod 0.0";
     execute("$bsub $command", $dry);
 
     my $filterFile = "$outputHead.snps.filtered.calls";
@@ -68,7 +68,7 @@ if ($snps) {
     if ($badsnps) {
 	$command .= "cleaned,CleanedOutSNP,$badsnps,";
     }
-    $command .= "indels,SimpleIndel,$indelsLow -X DepthOfCoverage:max=$doc -X AlleleBalance:low=0.25,high=0.75 -X FisherStrand:pvalue=0.00001 -X LodThreshold:lod=5 -X MappingQualityZero:max=$mq -X IndelArtifact -X ClusteredSnps:window=7,snps=3";
+    $command .= "indels,SimpleIndel,$indelsLow -X DepthOfCoverage:max=$doc -X AlleleBalance:low=0.25,high=0.75 -X FisherStrand:pvalue=0.00001 -X LodThreshold:lod=5.0 -X MappingQualityZero:max=$mq -X IndelArtifact -X ClusteredSnps:window=7,snps=3";
     execute("$bsub $command", $dry);
 }
 
