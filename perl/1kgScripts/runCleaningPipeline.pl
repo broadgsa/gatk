@@ -31,7 +31,7 @@ GetOptions( "i=s" => \$inputBam,
 usage() if ( !$inputBam || !$outputBam );
 
 my $indelIntervals = "$outputBam.indels.intervals";
-my $command = "perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IndelIntervals -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam\" -o $indelIntervals -oarg o -j $outputBam.intervals -q $queue";
+my $command = "perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Djava.io.tmpdir=/broad/hptmp/ -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IndelIntervals -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam\" -o $indelIntervals -oarg o -j $outputBam.intervals -q $queue";
 if ($dry) {
     $command .= " -dry";
 }
@@ -41,7 +41,7 @@ if ($wait) {
 system($command);
 
 my $mismatchIntervals = "$outputBam.mismatches.intervals";
-$command = "perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T MismatchIntervals -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam\" -o $mismatchIntervals -oarg o -j $outputBam.intervals -q $queue";
+$command = "perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Djava.io.tmpdir=/broad/hptmp/ -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T MismatchIntervals -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam\" -o $mismatchIntervals -oarg o -j $outputBam.intervals -q $queue";
 if ($dry) {
     $command .= " -dry";
 }
@@ -51,7 +51,7 @@ if ($wait) {
 system($command);
 
 my $mergedIntervals = "$outputBam.merged.intervals";
-$command = "perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IntervalMerger -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam -intervals $indelIntervals -intervals $mismatchIntervals\" -o $mergedIntervals -oarg o -wait $outputBam.intervals -j $outputBam.merged -q $queue";
+$command = "perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Djava.io.tmpdir=/broad/hptmp/ -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IntervalMerger -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam -intervals $indelIntervals -intervals $mismatchIntervals\" -o $mergedIntervals -oarg o -wait $outputBam.intervals -j $outputBam.merged -q $queue";
 if ($dry) {
     $command .= " -dry";
 }
@@ -63,7 +63,7 @@ if ($inject) {
 } else {
     $cleanedBam = "$outputBam";
 }
-$command = "bsub -q $queue -o $outputBam.cleaner.script1 -w \"ended($outputBam.merged)\" -J $outputBam.cleaner.script perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IntervalCleaner -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam -compress 1";
+$command = "bsub -q $queue -o $outputBam.cleaner.script1 -w \"ended($outputBam.merged)\" -J $outputBam.cleaner.script perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Djava.io.tmpdir=/broad/hptmp/ -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IntervalCleaner -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam -compress 1";
 if ($inject) {
     $command .= " -cleanedOnly\" -j $outputBam.cleaner.clean";
 } else {
@@ -81,7 +81,7 @@ my $snpsFile = $badsnps;
 if (!$snpsFile) {
     $snpsFile = "$outputBam.badsnps";
 }
-$command = "bsub -q $queue -o $outputBam.cleaner.script2 -w \"ended($outputBam.merged)\" -J $outputBam.cleaner.script perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IntervalCleaner -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam\"";
+$command = "bsub -q $queue -o $outputBam.cleaner.script2 -w \"ended($outputBam.merged)\" -J $outputBam.cleaner.script perl $sting/perl/splitAndEnqueueGATKjobs.pl -cmd \"java -Djava.io.tmpdir=/broad/hptmp/ -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IntervalCleaner -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam\"";
 if ($inject) {
     $command .= " -j $outputBam.cleaner.badsnps";
 } else {
@@ -101,7 +101,7 @@ if ($inject) {
     if ($jobName) {
 	$command .= " -J $jobName";
     }
-    $command .= " -w \"ended($outputBam.cleaner.*)\" java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T CleanedReadInjector -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam --output_bam $bam --cleaned_reads $cleanedBam -compress 1";
+    $command .= " -w \"ended($outputBam.cleaner.*)\" java -Djava.io.tmpdir=/broad/hptmp/ -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T CleanedReadInjector -R /broad/1KG/reference/human_b36_both.fasta -I $inputBam --output_bam $bam --cleaned_reads $cleanedBam -compress 1";
     if ($dry) {
 	print "$command\n";
     } else {

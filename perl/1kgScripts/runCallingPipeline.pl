@@ -41,7 +41,7 @@ my $bsub = "bsub -q $queue -o $indelsHigh.sdout";
 if ($wait) {
     $bsub .= " -w \"ended($wait)\"";
 }
-my $command = "java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IndelGenotyper -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -minConsensusFraction 0.5 -minCnt 2 -1kg -minFraction 0.".$indelFractionMultiplier."3 -O $indelsHigh";
+my $command = "java -Djava.io.tmpdir=/broad/hptmp/ -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IndelGenotyper -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -minConsensusFraction 0.5 -minCnt 2 -1kg -minFraction 0.".$indelFractionMultiplier."3 -O $indelsHigh";
 execute("$bsub $command", $dry);
 
 my $indelsLow = "$outputHead.indels.low.calls";
@@ -49,7 +49,7 @@ $bsub = "bsub -q $queue -o $indelsLow.sdout -J $outputHead";
 if ($wait) {
     $bsub .= " -w \"ended($wait)\"";
 }
-$command = "java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IndelGenotyper -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -minConsensusFraction 0.5 -minCnt 2 -1kg -minFraction 0.".$indelFractionMultiplier."1 -O $indelsLow";
+$command = "java -Djava.io.tmpdir=/broad/hptmp/ -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T IndelGenotyper -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -minConsensusFraction 0.5 -minCnt 2 -1kg -minFraction 0.".$indelFractionMultiplier."1 -O $indelsLow";
 execute("$bsub $command", $dry);
 
 if ($snps) {
@@ -58,13 +58,13 @@ if ($snps) {
     if ($wait) {
 	$bsub .= " -w \"ended($wait)\"";
     }
-    $command = "java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -varout $snpsFile -lod 0.0";
+    $command = "java -Djava.io.tmpdir=/broad/hptmp/ -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -varout $snpsFile -lod 0.0";
     execute("$bsub $command", $dry);
 
     my $filterFile = "$outputHead.snps.filtered.calls";
     my $vcfFile = "$outputHead.snps.vcf";
     $bsub = "bsub -q $queue -o $filterFile.sdout -w \"ended($outputHead)\"";
-    $command = "java -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T VariantFiltration -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -vcf $vcfFile -included $filterFile -sample $sample -B dbsnp,dbsnp,/humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod,variant,Variants,$snpsFile,";
+    $command = "java -Djava.io.tmpdir=/broad/hptmp/ -Xmx4096m -jar $sting/dist/GenomeAnalysisTK.jar -S SILENT -T VariantFiltration -R /broad/1KG/reference/human_b36_both.fasta $inputBamStr -vcf $vcfFile -included $filterFile -sample $sample -B dbsnp,dbsnp,/humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod,variant,Variants,$snpsFile,";
     if ($badsnps) {
 	$command .= "cleaned,CleanedOutSNP,$badsnps,";
     }
