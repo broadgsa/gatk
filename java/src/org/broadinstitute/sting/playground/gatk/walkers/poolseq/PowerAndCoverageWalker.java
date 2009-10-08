@@ -51,9 +51,6 @@ public class PowerAndCoverageWalker extends LocusWalker<SQuad<Integer>, SQuad<Lo
     @Argument(fullName="poolSize", shortName="ps", doc="Number of individuals in the pool", required = true)
     public int numIndividuals = 0;
 
-    @Argument(fullName="alleleFrequency", shortName="af", doc="Calculate power for this many alleles in the pool", required=false)
-    public int alleleFreq = 1;
-
     protected PrintStream outputWriter = null;
 
     public void initialize() {
@@ -61,9 +58,6 @@ public class PowerAndCoverageWalker extends LocusWalker<SQuad<Integer>, SQuad<Lo
             throw new StingException("Pool size must be greater than 1. You input "+numIndividuals);
         }
 
-        if ( alleleFreq > 2*numIndividuals ) {
-            throw new StingException("Allele frequency must be less than the number of alleles in the pool");
-        }
         if( outputFile != null ) {
             try {
                 outputWriter = new PrintStream(outputFile);
@@ -262,7 +256,7 @@ public class PowerAndCoverageWalker extends LocusWalker<SQuad<Integer>, SQuad<Lo
     }
 
     private double getSNPProportion() {
-        return alleleFreq/(2.0*numIndividuals);
+        return 1/(2.0*numIndividuals);
     }
 
 }
