@@ -104,8 +104,8 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
 
     public String makeHeader() {
         // create the header
-        String header = "Power_at_1";
-        for ( int i = 1; i < alleleFreq; i ++ ) {
+        String header = "chrm:pos";
+        for ( int i = 1; i <= alleleFreq; i ++ ) {
             header = header + "\tPower_at_"+Integer.toString(i);
         }
 
