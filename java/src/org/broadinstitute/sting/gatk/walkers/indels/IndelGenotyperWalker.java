@@ -781,8 +781,8 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
 	            if ( type == null ) continue; // element was not an indel, go grab next element...
 	            
 	            // we got an indel if we are here...
-	            if ( i == 0 ) logger.warn("Indel at the start of the read "+r.getReadName());
-	            if ( i == nCigarElems - 1) logger.warn("Indel at the end of the read "+r.getReadName());
+	            if ( i == 0 ) logger.debug("Indel at the start of the read "+r.getReadName());
+	            if ( i == nCigarElems - 1) logger.debug("Indel at the end of the read "+r.getReadName());
 
 	            try {
 	            	// note that here we will be assigning indels to the first deleted base or to the first
