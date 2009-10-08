@@ -5,7 +5,6 @@ import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
-import org.broadinstitute.sting.gatk.walkers.genotyper.SSGenotypeCall;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.genotype.*;
 
@@ -111,7 +110,7 @@ public class GeliAdapter implements GenotypeWriter {
         int readDepth = -1;
         double nextVrsBest = 0;
         double nextVrsRef = 0;
-        if (!(locus instanceof GenotypesBacked)) {
+        if (!(locus instanceof PosteriorsBacked)) {
             posteriors = new double[10];
             Arrays.fill(posteriors, Double.MIN_VALUE);
         } else {
@@ -128,8 +127,8 @@ public class GeliAdapter implements GenotypeWriter {
                 if (maxMappingQual < rec.getMappingQuality()) maxMappingQual = rec.getMappingQuality();
             }
         }
-        SSGenotypeCall call = (SSGenotypeCall)locus;
-        LikelihoodObject obj = new LikelihoodObject(call.getProbabilities(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
+
+        LikelihoodObject obj = new LikelihoodObject(posteriors, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
         this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),
                              (int)locus.getLocation().getStart(),
                              ref,
@@ -154,5 +153,21 @@ public class GeliAdapter implements GenotypeWriter {
         if (this.writer != null) {
             this.writer.close();
         }
+    }
+
+    /**
+     * add a multi-sample call if we support it
+     *
+     * @param genotypes the list of genotypes, that are backed by sample information
+     */
+    @Override
+    public void addMultiSampleCall( List<Genotype> genotypes) {
+        throw new UnsupportedOperationException("Geli binary doesn't support multisample calls");
+    }
+
+    /** @return true if we support multisample, false otherwise */
+    @Override
+    public boolean supportsMulitSample() {
+        return false;
     }
 }

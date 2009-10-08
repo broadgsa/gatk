@@ -6,7 +6,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.RodGenotypeChipAsGFF;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.genotyper.SSGenotypeCall;
+import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCall;
 import org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -80,7 +80,7 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
                     List<Integer> sub_offsets = ListUtils.sliceListByIndices(subset_indices, offsets);
 
                     AlignmentContext subContext = new AlignmentContext(context.getLocation(), sub_reads, sub_offsets);
-                    SSGenotypeCall call = SSG.map(tracker, ref, subContext);
+                    GenotypeCall call = SSG.map(tracker, ref, subContext);
 
                     String callType = (call.isVariant(call.getReference())) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
                     if (call != null) {

@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.genotype;
 
+import java.util.List;
+
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -49,5 +51,16 @@ public interface GenotypeWriter {
 
     /** finish writing, closing any open files. */
     public void close();
+
+    /**
+     * add a multi-sample call if we support it
+     * @param genotypes the list of genotypes, that are backed by sample information
+     */
+    public void addMultiSampleCall(List<Genotype> genotypes);
+
+    /**
+     * @return true if we support multisample, false otherwise
+     */
+    public boolean supportsMulitSample();
 
 }

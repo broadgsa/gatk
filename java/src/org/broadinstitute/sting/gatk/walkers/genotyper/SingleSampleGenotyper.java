@@ -10,13 +10,15 @@ import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 
 import java.io.File;
+import java.util.Arrays;
 
 @ReadFilters(ZeroMappingQualityReadFilter.class)
-public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSampleGenotyper.CallResult> {
+public class SingleSampleGenotyper extends LocusWalker<GenotypeCall, SingleSampleGenotyper.CallResult> {
     // Control output settings
     @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = false)
     public File VARIANTS_FILE = null;
@@ -47,6 +49,8 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
     @Argument(fullName = "disableCache", doc = "[ADVANCED] If true, we won't use the caching system.  This argument is for testing purposes only", required = false)
     public boolean disableCache = false;
 
+    @Argument(fullName = "sample_name", shortName = "sn", doc = "What the label should be for the emited call track.  Used by some genotype formats", required = false)
+    public String SAMPLE_NAME = null;
 
     public class CallResult {
         long nConfidentCalls = 0;
@@ -57,14 +61,14 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
         CallResult(GenotypeWriter writer) {
             this.writer = writer;
         }
-        
+
         public String toString() {
-            return String.format("SSG: %d confident and %d non-confident calls were made at %d bases", 
-                    nConfidentCalls, nNonConfidentCalls, nCalledBases);
+            return String.format("SSG: %d confident and %d non-confident calls were made at %d bases",
+                                 nConfidentCalls, nNonConfidentCalls, nCalledBases);
         }
     }
 
-     /**
+    /**
      * Filter out loci to ignore (at an ambiguous base in the reference or a locus with zero coverage).
      *
      * @param tracker the meta data tracker
@@ -79,32 +83,37 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
 
     /** Initialize the walker with some sensible defaults */
     public void initialize() {
-        //GenotypeLikelihoods.clearCache();
-        // nothing to do
+        if (SAMPLE_NAME == null) {
+            if (GenomeAnalysisEngine.instance.getArguments().samFiles.size() == 1) {
+                SAMPLE_NAME = GenomeAnalysisEngine.instance.getArguments().samFiles.get(0).getName();
+            } else {
+                SAMPLE_NAME = "Combined_BAM";
+            }
+        }
     }
 
     /**
      * Compute at a given locus.
      *
-     * @param tracker the meta data tracker
+     * @param tracker    the meta data tracker
      * @param refContext the reference base
-     * @param context contextual information around the locus
+     * @param context    contextual information around the locus
      */
-    public SSGenotypeCall map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
+    public GenotypeCall map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
         char ref = refContext.getBase();
-        if ( BaseUtils.isRegularBase(ref) ) {
+        if (BaseUtils.isRegularBase(ref)) {
             DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
 
             // setup GenotypeLike object
             GenotypeLikelihoods gl = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, priors, defaultPlatform);
 
             gl.setVerbose(VERBOSE);
-            gl.setEnableCacheFlag(! disableCache);
+            gl.setEnableCacheFlag(!disableCache);
             ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
             gl.add(pileup, true);
             gl.validate();
 
-            return new SSGenotypeCall(context.getLocation(), ref,gl, pileup);
+            return new GenotypeCall(SAMPLE_NAME,context.getLocation(), ref, gl, pileup);
         } else {
             return null;
         }
@@ -138,8 +147,12 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
      * @return an empty string
      */
     public CallResult reduceInit() {
-        if ( VARIANTS_FILE != null )
-            return new CallResult(GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE));
+        if (VARIANTS_FILE != null)
+            return new CallResult(GenotypeWriterFactory.create(VAR_FORMAT,
+                                                               GenomeAnalysisEngine.instance.getSAMFileHeader(),
+                                                               VARIANTS_FILE,
+                                                               "SingleSampleGenotyper",
+                                                               this.getToolkit().getArguments().referenceFile.getName()));
         else
             return new CallResult(GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out));
     }
@@ -152,7 +165,7 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
      *
      * @return an empty string
      */
-    public CallResult reduce(SSGenotypeCall call, CallResult sum) {
+    public CallResult reduce(GenotypeCall call, CallResult sum) {
         sum.nCalledBases++;
 
         if (call != null && (GENOTYPE || call.isVariant(call.getReference()))) {
@@ -160,7 +173,11 @@ public class SingleSampleGenotyper extends LocusWalker<SSGenotypeCall, SingleSam
             if (confidence >= LOD_THRESHOLD) {
                 sum.nConfidentCalls++;
                 //System.out.printf("Call %s%n", call);
-                sum.writer.addGenotypeCall(call);
+                if (sum.writer.supportsMulitSample()) {
+                     sum.writer.addMultiSampleCall(Arrays.asList((Genotype)call));
+                } else {
+                    sum.writer.addGenotypeCall(call);
+                }
             } else
                 sum.nNonConfidentCalls++;
         }

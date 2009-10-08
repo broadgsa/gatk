@@ -278,6 +278,21 @@ public class GLFWriter implements GenotypeWriter {
     }
 
 
+    /**
+     * add a multi-sample call if we support it
+     *
+     * @param genotypes the list of genotypes, that are backed by sample information
+     */
+    @Override
+    public void addMultiSampleCall(List<Genotype> genotypes) {
+        throw new UnsupportedOperationException("GLF writer doesn't support multisample calls");
+    }
+
+    /** @return true if we support multisample, false otherwise */
+    @Override
+    public boolean supportsMulitSample() {
+        return false;
+    }
 }
 
 

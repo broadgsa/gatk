@@ -70,14 +70,16 @@ public class VCFWriter {
 
     }
 
+
+
     /** attempt to close the VCF file */
     public void close() {
         try {
+            mWriter.flush();
             mWriter.close();
         } catch (IOException e) {
             throw new RuntimeException("Unable to close VCFFile");
         }
     }
-
 
 }

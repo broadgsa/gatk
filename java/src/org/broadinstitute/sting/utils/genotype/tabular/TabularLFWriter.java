@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.List;
 
 
 /**
@@ -94,5 +95,22 @@ public class TabularLFWriter implements GenotypeWriter {
         if (this.outStream != null) {
             outStream.close();
         }
+    }
+
+
+    /**
+     * add a multi-sample call if we support it
+     *
+     * @param genotypes the list of genotypes, that are backed by sample information
+     */
+    @Override
+    public void addMultiSampleCall(List<Genotype> genotypes) {
+        throw new UnsupportedOperationException("Tabular LF doesn't support multisample calls");
+    }
+
+    /** @return true if we support multisample, false otherwise */
+    @Override
+    public boolean supportsMulitSample() {
+        return false;
     }
 }

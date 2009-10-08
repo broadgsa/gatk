@@ -1,15 +1,16 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.ReadBackedPileup;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 
-import java.util.*;
-
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMReadGroupRecord;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 
 public class EMGenotypeCalculationModel extends GenotypeCalculationModel {
 
@@ -79,14 +80,15 @@ public class EMGenotypeCalculationModel extends GenotypeCalculationModel {
 
         // for now, we need to special-case single sample mode
         if ( samples.size() == 1 ) {
-            UnifiedGenotypeLikelihoods UGL = GLs.get(samples.iterator().next());
+            String sample = samples.iterator().next();
+            UnifiedGenotypeLikelihoods UGL = GLs.get(sample);
             // if there were no good bases, the likelihoods object wouldn't exist
             if ( UGL == null )
                 return false;
 
             callsMetrics.nCalledBases++;
             UGL.setPriors(priors);
-            SSGenotypeCall call = new SSGenotypeCall(context.getLocation(), ref, UGL.getGenotypeLikelihoods(), new ReadBackedPileup(ref, context));
+            GenotypeCall call = new GenotypeCall(sample,context.getLocation(), ref, UGL.getGenotypeLikelihoods(), new ReadBackedPileup(ref, context));
 
             if ( GENOTYPE_MODE || call.isVariant(call.getReference()) ) {
                 double confidence = (GENOTYPE_MODE ? call.getNegLog10PError() : call.toVariation().getNegLog10PError());
@@ -183,7 +185,7 @@ public class EMGenotypeCalculationModel extends GenotypeCalculationModel {
 
 */
         
-        //return new SSGenotypeCall(context.getLocation(), ref,gl, pileup);
+        //return new GenotypeCall(context.getLocation(), ref,gl, pileup);
 
         return true;
     }

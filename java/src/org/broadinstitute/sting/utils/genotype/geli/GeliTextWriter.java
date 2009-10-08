@@ -1,4 +1,3 @@
-
 package org.broadinstitute.sting.utils.genotype.geli;
 
 import net.sf.samtools.SAMRecord;
@@ -66,17 +65,17 @@ public class GeliTextWriter implements GenotypeWriter {
         } else {
             posteriors = ((PosteriorsBacked) locus).getPosteriors();
             double[] lks;
-            lks = Arrays.copyOf(posteriors,posteriors.length);
+            lks = Arrays.copyOf(posteriors, posteriors.length);
             Arrays.sort(lks);
             nextVrsBest = lks[9] - lks[8];
-            if (ref != 'X')  {
-                int index = (DiploidGenotype.valueOf(Utils.dupString(ref,2)).ordinal());
+            if (ref != 'X') {
+                int index = (DiploidGenotype.valueOf(Utils.dupString(ref, 2)).ordinal());
                 nextVrsRef = lks[9] - posteriors[index];
             }
         }
         double maxMappingQual = 0;
         if (locus instanceof ReadBacked) {
-            List<SAMRecord> recs = ((ReadBacked)locus).getReads();
+            List<SAMRecord> recs = ((ReadBacked) locus).getReads();
             readDepth = recs.size();
             for (SAMRecord rec : recs) {
                 if (maxMappingQual < rec.getMappingQuality()) maxMappingQual = rec.getMappingQuality();
@@ -117,5 +116,21 @@ public class GeliTextWriter implements GenotypeWriter {
     @Override
     public void close() {
         mWriter.close();
+    }
+
+    /**
+     * add a multi-sample call if we support it
+     *
+     * @param genotypes the list of genotypes, that are backed by sample information
+     */
+    @Override
+    public void addMultiSampleCall(List<Genotype> genotypes) {
+        throw new UnsupportedOperationException("Geli text doesn't support multisample calls");
+    }
+
+    /** @return true if we support multisample, false otherwise */
+    @Override
+    public boolean supportsMulitSample() {
+        return false;
     }
 }

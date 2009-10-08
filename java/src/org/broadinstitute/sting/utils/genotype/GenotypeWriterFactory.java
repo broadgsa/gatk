@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.geli.GeliAdapter;
 import org.broadinstitute.sting.utils.genotype.geli.GeliTextWriter;
 import org.broadinstitute.sting.utils.genotype.glf.GLFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeWriterAdapter;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -20,7 +21,7 @@ import java.io.PrintStream;
 public class GenotypeWriterFactory {
     /** available genotype writers */
     public enum GENOTYPE_FORMAT {
-        GELI, GLF, GFF, TABULAR, GELI_BINARY;
+        GELI, GLF, GFF, TABULAR, GELI_BINARY, VCF;
     }
 
     /**
@@ -30,7 +31,7 @@ public class GenotypeWriterFactory {
      * @param destination the destination file
      * @return the genotype writer object
      */
-    public static GenotypeWriter create(GENOTYPE_FORMAT format, SAMFileHeader header, File destination) {
+    public static GenotypeWriter create(GENOTYPE_FORMAT format, SAMFileHeader header, File destination, String source, String referenceName ) {
         switch (format) {
             case GLF:
                 return new GLFWriter(header.toString(), destination);
@@ -38,6 +39,8 @@ public class GenotypeWriterFactory {
                 return new GeliTextWriter(destination);
             case GELI_BINARY:
                 return new GeliAdapter(destination, header);
+            case VCF:
+                return new VCFGenotypeWriterAdapter(source, referenceName, destination);
             default:
                 throw new StingException("Genotype writer " + format.toString() + " is not implemented");
         }

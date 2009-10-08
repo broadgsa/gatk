@@ -1,22 +1,19 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariationRod;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCall;
 import org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper;
-import org.broadinstitute.sting.gatk.walkers.genotyper.SSGenotypeCall;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
-import java.util.Set;
-import java.util.List;
 import java.util.ArrayList;
-
-import net.sf.samtools.SAMRecord;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Created by IntelliJ IDEA.
@@ -73,10 +70,10 @@ public class DeNovoSNPWalker extends RefWalker<String, Integer>{
                 }
 
                 AlignmentContext parent1_subContext = new AlignmentContext(context.getLocation(), parent1_reads, parent1_offsets);
-                SSGenotypeCall parent1 = SSG.map(tracker, ref, parent1_subContext);
+                GenotypeCall parent1 = SSG.map(tracker, ref, parent1_subContext);
 
                 AlignmentContext parent2_subContext = new AlignmentContext(context.getLocation(), parent2_reads, parent2_offsets);
-                SSGenotypeCall parent2 = SSG.map(tracker, ref, parent2_subContext);
+                GenotypeCall parent2 = SSG.map(tracker, ref, parent2_subContext);
 
                 if (!parent1.isVariant(parent1.getReference()) &&
                     parent1.getNegLog10PError() > 5 &&

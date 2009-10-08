@@ -15,10 +15,10 @@ import java.util.List;
  *         <p/>
  *         Class SSGenotypeCall
  *         <p/>
- *         The single sample implementation of the genotype interface, which contains
+ *         The mplementation of the genotype interface, which contains
  *         extra information for the various genotype outputs
  */
-public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, LikelihoodsBacked, PosteriorsBacked {
+public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, LikelihoodsBacked, PosteriorsBacked, SampleBacked {
     private final char mRefBase;
     private final GenotypeLikelihoods mGenotypeLikelihoods;
 
@@ -33,18 +33,20 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
     private DiploidGenotype mRefGenotype = null;
     private DiploidGenotype mNextGenotype = null;
 
-    // are we best vrs ref or best vrs next - for internal consumption only
-    //private final boolean mBestVrsRef;
+    // the sample name, used to propulate the SampleBacked interface
+    private String mSampleName;
 
     /**
      * Generate a single sample genotype object, containing everything we need to represent calls out of a genotyper object
      *
-     * @param location  the location we're working with
-     * @param refBase   the ref base
-     * @param gtlh      the genotype likelihoods object
-     * @param pileup    the pile-up of reads at the specified locus
+     * @param sampleName the sample name
+     * @param location   the location we're working with
+     * @param refBase    the ref base
+     * @param gtlh       the genotype likelihoods object
+     * @param pileup     the pile-up of reads at the specified locus
      */
-    public SSGenotypeCall(GenomeLoc location, char refBase, GenotypeLikelihoods gtlh, ReadBackedPileup pileup) {
+    public GenotypeCall(String sampleName, GenomeLoc location, char refBase, GenotypeLikelihoods gtlh, ReadBackedPileup pileup) {
+        mSampleName = sampleName;
         mRefBase = String.valueOf(refBase).toUpperCase().charAt(0); // a round about way to make sure the ref base is up-case
         mGenotypeLikelihoods = gtlh;
         mLocation = location;
@@ -54,12 +56,14 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
     /**
      * Generate a single sample genotype object, containing everything we need to represent calls out of a genotyper object
      *
-     * @param location  the location we're working with
-     * @param refBase   the ref base
-     * @param gtlh      the genotype likelihoods object
-     * @param pileup    the pile-up of reads at the specified locus
+     * @param sampleName the sample name
+     * @param location   the location we're working with
+     * @param refBase    the ref base
+     * @param gtlh       the genotype likelihoods object
+     * @param pileup     the pile-up of reads at the specified locus
      */
-    SSGenotypeCall(GenomeLoc location, char refBase, GenotypeLikelihoods gtlh, ReadBackedPileup pileup, DiploidGenotype genotype) {
+    GenotypeCall(String sampleName, GenomeLoc location, char refBase, GenotypeLikelihoods gtlh, ReadBackedPileup pileup, DiploidGenotype genotype) {
+        mSampleName = sampleName;
         mRefBase = String.valueOf(refBase).toUpperCase().charAt(0); // a round about way to make sure the ref base is up-case
         mGenotypeLikelihoods = gtlh;
         mLocation = location;
@@ -73,8 +77,8 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
 
         if (other == null)
             return false;
-        if (other instanceof SSGenotypeCall) {
-            SSGenotypeCall otherCall = (SSGenotypeCall) other;
+        if (other instanceof GenotypeCall) {
+            GenotypeCall otherCall = (GenotypeCall) other;
 
             if (!this.mGenotypeLikelihoods.equals(otherCall.mGenotypeLikelihoods)) {
                 return false;
@@ -90,8 +94,8 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
     public String toString() {
         lazyEval();
         return String.format("%s best=%s cmp=%s ref=%s depth=%d negLog10PError = %.2f, likelihoods=%s",
-                getLocation(), mGenotype, mRefGenotype, mRefBase, mPileup.getReads().size(),
-                getNegLog10PError(), Arrays.toString(mGenotypeLikelihoods.getLikelihoods()));
+                             getLocation(), mGenotype, mRefGenotype, mRefBase, mPileup.getReads().size(),
+                             getNegLog10PError(), Arrays.toString(mGenotypeLikelihoods.getLikelihoods()));
     }
 
     private void lazyEval() {
@@ -122,25 +126,19 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
         return Math.abs(mGenotypeLikelihoods.getPosterior(getBestGenotype()) - mGenotypeLikelihoods.getPosterior(getNextBest()));
     }
 
-    /**
-     * get the best genotype
-     */
+    /** get the best genotype */
     private DiploidGenotype getBestGenotype() {
         lazyEval();
         return mGenotype;
     }
 
-    /**
-     * get the alternate genotype
-     */
+    /** get the alternate genotype */
     private DiploidGenotype getNextBest() {
         lazyEval();
         return mNextGenotype;
     }
 
-    /**
-     * get the alternate genotype
-     */
+    /** get the alternate genotype */
     private DiploidGenotype getRefGenotype() {
         lazyEval();
         return mRefGenotype;
@@ -211,6 +209,7 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
      * given the reference, are we a variant? (non-ref)
      *
      * @param ref the reference base or bases
+     *
      * @return true if we're a variant
      */
     @Override
@@ -270,7 +269,7 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
      * @return an array in lexigraphical order of the likelihoods
      */
     public Genotype getGenotype(DiploidGenotype x) {
-        return new SSGenotypeCall(mLocation, mRefBase, mGenotypeLikelihoods, mPileup, x);
+        return new GenotypeCall(mSampleName, mLocation, mRefBase, mGenotypeLikelihoods, mPileup, x);
     }
 
     /**
@@ -291,6 +290,22 @@ public class SSGenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Li
     @Override
     public double[] getPosteriors() {
         return this.mGenotypeLikelihoods.getPosteriors();
+    }
+
+    /** @return returns the sample name for this genotype */
+    @Override
+    public String getSampleName() {
+        return this.mSampleName;
+    }
+
+    /**
+     * get the filtering string for this genotype
+     *
+     * @return a string, representing the genotyping value
+     */
+    @Override
+    public String getFilteringValue() {
+        return "0";
     }
 }
 

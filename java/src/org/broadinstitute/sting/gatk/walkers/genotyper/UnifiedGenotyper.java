@@ -25,19 +25,25 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
+import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.contexts.*;
-import org.broadinstitute.sting.gatk.filters.*;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.cmdLine.*;
-import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.filters.MissingReadGroupFilter;
+import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.ReadFilters;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
+import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 
 import java.io.File;
-import java.util.*;
-
-import net.sf.samtools.SAMReadGroupRecord;
+import java.util.HashSet;
+import java.util.List;
 
 
 @ReadFilters({ZeroMappingQualityReadFilter.class, MissingReadGroupFilter.class})
@@ -91,7 +97,9 @@ public class UnifiedGenotyper extends LocusWalker<Integer, Integer> {
 
         // create the output writer stream
         if ( VARIANTS_FILE != null )
-            writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE);
+            writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE,
+                                                  "UnifiedGenotyper",
+                                                  this.getToolkit().getArguments().referenceFile.getName());
         else
             writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out);
 

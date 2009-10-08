@@ -216,8 +216,8 @@ public class VCFRecord {
      */
     public Map<String, String> getInfoValues() {
         if (this.mInfoFields.size() < 1) {
-            Map<String,String> map = new HashMap<String, String>();
-            map.put(".","");
+            Map<String, String> map = new HashMap<String, String>();
+            map.put(".", "");
             return map;
         }
         return this.mInfoFields;
@@ -305,6 +305,10 @@ public class VCFRecord {
         this.mInfoFields.put(key, value);
     }
 
+    /**
+     * the generation of a string representation, which is used by the VCF writer
+     * @return a string
+     */
     public String toString() {
         StringBuilder builder = new StringBuilder();
 
@@ -340,7 +344,7 @@ public class VCFRecord {
                     if (rec.getFields().get(s).equals("")) continue;
                     builder.append(":");
                     builder.append(rec.getFields().get(s));
-                }                
+                }
             }
         }
         return builder.toString();
