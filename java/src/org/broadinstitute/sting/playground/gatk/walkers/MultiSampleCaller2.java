@@ -38,7 +38,7 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
     @Argument(fullName="confusion_matrix_file", shortName="confusion_matrix_file", required=false, doc="file containing confusion matrix for all three technologies") public String CONFUSION_MATRIX_FILE = null;
 
     @Argument(fullName="ALLELE_FREQ_TOLERANCE", shortName="AFT", required=false, doc="") 
-    public double ALLELE_FREQ_TOLERANCE = 1e-3;
+    public double ALLELE_FREQ_TOLERANCE = 1e-6;
 
     private static final double MIN_LOD_FOR_STRAND = 0.01;
 
@@ -259,12 +259,29 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
 
     }
 
+	
+	Date start_time = null;
+	int n_sites_processed = 0;
 
     public MultiSampleCallResult map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
 	{
+		if (start_time == null) { start_time = new Date(); }
+
+		if ((n_sites_processed % 1000) == 0)
+		{
+			Date current_time = new Date();
+			long elapsed = current_time.getTime() - start_time.getTime();
+			out.printf("RUNTIME: %d sites processed in %f seconds; %f seconds per site.\n",
+						n_sites_processed,
+						(double)elapsed/1000.0,
+						((double)elapsed/1000.0)/(double)n_sites_processed);
+		}
+		n_sites_processed += 1;
+
 		context = filter_each_read(context);
 
 		if (ref.getBase() == 'N') { return null; }
+		if (BaseUtils.simpleBaseToBaseIndex(ref.getBase()) == -1) { return null; }
 		if (context.getReads().size() <= 0) { return null; }
         if (context.getReads().size() >= 10000) { return null; }     // to deal with big piles -- totally arbitrary threshold
 
@@ -369,18 +386,18 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
             int offset = offsets.get(i);
                         if (CONFUSION_MATRIX_FILE == null)
                         {
-                G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset]);
+                			G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset]);
                         }
                         else
                         {
-                String RG = (String)(read.getAttribute("RG"));
-
-                assert(header != null);
-                assert(header.getReadGroup(RG) != null);
-
-                String platform = (String)(header.getReadGroup(RG).getAttribute(SAMReadGroupRecord.PLATFORM_TAG));
-
-                G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset], confusion_matrix, platform);
+			                String RG = (String)(read.getAttribute("RG"));
+			
+			                assert(header != null);
+			                assert(header.getReadGroup(RG) != null);
+			
+			                String platform = (String)(header.getReadGroup(RG).getAttribute(SAMReadGroupRecord.PLATFORM_TAG));
+			
+			                G.add(ref, read.getReadString().charAt(offset), read.getBaseQualities()[offset], confusion_matrix, platform);
                         }
         }
         G.ApplyPrior(ref, allele_likelihoods);
@@ -436,23 +453,21 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
 	double[] CountFreqs(ClassicGenotypeLikelihoods[] genotype_likelihoods)
 	{
 		double[] allele_likelihoods = new double[4];
-        double[] personal_allele_likelihoods = new double[4];
 		
 		for (int x = 0; x < genotype_likelihoods.length; x++)
 		{
 			ClassicGenotypeLikelihoods G = genotype_likelihoods[x];
 
 			if (G.coverage == 0) { continue; }
+
+        	double[] personal_allele_likelihoods = new double[4];
 			
-			//double Z = 0;
 			int k = 0;
 			for (int i = 0; i < 4; i++)
 			{ 
-				personal_allele_likelihoods[i] = 0.0;
 				for (int j = i; j < 4; j++)
 				{
 					double likelihood = Math.pow(10,G.likelihoods[k]);
-					//Z += likelihood;
 					personal_allele_likelihoods[i] += likelihood;
 					personal_allele_likelihoods[j] += likelihood;
 					k++;
@@ -656,16 +671,19 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
 			allele_likelihoods = CountFreqs(G);
 		    double alDelta = 0.0;
 		    for (int j = 0; j < 4; j++) { alDelta += Math.abs(old_allele_likelihoods[j] - allele_likelihoods[j]); }
+
 			if ( DEBUG_PRINT ) 
+			{
 			    System.out.printf("%s AL %f %f %f %f => delta=%e < %e == %b%n", 
 			        contexts[0].getLocation(), 
-			        allele_likelihoods[0], allele_likelihoods[1], allele_likelihoods[2], allele_likelihoods[3],
+			        Math.log10(allele_likelihoods[0]), Math.log10(allele_likelihoods[1]), Math.log10(allele_likelihoods[2]), Math.log10(allele_likelihoods[3]),
 			        alDelta, ALLELE_FREQ_TOLERANCE, alDelta < ALLELE_FREQ_TOLERANCE);
+			}
 
-            if ( alDelta < ALLELE_FREQ_TOLERANCE ) {
-                if ( DEBUG_PRINT ) System.out.printf("Aborting after %d iterations%n", i);
-                break;
-            }
+            //if ( alDelta < ALLELE_FREQ_TOLERANCE ) {
+            //    System.out.printf("Converged after %d iterations%n", i);
+            //    break;
+            //}
 
 // 			if (CALL_INDELS) 
 // 			{
@@ -812,7 +830,16 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
 		glCache.clear(); // reset the contexts
 		
 		double lod = LOD(contexts);		
-		double strand_score = lod > MIN_LOD_FOR_STRAND ? StrandScore(context) : 0.0;
+
+		int n_ref = Compute_n_ref(ref, em_result.genotype_likelihoods);
+		int n_het = Compute_n_het(ref, em_result.genotype_likelihoods);
+		int n_hom = Compute_n_hom(ref, em_result.genotype_likelihoods);
+
+		//double strand_score = lod > MIN_LOD_FOR_STRAND ? StrandScore(context) : 0.0;
+		double strand_score;
+		if (n_het+n_hom > 0) { strand_score = StrandScore(context); }
+		else { strand_score = 0; }
+
 		//EM_Result em_result = EM(contexts);
 		//ClassicGenotypeLikelihoods population_genotype_likelihoods = HardyWeinberg(em_result.allele_likelihoods);	
 
@@ -821,10 +848,6 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
 
 		//double discovery_lod = Compute_discovery_lod(ref, em_result.genotype_likelihoods);
 		double alt_freq      = Compute_alt_freq(ref, em_result.allele_likelihoods);
-
-		int n_ref = Compute_n_ref(ref, em_result.genotype_likelihoods);
-		int n_het = Compute_n_het(ref, em_result.genotype_likelihoods);
-		int n_hom = Compute_n_hom(ref, em_result.genotype_likelihoods);
 
 		char alt = 'N';
 	   	//if (lod > 0.0) { alt = PickAlt(ref, em_result.allele_likelihoods); }
