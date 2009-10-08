@@ -11,7 +11,7 @@ import java.util.*;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
 
-public class MultiSampleEMGenotypeCalculationModel extends GenotypeCalculationModel {
+public class EMGenotypeCalculationModel extends GenotypeCalculationModel {
 
     // We need to set a limit on the EM iterations in case something flukey goes on
     private static final int MAX_EM_ITERATIONS = 6;
@@ -19,13 +19,16 @@ public class MultiSampleEMGenotypeCalculationModel extends GenotypeCalculationMo
     // We consider the EM stable when the MAF doesn't change more than 1/10N
     private static final double EM_STABILITY_METRIC = 0.1;
 
+    // keep track of some metrics about our calls
+    private CallMetrics callsMetrics = new CallMetrics();
 
-    protected MultiSampleEMGenotypeCalculationModel() {}
+
+    protected EMGenotypeCalculationModel() {}
 
     public boolean calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
-        // keep track of the GenotpeLikelihoods for each sample, separated by strand
-        HashMap<String, PerSampleGenotypeLikelihoods> GLs = new HashMap<String, PerSampleGenotypeLikelihoods>();
+        // keep track of the GenotypeLikelihoods for each sample, separated by strand
+        HashMap<String, UnifiedGenotypeLikelihoods> GLs = new HashMap<String, UnifiedGenotypeLikelihoods>();
 
         // keep track of the total counts of each base in the pileup
         int[] baseCounts = new int[4];
@@ -39,55 +42,76 @@ public class MultiSampleEMGenotypeCalculationModel extends GenotypeCalculationMo
 
         for (int i = 0; i < reads.size(); i++) {
 
-            // set up the base data
+            // get the read and offset
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
-            char base = read.getReadString().charAt(offset);
 
-            // don't use bad bases
-            int baseIndex = BaseUtils.simpleBaseToBaseIndex(base);
-            if ( baseIndex == -1 ) {
+            // skip deletions
+            if ( offset == -1 ) {
                 // are there too many deletions in the pileup?
                 if ( ++deletionsInPile > maxDeletionsInPileup )
                     return false;
                 continue;
             }
 
+            // get the base; don't use bad bases
+            char base = read.getReadString().charAt(offset);
+            int baseIndex = BaseUtils.simpleBaseToBaseIndex(base);
+            if ( baseIndex == -1 )
+                continue;
+
             // create the GL holder object if this is the first time we're seeing a base for this sample
             String readGroup = read.getAttribute("RG").toString(); // can't be null because those are filtered out
             String sample = read.getHeader().getReadGroup(readGroup).getSample();
-            PerSampleGenotypeLikelihoods myGLs = GLs.get(sample);
+            UnifiedGenotypeLikelihoods myGLs = GLs.get(sample);
             if ( myGLs == null ) {
-                myGLs = new PerSampleGenotypeLikelihoods();
+                myGLs = new UnifiedGenotypeLikelihoods(baseModel, new DiploidGenotypePriors(), defaultPlatform, VERBOSE);
                 GLs.put(sample, myGLs);
             }
 
             // assign the base to the appropriate strand
-            myGLs.addObservedBase(base, read, offset);
+            myGLs.add(base, read, offset);
 
             // update the base counts
             baseCounts[baseIndex]++;
             totalObservedBases++;
         }
 
-        // optimization: if all bases are ref, return
-        if ( baseCounts[BaseUtils.simpleBaseToBaseIndex(ref)] == totalObservedBases )
-            return true;
+        // for now, we need to special-case single sample mode
+        if ( samples.size() == 1 ) {
+            UnifiedGenotypeLikelihoods UGL = GLs.get(samples.iterator().next());
+            // if there were no good bases, the likelihoods object wouldn't exist
+            if ( UGL == null )
+                return false;
 
-        // TODO -- Do we quit if there isn't X% of total samples represented in pileup?
+            callsMetrics.nCalledBases++;
+            UGL.setPriors(priors);
+            SSGenotypeCall call = new SSGenotypeCall(context.getLocation(), ref, UGL.getGenotypeLikelihoods(), new ReadBackedPileup(ref, context));
+
+            if ( GENOTYPE_MODE || call.isVariant(call.getReference()) ) {
+                double confidence = (GENOTYPE_MODE ? call.getNegLog10PError() : call.toVariation().getNegLog10PError());
+                if ( confidence >= LOD_THRESHOLD ) {
+                    callsMetrics.nConfidentCalls++;
+                    out.addGenotypeCall(call);
+                } else {
+                    callsMetrics.nNonConfidentCalls++;
+                }
+            }
+            return true;
+        }
+
+        callsMetrics.nCalledBases++;
 
         // Next, we need to create initial allele frequencies.
         // An intelligent guess would be the observed base ratios (plus some small number to account for sampling issues).
-
-        // TODO --- This needs to be broken out into a separate model as we might want to split up the calculation for each minor allele
 
         double[] alleleFrequencies = new double[4];
         for (int i = 0; i < 4; i++)
             alleleFrequencies[i] = ((double)baseCounts[i] + DiploidGenotypePriors.HUMAN_HETEROZYGOSITY) / (double)totalObservedBases;
         DiploidGenotypePriors AFPriors = calculateAlleleFreqBasedPriors(alleleFrequencies);
 
-        for ( PerSampleGenotypeLikelihoods SGL : GLs.values() )
-            SGL.createGLs(AFPriors);
+        for ( UnifiedGenotypeLikelihoods UGL : GLs.values() )
+            UGL.setPriors(AFPriors);
 
         // debugging output
         for (int i = 0; i < 4; i++)
@@ -106,8 +130,8 @@ public class MultiSampleEMGenotypeCalculationModel extends GenotypeCalculationMo
             // calculate the posterior-weighted allele frequencies and modify the priors accordingly
             double[] newAlleleFrequencies = getPosteriorWeightedFrequencies(GLs.values());
             AFPriors = calculateAlleleFreqBasedPriors(newAlleleFrequencies);
-            for ( PerSampleGenotypeLikelihoods SGL : GLs.values() )
-                SGL.setPriors(AFPriors);
+            for ( UnifiedGenotypeLikelihoods UGL : GLs.values() )
+                UGL.setPriors(AFPriors);
 
             // determine whether we're stable
             double AF_delta = 0.0;
@@ -126,6 +150,13 @@ public class MultiSampleEMGenotypeCalculationModel extends GenotypeCalculationMo
 
         if (true)
             throw new RuntimeException("DEBUGGING");
+
+        // compute actual priors: theta / MAF
+        double pF = computeThetaOverMAF(ref, alleleFrequencies, GLs.size());
+
+        // the posteriors from the EM loop are the population likelihoods here
+        // TODO -- finish me
+
 
 /*
         ClassicGenotypeLikelihoods[] G = em_result.genotype_likelihoods;
@@ -152,23 +183,21 @@ public class MultiSampleEMGenotypeCalculationModel extends GenotypeCalculationMo
 
 */
         
-        // apply prior of theta / MAF
-        // It turns out that the appropriate prior is theta, for any sample size from 1 to ~1,000
         //return new SSGenotypeCall(context.getLocation(), ref,gl, pileup);
 
         return true;
     }
 
-    double[] getPosteriorWeightedFrequencies(Collection<PerSampleGenotypeLikelihoods> SGLs) {
+    double[] getPosteriorWeightedFrequencies(Collection<UnifiedGenotypeLikelihoods> UGLs) {
         double[] newAlleleLikelihoods = new double[4];
 
-        for ( PerSampleGenotypeLikelihoods SGL : SGLs ) {
+        for ( UnifiedGenotypeLikelihoods UGL : UGLs ) {
 
             // calculate the posterior weighted frequencies for this sample
             double[] personalAllelePosteriors = new double[4];
             double sum = 0;
             for ( DiploidGenotype g : DiploidGenotype.values() ) {
-                double posterior = Math.pow(10, SGL.totalGL.getPosterior(g));
+                double posterior = Math.pow(10, UGL.getGenotypeLikelihoods().getPosterior(g));
                 personalAllelePosteriors[BaseUtils.simpleBaseToBaseIndex(g.base1)] += posterior;
                 personalAllelePosteriors[BaseUtils.simpleBaseToBaseIndex(g.base2)] += posterior;
                 sum += 2.0 * posterior;
@@ -210,43 +239,34 @@ public class MultiSampleEMGenotypeCalculationModel extends GenotypeCalculationMo
         return new DiploidGenotypePriors(alleleFreqPriors);
     }
 
-    private class PerSampleGenotypeLikelihoods {
+    private double computeThetaOverMAF(char ref, double[] alleleFrequencies, int samplesAtLocus) {
+        double MAF;
+        Integer[] sortedIndexes = Utils.SortPermutation(alleleFrequencies);
+        if ( sortedIndexes[3] != BaseUtils.simpleBaseToBaseIndex(ref) )
+            MAF = alleleFrequencies[sortedIndexes[3]];
+        else
+            MAF = alleleFrequencies[sortedIndexes[2]];
 
-        GenotypeLikelihoods forwardStrandGL;
-        GenotypeLikelihoods reverseStrandGL;
-        GenotypeLikelihoods totalGL;
+        int expectedChrs = (int)(2.0 * (double)samplesAtLocus * MAF);
 
-        public PerSampleGenotypeLikelihoods() {
-            forwardStrandGL = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, new DiploidGenotypePriors(), defaultPlatform);
-            forwardStrandGL.setVerbose(VERBOSE);
-            reverseStrandGL = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, new DiploidGenotypePriors(), defaultPlatform);
-            reverseStrandGL.setVerbose(VERBOSE);
-        }
+        // TODO -- we need to use the priors from the UnifiedArgumentCollection
+        return DiploidGenotypePriors.HUMAN_HETEROZYGOSITY / (double)expectedChrs;
+    }
 
-        public void addObservedBase(char base, SAMRecord read, int offset) {
-            if ( !read.getReadNegativeStrandFlag() )
-                forwardStrandGL.add(base, read.getBaseQualities()[offset], read, offset);
-            else
-                reverseStrandGL.add(base, read.getBaseQualities()[offset], read, offset);
-        }
 
-        public void createGLs(DiploidGenotypePriors priors) {
-            setPriors(priors);
+    /**
+     * A class to keep track of some basic metrics about our calls
+    */
+    private class CallMetrics {
+        long nConfidentCalls = 0;
+        long nNonConfidentCalls = 0;
+        long nCalledBases = 0;
 
-            // GL_i = GL+_i + GL-_i
-            totalGL = GenotypeLikelihoods.combineLikelihoods(forwardStrandGL, reverseStrandGL);
-            totalGL.setVerbose(VERBOSE);
-            if ( VERBOSE )
-                totalGL.validate();
-        }
+        CallMetrics() {}
 
-        public void setPriors(DiploidGenotypePriors priors) {
-            if ( forwardStrandGL != null )
-                forwardStrandGL.setPriors(priors);
-            if ( reverseStrandGL != null )
-                reverseStrandGL.setPriors(priors);
-            if ( totalGL != null )
-                totalGL.setPriors(priors);
+        public String toString() {
+            return String.format("SSG: %d confident and %d non-confident calls were made at %d bases",
+                    nConfidentCalls, nNonConfidentCalls, nCalledBases);
         }
     }
 }

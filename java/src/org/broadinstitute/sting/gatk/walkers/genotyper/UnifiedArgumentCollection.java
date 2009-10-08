@@ -40,8 +40,8 @@ import java.io.File;
 public class UnifiedArgumentCollection {
 
     // control the various models to be used
-    @Argument(fullName = "genotypeModel", shortName = "gm", doc = "Genotype calculation model to employ -- SINGLE_SAMPLE and MULTI_SAMPLE_EM are the recommended choices, but it's possible to select MULTI_SAMPLE_ALL_MAFs", required = true)
-    public GenotypeCalculationModel.Model genotypeModel = null;
+    @Argument(fullName = "genotypeModel", shortName = "gm", doc = "Genotype calculation model to employ -- EM is the default choice; the ALL_MAFS model is experimental", required = false)
+    public GenotypeCalculationModel.Model genotypeModel = GenotypeCalculationModel.Model.EM;
 
     @Argument(fullName = "baseModel", shortName = "bm", doc = "Base substitution model to employ -- EMPIRICAL is the recommended default, but it's possible to select the ONE_STATE and THREE_STATE models for comparison purposes", required = false)
     public BaseMismatchModel baseModel = BaseMismatchModel.EMPIRICAL;
@@ -71,7 +71,8 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "maxCoverage", shortName = "maxCoverage", doc = "Maximum reads at this locus for it to be callable; to disable, provide value < 1 [default:10,000]", required = false)
     public Integer MAX_READS_IN_PILEUP = 10000;
 
+
     //@Argument(fullName = "disableCache", doc = "[ADVANCED] If true, we won't use the caching system.  This argument is for testing purposes only", required = false)
-    //public boolean disableCache = false;    
+    //public boolean disableCache = false;
 
 }

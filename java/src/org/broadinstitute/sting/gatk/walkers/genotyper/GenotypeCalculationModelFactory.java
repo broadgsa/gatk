@@ -58,14 +58,11 @@ public class GenotypeCalculationModelFactory {
                                                                    Logger logger) {
         GenotypeCalculationModel gcm;
         switch ( UAC.genotypeModel ) {
-            case SINGLE_SAMPLE:
-                gcm = new SingleSampleGenotypeCalculationModel();
+            case EM:
+                gcm = new EMGenotypeCalculationModel();
                 break;
-            case MULTI_SAMPLE_EM:
-                gcm = new MultiSampleEMGenotypeCalculationModel();
-                break;
-            case MULTI_SAMPLE_ALL_MAFS:
-                gcm = new MultiSampleAllMAFsGenotypeCalculationModel();
+            case ALL_MAFS:
+                gcm = new AllMAFsGenotypeCalculationModel();
                 break;
             default: throw new RuntimeException("Unexpected GenotypeCalculationModel " + UAC.genotypeModel);
         }

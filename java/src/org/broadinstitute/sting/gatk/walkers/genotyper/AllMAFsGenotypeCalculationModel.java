@@ -7,9 +7,9 @@ import org.apache.log4j.Logger;
 
 import java.util.Set;
 
-public class MultiSampleAllMAFsGenotypeCalculationModel extends GenotypeCalculationModel {
+public class AllMAFsGenotypeCalculationModel extends GenotypeCalculationModel {
 
-    protected MultiSampleAllMAFsGenotypeCalculationModel() {}
+    protected AllMAFsGenotypeCalculationModel() {}
 
     public boolean calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
