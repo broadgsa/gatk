@@ -70,7 +70,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     public Object parse( ArgumentSource source, Class type, ArgumentMatches matches )  {
         String writerFileName = getArgumentValue( createBAMArgumentDefinition(source), matches );
         if( writerFileName == null )
-            throw new StingException("SAM file compression was supplied, but not associated writer was supplied with it.");
+            throw new StingException("SAM file compression was supplied, but no associated writer was supplied with it.");
 
         SAMFileWriterStub stub = new SAMFileWriterStub(engine, new File(writerFileName));
 
