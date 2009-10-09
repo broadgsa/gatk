@@ -38,6 +38,9 @@ import java.io.File;
  * Insert a SAMFileWriterStub  instead of a full-fledged concrete OutputStream implementations.
  */
 public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
+    private static final String DEFAULT_ARGUMENT_FULLNAME = "outputBAM";
+    private static final String DEFAULT_ARGUMENT_SHORTNAME = "ob";
+
     private static final String COMPRESSION_FULLNAME = "bam_compression";
     private static final String COMPRESSION_SHORTNAME = "compress";
 
@@ -92,8 +95,20 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     private ArgumentDefinition createBAMArgumentDefinition(ArgumentSource source) {
         Argument description = this.getArgumentDescription(source);
 
-        String fullName = description.fullName().trim().length() > 0 ? description.fullName().trim() : "outputBAM";
-        String shortName = description.shortName().trim().length() > 0 ? description.shortName().trim() : "ob";
+        boolean isFullNameProvided = description.fullName().trim().length() > 0;
+        boolean isShortNameProvided = description.shortName().trim().length() > 0;
+
+        String fullName = isFullNameProvided ? description.fullName().trim() : DEFAULT_ARGUMENT_FULLNAME;
+
+        // If the short name is provided, use that.  If the user hasn't provided any names at all, use
+        // the default.  If somewhere in the middle, leave the short name blank.
+        String shortName;
+        if( isShortNameProvided )
+            shortName = description.shortName().trim();
+        else if( !isFullNameProvided )
+            shortName = DEFAULT_ARGUMENT_SHORTNAME;
+        else
+            shortName = null;
 
         return new ArgumentDefinition( source,
                                        fullName,
