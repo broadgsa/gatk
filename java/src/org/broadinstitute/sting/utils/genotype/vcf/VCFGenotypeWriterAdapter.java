@@ -8,6 +8,7 @@ import org.broadinstitute.sting.utils.genotype.ReadBacked;
 import org.broadinstitute.sting.utils.genotype.SampleBacked;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -82,7 +83,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      */
     @Override
     public void addGenotypeCall(Genotype call) {
-        throw new UnsupportedOperationException("VCF is a multi sample fomat");
+        addMultiSampleCall(Arrays.asList(call));
     }
 
     /**
@@ -92,7 +93,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      */
     @Override
     public void addNoCall(int position) {
-        throw new UnsupportedOperationException("VCF is a multi sample fomat");
+        throw new UnsupportedOperationException("We don't currently support no-calls in VCF");
     }
 
     /** finish writing, closing any open files. */
