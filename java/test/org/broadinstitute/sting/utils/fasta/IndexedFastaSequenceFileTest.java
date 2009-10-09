@@ -153,7 +153,7 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
     }
 
     @Test(expected= PicardException.class)
-    public void testReadPastEndOfContig() {
+     public void testReadPastEndOfContig() {
          long startTime = System.currentTimeMillis();
          try {
              ReferenceSequence sequence = sequenceFile.getSubsequenceAt("chrM",16800,16900);
@@ -265,36 +265,12 @@ public class IndexedFastaSequenceFileTest extends BaseTest {
         ReferenceSequence sequence = sequenceFile.nextSequence();
         long endTime = System.currentTimeMillis();
 
-        Assert.assertEquals("Sequence contig is not correct", "chr1", sequence.getName());
-        Assert.assertEquals("Sequence contig index is not correct", 1, sequence.getContigIndex());
-        Assert.assertEquals("Sequence size is not correct", expectedSequence.length(), sequence.length());
+        Assert.assertEquals("Sequence contig is not correct", sequence.getName(), "chr1");
+        Assert.assertEquals("Sequence contig index is not correct", sequence.getContigIndex(), 1);
         Assert.assertEquals("chr1 is incorrect",
                             StringUtil.bytesToString(expectedSequence.getBases()),
                             StringUtil.bytesToString(sequence.getBases()) );
 
         System.err.printf("testNextElementOfIterator runtime: %dms%n", (endTime - startTime)) ;
-    }
-
-    @Test
-    public void testReset() {
-        ReferenceSequenceFile originalSequenceFile = ReferenceSequenceFileFactory.getReferenceSequenceFile(new File(sequenceFileName));
-        // Skip past the first one and load the second one.
-        ReferenceSequence expectedSequence = originalSequenceFile.nextSequence();
-
-        long startTime = System.currentTimeMillis();
-        sequenceFile.nextSequence();
-        sequenceFile.nextSequence();
-        sequenceFile.reset();
-        ReferenceSequence sequence = sequenceFile.nextSequence();
-        long endTime = System.currentTimeMillis();
-
-        Assert.assertEquals("Sequence contig is not correct", "chrM", sequence.getName());
-        Assert.assertEquals("Sequence contig index is not correct", 0, sequence.getContigIndex());
-        Assert.assertEquals("Sequence size is not correct", expectedSequence.length(), sequence.length());
-        Assert.assertEquals("chrM is incorrect",
-                            StringUtil.bytesToString(expectedSequence.getBases()),
-                            StringUtil.bytesToString(sequence.getBases()) );
-
-        System.err.printf("testReset runtime: %dms%n", (endTime - startTime)) ;
     }
 }
