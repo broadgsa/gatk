@@ -242,7 +242,7 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
 
 			if (SAMPLE_NAME_REGEX != null) { sample_name = sample_name.replaceAll(SAMPLE_NAME_REGEX, "$1"); }
 
-            System.out.printf("SAMPLE: %s %s\n", sample_name, platform);
+            //System.out.printf("SAMPLE: %s %s\n", sample_name, platform);
 
 			if (unique_sample_names.contains(sample_name)) { continue; }
 			unique_sample_names.add(sample_name);
@@ -362,6 +362,7 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
 	}
 	
 	HashMap<AlignmentContext, ClassicGenotypeLikelihoods> glCache = new HashMap<AlignmentContext, ClassicGenotypeLikelihoods>();
+	int cache_size = 0;
 
     ClassicGenotypeLikelihoods GenotypeOld(AlignmentContext context, double[] allele_likelihoods, double indel_alt_freq) {
         //ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
@@ -441,7 +442,16 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
                 G = (ClassicGenotypeLikelihoods)cached.clone();
             } else {
                 G = reallyMakeGenotypeLikelihood(context);
-                glCache.put(context, G.clone());
+				if (cache_size < 5000)
+				{
+					//System.out.printf("cache add (%d)\n", cache_size);
+                	glCache.put(context, G.clone());
+					cache_size += context.getReads().size();
+				}
+				else
+				{
+					//System.out.printf("cache skip (%d)\n", cache_size);
+				}
             }
             G.ApplyPrior(ref, allele_likelihoods);
         }
@@ -827,7 +837,8 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
 		if (tracker.lookup("DBSNP", null) != null) { in_dbsnp = "known"; } else { in_dbsnp = "novel"; }
 
 		AlignmentContext[] contexts = filterAlignmentContext(context, sample_names, 0);
-		glCache.clear(); // reset the contexts
+		glCache.clear(); // reset the cache
+		cache_size = 0;
 		
 		double lod = LOD(contexts);		
 
