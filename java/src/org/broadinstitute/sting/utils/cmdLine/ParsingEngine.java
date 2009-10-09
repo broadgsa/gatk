@@ -486,3 +486,17 @@ class ArgumentsAreMutuallyExclusiveException extends ArgumentException {
     }
 
 }
+
+
+/**
+ * An exception for when an argument doesn't match an of the enumerated options for that var type
+ */
+class UnknownEnumeratedValueException extends ArgumentException {
+    public UnknownEnumeratedValueException(String argumentPassed, String typeName ) {
+        super( formatArguments(argumentPassed, typeName) );
+    }
+
+    private static String formatArguments(String argumentPassed, String typeName  ) {
+        return new String("Enumerated constant " + argumentPassed + " Not found in type " + typeName);
+    }
+}

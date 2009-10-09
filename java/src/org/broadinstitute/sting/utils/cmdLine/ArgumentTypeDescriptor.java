@@ -241,7 +241,10 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 Method valueOf = primitiveToWrapperMap.get(type).getMethod("valueOf",String.class);
                 return valueOf.invoke(null,value.trim());
             } else if (type.isEnum()) {
-                return Enum.valueOf(type,value.toUpperCase().trim());
+                Object[] vals = type.getEnumConstants();
+                for (Object val : vals)
+                    if (String.valueOf(val).equalsIgnoreCase(value)) return val;
+                throw new UnknownEnumeratedValueException(value, type.getName());
             } else {
                 Constructor ctor = type.getConstructor(String.class);
                 return ctor.newInstance(value);
