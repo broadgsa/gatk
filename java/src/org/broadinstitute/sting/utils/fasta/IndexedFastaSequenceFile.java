@@ -33,9 +33,6 @@ import java.util.Scanner;
  * the ReferenceSequenceFile for old-style, stateful lookups and a direct getter.
  */
 public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
-    // Using buffer size of 4k because that's what Picard uses; no thought went into this.
-    private static final int BUFFERSIZE = 4096;
-
     private final File file;
     private FileInputStream in;
     private FileChannel channel;
@@ -47,7 +44,6 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
 
     public IndexedFastaSequenceFile(File file) throws FileNotFoundException {
         this.file = file;
-        // TODO: Add support for gzipped files
         in = new FileInputStream(file);
         channel = in.getChannel();
 
@@ -102,6 +98,8 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
 
     /**
      * Loads the index for the fasta, if present.  Throws an exception if now present.
+     * @param fastaFile FASTA file to load.
+     * @throws FileNotFoundException if FASTA file cannot be found.
      */
     private void loadIndex( File fastaFile ) throws FileNotFoundException {
         File indexFile = new File(fastaFile.getAbsolutePath() + ".fai");
@@ -109,7 +107,7 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
             throw new PicardException(String.format("Unable to load fasta index file %s.  "+
                                                     "Please create it using 'samtools faidx'.",indexFile.getAbsolutePath()));
         index = new FastaSequenceIndex(indexFile);
-        indexIterator = index.iterator();
+        reset();
     }
 
     /**
@@ -159,10 +157,6 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
     public ReferenceSequence getSubsequenceAt( String contig, long start, long stop ) {
         if(start > stop)
             throw new PicardException(String.format("Malformed query; start point %d lies after end point %d",start,stop));
-        if(start > Integer.MAX_VALUE)
-            throw new PicardException("Due to current ReferenceSequence limitations, a start point larger than Integer.MAX_VALUE cannot be loaded.");
-        if(stop - start + 1 > Integer.MAX_VALUE)
-            throw new PicardException("Due to current ReferenceSequence limitations, a region larger than Integer.MAX_VALUE cannot be loaded.");
 
         FastaSequenceIndexEntry indexEntry = index.getIndexEntry(contig);
 
@@ -171,77 +165,35 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
 
         int length = (int)(stop - start + 1);
 
+        byte[] target = new byte[length];
+        ByteBuffer targetBuffer = ByteBuffer.wrap(target);
+
         final int basesPerLine = indexEntry.getBasesPerLine();
         final int bytesPerLine = indexEntry.getBytesPerLine();
 
-        // Start reading at the closest start-of-line to our data.
-        long readStart = indexEntry.getLocation() + ((start-1) / basesPerLine) * bytesPerLine;
-        int dataOfInterestStart = (int)((start-1) % basesPerLine);
+        final long startOffset = ((start-1)/basesPerLine)*bytesPerLine + (start-1)%basesPerLine;
+        final long stopOffset = ((stop-1)/basesPerLine)*bytesPerLine + (stop-1)%basesPerLine;
+        final int size = (int)(stopOffset-startOffset)+1;
 
-        byte[] accumulator = new byte[length];
-        int nextAccumulatorSlot = 0;        
-
-        while(length > 0) {
-            ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFERSIZE);
-            try {
-                channel.read(buffer, readStart);
-                readStart += BUFFERSIZE;
-            }
-            catch( IOException ex ) {
-                throw new PicardException("Unable to read directly from fasta", ex);
-            }
-
-            final int basesTransferred = transferToBuffer( buffer,
-                                                           dataOfInterestStart,
-                                                           accumulator,
-                                                           nextAccumulatorSlot,
-                                                           length );
-
-            nextAccumulatorSlot += basesTransferred;
-            length -= basesTransferred;
-            dataOfInterestStart = 0;
-        }
-
-        return new ReferenceSequence( contig, sequenceDictionary.getSequenceIndex(contig), accumulator );
-    }
-
-    /**
-     * Transfers the contents of the given ByteBuffer to the given byte array, discarding
-     * line breaks at regular intervals.  Copies as many as length bases, depending on the
-     * buffer size.  Returns the number of bytes actually copied.
-     * @param source The source ByteBuffer.
-     * @param sourceStart The starting position to copy within the byte buffer
-     * @param target Destination for the data
-     * @param targetStart Index into target buffer.
-     * @param length How much data to move.
-     * @return How many bytes were actually transferred.
-     */
-    private int transferToBuffer( ByteBuffer source,
-                                  int sourceStart,
-                                  byte[] target,
-                                  int targetStart,
-                                  int length ) {
-        source.position(sourceStart);
-        int basesRead = 0;
-        CharsetDecoder decoder = Charset.forName("US-ASCII").newDecoder();
-
-        Scanner scanner = null;
+        ByteBuffer channelBuffer = ByteBuffer.allocate(size);
         try {
-            scanner = new Scanner(decoder.decode(source).toString());
+            channel.read(channelBuffer,indexEntry.getLocation()+startOffset);
         }
-        catch(CharacterCodingException ex) {
-            throw new PicardException("Malformed subsequence",ex);
+        catch(IOException ex) {
+            throw new PicardException("Unable to map FASTA file into memory.");
         }
 
-        while( scanner.hasNext() && basesRead < length ) {
-            String sourceLine = scanner.nextLine();
-            byte[] sourceData = sourceLine.getBytes();
-            int basesToTransfer = Math.min(sourceData.length,length - basesRead);
-            System.arraycopy(sourceData,0,target,targetStart+basesRead,basesToTransfer);
+        channelBuffer.position(0);
+        channelBuffer.limit(Math.min(basesPerLine-(int)startOffset%bytesPerLine,size));
 
-            basesRead += basesToTransfer;
+        while( channelBuffer.hasRemaining() ) {
+            targetBuffer.put(channelBuffer);
+
+            channelBuffer.limit(Math.min(channelBuffer.limit()+bytesPerLine,size));
+            channelBuffer.position(Math.min(channelBuffer.position()+bytesPerLine-basesPerLine,size));
         }
-        return basesRead;
+
+        return new ReferenceSequence( contig, sequenceDictionary.getSequenceIndex(contig), target );
     }
 
     /**
@@ -256,7 +208,7 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
 
     @Override
     public void reset() {
-        // TODO: FOR MATT TO IMPL.
+        indexIterator = index.iterator();
     }
 
     public String toString() {
