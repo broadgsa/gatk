@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.playground.gatk.walkers.poolseq;
 
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -22,6 +24,7 @@ import java.util.List;
  * Time: 9:44:35 AM
  * To change this template use File | Settings | File Templates.
  */
+@By(DataSource.REFERENCE)
 public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
     @Argument(fullName="lodThreshold", shortName="lod", doc="Threshold for log likelihood ratio to be called a SNP. Defaults to 3.0", required = false)
     public double lodThresh = 3.0;
