@@ -148,6 +148,32 @@ public abstract class GenotypeLikelihoods implements Cloneable {
         return getPosteriors()[g.ordinal()];
     }
 
+
+    /**
+     * Returns an array of posteriors for each genotype, indexed by DiploidGenotype.ordinal values().
+     *
+     * @return normalized posterors as a double array
+     */
+    public double[] getNormalizedPosteriors() {
+        double[] normalized = new double[posteriors.length];
+        double sum = 0.0;
+
+        // collect the posteriors
+        for ( DiploidGenotype g : DiploidGenotype.values() ) {
+            double posterior = Math.pow(10, getPosterior(g));
+            normalized[g.ordinal()] = posterior;
+            sum += posterior;
+        }
+
+        // normalize
+        for (int i = 0; i < normalized.length; i++)
+            normalized[i] /= sum;
+
+        return normalized;
+    }
+
+
+
     public DiploidGenotypePriors getPriorObject() {
         return priors;
     }
