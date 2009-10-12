@@ -41,6 +41,9 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
     @Argument(fullName="useMeanProb", doc="Use the mean probability as the \"average quality\" rather than median Q-score")
     boolean useMean = false;
 
+    @Argument(fullName="minimumMappingQuality", shortName="mmq", doc="Only use reads above this mapping quality in the power calculation", required=false)
+    int minMappingQuality = -1;
+
     public void initialize() {
         if ( alleleFreq < 1 ) {
             String err = "Allele frequency (-af) must be greater than or equal to one.";
@@ -65,6 +68,11 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
         if ( minQ > 0 ) {
             Pair<List<SAMRecord>, List<Integer>> thresh = PoolUtils.thresholdReadsByQuality(context.getReads(),context.getOffsets(),minQ);
             context = new AlignmentContext(context.getLocation(), thresh.getFirst(), thresh.getSecond());
+        }
+
+        if ( minMappingQuality > -1 ) {
+            Pair<List<SAMRecord>,List<Integer>> goodMaps = PoolUtils.thresholdReadsByMappingQuality(context.getReads(),context.getOffsets(),minMappingQuality);
+            context = new AlignmentContext(context.getLocation(), goodMaps.getFirst(), goodMaps.getSecond());
         }
 
         // calculate powers and put into output string
