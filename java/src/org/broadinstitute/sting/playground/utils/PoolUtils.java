@@ -120,6 +120,30 @@ public class PoolUtils {
         return new Pair<List<SAMRecord>,List<Integer>>(threshReads, threshOffsets);
     }
 
+    public static Pair<List<SAMRecord>,List<Integer>> thresholdReadsByMappingQuality( List<SAMRecord> reads, List<Integer> offsets, int mapQual ) {
+        List<SAMRecord> goodMapReads;
+        List<Integer> goodMapOffsets;
+        if ( reads == null ) {
+            goodMapReads = null;
+            goodMapOffsets = null;
+        } else if ( mapQual < 0 ) {
+            goodMapReads = reads;
+            goodMapOffsets = offsets;
+        } else {
+            goodMapReads = new ArrayList<SAMRecord>();
+            goodMapOffsets = new ArrayList<Integer>();
+
+            for ( int readNo = 0; readNo < reads.size(); readNo ++ ) {
+                if ( reads.get(readNo).getMappingQuality() > mapQual ) {
+                    goodMapReads.add(reads.get(readNo));
+                    goodMapOffsets.add(offsets.get(readNo));
+                }
+            }
+        }
+
+        return new Pair<List<SAMRecord>,List<Integer>>(goodMapReads,goodMapOffsets);
+    }
+
     public static Pair<List<SAMRecord>,List<Integer>> thresholdReadsByQuality(Pair<List<SAMRecord>,List<Integer>> readPair, byte qThresh) {
         return thresholdReadsByQuality(readPair.getFirst(),readPair.getSecond(),qThresh);
     }
