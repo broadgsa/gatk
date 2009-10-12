@@ -6,9 +6,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.QualityUtils;
-
-import java.util.List;
-import java.util.LinkedList;
+import org.broadinstitute.sting.playground.gatk.walkers.Recalibration.LocalMapType;
 
 import net.sf.samtools.SAMRecord;
 
@@ -19,11 +17,11 @@ import net.sf.samtools.SAMRecord;
  * Time: 10:54:18 AM
  * To change this template use File | Settings | File Templates.
  */
-public class NQSCovariantByCountsWalker extends LocusWalker< LocalMapType, int[][][][] > {
+public class NQSCovariantByCountsWalker extends LocusWalker<LocalMapType, int[][][][] > {
 
     final static int SMALL_DEVIATION = 5;
     final static int LARGE_DEVIATION = 8;
-    final static int WIN_SIZE_SIDE = 4;
+    final static int WIN_SIZE_SIDE = 6;
     final static int MATCH_OFFSET = 1;
     final static int MM_OFFSET = 0;
     final static int MAX_Q_SCORE = 2 + QualityUtils.MAX_REASONABLE_Q_SCORE;

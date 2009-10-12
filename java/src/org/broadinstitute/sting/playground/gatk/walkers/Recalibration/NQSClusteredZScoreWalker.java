@@ -6,9 +6,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.QualityUtils;
-
-import java.util.List;
-import java.util.LinkedList;
+import org.broadinstitute.sting.playground.gatk.walkers.Recalibration.LocalMapType;
 
 import net.sf.samtools.SAMRecord;
 
@@ -21,21 +19,24 @@ import net.sf.samtools.SAMRecord;
  */
 public class NQSClusteredZScoreWalker extends LocusWalker<LocalMapType, int[][][]> {
     static final int WIN_SIDE_SIZE = 5;
-    static final int Z_SCORE_MAX = 8;
-    static final int Z_SCORE_MULTIPLIER = 50; // bins are Z_SCORE * (this) rounded to the nearst int
+    static final int Z_SCORE_MIN = -6;
+    static final int Z_SCORE_MAX = 6;
+    static final int Z_SCORE_MULTIPLIER = 20; // bins are Z_SCORE * (this) rounded to the nearst int
     static final int MM_OFFSET = 1;
     static final int MATCH_OFFSET = 0;
     static final int MAX_Q_SCORE = 2 + QualityUtils.MAX_REASONABLE_Q_SCORE;
 
     protected int WINDOW;
+    protected int Z_SCORE_RANGE;
 
     public void initialize() {
         WINDOW = 2*WIN_SIDE_SIZE+1;
+        Z_SCORE_RANGE = Z_SCORE_MAX - Z_SCORE_MIN;
     }
 
     public int[][][] reduceInit() {
-        int[][][] q = new int[Z_SCORE_MAX*Z_SCORE_MULTIPLIER+1][MAX_Q_SCORE][2];
-        for ( int i = 0; i < Z_SCORE_MAX*Z_SCORE_MULTIPLIER+1; i ++ ) {
+        int[][][] q = new int[Z_SCORE_RANGE*Z_SCORE_MULTIPLIER+1][MAX_Q_SCORE][2];
+        for ( int i = 0; i < Z_SCORE_RANGE*Z_SCORE_MULTIPLIER+1; i ++ ) {
             for ( int j = 0; j < MAX_Q_SCORE; j ++ ) {
                 for ( int k = 0; k < 2; k ++ ) {
                     q[i][j][k] = 0;
@@ -67,7 +68,7 @@ public class NQSClusteredZScoreWalker extends LocusWalker<LocalMapType, int[][][
 
     public void onTraversalDone( int[][][] zScoreBins ) {
         out.print( header() );
-        for ( int i = 0; i < Z_SCORE_MAX*Z_SCORE_MULTIPLIER; i ++ ) {
+        for ( int i = 0; i < Z_SCORE_RANGE*Z_SCORE_MULTIPLIER; i ++ ) {
             for ( int j = 0; j < MAX_Q_SCORE; j ++ ) {
                 out.print( formatData(zScoreBins[i][j], i, j) );
             }
@@ -84,12 +85,16 @@ public class NQSClusteredZScoreWalker extends LocusWalker<LocalMapType, int[][][
 
     public int calcZScoreBin( SAMRecord read, int offset ) {
         Pair<Double,Double> meanVar = calcWindowMeanVariance(read, offset);
-        double rawZ = Math.abs((getQScoreAsInt(read, offset) - meanVar.first)/Math.sqrt(meanVar.second));
+        double rawZ = (getQScoreAsInt(read, offset) - meanVar.first)/Math.sqrt(meanVar.second);
         int zBin;
-        if ( rawZ < Z_SCORE_MAX ) {
-            zBin = (int) Math.floor(rawZ*Z_SCORE_MULTIPLIER);
+        if ( rawZ >= Z_SCORE_MAX ) {
+            zBin = (int) Math.floor(Z_SCORE_RANGE*Z_SCORE_MULTIPLIER);
+        } else if ( rawZ <= Z_SCORE_MIN ) {
+            zBin = 0;
+        } else if ( rawZ > 0 ) {
+            zBin = (int) Math.floor(rawZ*Z_SCORE_MULTIPLIER) - (int) Math.floor(Z_SCORE_MIN*Z_SCORE_MULTIPLIER);
         } else {
-            zBin = Z_SCORE_MULTIPLIER*Z_SCORE_MAX;
+            zBin = (int) Math.floor(-Z_SCORE_MIN*Z_SCORE_MULTIPLIER) + (int) Math.floor(rawZ*Z_SCORE_MULTIPLIER);
         }
 
         return zBin;        
@@ -137,10 +142,6 @@ public class NQSClusteredZScoreWalker extends LocusWalker<LocalMapType, int[][][
 
     public String formatData ( int[] matchMismatch, int zScoreBin, int q ) {
         String format = "%f\t%d\t%f\t%f\t%d\t%d%n";
-
-        for ( int i = 0; i < MAX_Q_SCORE; i ++ ) {
-
-        }
 
         double zScore = ( (double) zScoreBin )/Z_SCORE_MULTIPLIER;
         int counts = matchMismatch[MATCH_OFFSET] + matchMismatch[MM_OFFSET];

@@ -1,13 +1,12 @@
 package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 
+import org.broadinstitute.sting.playground.gatk.walkers.Recalibration.LocalMapType;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.QualityUtils;
 import net.sf.samtools.SAMRecord;
-
-import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -29,7 +28,7 @@ public class NQSMismatchCovariantWalker extends LocusWalker<LocalMapType, long[]
     public static final String HEADER_FORMAT = "%s    %s     %s     %s     %s     %s%n";
 
     public long[][][] reduceInit() {
-        long[][][] mismatchesByNQS = new long[(int)QualityUtils.MAX_QUAL_SCORE+1][this.numNQSGroups()+1][2];
+        long[][][] mismatchesByNQS = new long[(int) QualityUtils.MAX_QUAL_SCORE+1][this.numNQSGroups()+1][2];
         for ( int qualityScore = 0; qualityScore <= (int) QualityUtils.MAX_QUAL_SCORE; qualityScore ++) {
             for ( int nqsGroup = 0; nqsGroup <= numNQSGroups(); nqsGroup++ ) {
                 mismatchesByNQS[qualityScore][nqsGroup][MM_OFFSET] = 0;
@@ -124,7 +123,7 @@ public class NQSMismatchCovariantWalker extends LocusWalker<LocalMapType, long[]
 
     protected boolean isDBSNP(RefMetaDataTracker tracker) {
 
-        return false; 
+        return false;
         // return ( tracker.lookup("dbSNP",null) != null );
     }
 
@@ -187,24 +186,3 @@ public class NQSMismatchCovariantWalker extends LocusWalker<LocalMapType, long[]
 
 }
 
-class LocalMapType {
-
-    public AlignmentContext context;
-    public ReferenceContext ref;
-    public RefMetaDataTracker tracker;
-
-    public LocalMapType(AlignmentContext context, ReferenceContext ref, RefMetaDataTracker tracker) {
-        this.context = context;
-        this.ref = ref;
-        this.tracker = tracker;
-    }
-
-    public int numReads() {
-        return context.numReads();
-    }
-
-    public int qScore(int read) {
-        return (int) context.getReads().get(read).getBaseQualities()[context.getOffsets().get(read)];
-    }
-
-}

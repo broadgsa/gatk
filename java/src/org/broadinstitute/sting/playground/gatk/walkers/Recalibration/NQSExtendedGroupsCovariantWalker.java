@@ -5,10 +5,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.QualityUtils;
-
-import java.util.List;
-
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.playground.gatk.walkers.Recalibration.LocalMapType;
 
 
 /**

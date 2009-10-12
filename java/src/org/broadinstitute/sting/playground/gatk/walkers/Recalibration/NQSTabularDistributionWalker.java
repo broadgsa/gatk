@@ -9,7 +9,6 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Pair;
 
 import java.util.LinkedList;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import org.apache.log4j.Logger;
