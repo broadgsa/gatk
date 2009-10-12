@@ -36,9 +36,6 @@ import net.sf.samtools.SAMRecord;
 
 public class MissingReadGroupFilter implements SamRecordFilter {
     public boolean filterOut(SAMRecord rec) {
-        String RG = (String)(rec.getAttribute("RG"));
-        return RG == null ||
-               rec.getHeader() == null ||
-               rec.getHeader().getReadGroup(RG) == null;
+        return rec.getReadGroup() == null;
     }
 }

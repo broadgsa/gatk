@@ -56,8 +56,7 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihood
     public static SequencerPlatform getReadSequencerPlatform( SAMRecord read ) {
         if ( lastReadForPL != read ) {
             lastReadForPL = read;
-            final String readGroupString = ((String)read.getAttribute("RG"));
-            SAMReadGroupRecord readGroup = readGroupString == null ? null : read.getHeader().getReadGroup(readGroupString);
+            SAMReadGroupRecord readGroup = read.getReadGroup();
             final String platformName = readGroup == null ? null : (String)readGroup.getAttribute(SAM_PLATFORM_TAG);
             plOfLastRead = standardizeSequencerPlatform(platformName);
         }

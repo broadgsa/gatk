@@ -3,12 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 
-import static java.lang.Math.log10;
-import java.util.TreeMap;
-import java.util.EnumMap;
-
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMReadGroupRecord;
 
 /**
  * This implements the old style CRD calculation of the chance that a base being a true chromBase given
