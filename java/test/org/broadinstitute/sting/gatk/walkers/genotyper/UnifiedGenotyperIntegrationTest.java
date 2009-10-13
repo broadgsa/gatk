@@ -47,7 +47,8 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         " -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" +
                         " -varout %s" +
                         " -L 1:10,000,000-10,100,000" +
-                        " -bm empirical",
+                        " -bm empirical" +
+		        " -vf GELI",
                 1,
                 Arrays.asList("f490a407c9c62d43eb83107e83c858f6"));
 
