@@ -112,7 +112,7 @@ public class BWAAligner implements Aligner {
             List<LowerBound> lowerBounds = alignment.negativeStrand ? reverseLowerBounds : forwardLowerBounds;
 
             // if z < D(i) then return {}
-            int mismatches = maxDiff - alignment.mismatches - alignment.gapOpens - alignment.gapExtensions;
+            int mismatches = maxDiff - alignment.getMismatches() - alignment.getGapOpens() - alignment.getGapExtensions();
             if( alignment.position < lowerBounds.size()-1 && mismatches < lowerBounds.get(alignment.position+1).value )
                 continue;
 
@@ -139,7 +139,7 @@ public class BWAAligner implements Aligner {
                     successfulMatches.add(finalAlignment);
 
                     bestScore = Math.min(finalAlignment.getScore(),bestScore);
-                    bestDiff = Math.min(finalAlignment.mismatches+finalAlignment.gapOpens+finalAlignment.gapExtensions,bestDiff);
+                    bestDiff = Math.min(finalAlignment.getMismatches()+finalAlignment.getGapOpens()+finalAlignment.getGapExtensions(),bestDiff);
                     maxDiff = bestDiff + 1;
                 }
 
@@ -172,36 +172,36 @@ public class BWAAligner implements Aligner {
             }
 
             if( allowDifferences &&
-                alignment.position+1 >= INDEL_END_SKIP-1+alignment.gapOpens+alignment.gapExtensions &&
-                read.getReadLength()-1-(alignment.position+1) >= INDEL_END_SKIP+alignment.gapOpens+alignment.gapExtensions ) {
+                alignment.position+1 >= INDEL_END_SKIP-1+alignment.getGapOpens()+alignment.getGapExtensions() &&
+                read.getReadLength()-1-(alignment.position+1) >= INDEL_END_SKIP+alignment.getGapOpens()+alignment.getGapExtensions() ) {
                 if( alignment.getCurrentState() == AlignmentState.MATCH_MISMATCH ) {
-                    if( alignment.gapOpens < MAXIMUM_GAP_OPENS ) {
+                    if( alignment.getGapOpens() < MAXIMUM_GAP_OPENS ) {
                         // Add a potential insertion extension.
                         BWAAlignment insertionAlignment = createInsertionAlignment(alignment);
-                        insertionAlignment.gapOpens++;
+                        insertionAlignment.incrementGapOpens();
                         alignments.add(insertionAlignment);
 
                         // Add a potential deletion by marking a deletion and augmenting the position.
                         List<BWAAlignment> deletionAlignments = createDeletionAlignments(bwt,alignment);
                         for( BWAAlignment deletionAlignment: deletionAlignments )
-                            deletionAlignment.gapOpens++;
+                            deletionAlignment.incrementGapOpens();
                         alignments.addAll(deletionAlignments);
                     }
                 }
                 else if( alignment.getCurrentState() == AlignmentState.INSERTION ) {
-                    if( alignment.gapExtensions < MAXIMUM_GAP_EXTENSIONS && mismatches > 0 ) {
+                    if( alignment.getGapExtensions() < MAXIMUM_GAP_EXTENSIONS && mismatches > 0 ) {
                         // Add a potential insertion extension.
                         BWAAlignment insertionAlignment = createInsertionAlignment(alignment);
-                        insertionAlignment.gapExtensions++;
+                        insertionAlignment.incrementGapExtensions();
                         alignments.add(insertionAlignment);
                     }
                 }
                 else if( alignment.getCurrentState() == AlignmentState.DELETION ) {
-                    if( alignment.gapExtensions < MAXIMUM_GAP_EXTENSIONS && mismatches > 0 ) {
+                    if( alignment.getGapExtensions() < MAXIMUM_GAP_EXTENSIONS && mismatches > 0 ) {
                         // Add a potential deletion by marking a deletion and augmenting the position.
                         List<BWAAlignment> deletionAlignments = createDeletionAlignments(bwt,alignment);
                         for( BWAAlignment deletionAlignment: deletionAlignments )
-                            deletionAlignment.gapExtensions++;
+                            deletionAlignment.incrementGapExtensions();
                         alignments.addAll(deletionAlignments);
                     }
                 }
@@ -225,7 +225,6 @@ public class BWAAligner implements Aligner {
         seed.position = -1;
         seed.loBound = 0;
         seed.hiBound = bwt.length();
-        seed.mismatches = 0;
         return seed;
     }
 
@@ -271,7 +270,7 @@ public class BWAAligner implements Aligner {
             newAlignment.position++;
             newAlignment.addState(AlignmentState.MATCH_MISMATCH);
             if( Bases.fromASCII(bases[newAlignment.position]) == null || base != Bases.fromASCII(bases[newAlignment.position]) )
-                newAlignment.mismatches++;
+                newAlignment.incrementMismatches();
 
             newAlignments.add(newAlignment);
         }

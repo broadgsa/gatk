@@ -13,9 +13,14 @@ import java.util.Map;
  */
 public class Counts implements Cloneable {
     /**
-     * Internal representation of counts, broken down by pack value.
+     * Internal representation of counts, broken down by ASCII value.
      */
     private Map<Byte,Integer> counts = new HashMap<Byte,Integer>();
+
+    /**
+     * Internal representation of cumulative counts, broken down by ASCII value.
+     */
+    private Map<Byte,Integer> cumulativeCounts = new HashMap<Byte,Integer>();
 
     /**
      * Create an empty Counts object with values A=0,C=0,G=0,T=0.
@@ -28,16 +33,22 @@ public class Counts implements Cloneable {
      * @param cumulative Whether the counts are cumulative, (count_G=numA+numC+numG,for example).
      */
     public Counts( int[] data, boolean cumulative ) {
-        for( byte base: Bases.instance)
-            counts.put(base,data[Bases.toPack(base)]);
-
-        // De-cumulatize data as necessary.
         if(cumulative) {
-            int previousCount = 0;
-            for( byte base: Bases.instance ) {
-                int count = counts.get(base);
-                counts.put(base,count-previousCount);
-                previousCount = count;
+            int priorCount = 0;
+            for(byte base: Bases.instance) {
+                int count = data[Bases.toPack(base)];
+                counts.put(base,count-priorCount);
+                cumulativeCounts.put(base,priorCount);
+                priorCount = count;
+            }
+        }
+        else {
+            int priorCount = 0;
+            for(byte base: Bases.instance) {
+                int count = data[Bases.toPack(base)];
+                counts.put(base,count);
+                cumulativeCounts.put(base,priorCount);
+                priorCount += count;
             }
         }
     }
@@ -49,11 +60,18 @@ public class Counts implements Cloneable {
      */
     public int[] toArray(boolean cumulative) {
         int[] countArray = new int[counts.size()];
-        for(byte base: Bases.instance)
-            countArray[Bases.toPack(base)] = counts.get(base);
         if(cumulative) {
-            for( int i = 1; i < countArray.length; i++ )
-                countArray[i] += countArray[i-1];
+            int index = 0;
+            for(byte base: Bases.instance) {
+                if(index++ == 0) continue;
+                countArray[index] = getCumulative(base);
+            }
+            countArray[countArray.length-1] = getTotal();
+        }
+        else {
+            int index = 0;
+            for(byte base: Bases.instance)
+                countArray[index] = get(base);
         }
         return countArray;
     }
@@ -101,12 +119,7 @@ public class Counts implements Cloneable {
      * @return Number of bases of this type seen.
      */
     public int getCumulative(byte base) {
-        int accum = 0;
-        for( byte current: Bases.allOf() ) {
-            if(base == current) break;
-            accum += counts.get(current);
-        }
-        return accum;
+        return cumulativeCounts.get(base);
     }
 
     /**
@@ -115,8 +128,9 @@ public class Counts implements Cloneable {
      */
     public int getTotal() {
         int accumulator = 0;
-        for( int count : counts.values() )
-            accumulator += count;
+        for(byte base: Bases.instance) {
+            accumulator += get(base);    
+        }
         return accumulator;
     }
 }

@@ -50,17 +50,17 @@ public class BWAAlignment implements Alignment, Cloneable {
     /**
      * Working variable.  How many mismatches have been encountered at this point.
      */
-    protected int mismatches;
+    private int mismatches;
 
     /**
      * Number of gap opens in alignment.
      */
-    protected int gapOpens;
+    private int gapOpens;
 
     /**
      * Number of gap extensions in alignment.
      */
-    protected int gapExtensions;
+    private int gapExtensions;
 
     /**
      * Working variable.  The lower bound of the alignment within the BWT.
@@ -71,6 +71,11 @@ public class BWAAlignment implements Alignment, Cloneable {
      * Working variable.  The upper bound of the alignment within the BWT.
      */
     protected int hiBound;
+
+    /**
+     * Cache the score.
+     */
+    private int score;
 
     /**
      * Gets the starting position for the given alignment.
@@ -113,12 +118,34 @@ public class BWAAlignment implements Alignment, Cloneable {
      * @return BWA-style scores.  0 is best.
      */
     public int getScore() {
-        return mismatches*aligner.MISMATCH_PENALTY + gapOpens*aligner.GAP_OPEN_PENALTY + gapExtensions*aligner.GAP_EXTENSION_PENALTY;
+        return score;
     }
 
     public int getMismatches() { return mismatches; }
     public int getGapOpens() { return gapOpens; }
     public int getGapExtensions() { return gapExtensions; }
+
+    public void incrementMismatches() {
+        this.mismatches++;
+        updateScore();
+    }
+
+    public void incrementGapOpens() {
+        this.gapOpens++;
+        updateScore();
+    }
+
+    public void incrementGapExtensions() {
+        this.gapExtensions++;
+        updateScore();
+    }
+
+    /**
+     * Updates the score based on new information about matches / mismatches.
+     */
+    private void updateScore() {
+        score = mismatches*aligner.MISMATCH_PENALTY + gapOpens*aligner.GAP_OPEN_PENALTY + gapExtensions*aligner.GAP_EXTENSION_PENALTY;
+    }
 
     /**
      * Create a new alignment with the given parent aligner.
@@ -164,12 +191,15 @@ public class BWAAlignment implements Alignment, Cloneable {
     public int compareTo(Alignment rhs) {
         BWAAlignment other = (BWAAlignment)rhs;
 
-        // If the scores are equal, use the score to disambiguate.
-        int scoreComparison = Integer.valueOf(getScore()).compareTo(other.getScore());
-        if( scoreComparison != 0 )
-            return scoreComparison;
+        // If the scores are different, disambiguate using the score.
+        if(score != other.score)
+            return score > other.score ? 1 : -1;
 
-        return -Long.valueOf(this.creationNumber).compareTo(other.creationNumber);
+        // Otherwise, use the order in which the elements were created.
+        if(this.creationNumber != other.creationNumber)
+            return this.creationNumber > other.creationNumber ? -1 : 1;
+
+        return 0;
     }
 
     public String toString() {
