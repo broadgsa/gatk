@@ -48,12 +48,12 @@ public class LowerBound {
     /**
      * Create a non-optimal bound according to the algorithm specified in Figure 3 of the BWA paper.
      */
-    public static List<LowerBound> create( byte[] bases, BWT bwt ) {
+    public static List<LowerBound> create( Byte[] bases, BWT bwt ) {
         List<LowerBound> bounds = new ArrayList<LowerBound>();
 
         int loIndex = 0, hiIndex = bwt.length(), mismatches = 0;
         for( int i = bases.length-1; i >= 0; i-- ) {
-            Byte base = Bases.fromASCII(bases[i]);
+            Byte base = bases[i];
 
             // Ignore non-ACGT bases.
             if( base != null ) {

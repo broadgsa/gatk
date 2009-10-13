@@ -82,8 +82,8 @@ public class BWAAligner implements Aligner {
     public List<Alignment> align( SAMRecord read ) {
         List<Alignment> successfulMatches = new ArrayList<Alignment>();
 
-        byte[] uncomplementedBases = read.getReadBases();
-        byte[] complementedBases = BaseUtils.reverse(BaseUtils.simpleReverseComplement(uncomplementedBases));
+        Byte[] uncomplementedBases = normalizeBases(read.getReadBases());
+        Byte[] complementedBases = normalizeBases(BaseUtils.reverse(BaseUtils.simpleReverseComplement(read.getReadBases())));
 
         List<LowerBound> forwardLowerBounds = LowerBound.create(uncomplementedBases,forwardBWT);
         List<LowerBound> reverseLowerBounds = LowerBound.create(complementedBases,reverseBWT);
@@ -107,7 +107,7 @@ public class BWAAligner implements Aligner {
             if( alignment.getScore() > bestScore + MISMATCH_PENALTY )
                 break;
 
-            byte[] bases = alignment.negativeStrand ? complementedBases : uncomplementedBases;
+            Byte[] bases = alignment.negativeStrand ? complementedBases : uncomplementedBases;
             BWT bwt = alignment.negativeStrand ? forwardBWT : reverseBWT;
             List<LowerBound> lowerBounds = alignment.negativeStrand ? reverseLowerBounds : forwardLowerBounds;
 
@@ -236,11 +236,11 @@ public class BWAAligner implements Aligner {
      * @param allowMismatch Should mismatching bases be allowed?
      * @return New alignment representing this position if valid; null otherwise.
      */
-    private List<BWAAlignment> createMatchedAlignments( BWT bwt, BWAAlignment alignment, byte[] bases, boolean allowMismatch ) {
+    private List<BWAAlignment> createMatchedAlignments( BWT bwt, BWAAlignment alignment, Byte[] bases, boolean allowMismatch ) {
         List<BWAAlignment> newAlignments = new ArrayList<BWAAlignment>();
 
         List<Byte> baseChoices = new ArrayList<Byte>();
-        Byte thisBase = Bases.fromASCII(bases[alignment.position+1]);
+        Byte thisBase = bases[alignment.position+1];
 
         if( allowMismatch )
             baseChoices.addAll(Bases.allOf());
@@ -269,7 +269,7 @@ public class BWAAligner implements Aligner {
 
             newAlignment.position++;
             newAlignment.addState(AlignmentState.MATCH_MISMATCH);
-            if( Bases.fromASCII(bases[newAlignment.position]) == null || base != Bases.fromASCII(bases[newAlignment.position]) )
+            if( bases[newAlignment.position] == null || base != bases[newAlignment.position] )
                 newAlignment.incrementMismatches();
 
             newAlignments.add(newAlignment);
@@ -323,13 +323,25 @@ public class BWAAligner implements Aligner {
      * @param bases Bases to use.
      * @param bwt BWT to use.
      */
-    private void exactMatch( BWAAlignment alignment, byte[] bases, BWT bwt ) {
+    private void exactMatch( BWAAlignment alignment, Byte[] bases, BWT bwt ) {
         while( ++alignment.position < bases.length ) {
-            byte base = Bases.fromASCII(bases[alignment.position]);
+            byte base = bases[alignment.position];
             alignment.loBound = bwt.counts(base) + bwt.occurrences(base,alignment.loBound-1) + 1;
             alignment.hiBound = bwt.counts(base) + bwt.occurrences(base,alignment.hiBound);
             if( alignment.loBound > alignment.hiBound )
                 return;
         }
+    }
+
+    /**
+     * Make each base into A/C/G/T or null if unknown.
+     * @param bases Base string to normalize.
+     * @return Array of normalized bases.
+     */
+    private Byte[] normalizeBases( byte[] bases ) {
+        Byte[] normalBases = new Byte[bases.length];
+        for(int i = 0; i < bases.length; i++)
+            normalBases[i] = Bases.fromASCII(bases[i]);
+        return normalBases;
     }
 }

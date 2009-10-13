@@ -196,8 +196,8 @@ public class BWAAlignment implements Alignment, Cloneable {
             return score > other.score ? 1 : -1;
 
         // Otherwise, use the order in which the elements were created.
-        if(this.creationNumber != other.creationNumber)
-            return this.creationNumber > other.creationNumber ? -1 : 1;
+        if(creationNumber != other.creationNumber)
+            return creationNumber > other.creationNumber ? -1 : 1;
 
         return 0;
     }

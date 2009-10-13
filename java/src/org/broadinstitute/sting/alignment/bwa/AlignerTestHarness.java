@@ -47,7 +47,7 @@ public class AlignerTestHarness {
 
         for(SAMRecord read: reader) {
             count++;
-            if( count > 100000 ) break;
+            if( count > 200000 ) break;
             //if( count < 366000 ) continue;
             //if( count != 2 ) continue;
             //if( !read.getReadName().endsWith("SL-XBC:1:82:506:404#0") )
