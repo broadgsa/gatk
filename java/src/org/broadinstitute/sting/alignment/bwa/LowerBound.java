@@ -3,7 +3,7 @@ package org.broadinstitute.sting.alignment.bwa;
 import java.util.List;
 import java.util.ArrayList;
 
-import org.broadinstitute.sting.alignment.bwa.bwt.Base;
+import org.broadinstitute.sting.alignment.bwa.bwt.Bases;
 import org.broadinstitute.sting.alignment.bwa.bwt.BWT;
 
 /**
@@ -53,7 +53,7 @@ public class LowerBound {
 
         int loIndex = 0, hiIndex = bwt.length(), mismatches = 0;
         for( int i = bases.length-1; i >= 0; i-- ) {
-            Base base = Base.fromASCII(bases[i]);
+            Byte base = Bases.fromASCII(bases[i]);
 
             // Ignore non-ACGT bases.
             if( base != null ) {

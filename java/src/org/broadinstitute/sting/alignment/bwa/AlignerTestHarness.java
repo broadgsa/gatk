@@ -47,12 +47,14 @@ public class AlignerTestHarness {
 
         for(SAMRecord read: reader) {
             count++;
-            //if( count > 100000 ) break;
+            if( count > 100000 ) break;
             //if( count < 366000 ) continue;
             //if( count != 2 ) continue;
             //if( !read.getReadName().endsWith("SL-XBC:1:82:506:404#0") )
             //    continue;
             //if( !read.getReadName().endsWith("SL-XBC:1:36:30:1926#0") )
+            //    continue;
+            //if( !read.getReadName().endsWith("SL-XBC:1:60:1342:1340#0") )
             //    continue;
 
             SAMRecord alignmentCleaned = null;

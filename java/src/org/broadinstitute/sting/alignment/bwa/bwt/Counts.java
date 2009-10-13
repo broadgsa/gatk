@@ -2,7 +2,9 @@ package org.broadinstitute.sting.alignment.bwa.bwt;
 
 import org.broadinstitute.sting.utils.StingException;
 
-import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Counts of how many bases of each type have been seen.
  *
@@ -13,7 +15,7 @@ public class Counts implements Cloneable {
     /**
      * Internal representation of counts, broken down by pack value.
      */
-    private int[] counts = new int[EnumSet.allOf(Base.class).size()];
+    private Map<Byte,Integer> counts = new HashMap<Byte,Integer>();
 
     /**
      * Create an empty Counts object with values A=0,C=0,G=0,T=0.
@@ -26,13 +28,17 @@ public class Counts implements Cloneable {
      * @param cumulative Whether the counts are cumulative, (count_G=numA+numC+numG,for example).
      */
     public Counts( int[] data, boolean cumulative ) {
-        for( Base base: EnumSet.allOf(Base.class))
-            counts[base.toPack()] = data[base.toPack()];
+        for( byte base: Bases.instance)
+            counts.put(base,data[Bases.toPack(base)]);
 
         // De-cumulatize data as necessary.
         if(cumulative) {
-            for( int i = EnumSet.allOf(Base.class).size()-1; i > 0; i-- )
-                counts[i] -= counts[i-1];
+            int previousCount = 0;
+            for( byte base: Bases.instance ) {
+                int count = counts.get(base);
+                counts.put(base,count-previousCount);
+                previousCount = count;
+            }
         }
     }
 
@@ -42,9 +48,11 @@ public class Counts implements Cloneable {
      * @return Array of count values.
      */
     public int[] toArray(boolean cumulative) {
-        int[] countArray = counts.clone();
+        int[] countArray = new int[counts.size()];
+        for(byte base: Bases.instance)
+            countArray[Bases.toPack(base)] = counts.get(base);
         if(cumulative) {
-            for( int i = 1; i < counts.length; i++ )
+            for( int i = 1; i < countArray.length; i++ )
                 countArray[i] += countArray[i-1];
         }
         return countArray;
@@ -62,8 +70,7 @@ public class Counts implements Cloneable {
         catch(CloneNotSupportedException ex) {
             throw new StingException("Unable to clone counts object", ex);
         }
-        other.counts = new int[counts.length];
-        System.arraycopy(counts,0,other.counts,0,counts.length);
+        other.counts = new HashMap<Byte,Integer>(counts);
         return other;
     }
 
@@ -71,8 +78,8 @@ public class Counts implements Cloneable {
      * Increment the number of bases seen at the given location.
      * @param base Base to increment.
      */
-    public void increment(Base base) {
-        counts[base.toPack()]++;        
+    public void increment(byte base) {
+        counts.put(base,counts.get(base)+1);
     }
 
     /**
@@ -82,8 +89,8 @@ public class Counts implements Cloneable {
      * @param base Base for which to query counts.
      * @return Number of bases of this type seen.
      */
-    public int get(Base base) {
-        return counts[base.toPack()];
+    public int get(byte base) {
+        return counts.get(base);
     }
 
     /**
@@ -93,10 +100,12 @@ public class Counts implements Cloneable {
      * @param base Base for which to query counts.
      * @return Number of bases of this type seen.
      */
-    public int getCumulative(Base base) {
+    public int getCumulative(byte base) {
         int accum = 0;
-        for(int i = 0; i <= base.toPack(); i++)
-            accum += counts[i];
+        for( byte current: Bases.allOf() ) {
+            if(base == current) break;
+            accum += counts.get(current);
+        }
         return accum;
     }
 
@@ -106,7 +115,7 @@ public class Counts implements Cloneable {
      */
     public int getTotal() {
         int accumulator = 0;
-        for( int count : counts )
+        for( int count : counts.values() )
             accumulator += count;
         return accumulator;
     }

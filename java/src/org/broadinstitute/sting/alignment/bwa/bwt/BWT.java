@@ -68,11 +68,8 @@ public class BWT {
      * @param base The base.
      * @return Total counts for all bases lexicographically smaller than this base.
      */
-    public int counts(Base base) {
-        if( base.toPack() - 1 >= 0 )
-            return counts.getCumulative(Base.fromPack(base.toPack()-1));
-        else
-            return 0;
+    public int counts(byte base) {
+        return counts.getCumulative(base);
     }
 
     /**
@@ -81,7 +78,7 @@ public class BWT {
      * @param index The position to search within the BWT.
      * @return Total counts for all bases lexicographically smaller than this base.
      */
-    public int occurrences(Base base,int index) {
+    public int occurrences(byte base,int index) {
         // If the index is above the SA-1[0], remap it to the appropriate coordinate space.
         if( index > inverseSA0 ) index--;
 
@@ -89,7 +86,7 @@ public class BWT {
         int position = index % SEQUENCE_BLOCK_SIZE;
         int accumulator = block.occurrences.get(base);
         for(int i = 0; i <= position; i++) {
-            if(base == Base.fromASCII(block.sequence[i]))
+            if(base == block.sequence[i])
                 accumulator++;
         }
         return accumulator;
@@ -124,7 +121,7 @@ public class BWT {
             sequenceBlocks[block] = new SequenceBlock(blockStart,blockLength,occurrences.clone(),subsequence);
 
             for( byte base: subsequence )
-                occurrences.increment(Base.fromASCII(base));
+                occurrences.increment(base);
         }
 
         return sequenceBlocks;

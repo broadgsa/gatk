@@ -159,7 +159,7 @@ public class BWAAligner implements Aligner {
                                                         lowerBounds.get(alignment.position+1).width,
                                                         alignment.loBound,
                                                         alignment.hiBound);
-            */
+                                                        */
 
             // Temporary -- look ahead to see if the next alignment is bounded.
             boolean allowDifferences = mismatches > 0;
@@ -240,11 +240,11 @@ public class BWAAligner implements Aligner {
     private List<BWAAlignment> createMatchedAlignments( BWT bwt, BWAAlignment alignment, byte[] bases, boolean allowMismatch ) {
         List<BWAAlignment> newAlignments = new ArrayList<BWAAlignment>();
 
-        List<Base> baseChoices = new ArrayList<Base>();
-        Base thisBase = Base.fromASCII(bases[alignment.position+1]);
+        List<Byte> baseChoices = new ArrayList<Byte>();
+        Byte thisBase = Bases.fromASCII(bases[alignment.position+1]);
 
         if( allowMismatch )
-            baseChoices.addAll(EnumSet.allOf(Base.class));
+            baseChoices.addAll(Bases.allOf());
         else
             baseChoices.add(thisBase);
 
@@ -258,7 +258,7 @@ public class BWAAligner implements Aligner {
             }
         }
 
-        for(Base base: baseChoices) {
+        for(byte base: baseChoices) {
             BWAAlignment newAlignment = alignment.clone();
 
             newAlignment.loBound = bwt.counts(base) + bwt.occurrences(base,alignment.loBound-1) + 1;
@@ -270,7 +270,7 @@ public class BWAAligner implements Aligner {
 
             newAlignment.position++;
             newAlignment.addState(AlignmentState.MATCH_MISMATCH);
-            if( base.toASCII() != bases[newAlignment.position] )
+            if( Bases.fromASCII(bases[newAlignment.position]) == null || base != Bases.fromASCII(bases[newAlignment.position]) )
                 newAlignment.mismatches++;
 
             newAlignments.add(newAlignment);
@@ -300,7 +300,7 @@ public class BWAAligner implements Aligner {
      */
     private List<BWAAlignment> createDeletionAlignments( BWT bwt, BWAAlignment alignment) {
         List<BWAAlignment> newAlignments = new ArrayList<BWAAlignment>();
-        for(Base base: EnumSet.allOf(Base.class)) {
+        for(byte base: Bases.instance) {
             BWAAlignment newAlignment = alignment.clone();
 
             newAlignment.loBound = bwt.counts(base) + bwt.occurrences(base,alignment.loBound-1) + 1;
@@ -326,7 +326,7 @@ public class BWAAligner implements Aligner {
      */
     private void exactMatch( BWAAlignment alignment, byte[] bases, BWT bwt ) {
         while( ++alignment.position < bases.length ) {
-            Base base = Base.fromASCII(bases[alignment.position]);
+            byte base = Bases.fromASCII(bases[alignment.position]);
             alignment.loBound = bwt.counts(base) + bwt.occurrences(base,alignment.loBound-1) + 1;
             alignment.hiBound = bwt.counts(base) + bwt.occurrences(base,alignment.hiBound);
             if( alignment.loBound > alignment.hiBound )

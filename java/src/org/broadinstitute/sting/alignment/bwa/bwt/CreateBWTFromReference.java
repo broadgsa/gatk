@@ -61,7 +61,7 @@ public class CreateBWTFromReference {
     private Counts countOccurrences( String sequence ) {
         Counts occurrences = new Counts();
         for( char base: sequence.toCharArray() )
-            occurrences.increment(Base.fromASCII((byte)base));
+            occurrences.increment((byte)base);
         return occurrences;
     }
 
@@ -146,10 +146,10 @@ public class CreateBWTFromReference {
 
         // Count the occurences of each given base.
         Counts occurrences = creator.countOccurrences(sequence);
-        System.out.printf("Occurrences: a=%d, c=%d, g=%d, t=%d%n",occurrences.getCumulative(Base.A),
-                                                                  occurrences.getCumulative(Base.C),
-                                                                  occurrences.getCumulative(Base.G),
-                                                                  occurrences.getCumulative(Base.T));
+        System.out.printf("Occurrences: a=%d, c=%d, g=%d, t=%d%n",occurrences.getCumulative(Bases.A),
+                                                                  occurrences.getCumulative(Bases.C),
+                                                                  occurrences.getCumulative(Bases.G),
+                                                                  occurrences.getCumulative(Bases.T));
 
         // Generate the suffix array and print diagnostics.
         int[] suffixArrayData = creator.createSuffixArray(sequence);
