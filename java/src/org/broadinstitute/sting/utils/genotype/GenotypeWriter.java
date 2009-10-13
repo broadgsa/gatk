@@ -56,7 +56,7 @@ public interface GenotypeWriter {
      * add a multi-sample call if we support it
      * @param genotypes the list of genotypes, that are backed by sample information
      */
-    public void addMultiSampleCall(List<Genotype> genotypes);
+    public void addMultiSampleCall(List<Genotype> genotypes, GenotypeMetaData metadata);
 
     /**
      * @return true if we support multisample, false otherwise

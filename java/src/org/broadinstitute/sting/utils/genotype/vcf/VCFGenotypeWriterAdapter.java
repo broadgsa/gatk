@@ -2,10 +2,7 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.ReadBacked;
-import org.broadinstitute.sting.utils.genotype.SampleBacked;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -91,7 +88,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      */
     @Override
     public void addGenotypeCall(Genotype call) {
-        addMultiSampleCall(Arrays.asList(call));
+        addMultiSampleCall(Arrays.asList(call), null);
     }
 
     /**
@@ -117,7 +114,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      * @param genotypes the list of genotypes, that are backed by sample information
      */
     @Override
-    public void addMultiSampleCall(List<Genotype> genotypes) {
+    public void addMultiSampleCall(List<Genotype> genotypes, GenotypeMetaData metadata) {
         if (!mInitialized)
             lazyInitialize(genotypes, mFile, mStream);
 
@@ -149,6 +146,8 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
                 alleles.add(String.valueOf(allele));
                 params.addAlternateBase(allele);
             }
+
+            // TODO -- use the GenotypeMetaData object if it's not null            
 
             VCFGenotypeRecord record = new VCFGenotypeRecord(((SampleBacked) gtype).getSampleName(),
                                                              alleles,
