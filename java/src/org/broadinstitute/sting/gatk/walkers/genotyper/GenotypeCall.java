@@ -121,7 +121,6 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
      *
      * @return get the one minus error value
      */
-    @Override
     public double getNegLog10PError() {
         return Math.abs(mGenotypeLikelihoods.getPosterior(getBestGenotype()) - mGenotypeLikelihoods.getPosterior(getNextBest()));
     }
@@ -149,7 +148,6 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
      *
      * @return the bases, as a string
      */
-    @Override
     public String getBases() {
         return getBestGenotype().toString();
     }
@@ -159,7 +157,6 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
      *
      * @return the ploidy value
      */
-    @Override
     public int getPloidy() {
         return 2;
     }
@@ -169,7 +166,6 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
      *
      * @return true if we're homozygous, false otherwise
      */
-    @Override
     public boolean isHom() {
         return getBestGenotype().isHom();
     }
@@ -179,7 +175,6 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
      *
      * @return true if we're het, false otherwise
      */
-    @Override
     public boolean isHet() {
         return !isHom();
     }
@@ -190,7 +185,6 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
      *
      * @return position on the genome wrapped in GenomeLoc object
      */
-    @Override
     public GenomeLoc getLocation() {
         return this.mLocation;
     }
@@ -200,7 +194,6 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
      *
      * @return true is a SNP
      */
-    @Override
     public boolean isPointGenotype() {
         return true;
     }
@@ -212,7 +205,6 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
      *
      * @return true if we're a variant
      */
-    @Override
     public boolean isVariant(char ref) {
         return !Utils.dupString(this.getReference(), 2).equals(getBestGenotype().toString());
     }
@@ -287,13 +279,11 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
      *
      * @return
      */
-    @Override
     public double[] getPosteriors() {
         return this.mGenotypeLikelihoods.getPosteriors();
     }
 
     /** @return returns the sample name for this genotype */
-    @Override
     public String getSampleName() {
         return this.mSampleName;
     }
@@ -303,7 +293,6 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
      *
      * @return a string, representing the genotyping value
      */
-    @Override
     public String getFilteringValue() {
         return "0";
     }

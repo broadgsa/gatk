@@ -4,224 +4,119 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.ReadBackedPileup;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 
 import java.util.*;
 
-public class EMGenotypeCalculationModel extends GenotypeCalculationModel {
+public abstract class EMGenotypeCalculationModel extends GenotypeCalculationModel {
 
     // We need to set a limit on the EM iterations in case something flukey goes on
-    private static final int MAX_EM_ITERATIONS = 6;
+    protected static final int MAX_EM_ITERATIONS = 6;
 
     // We consider the EM stable when the MAF doesn't change more than 1/10N
-    private static final double EM_STABILITY_METRIC = 0.1;
+    protected static final double EM_STABILITY_METRIC = 0.1;
 
     // keep track of some metrics about our calls
-    private CallMetrics callsMetrics = new CallMetrics();
+    protected CallMetrics callsMetrics = new CallMetrics();
 
 
     protected EMGenotypeCalculationModel() {}
 
     public List<GenotypeCall> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
-        // keep track of the GenotypeLikelihoods for each sample, separated by strand
-        HashMap<String, UnifiedGenotypeLikelihoods> GLs = new HashMap<String, UnifiedGenotypeLikelihoods>();
-
-        // keep track of the total counts of each base in the pileup
+        // keep track of the context for each sample, overall and separated by strand
         int[] baseCounts = new int[4];
-        int totalObservedBases = 0;
-
-        // First order of business: create the initial GenotypeLikelihoods objects.
-        // Also, confirm that there aren't too many deletions in the pileup.
-        int deletionsInPile = 0;
-        List<SAMRecord> reads = context.getReads();
-        List<Integer> offsets = context.getOffsets();
-
-        for (int i = 0; i < reads.size(); i++) {
-
-            // get the read and offset
-            SAMRecord read = reads.get(i);
-            int offset = offsets.get(i);
-
-            // skip deletions
-            if ( offset == -1 ) {
-                // are there too many deletions in the pileup?
-                if ( ++deletionsInPile > maxDeletionsInPileup )
-                    return null;
-                continue;
-            }
-
-            // get the base; don't use bad bases
-            char base = read.getReadString().charAt(offset);
-            int baseIndex = BaseUtils.simpleBaseToBaseIndex(base);
-            if ( baseIndex == -1 )
-                continue;
-
-            // create the GL holder object if this is the first time we're seeing a base for this sample
-            String readGroup = read.getAttribute("RG").toString(); // can't be null because those are filtered out
-            String sample = read.getHeader().getReadGroup(readGroup).getSample();
-            UnifiedGenotypeLikelihoods myGLs = GLs.get(sample);
-            if ( myGLs == null ) {
-                myGLs = new UnifiedGenotypeLikelihoods(baseModel, new DiploidGenotypePriors(), defaultPlatform, VERBOSE);
-                GLs.put(sample, myGLs);
-            }
-
-            // assign the base to the appropriate strand
-            myGLs.add(base, read, offset);
-
-            // update the base counts
-            baseCounts[baseIndex]++;
-            totalObservedBases++;
-        }
-
-        // for now, we need to special-case single sample mode
-        if ( samples.size() == 1 ) {
-            String sample = samples.iterator().next();
-            UnifiedGenotypeLikelihoods UGL = GLs.get(sample);
-            // if there were no good bases, the likelihoods object wouldn't exist
-            if ( UGL == null )
-                return null;
-
-            callsMetrics.nCalledBases++;
-            UGL.setPriors(priors);
-            GenotypeCall call = new GenotypeCall(sample,context.getLocation(), ref, UGL.getGenotypeLikelihoods(), new ReadBackedPileup(ref, context));
-
-            if ( GENOTYPE_MODE || call.isVariant(call.getReference()) ) {
-                double confidence = (GENOTYPE_MODE ? call.getNegLog10PError() : call.toVariation().getNegLog10PError());
-                if ( confidence >= LOD_THRESHOLD ) {
-                    callsMetrics.nConfidentCalls++;
-                    out.addGenotypeCall(call);
-                } else {
-                    callsMetrics.nNonConfidentCalls++;
-                }
-            }
-            return Arrays.asList(call);
-        }
-
-         callsMetrics.nCalledBases++;
-
-        // Next, we need to create initial allele frequencies.
-        // An intelligent guess would be the observed base ratios (plus some small number to account for sampling issues).
-
-        double[] alleleFrequencies = new double[4];
-        for (int i = 0; i < 4; i++)
-            alleleFrequencies[i] = ((double)baseCounts[i] + DiploidGenotypePriors.HUMAN_HETEROZYGOSITY) / (double)totalObservedBases;
-        DiploidGenotypePriors AFPriors = calculateAlleleFreqBasedPriors(alleleFrequencies);
-
-        for ( UnifiedGenotypeLikelihoods UGL : GLs.values() )
-            UGL.setPriors(AFPriors);
+        HashMap<String, AlignmentContextBySample> contexts = splitContextBySample(context, baseCounts);
+        if ( contexts == null )
+            return null;
 
         // debugging output
         for (int i = 0; i < 4; i++)
-            logger.debug("Base count and initial allele frequency for " + BaseUtils.baseIndexToSimpleBase(i) + ": " + baseCounts[i] + ", " + alleleFrequencies[i]);
+            logger.debug("Base count for " + BaseUtils.baseIndexToSimpleBase(i) + ": " + baseCounts[i]);
 
-        
-        // The EM loop:
-        //   we want to continue until the calculation is stable, but we need some max on the number of iterations
-        int iterations = 0;
-        // We consider the EM stable when the MAF doesn't change more than EM_STABILITY_METRIC/N
-        double EM_STABILITY_VALUE = EM_STABILITY_METRIC / (2.0 * (double)GLs.size());
-        boolean isStable = false;
+        // run the EM calculation
+        EMOutput overall = runEM(ref, contexts, priors, baseCounts, StratifiedContext.OVERALL);
+        double lod = overall.getPofD() - overall.getPofNull();
+        logger.debug("lod=" + lod);
 
-        while ( !isStable && iterations < MAX_EM_ITERATIONS ) {
+        // calculate strand score
+        EMOutput forward = runEM(ref, contexts, priors, baseCounts, StratifiedContext.FORWARD);
+        EMOutput reverse = runEM(ref, contexts, priors, baseCounts, StratifiedContext.REVERSE);
+        double forwardLod = (forward.getPofD() + reverse.getPofNull()) - overall.getPofNull();
+        double reverseLod = (reverse.getPofD() + forward.getPofNull()) - overall.getPofNull();
+        logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
+        double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
 
-            // calculate the posterior-weighted allele frequencies and modify the priors accordingly
-            double[] newAlleleFrequencies = getPosteriorWeightedFrequencies(GLs.values());
-            AFPriors = calculateAlleleFreqBasedPriors(newAlleleFrequencies);
-            for ( UnifiedGenotypeLikelihoods UGL : GLs.values() )
-                UGL.setPriors(AFPriors);
+        // TODO -- finish me...
 
-            // determine whether we're stable
-            double AF_delta = 0.0;
-            for (int i = 0; i < 4; i++) {
-                AF_delta += Math.abs(alleleFrequencies[i] - newAlleleFrequencies[i]);
-                logger.debug("Previous allele frequency for " + BaseUtils.baseIndexToSimpleBase(i) + ": " + alleleFrequencies[i] + ", vs. new frequency: " + newAlleleFrequencies[i]);
-            }
+        System.out.println(String.format("LOD=%f, SLOD=%f", lod, strandScore));
 
-            isStable = AF_delta < EM_STABILITY_VALUE;
-            iterations++;
-
-            alleleFrequencies = newAlleleFrequencies;
-        }
-
-        logger.debug("EM loop took " + iterations + " iterations");
-
-        if (true)
-            throw new RuntimeException("DEBUGGING");
-
-        // compute actual priors: theta / MAF
-        double pF = computeThetaOverMAF(ref, alleleFrequencies, GLs.size());
-
-        // the posteriors from the EM loop are the population likelihoods here
-        // TODO -- finish me
-
-
-/*
-        ClassicGenotypeLikelihoods[] G = em_result.genotype_likelihoods;
-        pD = Compute_pD(G, em_result.sample_weights);
-        pNull = Compute_pNull(contexts, em_result.sample_weights);
-
-            // Apply p(f).
-            double pVar = 0.0;
-            for (int i = 1; i < em_result.EM_N; i++) { pVar += THETA/(double)i; }
-
-            double p0 = Math.log10(1 - pVar);
-            double pF;
-
-            double MAF = Compute_alt_freq(ref, em_result.allele_likelihoods);
-
-            if (MAF < 1/(2.0*em_result.EM_N)) { pF = p0; }
-            else { pF = Math.log10(THETA/(2.0*em_result.EM_N * MAF)); }
-
-            pD = pD + pF;
-            pNull = pNull + p0;
-
-        lod = pD - pNull;
-        return lod;
-
-*/
-        
+        // make a call
+        // List<GenotypeCall> calls
         //return new GenotypeCall(context.getLocation(), ref,gl, pileup);
-        //out.addMultiSampleCall((Genotype)calls);
+        //out.addMultiSampleCall((Genotype)calls, GenotypeMetaData metadata);
 
         return null;
     }
 
-    double[] getPosteriorWeightedFrequencies(Collection<UnifiedGenotypeLikelihoods> UGLs) {
-        double[] newAlleleLikelihoods = new double[4];
+    public EMOutput runEM(char ref, HashMap<String, AlignmentContextBySample> contexts, DiploidGenotypePriors priors, int[] baseCounts, StratifiedContext contextType) {
 
-        for ( UnifiedGenotypeLikelihoods UGL : UGLs ) {
+        // get initial allele frequencies
+        double[] alleleFrequencies = initializeAlleleFrequencies(contexts.size(), baseCounts);
+        for (int i = 0; i < alleleFrequencies.length; i++)
+            logger.debug("Initial allele frequency for i=" + i + ": " + alleleFrequencies[i]);
 
-            // calculate the posterior weighted frequencies for this sample
-            double[] personalAllelePosteriors = new double[4];
-            double sum = 0;
-            for ( DiploidGenotype g : DiploidGenotype.values() ) {
-                double posterior = Math.pow(10, UGL.getGenotypeLikelihoods().getPosterior(g));
-                personalAllelePosteriors[BaseUtils.simpleBaseToBaseIndex(g.base1)] += posterior;
-                personalAllelePosteriors[BaseUtils.simpleBaseToBaseIndex(g.base2)] += posterior;
-                sum += 2.0 * posterior;
-            }
+        // get the initial genotype likelihoods
+        HashMap<String, GenotypeLikelihoods> GLs = initializeGenotypeLikelihoods(ref, contexts, alleleFrequencies, priors, contextType);
 
-            // normalize
-            for (int i = 0; i < 4; i++)
-                personalAllelePosteriors[i] /= sum;
-            for (int i = 0; i < 4; i++)
-                newAlleleLikelihoods[i] += personalAllelePosteriors[i];
-        }
+        callsMetrics.nCalledBases++;
+        
+        // The EM loop:
+        //   we want to continue until the calculation is stable, but we need some max on the number of iterations
+        int iterations = 0;
+        boolean EM_IS_STABLE;
 
-        // normalize
-        double sum = 0;
-        for (int i = 0; i < 4; i++)
-            sum += newAlleleLikelihoods[i];
-        for (int i = 0; i < 4; i++)
-            newAlleleLikelihoods[i] /= sum;
+        do {
+            double[] newAlleleFrequencies = calculateAlleleFrequencyPosteriors(GLs);
+            for (int i = 0; i < alleleFrequencies.length; i++)
+                logger.debug("New allele frequency for i=" + i + ": " + newAlleleFrequencies[i]);
 
-        return newAlleleLikelihoods;
+            applyAlleleFrequencyToGenotypeLikelihoods(GLs, newAlleleFrequencies);
+
+            EM_IS_STABLE = isStable(alleleFrequencies, newAlleleFrequencies, contexts.size());
+
+            alleleFrequencies = newAlleleFrequencies;
+
+        } while ( ++iterations < MAX_EM_ITERATIONS && !EM_IS_STABLE );
+
+        logger.debug("EM loop took " + iterations + " iterations");
+        for ( String sample : GLs.keySet() )
+            logger.debug("GenotypeLikelihoods for sample " + sample + ": " + GLs.get(sample).toString());
+
+        return computePofF(ref, GLs, alleleFrequencies, contexts.size());
     }
 
-    private DiploidGenotypePriors calculateAlleleFreqBasedPriors(double[] alleleFrequencies) {
+    protected abstract double[] initializeAlleleFrequencies(int numSamplesInContext, int[] baseCounts);
+    protected abstract HashMap<String, GenotypeLikelihoods> initializeGenotypeLikelihoods(char ref, HashMap<String, AlignmentContextBySample> contexts, double[] alleleFrequencies, DiploidGenotypePriors priors, StratifiedContext contextType);
+    protected abstract double[] calculateAlleleFrequencyPosteriors(HashMap<String, GenotypeLikelihoods> GLs);
+    protected abstract void applyAlleleFrequencyToGenotypeLikelihoods(HashMap<String, GenotypeLikelihoods> GLs, double[] alleleFrequencies);
+    protected abstract EMOutput computePofF(char ref, HashMap<String, GenotypeLikelihoods> GLs, double[] alleleFrequencies, int numSamplesInContext);
+
+
+    protected boolean isStable(double[] oldAlleleFrequencies, double[] newAlleleFrequencies, int numSamplesInContext) {
+        // We consider the EM stable when the MAF doesn't change more than EM_STABILITY_METRIC/N
+        double EM_STABILITY_VALUE = EM_STABILITY_METRIC / (2.0 * (double)numSamplesInContext);
+
+        // determine whether we're stable
+        double AF_delta = 0.0;
+        for (int i = 0; i < oldAlleleFrequencies.length; i++)
+            AF_delta += Math.abs(oldAlleleFrequencies[i] - newAlleleFrequencies[i]);
+
+        return (AF_delta < EM_STABILITY_VALUE);  
+    }
+
+    protected DiploidGenotypePriors calculateAlleleFreqBasedPriors(double[] alleleFrequencies) {
         // convert to log-space
         double[] log10Freqs = new double[4];
         for (int i = 0; i < 4; i++)
@@ -240,25 +135,66 @@ public class EMGenotypeCalculationModel extends GenotypeCalculationModel {
         return new DiploidGenotypePriors(alleleFreqPriors);
     }
 
-    private double computeThetaOverMAF(char ref, double[] alleleFrequencies, int samplesAtLocus) {
-        double MAF;
-        Integer[] sortedIndexes = Utils.SortPermutation(alleleFrequencies);
-        if ( sortedIndexes[3] != BaseUtils.simpleBaseToBaseIndex(ref) )
-            MAF = alleleFrequencies[sortedIndexes[3]];
-        else
-            MAF = alleleFrequencies[sortedIndexes[2]];
+    /**
+     * Create the mapping from sample to alignment context; also, fill in the base counts along the way.
+     * Returns null iff there are too many deletions at this position.
+     */
+    protected HashMap<String, AlignmentContextBySample> splitContextBySample(AlignmentContext context, int[] baseCounts) {
 
-        int expectedChrs = (int)(2.0 * (double)samplesAtLocus * MAF);
+        HashMap<String, AlignmentContextBySample> contexts = new HashMap<String, AlignmentContextBySample>();
+        for (int i = 0; i < 4; i++)
+            baseCounts[i] = 0;
 
-        // TODO -- we need to use the priors from the UnifiedArgumentCollection
-        return DiploidGenotypePriors.HUMAN_HETEROZYGOSITY / (double)expectedChrs;
+        int deletionsInPile = 0;
+        List<SAMRecord> reads = context.getReads();
+        List<Integer> offsets = context.getOffsets();
+
+        for (int i = 0; i < reads.size(); i++) {
+
+            // get the read and offset
+            SAMRecord read = reads.get(i);
+            int offset = offsets.get(i);
+
+            // find the sample; special case for pools
+            String sample;
+            if ( POOLED_INPUT ) {
+                sample = "POOL";
+            } else {
+                String readGroup = read.getAttribute("RG").toString(); // can't be null because those are filtered out
+                sample = read.getHeader().getReadGroup(readGroup).getSample();
+            }
+
+            // create a new context object if this is the first time we're seeing a read for this sample
+            AlignmentContextBySample myContext = contexts.get(sample);
+            if ( myContext == null ) {
+                myContext = new AlignmentContextBySample(context.getLocation());
+                contexts.put(sample, myContext);
+            }
+
+            // check for deletions
+            if ( offset == -1 ) {
+                // are there too many deletions in the pileup?
+                if ( ++deletionsInPile > maxDeletionsInPileup )
+                    return null;
+            } else {
+                // add bad bases to the context (for DoC calculations), but don't count them
+                int baseIndex = BaseUtils.simpleBaseToBaseIndex(read.getReadString().charAt(offset));
+                if ( baseIndex != -1 )
+                    baseCounts[baseIndex]++;
+            }
+
+            // add the read to this sample's context
+            myContext.add(read, offset);
+        }
+
+        return contexts;
     }
 
 
     /**
      * A class to keep track of some basic metrics about our calls
     */
-    private class CallMetrics {
+    protected class CallMetrics {
         long nConfidentCalls = 0;
         long nNonConfidentCalls = 0;
         long nCalledBases = 0;
@@ -266,8 +202,96 @@ public class EMGenotypeCalculationModel extends GenotypeCalculationModel {
         CallMetrics() {}
 
         public String toString() {
-            return String.format("SSG: %d confident and %d non-confident calls were made at %d bases",
+            return String.format("UG: %d confident and %d non-confident calls were made at %d bases",
                     nConfidentCalls, nNonConfidentCalls, nCalledBases);
         }
+    }
+
+
+    /**
+     * A class to keep track of the EM output
+    */
+    protected class EMOutput {
+        private double pD, pNull, pF;
+        private HashMap<String, GenotypeLikelihoods> GLs;
+
+        EMOutput(double pD, double pNull, double pF, HashMap<String, GenotypeLikelihoods> GLs) {
+            this.pD = pD;
+            this.pNull = pNull;
+            this.pF = pF;
+            this.GLs = GLs;
+        }
+
+        public double getPofD() { return pD; }
+        public double getPofNull() { return pNull; }
+        public double getPofF() { return pF; }
+        public HashMap<String, GenotypeLikelihoods> getGenotypeLikelihoods() { return GLs; }
+    }
+
+
+    /**
+     * A class to keep track of the alignment context observed for a given sample.
+     * we currently store the overall context and strand-stratified sets,
+     * but any arbitrary stratification could be added.
+    */
+    protected enum StratifiedContext { OVERALL, FORWARD, REVERSE }
+    protected class AlignmentContextBySample {
+
+        private AlignmentContext overall = null;
+        private AlignmentContext forward = null;
+        private AlignmentContext reverse = null;
+        private GenomeLoc loc;
+
+        private ArrayList<SAMRecord> allReads = new ArrayList<SAMRecord>();
+        private ArrayList<SAMRecord> forwardReads = new ArrayList<SAMRecord>();
+        private ArrayList<SAMRecord> reverseReads = new ArrayList<SAMRecord>();
+
+        private ArrayList<Integer> allOffsets = new ArrayList<Integer>();
+        private ArrayList<Integer> forwardOffsets = new ArrayList<Integer>();
+        private ArrayList<Integer> reverseOffsets = new ArrayList<Integer>();
+
+
+        AlignmentContextBySample(GenomeLoc loc) {
+            this.loc = loc;
+        }
+
+        public AlignmentContext getContext(StratifiedContext context) {
+            switch ( context ) {
+                case OVERALL: return getOverallContext();
+                case FORWARD: return getForwardContext();
+                case REVERSE: return getReverseContext();
+            }
+            return null;
+        }
+
+        private AlignmentContext getOverallContext() {
+            if ( overall == null )
+                overall = new AlignmentContext(loc, allReads, allOffsets);
+            return overall;
+        }
+
+        private AlignmentContext getForwardContext() {
+            if ( forward == null )
+                forward = new AlignmentContext(loc, forwardReads, forwardOffsets);
+            return forward;
+        }
+
+        private AlignmentContext getReverseContext() {
+            if ( reverse == null )
+                reverse = new AlignmentContext(loc, reverseReads, reverseOffsets);
+            return reverse;
+        }
+
+        public void add(SAMRecord read, int offset) {
+            if ( read.getReadNegativeStrandFlag() ) {
+                reverseReads.add(read);
+                reverseOffsets.add(offset);
+            } else {
+                forwardReads.add(read);
+                forwardOffsets.add(offset);
+            }
+            allReads.add(read);
+            allOffsets.add(offset);
+         }
     }
 }

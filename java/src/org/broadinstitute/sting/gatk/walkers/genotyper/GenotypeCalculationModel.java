@@ -14,16 +14,18 @@ import java.util.*;
 public abstract class GenotypeCalculationModel implements Cloneable {
 
     public enum Model {
-        EM,
-        ALL_MAFS
+        EM_POINT_ESTIMATE,
+        EM_ALL_MAFS
     }
 
     protected BaseMismatchModel baseModel;
     protected Set<String> samples;
-    protected EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform defaultPlatform;
     protected GenotypeWriter out;
     protected Logger logger;
+    protected double heterozygosity;
+    protected EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform defaultPlatform;
     protected boolean GENOTYPE_MODE;
+    protected boolean POOLED_INPUT;
     protected double LOD_THRESHOLD;
     protected int maxDeletionsInPileup;
     protected boolean VERBOSE;
@@ -37,34 +39,26 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     /**
      * Initialize the GenotypeCalculationModel object
      * Assumes that out is not null
-     * @param baseModel     base model to use
      * @param samples       samples in input bam
-     * @param platform      default platform
      * @param out           output writer
-     * @param out           logger
-     * @param genotypeMode  genotyping
-     * @param lod           lod threshold
-     * @param maxDeletions  max deletions to tolerate
-     * @param verbose       verbose flag
+     * @param logger        logger
+     * @param UAC           unified arg collection
      */
-    protected void initialize(BaseMismatchModel baseModel,
-                           Set<String> samples,
-                           EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform platform,
-                           GenotypeWriter out,
-                           Logger logger,
-                           boolean genotypeMode,
-                           double lod,
-                           int maxDeletions,
-                           boolean verbose) {
-        this.baseModel = baseModel;
+    protected void initialize(Set<String> samples,
+                              GenotypeWriter out,
+                              Logger logger,
+                              UnifiedArgumentCollection UAC) {
         this.samples = samples;
-        defaultPlatform = platform;
         this.out = out;
         this.logger = logger;
-        GENOTYPE_MODE = genotypeMode;
-        LOD_THRESHOLD = lod;
-        maxDeletionsInPileup = maxDeletions;
-        VERBOSE = verbose;
+        baseModel = UAC.baseModel;
+        heterozygosity = UAC.heterozygosity;
+        defaultPlatform = UAC.defaultPlatform;
+        GENOTYPE_MODE = UAC.GENOTYPE;
+        POOLED_INPUT = UAC.POOLED;
+        LOD_THRESHOLD = UAC.LOD_THRESHOLD;
+        maxDeletionsInPileup = UAC.MAX_DELETIONS;
+        VERBOSE = UAC.VERBOSE;
     }
 
     /**
@@ -74,12 +68,14 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      */
     protected Object clone() throws CloneNotSupportedException {
         GenotypeCalculationModel gcm = (GenotypeCalculationModel)super.clone();
-        gcm.baseModel = baseModel;
         gcm.samples = new HashSet<String>(samples);
-        gcm.defaultPlatform = defaultPlatform;
         gcm.out = out;
         gcm.logger = logger;
+        gcm.baseModel = baseModel;
+        gcm.heterozygosity = heterozygosity;
+        gcm.defaultPlatform = defaultPlatform;
         gcm.GENOTYPE_MODE = GENOTYPE_MODE;
+        gcm.POOLED_INPUT = POOLED_INPUT;
         gcm.LOD_THRESHOLD = LOD_THRESHOLD;
         gcm.maxDeletionsInPileup = maxDeletionsInPileup;
         gcm.VERBOSE = VERBOSE;
@@ -88,6 +84,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
 
     /**
      * Must be overridden by concrete subclasses
+     * @param tracker   rod data
      * @param ref       reference base
      * @param context   alignment context
      * @param priors    priors to use for GL

@@ -52,22 +52,22 @@ public class GenotypeCalculationModelFactory {
      * @param logger        logger
      * @return model
      */
-    public static GenotypeCalculationModel makeGenotypeCalculation(UnifiedArgumentCollection UAC,
-                                                                   Set<String> samples,
+    public static GenotypeCalculationModel makeGenotypeCalculation(Set<String> samples,
                                                                    GenotypeWriter out,
-                                                                   Logger logger) {
+                                                                   Logger logger,
+                                                                   UnifiedArgumentCollection UAC) {
         GenotypeCalculationModel gcm;
         switch ( UAC.genotypeModel ) {
-            case EM:
-                gcm = new EMGenotypeCalculationModel();
+            case EM_POINT_ESTIMATE:
+                gcm = new PointEstimateGenotypeCalculationModel();
                 break;
-            case ALL_MAFS:
+            case EM_ALL_MAFS:
                 gcm = new AllMAFsGenotypeCalculationModel();
                 break;
             default: throw new RuntimeException("Unexpected GenotypeCalculationModel " + UAC.genotypeModel);
         }
 
-        gcm.initialize(UAC.baseModel, samples, UAC.defaultPlatform, out, logger, UAC.GENOTYPE, UAC.LOD_THRESHOLD, UAC.MAX_DELETIONS, UAC.VERBOSE);
+        gcm.initialize(samples, out, logger, UAC);
         return gcm;
     }
 }

@@ -55,8 +55,8 @@ public class UnifiedGenotyper extends LocusWalker<List<GenotypeCall>, Integer> {
     @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = false)
     public File VARIANTS_FILE = null;
 
-    @Argument(fullName = "variant_output_format", shortName = "vf", doc = "File format to be used", required = false)
-    public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.GELI;
+    @Argument(fullName = "variant_output_format", shortName = "vf", doc = "File format to be used; default is VCF", required = false)
+    public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
 
 
     // the model used for calculating genotypes
@@ -79,10 +79,10 @@ public class UnifiedGenotyper extends LocusWalker<List<GenotypeCall>, Integer> {
         return (BaseUtils.simpleBaseToBaseIndex(ref) != -1 && context.getReads().size() != 0);
     }
 
-    /** Enable deletions in the pileup */
+    /** Enable deletions in the pileup **/
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
-    /** Initialize the walker with some sensible defaults */
+    /** Initialize the samples, output, and genotype calculation model **/
     public void initialize() {
 
         // get all of the unique sample names
@@ -104,7 +104,7 @@ public class UnifiedGenotyper extends LocusWalker<List<GenotypeCall>, Integer> {
             writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out, "UnifiedGenotyper",
                                                   this.getToolkit().getArguments().referenceFile.getName());
 
-        gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(UAC, samples, writer, logger);
+        gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, writer, logger, UAC);
     }
 
     /**

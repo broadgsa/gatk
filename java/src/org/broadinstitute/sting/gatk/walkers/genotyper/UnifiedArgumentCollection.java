@@ -26,28 +26,22 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 
-import java.io.File;
 
-/**
- * Created by IntelliJ IDEA.
- * User: ebanks
- * Date: Sep 29, 2009
- * Time: 12:07:43 PM
- * To change this template use File | Settings | File Templates.
- */
 public class UnifiedArgumentCollection {
 
     // control the various models to be used
-    @Argument(fullName = "genotypeModel", shortName = "gm", doc = "Genotype calculation model to employ -- EM is the default choice; the ALL_MAFS model is experimental", required = false)
-    public GenotypeCalculationModel.Model genotypeModel = GenotypeCalculationModel.Model.EM;
+    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- EM_POINT_ESTIMATE is currently the default, while EM_ALL_MAFS is under development", required = false)
+    public GenotypeCalculationModel.Model genotypeModel = GenotypeCalculationModel.Model.EM_POINT_ESTIMATE;
 
-    @Argument(fullName = "baseModel", shortName = "bm", doc = "Base substitution model to employ -- EMPIRICAL is the recommended default, but it's possible to select the ONE_STATE and THREE_STATE models for comparison purposes", required = false)
+    @Argument(fullName = "base_model", shortName = "bm", doc = "Base substitution model to employ -- EMPIRICAL is the recommended default, but it's possible to select the ONE_STATE and THREE_STATE models for comparison purposes", required = false)
     public BaseMismatchModel baseModel = BaseMismatchModel.EMPIRICAL;
 
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
     public Double heterozygosity = DiploidGenotypePriors.HUMAN_HETEROZYGOSITY;
+
+    @Argument(fullName = "pooled", shortName = "pooled", doc = "Does the input bam represent pooled data (so that genotypes can't be called)?", required = false)
+    public boolean POOLED = false;
 
 
     // control the output
@@ -65,10 +59,10 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "platform", shortName = "pl", doc = "Causes the genotyper to assume that reads without PL header TAG are this platform.  Defaults to null, indicating that the system will throw a runtime exception when such reads are detected", required = false)
     public EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform defaultPlatform = null;
 
-    @Argument(fullName = "maxDeletions", shortName = "deletions", doc = "Maximum reads with deletions spanning this locus for it to be callable [default:1]", required = false)
+    @Argument(fullName = "max_deletions", shortName = "deletions", doc = "Maximum reads with deletions spanning this locus for it to be callable [default:1]", required = false)
     public Integer MAX_DELETIONS = 1;
 
-    @Argument(fullName = "maxCoverage", shortName = "maxCoverage", doc = "Maximum reads at this locus for it to be callable; to disable, provide value < 1 [default:10,000]", required = false)
+    @Argument(fullName = "max_coverage", shortName = "coverage", doc = "Maximum reads at this locus for it to be callable; to disable, provide value < 1 [default:10,000]", required = false)
     public Integer MAX_READS_IN_PILEUP = 10000;
 
 
