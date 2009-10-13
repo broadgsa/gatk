@@ -99,7 +99,8 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     /** finish writing, closing any open files. */
     @Override
     public void close() {
-        mWriter.close();
+        if (mInitialized)
+            mWriter.close();
     }
 
     /**
