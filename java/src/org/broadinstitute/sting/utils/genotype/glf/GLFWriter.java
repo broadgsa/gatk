@@ -10,6 +10,7 @@ import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
 /*
@@ -72,6 +73,20 @@ public class GLFWriter implements GenotypeWriter {
         outputBinaryCodec.setOutputFileName(writeTo.toString());
         this.writeHeader();
     }
+
+    /**
+     * The public constructor for creating a GLF object
+     *
+     * @param headerText the header text (currently unclear what the contents are)
+     * @param writeTo    the location to write to
+     */
+    public GLFWriter(String headerText, OutputStream writeTo) {
+        this.headerText = headerText;
+        outputBinaryCodec = new BinaryCodec(writeTo);
+        outputBinaryCodec.setOutputFileName(writeTo.toString());
+        this.writeHeader();
+    }
+
 
     /**
      * add a point genotype to the GLF writer

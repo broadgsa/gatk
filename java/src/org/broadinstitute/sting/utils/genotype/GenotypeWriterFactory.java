@@ -46,10 +46,14 @@ public class GenotypeWriterFactory {
         }
     }
 
-    public static GenotypeWriter create(GENOTYPE_FORMAT format, SAMFileHeader header, PrintStream destination) {
+    public static GenotypeWriter create(GENOTYPE_FORMAT format, SAMFileHeader header, PrintStream destination, String source, String referenceName ) {
         switch (format) {
             case GELI:
                 return new GeliTextWriter(destination);
+            case GLF:
+                return new GLFWriter(header.toString(), destination);
+            case VCF:
+                return new VCFGenotypeWriterAdapter(source, referenceName, destination);
             default:
                 throw new StingException("Genotype writer to " + format.toString() + " to standard output is not implemented");
         }

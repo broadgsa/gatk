@@ -8,11 +8,8 @@ import org.broadinstitute.sting.utils.genotype.ReadBacked;
 import org.broadinstitute.sting.utils.genotype.SampleBacked;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.OutputStream;
+import java.util.*;
 
 
 /**
@@ -31,13 +28,21 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     private final Map<String, String> mSampleNames = new HashMap<String, String>();
     private boolean mInitialized = false;
     private final File mFile;
+    private final OutputStream mStream;
 
     public VCFGenotypeWriterAdapter(String source, String referenceName, File writeTo) {
         mReferenceName = referenceName;
         mSource = source;
         mFile = writeTo;
+        mStream = null;
     }
 
+    public VCFGenotypeWriterAdapter(String source, String referenceName, OutputStream writeTo) {
+        mReferenceName = referenceName;
+        mSource = source;
+        mFile = null;
+        mStream = writeTo;
+    }
 
     /**
      * initialize this VCF writer
@@ -45,7 +50,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      * @param genotypes the genotypes
      * @param file      the file location to write to
      */
-    private void lazyInitialize(List<Genotype> genotypes, File file) {
+    private void lazyInitialize(List<Genotype> genotypes, File file, OutputStream stream) {
         Map<String, String> hInfo = new HashMap<String, String>();
         List<String> sampleNames = getSampleNames(genotypes);
 
@@ -55,7 +60,10 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
 
         // setup the sample names
         mHeader = new VCFHeader(hInfo, sampleNames);
-        mWriter = new VCFWriter(mHeader, file);
+        if (mFile == null)
+            mWriter = new VCFWriter(mHeader, stream);
+        else
+            mWriter = new VCFWriter(mHeader, file);
         mInitialized = true;
     }
 
@@ -111,7 +119,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     @Override
     public void addMultiSampleCall(List<Genotype> genotypes) {
         if (!mInitialized)
-            lazyInitialize(genotypes, mFile);
+            lazyInitialize(genotypes, mFile, mStream);
 
 
         VCFParamters params = new VCFParamters();

@@ -1,10 +1,14 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 
+import org.broadinstitute.sting.utils.StingException;
+
 import java.io.*;
 import java.nio.charset.Charset;
 
-/** this class writers VCF files */
+/**
+ * this class writers VCF files
+ */
 public class VCFWriter {
 
     // the VCF header we're storing
@@ -21,16 +25,30 @@ public class VCFWriter {
      * @param location the file location to write to
      */
     public VCFWriter(VCFHeader header, File location) {
-        this.mHeader = header;
-        Charset utf8 = Charset.forName("UTF-8");
+        FileOutputStream output;
         try {
-            mWriter = new BufferedWriter(
-                    new OutputStreamWriter(
-                            new FileOutputStream(location),
-                            utf8));
+            output = new FileOutputStream(location);
         } catch (FileNotFoundException e) {
-            throw new RuntimeException("Unable to create VCF file: " + location, e);
+            throw new RuntimeException("Unable to create VCF file at location: " + location);
         }
+        initialize(header, output);
+    }
+
+
+    /**
+     * create a VCF writer, given a VCF header and a file to write to
+     *
+     * @param header   the VCF header
+     * @param location the file location to write to
+     */
+    public VCFWriter(VCFHeader header, OutputStream location) {
+        initialize(header, location);
+    }
+
+    private void initialize(VCFHeader header, OutputStream location) {
+        this.mHeader = header;
+        mWriter = new BufferedWriter(
+                new OutputStreamWriter(location));
         try {
             // write the header meta-data out
             for (String metadata : header.getMetaData().keySet()) {
@@ -71,8 +89,9 @@ public class VCFWriter {
     }
 
 
-
-    /** attempt to close the VCF file */
+    /**
+     * attempt to close the VCF file
+     */
     public void close() {
         try {
             mWriter.flush();
