@@ -47,8 +47,8 @@ public class AlignerTestHarness {
 
         for(SAMRecord read: reader) {
             count++;
-            //if( count > 144000 ) break;
-            if( count < 366000 ) continue;
+            //if( count > 100000 ) break;
+            //if( count < 366000 ) continue;
             //if( count != 2 ) continue;
             //if( !read.getReadName().endsWith("SL-XBC:1:82:506:404#0") )
             //    continue;
@@ -95,6 +95,8 @@ public class AlignerTestHarness {
                 //System.out.printf("%s: Aligned read to reference at position %d with %d mismatches, %d gap opens, and %d gap extensions.%n", read.getReadName(), foundAlignment.getAlignmentStart(), foundAlignment.getMismatches(), foundAlignment.getGapOpens(), foundAlignment.getGapExtensions());
             }
             else {
+                System.out.printf("Error aligning read %s%n", read.getReadName());
+
                 mismatches++;
 
                 IndexedFastaSequenceFile reference = new IndexedFastaSequenceFile(referenceFile);

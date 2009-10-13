@@ -88,13 +88,6 @@ public class BWAAligner implements Aligner {
         List<LowerBound> forwardLowerBounds = LowerBound.create(uncomplementedBases,forwardBWT);
         List<LowerBound> reverseLowerBounds = LowerBound.create(complementedBases,reverseBWT);
 
-        /*
-        for( int i = 0; i < forwardLowerBounds.size(); i++ )
-            System.out.printf("ForwardBWT: lb[%d] = %s%n",i,forwardLowerBounds.get(i));
-        for( int i = 0; i < reverseLowerBounds.size(); i++ )
-            System.out.printf("ReverseBWT: lb[%d] = %s%n",i,reverseLowerBounds.get(i));
-            */
-
         // Seed the best score with any score that won't overflow on comparison.
         int bestScore = Integer.MAX_VALUE - MISMATCH_PENALTY;
         int bestDiff = MAXIMUM_EDIT_DISTANCE+1;
@@ -118,8 +111,19 @@ public class BWAAligner implements Aligner {
             BWT bwt = alignment.negativeStrand ? forwardBWT : reverseBWT;
             List<LowerBound> lowerBounds = alignment.negativeStrand ? reverseLowerBounds : forwardLowerBounds;
 
+            // if z < D(i) then return {}
+            int mismatches = maxDiff - alignment.mismatches - alignment.gapOpens - alignment.gapExtensions;
+            if( alignment.position < lowerBounds.size()-1 && mismatches < lowerBounds.get(alignment.position+1).value )
+                continue;
+
+            if(mismatches == 0) {
+                exactMatch(alignment,bases,bwt);
+                if(alignment.loBound > alignment.hiBound)
+                    continue;
+            }
+
             // Found a valid alignment; store it and move on.
-            if(alignment.position == read.getReadLength()-1) {
+            if(alignment.position >= read.getReadLength()-1) {
                 for( int bwtIndex = alignment.loBound; bwtIndex <= alignment.hiBound; bwtIndex++ ) {
                     BWAAlignment finalAlignment = alignment.clone();
 
@@ -143,13 +147,31 @@ public class BWAAligner implements Aligner {
             }
 
             //System.out.printf("Processing alignments; queue size = %d, alignment = %s, bound = %d, base = %s%n", alignments.size(), alignment, lowerBounds.get(alignment.position+1).value, alignment.position >= 0 ? (char)bases[alignment.position] : "");
+            /*
+            System.out.printf("#1\t[%d,%d,%d,%c]\t[%d,%d,%d]\t[%d,%d]\t[%d,%d]%n",alignments.size(),
+                                                        alignment.negativeStrand?1:0,
+                                                        bases.length-alignment.position-1,
+                                                        alignment.getCurrentState().toString().charAt(0),
+                                                        alignment.getMismatches(),
+                                                        alignment.getGapOpens(),
+                                                        alignment.getGapExtensions(),
+                                                        lowerBounds.get(alignment.position+1).value,
+                                                        lowerBounds.get(alignment.position+1).width,
+                                                        alignment.loBound,
+                                                        alignment.hiBound);
+            */
 
-            // if z < D(i) then return {}
-            int mismatches = maxDiff - alignment.mismatches - alignment.gapOpens - alignment.gapExtensions;            
-            if( mismatches < lowerBounds.get(alignment.position+1).value )
-                continue;
+            // Temporary -- look ahead to see if the next alignment is bounded.
+            boolean allowDifferences = mismatches > 0;
+            boolean allowMismatches = mismatches > 0;
+            if( alignment.position+1 < read.getReadLength()-1 ) {
+                allowDifferences &= lowerBounds.get(alignment.position+2).value <= mismatches - 1;
+                allowMismatches &=
+                    !(lowerBounds.get(alignment.position+2).value == mismatches-1 && lowerBounds.get(alignment.position+1).value == mismatches-1 &&
+                      lowerBounds.get(alignment.position+2).width == lowerBounds.get(alignment.position+1).width);
+            }
 
-            if( mismatches > 0 &&
+            if( allowDifferences &&
                 alignment.position+1 >= INDEL_END_SKIP-1+alignment.gapOpens+alignment.gapExtensions &&
                 read.getReadLength()-1-(alignment.position+1) >= INDEL_END_SKIP+alignment.gapOpens+alignment.gapExtensions ) {
                 if( alignment.getCurrentState() == AlignmentState.MATCH_MISMATCH ) {
@@ -186,13 +208,7 @@ public class BWAAligner implements Aligner {
             }
 
             // Mismatches
-            // Temporary -- look ahead to see if the next alignment is bounded.
-            boolean allowMismatches = mismatches > 0;
-            if( alignment.position+1 < read.getReadLength()-1 )
-                allowMismatches &= 
-                    !(lowerBounds.get(alignment.position+2).value == mismatches-1 && lowerBounds.get(alignment.position+1).value == mismatches-1 &&
-                      lowerBounds.get(alignment.position+2).width == lowerBounds.get(alignment.position+1).width);
-            alignments.addAll(createMatchedAlignments(bwt,alignment,bases,allowMismatches));
+            alignments.addAll(createMatchedAlignments(bwt,alignment,bases,allowDifferences&&allowMismatches));
         }
 
         return successfulMatches;
@@ -302,4 +318,19 @@ public class BWAAligner implements Aligner {
         return newAlignments;
     }
 
+    /**
+     * Exactly match the given alignment against the given BWT.
+     * @param alignment Alignment to match.
+     * @param bases Bases to use.
+     * @param bwt BWT to use.
+     */
+    private void exactMatch( BWAAlignment alignment, byte[] bases, BWT bwt ) {
+        while( ++alignment.position < bases.length ) {
+            Base base = Base.fromASCII(bases[alignment.position]);
+            alignment.loBound = bwt.counts(base) + bwt.occurrences(base,alignment.loBound-1) + 1;
+            alignment.hiBound = bwt.counts(base) + bwt.occurrences(base,alignment.hiBound);
+            if( alignment.loBound > alignment.hiBound )
+                return;
+        }
+    }
 }
