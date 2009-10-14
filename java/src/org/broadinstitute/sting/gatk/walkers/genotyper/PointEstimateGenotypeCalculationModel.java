@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.GenotypeMetaData;
 
 import java.util.*;
 
@@ -12,7 +13,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
     protected PointEstimateGenotypeCalculationModel() {}
 
     // overload this method so we can special-case the single sample
-    public List<GenotypeCall> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public Pair<List<GenotypeCall>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
         // we don't actually want to run EM for single samples
         if ( samples.size() == 1 ) {
@@ -30,22 +31,10 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             if ( sampleContext == null )
                 return null;
 
-            callsMetrics.nCalledBases++;
-
             // create the genotype call object
             Pair<ReadBackedPileup, GenotypeLikelihoods> discoveryGL = getSingleSampleLikelihoods(ref, sampleContext, priors, StratifiedContext.OVERALL);
             GenotypeCall call = new GenotypeCall(sample, context.getLocation(), ref, discoveryGL.second, discoveryGL.first);
-
-            if ( GENOTYPE_MODE || call.isVariant(call.getReference()) ) {
-                double confidence = (GENOTYPE_MODE ? call.getNegLog10PError() : call.toVariation().getNegLog10PError());
-                if ( confidence >= LOD_THRESHOLD ) {
-                    callsMetrics.nConfidentCalls++;
-                    out.addGenotypeCall(call);
-                } else {
-                    callsMetrics.nNonConfidentCalls++;
-                }
-            }
-            return Arrays.asList(call);
+            return new Pair<List<GenotypeCall>, GenotypeMetaData>(Arrays.asList(call), null);
         }
 
         return super.calculateGenotype(tracker, ref, context, priors);

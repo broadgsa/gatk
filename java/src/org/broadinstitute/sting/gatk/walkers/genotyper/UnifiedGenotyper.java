@@ -36,18 +36,22 @@ import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
+import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.GenotypeMetaData;
 
 import java.io.File;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ArrayList;
 
 
 @ReadFilters({ZeroMappingQualityReadFilter.class, MissingReadGroupFilter.class})
-public class UnifiedGenotyper extends LocusWalker<List<GenotypeCall>, Integer> {
+public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, GenotypeMetaData>, Integer> {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
@@ -65,6 +69,11 @@ public class UnifiedGenotyper extends LocusWalker<List<GenotypeCall>, Integer> {
     // output writer
     private GenotypeWriter writer;
 
+    // samples in input
+    private HashSet<String> samples;
+
+    // keep track of some metrics about our calls
+    private CallMetrics callsMetrics;
 
      /**
      * Filter out loci to ignore (at an ambiguous base in the reference or a locus with zero coverage).
@@ -86,7 +95,7 @@ public class UnifiedGenotyper extends LocusWalker<List<GenotypeCall>, Integer> {
     public void initialize() {
 
         // get all of the unique sample names
-        HashSet<String> samples = new HashSet<String>();
+        samples = new HashSet<String>();
         List<SAMReadGroupRecord> readGroups = getToolkit().getSAMFileHeader().getReadGroups();
         for ( SAMReadGroupRecord readGroup : readGroups )
             samples.add(readGroup.getSample());
@@ -104,7 +113,8 @@ public class UnifiedGenotyper extends LocusWalker<List<GenotypeCall>, Integer> {
             writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out, "UnifiedGenotyper",
                                                   this.getToolkit().getArguments().referenceFile.getName());
 
-        gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, writer, logger, UAC);
+        gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC);
+        callsMetrics = new CallMetrics();
     }
 
     /**
@@ -114,7 +124,7 @@ public class UnifiedGenotyper extends LocusWalker<List<GenotypeCall>, Integer> {
      * @param refContext the reference base
      * @param context contextual information around the locus
      */
-    public List<GenotypeCall> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
+    public Pair<List<GenotypeCall>, GenotypeMetaData> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
         char ref = Character.toUpperCase(refContext.getBase());
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
@@ -151,7 +161,47 @@ public class UnifiedGenotyper extends LocusWalker<List<GenotypeCall>, Integer> {
 
     public Integer reduceInit() { return 0; }
 
-    public Integer reduce(List<GenotypeCall> value, Integer sum) {
+    public Integer reduce(Pair<List<GenotypeCall>, GenotypeMetaData> value, Integer sum) {
+        if ( value == null || value.first == null )
+            return sum;
+
+        callsMetrics.nCalledBases++;
+
+        if ( value.first.size() == 0 )
+            return sum;
+
+        // special-case for single-sample using PointEstimate model
+        if ( value.second == null ) {
+            GenotypeCall call = value.first.get(0);
+            if ( UAC.GENOTYPE || call.isVariant(call.getReference()) ) {
+                double confidence = (UAC.GENOTYPE ? call.getNegLog10PError() : call.toVariation().getNegLog10PError());
+                if ( confidence >= UAC.LOD_THRESHOLD ) {
+                    callsMetrics.nConfidentCalls++;
+                    writer.addGenotypeCall(call);
+                }
+            } else {
+                callsMetrics.nNonConfidentCalls++;
+            }
+        }
+
+        // use multi-sample mode if we have multiple samples or the output type allows it
+        else if ( writer.supportsMultiSample() || samples.size() > 1 ) {
+
+            // annoying hack to get around Java generics
+            ArrayList<Genotype> callList = new ArrayList<Genotype>();
+            for ( GenotypeCall call : value.first )
+                callList.add(call);
+
+            callsMetrics.nConfidentCalls++;
+            writer.addMultiSampleCall(callList, value.second);
+        }
+
+        // otherwise, use single sample mode
+        else {
+            callsMetrics.nConfidentCalls++;
+            writer.addGenotypeCall(value.first.get(0));
+        }
+
         return sum + 1;
     }
 
@@ -160,4 +210,20 @@ public class UnifiedGenotyper extends LocusWalker<List<GenotypeCall>, Integer> {
         logger.info("Processed " + sum + " loci that are callable for SNPs");
         writer.close();
     }
+
+    /**
+     * A class to keep track of some basic metrics about our calls
+     */
+    protected class CallMetrics {
+        long nConfidentCalls = 0;
+        long nNonConfidentCalls = 0;
+        long nCalledBases = 0;
+
+        CallMetrics() {}
+
+        public String toString() {
+            return String.format("UG: %d confident and %d non-confident calls were made at %d bases",
+                    nConfidentCalls, nNonConfidentCalls, nCalledBases);
+        }
+    }      
 }

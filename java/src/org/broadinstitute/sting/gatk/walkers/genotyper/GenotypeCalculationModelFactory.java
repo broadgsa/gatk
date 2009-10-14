@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import static org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model.*;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.apache.log4j.Logger;
 
 import java.util.Set;
@@ -48,12 +47,10 @@ public class GenotypeCalculationModelFactory {
      *
      * @param UAC           The unified argument  collection
      * @param samples       samples in bam
-     * @param out           output writer
      * @param logger        logger
      * @return model
      */
     public static GenotypeCalculationModel makeGenotypeCalculation(Set<String> samples,
-                                                                   GenotypeWriter out,
                                                                    Logger logger,
                                                                    UnifiedArgumentCollection UAC) {
         GenotypeCalculationModel gcm;
@@ -67,7 +64,7 @@ public class GenotypeCalculationModelFactory {
             default: throw new RuntimeException("Unexpected GenotypeCalculationModel " + UAC.genotypeModel);
         }
 
-        gcm.initialize(samples, out, logger, UAC);
+        gcm.initialize(samples, logger, UAC);
         return gcm;
     }
 }

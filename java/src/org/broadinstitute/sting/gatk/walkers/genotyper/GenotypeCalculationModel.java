@@ -2,7 +2,8 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
+import org.broadinstitute.sting.utils.genotype.GenotypeMetaData;
+import org.broadinstitute.sting.utils.Pair;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -20,7 +21,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
 
     protected BaseMismatchModel baseModel;
     protected Set<String> samples;
-    protected GenotypeWriter out;
     protected Logger logger;
     protected double heterozygosity;
     protected EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform defaultPlatform;
@@ -40,16 +40,13 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      * Initialize the GenotypeCalculationModel object
      * Assumes that out is not null
      * @param samples       samples in input bam
-     * @param out           output writer
      * @param logger        logger
      * @param UAC           unified arg collection
      */
     protected void initialize(Set<String> samples,
-                              GenotypeWriter out,
                               Logger logger,
                               UnifiedArgumentCollection UAC) {
         this.samples = samples;
-        this.out = out;
         this.logger = logger;
         baseModel = UAC.baseModel;
         heterozygosity = UAC.heterozygosity;
@@ -69,7 +66,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected Object clone() throws CloneNotSupportedException {
         GenotypeCalculationModel gcm = (GenotypeCalculationModel)super.clone();
         gcm.samples = new HashSet<String>(samples);
-        gcm.out = out;
         gcm.logger = logger;
         gcm.baseModel = baseModel;
         gcm.heterozygosity = heterozygosity;
@@ -89,10 +85,10 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      * @param context   alignment context
      * @param priors    priors to use for GL
      *
-     * @return list of calls
+     * @return calls
      */
-    public abstract List<GenotypeCall> calculateGenotype(RefMetaDataTracker tracker,
-                                                         char ref,
-                                                         AlignmentContext context,
-                                                         DiploidGenotypePriors priors);
+    public abstract Pair<List<GenotypeCall>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker,
+                                                                                 char ref,
+                                                                                 AlignmentContext context,
+                                                                                 DiploidGenotypePriors priors);
 }

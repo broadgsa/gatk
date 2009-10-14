@@ -5,9 +5,9 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
+import org.broadinstitute.sting.gatk.walkers.genotyper.*;
 import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -257,9 +257,9 @@ public class ArtificialPoolContext {
     public Genotype getGenotype(int group) {
         AlignmentContext alicon = this.getAlignmentContext();
         Pair<List<SAMRecord>[],List<Integer>[]> byGroupSplitPair = this.splitByGroup(alicon.getReads(),alicon.getOffsets());
-        List<? extends Genotype> result = ug.map(this.getRefMetaDataTracker(),this.getReferenceContext(),
+        Pair<List<GenotypeCall>, GenotypeMetaData> result = ug.map(this.getRefMetaDataTracker(),this.getReferenceContext(),
                 new AlignmentContext(this.getAlignmentContext().getLocation(), byGroupSplitPair.first[group],byGroupSplitPair.second[group]));
-        return (result == null ? null : result.get(0));
+        return (result.first == null ? null : result.first.get(0));
     }
 
     public static List<SAMRecord>[] sampleReads(List<SAMRecord>[] reads, double[] propEstGlobal) {

@@ -16,13 +16,10 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
     // We consider the EM stable when the MAF doesn't change more than 1/10N
     protected static final double EM_STABILITY_METRIC = 0.1;
 
-    // keep track of some metrics about our calls
-    protected CallMetrics callsMetrics = new CallMetrics();
-
 
     protected EMGenotypeCalculationModel() {}
 
-    public List<GenotypeCall> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public Pair<List<GenotypeCall>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
         // keep track of the context for each sample, overall and separated by strand
         int[] baseCounts = new int[4];
@@ -51,23 +48,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
 
         // generate the calls
         GenotypeMetaData metadata = new GenotypeMetaData(lod, strandScore, overall.getMAF());
-        List<GenotypeCall> calls = genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts);
-        if ( calls != null && calls.size() != 0 ) {
-
-            // use multi-sample mode if we have multiple samples or the output type allows it
-            if ( out.supportsMultiSample() || samples.size() > 1 ) {
-
-                // annoying hack to get around Java generics
-                ArrayList<Genotype> callList = new ArrayList<Genotype>();
-                for ( GenotypeCall call : calls )
-                    callList.add(call);
-
-                out.addMultiSampleCall(callList, metadata);
-            } else {
-                out.addGenotypeCall(calls.get(0));
-            }
-        }
-        return calls;
+        return new Pair<List<GenotypeCall>, GenotypeMetaData>(genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts), metadata);
     }
 
     protected List<GenotypeCall> genotypeCallsFromGenotypeLikelihoods(EMOutput results, char ref, HashMap<String, AlignmentContextBySample> contexts) {
@@ -76,7 +57,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         // an optimization
         double expectedChromosomes = 2.0 * (double)GLs.size() * results.getMAF();
         if ( expectedChromosomes < 1.0 )
-            return null;
+            return new ArrayList<GenotypeCall>();
 
         ArrayList<GenotypeCall> calls = new ArrayList<GenotypeCall>();
         int variantCalls = 0;
@@ -113,8 +94,6 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         // get the initial genotype likelihoods
         HashMap<String, GenotypeLikelihoods> GLs = initializeGenotypeLikelihoods(ref, contexts, alleleFrequencies, priors, contextType);
 
-        callsMetrics.nCalledBases++;
-        
         // The EM loop:
         //   we want to continue until the calculation is stable, but we need some max on the number of iterations
         int iterations = 0;
@@ -230,23 +209,6 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         }
 
         return contexts;
-    }
-
-
-    /**
-     * A class to keep track of some basic metrics about our calls
-    */
-    protected class CallMetrics {
-        long nConfidentCalls = 0;
-        long nNonConfidentCalls = 0;
-        long nCalledBases = 0;
-
-        CallMetrics() {}
-
-        public String toString() {
-            return String.format("UG: %d confident and %d non-confident calls were made at %d bases",
-                    nConfidentCalls, nNonConfidentCalls, nCalledBases);
-        }
     }
 
 
