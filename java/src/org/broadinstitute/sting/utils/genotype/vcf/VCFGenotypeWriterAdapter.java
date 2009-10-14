@@ -174,7 +174,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
 
     /** @return true if we support multisample, false otherwise */
     @Override
-    public boolean supportsMulitSample() {
+    public boolean supportsMultiSample() {
         return true;
     }
 

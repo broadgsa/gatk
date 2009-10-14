@@ -61,6 +61,6 @@ public interface GenotypeWriter {
     /**
      * @return true if we support multisample, false otherwise
      */
-    public boolean supportsMulitSample();
+    public boolean supportsMultiSample();
 
 }
