@@ -152,7 +152,7 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
     }
 
     private double getSNPProportion(int alleles) {
-        return ((double)alleles)/numIndividuals;
+        return ((double)alleles)/(2*numIndividuals);
     }
 
 
