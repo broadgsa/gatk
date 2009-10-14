@@ -19,7 +19,7 @@ public class VCFRecord {
     // the alternate bases
     private final List<String> mAlts = new ArrayList<String>();
     // our qual value
-    private int mQual;
+    private double mQual;
     // our filter string
     private String mFilterString;
     // our info fields
@@ -61,7 +61,7 @@ public class VCFRecord {
                      int position,
                      String ID,
                      List<String> altBases,
-                     int qual,
+                     double qual,
                      String filters,
                      Map<String, String> infoFields,
                      String genotypeFormatString,
@@ -117,7 +117,7 @@ public class VCFRecord {
                         addAlternateBase(alt);
                     break;
                 case QUAL:
-                    this.setQual(Integer.valueOf(columnValues.get(val)));
+                    this.setQual(Double.valueOf(columnValues.get(val)));
                     break;
                 case FILTER:
                     this.setFilterString(columnValues.get(val));
@@ -191,7 +191,7 @@ public class VCFRecord {
     }
 
     /** @return the phred-scaled quality score */
-    public int getQual() {
+    public double getQual() {
         return this.mQual;
     }
 
@@ -273,7 +273,7 @@ public class VCFRecord {
         this.mID = mID;
     }
 
-    public void setQual(int mQual) {
+    public void setQual(double mQual) {
         if (mQual < 0)
             throw new IllegalArgumentException("Qual values must be greater than 0");
         this.mQual = mQual;
@@ -307,12 +307,12 @@ public class VCFRecord {
 
     /**
      * the generation of a string representation, which is used by the VCF writer
+     *
      * @return a string
      */
-    public String toString() {
+    public String toStringRepresentation(VCFHeader header) {
         StringBuilder builder = new StringBuilder();
 
-        // else builder.append(FIELD_SEPERATOR + record.getValue(field));
         // CHROM \t POS \t ID \t REF \t ALT \t QUAL \t FILTER \t INFO
         builder.append(getChromosome() + FIELD_SEPERATOR);
         builder.append(getPosition() + FIELD_SEPERATOR);
@@ -321,7 +321,7 @@ public class VCFRecord {
         String alts = "";
         for (String str : this.getAlternateAlleles()) alts += str + ",";
         builder.append((alts.length() > 0) ? alts.substring(0, alts.length() - 1) + FIELD_SEPERATOR : "." + FIELD_SEPERATOR);
-        builder.append(getQual() + FIELD_SEPERATOR);
+        builder.append(String.format("%.2f",getQual()) + FIELD_SEPERATOR);
         builder.append(Utils.join(";", getFilteringCodes()) + FIELD_SEPERATOR);
         String info = "";
         for (String str : this.getInfoValues().keySet()) {
@@ -335,9 +335,30 @@ public class VCFRecord {
         else builder.append(info);
 
         if (this.hasGenotypeData()) {
-            builder.append(FIELD_SEPERATOR + this.getGenotypeFormatString());
-            for (VCFGenotypeRecord rec : this.getVCFGenotypeRecords()) {
-                builder.append(FIELD_SEPERATOR);
+            addGenotypeData(builder, header);
+        }
+        return builder.toString();
+    }
+
+    /**
+     * add the genotype data
+     *
+     * @param builder the string builder
+     * @param header  the header object
+     */
+    private void addGenotypeData(StringBuilder builder, VCFHeader header) {
+        builder.append(FIELD_SEPERATOR + this.getGenotypeFormatString());
+        if (header.getGenotypeSamples().size() < getVCFGenotypeRecords().size())
+            throw new RuntimeException("We have more genotype samples than the header specified");
+
+        Map<String, VCFGenotypeRecord> gMap = genotypeListToMap(getVCFGenotypeRecords());
+
+        for (String genotype : header.getGenotypeSamples()) {
+
+            builder.append(FIELD_SEPERATOR);
+
+            if (gMap.containsKey(genotype)) {
+                VCFGenotypeRecord rec = gMap.get(genotype);
                 if (!rec.toGenotypeString(this.mAlts).equals(""))
                     builder.append(rec.toGenotypeString(this.mAlts));
                 for (String s : rec.getFields().keySet()) {
@@ -345,9 +366,14 @@ public class VCFRecord {
                     builder.append(":");
                     builder.append(rec.getFields().get(s));
                 }
+                gMap.remove(genotype);
+            } else {
+                builder.append(".");
             }
         }
-        return builder.toString();
+        if (gMap.size() != 0) {
+            throw new RuntimeException("We failed to use all the genotype samples; their must be an incosistancy between the header and records");   
+        }
     }
 
     /**
@@ -368,6 +394,21 @@ public class VCFRecord {
         if (!this.mInfoFields.equals(other.mInfoFields)) return false;
         if (!this.mGenotypeFields.equals(other.mGenotypeFields)) return false;
         return true;
+    }
+
+    /**
+     * create a genotype mapping from a list and their sample names
+     *
+     * @param list a list of genotype samples
+     *
+     * @return a mapping of the sample name to VCF genotype record
+     */
+    private static Map<String, VCFGenotypeRecord> genotypeListToMap(List<VCFGenotypeRecord> list) {
+        Map<String, VCFGenotypeRecord> map = new HashMap<String, VCFGenotypeRecord>();
+        for (VCFGenotypeRecord rec : list) {
+            map.put(rec.getSampleName(), rec);
+        }
+        return map;
     }
 
 }

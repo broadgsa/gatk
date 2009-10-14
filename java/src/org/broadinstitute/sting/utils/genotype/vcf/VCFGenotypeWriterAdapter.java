@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.File;
@@ -119,51 +117,35 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
             lazyInitialize(genotypes, mFile, mStream);
 
 
-        VCFParamters params = new VCFParamters();
+        VCFParameters params = new VCFParameters();
         params.addFormatItem("GT");
 
         for (Genotype gtype : genotypes) {
             // setup the parameters
             params.setLocations(gtype.getLocation(), gtype.getReference());
 
-            Map<String, String> map = new HashMap<String, String>();
-            if (!(gtype instanceof SampleBacked)) {
-                throw new IllegalArgumentException("Genotypes passed to VCF must be backed by SampledBacked interface");
-            }
-
-            // calculate the RMS mapping qualities and the read depth
-            if (gtype instanceof ReadBacked) {
-                int readDepth = ((ReadBacked) gtype).getReadCount();
-                map.put("RD", String.valueOf(readDepth));
-                params.addFormatItem("RD");
-            }
-            double qual = gtype.getNegLog10PError();
-            map.put("GQ", String.format("%.2f", qual));
-            params.addFormatItem("GQ");
-
-            List<String> alleles = new ArrayList<String>();
-            for (char allele : gtype.getBases().toCharArray()) {
-                alleles.add(String.valueOf(allele));
-                params.addAlternateBase(allele);
-            }
-
-            // TODO -- use the GenotypeMetaData object if it's not null            
-
-            VCFGenotypeRecord record = new VCFGenotypeRecord(((SampleBacked) gtype).getSampleName(),
-                                                             alleles,
-                                                             VCFGenotypeRecord.PHASE.UNPHASED,
-                                                             map);
+            VCFGenotypeRecord record = createVCFGenotypeRecord(params, gtype);
             params.addGenotypeRecord(record);
         }
 
-        Map<String, String> infoFields = new HashMap<String, String>();
+        Map<String, String> infoFields = getInfoFields(metadata, params);
+
+        double qual = (metadata == null) ? 0 : (metadata.getLOD()) * 10;
+
+        /**
+         * TODO: Eric fix the next line when our LOD scores are 0->Inf based instead
+         * of -3 to Inf based.
+         */
+        if (qual < 0.0) {
+            qual = 0.0;
+        }
 
         VCFRecord vcfRecord = new VCFRecord(params.getReferenceBase(),
                                             params.getContig(),
                                             params.getPosition(),
                                             ".",
                                             params.getAlternateBases(),
-                                            0, /* BETTER VALUE HERE */
+                                            qual,
                                             ".",
                                             infoFields,
                                             params.getFormatString(),
@@ -172,85 +154,79 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         mWriter.addRecord(vcfRecord);
     }
 
+    /**
+     * get the information fields of the VCF record, given the meta data and parameters
+     *
+     * @param metadata the metadata associated with this multi sample call
+     * @param params   the parameters
+     *
+     * @return a mapping of info field to value
+     */
+    private Map<String, String> getInfoFields(GenotypeMetaData metadata, VCFParameters params) {
+        Map<String, String> infoFields = new HashMap<String, String>();
+        if (metadata != null) {
+            infoFields.put("SB", String.format("%.2f", metadata.getSLOD()));
+            infoFields.put("AF", String.format("%.2f", metadata.getAlleleFrequency()));
+        }
+        infoFields.put("NS", String.valueOf(params.getGenotypesRecords().size()));
+        return infoFields;
+    }
+
+    /**
+     * create the VCF genotype record
+     *
+     * @param params the VCF parameters object
+     * @param gtype  the genotype
+     *
+     * @return a VCFGenotypeRecord
+     */
+    private VCFGenotypeRecord createVCFGenotypeRecord(VCFParameters params, Genotype gtype) {
+        Map<String, String> map = new HashMap<String, String>();
+        if (!(gtype instanceof SampleBacked)) {
+            throw new IllegalArgumentException("Genotypes passed to VCF must be backed by SampledBacked interface");
+        }
+
+        // calculate the RMS mapping qualities and the read depth
+        if (gtype instanceof ReadBacked) {
+            int readDepth = ((ReadBacked) gtype).getReadCount();
+            map.put("RD", String.valueOf(readDepth));
+            params.addFormatItem("RD");
+        }
+        double qual = gtype.getNegLog10PError();
+        map.put("GQ", String.format("%.2f", qual));
+        params.addFormatItem("GQ");
+
+        List<String> alleles = createAlleleArray(gtype);
+        for (String allele : alleles) {
+            params.addAlternateBase(allele);
+        }
+
+        VCFGenotypeRecord record = new VCFGenotypeRecord(((SampleBacked) gtype).getSampleName(),
+                                                         alleles,
+                                                         VCFGenotypeRecord.PHASE.UNPHASED,
+                                                         map);
+        return record;
+    }
+
+    /**
+     * create the allele array?
+     *
+     * @param gtype the gentoype object
+     *
+     * @return a list of string representing the string array of alleles
+     */
+    private List<String> createAlleleArray(Genotype gtype) {
+        List<String> alleles = new ArrayList<String>();
+        for (char allele : gtype.getBases().toCharArray()) {
+            alleles.add(String.valueOf(allele));
+        }
+        return alleles;
+    }
+
     /** @return true if we support multisample, false otherwise */
     @Override
     public boolean supportsMultiSample() {
         return true;
     }
 
-
-    /**
-     * a helper class, which performs a lot of the safety checks on the parameters
-     * we feed to the VCF (like ensuring the same position for each genotype in a call).
-     */
-    class VCFParamters {
-        private char referenceBase = '0';
-        private int position = 0;
-        private String contig = null;
-        private boolean initialized = false;
-        private List<VCFGenotypeRecord> genotypesRecord = new ArrayList<VCFGenotypeRecord>();
-        private List<String> formatList = new ArrayList<String>();
-        private List<String> alternateBases = new ArrayList<String>();
-
-        public void setLocations(GenomeLoc location, char refBase) {
-            // if we haven't set it up, we initialize the object
-            if (!initialized) {
-                initialized = true;
-                this.contig = location.getContig();
-                this.position = (int)location.getStart();
-                if (location.getStart() != location.getStop()) {
-                    throw new IllegalArgumentException("The start and stop locations must be the same");
-                }
-                this.referenceBase = refBase;
-            } else {
-                if (!contig.equals(this.contig))
-                    throw new IllegalArgumentException("The contig name has to be the same at a single locus");
-                if (position != this.position)
-                    throw new IllegalArgumentException("The position has to be the same at a single locus");
-                if (refBase != this.referenceBase)
-                    throw new IllegalArgumentException("The reference base name has to be the same at a single locus");
-            }
-        }
-
-        /** @return get the position */
-        public int getPosition() {
-            return position;
-        }
-
-        /** @return get the contig name */
-        public String getContig() {
-            return contig;
-        }
-
-        /** @return get the reference base */
-        public char getReferenceBase() {
-            return referenceBase;
-        }
-
-        public void addGenotypeRecord(VCFGenotypeRecord record) {
-            this.genotypesRecord.add(record);
-        }
-
-        public void addFormatItem(String item) {
-            if (!formatList.contains(item))
-                formatList.add(item);
-        }
-
-        public void addAlternateBase(char base) {
-            if (!alternateBases.contains(String.valueOf(base)) && base != this.getReferenceBase())
-                alternateBases.add(String.valueOf(base));
-        }
-
-        public List<String> getAlternateBases() {
-            return alternateBases;
-        }
-
-        public String getFormatString() {
-            return Utils.join(";", formatList);
-        }
-
-        public List<VCFGenotypeRecord> getGenotypesRecords() {
-            return genotypesRecord;
-        }
-    }
 }

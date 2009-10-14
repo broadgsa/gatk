@@ -21,7 +21,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testVariantsToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("d1882fd8ecee6a95f561ed3be4d4a435");
+        md5.add("0b96a8046d2a06bd87f57df8bac1678d");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -50,7 +50,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("debeaf31846328eddc0abf226fc72ac0");
+        md5.add("09660faa7cfad8af36602f79461c0605");
 
         /**
          * the above MD5 was calculated from running the following command:

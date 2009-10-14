@@ -59,7 +59,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     @Override
     public String toString() {
         if (this.mCurrentRecord != null)
-            return this.mCurrentRecord.toString();
+            return this.mCurrentRecord.toStringRepresentation(mReader.getHeader());
         else
             return "";
     }

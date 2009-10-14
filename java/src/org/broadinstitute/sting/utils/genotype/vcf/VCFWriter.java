@@ -1,10 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 
-import org.broadinstitute.sting.utils.StingException;
-
 import java.io.*;
-import java.nio.charset.Charset;
 
 /**
  * this class writers VCF files
@@ -75,11 +72,7 @@ public class VCFWriter {
      * @param record the record to output
      */
     public void addRecord(VCFRecord record) {
-        if (record.getColumnCount() != mHeader.getGenotypeSamples().size() + mHeader.getHeaderFields().size()) {
-            throw new RuntimeException("Record has " + record.getColumnCount() +
-                    " columns, when is should have " + mHeader.getColumnCount());
-        }
-        String vcfString = record.toString();
+        String vcfString = record.toStringRepresentation(mHeader);
         try {
             mWriter.write(vcfString + "\n");
         } catch (IOException e) {

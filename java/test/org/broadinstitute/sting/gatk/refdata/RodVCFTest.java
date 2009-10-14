@@ -33,7 +33,7 @@ public class RodVCFTest extends BaseTest {
 
     private static IndexedFastaSequenceFile seq;
     private static File vcfFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample.vcf");
-
+    private VCFHeader mHeader;
     @BeforeClass
     public static void beforeTests() {
         try {
@@ -47,13 +47,13 @@ public class RodVCFTest extends BaseTest {
 
     private RodVCF getVCFObject() {
         RodVCF vcf = new RodVCF("VCF");
-        VCFHeader header = null;
+        mHeader = null;
         try {
-            header = (VCFHeader) vcf.initialize(vcfFile);
+            mHeader = (VCFHeader) vcf.initialize(vcfFile);
         } catch (FileNotFoundException e) {
             fail("Unable to open VCF file");
         }
-        header.checkVCFVersion();
+        mHeader.checkVCFVersion();
         return vcf;
     }
 
@@ -91,7 +91,7 @@ public class RodVCFTest extends BaseTest {
     @Test
     public void testToString() {
         // slightly altered line, due to map ordering
-        String firstLine = "20\t14370\trs6054257\tG\tA\t29\t0\tDP=258;AF=0.786;NS=58\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5\n";
+        String firstLine = "20\t14370\trs6054257\tG\tA\t29.00\t0\tDP=258;AF=0.786;NS=58\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5\n";
         RodVCF vcf = getVCFObject();
         VCFReader reader = new VCFReader(vcfFile);
         Iterator<RodVCF> iter = vcf.createIterator("VCF", vcfFile);
@@ -99,13 +99,13 @@ public class RodVCFTest extends BaseTest {
         while (iter.hasNext()) {
             VCFRecord rec1 = reader.next();
             VCFRecord rec2 = iter.next().mCurrentRecord;
-            if (!rec1.toString().equals(rec2.toString())) {
+            if (!rec1.toStringRepresentation(mHeader).equals(rec2.toStringRepresentation(mHeader))) {
                 fail("VCF record rec1.toString() != rec2.toString()");
             }
             // verify the first line too
             if (first) {
-                if (!firstLine.equals(rec1.toString() + "\n")) {
-                    fail("VCF record rec1.toString() != expected string :\n" + rec1.toString() + firstLine);
+                if (!firstLine.equals(rec1.toStringRepresentation(mHeader) + "\n")) {
+                    fail("VCF record rec1.toString() != expected string :\n" + rec1.toStringRepresentation(mHeader) + firstLine);
                 }
                 first = false;
             }
