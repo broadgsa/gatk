@@ -17,7 +17,7 @@ public class BWTReader {
     /**
      * Input stream from which to read BWT data.
      */
-    private InputStream inputStream;
+    private FileInputStream inputStream;
 
     /**
      * Create a new BWT reader.
@@ -25,7 +25,7 @@ public class BWTReader {
      */
     public BWTReader( File inputFile ) {
         try {
-            this.inputStream = new BufferedInputStream(new FileInputStream(inputFile));
+            this.inputStream = new FileInputStream(inputFile);
         }
         catch( FileNotFoundException ex ) {
             throw new StingException("Unable to open input file", ex);

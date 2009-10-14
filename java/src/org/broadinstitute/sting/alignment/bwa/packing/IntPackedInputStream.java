@@ -3,6 +3,7 @@ package org.broadinstitute.sting.alignment.bwa.packing;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.channels.FileChannel;
 
 /**
  * Read a set of integers packed into 
@@ -14,12 +15,22 @@ public class IntPackedInputStream {
     /**
      * Ultimate target for the occurrence array.
      */
-    private final InputStream targetInputStream;
+    private final FileInputStream targetInputStream;
+
+    /**
+     * Target channel from which to pull file data.
+     */
+    private final FileChannel targetInputChannel;
 
     /**
      * The byte order in which integer input data appears.
      */
-    private final ByteBuffer buffer;
+    private final ByteOrder byteOrder;
+
+    /**
+     * How many bytes are required to store an integer?
+     */
+    private final int bytesPerInteger = PackUtils.bitsInType(Integer.class)/PackUtils.BITS_PER_BYTE;
 
     /**
      * Create a new PackedIntInputStream, writing to the given target file.
@@ -36,9 +47,10 @@ public class IntPackedInputStream {
      * @param inputStream Input stream from which to read ints.
      * @param byteOrder Endianness to use when writing a list of integers.
      */
-    public IntPackedInputStream(InputStream inputStream, ByteOrder byteOrder) {
+    public IntPackedInputStream(FileInputStream inputStream, ByteOrder byteOrder) {
         this.targetInputStream = inputStream;
-        this.buffer = ByteBuffer.allocate(PackUtils.bitsInType(Integer.class)/ PackUtils.BITS_PER_BYTE).order(byteOrder);
+        this.targetInputChannel = inputStream.getChannel();
+        this.byteOrder = byteOrder;
     }
 
     /**
@@ -69,11 +81,15 @@ public class IntPackedInputStream {
      * @throws IOException if an I/O error occurs.
      */
     public void read( int[] data, int offset, int length ) throws IOException {
-        for(int i = offset; i < offset+length; i++) {
-            targetInputStream.read(buffer.array());
-            data[i] = buffer.getInt();
-            buffer.rewind();
-        }
+        ByteBuffer readBuffer = ByteBuffer.allocate(bytesPerInteger*length).order(byteOrder);
+
+        targetInputChannel.read(readBuffer,targetInputChannel.position());
+        readBuffer.flip();
+        targetInputChannel.position(targetInputChannel.position()+readBuffer.remaining());
+
+        int i = 0;
+        while(i < length)
+            data[offset+i++] = readBuffer.getInt();
     }
 
     /**

@@ -2,7 +2,6 @@ package org.broadinstitute.sting.alignment.bwa.bwt;
 
 import org.broadinstitute.sting.alignment.bwa.packing.PackUtils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Pair;
 
 /**
  * Represents the Burrows-Wheeler Transform of a reference sequence.

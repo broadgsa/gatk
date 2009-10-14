@@ -17,7 +17,7 @@ public class SuffixArrayReader {
     /**
      * Input stream from which to read suffix array data.
      */
-    private InputStream inputStream;
+    private FileInputStream inputStream;
 
     /**
      * BWT to use to fill in missing data.
@@ -31,7 +31,7 @@ public class SuffixArrayReader {
      */
     public SuffixArrayReader(File inputFile, BWT bwt) {
         try {
-            this.inputStream = new BufferedInputStream(new FileInputStream(inputFile));
+            this.inputStream = new FileInputStream(inputFile);
             this.bwt = bwt;
         }
         catch( FileNotFoundException ex ) {
@@ -57,7 +57,7 @@ public class SuffixArrayReader {
             intPackedInputStream.read(occurrences);
             // Throw away the suffix array size in bytes and use the occurrences table directly.
             suffixArrayInterval = intPackedInputStream.read();
-            suffixArray = new int[occurrences[occurrences.length-1]+1/suffixArrayInterval];
+            suffixArray = new int[(occurrences[occurrences.length-1]+suffixArrayInterval-1)/suffixArrayInterval];
             intPackedInputStream.read(suffixArray);
         }
         catch( IOException ex ) {
