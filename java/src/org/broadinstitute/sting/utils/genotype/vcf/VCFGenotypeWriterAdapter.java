@@ -20,7 +20,6 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     private VCFHeader mHeader = null;
     private String mSource;
     private String mReferenceName;
-    private final Map<String, String> mSampleNames = new HashMap<String, String>();
     private boolean mInitialized = false;
     private final File mFile;
     private final OutputStream mStream;
@@ -29,6 +28,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         mReferenceName = referenceName;
         mSource = source;
         mFile = writeTo;
+        if (mFile == null) throw new RuntimeException("VCF output file must not be null");
         mStream = null;
     }
 
@@ -37,6 +37,8 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         mSource = source;
         mFile = null;
         mStream = writeTo;
+        if (mStream == null) throw new RuntimeException("VCF output stream must not be null");
+
     }
 
     /**
