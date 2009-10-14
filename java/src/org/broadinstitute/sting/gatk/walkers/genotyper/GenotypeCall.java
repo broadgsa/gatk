@@ -13,9 +13,9 @@ import java.util.List;
 /**
  * @author aaron
  *         <p/>
- *         Class SSGenotypeCall
+ *         Class GenotypeCall
  *         <p/>
- *         The mplementation of the genotype interface, which contains
+ *         The implementation of the genotype interface, which contains
  *         extra information for the various genotype outputs
  */
 public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, LikelihoodsBacked, PosteriorsBacked, SampleBacked {
@@ -47,7 +47,7 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
      */
     public GenotypeCall(String sampleName, GenomeLoc location, char refBase, GenotypeLikelihoods gtlh, ReadBackedPileup pileup) {
         mSampleName = sampleName;
-        mRefBase = String.valueOf(refBase).toUpperCase().charAt(0); // a round about way to make sure the ref base is up-case
+        mRefBase = Character.toUpperCase(refBase);
         mGenotypeLikelihoods = gtlh;
         mLocation = location;
         mPileup = pileup;
@@ -64,7 +64,7 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
      */
     GenotypeCall(String sampleName, GenomeLoc location, char refBase, GenotypeLikelihoods gtlh, ReadBackedPileup pileup, DiploidGenotype genotype) {
         mSampleName = sampleName;
-        mRefBase = String.valueOf(refBase).toUpperCase().charAt(0); // a round about way to make sure the ref base is up-case
+        mRefBase = Character.toUpperCase(refBase);
         mGenotypeLikelihoods = gtlh;
         mLocation = location;
         mGenotype = genotype;
@@ -207,6 +207,15 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
      */
     public boolean isVariant(char ref) {
         return !Utils.dupString(this.getReference(), 2).equals(getBestGenotype().toString());
+    }
+
+    /**
+     * are we a variant? (non-ref)
+     *
+     * @return true if we're a variant
+     */
+    public boolean isVariant() {
+        return isVariant(mRefBase);
     }
 
     /**

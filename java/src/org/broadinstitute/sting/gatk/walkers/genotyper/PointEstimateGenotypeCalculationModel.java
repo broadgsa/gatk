@@ -165,7 +165,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
         pNull += p0;
         logger.debug("Final pD=" + pD + ", pNull=" + pNull);
 
-        return new EMOutput(pD, pNull, pF, GLs);
+        return new EMOutput(pD, pNull, pF, MAF, GLs);
     }
 
     private double compute_pD(HashMap<String, GenotypeLikelihoods> GLs) {

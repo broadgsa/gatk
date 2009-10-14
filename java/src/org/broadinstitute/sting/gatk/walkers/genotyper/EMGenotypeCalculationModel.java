@@ -3,9 +3,8 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.*;
 
@@ -48,16 +47,60 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
         double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
 
-        // TODO -- finish me...
+        logger.debug(String.format("LOD=%f, SLOD=%f", lod, strandScore));
 
-        System.out.println(String.format("LOD=%f, SLOD=%f", lod, strandScore));
+        // generate the calls
+        GenotypeMetaData metadata = new GenotypeMetaData(lod, strandScore, overall.getMAF());
+        List<GenotypeCall> calls = genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts);
+        if ( calls != null && calls.size() != 0 ) {
 
-        // make a call
-        // List<GenotypeCall> calls
-        //return new GenotypeCall(context.getLocation(), ref,gl, pileup);
-        //out.addMultiSampleCall((Genotype)calls, GenotypeMetaData metadata);
+            // use multi-sample mode if we have multiple samples or the output type allows it
+            if ( out.supportsMultiSample() || samples.size() > 1 ) {
 
-        return null;
+                // annoying hack to get around Java generics
+                ArrayList<Genotype> callList = new ArrayList<Genotype>();
+                for ( GenotypeCall call : calls )
+                    callList.add(call);
+
+                out.addMultiSampleCall(callList, metadata);
+            } else {
+                out.addGenotypeCall(calls.get(0));
+            }
+        }
+        return calls;
+    }
+
+    protected List<GenotypeCall> genotypeCallsFromGenotypeLikelihoods(EMOutput results, char ref, HashMap<String, AlignmentContextBySample> contexts) {
+        HashMap<String, GenotypeLikelihoods> GLs = results.getGenotypeLikelihoods();
+
+        // an optimization
+        double expectedChromosomes = 2.0 * (double)GLs.size() * results.getMAF();
+        if ( expectedChromosomes < 1.0 )
+            return null;
+
+        ArrayList<GenotypeCall> calls = new ArrayList<GenotypeCall>();
+        int variantCalls = 0;
+
+        for ( String sample : GLs.keySet() ) {
+            // get the pileup
+            AlignmentContext context = contexts.get(sample).getContext(StratifiedContext.OVERALL);
+            ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+            pileup.setIncludeDeletionsInPileupString(true);
+
+            // create the call
+            GenotypeCall call = new GenotypeCall(sample, context.getLocation(), ref, GLs.get(sample), pileup);
+            calls.add(call);
+
+            // increment the variant count if it's non-ref
+            if ( call.isVariant() )
+                variantCalls++;
+        }
+
+        // if everyone is ref, don't emit any calls
+        if ( variantCalls == 0 )
+            calls = null;
+
+        return calls;
     }
 
     public EMOutput runEM(char ref, HashMap<String, AlignmentContextBySample> contexts, DiploidGenotypePriors priors, int[] baseCounts, StratifiedContext contextType) {
@@ -212,19 +255,21 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
      * A class to keep track of the EM output
     */
     protected class EMOutput {
-        private double pD, pNull, pF;
+        private double pD, pNull, pF, MAF;
         private HashMap<String, GenotypeLikelihoods> GLs;
 
-        EMOutput(double pD, double pNull, double pF, HashMap<String, GenotypeLikelihoods> GLs) {
+        EMOutput(double pD, double pNull, double pF, double MAF, HashMap<String, GenotypeLikelihoods> GLs) {
             this.pD = pD;
             this.pNull = pNull;
             this.pF = pF;
+            this.MAF = MAF;
             this.GLs = GLs;
         }
 
         public double getPofD() { return pD; }
         public double getPofNull() { return pNull; }
         public double getPofF() { return pF; }
+        public double getMAF() { return MAF; }
         public HashMap<String, GenotypeLikelihoods> getGenotypeLikelihoods() { return GLs; }
     }
 
