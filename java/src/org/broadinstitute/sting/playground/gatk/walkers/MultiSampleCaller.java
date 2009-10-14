@@ -290,7 +290,7 @@ public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSample
 
     public String reduce(MultiSampleCallResult record, String sum) 
 	{
-		if (record != null)
+		if (record != null && record.n_ref != record.EM_N)
 		{
 			discovery_output_file.printf(record.toString() + "\n");
 		}
