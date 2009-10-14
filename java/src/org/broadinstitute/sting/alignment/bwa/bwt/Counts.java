@@ -68,9 +68,10 @@ public class Counts implements Cloneable {
         int[] countArray = new int[counts.size()];
         if(cumulative) {
             int index = 0;
+            boolean first = true;
             for(byte base: Bases.instance) {
-                if(index == 0) {
-                    index++;
+                if(first) {
+                    first = false;
                     continue;
                 }
                 countArray[index++] = getCumulative(base);
@@ -80,7 +81,7 @@ public class Counts implements Cloneable {
         else {
             int index = 0;
             for(byte base: Bases.instance)
-                countArray[index] = get(base);
+                countArray[index++] = counts.get(base);
         }
         return countArray;
     }
@@ -98,6 +99,7 @@ public class Counts implements Cloneable {
             throw new StingException("Unable to clone counts object", ex);
         }
         other.counts = new HashMap<Byte,Integer>(counts);
+        other.cumulativeCounts = new HashMap<Byte,Integer>(cumulativeCounts);
         return other;
     }
 
@@ -107,10 +109,10 @@ public class Counts implements Cloneable {
      */
     public void increment(byte base) {
         counts.put(base,counts.get(base)+1);
-        int previous = 0;
+        boolean increment = false;
         for(byte cumulative: Bases.instance) {
-            cumulativeCounts.put(cumulative,counts.get(cumulative)+previous);
-            previous += counts.get(cumulative);
+            if(increment) cumulativeCounts.put(cumulative,cumulativeCounts.get(cumulative)+1);
+            increment |= (cumulative == base);
         }
     }
 
@@ -126,9 +128,8 @@ public class Counts implements Cloneable {
     }
 
     /**
-     * Gets a count of the number of bases of each seen type.
-     * Note that counts in this case are cumulative (counts for A,C,G,T
-     * are independent).
+     * Gets a count of the number of bases seen before this base.
+     * Note that counts in this case are cumulative.
      * @param base Base for which to query counts.
      * @return Number of bases of this type seen.
      */
