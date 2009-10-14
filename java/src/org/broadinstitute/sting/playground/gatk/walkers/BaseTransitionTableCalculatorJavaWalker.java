@@ -31,7 +31,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
 @Argument(fullName="useSecondaryBase",doc="Use the secondary base of a read as part of the calculation", required=false)
     boolean useSecondaryBase = false;
 @Argument(fullName="confidentRefThreshold",doc="Set the lod score that defines confidence in ref, defaults to 4", required=false)
-    int confidentRefThreshold = 4;
+    int confidentRefThreshold = 5;
 @Argument(fullName="pileupMismatchThreshold",doc="Set the maximum number of mismatches at a locus before choosing not to use it in calculation. Defaults to 1.", required=false)
     int pileupMismatchThreshold = 1;
 
@@ -107,23 +107,25 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
 
     public boolean includeRead ( SAMRecord read, int offset) {
         // todo -- do we want to filter out individual reads?
-
-        return true;
+        return ! readWindowContainsNonBaseCharacters(read,offset,read.getNotPrimaryAlignmentFlag());
     }
 
-    public boolean readWindowContainsNonBaseCharacters( SAMRecord read, int offset, int posNeg ) {
+    public boolean readWindowContainsNonBaseCharacters( SAMRecord read, int offset, boolean isNegative ) {
         byte[] bases = read.getReadBases();
-        if ( posNeg > 0 ) {
-            for ( int i = offset; i < offset + nPreviousBases; i ++ ) {
+        // System.out.println("readWindowContainsNonBaseCharacters");
+        if ( ! isNegative ) {
+            for ( int i = offset; i <= offset + nPreviousBases; i ++ ) {
                 char base = Character.toUpperCase(convertIUPACByteToChar(bases[i]));
+                // System.out.println(base);
                 if ( ! ( base == 'A' || base == 'G' || base == 'C' || base == 'T') ) {
                     return true;
                 }
             }
             return false;
         } else {
-            for ( int i = offset; i > offset - nPreviousBases; i -- ) {
+            for ( int i = offset; i >= offset - nPreviousBases; i -- ) {
                 char base = Character.toUpperCase(convertIUPACByteToChar(bases[i]));
+                // System.out.println(base);
                 if ( ! ( base == 'A' || base == 'G' || base == 'C' || base == 'T') ) {
                     return true;
                 }
@@ -236,6 +238,7 @@ class BaseTransitionTable {
         } else {
             context = context + bases[1];
         }
+        System.out.println(context);
         confusionTable[strHash.hash(context)][strHash.hash(bases[0])] ++;
     }
 
@@ -290,7 +293,7 @@ class BaseStringHash {
     }
 
     public int maxHash() {
-        return (int) Math.round(Math.pow(4,stringLength));
+        return hashSize()-1;
     }
 
     public int hashSize() {
@@ -317,10 +320,11 @@ class BaseStringHash {
     }
 
     public int recursiveHash( String s, int offset ) {
+        // System.out.println(s+"\t"+offset);
         if ( offset == s.length() ) {
             return 0;
         } else {
-            return (int) Math.round(hash(s.charAt(offset))*Math.pow(4,s.length()-offset)) + recursiveHash(s, offset+1);
+            return (int) Math.round(hash(s.charAt(offset))*Math.pow(4,s.length()-offset-1)) + recursiveHash(s, offset+1);
         }
     }
 
