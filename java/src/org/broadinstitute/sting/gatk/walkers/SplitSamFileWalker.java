@@ -97,14 +97,13 @@ public class SplitSamFileWalker extends ReadWalker<SAMRecord, Map<String, SAMFil
      * Write out the read
      */
     public Map<String, SAMFileWriter> reduce(SAMRecord read, Map<String, SAMFileWriter> outputs) {
-        final String readGroup = read.getAttribute("RG").toString();
-        final String sample = read.getHeader().getReadGroup(readGroup).getSample();
+        final String sample = read.getReadGroup().getSample();
         SAMFileWriter output = outputs.get(sample);
 
         if ( output != null ) {
             output.addAlignment(read);
         } else {
-            throw new RuntimeException(String.format("Read group %s not present in header but found in read %s", readGroup, read.getReadName()));
+            throw new RuntimeException(String.format("Read group %s not present in header but found in read %s", read.getReadGroup().getReadGroupId(), read.getReadName()));
         }
 
         return outputs;

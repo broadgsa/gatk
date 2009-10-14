@@ -203,14 +203,11 @@ public class Utils {
     }
 
     public static boolean is454Read(SAMRecord read) {
-        Object readGroupAttr = read.getAttribute("RG");
-        if ( readGroupAttr != null ) {
-            SAMReadGroupRecord readGroup = read.getHeader().getReadGroup(readGroupAttr.toString());
-            if ( readGroup != null ) {
+        SAMReadGroupRecord readGroup = read.getReadGroup();
+        if ( readGroup != null ) {
             Object readPlatformAttr = readGroup.getAttribute("PL");
             if ( readPlatformAttr != null )
                 return readPlatformAttr.toString().toUpperCase().contains("454");
-            }
         }
         return false;
     }

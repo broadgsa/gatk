@@ -119,17 +119,16 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                     throw new RuntimeException("Expectedly long read, please increase maxium read len with maxReadLen parameter: " + read.format());
                 }
 
-                final String readGroupString = ((String)read.getAttribute("RG"));
-                SAMReadGroupRecord readGroup = read.getHeader().getReadGroup(readGroupString);
+                SAMReadGroupRecord readGroup = read.getReadGroup();
 
-                if ( readGroupString == null ) {
+                if ( readGroup == null ) {
                     throw new RuntimeException("No read group annotation found for read " + read.format());
                 }
 
                 if ((read.getMappingQuality() >= MIN_MAPPING_QUALITY && isSupportedReadGroup(readGroup) )) {
                     int offset = offsets.get(i);
                     if ( offset > 0 && offset < (read.getReadLength() - 1) ) { // skip first and last bases because they suck and they don't have a dinuc count
-                        counted_bases += covariateCounter.updateDataFromRead(readGroupString, read, offset, ref.getBase(), useOriginalQuals);
+                        counted_bases += covariateCounter.updateDataFromRead(readGroup.getReadGroupId(), read, offset, ref.getBase(), useOriginalQuals);
                     }
                 }
             }

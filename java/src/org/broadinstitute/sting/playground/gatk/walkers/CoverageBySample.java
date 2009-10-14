@@ -95,8 +95,7 @@ public class CoverageBySample extends LocusWalker<String, String>
         for (int i = 0; i < context.getReads().size(); i++)
         {
             SAMRecord read = context.getReads().get(i);
-            String RG = (String)(read.getAttribute("RG"));
-            String sample = header.getReadGroup(RG).getSample();
+            String sample = read.getReadGroup().getSample();
 			counts.put(sample, counts.get(sample)+1); 
         }
         return counts;
@@ -124,12 +123,11 @@ public class CoverageBySample extends LocusWalker<String, String>
         {
             SAMRecord read = context.getReads().get(i);
             Integer offset = context.getOffsets().get(i);
-            String RG = (String)(read.getAttribute("RG"));
 
             assert(header != null);
-            assert(header.getReadGroup(RG) != null);
+            assert(read.getReadGroup() != null);
 
-            String sample = header.getReadGroup(RG).getSample();
+            String sample = read.getReadGroup().getSample();
 			//if (SAMPLE_NAME_REGEX != null) { sample = sample.replaceAll(SAMPLE_NAME_REGEX, "$1"); }
             reads[index.get(sample)].add(read); 
             offsets[index.get(sample)].add(offset); 

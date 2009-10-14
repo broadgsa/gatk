@@ -819,16 +819,7 @@ public class IndelGenotyperWalker extends ReadWalker<Integer,Integer> {
             	indels.set(pos, indelsAtSite);
             }
             
-            String sample = null;
-            Object readGroupAttr = r.getAttribute("RG");
-            if ( readGroupAttr != null ) {
-                SAMReadGroupRecord readGroup = r.getHeader().getReadGroup(readGroupAttr.toString());
-                if ( readGroup != null ) {
-                    Object readSampleAttr = readGroup.getAttribute("SM");
-                    if ( readSampleAttr != null )
-                        sample = readSampleAttr.toString();
-                }
-            }
+            String sample = r.getReadGroup().getSample();
 
             boolean found = false;
             for ( IndelVariant v : indelsAtSite ) {

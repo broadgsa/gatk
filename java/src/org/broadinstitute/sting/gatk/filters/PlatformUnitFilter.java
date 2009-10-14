@@ -25,11 +25,8 @@ public class PlatformUnitFilter implements SamRecordFilter {
         Object pu_attr = samRecord.getAttribute("PU");
 
         if ( pu_attr == null ) {
-            // no platform unit in the record, go get the header if we have at least read group
-            final String rgId = (String)samRecord.getAttribute("RG");
-            if (rgId == null) return false; // we do not have read group either, can not filter
-
-            SAMReadGroupRecord rgr = samRecord.getHeader().getReadGroup(rgId);
+            // no platform unit in the record, go get from read group
+            SAMReadGroupRecord rgr = samRecord.getReadGroup();
 
             pu_attr = rgr.getAttribute("PU") ;
         }

@@ -35,9 +35,7 @@ public class ListSampleIds extends LocusWalker<Boolean, Boolean>
         for ( int i = 0; i < reads.size(); i++ )
         {
             SAMRecord read = reads.get(i);
-            String rg = (String) read.getAttribute("RG");
-            SAMFileHeader header = read.getHeader();
-            SAMReadGroupRecord readGroup = header.getReadGroup(rg);
+            SAMReadGroupRecord readGroup = read.getReadGroup();
             if (readGroup == null) { System.out.printf("."); return false; }
             String sample = readGroup.getSample();
             System.out.printf("FROM_MAP %s\n", sample);

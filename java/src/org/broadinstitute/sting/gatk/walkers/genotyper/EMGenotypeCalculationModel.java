@@ -203,8 +203,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
             if ( POOLED_INPUT ) {
                 sample = "POOL";
             } else {
-                String readGroup = read.getAttribute("RG").toString(); // can't be null because those are filtered out
-                sample = read.getHeader().getReadGroup(readGroup).getSample();
+                sample = read.getReadGroup().getSample();
             }
 
             // create a new context object if this is the first time we're seeing a read for this sample
