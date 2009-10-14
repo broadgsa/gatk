@@ -203,7 +203,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
                 }
                 this.referenceBase = refBase;
             } else {
-                if (contig.equals(this.contig))
+                if (!contig.equals(this.contig))
                     throw new IllegalArgumentException("The contig name has to be the same at a single locus");
                 if (position != this.position)
                     throw new IllegalArgumentException("The position has to be the same at a single locus");
