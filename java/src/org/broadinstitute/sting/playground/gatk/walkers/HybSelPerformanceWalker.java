@@ -5,10 +5,11 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.util.List;
@@ -40,19 +41,40 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
     @Argument(fullName="booster_distance", required=false, doc="distance up to which a booster can affect a target")
     public Integer BOOSTER_DISTANCE = 100; // how far away can a booster be to "hit" its target?
 
+    @Argument(fullName="refseq", shortName="refseq",
+            doc="Name of RefSeq transcript annotation file. If specified, intervals will be specified with gene names", required=false)
+    String REFSEQ_FILE = null;
+
+    private SeekableRODIterator<rodRefSeq> refseqIterator=null;
+
     public static class TargetInfo {
         public int counts = 0;
 
         // did at least two reads hit this target
         public boolean hitTwice = false;
 
-        // TODO: track max and min?
-        // TODO: median rather than average?
-        // TODO: bin into segments? (requires knowing position)
+        public int positionsOver2x = 0;
+        public int positionsOver10x = 0;
+        public int positionsOver20x = 0;
+        public int positionsOver30x = 0;
     }
 
 //    @Argument(fullName="suppressLocusPrinting",required=false,defaultValue="false")
 //    public boolean suppressPrinting;
+
+    @Override
+    public void initialize() {
+        if ( REFSEQ_FILE != null ) {
+            ReferenceOrderedData<rodRefSeq> refseq = new ReferenceOrderedData<rodRefSeq>("refseq",
+                    new java.io.File(REFSEQ_FILE), rodRefSeq.class);
+
+            refseqIterator = refseq.iterator();
+            logger.info("Using RefSeq annotations from "+REFSEQ_FILE);
+        }
+
+        if ( refseqIterator == null ) logger.info("No annotations available");
+
+    }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         List<SAMRecord> reads = context.getReads();
@@ -91,7 +113,10 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
     public TargetInfo reduce(Integer value, TargetInfo sum) {
         sum.counts += value;
-        if (value >= 2) { sum.hitTwice = true; }
+        if (value >= 2) { sum.hitTwice = true; sum.positionsOver2x++;}
+        if (value >= 10) { sum.positionsOver10x++; }
+        if (value >= 20) { sum.positionsOver20x++; }
+        if (value >= 30) { sum.positionsOver30x++; }
         return sum;
     }
 
@@ -100,7 +125,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
     @Override
     public void onTraversalDone(List<Pair<GenomeLoc, TargetInfo>> results) {
-        out.println("location\tlength\tgc\tavg_coverage\tnormalized_coverage\thit_twice\tfreestanding\tboosted");
+        out.println("location\tlength\tgc\tavg_coverage\tnormalized_coverage\thit_twice\tfreestanding\tboosted\tbases_over_2x\tbases_over_10x\tbases_over_20x\tbases_over_30x\tgene_name");
 
         // first zip through and build an overlap detector of all the intervals, so later
         // we can calculate if this interval is free-standing
@@ -157,9 +182,19 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
             boolean boosted = (booster.getOverlaps(targetInterval).size() > 0);
 
-            out.printf("%s:%d-%d\t%d\t%6.4f\t%6.4f\t%6.4f\t%d\t%d\t%d\n",
+            // look up the gene name info
+            String geneName = getGeneName(target);
+
+
+
+            out.printf("%s:%d-%d\t%d\t%6.4f\t%6.4f\t%6.4f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n",
                        target.getContig(), target.getStart(), target.getStop(), length, gc,
-                        avgCoverage, normCoverage, ((ti.hitTwice)?1:0), ((freestanding)?1:0), ((boosted)?1:0)
+                        avgCoverage, normCoverage, ((ti.hitTwice)?1:0), ((freestanding)?1:0), ((boosted)?1:0),
+                        ti.positionsOver2x,
+                        ti.positionsOver10x,
+                        ti.positionsOver20x,
+                        ti.positionsOver30x,
+                        geneName
                     );
 
 
@@ -168,6 +203,22 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
     private Interval makeInterval(GenomeLoc target) {
         return new Interval(target.getContig(), (int) target.getStart(), (int) target.getStop());
+    }
+
+    private String getGeneName(GenomeLoc target) {
+        if (refseqIterator == null) { return ""; }
+
+        RODRecordList<rodRefSeq> annotationList = refseqIterator.seekForward(target);
+        if (annotationList == null) { return ""; }
+        
+        for(rodRefSeq rec : annotationList) {
+            if ( rec.overlapsExonP(target) ) {
+                return rec.getGeneName();
+            }
+        }
+
+        return "";
+
     }
 
     IndexedFastaSequenceFile seqFile = null;
