@@ -200,6 +200,7 @@ public class CreateBWTFromReference {
         reverseBWTWriter.write(reverseBWT);
         reverseBWTWriter.close();
 
+        /*
         SuffixArrayWriter saWriter = new SuffixArrayWriter(saFile);
         saWriter.write(suffixArray);
         saWriter.close();
@@ -207,6 +208,7 @@ public class CreateBWTFromReference {
         SuffixArrayWriter reverseSAWriter = new SuffixArrayWriter(rsaFile);
         reverseSAWriter.write(reverseSuffixArray);
         reverseSAWriter.close();
+        */
 
         File existingBWTFile = new File(inputFileName+".bwt");
         BWTReader existingBWTReader = new BWTReader(existingBWTFile);
@@ -221,12 +223,14 @@ public class CreateBWTFromReference {
         }
 
         File existingSAFile = new File(inputFileName+".sa");
-        SuffixArrayReader existingSuffixArrayReader = new SuffixArrayReader(existingSAFile);
+        SuffixArrayReader existingSuffixArrayReader = new SuffixArrayReader(existingSAFile,existingBWT);
         SuffixArray existingSuffixArray = existingSuffixArrayReader.read();
 
-        for( int i = 0; i < suffixArray.sequence.length; i++ ) {
-            if( suffixArray.sequence[i] != existingSuffixArray.sequence[i] )
-                throw new StingException("Suffix array mismatch at " + i);
+        for(int i = 0; i < suffixArray.length(); i++) {
+            if( i % 10000 == 0 )
+                System.out.printf("Validating suffix array entry %d%n", i);
+            if( suffixArray.get(i) != existingSuffixArray.get(i) )
+                throw new StingException(String.format("Suffix array mismatch at %d; SA is %d; should be %d",i,existingSuffixArray.get(i),suffixArray.get(i)));
         }
     }
 

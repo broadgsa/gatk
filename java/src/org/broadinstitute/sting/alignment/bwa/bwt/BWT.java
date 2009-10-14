@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.alignment.bwa.bwt;
 
 import org.broadinstitute.sting.alignment.bwa.packing.PackUtils;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Pair;
 
 /**
  * Represents the Burrows-Wheeler Transform of a reference sequence.
@@ -79,11 +81,8 @@ public class BWT {
      * @return Total counts for all bases lexicographically smaller than this base.
      */
     public int occurrences(byte base,int index) {
-        // If the index is above the SA-1[0], remap it to the appropriate coordinate space.
-        if( index > inverseSA0 ) index--;
-
-        SequenceBlock block = sequenceBlocks[index/SEQUENCE_BLOCK_SIZE];
-        int position = index % SEQUENCE_BLOCK_SIZE;
+        SequenceBlock block = getSequenceBlock(index);
+        int position = getSequencePosition(index);
         int accumulator = block.occurrences.get(base);
         for(int i = 0; i <= position; i++) {
             if(base == block.sequence[i])
@@ -98,6 +97,32 @@ public class BWT {
      */
     public int length() {
         return counts.getTotal();
+    }
+
+    /**
+     * Gets the base at a given position in the BWT.
+     * @param index The index to use.
+     * @return The base at that location.
+     */
+    protected byte getBase(int index) {
+        if(index == inverseSA0)
+            throw new StingException(String.format("Base at index %d does not have a text representation",index));
+
+        SequenceBlock block = getSequenceBlock(index);
+        int position = getSequencePosition(index);
+        return block.sequence[position];
+    }
+
+    private SequenceBlock getSequenceBlock(int index) {
+        // If the index is above the SA-1[0], remap it to the appropriate coordinate space.
+        if(index > inverseSA0) index--;
+        return sequenceBlocks[index/SEQUENCE_BLOCK_SIZE];
+    }
+
+    private int getSequencePosition(int index) {
+        // If the index is above the SA-1[0], remap it to the appropriate coordinate space.
+        if(index > inverseSA0) index--;
+        return index%SEQUENCE_BLOCK_SIZE;
     }
 
     /**

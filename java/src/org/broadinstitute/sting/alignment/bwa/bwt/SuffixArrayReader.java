@@ -20,12 +20,19 @@ public class SuffixArrayReader {
     private InputStream inputStream;
 
     /**
+     * BWT to use to fill in missing data.
+     */
+    private BWT bwt;
+
+    /**
      * Create a new suffix array reader.
      * @param inputFile File in which the suffix array is stored.
+     * @param bwt BWT to use when filling in missing data.
      */
-    public SuffixArrayReader( File inputFile ) {
+    public SuffixArrayReader(File inputFile, BWT bwt) {
         try {
             this.inputStream = new BufferedInputStream(new FileInputStream(inputFile));
+            this.bwt = bwt;
         }
         catch( FileNotFoundException ex ) {
             throw new StingException("Unable to open input file", ex);
@@ -42,22 +49,22 @@ public class SuffixArrayReader {
         int inverseSA0;
         int[] occurrences;
         int[] suffixArray;
+        int suffixArrayInterval;
 
         try {
             inverseSA0 = intPackedInputStream.read();
             occurrences = new int[PackUtils.ALPHABET_SIZE];
             intPackedInputStream.read(occurrences);
             // Throw away the suffix array size in bytes and use the occurrences table directly.
-            intPackedInputStream.read();
-            int suffixArraySize = occurrences[PackUtils.ALPHABET_SIZE-1]+1;
-            suffixArray = new int[suffixArraySize];
+            suffixArrayInterval = intPackedInputStream.read();
+            suffixArray = new int[occurrences[occurrences.length-1]+1/suffixArrayInterval];
             intPackedInputStream.read(suffixArray);
         }
         catch( IOException ex ) {
             throw new StingException("Unable to read BWT from input stream.", ex);
         }
 
-        return new SuffixArray(inverseSA0, new Counts(occurrences,true), suffixArray);
+        return new SuffixArray(inverseSA0, new Counts(occurrences,true), suffixArray, suffixArrayInterval, bwt);
     }
 
 

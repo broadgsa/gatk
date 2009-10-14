@@ -49,7 +49,7 @@ public class AlignerTestHarness {
             count++;
             if( count > 200000 ) break;
             //if( count < 366000 ) continue;
-            //if( count != 2 ) continue;
+            //if( count > 2 ) break;
             //if( !read.getReadName().endsWith("SL-XBC:1:82:506:404#0") )
             //    continue;
             //if( !read.getReadName().endsWith("SL-XBC:1:36:30:1926#0") )

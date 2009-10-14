@@ -25,7 +25,13 @@ public class Counts implements Cloneable {
     /**
      * Create an empty Counts object with values A=0,C=0,G=0,T=0.
      */
-    public Counts() {}
+    public Counts()
+    {
+        for(byte base: Bases.instance) {
+            counts.put(base,0);
+            cumulativeCounts.put(base,0);
+        }
+    }
 
     /**
      * Create a counts data structure with the given initial values. 
@@ -63,8 +69,11 @@ public class Counts implements Cloneable {
         if(cumulative) {
             int index = 0;
             for(byte base: Bases.instance) {
-                if(index++ == 0) continue;
-                countArray[index] = getCumulative(base);
+                if(index == 0) {
+                    index++;
+                    continue;
+                }
+                countArray[index++] = getCumulative(base);
             }
             countArray[countArray.length-1] = getTotal();
         }
@@ -98,6 +107,11 @@ public class Counts implements Cloneable {
      */
     public void increment(byte base) {
         counts.put(base,counts.get(base)+1);
+        int previous = 0;
+        for(byte cumulative: Bases.instance) {
+            cumulativeCounts.put(cumulative,counts.get(cumulative)+previous);
+            previous += counts.get(cumulative);
+        }
     }
 
     /**

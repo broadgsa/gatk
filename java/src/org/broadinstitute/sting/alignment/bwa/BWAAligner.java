@@ -75,8 +75,8 @@ public class BWAAligner implements Aligner {
     public BWAAligner( File forwardBWTFile, File reverseBWTFile, File forwardSuffixArrayFile, File reverseSuffixArrayFile ) {
         forwardBWT = new BWTReader(forwardBWTFile).read();
         reverseBWT = new BWTReader(reverseBWTFile).read();
-        forwardSuffixArray = new SuffixArrayReader(forwardSuffixArrayFile).read();
-        reverseSuffixArray = new SuffixArrayReader(reverseSuffixArrayFile).read();
+        forwardSuffixArray = new SuffixArrayReader(forwardSuffixArrayFile,forwardBWT).read();
+        reverseSuffixArray = new SuffixArrayReader(reverseSuffixArrayFile,reverseBWT).read();
     }
 
     public List<Alignment> align( SAMRecord read ) {
@@ -146,7 +146,7 @@ public class BWAAligner implements Aligner {
                 continue;
             }
 
-            //System.out.printf("Processing alignments; queue size = %d, alignment = %s, bound = %d, base = %s%n", alignments.size(), alignment, lowerBounds.get(alignment.position+1).value, alignment.position >= 0 ? (char)bases[alignment.position] : "");
+            //System.out.printf("Processing alignments; queue size = %d, alignment = %s, bound = %d, base = %s%n", alignments.size(), alignment, lowerBounds.get(alignment.position+1).value, alignment.position >= 0 ? (char)bases[alignment.position].byteValue() : "");
             /*
             System.out.printf("#1\t[%d,%d,%d,%c]\t[%d,%d,%d]\t[%d,%d]\t[%d,%d]%n",alignments.size(),
                                                         alignment.negativeStrand?1:0,
@@ -164,12 +164,6 @@ public class BWAAligner implements Aligner {
             // Temporary -- look ahead to see if the next alignment is bounded.
             boolean allowDifferences = mismatches > 0;
             boolean allowMismatches = mismatches > 0;
-            if( alignment.position+1 < read.getReadLength()-1 ) {
-                allowDifferences &= lowerBounds.get(alignment.position+2).value <= mismatches - 1;
-                allowMismatches &=
-                    !(lowerBounds.get(alignment.position+2).value == mismatches-1 && lowerBounds.get(alignment.position+1).value == mismatches-1 &&
-                      lowerBounds.get(alignment.position+2).width == lowerBounds.get(alignment.position+1).width);
-            }
 
             if( allowDifferences &&
                 alignment.position+1 >= INDEL_END_SKIP-1+alignment.getGapOpens()+alignment.getGapExtensions() &&
