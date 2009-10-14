@@ -70,7 +70,7 @@ public class SequenomROD extends TabularROD implements Variation {
      */
     @Override
     public char getAlternativeBaseForSNP() {
-        return 'N';
+        return getAltBasesFWD().charAt(0);
     }
 
     /**
@@ -80,7 +80,7 @@ public class SequenomROD extends TabularROD implements Variation {
      */
     @Override
     public char getReferenceForSNP() {
-        return getAltBasesFWD().charAt(0);
+        return 'N';
     }
 
     public boolean isBiallelic() { return true; }

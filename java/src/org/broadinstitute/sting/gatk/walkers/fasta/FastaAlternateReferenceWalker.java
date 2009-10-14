@@ -16,8 +16,6 @@ import java.util.Iterator;
 @Requires(value={DataSource.REFERENCE})
 public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
-    @Argument(fullName="outputSequenomFormat", shortName="sequenom", doc="output results in sequenom format (overrides 'maskSNPs' argument)", required=false)
-    private Boolean SEQUENOM = false;
     @Argument(fullName="outputIndelPositions", shortName="indelPositions", doc="output the positions of the indels in the new reference", required=false)
     String indelsFile = null;
 
@@ -41,7 +39,7 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
         if (deletionBasesRemaining > 0) {
             deletionBasesRemaining--;
-            return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? (deletionBasesRemaining == 0 ? refBase.concat("/-]") : refBase) : ""));
+            return new Pair<GenomeLoc, String>(context.getLocation(), "");
         }
 
         Iterator<ReferenceOrderedDatum> rods = rodData.getAllRods().iterator();
@@ -57,16 +55,16 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
                 if (indelsWriter != null)
                     indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.getAlternateBases().length()));
                 // delete the next n bases, not this one
-                return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[") : refBase));
+                return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
             } else if (!rod.getName().startsWith("snpmask") && variant.isInsertion()) {
                 basesSeen++;
                 if (indelsWriter != null)
                     indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.getAlternateBases().length()));
                 basesSeen += variant.getAlternateBases().length();
-                return new Pair<GenomeLoc, String>(context.getLocation(), (SEQUENOM ? refBase.concat("[-/" + variant.getAlternateBases() + "]") : refBase.concat(variant.getAlternateBases())));
+                return new Pair<GenomeLoc, String>(context.getLocation(), refBase.concat(variant.getAlternateBases()));
             } else if (variant.isSNP()) {
                 basesSeen++;
-                return new Pair<GenomeLoc, String>(context.getLocation(), (rod.getName().startsWith("snpmask") ? "N" : (SEQUENOM ? "[" + refBase + "/" + variant.getAlternativeBaseForSNP() + "]" : String.valueOf(variant.getAlternativeBaseForSNP()))));
+                return new Pair<GenomeLoc, String>(context.getLocation(), (rod.getName().startsWith("snpmask") ? "N" : String.valueOf(variant.getAlternativeBaseForSNP())));
             }
         }
 
