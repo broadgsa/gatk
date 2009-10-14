@@ -65,7 +65,7 @@ class VCFParameters {
     }
 
     public void addAlternateBase(String base) {
-        if (!alternateBases.contains(String.valueOf(base)) && base != String.valueOf(this.getReferenceBase()))
+        if (!alternateBases.contains(String.valueOf(base)) && !base.equals(String.valueOf(this.getReferenceBase())))
             alternateBases.add(base);
     }
 
