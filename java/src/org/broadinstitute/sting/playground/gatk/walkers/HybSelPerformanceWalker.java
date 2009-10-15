@@ -206,10 +206,10 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
     }
 
     private String getGeneName(GenomeLoc target) {
-        if (refseqIterator == null) { return ""; }
+        if (refseqIterator == null) { return "UNKNOWN"; }
 
         RODRecordList<rodRefSeq> annotationList = refseqIterator.seekForward(target);
-        if (annotationList == null) { return ""; }
+        if (annotationList == null) { return "UNKNOWN"; }
         
         for(rodRefSeq rec : annotationList) {
             if ( rec.overlapsExonP(target) ) {
@@ -217,7 +217,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
             }
         }
 
-        return "";
+        return "UNKNOWN";
 
     }
 
