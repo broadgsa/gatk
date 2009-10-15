@@ -15,12 +15,12 @@ public class Counts implements Cloneable {
     /**
      * Internal representation of counts, broken down by ASCII value.
      */
-    private Map<Byte,Integer> counts = new HashMap<Byte,Integer>();
+    private Map<Byte,Long> counts = new HashMap<Byte,Long>();
 
     /**
      * Internal representation of cumulative counts, broken down by ASCII value.
      */
-    private Map<Byte,Integer> cumulativeCounts = new HashMap<Byte,Integer>();
+    private Map<Byte,Long> cumulativeCounts = new HashMap<Byte,Long>();
 
     /**
      * Create an empty Counts object with values A=0,C=0,G=0,T=0.
@@ -28,8 +28,8 @@ public class Counts implements Cloneable {
     public Counts()
     {
         for(byte base: Bases.instance) {
-            counts.put(base,0);
-            cumulativeCounts.put(base,0);
+            counts.put(base,0L);
+            cumulativeCounts.put(base,0L);
         }
     }
 
@@ -38,20 +38,20 @@ public class Counts implements Cloneable {
      * @param data Count data, broken down by base.
      * @param cumulative Whether the counts are cumulative, (count_G=numA+numC+numG,for example).
      */
-    public Counts( int[] data, boolean cumulative ) {
+    public Counts( long[] data, boolean cumulative ) {
         if(cumulative) {
-            int priorCount = 0;
+            long priorCount = 0;
             for(byte base: Bases.instance) {
-                int count = data[Bases.toPack(base)];
+                long count = data[Bases.toPack(base)];
                 counts.put(base,count-priorCount);
                 cumulativeCounts.put(base,priorCount);
                 priorCount = count;
             }
         }
         else {
-            int priorCount = 0;
+            long priorCount = 0;
             for(byte base: Bases.instance) {
-                int count = data[Bases.toPack(base)];
+                long count = data[Bases.toPack(base)];
                 counts.put(base,count);
                 cumulativeCounts.put(base,priorCount);
                 priorCount += count;
@@ -64,8 +64,8 @@ public class Counts implements Cloneable {
      * @param cumulative Use a cumulative representation.
      * @return Array of count values.
      */
-    public int[] toArray(boolean cumulative) {
-        int[] countArray = new int[counts.size()];
+    public long[] toArray(boolean cumulative) {
+        long[] countArray = new long[counts.size()];
         if(cumulative) {
             int index = 0;
             boolean first = true;
@@ -98,8 +98,8 @@ public class Counts implements Cloneable {
         catch(CloneNotSupportedException ex) {
             throw new StingException("Unable to clone counts object", ex);
         }
-        other.counts = new HashMap<Byte,Integer>(counts);
-        other.cumulativeCounts = new HashMap<Byte,Integer>(cumulativeCounts);
+        other.counts = new HashMap<Byte,Long>(counts);
+        other.cumulativeCounts = new HashMap<Byte,Long>(cumulativeCounts);
         return other;
     }
 
@@ -123,7 +123,7 @@ public class Counts implements Cloneable {
      * @param base Base for which to query counts.
      * @return Number of bases of this type seen.
      */
-    public int get(byte base) {
+    public long get(byte base) {
         return counts.get(base);
     }
 
@@ -133,7 +133,7 @@ public class Counts implements Cloneable {
      * @param base Base for which to query counts.
      * @return Number of bases of this type seen.
      */
-    public int getCumulative(byte base) {
+    public long getCumulative(byte base) {
         return cumulativeCounts.get(base);
     }
 
@@ -141,7 +141,7 @@ public class Counts implements Cloneable {
      * How many total bases are represented by this count structure?
      * @return Total bases represented.
      */
-    public int getTotal() {
+    public long getTotal() {
         int accumulator = 0;
         for(byte base: Bases.instance) {
             accumulator += get(base);    

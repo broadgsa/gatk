@@ -30,7 +30,7 @@ public class BWAAlignment implements Alignment, Cloneable {
     /**
      * Start of the final alignment.
      */
-    protected int alignmentStart;
+    protected long alignmentStart;
 
     /**
      * Is this match being treated as a negative or positive strand?
@@ -65,12 +65,12 @@ public class BWAAlignment implements Alignment, Cloneable {
     /**
      * Working variable.  The lower bound of the alignment within the BWT.
      */
-    protected int loBound;
+    protected long loBound;
 
     /**
      * Working variable.  The upper bound of the alignment within the BWT.
      */
-    protected int hiBound;
+    protected long hiBound;
 
     /**
      * Cache the score.
@@ -81,7 +81,7 @@ public class BWAAlignment implements Alignment, Cloneable {
      * Gets the starting position for the given alignment.
      * @return Starting position.
      */
-    public int getAlignmentStart() {
+    public long getAlignmentStart() {
         return alignmentStart;
     }
 

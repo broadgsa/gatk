@@ -35,7 +35,7 @@ import java.nio.ByteOrder;
  * @author mhanna
  * @version 0.1
  */
-public class IntPackedOutputStream {
+public class UnsignedIntPackedOutputStream {
     /**
      * Ultimate target for the occurrence array.
      */
@@ -52,7 +52,7 @@ public class IntPackedOutputStream {
      * @param byteOrder Endianness to use when writing a list of integers.
      * @throws IOException if an I/O error occurs.
      */
-    public IntPackedOutputStream(File outputFile, ByteOrder byteOrder) throws IOException {
+    public UnsignedIntPackedOutputStream(File outputFile, ByteOrder byteOrder) throws IOException {
         this(new FileOutputStream(outputFile),byteOrder);
     }
 
@@ -60,9 +60,8 @@ public class IntPackedOutputStream {
      * Write packed ints to the given OutputStream.
      * @param outputStream Output stream to which to write packed ints.
      * @param byteOrder Endianness to use when writing a list of integers.
-     * @throws IOException if an I/O error occurs.
      */
-    public IntPackedOutputStream(OutputStream outputStream, ByteOrder byteOrder) {
+    public UnsignedIntPackedOutputStream(OutputStream outputStream, ByteOrder byteOrder) {
         this.targetOutputStream = outputStream;
         buffer = ByteBuffer.allocate(PackUtils.bitsInType(Integer.class)/PackUtils.BITS_PER_BYTE).order(byteOrder);
     }
@@ -72,9 +71,9 @@ public class IntPackedOutputStream {
      * @param datum datum to write. 
      * @throws IOException if an I/O error occurs.
      */
-    public void write( int datum ) throws IOException {
+    public void write( long datum ) throws IOException {
         buffer.rewind();
-        buffer.putInt(datum);
+        buffer.putInt((int)datum);
         targetOutputStream.write(buffer.array());
     }
 
@@ -83,8 +82,8 @@ public class IntPackedOutputStream {
      * @param data data to write.  occurrences.length must match alphabet size.
      * @throws IOException if an I/O error occurs.
      */
-    public void write( int[] data ) throws IOException {
-        for(int datum: data)
+    public void write( long[] data ) throws IOException {
+        for(long datum: data)
             write(datum);
     }
 
@@ -95,7 +94,7 @@ public class IntPackedOutputStream {
      * @param length number of ints to write.
      * @throws IOException if an I/O error occurs.
      */
-    public void write( int[] data, int offset, int length ) throws IOException {
+    public void write( long[] data, int offset, int length ) throws IOException {
         for( int i = offset; i < offset+length; i++ )
             write(data[i]);
     }

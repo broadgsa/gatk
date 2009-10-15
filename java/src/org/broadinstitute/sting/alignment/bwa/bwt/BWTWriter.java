@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.alignment.bwa.bwt;
 
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.alignment.bwa.packing.IntPackedOutputStream;
+import org.broadinstitute.sting.alignment.bwa.packing.UnsignedIntPackedOutputStream;
 import org.broadinstitute.sting.alignment.bwa.packing.BasePackedOutputStream;
 
 import java.io.*;
@@ -37,7 +37,7 @@ public class BWTWriter {
      * @param bwt Transform to be written to the output stream.
      */
     public void write( BWT bwt ) {
-        IntPackedOutputStream intPackedOutputStream = new IntPackedOutputStream(outputStream, ByteOrder.LITTLE_ENDIAN);
+        UnsignedIntPackedOutputStream intPackedOutputStream = new UnsignedIntPackedOutputStream(outputStream, ByteOrder.LITTLE_ENDIAN);
         BasePackedOutputStream basePackedOutputStream = new BasePackedOutputStream<Integer>(Integer.class, outputStream, ByteOrder.LITTLE_ENDIAN);
 
         try {

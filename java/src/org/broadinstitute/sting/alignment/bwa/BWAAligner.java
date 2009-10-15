@@ -124,7 +124,7 @@ public class BWAAligner implements Aligner {
 
             // Found a valid alignment; store it and move on.
             if(alignment.position >= read.getReadLength()-1) {
-                for( int bwtIndex = alignment.loBound; bwtIndex <= alignment.hiBound; bwtIndex++ ) {
+                for(long bwtIndex = alignment.loBound; bwtIndex <= alignment.hiBound; bwtIndex++) {
                     BWAAlignment finalAlignment = alignment.clone();
 
                     if( finalAlignment.isNegativeStrand() )

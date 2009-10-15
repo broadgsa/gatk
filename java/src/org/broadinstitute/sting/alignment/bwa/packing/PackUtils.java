@@ -105,7 +105,7 @@ public class PackUtils {
      * @param partitionSize Size of an individual partition.
      * @return Number of partitions that would be created.
      */
-    public static int numberOfPartitions( int size, int partitionSize ) {
-        return (size + partitionSize - 1)/partitionSize;    
+    public static int numberOfPartitions( long size, long partitionSize ) {
+        return (int)((size+partitionSize-1) / partitionSize);    
     }
 }

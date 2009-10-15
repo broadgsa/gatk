@@ -19,7 +19,7 @@ public class BWT {
     /**
      * The inverse SA, used as a placeholder for determining where the special EOL character sits.
      */
-    protected final int inverseSA0;
+    protected final long inverseSA0;
 
     /**
      * Cumulative counts for the entire BWT.
@@ -37,7 +37,7 @@ public class BWT {
      * @param counts Cumulative count of bases, in A,C,G,T order.
      * @param sequenceBlocks The full BWT sequence, sans the '$'.
      */
-    public BWT( int inverseSA0, Counts counts, SequenceBlock[] sequenceBlocks ) {
+    public BWT( long inverseSA0, Counts counts, SequenceBlock[] sequenceBlocks ) {
         this.inverseSA0 = inverseSA0;
         this.counts = counts;
         this.sequenceBlocks = sequenceBlocks;
@@ -49,7 +49,7 @@ public class BWT {
      * @param counts Count of bases, in A,C,G,T order.
      * @param sequence The full BWT sequence, sans the '$'.
      */
-    public BWT( int inverseSA0, Counts counts, byte[] sequence ) {
+    public BWT( long inverseSA0, Counts counts, byte[] sequence ) {
         this(inverseSA0,counts,generateSequenceBlocks(sequence));
     }
 
@@ -58,7 +58,7 @@ public class BWT {
      * @return The full BWT string as a byte array.
      */
     public byte[] getSequence() {
-        byte[] sequence = new byte[counts.getTotal()];
+        byte[] sequence = new byte[(int)counts.getTotal()];
         for( SequenceBlock block: sequenceBlocks )
             System.arraycopy(block.sequence,0,sequence,block.sequenceStart,block.sequenceLength);
         return sequence;
@@ -69,7 +69,7 @@ public class BWT {
      * @param base The base.
      * @return Total counts for all bases lexicographically smaller than this base.
      */
-    public int counts(byte base) {
+    public long counts(byte base) {
         return counts.getCumulative(base);
     }
 
@@ -79,10 +79,10 @@ public class BWT {
      * @param index The position to search within the BWT.
      * @return Total counts for all bases lexicographically smaller than this base.
      */
-    public int occurrences(byte base,int index) {
+    public long occurrences(byte base,long index) {
         SequenceBlock block = getSequenceBlock(index);
         int position = getSequencePosition(index);
-        int accumulator = block.occurrences.get(base);
+        long accumulator = block.occurrences.get(base);
         for(int i = 0; i <= position; i++) {
             if(base == block.sequence[i])
                 accumulator++;
@@ -94,7 +94,7 @@ public class BWT {
      * The number of bases in the BWT as a whole.
      * @return Number of bases.
      */
-    public int length() {
+    public long length() {
         return counts.getTotal();
     }
 
@@ -103,7 +103,7 @@ public class BWT {
      * @param index The index to use.
      * @return The base at that location.
      */
-    protected byte getBase(int index) {
+    protected byte getBase(long index) {
         if(index == inverseSA0)
             throw new StingException(String.format("Base at index %d does not have a text representation",index));
 
@@ -112,16 +112,16 @@ public class BWT {
         return block.sequence[position];
     }
 
-    private SequenceBlock getSequenceBlock(int index) {
+    private SequenceBlock getSequenceBlock(long index) {
         // If the index is above the SA-1[0], remap it to the appropriate coordinate space.
         if(index > inverseSA0) index--;
-        return sequenceBlocks[index/SEQUENCE_BLOCK_SIZE];
+        return sequenceBlocks[(int)(index/SEQUENCE_BLOCK_SIZE)];
     }
 
-    private int getSequencePosition(int index) {
+    private int getSequencePosition(long index) {
         // If the index is above the SA-1[0], remap it to the appropriate coordinate space.
         if(index > inverseSA0) index--;
-        return index%SEQUENCE_BLOCK_SIZE;
+        return (int)(index%SEQUENCE_BLOCK_SIZE);
     }
 
     /**

@@ -65,7 +65,7 @@ public class CreateBWTFromReference {
         return occurrences;
     }
 
-    private int[] createSuffixArray( String sequence ) {
+    private long[] createSuffixArray( String sequence ) {
         TreeSet<Integer> suffixArrayBuilder = new TreeSet<Integer>( new SuffixArrayComparator(sequence) );
 
         // Build out the suffix array using a custom comparator.
@@ -77,7 +77,7 @@ public class CreateBWTFromReference {
         }
 
         // Copy the suffix array into an int array.
-        int[] suffixArray = new int[suffixArrayBuilder.size()];
+        long[] suffixArray = new long[suffixArrayBuilder.size()];
         int i = 0;
         for( Integer element: suffixArrayBuilder )
             suffixArray[i++] = element;
@@ -85,35 +85,35 @@ public class CreateBWTFromReference {
         return suffixArray;
     }
 
-    private int[] invertSuffixArray( int[] suffixArray ) {
-        int[] inverseSuffixArray = new int[suffixArray.length];
+    private long[] invertSuffixArray( long[] suffixArray ) {
+        long[] inverseSuffixArray = new long[suffixArray.length];
         for( int i = 0; i < suffixArray.length; i++ )
-            inverseSuffixArray[suffixArray[i]] = i;
+            inverseSuffixArray[(int)suffixArray[i]] = i;
         return inverseSuffixArray;
     }
 
-    private int[] createCompressedSuffixArray( int[] suffixArray, int[] inverseSuffixArray ) {
-        int[] compressedSuffixArray = new int[suffixArray.length];
+    private long[] createCompressedSuffixArray( int[] suffixArray, int[] inverseSuffixArray ) {
+        long[] compressedSuffixArray = new long[suffixArray.length];
         compressedSuffixArray[0] = inverseSuffixArray[0];
         for( int i = 1; i < suffixArray.length; i++ )
             compressedSuffixArray[i] = inverseSuffixArray[suffixArray[i]+1];
         return compressedSuffixArray;
     }
 
-    private int[] createInversedCompressedSuffixArray( int[] compressedSuffixArray ) {
-        int[] inverseCompressedSuffixArray = new int[compressedSuffixArray.length];
+    private long[] createInversedCompressedSuffixArray( int[] compressedSuffixArray ) {
+        long[] inverseCompressedSuffixArray = new long[compressedSuffixArray.length];
         for( int i = 0; i < compressedSuffixArray.length; i++ )
             inverseCompressedSuffixArray[compressedSuffixArray[i]] = i;
         return inverseCompressedSuffixArray;
     }
 
-    private byte[] createBWT( String sequence, int[] suffixArray ) {
+    private byte[] createBWT( String sequence, long[] suffixArray ) {
         byte[] bwt = new byte[suffixArray.length-1];
         int i = 0;
-        for( int suffixArrayEntry: suffixArray ) {
+        for( long suffixArrayEntry: suffixArray ) {
             if( suffixArrayEntry == 0 )
                 continue;
-            bwt[i++] = (byte)sequence.charAt(suffixArrayEntry-1);
+            bwt[i++] = (byte)sequence.charAt((int)suffixArrayEntry-1);
         }
         return bwt;
     }
@@ -152,12 +152,12 @@ public class CreateBWTFromReference {
                                                                   occurrences.getCumulative(Bases.T));
 
         // Generate the suffix array and print diagnostics.
-        int[] suffixArrayData = creator.createSuffixArray(sequence);
-        int[] reverseSuffixArrayData = creator.createSuffixArray(reverseSequence);
+        long[] suffixArrayData = creator.createSuffixArray(sequence);
+        long[] reverseSuffixArrayData = creator.createSuffixArray(reverseSequence);
 
         // Invert the suffix array and print diagnostics.
-        int[] inverseSuffixArray = creator.invertSuffixArray(suffixArrayData);
-        int[] reverseInverseSuffixArray = creator.invertSuffixArray(reverseSuffixArrayData);
+        long[] inverseSuffixArray = creator.invertSuffixArray(suffixArrayData);
+        long[] reverseInverseSuffixArray = creator.invertSuffixArray(reverseSuffixArrayData);
 
         SuffixArray suffixArray = new SuffixArray( inverseSuffixArray[0], occurrences, suffixArrayData );
         SuffixArray reverseSuffixArray = new SuffixArray( reverseInverseSuffixArray[0], occurrences, reverseSuffixArrayData );
@@ -186,7 +186,7 @@ public class CreateBWTFromReference {
         */
 
         // Create the BWT.
-        BWT bwt = new BWT( inverseSuffixArray[0], occurrences, creator.createBWT(sequence, suffixArray.sequence) );
+        BWT bwt = new BWT(inverseSuffixArray[0], occurrences, creator.createBWT(sequence, suffixArray.sequence));
         BWT reverseBWT = new BWT( reverseInverseSuffixArray[0], occurrences, creator.createBWT(reverseSequence, reverseSuffixArray.sequence));
 
         byte[] bwtSequence = bwt.getSequence();

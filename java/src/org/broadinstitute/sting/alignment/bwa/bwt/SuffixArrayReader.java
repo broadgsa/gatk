@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.alignment.bwa.bwt;
 
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.alignment.bwa.packing.IntPackedInputStream;
+import org.broadinstitute.sting.alignment.bwa.packing.UnsignedIntPackedInputStream;
 import org.broadinstitute.sting.alignment.bwa.packing.PackUtils;
 
 import java.io.*;
@@ -44,21 +44,21 @@ public class SuffixArrayReader {
      * @return The suffix array stored in the input stream.
      */
     public SuffixArray read() {
-        IntPackedInputStream intPackedInputStream = new IntPackedInputStream(inputStream, ByteOrder.LITTLE_ENDIAN);
+        UnsignedIntPackedInputStream uintPackedInputStream = new UnsignedIntPackedInputStream(inputStream, ByteOrder.LITTLE_ENDIAN);
 
-        int inverseSA0;
-        int[] occurrences;
-        int[] suffixArray;
+        long inverseSA0;
+        long[] occurrences;
+        long[] suffixArray;
         int suffixArrayInterval;
 
         try {
-            inverseSA0 = intPackedInputStream.read();
-            occurrences = new int[PackUtils.ALPHABET_SIZE];
-            intPackedInputStream.read(occurrences);
+            inverseSA0 = uintPackedInputStream.read();
+            occurrences = new long[PackUtils.ALPHABET_SIZE];
+            uintPackedInputStream.read(occurrences);
             // Throw away the suffix array size in bytes and use the occurrences table directly.
-            suffixArrayInterval = intPackedInputStream.read();
-            suffixArray = new int[(occurrences[occurrences.length-1]+suffixArrayInterval-1)/suffixArrayInterval];
-            intPackedInputStream.read(suffixArray);
+            suffixArrayInterval = (int)uintPackedInputStream.read();
+            suffixArray = new long[(int)((occurrences[occurrences.length-1]+suffixArrayInterval-1)/suffixArrayInterval)];
+            uintPackedInputStream.read(suffixArray);
         }
         catch( IOException ex ) {
             throw new StingException("Unable to read BWT from input stream.", ex);

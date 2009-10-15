@@ -11,7 +11,7 @@ import java.nio.channels.FileChannel;
  * @author mhanna
  * @version 0.1
  */
-public class IntPackedInputStream {
+public class UnsignedIntPackedInputStream {
     /**
      * Ultimate target for the occurrence array.
      */
@@ -38,7 +38,7 @@ public class IntPackedInputStream {
      * @param byteOrder Endianness to use when writing a list of integers.
      * @throws java.io.IOException if an I/O error occurs.
      */
-    public IntPackedInputStream(File inputFile, ByteOrder byteOrder) throws IOException {
+    public UnsignedIntPackedInputStream(File inputFile, ByteOrder byteOrder) throws IOException {
         this(new FileInputStream(inputFile),byteOrder);
     }
 
@@ -47,7 +47,7 @@ public class IntPackedInputStream {
      * @param inputStream Input stream from which to read ints.
      * @param byteOrder Endianness to use when writing a list of integers.
      */
-    public IntPackedInputStream(FileInputStream inputStream, ByteOrder byteOrder) {
+    public UnsignedIntPackedInputStream(FileInputStream inputStream, ByteOrder byteOrder) {
         this.targetInputStream = inputStream;
         this.targetInputChannel = inputStream.getChannel();
         this.byteOrder = byteOrder;
@@ -58,8 +58,8 @@ public class IntPackedInputStream {
      * @return The next input datum in the stream.
      * @throws IOException if an I/O error occurs.
      */
-    public int read() throws IOException {
-        int[] data = new int[1];
+    public long read() throws IOException {
+        long[] data = new long[1];
         read(data);
         return data[0];
     }
@@ -69,7 +69,7 @@ public class IntPackedInputStream {
      * @param data placeholder for input data.
      * @throws IOException if an I/O error occurs.
      */
-    public void read( int[] data ) throws IOException {
+    public void read( long[] data ) throws IOException {
         read( data, 0, data.length );
     }
 
@@ -80,7 +80,7 @@ public class IntPackedInputStream {
      * @param length number of ints to read in. 
      * @throws IOException if an I/O error occurs.
      */
-    public void read( int[] data, int offset, int length ) throws IOException {
+    public void read( long[] data, int offset, int length ) throws IOException {
         ByteBuffer readBuffer = ByteBuffer.allocate(bytesPerInteger*length).order(byteOrder);
 
         targetInputChannel.read(readBuffer,targetInputChannel.position());

@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.alignment.bwa.bwt;
 
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.alignment.bwa.packing.IntPackedOutputStream;
+import org.broadinstitute.sting.alignment.bwa.packing.UnsignedIntPackedOutputStream;
 
 import java.io.*;
 import java.nio.ByteOrder;
@@ -36,16 +36,16 @@ public class SuffixArrayWriter {
      * @param suffixArray suffix array to write.
      */
     public void write(SuffixArray suffixArray) {
-        IntPackedOutputStream intPackedOutputStream = new IntPackedOutputStream(outputStream, ByteOrder.LITTLE_ENDIAN);
+        UnsignedIntPackedOutputStream uintPackedOutputStream = new UnsignedIntPackedOutputStream(outputStream, ByteOrder.LITTLE_ENDIAN);
 
         try {
-            intPackedOutputStream.write(suffixArray.inverseSA0);
-            intPackedOutputStream.write(suffixArray.occurrences.toArray(true));
+            uintPackedOutputStream.write(suffixArray.inverseSA0);
+            uintPackedOutputStream.write(suffixArray.occurrences.toArray(true));
             // How frequently the suffix array entry is placed.
-            intPackedOutputStream.write(1);
+            uintPackedOutputStream.write(1);
             // Length of the suffix array.
-            intPackedOutputStream.write(suffixArray.length()-1);
-            intPackedOutputStream.write(suffixArray.sequence, 1, suffixArray.length()-1);
+            uintPackedOutputStream.write(suffixArray.length()-1);
+            uintPackedOutputStream.write(suffixArray.sequence,1,suffixArray.sequence.length);
         }
         catch( IOException ex ) {
             throw new StingException("Unable to read BWT from input stream.", ex);

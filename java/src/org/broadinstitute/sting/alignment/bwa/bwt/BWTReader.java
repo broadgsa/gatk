@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.alignment.bwa.bwt;
 
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.alignment.bwa.packing.IntPackedInputStream;
+import org.broadinstitute.sting.alignment.bwa.packing.UnsignedIntPackedInputStream;
 import org.broadinstitute.sting.alignment.bwa.packing.BasePackedInputStream;
 import org.broadinstitute.sting.alignment.bwa.packing.PackUtils;
 
@@ -37,29 +37,29 @@ public class BWTReader {
      * @return The BWT stored in the input stream.
      */
     public BWT read() {
-        IntPackedInputStream intPackedInputStream = new IntPackedInputStream(inputStream, ByteOrder.LITTLE_ENDIAN);
+        UnsignedIntPackedInputStream uintPackedInputStream = new UnsignedIntPackedInputStream(inputStream, ByteOrder.LITTLE_ENDIAN);
         BasePackedInputStream basePackedInputStream = new BasePackedInputStream<Integer>(Integer.class, inputStream, ByteOrder.LITTLE_ENDIAN);
 
-        int inverseSA0;
-        int[] count;
+        long inverseSA0;
+        long[] count;
         SequenceBlock[] sequenceBlocks;
 
         try {
-            inverseSA0 = intPackedInputStream.read();
-            count = new int[PackUtils.ALPHABET_SIZE];
-            intPackedInputStream.read(count);
+            inverseSA0 = uintPackedInputStream.read();
+            count = new long[PackUtils.ALPHABET_SIZE];
+            uintPackedInputStream.read(count);
 
-            int bwtSize = count[PackUtils.ALPHABET_SIZE-1];
+            long bwtSize = count[PackUtils.ALPHABET_SIZE-1];
             sequenceBlocks = new SequenceBlock[PackUtils.numberOfPartitions(bwtSize,BWT.SEQUENCE_BLOCK_SIZE)];
             
             for( int block = 0; block < sequenceBlocks.length; block++ ) {
                 int sequenceStart = block* BWT.SEQUENCE_BLOCK_SIZE;
-                int sequenceLength = Math.min(BWT.SEQUENCE_BLOCK_SIZE,bwtSize-sequenceStart);
+                int sequenceLength = (int)Math.min(BWT.SEQUENCE_BLOCK_SIZE,bwtSize-sequenceStart);
 
-                int[] occurrences = new int[PackUtils.ALPHABET_SIZE];
+                long[] occurrences = new long[PackUtils.ALPHABET_SIZE];
                 byte[] bwt = new byte[sequenceLength];
 
-                intPackedInputStream.read(occurrences);
+                uintPackedInputStream.read(occurrences);
                 basePackedInputStream.read(bwt);
 
                 sequenceBlocks[block] = new SequenceBlock(sequenceStart,sequenceLength,new Counts(occurrences,false),bwt);

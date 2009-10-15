@@ -3,7 +3,6 @@ package org.broadinstitute.sting.alignment.bwa;
 import java.util.List;
 import java.util.ArrayList;
 
-import org.broadinstitute.sting.alignment.bwa.bwt.Bases;
 import org.broadinstitute.sting.alignment.bwa.bwt.BWT;
 
 /**
@@ -17,17 +16,17 @@ public class LowerBound {
     /**
      * Lower bound of the suffix array.
      */
-    public final int loIndex;
+    public final long loIndex;
 
     /**
      * Upper bound of the suffix array.
      */
-    public final int hiIndex;
+    public final long hiIndex;
 
     /**
      * Width of the bwt from loIndex -> hiIndex, inclusive.
      */
-    public final int width;
+    public final long width;
 
     /**
      * The lower bound at the given point.
@@ -36,9 +35,11 @@ public class LowerBound {
 
     /**
      * Create a new lower bound with the given value.
+     * @param loIndex The lower bound of the BWT.
+     * @param hiIndex The upper bound of the BWT.
      * @param value Value for the lower bound at this site.
      */
-    private LowerBound(int loIndex, int hiIndex, int value) {
+    private LowerBound(long loIndex, long hiIndex, int value) {
         this.loIndex = loIndex;
         this.hiIndex = hiIndex;
         this.width = hiIndex - loIndex + 1;
@@ -47,11 +48,16 @@ public class LowerBound {
 
     /**
      * Create a non-optimal bound according to the algorithm specified in Figure 3 of the BWA paper.
+     * @param bases Bases of the read to use when creating a new BWT.
+     * @param bwt BWT to check against.
+     * @return A list of lower bounds at every point in the reference.
+     *
      */
-    public static List<LowerBound> create( Byte[] bases, BWT bwt ) {
+    public static List<LowerBound> create(Byte[] bases, BWT bwt) {
         List<LowerBound> bounds = new ArrayList<LowerBound>();
 
-        int loIndex = 0, hiIndex = bwt.length(), mismatches = 0;
+        long loIndex = 0, hiIndex = bwt.length();
+        int mismatches = 0;
         for( int i = bases.length-1; i >= 0; i-- ) {
             Byte base = bases[i];
 
