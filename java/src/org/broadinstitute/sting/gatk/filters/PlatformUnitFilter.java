@@ -7,6 +7,8 @@ import net.sf.samtools.SAMReadGroupRecord;
 import java.util.Set;
 import java.util.HashSet;
 
+import org.broadinstitute.sting.utils.StingException;
+
 /**
  * Created by IntelliJ IDEA.
  * User: asivache
@@ -27,7 +29,7 @@ public class PlatformUnitFilter implements SamRecordFilter {
         if ( pu_attr == null ) {
             // no platform unit in the record, go get from read group
             SAMReadGroupRecord rgr = samRecord.getReadGroup();
-
+            if ( rgr == null ) throw new StingException("Read " + samRecord.getReadName() +" has NO associated read group record");
             pu_attr = rgr.getAttribute("PU") ;
         }
         if ( pu_attr == null ) return false; // could not get PU, forget about the filtering...
