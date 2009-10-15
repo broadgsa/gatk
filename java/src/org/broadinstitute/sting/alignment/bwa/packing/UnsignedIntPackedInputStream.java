@@ -89,7 +89,7 @@ public class UnsignedIntPackedInputStream {
 
         int i = 0;
         while(i < length)
-            data[offset+i++] = readBuffer.getInt();
+            data[offset+i++] = readBuffer.getInt() & 0xFFFFFFFFL;
     }
 
     /**
