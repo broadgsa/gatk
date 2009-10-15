@@ -54,6 +54,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         // setup the header fields
         hInfo.put("format", "VCRv3.2");
         hInfo.put("source", mSource);
+        hInfo.put("reference", mReferenceName);
 
         // setup the sample names
         mHeader = new VCFHeader(hInfo, sampleNames);

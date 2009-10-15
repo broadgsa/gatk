@@ -7,7 +7,14 @@ import java.util.*;
 
 /** the basic VCF record type */
 public class VCFRecord {
+    // commonly used strings that are in the standard
+    public static final String FORMAT_FIELD_SEPERATOR = ":";
+    public static final String GENOTYPE_FIELD_SEPERATOR = ":";
     public static final String FIELD_SEPERATOR = "\t";
+    public static final String FILTER_CODE_SEPERATOR = ";";
+    public static final String INFO_FIELD_SEPERATOR = ";";
+    public static final String EMPTY_INFO_FIELD = ".";
+    public static final String DOUBLE_PRECISION_FORMAT_STRING = "%.2f";
     // the reference base
     private char mReferenceBase;
     // our contig
@@ -146,10 +153,7 @@ public class VCFRecord {
      */
 
     public boolean hasGenotypeData() {
-        if (mGenotypeFields.size() < 1) {
-            return false;
-        }
-        return true;
+        return (mGenotypeFields.size() > 0);
     }
 
     /** @return the string for the chromosome that this VCF record is associated with */
@@ -321,14 +325,14 @@ public class VCFRecord {
         String alts = "";
         for (String str : this.getAlternateAlleles()) alts += str + ",";
         builder.append((alts.length() > 0) ? alts.substring(0, alts.length() - 1) + FIELD_SEPERATOR : "." + FIELD_SEPERATOR);
-        builder.append(String.format("%.2f",getQual()) + FIELD_SEPERATOR);
-        builder.append(Utils.join(";", getFilteringCodes()) + FIELD_SEPERATOR);
+        builder.append(String.format(DOUBLE_PRECISION_FORMAT_STRING,getQual()) + FIELD_SEPERATOR);
+        builder.append(Utils.join(FILTER_CODE_SEPERATOR, getFilteringCodes()) + FIELD_SEPERATOR);
         String info = "";
         for (String str : this.getInfoValues().keySet()) {
-            if (str.equals("."))
-                info = ".";
+            if (str.equals(EMPTY_INFO_FIELD))
+                info = EMPTY_INFO_FIELD;
             else
-                info += str + "=" + getInfoValues().get(str) + ";";
+                info += str + "=" + getInfoValues().get(str) + INFO_FIELD_SEPERATOR;
         }
 
         if (info.length() > 1) builder.append(info.substring(0, info.length() - 1));
@@ -363,12 +367,12 @@ public class VCFRecord {
                     builder.append(rec.toGenotypeString(this.mAlts));
                 for (String s : rec.getFields().keySet()) {
                     if (rec.getFields().get(s).equals("")) continue;
-                    builder.append(":");
+                    builder.append(GENOTYPE_FIELD_SEPERATOR);
                     builder.append(rec.getFields().get(s));
                 }
                 gMap.remove(genotype);
             } else {
-                builder.append(".");
+                builder.append(VCFGenotypeRecord.EMPTY_GENOTYPE);
             }
         }
         if (gMap.size() != 0) {

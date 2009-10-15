@@ -192,7 +192,8 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
             List<VCFGenotypeRecord> genotypeRecords = new ArrayList<VCFGenotypeRecord>();
             index++;
             for (String str : mHeader.getGenotypeSamples()) {
-                genotypeRecords.add(getVCFGenotype(str, mFormatString, tokens[index], values.get(VCFHeader.HEADER_FIELDS.ALT).split(","), values.get(VCFHeader.HEADER_FIELDS.REF).charAt(0)));
+                if (!tokens[index].equalsIgnoreCase(VCFGenotypeRecord.EMPTY_GENOTYPE))
+                    genotypeRecords.add(getVCFGenotype(str, mFormatString, tokens[index], values.get(VCFHeader.HEADER_FIELDS.ALT).split(","), values.get(VCFHeader.HEADER_FIELDS.REF).charAt(0)));
                 index++;
             }
             return new VCFRecord(values, mFormatString, genotypeRecords);
@@ -217,6 +218,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         VCFGenotypeRecord.PHASE phase = VCFGenotypeRecord.PHASE.UNKNOWN;
         List<String> bases = new ArrayList<String>();
         String keyStrings[] = formatString.split(":");
+
         for (String key : keyStrings) {
             String parse;
             int nextDivider;

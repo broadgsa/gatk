@@ -15,6 +15,9 @@ import java.util.Map;
  *         so they were broken off into their own class
  */
 public class VCFGenotypeRecord {
+    // the symbol for a empty genotype
+    public static final String EMPTY_GENOTYPE = ".";
+
     // what kind of phasing this genotype has
     public enum PHASE {
         UNPHASED, PHASED, PHASED_SWITCH_PROB, UNKNOWN

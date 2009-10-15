@@ -74,7 +74,7 @@ class VCFParameters {
     }
 
     public String getFormatString() {
-        return Utils.join(";", formatList);
+        return Utils.join(VCFRecord.FORMAT_FIELD_SEPERATOR, formatList);
     }
 
     public List<VCFGenotypeRecord> getGenotypesRecords() {
