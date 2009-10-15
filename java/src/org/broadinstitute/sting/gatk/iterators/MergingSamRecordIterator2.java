@@ -99,15 +99,13 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
      */
     private void checkSortOrder(SAMFileReader reader) {
         if (this.sortOrder != SAMFileHeader.SortOrder.unsorted && reader.getFileHeader().getSortOrder() != this.sortOrder) {
+            String msg = String.format("The GATK requires your bam have %s sort order, but your BAM file header %s.  Continuing beyond this point is unsafe -- please update your BAM file to have a compatible sort order using samtools sort or Picard MergeBamFiles",
+                    this.sortOrder, reader.getFileHeader().getAttribute("SO") == null ? "is missing the SO sort order flag" : "has an SO flag set to " + reader.getFileHeader().getAttribute("SO"));
             if (reads.getSafetyChecking()) {
-                throw new PicardException("Files are not compatible with sort order: " + reader.getFileHeader().getSortOrder() +
-                        " vrs " + this.sortOrder + ".  Make sure that the SO flag in your bam file is set (The reader attribute for sort order equals "
-                        + reader.getFileHeader().getAttribute("SO") + " in this case).");
+                throw new PicardException(msg);
             } else if (!warnedUserAboutSortOrder) {
                 warnedUserAboutSortOrder = true;
-                Utils.warnUser("Files are not compatible with sort order: " + reader.getFileHeader().getSortOrder() +
-                        " vrs " + this.sortOrder + ".  Make sure that the SO flag in your bam file is set (The reader attribute for sort order equals "
-                        + reader.getFileHeader().getAttribute("SO") + " in this case).");
+                Utils.warnUser(msg);
             }
 
         }

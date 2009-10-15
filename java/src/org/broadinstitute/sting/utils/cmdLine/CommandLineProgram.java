@@ -228,11 +228,11 @@ public abstract class CommandLineProgram {
                 }
             }
 
-            // regardless of what happens next, generate the header information
-            generateHeaderInformation(clp, args);
-
             // set the default logger level
             clp.setupLoggerLevel();
+
+            // regardless of what happens next, generate the header information
+            generateHeaderInformation(clp, args);
 
             // call the execute
             CommandLineProgram.result = clp.execute();
@@ -249,8 +249,8 @@ public abstract class CommandLineProgram {
             // we catch all exceptions here. if it makes it to this level, we're in trouble.  Let's bail!
             // TODO: what if the logger is the exception? hmm...
             logger.fatal("Exception caught by base Command Line Program, with message: " + e.getMessage());
-            logger.fatal("with cause: " + e.getCause());
-            e.printStackTrace();
+            if ( e.getCause() != null ) logger.fatal("with cause: " + e.getCause());
+            //e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
@@ -338,8 +338,12 @@ public abstract class CommandLineProgram {
      */
     private static void printExitSystemMsg(final String msg) {
         System.out.printf("------------------------------------------------------------------------------------------%n");
-        System.out.printf("An error has occurred.  Please check your command line arguments for any typos or inconsistencies.%n%n");
-        System.out.printf("For assistance, please email us at gsahelp@broad.mit.edu, or review our documentation at http://www.broadinstitute.org/gsa/wiki.%n");
+        System.out.printf("The following error has occurred:%n%n");
+        System.out.printf("%s:%n%n", msg);
+        System.out.printf("Please check your command line arguments for any typos or inconsistencies.%n");
+        System.out.printf("Help for dealing with common GATK error messages can be found at http://www.broadinstitute.org/gsa/wiki/index.php/GATK_Error_Messages%n");
+        System.out.printf("  Or see our general docs documentation at http://www.broadinstitute.org/gsa/wiki%n");
+        System.out.printf("Please email us at gsahelp@broad.mit.edu to report bugs or with help resolving undocumented issues%n");
     }
 
     /**
