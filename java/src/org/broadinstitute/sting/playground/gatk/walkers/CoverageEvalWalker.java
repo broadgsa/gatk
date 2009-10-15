@@ -41,7 +41,7 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
 
     public void initialize() {
         UG = new UnifiedGenotyper();
-        UG.initialize();
+        UG.initializePublic();
 
         String header = "#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod AA      AC      AG      AT      CC      CG      CT      GG      GT      TT";
         out.println("DownsampledCoverage\tAvailableCoverage\tHapmapChipGenotype\tGenotypeCallType\t"+header.substring(1));

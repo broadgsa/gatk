@@ -74,7 +74,7 @@ public class ArtificialPoolContext {
     }
 
     public void initializeUG() {
-        ug.initialize();
+        ug.initializePublic();
     }
 
     public void setReadGroupSets(List<Set<String>> rgSets) {

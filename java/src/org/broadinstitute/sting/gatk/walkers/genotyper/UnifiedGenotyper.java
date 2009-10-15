@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import net.sf.samtools.SAMReadGroupRecord;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -75,25 +76,41 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
     // keep track of some metrics about our calls
     private CallMetrics callsMetrics;
 
-     /**
-     * Filter out loci to ignore (at an ambiguous base in the reference or a locus with zero coverage).
-     *
-     * @param tracker the meta data tracker
-     * @param ref     the reference base
-     * @param context contextual information around the locus
-     *
-     * @return true if we should look at this locus, false otherwise
-     */
-    public boolean filter(RefMetaDataTracker tracker, char ref, AlignmentContext context) {
-        return (BaseUtils.simpleBaseToBaseIndex(ref) != -1 && context.getReads().size() != 0);
-    }
+    // are we being called by another walker (which gets around the traversal-level filtering)?
+    private boolean calledByAnotherWalker = true;
 
     /** Enable deletions in the pileup **/
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
-    /** Initialize the samples, output, and genotype calculation model **/
+    /**
+     * Initialize the samples, output, and genotype calculation model
+     *
+     * *** OTHER WALKERS SHOULD NOT CALL THIS METHOD.  USE initializePublic() INSTEAD! ***
+     * 
+     **/
     public void initialize() {
 
+        initializePublic();
+
+        calledByAnotherWalker = false;
+
+        // create the output writer stream
+        if ( VARIANTS_FILE != null )
+            writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE,
+                                                  "UnifiedGenotyper",
+                                                  this.getToolkit().getArguments().referenceFile.getName());
+        else
+            writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out, "UnifiedGenotyper",
+                                                  this.getToolkit().getArguments().referenceFile.getName());
+        callsMetrics = new CallMetrics();
+    }
+
+    /**
+     * This method should be called by other walkers wanting to use the UnifiedGenotyper.
+     * If the regular initialize() method is called, subsequent calls to map() may result in
+     * exceptions being thrown.
+     */
+    public void initializePublic() {
         // get all of the unique sample names
         samples = new HashSet<String>();
         List<SAMReadGroupRecord> readGroups = getToolkit().getSAMFileHeader().getReadGroups();
@@ -104,17 +121,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
         for ( String sample : samples )
             logger.debug("SAMPLE: " + sample);
 
-        // create the output writer stream
-        if ( VARIANTS_FILE != null )
-            writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE,
-                                                  "UnifiedGenotyper",
-                                                  this.getToolkit().getArguments().referenceFile.getName());
-        else
-            writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out, "UnifiedGenotyper",
-                                                  this.getToolkit().getArguments().referenceFile.getName());
-
         gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC);
-        callsMetrics = new CallMetrics();
     }
 
     /**
@@ -129,12 +136,37 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
 
-        // an optimization to speed things up when overly covered
-        if ( UAC.MAX_READS_IN_PILEUP > 0 && context.getReads().size() > UAC.MAX_READS_IN_PILEUP )
+        // because other walkers externally call this map method with their own contexts,
+        // we need to make sure that the reads are appropriately filtered
+        if ( calledByAnotherWalker )
+            context = filterAlignmentContext(context);
+
+        // an optimization to speed things up when there is no coverage or when overly covered
+        if ( context.getReads().size() == 0 ||
+             (UAC.MAX_READS_IN_PILEUP > 0 && context.getReads().size() > UAC.MAX_READS_IN_PILEUP) )
             return null;
 
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
         return gcm.calculateGenotype(tracker, ref, context, priors);
+    }
+
+    // filter the given alignment context
+    private AlignmentContext filterAlignmentContext(AlignmentContext context) {
+        List<SAMRecord> reads = context.getReads();
+        List<Integer> offsets = context.getOffsets();
+
+        List<SAMRecord> newReads = new ArrayList<SAMRecord>();
+        List<Integer> newOffsets = new ArrayList<Integer>();
+
+        for (int i = 0; i < reads.size(); i++) {
+            SAMRecord read = reads.get(i);
+            if ( read.getMappingQuality() != 0 && read.getReadGroup() != null ) {
+                newReads.add(read);
+                newOffsets.add(offsets.get(i));
+            }
+        }
+
+        return new AlignmentContext(context.getLocation(), newReads, newOffsets);                
     }
 
     /**
