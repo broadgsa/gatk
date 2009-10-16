@@ -37,12 +37,12 @@ public class VCFReaderTest extends BaseTest {
     public void testBasicParsing() {
         String formatString = "GT:B:C:D";
         String genotypeString = "0|1:2:3:4";
-        String altAlleles[] = {"A","C","G","T"};
-        char referenceBase = 'N';
+        String altAlleles[] = {"A","G","T"};
+        char referenceBase = 'C';
         VCFGenotypeRecord rec = VCFReader.getVCFGenotype("test",formatString,genotypeString,altAlleles,referenceBase);
         Assert.assertEquals(VCFGenotypeRecord.PHASE.PHASED,rec.getPhaseType());
-        Assert.assertEquals("N",rec.getAlleles().get(0));
-        Assert.assertEquals("A",rec.getAlleles().get(1));
+        Assert.assertEquals("C",rec.getAlleles().get(0).toString());
+        Assert.assertEquals("A",rec.getAlleles().get(1).toString());
         Map<String,String> values = rec.getFields();
         Assert.assertEquals(3,values.size());
         Assert.assertTrue(values.get("B").equals("2"));
@@ -58,12 +58,12 @@ public class VCFReaderTest extends BaseTest {
     public void testMissingFieldParsing() {
         String formatString = "GT:B:C:D";
         String genotypeString = "0|1:::4";
-        String altAlleles[] = {"A","C","G","T"};
-        char referenceBase = 'N';
+        String altAlleles[] = {"A","G","T"};
+        char referenceBase = 'C';
         VCFGenotypeRecord rec = VCFReader.getVCFGenotype("test",formatString,genotypeString,altAlleles,referenceBase);
         Assert.assertEquals(VCFGenotypeRecord.PHASE.PHASED,rec.getPhaseType());
-        Assert.assertEquals("N",rec.getAlleles().get(0));
-        Assert.assertEquals("A",rec.getAlleles().get(1));
+        Assert.assertEquals("C",rec.getAlleles().get(0).toString());
+        Assert.assertEquals("A",rec.getAlleles().get(1).toString());
         Map<String,String> values = rec.getFields();
         Assert.assertEquals(3,values.size());
         Assert.assertTrue(values.get("B").equals(""));
@@ -78,12 +78,12 @@ public class VCFReaderTest extends BaseTest {
     public void testMissingAllFields() {
         String formatString = "GT:B:C:D";
         String genotypeString = "0|1:::";
-        String altAlleles[] = {"A","C","G","T"};
-        char referenceBase = 'N';
+        String altAlleles[] = {"A","G","T"};
+        char referenceBase = 'C';
         VCFGenotypeRecord rec = VCFReader.getVCFGenotype("test",formatString,genotypeString,altAlleles,referenceBase);
         Assert.assertEquals(VCFGenotypeRecord.PHASE.PHASED,rec.getPhaseType());
-        Assert.assertEquals("N",rec.getAlleles().get(0));
-        Assert.assertEquals("A",rec.getAlleles().get(1));
+        Assert.assertEquals("C",rec.getAlleles().get(0).toString());
+        Assert.assertEquals("A",rec.getAlleles().get(1).toString());
         Map<String,String> values = rec.getFields();
         Assert.assertEquals(3,values.size());
         Assert.assertTrue(values.get("B").equals(""));

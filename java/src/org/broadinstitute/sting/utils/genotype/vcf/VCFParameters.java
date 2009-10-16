@@ -18,7 +18,7 @@ class VCFParameters {
     private boolean initialized = false;
     private List<VCFGenotypeRecord> genotypesRecord = new ArrayList<VCFGenotypeRecord>();
     private List<String> formatList = new ArrayList<String>();
-    private List<String> alternateBases = new ArrayList<String>();
+    private List<VCFGenotypeEncoding> alternateBases = new ArrayList<VCFGenotypeEncoding>();
 
     public void setLocations(GenomeLoc location, char refBase) {
         // if we haven't set it up, we initialize the object
@@ -64,12 +64,12 @@ class VCFParameters {
             formatList.add(item);
     }
 
-    public void addAlternateBase(String base) {
-        if (!alternateBases.contains(String.valueOf(base)) && !base.equals(String.valueOf(this.getReferenceBase())))
+    public void addAlternateBase(VCFGenotypeEncoding base) {
+        if (!alternateBases.contains(base) && !base.toString().equals(String.valueOf(this.getReferenceBase())))
             alternateBases.add(base);
     }
 
-    public List<String> getAlternateBases() {
+    public List<VCFGenotypeEncoding> getAlternateBases() {
         return alternateBases;
     }
 

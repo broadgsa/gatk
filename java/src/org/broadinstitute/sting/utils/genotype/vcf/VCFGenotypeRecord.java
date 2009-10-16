@@ -27,7 +27,7 @@ public class VCFGenotypeRecord {
     private PHASE mPhaseType;
 
     // our bases(s)
-    private final List<String> mGenotypeAlleles = new ArrayList<String>();
+    private final List<VCFGenotypeEncoding> mGenotypeAlleles = new ArrayList<VCFGenotypeEncoding>();
 
     // our mapping of the format mFields to values
     private final Map<String, String> mFields = new HashMap<String, String>();
@@ -43,7 +43,7 @@ public class VCFGenotypeRecord {
      * @param phasing
      * @param otherFlags
      */
-    public VCFGenotypeRecord(String sampleName, List<String> genotypes, PHASE phasing, Map<String, String> otherFlags) {
+    public VCFGenotypeRecord(String sampleName, List<VCFGenotypeEncoding> genotypes, PHASE phasing, Map<String, String> otherFlags) {
         this.mSampleName = sampleName;
         if (genotypes != null) this.mGenotypeAlleles.addAll(genotypes);
         this.mPhaseType = phasing;
@@ -78,7 +78,7 @@ public class VCFGenotypeRecord {
         return mSampleName;
     }
 
-    public List<String> getAlleles() {
+    public List<VCFGenotypeEncoding> getAlleles() {
         return mGenotypeAlleles;
     }
 
@@ -86,10 +86,10 @@ public class VCFGenotypeRecord {
         return mFields;
     }
 
-    public String toGenotypeString(List<String> altAlleles) {
+    public String toGenotypeString(List<VCFGenotypeEncoding> altAlleles) {
         String str = "";
         boolean first = true;
-        for (String allele : mGenotypeAlleles) {
+        for (VCFGenotypeEncoding allele : mGenotypeAlleles) {
             str += String.valueOf((altAlleles.contains(allele)) ? altAlleles.indexOf(allele) + 1 : 0);
             if (first) {
                 switch (mPhaseType) {

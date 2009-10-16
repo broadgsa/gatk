@@ -14,10 +14,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -103,7 +100,7 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
         int[] alleleNames = {0, 1, 2, 3};
         double snpQual = 0.0;
         int refbase = BaseUtils.simpleBaseToBaseIndex(ref.getBase());
-        List<String> alts = new ArrayList<String>();
+        List<VCFGenotypeEncoding> alts = new ArrayList<VCFGenotypeEncoding>();
         for (String name : vcfheader.getGenotypeSamples()) {
             ReferenceOrderedDatum rod = tracker.lookup(sampleNamesToRods.get(name), null);
             if (rod != null) {
@@ -118,10 +115,10 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
                 if (!(rod instanceof VariantBackedByGenotype))
                     throw new IllegalArgumentException("The passed in variant type must be backed by genotype data");
                 Genotype genotype = ((VariantBackedByGenotype) rod).getCalledGenotype();
-                List<String> alleles = new ArrayList<String>();
+                List<VCFGenotypeEncoding> alleles = new ArrayList<VCFGenotypeEncoding>();
                 for (char base : genotype.getBases().toCharArray()) {
-                    alleles.add(String.valueOf(base));
-                    if (base != ref.getBase() && !alts.contains(String.valueOf(base))) alts.add(String.valueOf(base));
+                    alleles.add(new VCFGenotypeEncoding(String.valueOf(base)));
+                    if (base != ref.getBase() && !alts.contains(String.valueOf(base))) alts.add(new VCFGenotypeEncoding(String.valueOf(base)));
                 }
                 int allele1 = BaseUtils.simpleBaseToBaseIndex(genotype.getBases().charAt(0));
                 int allele2 = BaseUtils.simpleBaseToBaseIndex(genotype.getBases().charAt(1));
@@ -141,9 +138,9 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
                 snpQual += av.getNegLog10PError();
             } else {
                 Map<String, String> str = new HashMap<String, String>();
-                List<String> alleles = new ArrayList<String>();
-                alleles.add(String.valueOf(ref.getBase()));
-                alleles.add(String.valueOf(ref.getBase()));
+                List<VCFGenotypeEncoding> alleles = new ArrayList<VCFGenotypeEncoding>();
+                alleles.add(new VCFGenotypeEncoding(String.valueOf(ref.getBase())));
+                alleles.add(new VCFGenotypeEncoding(String.valueOf(ref.getBase())));
                 gt.add(new VCFGenotypeRecord(name, alleles, VCFGenotypeRecord.PHASE.UNPHASED, str));
 
                 numRefs++;

@@ -91,7 +91,7 @@ public class RodVCFTest extends BaseTest {
     @Test
     public void testToString() {
         // slightly altered line, due to map ordering
-        String firstLine = "20\t14370\trs6054257\tG\tA\t29.00\t0\tDP=258;AF=0.786;NS=58\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5\n";
+        final String firstLine = "20\t14370\trs6054257\tG\tA\t29.00\t0\tDP=258;AF=0.786;NS=58\tGT:GQ:DP:HQ\t0|0:48:1:51,51\t1|0:48:8:51,51\t1/1:43:5\n";
         RodVCF vcf = getVCFObject();
         VCFReader reader = new VCFReader(vcfFile);
         Iterator<RodVCF> iter = vcf.createIterator("VCF", vcfFile);

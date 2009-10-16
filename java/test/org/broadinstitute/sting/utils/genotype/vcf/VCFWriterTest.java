@@ -24,7 +24,7 @@ public class VCFWriterTest extends BaseTest {
     /** test, using the writer and reader, that we can output and input a VCF file without problems */
     @Test
     public void testBasicWriteAndRead() {
-        VCFHeader header = createFakeHeader();
+        VCFHeader header = createFakeHeader(metaData,additionalColumns);
         VCFWriter writer = new VCFWriter(header,fakeVCFFile);
         writer.addRecord(createVCFRecord(header));
         writer.addRecord(createVCFRecord(header));
@@ -45,7 +45,7 @@ public class VCFWriterTest extends BaseTest {
      * create a fake header of known quantity
      * @return a fake VCF header
      */
-    private VCFHeader createFakeHeader() {
+    public static VCFHeader createFakeHeader(Map<String, String> metaData, List<String> additionalColumns) {
         metaData.put("format", "VCRv3.2"); // required
         metaData.put("two", "2");
         additionalColumns.add("FORMAT");
@@ -60,9 +60,9 @@ public class VCFWriterTest extends BaseTest {
      * @return a VCFRecord
      */
     private VCFRecord createVCFRecord(VCFHeader header) {
-        List<String> altBases = new ArrayList<String>();
-        altBases.add("C");
-        altBases.add("D1");
+        List<VCFGenotypeEncoding> altBases = new ArrayList<VCFGenotypeEncoding>();
+        altBases.add(new VCFGenotypeEncoding("C"));
+        altBases.add(new VCFGenotypeEncoding("D1"));
         Map<String,String> infoFields = new HashMap<String,String>();
         infoFields.put("DP","50");
 
@@ -71,9 +71,9 @@ public class VCFWriterTest extends BaseTest {
             Map<String,String> str = new HashMap<String,String>();
             str.put("bb","0");
 
-            List<String> myAlleles = new ArrayList<String>();
-            myAlleles.add("C");
-            myAlleles.add("D1");
+            List<VCFGenotypeEncoding> myAlleles = new ArrayList<VCFGenotypeEncoding>();
+            myAlleles.add(new VCFGenotypeEncoding("C"));
+            myAlleles.add(new VCFGenotypeEncoding("D1"));
             gt.add(new VCFGenotypeRecord(name, myAlleles, VCFGenotypeRecord.PHASE.PHASED, str));
         }
         return new VCFRecord('A',"chr1",1,"RANDOM",altBases,0,".",infoFields, "GT:AA",gt);

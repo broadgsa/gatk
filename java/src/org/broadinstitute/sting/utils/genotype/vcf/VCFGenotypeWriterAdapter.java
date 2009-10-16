@@ -199,8 +199,8 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         map.put("GQ", String.format("%.2f", qual));
         params.addFormatItem("GQ");
 
-        List<String> alleles = createAlleleArray(gtype);
-        for (String allele : alleles) {
+        List<VCFGenotypeEncoding> alleles = createAlleleArray(gtype);
+        for (VCFGenotypeEncoding allele : alleles) {
             params.addAlternateBase(allele);
         }
 
@@ -218,10 +218,10 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      *
      * @return a list of string representing the string array of alleles
      */
-    private List<String> createAlleleArray(Genotype gtype) {
-        List<String> alleles = new ArrayList<String>();
+    private List<VCFGenotypeEncoding> createAlleleArray(Genotype gtype) {
+        List<VCFGenotypeEncoding> alleles = new ArrayList<VCFGenotypeEncoding>();
         for (char allele : gtype.getBases().toCharArray()) {
-            alleles.add(String.valueOf(allele));
+            alleles.add(new VCFGenotypeEncoding(String.valueOf(allele)));
         }
         return alleles;
     }

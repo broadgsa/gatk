@@ -4,8 +4,11 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.genotype.BasicGenotype;
+import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeEncoding;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
@@ -115,8 +118,8 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         this.assertNotNull();
         if (!mCurrentRecord.hasAlternateAllele())
             return false;
-        for (String alt : this.mCurrentRecord.getAlternateAlleles()) {
-            if (alt.length() != 1)
+        for (VCFGenotypeEncoding alt : this.mCurrentRecord.getAlternateAlleles()) {
+            if (alt.getType() != VCFGenotypeEncoding.TYPE.SINGLE_BASE)
                 return false;
         }
         return true;
@@ -132,8 +135,8 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         this.assertNotNull();
         if (!mCurrentRecord.hasAlternateAllele())
             return false;
-        for (String alt : this.mCurrentRecord.getAlternateAlleles()) {
-            if (alt.startsWith("I"))
+        for (VCFGenotypeEncoding alt : this.mCurrentRecord.getAlternateAlleles()) {
+            if (alt.getType() == VCFGenotypeEncoding.TYPE.INSERTION)
                 return true;
         }
         return false;
@@ -149,8 +152,8 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         this.assertNotNull();
         if (!mCurrentRecord.hasAlternateAllele())
             return false;
-        for (String alt : this.mCurrentRecord.getAlternateAlleles()) {
-            if (alt.startsWith("D"))
+        for (VCFGenotypeEncoding alt : this.mCurrentRecord.getAlternateAlleles()) {
+            if (alt.getType() == VCFGenotypeEncoding.TYPE.DELETION)
                 return true;
         }
         return false;
@@ -208,7 +211,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     public String getAlternateBases() {
         if (!this.isBiallelic())
             throw new UnsupportedOperationException("We're not biallelic, so please call getAlternateBaseList instead");
-        return this.mCurrentRecord.getAlternateAlleles().get(0);
+        return this.mCurrentRecord.getAlternateAlleles().get(0).toString();
     }
 
     /**
@@ -218,7 +221,10 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
      */
     @Override
     public List<String> getAlternateBaseList() {
-        return this.mCurrentRecord.getAlternateAlleles();
+        List<String> list = new ArrayList<String>();
+        for (VCFGenotypeEncoding enc : mCurrentRecord.getAlternateAlleles())
+            list.add(enc.toString());
+        return list;
     }
 
     /**
@@ -240,7 +246,8 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     @Override
     public char getAlternativeBaseForSNP() {
         if (!isSNP()) throw new IllegalStateException("we're not a SNP");
-        return mCurrentRecord.getAlternateAlleles().get(0).charAt(0);
+        if (mCurrentRecord.getAlternateAlleles().size() != 1) throw new UnsupportedOperationException("We're not a biallelic VCF site");
+        return (mCurrentRecord.getAlternateAlleles().get(0).toString()).charAt(0);
     }
 
     /**
