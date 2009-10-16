@@ -41,7 +41,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
 
     public void initialize() {
         ug = new UnifiedGenotyper();
-        ug.initializePublic();
+        ug.initialize();
         refWindow = new ReferenceContextWindow(nPreviousBases);
     }
 

@@ -85,13 +85,27 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
     /**
      * Initialize the samples, output, and genotype calculation model
      *
-     * *** OTHER WALKERS SHOULD NOT CALL THIS METHOD.  USE initializePublic() INSTEAD! ***
-     * 
      **/
     public void initialize() {
 
-        initializePublic();
+        // get all of the unique sample names
+        samples = new HashSet<String>();
+        List<SAMReadGroupRecord> readGroups = getToolkit().getSAMFileHeader().getReadGroups();
+        for ( SAMReadGroupRecord readGroup : readGroups )
+            samples.add(readGroup.getSample());
 
+        // print them out for debugging (need separate loop to ensure uniqueness)
+        for ( String sample : samples )
+            logger.debug("SAMPLE: " + sample);
+
+        gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC);
+
+        // *** If we were called by another walker, then we don't ***
+        // *** want to do any of the other initialization steps.  ***
+        if ( VARIANTS_FILE == null && out == null )
+            return;
+
+        // if we got here, then we were instantiated by the GATK engine
         calledByAnotherWalker = false;
 
         // create the output writer stream
@@ -105,25 +119,6 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
                                                   this.getToolkit().getArguments().referenceFile.getName(),
                                                   samples);
         callsMetrics = new CallMetrics();
-    }
-
-    /**
-     * This method should be called by other walkers wanting to use the UnifiedGenotyper.
-     * If the regular initialize() method is called, subsequent calls to map() may result in
-     * exceptions being thrown.
-     */
-    public void initializePublic() {
-        // get all of the unique sample names
-        samples = new HashSet<String>();
-        List<SAMReadGroupRecord> readGroups = getToolkit().getSAMFileHeader().getReadGroups();
-        for ( SAMReadGroupRecord readGroup : readGroups )
-            samples.add(readGroup.getSample());
-
-        // print them out for debugging (need separate loop to ensure uniqueness)
-        for ( String sample : samples )
-            logger.debug("SAMPLE: " + sample);
-
-        gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC);
     }
 
     /**

@@ -37,7 +37,7 @@ public class DeNovoSNPWalker extends RefWalker<String, Integer>{
 
     public void initialize() {
          UG = new UnifiedGenotyper();
-         UG.initializePublic();
+         UG.initialize();
 
          readGroupSets = getToolkit().getMergedReadGroupsByReaders();
      }
