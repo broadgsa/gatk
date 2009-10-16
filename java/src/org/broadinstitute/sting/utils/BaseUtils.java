@@ -232,6 +232,22 @@ public class BaseUtils {
     }
 
     /**
+     * Complement a byte array of bases (that is, chars casted to bytes, *not* base indices in byte form)
+     *
+     * @param bases  the byte array of bases
+     * @return the complement of the base byte array
+     */
+    static public byte[] simpleComplement(byte[] bases) {
+        byte[] rcbases = new byte[bases.length];
+
+        for (int i = 0; i < bases.length; i++) {
+            rcbases[i] = (byte)simpleComplement((char) bases[i]);
+        }
+
+        return rcbases;
+    }
+
+    /**
      * Reverse complement a String of bases.  Preserves ambiguous bases.
      *
      * @param bases  the String of bases
@@ -239,6 +255,17 @@ public class BaseUtils {
      */
     static public String simpleReverseComplement(String bases) {
         return new String(simpleReverseComplement(bases.getBytes()));
+    }
+
+
+    /**
+     * Complement a String of bases.  Preserves ambiguous bases.
+     *
+     * @param bases  the String of bases
+     * @return the complement of the String
+     */
+    static public String simpleComplement(String bases) {
+        return new String(simpleComplement(bases.getBytes()));
     }
 
     /**
