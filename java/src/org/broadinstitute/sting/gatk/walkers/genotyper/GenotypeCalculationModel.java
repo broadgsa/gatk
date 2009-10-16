@@ -26,6 +26,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform defaultPlatform;
     protected boolean GENOTYPE_MODE;
     protected boolean POOLED_INPUT;
+    protected int POOL_SIZE;
     protected double LOD_THRESHOLD;
     protected int maxDeletionsInPileup;
     protected boolean VERBOSE;
@@ -53,6 +54,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         defaultPlatform = UAC.defaultPlatform;
         GENOTYPE_MODE = UAC.GENOTYPE;
         POOLED_INPUT = UAC.POOLED;
+        POOL_SIZE = UAC.POOLSIZE;
         LOD_THRESHOLD = UAC.LOD_THRESHOLD;
         maxDeletionsInPileup = UAC.MAX_DELETIONS;
         VERBOSE = UAC.VERBOSE;

@@ -7,6 +7,7 @@ import java.util.ArrayList;
 
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 /**
  * Created by IntelliJ IDEA.
@@ -25,6 +26,33 @@ public class PoolUtils {
     public static final int BASE_G_OFFSET = 2;
     public static final int BASE_T_OFFSET = 3;
     public static final int BASE_INDEXED_ARRAY_SIZE = 4;
+
+    public static Pair<List<SAMRecord>, List<Integer>> splitReadsByIndels( List<SAMRecord> reads, List<Integer> offsets, boolean returnBases ) {
+
+        List<SAMRecord> baseReads = new ArrayList<SAMRecord>();
+        List<SAMRecord> indelReads = new ArrayList<SAMRecord>();
+        List<Integer> baseOffsets = new ArrayList<Integer>();
+        List<Integer> indelOffsets = new ArrayList<Integer>();
+
+
+        for ( int r = 0; r < reads.size(); r ++ ) {
+            SAMRecord read = reads.get(r);
+            int offset = offsets.get(r);
+            if (BaseUtils.isRegularBase( (char) read.getReadBases()[offset] ) ) {
+                baseReads.add(read);
+                baseOffsets.add(offset);
+            } else {
+                indelReads.add(read);
+                indelOffsets.add(offset);
+            }
+        }
+
+        if (returnBases) {
+            return new Pair<List<SAMRecord>,List<Integer>>(baseReads,baseOffsets);
+        } else {
+            return new Pair<List<SAMRecord>,List<Integer>>(indelReads,indelOffsets);
+        }
+    }
 
     public static ReadOffsetQuad splitReadsByReadDirection(List<SAMRecord> reads, List<Integer> offsets) {
         ArrayList<SAMRecord> forwardReads;

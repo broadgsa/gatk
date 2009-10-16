@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
@@ -87,6 +88,10 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
      *
      **/
     public void initialize() {
+
+        if ( UAC.POOLED && UAC.genotypeModel == GenotypeCalculationModel.Model.EM_POINT_ESTIMATE ) {
+            throw new StingException("This was an attempt to use an EM Point Estimate model with pooled genotype calculations. This model does not work with pooled data.");
+        }
 
         // get all of the unique sample names
         samples = new HashSet<String>();

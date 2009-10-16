@@ -31,7 +31,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 public class UnifiedArgumentCollection {
 
     // control the various models to be used
-    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- EM_POINT_ESTIMATE is currently the default, while EM_ALL_MAFS is under development", required = false)
+    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- EM_POINT_ESTIMATE is currently the default, while EM_ALL_MAFS is under development.  An exception will be thrown if an attempt is made to use EM_POINT_ESTIMATE with a pooled genotype calculation.", required = false)
     public GenotypeCalculationModel.Model genotypeModel = GenotypeCalculationModel.Model.EM_POINT_ESTIMATE;
 
     @Argument(fullName = "base_model", shortName = "bm", doc = "Base substitution model to employ -- EMPIRICAL is the recommended default, but it's possible to select the ONE_STATE and THREE_STATE models for comparison purposes", required = false)
@@ -42,6 +42,9 @@ public class UnifiedArgumentCollection {
 
     @Argument(fullName = "pooled", shortName = "pooled", doc = "Does the input bam represent pooled data (so that genotypes can't be called)?", required = false)
     public boolean POOLED = false;
+
+    @Argument(fullName = "poolSize", shortName = "ps", doc = "Number of individuals in the pool", required = false)
+    public int POOLSIZE = 0;
 
 
     // control the output

@@ -386,7 +386,7 @@ abstract public class BasicPileup implements Pileup {
     }
 
     public static class BaseCounts {
-        int a, c, t, g;
+       public int a, c, t, g;
 
         public BaseCounts(int a, int c, int t, int g) {
             this.a = a;
