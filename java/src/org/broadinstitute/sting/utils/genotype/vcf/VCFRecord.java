@@ -376,7 +376,9 @@ public class VCFRecord {
             }
         }
         if (gMap.size() != 0) {
-            throw new RuntimeException("We failed to use all the genotype samples; their must be an incosistancy between the header and records");   
+            for (String sample : gMap.keySet())
+                System.err.println("Sample " + sample + " is being genotyped but isn't in the header.");
+            throw new RuntimeException("We failed to use all the genotype samples; there must be an inconsistancy between the header and records");
         }
     }
 
