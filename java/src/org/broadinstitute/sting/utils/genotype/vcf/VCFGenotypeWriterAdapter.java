@@ -21,23 +21,26 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     private String mSource;
     private String mReferenceName;
     private boolean mInitialized = false;
+    private final Set<String> mSampleNames = new HashSet<String>();
     private final File mFile;
     private final OutputStream mStream;
 
-    public VCFGenotypeWriterAdapter(String source, String referenceName, File writeTo) {
+    public VCFGenotypeWriterAdapter(String source, String referenceName, File writeTo, Set<String> sampleNames) {
         mReferenceName = referenceName;
         mSource = source;
         mFile = writeTo;
         if (mFile == null) throw new RuntimeException("VCF output file must not be null");
         mStream = null;
+        mSampleNames.addAll(sampleNames);
     }
 
-    public VCFGenotypeWriterAdapter(String source, String referenceName, OutputStream writeTo) {
+    public VCFGenotypeWriterAdapter(String source, String referenceName, OutputStream writeTo, Set<String> sampleNames) {
         mReferenceName = referenceName;
         mSource = source;
         mFile = null;
         mStream = writeTo;
         if (mStream == null) throw new RuntimeException("VCF output stream must not be null");
+        mSampleNames.addAll(sampleNames);
 
     }
 
@@ -49,7 +52,6 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      */
     private void lazyInitialize(List<Genotype> genotypes, File file, OutputStream stream) {
         Map<String, String> hInfo = new HashMap<String, String>();
-        List<String> sampleNames = getSampleNames(genotypes);
 
         // setup the header fields
         hInfo.put("format", "VCRv3.2");
@@ -57,7 +59,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         hInfo.put("reference", mReferenceName);
 
         // setup the sample names
-        mHeader = new VCFHeader(hInfo, sampleNames);
+        mHeader = new VCFHeader(hInfo, mSampleNames);
         if (mFile == null)
             mWriter = new VCFWriter(mHeader, stream);
         else

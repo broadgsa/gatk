@@ -126,7 +126,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
     protected VCFHeader createHeader(List<String> headerStrings) {
 
         Map<String, String> metaData = new HashMap<String, String>();
-        List<String> auxTags = new ArrayList<String>();
+        Set<String> auxTags = new HashSet<String>();
         // iterate over all the passed in strings
         for (String str : headerStrings) {
             Matcher matcher = pMeta.matcher(str);

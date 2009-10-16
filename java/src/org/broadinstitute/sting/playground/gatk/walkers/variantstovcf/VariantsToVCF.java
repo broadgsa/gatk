@@ -49,7 +49,7 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
 
     public static VCFHeader getHeader(GATKArgumentCollection args, Set<String> sampleNames) {
         Map<String, String> metaData = new HashMap<String, String>();
-        List<String> additionalColumns = new ArrayList<String>();
+        Set<String> additionalColumns = new HashSet<String>();
 
         // Don't output the data for now because it kills our unit test MD5s and is optional
         // TODO - figure out what to do here

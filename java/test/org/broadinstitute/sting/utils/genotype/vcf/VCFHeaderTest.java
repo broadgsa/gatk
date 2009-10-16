@@ -19,7 +19,7 @@ public class VCFHeaderTest extends BaseTest {
 
     private Set<VCFHeader.HEADER_FIELDS> headerFields = new LinkedHashSet<VCFHeader.HEADER_FIELDS>();
     private Map<String, String> metaData = new HashMap();
-    private List<String> additionalColumns = new ArrayList<String>();
+    private Set<String> additionalColumns = new HashSet<String>();
 
     /**
      * give it fake data, and make sure we get back the right fake data

@@ -4,10 +4,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -126,7 +123,7 @@ public class VCFRecordTest extends BaseTest {
      */
     public static VCFHeader createFakeHeader() {
         Map<String, String> metaData = new HashMap();
-        List<String> additionalColumns = new ArrayList<String>();
+        Set<String> additionalColumns = new HashSet<String>();
         metaData.put("format", "VCRv3.2"); // required
         metaData.put("two", "2");
         additionalColumns.add("FORMAT");

@@ -18,7 +18,7 @@ import java.util.*;
 public class VCFWriterTest extends BaseTest {
     private Set<VCFHeader.HEADER_FIELDS> headerFields = new LinkedHashSet<VCFHeader.HEADER_FIELDS>();
     private Map<String, String> metaData = new HashMap();
-    private List<String> additionalColumns = new ArrayList<String>();
+    private Set<String> additionalColumns = new HashSet<String>();
     private File fakeVCFFile = new File("FAKEVCFFILEFORTESTING.vcf");
 
     /** test, using the writer and reader, that we can output and input a VCF file without problems */
@@ -45,7 +45,7 @@ public class VCFWriterTest extends BaseTest {
      * create a fake header of known quantity
      * @return a fake VCF header
      */
-    public static VCFHeader createFakeHeader(Map<String, String> metaData, List<String> additionalColumns) {
+    public static VCFHeader createFakeHeader(Map<String, String> metaData, Set<String> additionalColumns) {
         metaData.put("format", "VCRv3.2"); // required
         metaData.put("two", "2");
         additionalColumns.add("FORMAT");

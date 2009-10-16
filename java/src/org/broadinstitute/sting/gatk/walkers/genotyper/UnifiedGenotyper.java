@@ -98,10 +98,12 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
         if ( VARIANTS_FILE != null )
             writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE,
                                                   "UnifiedGenotyper",
-                                                  this.getToolkit().getArguments().referenceFile.getName());
+                                                  this.getToolkit().getArguments().referenceFile.getName(),
+                                                  samples);
         else
             writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out, "UnifiedGenotyper",
-                                                  this.getToolkit().getArguments().referenceFile.getName());
+                                                  this.getToolkit().getArguments().referenceFile.getName(),
+                                                  samples);
         callsMetrics = new CallMetrics();
     }
 

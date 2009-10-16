@@ -9,6 +9,8 @@ import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeWriterAdapter;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -31,7 +33,12 @@ public class GenotypeWriterFactory {
      * @param destination the destination file
      * @return the genotype writer object
      */
-    public static GenotypeWriter create(GENOTYPE_FORMAT format, SAMFileHeader header, File destination, String source, String referenceName ) {
+    public static GenotypeWriter create(GENOTYPE_FORMAT format,
+                                        SAMFileHeader header,
+                                        File destination,
+                                        String source,
+                                        String referenceName,
+                                        Set<String> sampleNames ) {
         switch (format) {
             case GLF:
                 return new GLFWriter(header.toString(), destination);
@@ -40,20 +47,25 @@ public class GenotypeWriterFactory {
             case GELI_BINARY:
                 return new GeliAdapter(destination, header);
             case VCF:
-                return new VCFGenotypeWriterAdapter(source, referenceName, destination);
+                return new VCFGenotypeWriterAdapter(source, referenceName, destination, sampleNames);
             default:
                 throw new StingException("Genotype writer " + format.toString() + " is not implemented");
         }
     }
 
-    public static GenotypeWriter create(GENOTYPE_FORMAT format, SAMFileHeader header, PrintStream destination, String source, String referenceName ) {
+    public static GenotypeWriter create(GENOTYPE_FORMAT format,
+                                        SAMFileHeader header,
+                                        PrintStream destination,
+                                        String source,
+                                        String referenceName,
+                                        Set<String> sampleNames ) {
         switch (format) {
             case GELI:
                 return new GeliTextWriter(destination);
             case GLF:
                 return new GLFWriter(header.toString(), destination);
             case VCF:
-                return new VCFGenotypeWriterAdapter(source, referenceName, destination);
+                return new VCFGenotypeWriterAdapter(source, referenceName, destination, sampleNames);
             default:
                 throw new StingException("Genotype writer to " + format.toString() + " to standard output is not implemented");
         }

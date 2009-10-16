@@ -23,7 +23,7 @@ public class VCFHeader {
     private final Map<String, String> mMetaData = new HashMap<String, String>();
 
     // the list of auxillary tags
-    private final List<String> mGenotypeSampleNames = new ArrayList<String>();
+    private final Set<String> mGenotypeSampleNames = new HashSet<String>();
 
     // the character string that indicates meta data
     public static final String METADATA_INDICATOR = "##";
@@ -56,7 +56,7 @@ public class VCFHeader {
      * @param metaData            the meta data associated with this header
      * @param genotypeSampleNames the genotype format field, and the sample names
      */
-    public VCFHeader(Map<String, String> metaData, List<String> genotypeSampleNames) {
+    public VCFHeader(Map<String, String> metaData, Set<String> genotypeSampleNames) {
         for (String key : metaData.keySet()) mMetaData.put(key, metaData.get(key));
         for (String col : genotypeSampleNames) {
             if (!col.equals("FORMAT"))
@@ -107,7 +107,7 @@ public class VCFHeader {
      *
      * @return a list of the genotype column names, which may be empty if hasGenotypingData() returns false
      */
-    public List<String> getGenotypeSamples() {
+    public Set<String> getGenotypeSamples() {
         return mGenotypeSampleNames;
     }
 
