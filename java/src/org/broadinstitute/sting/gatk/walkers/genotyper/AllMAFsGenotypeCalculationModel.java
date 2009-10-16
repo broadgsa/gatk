@@ -11,7 +11,7 @@ public class AllMAFsGenotypeCalculationModel extends EMGenotypeCalculationModel 
 
     protected AllMAFsGenotypeCalculationModel() {}
 
-    protected double[] initializeAlleleFrequencies(int numSamples,  int[] baseCounts) {
+    protected double[] initializeAlleleFrequencies(int numSamples, char ref) {
         double[] alleleFrequencies = new double[2 * numSamples + 1];   // 2N + 1 possible minor alleles
 
 

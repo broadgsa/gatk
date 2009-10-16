@@ -19,7 +19,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
         if ( samples.size() == 1 ) {
 
             // split the context (so we can get forward/reverse contexts for free)
-            HashMap<String, AlignmentContextBySample> contexts = splitContextBySample(context, new int[4]);
+            HashMap<String, AlignmentContextBySample> contexts = splitContextBySample(context);
             if ( contexts == null )
                 return null;
 
@@ -53,16 +53,13 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
         return new Pair<ReadBackedPileup, GenotypeLikelihoods>(pileup, GL);
     }
 
-    protected double[] initializeAlleleFrequencies(int numSamplesInContext,  int[] baseCounts) {
-        // An intelligent guess would be the observed base ratios
-        // (plus some small number to account for sampling issues).
-        int totalObservedBases = 0;
-        for (int i = 0; i < 4; i++)
-            totalObservedBases += baseCounts[i];
+    protected double[] initializeAlleleFrequencies(int numSamplesInContext, char ref) {
+        // Initialization values from Jared's original MSG code
+        double NON_REF = 0.0005002502;  // heterozygosity / (2 * sqrt(1-heterozygosity)
+        double REF = 0.9994999; //sqrt(1-heterozygosity)
 
-        double[] alleleFrequencies = new double[4];
-        for (int i = 0; i < 4; i++)
-            alleleFrequencies[i] = ((double)baseCounts[i] + DiploidGenotypePriors.HUMAN_HETEROZYGOSITY) / (double)totalObservedBases;
+        double[] alleleFrequencies = {NON_REF, NON_REF, NON_REF, NON_REF};
+        alleleFrequencies[BaseUtils.simpleBaseToBaseIndex(ref)] = REF;
         return alleleFrequencies;
     }
 
