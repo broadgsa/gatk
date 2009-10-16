@@ -90,7 +90,10 @@ public class VCFGenotypeRecord {
         String str = "";
         boolean first = true;
         for (VCFGenotypeEncoding allele : mGenotypeAlleles) {
-            str += String.valueOf((altAlleles.contains(allele)) ? altAlleles.indexOf(allele) + 1 : 0);
+            if (allele.getType() == VCFGenotypeEncoding.TYPE.UNCALLED)
+                str += VCFGenotypeRecord.EMPTY_GENOTYPE;
+            else
+                str += String.valueOf((altAlleles.contains(allele)) ? altAlleles.indexOf(allele) + 1 : 0);
             if (first) {
                 switch (mPhaseType) {
                     case UNPHASED:

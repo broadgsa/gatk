@@ -25,7 +25,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
     private static Pattern pMeta = Pattern.compile("^" + VCFHeader.METADATA_INDICATOR + "\\s*(\\S+)\\s*=\\s*(\\S+)\\s*$");
 
     // our pattern matching for the genotype mFields
-    private static final Pattern gtPattern = Pattern.compile("([0-9]+)([\\\\|\\/])([0-9]*)");
+    private static final Pattern gtPattern = Pattern.compile("([0-9\\.]+)([\\\\|\\/])([0-9\\.]*)");
 
     /**
      * Create a VCF reader, given a VCF file
@@ -48,7 +48,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
                 lines.add(line);
                 line = mReader.readLine();
             }
-            mHeader = this.createHeader(lines);            
+            mHeader = this.createHeader(lines);
             mNextRecord = createRecord(line, mHeader);
         } catch (IOException e) {
             throw new RuntimeException("VCFReader: Failed to parse VCF File on line: " + line, e);
@@ -236,8 +236,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
                 phase = VCFGenotypeRecord.determinePhase(m.group(2));
                 addAllele(m.group(1), altAlleles, referenceBase, bases);
                 if (m.group(3).length() > 0) addAllele(m.group(3), altAlleles, referenceBase, bases);
-            }
-            else {
+            } else {
                 tagToValue.put(key, parse);
             }
             if (nextDivider + 1 >= genotypeString.length()) nextDivider = genotypeString.length() - 1;
@@ -263,14 +262,18 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * @param bases         the list of bases for this genotype call
      */
     private static void addAllele(String alleleNumber, String[] altAlleles, char referenceBase, List<VCFGenotypeEncoding> bases) {
-        int alleleValue = Integer.valueOf(alleleNumber);
-        // check to make sure the allele value is within bounds
-        if (alleleValue < 0 || alleleValue > altAlleles.length)
-            throw new IllegalArgumentException("VCFReader: the allele value of " + alleleValue + " is out of bounds given the alternate allele list.");
-        if (alleleValue == 0)
-            bases.add(new VCFGenotypeEncoding(String.valueOf(referenceBase)));
-        else
-            bases.add(new VCFGenotypeEncoding(altAlleles[alleleValue - 1]));
+        if (alleleNumber.equals(VCFGenotypeRecord.EMPTY_GENOTYPE)) {
+            bases.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_GENOTYPE));
+        } else {
+            int alleleValue = Integer.valueOf(alleleNumber);
+            // check to make sure the allele value is within bounds
+            if (alleleValue < 0 || alleleValue > altAlleles.length)
+                throw new IllegalArgumentException("VCFReader: the allele value of " + alleleValue + " is out of bounds given the alternate allele list.");
+            if (alleleValue == 0)
+                bases.add(new VCFGenotypeEncoding(String.valueOf(referenceBase)));
+            else
+                bases.add(new VCFGenotypeEncoding(altAlleles[alleleValue - 1]));
+        }
     }
 
 

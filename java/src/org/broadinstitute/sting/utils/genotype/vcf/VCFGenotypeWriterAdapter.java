@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broadinstitute.sting.utils.genotype.*;
+import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -24,6 +25,10 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     private final Set<String> mSampleNames = new HashSet<String>();
     private final File mFile;
     private final OutputStream mStream;
+
+    /** our log, which we want to capture anything from this class */
+    protected static Logger logger = Logger.getLogger(VCFGenotypeWriterAdapter.class);
+
 
     public VCFGenotypeWriterAdapter(String source, String referenceName, File writeTo, Set<String> sampleNames) {
         mReferenceName = referenceName;
@@ -125,12 +130,32 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         VCFParameters params = new VCFParameters();
         params.addFormatItem("GT");
 
-        for (Genotype gtype : genotypes) {
-            // setup the parameters
-            params.setLocations(gtype.getLocation(), gtype.getReference());
+        // mapping of our sample names to genotypes
+        if (genotypes.size() < 1) {
+            throw new IllegalArgumentException("Unable to parse out the current location: genotype array must at least contain one entry");
+        }
 
-            VCFGenotypeRecord record = createVCFGenotypeRecord(params, gtype);
-            params.addGenotypeRecord(record);
+        // get the location and reference
+        params.setLocations(genotypes.get(0).getLocation(), genotypes.get(0).getReference());
+
+        Map<String, Genotype> genotypeMap = genotypeListToSampleNameMap(genotypes);
+
+        for (String name : mHeader.getGenotypeSamples()) {
+            if (genotypeMap.containsKey(name)) {
+                Genotype gtype = genotypeMap.get(name);
+                VCFGenotypeRecord record = createVCFGenotypeRecord(params, gtype);
+                params.addGenotypeRecord(record);
+                genotypeMap.remove(name);
+            } else {
+                VCFGenotypeRecord record = createNoCallRecord(params, name);
+                params.addGenotypeRecord(record);
+            }
+        }
+
+        if (genotypeMap.size() > 0) {
+            for (String name : genotypeMap.keySet())
+                logger.fatal("Genotype " + name + " was present in the VCFHeader");
+            throw new IllegalArgumentException("Genotype array passed to VCFGenotypeWriterAdapter contained Genotypes not in the VCF header");
         }
 
         Map<String, String> infoFields = getInfoFields(metadata, params);
@@ -214,6 +239,29 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     }
 
     /**
+     * create a no call record
+     *
+     * @param params     the VCF parameters object
+     * @param sampleName the sample name
+     *
+     * @return a VCFGenotypeRecord for the no call situation
+     */
+    private VCFGenotypeRecord createNoCallRecord(VCFParameters params, String sampleName) {
+        Map<String, String> map = new HashMap<String, String>();
+
+
+        List<VCFGenotypeEncoding> alleles = new ArrayList<VCFGenotypeEncoding>();
+        alleles.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_GENOTYPE));
+        alleles.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_GENOTYPE));
+
+        VCFGenotypeRecord record = new VCFGenotypeRecord(sampleName,
+                                                         alleles,
+                                                         VCFGenotypeRecord.PHASE.UNPHASED,
+                                                         map);
+        return record;
+    }
+
+    /**
      * create the allele array?
      *
      * @param gtype the gentoype object
@@ -232,6 +280,23 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     @Override
     public boolean supportsMultiSample() {
         return true;
+    }
+
+    /**
+     * create a genotype mapping from a list and their sample names
+     *
+     * @param list a list of genotype samples
+     *
+     * @return a mapping of the sample name to genotype fields
+     */
+    private static Map<String, Genotype> genotypeListToSampleNameMap(List<Genotype> list) {
+        Map<String, Genotype> map = new HashMap<String, Genotype>();
+        for (Genotype rec : list) {
+            if (!(rec instanceof SampleBacked))
+                throw new IllegalArgumentException("Genotype must be backed by sample information");
+            map.put(((SampleBacked) rec).getSampleName(), rec);
+        }
+        return map;
     }
 
 }
