@@ -1,0 +1,3 @@
+<ivy-module version="1.0">
+    <info organisation="edu.mit.broad" module="picard-private" revision="1084" status="integration" publication="20091016142400" />
+</ivy-module>
