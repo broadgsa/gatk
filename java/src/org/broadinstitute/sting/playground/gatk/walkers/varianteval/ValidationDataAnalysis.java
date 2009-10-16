@@ -40,17 +40,21 @@ public class ValidationDataAnalysis extends BasicVariantAnalysis implements Geno
                 calls_at_validated_sites++;
             }
         }
-        out.println(context.getLocation());
+        //out.println(context.getLocation());
 
-        return "";
+        return null;
     }
 
     public List<String> done() {
         List<String> s = new ArrayList<String>();
-        s.add(String.format("validated sites               %d", validated_sites));
-        s.add(String.format("calls at validated sites      %d", calls_at_sites_validated_true));
-        s.add(String.format("calls at sites validated true %d", calls_at_validated_sites));
-        s.add(String.format("%% validated true             %f", (float) calls_at_validated_sites / calls_at_sites_validated_true));
+        if (calls_at_validated_sites > 0) { // only output info if there were any validation sites encountered
+            s.add(String.format("validated sites               %d", validated_sites));
+            s.add(String.format("calls at validated sites      %d", calls_at_validated_sites));
+            s.add(String.format("calls at sites validated true %d", calls_at_sites_validated_true));
+            s.add(String.format("%% validated true             %f", (float) calls_at_validated_sites / calls_at_sites_validated_true));
+        }else{
+            s.add("No validation data encountered");
+        }
         return s;
     }
 }
