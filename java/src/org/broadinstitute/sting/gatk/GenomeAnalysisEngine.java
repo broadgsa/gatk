@@ -444,7 +444,7 @@ public class GenomeAnalysisEngine {
         // Check to see that no forbidden rods are present.
         for (ReferenceOrderedData<? extends ReferenceOrderedDatum> rod : rods) {
             if (!WalkerManager.isAllowed(walker, rod))
-                throw new ArgumentException(String.format("Walker does not allow access to metadata: %s.  If this is incorrect, change the @Allows metadata", rod.getName()));
+                throw new ArgumentException(String.format("Walker of type %s does not allow access to metadata: %s.  If this is incorrect, change the @Allows metadata", walker.getClass(), rod.getName()));
         }
     }
 
