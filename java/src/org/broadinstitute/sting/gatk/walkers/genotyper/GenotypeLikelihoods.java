@@ -6,6 +6,7 @@ import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
+import java.util.Arrays;
 
 /**
  * Stable, error checking version of the Bayesian genotyper.  Useful for calculating the likelihoods, priors,
@@ -158,9 +159,17 @@ public abstract class GenotypeLikelihoods implements Cloneable {
         double[] normalized = new double[posteriors.length];
         double sum = 0.0;
 
+        // for precision purposes, we need to add (or really subtract, since everything is negative)
+        // the largest posterior value from all entries so that numbers don't get too small
+        double maxValue = posteriors[0];
+        for (int i = 1; i < posteriors.length; i++) {
+            if ( maxValue < posteriors[i] )
+                maxValue = posteriors[i];
+        }
+
         // collect the posteriors
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
-            double posterior = Math.pow(10, getPosterior(g));
+            double posterior = Math.pow(10, getPosterior(g) - maxValue);
             normalized[g.ordinal()] = posterior;
             sum += posterior;
         }
