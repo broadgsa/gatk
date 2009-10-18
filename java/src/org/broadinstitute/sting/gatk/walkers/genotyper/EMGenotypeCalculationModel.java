@@ -13,8 +13,8 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
     // We need to set a limit on the EM iterations in case something flukey goes on
     protected static final int MAX_EM_ITERATIONS = 8;
 
-    // We consider the EM stable when the MAF doesn't change more than 1/1000
-    protected static final double EM_STABILITY_METRIC = 1e-3;
+    // We consider the EM stable when the MAF doesn't change more than 1/10,000
+    protected static final double EM_STABILITY_METRIC = 1e-4;
 
 
     protected EMGenotypeCalculationModel() {}
@@ -75,13 +75,11 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
 
     public EMOutput runEM(char ref, HashMap<String, AlignmentContextBySample> contexts, DiploidGenotypePriors priors, StratifiedContext contextType) {
 
-        // get initial allele frequencies
-        double[] alleleFrequencies = initializeAlleleFrequencies(contexts.size(), ref);
-        for (int i = 0; i < alleleFrequencies.length; i++)
-            logger.debug("Initial allele frequency for i=" + i + ": " + alleleFrequencies[i]);
+        // initialize the allele frequencies
+        initializeAlleleFrequencies(contexts.size(), ref);
 
-        // get the initial genotype likelihoods
-        HashMap<String, GenotypeLikelihoods> GLs = initializeGenotypeLikelihoods(ref, contexts, alleleFrequencies, priors, contextType);
+        // initialize the genotype likelihoods
+        initializeGenotypeLikelihoods(ref, contexts, priors, contextType);
 
         // The EM loop:
         //   we want to continue until the calculation is stable, but we need some max on the number of iterations
@@ -89,59 +87,25 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         boolean EM_IS_STABLE;
 
         do {
-            double[] newAlleleFrequencies = calculateAlleleFrequencyPosteriors(GLs);
-            for (int i = 0; i < alleleFrequencies.length; i++)
-                logger.debug("New allele frequency for i=" + i + ": " + newAlleleFrequencies[i]);
+            calculateAlleleFrequencyPosteriors();
 
-            applyAlleleFrequencyToGenotypeLikelihoods(GLs, newAlleleFrequencies);
+            applyAlleleFrequencyToGenotypeLikelihoods();
 
-            EM_IS_STABLE = isStable(alleleFrequencies, newAlleleFrequencies, contexts.size());
-
-            alleleFrequencies = newAlleleFrequencies;
+            EM_IS_STABLE = isStable();
 
         } while ( ++iterations < MAX_EM_ITERATIONS && !EM_IS_STABLE );
 
         logger.debug("EM loop took " + iterations + " iterations");
-        for ( String sample : GLs.keySet() )
-            logger.debug("GenotypeLikelihoods for sample " + sample + ": " + GLs.get(sample).toString());
 
-        return computePofF(ref, GLs, alleleFrequencies, contexts.size());
+        return computePofF(ref);
     }
 
-    protected abstract double[] initializeAlleleFrequencies(int numSamplesInContext, char ref);
-    protected abstract HashMap<String, GenotypeLikelihoods> initializeGenotypeLikelihoods(char ref, HashMap<String, AlignmentContextBySample> contexts, double[] alleleFrequencies, DiploidGenotypePriors priors, StratifiedContext contextType);
-    protected abstract double[] calculateAlleleFrequencyPosteriors(HashMap<String, GenotypeLikelihoods> GLs);
-    protected abstract void applyAlleleFrequencyToGenotypeLikelihoods(HashMap<String, GenotypeLikelihoods> GLs, double[] alleleFrequencies);
-    protected abstract EMOutput computePofF(char ref, HashMap<String, GenotypeLikelihoods> GLs, double[] alleleFrequencies, int numSamplesInContext);
-
-
-    protected boolean isStable(double[] oldAlleleFrequencies, double[] newAlleleFrequencies, int numSamplesInContext) {
-        // We consider the EM stable when the MAF doesn't change more than EM_STABILITY_METRIC
-        double AF_delta = 0.0;
-        for (int i = 0; i < oldAlleleFrequencies.length; i++)
-            AF_delta += Math.abs(oldAlleleFrequencies[i] - newAlleleFrequencies[i]);
-
-        return (AF_delta < EM_STABILITY_METRIC);  
-    }
-
-    protected DiploidGenotypePriors calculateAlleleFreqBasedPriors(double[] alleleFrequencies) {
-        // convert to log-space
-        double[] log10Freqs = new double[4];
-        for (int i = 0; i < 4; i++)
-            log10Freqs[i] = Math.log10(alleleFrequencies[i]);
-
-        double[] alleleFreqPriors = new double[10];
-
-        // this is the Hardy-Weinberg based allele frequency (p^2, q^2, 2pq)
-        for ( DiploidGenotype g : DiploidGenotype.values() ) {
-            alleleFreqPriors[g.ordinal()] = log10Freqs[BaseUtils.simpleBaseToBaseIndex(g.base1)] + log10Freqs[BaseUtils.simpleBaseToBaseIndex(g.base2)];
-            // add a factor of 2 for the 2pq case
-            if ( g.isHet() )
-                alleleFreqPriors[g.ordinal()] += Math.log10(2);
-        }
-
-        return new DiploidGenotypePriors(alleleFreqPriors);
-    }
+    protected abstract void initializeAlleleFrequencies(int numSamplesInContext, char ref);
+    protected abstract void initializeGenotypeLikelihoods(char ref, HashMap<String, AlignmentContextBySample> contexts, DiploidGenotypePriors priors, StratifiedContext contextType);
+    protected abstract void calculateAlleleFrequencyPosteriors();
+    protected abstract void applyAlleleFrequencyToGenotypeLikelihoods();
+    protected abstract boolean isStable();
+    protected abstract EMOutput computePofF(char ref);
 
     /**
      * Create the mapping from sample to alignment context; also, fill in the base counts along the way.

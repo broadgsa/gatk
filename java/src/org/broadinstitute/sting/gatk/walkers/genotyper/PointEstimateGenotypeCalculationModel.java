@@ -12,6 +12,18 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
     protected PointEstimateGenotypeCalculationModel() {}
 
+    // the allele frequencies
+    private double[] alleleFrequencies = new double[4];
+    private double[] oldAlleleFrequencies;
+
+    // the GenotypeLikelihoods map
+    private HashMap<String, GenotypeLikelihoods> GLs = new HashMap<String, GenotypeLikelihoods>();
+
+    // Allele frequency initialization values from the original MSG code (so we can be consistent)
+    private static final double NON_REF = 0.0005002502;  // heterozygosity / (2 * sqrt(1-heterozygosity)
+    private static final double REF = 0.9994999;         //sqrt(1-heterozygosity)
+
+
     // overload this method so we can special-case the single sample
     public Pair<List<GenotypeCall>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
@@ -53,18 +65,17 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
         return new Pair<ReadBackedPileup, GenotypeLikelihoods>(pileup, GL);
     }
 
-    protected double[] initializeAlleleFrequencies(int numSamplesInContext, char ref) {
-        // Initialization values from Jared's original MSG code
-        double NON_REF = 0.0005002502;  // heterozygosity / (2 * sqrt(1-heterozygosity)
-        double REF = 0.9994999; //sqrt(1-heterozygosity)
-
-        double[] alleleFrequencies = {NON_REF, NON_REF, NON_REF, NON_REF};
+    protected void initializeAlleleFrequencies(int numSamplesInContext, char ref) {
+        for (int i = 0; i < 4; i++)
+            alleleFrequencies[i] = NON_REF;
         alleleFrequencies[BaseUtils.simpleBaseToBaseIndex(ref)] = REF;
-        return alleleFrequencies;
+
+        for (int i = 0; i < 4; i++)
+            logger.debug("Initial allele frequency for " + BaseUtils.baseIndexToSimpleBase(i) + ": " + alleleFrequencies[i]);
     }
 
-    protected HashMap<String, GenotypeLikelihoods> initializeGenotypeLikelihoods(char ref, HashMap<String, AlignmentContextBySample> contexts, double[] alleleFrequencies, DiploidGenotypePriors priors, StratifiedContext contextType) {
-        HashMap<String, GenotypeLikelihoods> GLs = new HashMap<String, GenotypeLikelihoods>();
+    protected void initializeGenotypeLikelihoods(char ref, HashMap<String, AlignmentContextBySample> contexts, DiploidGenotypePriors priors, StratifiedContext contextType) {
+        GLs.clear();
 
         DiploidGenotypePriors AFPriors = calculateAlleleFreqBasedPriors(alleleFrequencies);
 
@@ -79,12 +90,32 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
             GLs.put(sample, GL);
         }
-
-        return GLs;
     }
 
-    protected double[] calculateAlleleFrequencyPosteriors(HashMap<String, GenotypeLikelihoods> GLs) {
-        double[] newAlleleLikelihoods = new double[4];
+    private static DiploidGenotypePriors calculateAlleleFreqBasedPriors(double[] alleleFreqs) {
+        // convert to log-space
+        double[] log10Freqs = new double[4];
+        for (int i = 0; i < 4; i++)
+            log10Freqs[i] = Math.log10(alleleFreqs[i]);
+
+        double[] alleleFreqPriors = new double[10];
+
+        // this is the Hardy-Weinberg based allele frequency (p^2, q^2, 2pq)
+        for ( DiploidGenotype g : DiploidGenotype.values() ) {
+            alleleFreqPriors[g.ordinal()] = log10Freqs[BaseUtils.simpleBaseToBaseIndex(g.base1)] + log10Freqs[BaseUtils.simpleBaseToBaseIndex(g.base2)];
+            // add a factor of 2 for the 2pq case
+            if ( g.isHet() )
+                alleleFreqPriors[g.ordinal()] += Math.log10(2);
+        }
+
+        return new DiploidGenotypePriors(alleleFreqPriors);
+    }
+
+    protected void calculateAlleleFrequencyPosteriors() {
+        // initialization
+        oldAlleleFrequencies = alleleFrequencies.clone();
+        for (int i = 0; i < 4; i++)
+            alleleFrequencies[i] = 0.0;
 
         for ( GenotypeLikelihoods GL : GLs.values() ) {
             double[] normalizedPosteriors = GL.getNormalizedPosteriors();
@@ -98,26 +129,39 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             }
 
             for (int i = 0; i < 4; i++)
-                newAlleleLikelihoods[i] += personalAllelePosteriors[i];
+                alleleFrequencies[i] += personalAllelePosteriors[i];
         }
 
         // normalize
         double sum = 0;
         for (int i = 0; i < 4; i++)
-            sum += newAlleleLikelihoods[i];
+            sum += alleleFrequencies[i];
         for (int i = 0; i < 4; i++)
-            newAlleleLikelihoods[i] /= sum;
+            alleleFrequencies[i] /= sum;
 
-        return newAlleleLikelihoods;
+        for (int i = 0; i < 4; i++)
+            logger.debug("New allele frequency for " + BaseUtils.baseIndexToSimpleBase(i) + ": " + alleleFrequencies[i]);
     }
 
-    protected void applyAlleleFrequencyToGenotypeLikelihoods(HashMap<String, GenotypeLikelihoods> GLs, double[] alleleFrequencies) {
+    protected void applyAlleleFrequencyToGenotypeLikelihoods() {
         DiploidGenotypePriors AFPriors = calculateAlleleFreqBasedPriors(alleleFrequencies);
         for ( GenotypeLikelihoods GL : GLs.values() )
             GL.setPriors(AFPriors);
     }
 
-    protected EMOutput computePofF(char ref, HashMap<String, GenotypeLikelihoods> GLs, double[] alleleFrequencies, int numSamplesInContext) {
+    protected boolean isStable() {
+        // We consider the EM stable when the MAF doesn't change more than EM_STABILITY_METRIC
+        double AF_delta = 0.0;
+        for (int i = 0; i < 4; i++)
+            AF_delta += Math.abs(oldAlleleFrequencies[i] - alleleFrequencies[i]);
+
+        return (AF_delta < EM_STABILITY_METRIC);
+    }
+
+    protected EMOutput computePofF(char ref) {
+        // some debugging output
+        for ( String sample : GLs.keySet() )
+            logger.debug("GenotypeLikelihoods for sample " + sample + ": " + GLs.get(sample).toString());
 
         // compute pD and pNull without allele frequencies
         double pD = compute_pD(GLs);
@@ -126,7 +170,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
         // compute p0
         double pVar = 0.0;
-        for (int i = 1; i < numSamplesInContext; i++)
+        for (int i = 1; i < GLs.size(); i++)
             pVar += heterozygosity/(double)i;
         double p0 = Math.log10(1.0 - pVar);
 
@@ -140,7 +184,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
         //  compute pF
         double pF;
-        double expectedChromosomes = 2.0 * (double)numSamplesInContext * MAF;
+        double expectedChromosomes = 2.0 * (double)GLs.size() * MAF;
         if ( expectedChromosomes < 1.0 )
             pF = p0;
         else
@@ -154,7 +198,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
         return new EMOutput(pD, pNull, pF, MAF, GLs);
     }
 
-    private double compute_pD(HashMap<String, GenotypeLikelihoods> GLs) {
+    private static double compute_pD(HashMap<String, GenotypeLikelihoods> GLs) {
         double pD = 0.0;
         for ( GenotypeLikelihoods GL : GLs.values() ) {
             double sum = 0.0;
@@ -166,7 +210,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
         return pD;
     }
 
-    private double compute_pNull(char ref, HashMap<String, GenotypeLikelihoods> GLs) {
+    private static double compute_pNull(char ref, HashMap<String, GenotypeLikelihoods> GLs) {
         // compute null likelihoods
         double[] alleleLikelihoods = new double[4];
         for (int i = 0; i < 4; i++)
