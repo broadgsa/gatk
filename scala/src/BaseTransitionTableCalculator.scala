@@ -1,12 +1,14 @@
 package org.broadinstitute.sting.scala
 
-import gatk.walkers.genotyper.{SingleSampleGenotyper, SSGGenotypeCall}
+import gatk.walkers.genotyper.{UnifiedGenotyper, GenotypeCall}
 import java.io.File
 import net.sf.samtools.SAMRecord
 import org.broadinstitute.sting.gatk.walkers.LocusWalker
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext
+import org.broadinstitute.sting.utils.Pair
+import org.broadinstitute.sting.utils.genotype.GenotypeMetaData
 import utils._
 import cmdLine.Argument
 
@@ -72,7 +74,7 @@ class BaseTransitionTableCalculator extends LocusWalker[Unit,Int] {
   private var PRINT_FREQ = 1000000
   private var CARE_ABOUT_STRAND = true
 
-  private val SSG = new SingleSampleGenotyper()
+  private val SSG = new UnifiedGenotyper()
   private val table1 = new TransitionTable()
   private val tableFWD = new TransitionTable()
   private val tableREV = new TransitionTable()
@@ -86,14 +88,15 @@ class BaseTransitionTableCalculator extends LocusWalker[Unit,Int] {
   }
 
   override def map(tracker: RefMetaDataTracker, ref: ReferenceContext, context: AlignmentContext): Unit = {
-    val call = SSG.map(tracker, ref, context)
+    val callPair = SSG.map(tracker, ref, context)
+    //val call = callPair.getFirst().get(0)
     val pileup = new ReadBackedPileup(ref.getBase(), context)
 
     def hasNoNs(): Boolean = {
       return ! (pileup.getBases() exists ('N' ==))
     }
 
-    if ( isDefinitelyHomRef(call) && hasNoNs() ) {
+    if ( isDefinitelyHomRef(callPair) && hasNoNs() ) {
       var (refBases, nonRefBases) = splitBases(ref.getBase, pileup.getBases)
 
       //printf("nonRefBases %s%n", nonRefBases)
@@ -173,8 +176,11 @@ class BaseTransitionTableCalculator extends LocusWalker[Unit,Int] {
     return (refBases, nonRefBases)
   }
   
-  def isDefinitelyHomRef(call: SSGGenotypeCall): Boolean = {
-    return ! call.isVariation() && call.getBestNext() > MIN_LOD
+  def isDefinitelyHomRef(call: Pair[java.util.List[GenotypeCall],GenotypeMetaData]): Boolean = {
+    if ( call == null )
+       return false;
+
+    return ! call.getFirst().get(0).isVariant() && call.getFirst().get(0).getNegLog10PError() > MIN_LOD
   }
 
   def reduceInit(): Int = {
