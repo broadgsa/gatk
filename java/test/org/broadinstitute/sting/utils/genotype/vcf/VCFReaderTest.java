@@ -22,7 +22,7 @@ public class VCFReaderTest extends BaseTest {
             counter++;
             reader.next();
         }
-        Assert.assertEquals(5, counter);
+        Assert.assertEquals(6, counter);
     }
 
     @Test

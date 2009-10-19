@@ -113,7 +113,7 @@ public class RodVCFTest extends BaseTest {
     }
 
     @Test
-    public void testType() {
+    public void testInsertion() {
         RodVCF vcf = getVCFObject();
         Iterator<RodVCF> iter = vcf.createIterator("VCF", vcfFile);
         RodVCF rec = iter.next();
@@ -123,10 +123,24 @@ public class RodVCFTest extends BaseTest {
         rec = iter.next();
         rec = iter.next();
         Assert.assertTrue(rec.isIndel());
-        Assert.assertTrue(rec.isInsertion());
         Assert.assertTrue(rec.isDeletion());
     }
 
+    @Test
+    public void testDeletion() {
+        RodVCF vcf = getVCFObject();
+        Iterator<RodVCF> iter = vcf.createIterator("VCF", vcfFile);
+        RodVCF rec = iter.next();
+        Assert.assertTrue(rec.isSNP());
+        rec = iter.next();
+        rec = iter.next();
+        rec = iter.next();
+        rec = iter.next();
+        rec = iter.next();
+                
+        Assert.assertTrue(rec.isIndel());
+        Assert.assertTrue(rec.isInsertion());
+    }
     @Test
     public void testGetGenotypes() {        
         RodVCF vcf = getVCFObject();
