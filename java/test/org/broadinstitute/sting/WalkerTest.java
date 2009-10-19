@@ -85,11 +85,19 @@ public class WalkerTest extends BaseTest {
         String args = "";
         int nOutputFiles = -1;
         List<String> md5s = null;
+        List<String> exts = null;
 
         public WalkerTestSpec(String args, int nOutputFiles, List<String> md5s) {
             this.args = args;
             this.nOutputFiles = nOutputFiles;
             this.md5s = md5s;
+        }
+
+        public WalkerTestSpec(String args, int nOutputFiles, List<String> exts, List<String> md5s) {
+            this.args = args;
+            this.nOutputFiles = nOutputFiles;
+            this.md5s = md5s;
+            this.exts = exts;
         }
     }
 
@@ -101,7 +109,8 @@ public class WalkerTest extends BaseTest {
         List<File> tmpFiles = new ArrayList<File>();
         for ( int i = 0; i < spec.nOutputFiles; i++ ) {
             try {
-                File fl = File.createTempFile(String.format("walktest.tmp_param.%d", i), ".tmp" );
+                String ext = spec.exts == null ? ".tmp" : "." + spec.exts.get(i);
+                File fl = File.createTempFile(String.format("walktest.tmp_param.%d", i), ext );
                 fl.deleteOnExit();
                 tmpFiles.add( fl );
             } catch (IOException ex) {

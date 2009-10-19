@@ -18,12 +18,14 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
                         "-o %s " +
                         "-ob %s " + args,
                 2, // just one output file
+                Arrays.asList("tmp", "bam"),
                 Arrays.asList(md51, md52));
         List<File> result = executeTest(name, spec).getFirst();
     }
 
+    final static String Q10ClipOutput = "b29c5bc1cb9006ed9306d826a11d444f";
     @Test public void testQClip0() { testClipper("clipQSum0", "-QT 0", "117a4760b54308f81789c39b1c9de578", "2465660bcd975a1dc6dfbf40a21bf6ad"); }
-    @Test public void testQClip2() { testClipper("clipQSum2", "-QT 2", "b29c5bc1cb9006ed9306d826a11d444f", "fb77d3122df468a71e03ca92b69493f4"); }
+    @Test public void testQClip2() { testClipper("clipQSum2", "-QT 2", Q10ClipOutput, "fb77d3122df468a71e03ca92b69493f4"); }
     @Test public void testQClip10() { testClipper("clipQSum10", "-QT 10", "b29c5bc1cb9006ed9306d826a11d444f", "fb77d3122df468a71e03ca92b69493f4"); }
     @Test public void testQClip20() { testClipper("clipQSum20", "-QT 20", "6c3434dce66ae5c9eeea502f10fb9bee", "9a4b1c83c026ca83db00bb71999246cf"); }
     @Test public void testQClip30() { testClipper("clipQSum30", "-QT 20", "6c3434dce66ae5c9eeea502f10fb9bee", "9a4b1c83c026ca83db00bb71999246cf"); }
@@ -36,8 +38,7 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
 
     @Test public void testClipMulti() { testClipper("clipSeqMulti", "-QT 10 -CT 1-5 -XF /humgen/gsa-scr1/GATK_Data/Validation_Data/seqsToClip.fasta -X CCCCC", "a23187bd9bfb06557f799706d98441de", "4a1153d6f0600cf53ff7959a043e57cc"); }
 
-    @Test public void testClipNs() { testClipper("testClipNs", "-QT 10 -CR WRITE_NS", "b29c5bc1cb9006ed9306d826a11d444f", "fb77d3122df468a71e03ca92b69493f4"); }
-    @Test public void testClipQ0s() { testClipper("testClipQs", "-QT 10 -CR WRITE_Q0S", "b29c5bc1cb9006ed9306d826a11d444f", "24053a87b00c0bc2ddf420975e9fea4d"); }
-    @Test (expected = Exception.class)
-        public void testClipSoft() { testClipper("testClipSoft", "-QT 10 -CR SOFTCLIP_BASES", "", ""); }
+    @Test public void testClipNs() { testClipper("testClipNs", "-QT 10 -CR WRITE_NS", Q10ClipOutput, "fb77d3122df468a71e03ca92b69493f4"); }
+    @Test public void testClipQ0s() { testClipper("testClipQs", "-QT 10 -CR WRITE_Q0S", Q10ClipOutput, "24053a87b00c0bc2ddf420975e9fea4d"); }
+    @Test public void testClipSoft() { testClipper("testClipSoft", "-QT 10 -CR SOFTCLIP_BASES", Q10ClipOutput, "aeb67cca75285a68af8a965faa547e7f"); }
 }
