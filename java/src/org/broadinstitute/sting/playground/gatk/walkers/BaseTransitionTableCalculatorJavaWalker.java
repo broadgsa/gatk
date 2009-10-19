@@ -87,9 +87,9 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
                     // System.out.println("Base quality is: "+reads.get(r).getBaseQualities()[offsets.get(r)]);
                     // System.out.println("Read base is: "+ (char) reads.get(r).getReadBases()[offsets.get(r)]);
                     // System.out.println("Pileup is: " + map.getPileup().getBases());
-                    if ( ! useRead(reads.get(r),offsets.get(r),ref) ) {
-                        System.out.println("Read will not be used.");
-                    }
+                    // if ( ! useRead(reads.get(r),offsets.get(r),ref) ) {
+                    //    System.out.println("Read will not be used.");
+                    //}
                 }
                 if ( useRead( reads.get(r), offsets.get(r), ref ) ) {
                     updateTables( reads.get(r), offsets.get(r), map );
