@@ -34,13 +34,13 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
     int confidentRefThreshold = 5;
 @Argument(fullName="maxNumMismatches",doc="Set the maximum number of mismatches at a locus before choosing not to use it in calculation. Defaults to 1.", required=false)
     int maxNumMismatches = 1;
-@Argument(fullName="minMappingQuality", doc ="Set the alignment quality below which to ignore reads; defaults to 60", required = false)
-    int minMappingQuality = 60;
-@Argument(fullName="minQualityScore", doc = "Set the base quality score below which to ignore bases in the pileup, defaults to 30", required = false)
-    int minQualityScore = 30;
-@Argument(fullName="usePileupMismatches", doc = "Use the number of mismatches in the pileup as a condition for the table")
+@Argument(fullName="minMappingQuality", doc ="Set the alignment quality below which to ignore reads; defaults to 30", required = false)
+    int minMappingQuality = 30;
+@Argument(fullName="minQualityScore", doc = "Set the base quality score below which to ignore bases in the pileup, defaults to 20", required = false)
+    int minQualityScore = 20;
+@Argument(fullName="usePileupMismatches", doc = "Use the number of mismatches in the pileup as a condition for the table", required=false)
     boolean usePileupMismatches = false;
-@Argument(fullName="usePreviousReadBases", doc="Use previous bases of the read as part of the calculation. Will ignore reads if there aren't this many previous bases. Uses the specified number. Defaults to 0")
+@Argument(fullName="usePreviousReadBases", doc="Use previous bases of the read as part of the calculation. Will ignore reads if there aren't this many previous bases. Uses the specified number. Defaults to 0", required=false)
     int nPreviousReadBases = 0;
 
     private UnifiedGenotyper ug;
@@ -67,14 +67,33 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
 
     public Integer reduce ( ReferenceContextWindow map, Integer prevReduce ) {
         if ( map.isValidWindow() ) {
+            prevReduce++;
             List<SAMRecord> reads = map.getPileup().getReads();
             List<Integer> offsets = map.getPileup().getOffsets();
             ReferenceContext ref = map.getMiddleReferenceContext();
+            // ReadBackedPileup pileup = splitPileupNonref(map.getPileup());
+            // List<SAMRecord> reads = pileup.getReads();
+            // List<Integer> offsets = pileup.getOffsets();
+
+
+            // System.out.println("Base and read are usable:");
+            // System.out.println("Num Mismatches: "+countMismatches(map.getPileup()));
+            // System.out.println("Ref: "+map.getMiddleReferenceContext().getBase()+" Pileup ref: "+map.getPileup().getRef());
+            // System.out.println("Pileup: "+map.getPileup().getBases());
 
             for ( int r = 0; r < reads.size(); r ++ ) {
+                if ( Character.toUpperCase(reads.get(r).getReadBases()[offsets.get(r)]) != ref.getBase() ) {
+                    // System.out.println("Examining read. Mapping quality is: " + reads.get(r).getMappingQuality());
+                    // System.out.println("Base quality is: "+reads.get(r).getBaseQualities()[offsets.get(r)]);
+                    // System.out.println("Read base is: "+ (char) reads.get(r).getReadBases()[offsets.get(r)]);
+                    // System.out.println("Pileup is: " + map.getPileup().getBases());
+                    if ( ! useRead(reads.get(r),offsets.get(r),ref) ) {
+                        System.out.println("Read will not be used.");
+                    }
+                }
                 if ( useRead( reads.get(r), offsets.get(r), ref ) ) {
                     updateTables( reads.get(r), offsets.get(r), map );
-                    prevReduce++;
+                    // prevReduce++;
                 }
             }
         }
@@ -85,8 +104,8 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
     public void onTraversalDone( Integer numValidObservedMismatchingReads ) {
         logger.info(numValidObservedMismatchingReads);
         out.print(createHeaderFromConditions());
-        for ( BaseTransitionTable t : conditionalTables )
-            t.print(out);
+ 	    for ( BaseTransitionTable t : conditionalTables )
+		t.print(out);
     }
 
     public void updateTables ( SAMRecord read, int offset, ReferenceContextWindow map ) {
@@ -96,7 +115,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
 
         for ( BaseTransitionTable t : conditionalTables ) {
             if ( t.conditionsMatch(readConditions) ) {
-                t.update(read.getReadBases()[offset], map.getMiddleReferenceContext().getBase());
+                updateTable(t,read,offset,map);
                 createNewTable = false;
                 break;
             }
@@ -104,8 +123,16 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
 
         if ( createNewTable ) {
             BaseTransitionTable t = new BaseTransitionTable(readConditions);
-            t.update(read.getReadBases()[offset],map.getMiddleReferenceContext().getBase());
+            updateTable(t,read,offset,map);
             conditionalTables.add(t);
+        }
+    }
+
+    public void updateTable(BaseTransitionTable t, SAMRecord r, int o, ReferenceContextWindow map) {
+        if ( r.getReadNegativeStrandFlag() ) {
+            t.update(BaseUtils.simpleComplement((char) r.getReadBases()[o]),BaseUtils.simpleComplement(map.getMiddleReferenceContext().getBase()));
+        } else {
+            t.update(r.getReadBases()[o], map.getMiddleReferenceContext().getBase());
         }
     }
 
@@ -113,11 +140,11 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
 
         if ( Character.toUpperCase(read.getReadBases()[offset]) == ref.getBase() ) {
             return false;
-        } else if ( read.getMappingQuality() < minMappingQuality ) {
+        } else if ( read.getMappingQuality() <= minMappingQuality ) {
             return false;
         } else if ( ! BaseUtils.isRegularBase( (char) read.getReadBases()[offset]) ) {
             return false;
-        } else if ( read.getBaseQualities()[offset] < minQualityScore ) {
+        } else if ( read.getBaseQualities()[offset] <= minQualityScore ) {
             return false;
         } else {
             return true;
@@ -128,7 +155,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
         ArrayList<Comparable> conditions = new ArrayList<Comparable>();
 
         if ( nPreviousBases > 0 ) {
-            if ( read.getReadNegativeStrandFlag() )
+            if ( ! read.getReadNegativeStrandFlag() )
                 conditions.add(map.getForwardRefString());
             else
                 conditions.add(map.getReverseRefString());
@@ -195,31 +222,29 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
     }
 
     public boolean baseIsUsable ( RefMetaDataTracker tracker, ReferenceContext ref, ReadBackedPileup pileup, AlignmentContext context ) {
-        return pileupBelowMismatchThreshold(ref,pileup) && baseIsConfidentRef(tracker,ref,context) && refIsNotN(ref);
+        return pileupBelowMismatchThreshold(ref,pileup) && baseIsConfidentRef(tracker,ref,context) && pileupContainsNoNs(pileup);
     }
 
     public boolean pileupBelowMismatchThreshold( ReferenceContext ref, ReadBackedPileup pileup ) {
-        char[] bases = pileup.getBases().toCharArray();
-        int mismatches = 0;
-        for ( char b : bases ) {
-            if ( Character.toUpperCase(b) == ref.getBase() ) {
-                mismatches++;
-            }
-        }
+        return countMismatches(pileup) <= maxNumMismatches;
+    }
 
-        return mismatches >= maxNumMismatches;
+    public boolean pileupContainsNoNs(ReadBackedPileup pileup) {
+	for ( char c : pileup.getBases().toCharArray() ) {
+	    if ( c == 'N' ) {
+		return false;
+	    }
+	}
+	
+	return true;
     }
 
     public boolean baseIsConfidentRef( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         Pair<List<GenotypeCall>, GenotypeMetaData> calls = ug.map(tracker,ref,context);
         if (calls == null)
             return false;
-        return ( ! calls.first.get(0).isVariant(ref.getBase()) && calls.first.get(0).getNegLog10PError() >= confidentRefThreshold );
+        return  (! calls.first.get(0).isVariant()) && calls.first.get(0).getNegLog10PError() >= confidentRefThreshold && BaseUtils.isRegularBase(ref.getBase());
 
-    }
-
-    public boolean refIsNotN(ReferenceContext ref) {
-        return BaseUtils.isRegularBase(ref.getBase());
     }
 
 }
@@ -357,7 +382,7 @@ class ReferenceContextWindow {
             ref = ref + prevRefs.get(base).getBase();
         }
 
-        return ref;
+        return BaseUtils.simpleComplement(ref);
     }
 
     public ReadBackedPileup getPileup() {
