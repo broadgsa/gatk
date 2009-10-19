@@ -222,7 +222,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
     }
 
     public boolean baseIsUsable ( RefMetaDataTracker tracker, ReferenceContext ref, ReadBackedPileup pileup, AlignmentContext context ) {
-        return pileupBelowMismatchThreshold(ref,pileup) && baseIsConfidentRef(tracker,ref,context) && pileupContainsNoNs(pileup);
+        return  pileupContainsNoNs(pileup) && baseIsConfidentRef(tracker,ref,context) && pileupBelowMismatchThreshold(ref,pileup);
     }
 
     public boolean pileupBelowMismatchThreshold( ReferenceContext ref, ReadBackedPileup pileup ) {
