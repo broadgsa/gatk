@@ -195,7 +195,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         int nBoundGoodRods = tracker.getNBoundRodTracks("interval");
         if ( nBoundGoodRods > 0 ) {
             //System.out.printf("%s: n = %d%n", context.getLocation(), nBoundGoodRods );
-        
+
             // Iterate over each analysis, and update it
             Variation eval = (Variation)tracker.lookup("eval", null);
 
