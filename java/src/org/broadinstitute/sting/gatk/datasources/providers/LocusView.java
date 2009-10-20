@@ -8,7 +8,6 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
-import org.broadinstitute.sting.gatk.iterators.LocusIteratorByHanger;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
 import org.broadinstitute.sting.gatk.traversals.TraversalStatistics;
 
@@ -61,10 +60,7 @@ public abstract class LocusView extends LocusIterator implements View {
         Iterator<SAMRecord> reads = new FilteringIterator(provider.getReadIterator(), new LocusStreamFilterFunc());
         this.sourceInfo = provider.getReadIterator().getSourceInfo();
 
-        if ( GenomeAnalysisEngine.instance != null && GenomeAnalysisEngine.instance.getArguments().useLocusIteratorByHanger)
-            this.loci = new LocusIteratorByHanger(reads, sourceInfo);
-        else
-            this.loci = new LocusIteratorByState(reads, sourceInfo);
+        this.loci = new LocusIteratorByState(reads, sourceInfo);
         seedNextLocus();
 
         provider.register(this);

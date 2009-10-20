@@ -31,7 +31,6 @@ import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.RefHanger;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.util.*;

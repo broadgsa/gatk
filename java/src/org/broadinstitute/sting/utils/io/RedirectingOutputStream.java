@@ -19,6 +19,7 @@ import java.io.IOException;
  * A stream that allows redirection to a variety of sources transparently to the
  * user of the class.
  */
+@Deprecated
 public class RedirectingOutputStream extends OutputStream {
 
     /**

@@ -12,6 +12,7 @@ import net.sf.picard.reference.ReferenceSequence;
 import java.io.File;
 import java.io.IOException;
 
+@Deprecated
 public class PileupWithContextWalker extends LocusWalker<Integer, Integer> implements TreeReducible<Integer> {
     @Argument(fullName="alwaysShowSecondBase",doc="If true, prints dummy bases for the second bases in the BAM file where they are missing",required=false)
     public boolean alwaysShowSecondBase = false;

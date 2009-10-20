@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils.containers;
 
 import java.util.PriorityQueue;
 
+@Deprecated
 public class BoundedScoringSet<E extends Comparable<E> > {
     private PriorityQueue<E> pq;
     private int maximumSize;

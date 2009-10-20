@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
  * An output stream that only initializes itself the first time its used.
  * Needs a callback that can create an output stream.
  */
+@Deprecated
 public class LazyFileOutputStream extends OutputStream {
     /**
      * Generates output files on demand.

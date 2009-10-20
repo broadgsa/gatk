@@ -131,11 +131,6 @@ public class GATKArgumentCollection {
     @Argument(fullName = "numthreads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
     public int numberOfThreads = 1;
 
-    @Element(required = false)
-    @Argument(fullName = "LocusIteratorByHanger", shortName = "LIBH", doc = "Should we use the new LocusIteratorByState or the old LocusIteratorByHanger?", required = false)
-    public Boolean useLocusIteratorByHanger = false;
-
-
     /**
      * marshal the data out to a object
      *
@@ -269,9 +264,6 @@ public class GATKArgumentCollection {
             return false;
         }
         if (other.numberOfThreads != this.numberOfThreads) {
-            return false;
-        }
-        if (other.useLocusIteratorByHanger != this.useLocusIteratorByHanger ) {
             return false;
         }
 
