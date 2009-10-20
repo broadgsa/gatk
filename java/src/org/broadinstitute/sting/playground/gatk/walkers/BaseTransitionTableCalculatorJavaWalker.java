@@ -42,6 +42,8 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
     boolean usePileupMismatches = false;
 @Argument(fullName="usePreviousReadBases", doc="Use previous bases of the read as part of the calculation. Will ignore reads if there aren't this many previous bases. Uses the specified number. Defaults to 0", required=false)
     int nPreviousReadBases = 0;
+@Argument(fullName="useReadGroup", doc="Use the group number of the read as a condition of the table.", required = false)
+    boolean useReadGroup = false;
 
     private UnifiedGenotyper ug;
     private ReferenceContextWindow refWindow;
@@ -51,7 +53,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
         ug = new UnifiedGenotyper();
         ug.initialize();
         refWindow = new ReferenceContextWindow(nPreviousBases);
-        conditionalTables = new HashSet<BaseTransitionTable>();
+        conditionalTables = new TreeSet<BaseTransitionTable>();
     }
 
     public Integer reduceInit() {
@@ -146,7 +148,9 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
             return false;
         } else if ( read.getBaseQualities()[offset] <= minQualityScore ) {
             return false;
-        } else {
+        } else if ( useSecondaryBase && read.getAttribute("SQ") == null )
+            return false;
+        else {
             return true;
         }
     }
@@ -173,6 +177,10 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
             conditions.add(countMismatches(map.getPileup()));
         }
 
+        if ( useReadGroup ) {
+            conditions.add(read.getReadGroup().getReadGroupId());
+        }
+
         return conditions;
     }
 
@@ -193,6 +201,10 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
 
         if ( usePileupMismatches ) {
             header = header + "\tNumber_of_pileup_mismatches";
+        }
+
+        if ( useReadGroup ) {
+            header = header + "\tRead_group";
         }
 
         return String.format("%s\t%s%n",header,"Counts");
@@ -250,7 +262,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
 }
 
 
-class BaseTransitionTable {
+class BaseTransitionTable implements Comparable {
 
     private int[][] table;
     private List<Comparable> conditions;
@@ -284,6 +296,29 @@ class BaseTransitionTable {
 
             return eq;
         }
+    }
+
+    public int compareTo(Object obj) {
+        if ( ! ( obj instanceof BaseTransitionTable ) ) {
+            return -1;
+        } else {
+            BaseTransitionTable t = (BaseTransitionTable) obj;
+            if ( this.conditionsMatch(t.conditions) ) {
+                return 0;
+            } else {
+                if ( this.numConditions() == t.numConditions() ) {
+                    ListIterator<Comparable> thisIter = this.conditions.listIterator();
+                    ListIterator<Comparable> thatIter = t.conditions.listIterator();
+                    while ( thisIter.next() == thatIter.next() ) {
+                        // do nothing
+                    }
+                    return thisIter.previous().compareTo(thatIter.previous());
+                } else {
+                    return (this.numConditions() > t.numConditions() ) ? 1 : -1;
+                }
+            }
+        }
+
     }
 
     public void print( PrintStream out ) {

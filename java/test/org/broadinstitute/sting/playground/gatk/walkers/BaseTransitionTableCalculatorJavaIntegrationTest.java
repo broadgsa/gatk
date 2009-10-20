@@ -21,6 +21,7 @@ public class BaseTransitionTableCalculatorJavaIntegrationTest extends WalkerTest
     public static final String OUTPUT_MD5_LOWCONFIDENTREFTHRESHOLD = "521a9fa7716ed22550c2ba3fe3409070";
     public static final String OUTPUT_MD5_HIGHCONFIDENTREFTHRESHOLD = "8ab6d389fc494881736e9a58126c2f1b";
     public static final String OUTPUT_MD5_ALLARGUMENTS = "f45481946d7a5c70078d432b0baff083";
+    public static final String OUTPUT_MD5_USEREADGROUP = "6dbf18e96f3367c8764b4d1e15eb956b";
     public static final String LOCUS = "1:10,000,000-10,200,000";
     public static final String BAM_FILE = "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam";
     public static final String REFERENCE = "/broad/1KG/reference/human_b36_both.fasta";
@@ -64,7 +65,7 @@ public class BaseTransitionTableCalculatorJavaIntegrationTest extends WalkerTest
     public void testBaseTransitionCalculatorJavaHighConfidentRefThreshold() {
         String args = "-T BaseTransitionTableCalculatorJava -o %s -I "+BAM_FILE+" -L "+LOCUS+" -R "+REFERENCE+ " --confidentRefThreshold 8";
         WalkerTest.WalkerTestSpec spec =  new WalkerTest.WalkerTestSpec(args,1,Arrays.asList(OUTPUT_MD5_HIGHCONFIDENTREFTHRESHOLD));
-        executeTest("BaseTransitionTableCalculatorJava: Low Ref Threshold",spec);
+        executeTest("BaseTransitionTableCalculatorJava: High Ref Threshold",spec);
     }
 
     @Test
@@ -72,5 +73,12 @@ public class BaseTransitionTableCalculatorJavaIntegrationTest extends WalkerTest
         String args = "-T BaseTransitionTableCalculatorJava -o %s -I "+BAM_FILE+" -L "+LOCUS+" -R "+REFERENCE+ " --confidentRefThreshold 2 --minQualityScore 5 --minMappingQuality 5 --maxNumMismatches 3";
         WalkerTest.WalkerTestSpec spec =  new WalkerTest.WalkerTestSpec(args,1,Arrays.asList(OUTPUT_MD5_ALLARGUMENTS));
         executeTest("BaseTransitionTableCalculatorJava: Low Ref Threshold, Low Q Score, Low Mapping Quality, Additional Mismatches",spec);
+    }
+
+    @Test
+    public void testBaseTransitionTableCalculatorJavaUseReadGroup() {
+        String args = "-T BaseTransitionTableCalculatorJava -o %s -I "+BAM_FILE+" -L "+LOCUS+" -R "+REFERENCE+" --useReadGroup";
+        WalkerTest.WalkerTestSpec spec =  new WalkerTest.WalkerTestSpec(args,1,Arrays.asList(OUTPUT_MD5_USEREADGROUP));
+        executeTest("testBaseTransitionTableCalculatorJava: Use read group", spec);
     }
 }
