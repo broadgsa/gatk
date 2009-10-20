@@ -2,8 +2,8 @@ package org.broadinstitute.sting.gatk.traversals;
 
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.WalkerManager;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadReferenceView;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
@@ -16,7 +16,6 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
 /*
@@ -53,9 +52,7 @@ import java.util.Arrays;
  * <p/>
  * This class handles traversing by reads in the new shardable style
  */
-public class TraverseReads extends TraversalEngine {
-    final ArrayList<String> x = new ArrayList<String>();
-
+public class TraverseReads extends TraversalEngine {    
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraverseReads.class);
 

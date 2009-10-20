@@ -79,8 +79,11 @@ abstract class ResourcePool <T,I extends Iterator> {
         synchronized(this) {
             // Find and remove the resource from the list of allocated resources.
             T resource = resourceAssignments.get( iterator );
-            resourceAssignments.remove(resource);
+            Object obj = resourceAssignments.remove(iterator);
 
+            // make sure we actually removed the assignment
+            if (obj == null)
+                    throw new StingException("Failed to remove resource assignment; target key had no associated value in the resource assignment map");
             // Return the resource to the pool.
             if( !allResources.contains(resource) )
                 throw new StingException("Iterator does not belong to the given pool.");
