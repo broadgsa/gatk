@@ -63,34 +63,46 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     final String knownSNPDBName = "dbSNP";
     final String genotypeChipName = "hapmap-chip";
 
-    HashMap<String, ArrayList<VariantAnalysis>> analysisSets;
+    HashMap<ANALYSIS_TYPE, ArrayList<VariantAnalysis>> analysisSets;
 
     PrintStream perLocusStream = null;
 
     long nMappedSites = 0;
 
-    final String ALL_SNPS = "all";
-    final String SINGLETON_SNPS = "singletons";
-    final String TWOHIT_SNPS = "2plus_hit";
-    final String KNOWN_SNPS = "known";
-    final String NOVEL_SNPS = "novel";
-    final String[] POPULATION_ANALYSIS_NAMES = { ALL_SNPS, SINGLETON_SNPS, TWOHIT_SNPS, KNOWN_SNPS, NOVEL_SNPS };
-    final String[] GENOTYPE_ANALYSIS_NAMES = { ALL_SNPS, KNOWN_SNPS, NOVEL_SNPS };
-    final String[] SIMPLE_ANALYSIS_NAMES = { ALL_SNPS };
-    String[] ALL_ANALYSIS_NAMES = null;
+    // the types of analysis we support, and the string tags we associate with the enumerated value
+    enum ANALYSIS_TYPE {
+        ALL_SNPS("all"), SINGLETON_SNPS("singletons"), TWOHIT_SNPS("2plus_hit"), KNOWN_SNPS("2plus_hit"), NOVEL_SNPS("2plus_hit");
+
+        private final String value;
+        ANALYSIS_TYPE(String value) { this.value = value;}
+
+        public String toString() { return value; }
+
+    }
+
+    final ANALYSIS_TYPE[] POPULATION_ANALYSIS_NAMES = {ANALYSIS_TYPE.ALL_SNPS,
+            ANALYSIS_TYPE.SINGLETON_SNPS,
+            ANALYSIS_TYPE.TWOHIT_SNPS,
+            ANALYSIS_TYPE.KNOWN_SNPS,
+            ANALYSIS_TYPE.NOVEL_SNPS};
+    final ANALYSIS_TYPE[] GENOTYPE_ANALYSIS_NAMES = {ANALYSIS_TYPE.ALL_SNPS,
+            ANALYSIS_TYPE.KNOWN_SNPS,
+            ANALYSIS_TYPE.NOVEL_SNPS};
+    final ANALYSIS_TYPE[] SIMPLE_ANALYSIS_NAMES = {ANALYSIS_TYPE.ALL_SNPS};
+    ANALYSIS_TYPE[] ALL_ANALYSIS_NAMES = null;
 
     public void initialize() {
         ALL_ANALYSIS_NAMES = SIMPLE_ANALYSIS_NAMES;
-        if ( extensiveSubsets )
+        if (extensiveSubsets)
             ALL_ANALYSIS_NAMES = evalContainsGenotypes ? GENOTYPE_ANALYSIS_NAMES : POPULATION_ANALYSIS_NAMES;
 
         // setup the path to the analysis
-        if ( this.getToolkit().getArguments().outFileName != null ) {
+        if (this.getToolkit().getArguments().outFileName != null) {
             analysisFilenameBase = this.getToolkit().getArguments().outFileName + "."; // + ".analysis.";
         }
 
-        analysisSets = new HashMap<String, ArrayList<VariantAnalysis>>();
-        for ( String setName : ALL_ANALYSIS_NAMES ) {
+        analysisSets = new HashMap<ANALYSIS_TYPE, ArrayList<VariantAnalysis>>();
+        for (ANALYSIS_TYPE setName : ALL_ANALYSIS_NAMES) {
             analysisSets.put(setName, initializeAnalysisSet(setName));
         }
         // THIS IS A HACK required in order to reproduce the behavior of old (and imperfect) RODIterator and
@@ -105,11 +117,11 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         return nMappedSites;
     }
 
-    private ArrayList<VariantAnalysis> getAnalysisSet(final String name) {
+    private ArrayList<VariantAnalysis> getAnalysisSet(final ANALYSIS_TYPE name) {
         return analysisSets.containsKey(name) ? analysisSets.get(name) : null;
     }
 
-    private ArrayList<VariantAnalysis> initializeAnalysisSet(final String setName) {
+    private ArrayList<VariantAnalysis> initializeAnalysisSet(final ANALYSIS_TYPE setName) {
         ArrayList<VariantAnalysis> analyses = new ArrayList<VariantAnalysis>();
 
         //
@@ -131,23 +143,23 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         // Filter out analyses inappropriate for our evaluation type Population or Genotype
         //
         Iterator<VariantAnalysis> iter = analyses.iterator();
-        while ( iter.hasNext() ) {
+        while (iter.hasNext()) {
             VariantAnalysis analysis = iter.next();
-            boolean disableForGenotyping = evalContainsGenotypes && ! (analysis instanceof GenotypeAnalysis);
-            boolean disableForPopulation = ! evalContainsGenotypes && ! (analysis instanceof PopulationAnalysis);
+            boolean disableForGenotyping = evalContainsGenotypes && !(analysis instanceof GenotypeAnalysis);
+            boolean disableForPopulation = !evalContainsGenotypes && !(analysis instanceof PopulationAnalysis);
             boolean disableForPools = (pathToHapmapPoolFile == null && analysis instanceof PooledGenotypeConcordance);
             boolean disable = disableForGenotyping | disableForPopulation | disableForPools;
-            String causeName = disableForGenotyping ? "population" : (disableForPopulation ? "genotype" : ( disableForPools ? "pool" : null ));
-            if ( disable ) {
+            String causeName = disableForGenotyping ? "population" : (disableForPopulation ? "genotype" : (disableForPools ? "pool" : null));
+            if (disable) {
                 logger.info(String.format("Disabling %s-only analysis %s in set %s", causeName, analysis, setName));
                 iter.remove();
             }
         }
 
 
-        if ( printVariants ) analyses.add(new VariantMatcher(knownSNPDBName));
+        if (printVariants) analyses.add(new VariantMatcher(knownSNPDBName));
 
-        for ( VariantAnalysis analysis : analyses ) {
+        for (VariantAnalysis analysis : analyses) {
             initializeAnalysisOutputStream(setName, analysis);
         }
 
@@ -156,28 +168,30 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 
     /**
      * Returns the filename of the analysis output file where output for an analysis with
+     *
      * @param name
      * @param params
+     *
      * @return
      */
     public String getAnalysisFilename(final String name, final List<String> params) {
-        if ( analysisFilenameBase == null )
+        if (analysisFilenameBase == null)
             return null;
         else
             return analysisFilenameBase + Utils.join(".", Utils.cons(name, params));
     }
 
-    public void initializeAnalysisOutputStream(final String setName, VariantAnalysis analysis) {
+    public void initializeAnalysisOutputStream(final ANALYSIS_TYPE setName, VariantAnalysis analysis) {
         final String filename = getAnalysisFilename(setName + "." + analysis.getName(), analysis.getParams());
 
         try {
-            if ( perLocusStream == null )
+            if (perLocusStream == null)
                 perLocusStream = filename == null ? out : new PrintStream(new File(analysisFilenameBase + "interesting_sites"));
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
 
-        if ( filename == null || ! explode )
+        if (filename == null || !explode)
             analysis.initialize(this, out, perLocusStream, filename);
         else {
             File file = new File(filename);
@@ -193,32 +207,36 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         nMappedSites++;
 
         int nBoundGoodRods = tracker.getNBoundRodTracks("interval");
-        if ( nBoundGoodRods > 0 ) {
+        if (nBoundGoodRods > 0) {
             //System.out.printf("%s: n = %d%n", context.getLocation(), nBoundGoodRods );
 
             // Iterate over each analysis, and update it
-            Variation eval = (Variation)tracker.lookup("eval", null);
+            Variation eval = (Variation) tracker.lookup("eval", null);
 
-            if ( eval != null )
-                if ( eval.getNegLog10PError() < minConfidenceScore ) eval = null;
+            // ensure that the variation we're looking at is bi-allelic
+            if (eval != null && !eval.isBiallelic())
+                eval = null;  
+
+            if (eval != null)
+                if (eval.getNegLog10PError() < minConfidenceScore) eval = null;
 
             // update stats about all of the SNPs
-            updateAnalysisSet(ALL_SNPS, eval, tracker, ref.getBase(), context);
+            updateAnalysisSet(ANALYSIS_TYPE.ALL_SNPS, eval, tracker, ref.getBase(), context);
 
             // update the known / novel set by checking whether the knownSNPDBName track has an entry here
-            if ( eval != null ) {
-                Variation dbsnp = (Variation)BrokenRODSimulator.simulate_lookup("dbSNP",ref.getLocus(),tracker);
+            if (eval != null) {
+                Variation dbsnp = (Variation) BrokenRODSimulator.simulate_lookup("dbSNP", ref.getLocus(), tracker);
 
-                String noveltySet = dbsnp == null ? NOVEL_SNPS : KNOWN_SNPS;
+                ANALYSIS_TYPE noveltySet = dbsnp == null ? ANALYSIS_TYPE.NOVEL_SNPS : ANALYSIS_TYPE.KNOWN_SNPS;
                 updateAnalysisSet(noveltySet, eval, tracker, ref.getBase(), context);
             }
 
             // are we a population backed call? then update
-            if ( eval instanceof SNPCallFromGenotypes) {
-                SNPCallFromGenotypes call = (SNPCallFromGenotypes)eval;
+            if (eval instanceof SNPCallFromGenotypes) {
+                SNPCallFromGenotypes call = (SNPCallFromGenotypes) eval;
                 int nVarGenotypes = call.nHetGenotypes() + call.nHomVarGenotypes();
                 //System.out.printf("%d variant genotypes at %s%n", nVarGenotypes, calls);
-                final String s = nVarGenotypes == 1 ? SINGLETON_SNPS : TWOHIT_SNPS;
+                final ANALYSIS_TYPE s = nVarGenotypes == 1 ? ANALYSIS_TYPE.SINGLETON_SNPS : ANALYSIS_TYPE.TWOHIT_SNPS;
                 updateAnalysisSet(s, eval, tracker, ref.getBase(), context);
             }
         }
@@ -227,13 +245,13 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     }
 
 
-    public void updateAnalysisSet(final String analysisSetName, Variation eval,
+    public void updateAnalysisSet(final ANALYSIS_TYPE analysisSetName, Variation eval,
                                   RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         // Iterate over each analysis, and update it
-        if ( getAnalysisSet(analysisSetName) != null ) {
-            for ( VariantAnalysis analysis : getAnalysisSet(analysisSetName) ) {
+        if (getAnalysisSet(analysisSetName) != null) {
+            for (VariantAnalysis analysis : getAnalysisSet(analysisSetName)) {
                 String s = analysis.update(eval, tracker, ref, context);
-                if ( s != null && includeViolations ) {
+                if (s != null && includeViolations) {
                     analysis.getCallPrintStream().println(getLineHeader(analysisSetName, "flagged", analysis.getName()) + s);
                 }
             }
@@ -241,29 +259,33 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     }
 
     // Given result of map function
-    public Integer reduceInit() { return 0; }
-    public Integer reduce(Integer value, Integer sum) {
-        return treeReduce(sum,value);
+    public Integer reduceInit() {
+        return 0;
     }
+
+    public Integer reduce(Integer value, Integer sum) {
+        return treeReduce(sum, value);
+    }
+
     public Integer treeReduce(Integer lhs, Integer rhs) {
         return lhs + rhs;
     }
 
     public void onTraversalDone(Integer result) {
-        for ( String analysisSetName : ALL_ANALYSIS_NAMES ) {
+        for (ANALYSIS_TYPE analysisSetName : ALL_ANALYSIS_NAMES) {
             printAnalysisSet(analysisSetName);
         }
     }
 
-    private String getLineHeader( final String analysisSetName, final String keyword, final String analysis) {
+    private String getLineHeader(final ANALYSIS_TYPE analysisSetName, final String keyword, final String analysis) {
         String s = Utils.join(",", Arrays.asList(analysisSetName, keyword, analysis));
         return s + Utils.dupString(' ', 50 - s.length());
     }
 
-    private void printAnalysisSet( final String analysisSetName ) {
+    private void printAnalysisSet(final ANALYSIS_TYPE analysisSetName) {
         //out.printf("Writing analysis set %s", analysisSetName);
         Date now = new Date();
-        for ( VariantAnalysis analysis : getAnalysisSet(analysisSetName) ) {
+        for (VariantAnalysis analysis : getAnalysisSet(analysisSetName)) {
             String header = getLineHeader(analysisSetName, "summary", analysis.getName());
             analysis.finalize(getNMappedSites());
             PrintStream stream = analysis.getSummaryPrintStream();
@@ -273,7 +295,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
             stream.printf("%sAnalysis params    %s%n", header, Utils.join(" ", analysis.getParams()));
             stream.printf("%sAnalysis class     %s%n", header, analysis.getClass().getName());
             if (!supressDateInformation) stream.printf("%sAnalysis time      %s%n", header, now);
-            for ( String line : analysis.done()) {
+            for (String line : analysis.done()) {
                 stream.printf("%s%s%n", header, line);
             }
         }
