@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.*;
@@ -130,7 +131,14 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
             if ( POOLED_INPUT ) {
                 sample = "POOL";
             } else {
-                sample = read.getReadGroup().getSample();
+                SAMReadGroupRecord readGroup = read.getReadGroup();
+                if ( readGroup == null ) {
+                    if ( assumedSingleSample == null )
+                        throw new StingException("Missing read group for read " + read.getReadName());
+                    sample = assumedSingleSample;
+                } else {
+                    sample = readGroup.getSample();
+                }
             }
 
             // create a new context object if this is the first time we're seeing a read for this sample

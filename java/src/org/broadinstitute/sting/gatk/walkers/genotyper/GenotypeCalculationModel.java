@@ -29,6 +29,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected int POOL_SIZE;
     protected double LOD_THRESHOLD;
     protected int maxDeletionsInPileup;
+    protected String assumedSingleSample;
     protected boolean VERBOSE;
 
     /**
@@ -57,6 +58,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         POOL_SIZE = UAC.POOLSIZE;
         LOD_THRESHOLD = UAC.LOD_THRESHOLD;
         maxDeletionsInPileup = UAC.MAX_DELETIONS;
+        assumedSingleSample = UAC.ASSUME_SINGLE_SAMPLE;
         VERBOSE = UAC.VERBOSE;
     }
 
@@ -76,8 +78,13 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         gcm.POOLED_INPUT = POOLED_INPUT;
         gcm.LOD_THRESHOLD = LOD_THRESHOLD;
         gcm.maxDeletionsInPileup = maxDeletionsInPileup;
+        gcm.assumedSingleSample = assumedSingleSample;
         gcm.VERBOSE = VERBOSE;
         return gcm;
+    }
+
+    public void setAssumedSingleSample(String sample) {
+        assumedSingleSample = sample;
     }
 
     /**

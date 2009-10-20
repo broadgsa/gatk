@@ -30,7 +30,6 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.filters.MissingReadGroupFilter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
@@ -52,7 +51,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 
-@ReadFilters({ZeroMappingQualityReadFilter.class, MissingReadGroupFilter.class})
+@ReadFilters({ZeroMappingQualityReadFilter.class})
 public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, GenotypeMetaData>, Integer> {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
@@ -84,6 +83,15 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     /**
+     * Sets the single sample to assume when read groups are missing.
+     * To be used with walkers that call the UnifiedGenotyper's map function
+     *
+     **/
+    public void setAssumedSingleSample(String sample) {
+        gcm.setAssumedSingleSample(sample);
+    }
+
+    /**
      * Initialize the samples, output, and genotype calculation model
      *
      **/
@@ -95,9 +103,14 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
 
         // get all of the unique sample names
         samples = new HashSet<String>();
-        List<SAMReadGroupRecord> readGroups = getToolkit().getSAMFileHeader().getReadGroups();
-        for ( SAMReadGroupRecord readGroup : readGroups )
-            samples.add(readGroup.getSample());
+        // if we're supposed to assume a single sample
+        if ( UAC.ASSUME_SINGLE_SAMPLE != null ) {
+            samples.add(UAC.ASSUME_SINGLE_SAMPLE);
+        } else {
+            List<SAMReadGroupRecord> readGroups = getToolkit().getSAMFileHeader().getReadGroups();
+            for ( SAMReadGroupRecord readGroup : readGroups )
+                samples.add(readGroup.getSample());
+        }
 
         // print them out for debugging (need separate loop to ensure uniqueness)
         for ( String sample : samples )

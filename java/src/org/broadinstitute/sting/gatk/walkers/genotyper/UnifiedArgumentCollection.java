@@ -55,6 +55,11 @@ public class UnifiedArgumentCollection {
     public boolean VERBOSE = false;
 
 
+    // control the error modes
+    @Argument(fullName = "assumeSingleSampleReads", shortName = "singleSample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)
+    public String ASSUME_SINGLE_SAMPLE = null;
+
+
     // control the various parameters to be used
     @Argument(fullName = "lod_threshold", shortName = "lod", doc = "The lod threshold on which variants should be filtered", required = false)
     public double LOD_THRESHOLD = Double.MIN_VALUE;
