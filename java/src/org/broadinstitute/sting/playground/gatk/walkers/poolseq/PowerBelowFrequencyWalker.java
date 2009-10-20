@@ -44,6 +44,12 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
     @Argument(fullName="minimumMappingQuality", shortName="mmq", doc="Only use reads above this mapping quality in the power calculation", required=false)
     int minMappingQuality = -1;
 
+    @Argument(fullName="ignoreForwardReads",doc="Use the forward reads at a site. Defaults to true.", required = false)
+    boolean ignoreForwardReads = true;
+
+    @Argument(fullName="ignoreReverseReads",doc="Use the reverse reads at a site. Defaults to true.", required = false)
+    boolean ignoreReverseReads = true;
+
     public void initialize() {
         if ( alleleFreq < 1 ) {
             String err = "Allele frequency (-af) must be greater than or equal to one.";
@@ -64,6 +70,16 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
         String output = String.format("%s", context.getLocation().toString());
 
         // threshold reads if necessary
+        if ( ignoreForwardReads && ignoreReverseReads) {
+            throw new StingException("User has elected to ignore both forward and reverse reads. Power is zero.");
+        }
+        else if ( ! ignoreForwardReads && ignoreReverseReads ) {
+            org.broadinstitute.sting.playground.gatk.walkers.poolseq.ReadOffsetQuad rq = PoolUtils.splitReadsByReadDirection(context.getReads(),context.getOffsets());
+            context = new AlignmentContext(context.getLocation(),rq.getFirstReads(),rq.getFirstOffsets());
+        } else if ( ignoreForwardReads && ! ignoreReverseReads ) {
+            org.broadinstitute.sting.playground.gatk.walkers.poolseq.ReadOffsetQuad rq = PoolUtils.splitReadsByReadDirection(context.getReads(),context.getOffsets());
+            context = new AlignmentContext(context.getLocation(),rq.getSecondReads(),rq.getSecondOffsets());
+        }
 
         if ( minQ > 0 ) {
             Pair<List<SAMRecord>, List<Integer>> thresh = PoolUtils.thresholdReadsByQuality(context.getReads(),context.getOffsets(),minQ);

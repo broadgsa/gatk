@@ -41,8 +41,9 @@ class TransitionTable() {
   }
 
   def header(): String = {
-    return Utils.join("\t", mapEntries((i,j,x) => "P(%c|true=%c)" format (fromKey(j), fromKey(i))).toArray)
-  }
+    //return Utils.join("\t", mapEntries((i,j,x) => "P(%c|true=%c)" format (fromKey(j), fromKey(i))).toArray)
+    return Utils.join("\t", mapEntries((i,j,x) => "[%c|%c]" format (fromKey(j), fromKey(i))).toArray)  
+    }
 
   override def toString(): String = {
     return Utils.join("\t", mapEntries((i,j,x) => "%.2f" format x).toArray)
@@ -106,7 +107,10 @@ class BaseTransitionTableCalculator extends LocusWalker[Unit,Int] {
 
         nonRefBases.length match {
           case 1 =>
-            addRead(nonRefRead, offsets.head, nonRefBases.head, ref, table1)
+	    //if ( goodRead(nonRefRead,offsets.head) ) {
+	       //printf("Including site:%n nonRefBases=%s%n  refBases=%s%n  nonRefRead=%s%n  offset=%s%n", nonRefBases, refBases, nonRefRead.format, offsets.head)
+            //}
+	    addRead(nonRefRead, offsets.head, nonRefBases.head, ref, table1)
             addRead(nonRefRead, offsets.head, nonRefBases.head, ref, if ( nonRefRead.getReadNegativeStrandFlag ) tableREV else tableFWD )
           case 2 =>
             addRead(nonRefRead, offsets.head, nonRefBases.head, ref, table2)
@@ -128,7 +132,7 @@ class BaseTransitionTableCalculator extends LocusWalker[Unit,Int] {
 
   def addRead(nonRefRead: SAMRecord, offset: Integer, nonRefBase: Char, ref: ReferenceContext, table: TransitionTable): Unit = {
     if ( goodRead(nonRefRead, offset) ) {
-      //printf("Including site:%n  call=%s%n  nonRefBases=%s%n  refBases=%s%n  nonRefRead=%s%n  offset=%s%n", call, nonRefBases, refBases, nonRefRead.format, offsets.head)
+      //printf("Including site:%n  call=%s%n  nonRefBases=%s%n  refBases=%s%n  nonRefRead=%s%n  offset=%s%n", nonRefBases, refBases, nonRefRead.format, offsets.head)
       //println(call.getReadDepth, call.getReferencebase, nonRefBases, refBases, nonRefRead.getMappingQuality)
       if ( CARE_ABOUT_STRAND && nonRefRead.getReadNegativeStrandFlag() ) {
         // it's on the reverse strand
@@ -180,7 +184,7 @@ class BaseTransitionTableCalculator extends LocusWalker[Unit,Int] {
     if ( call == null )
        return false;
 
-    return ! call.getFirst().get(0).isVariant() && call.getFirst().get(0).getNegLog10PError() > MIN_LOD
+    return (! call.getFirst().get(0).isVariant()) && call.getFirst().get(0).getNegLog10PError() > MIN_LOD
   }
 
   def reduceInit(): Int = {

@@ -201,7 +201,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
     public int countMismatches(ReadBackedPileup p) {
         int refM = 0;
 
-        switch (p.getRef()) {
+        switch (Character.toUpperCase(p.getRef())) {
             case 'A': refM = BasicPileup.countBases(p.getBases()).a;
                 break;
             case 'C': refM = BasicPileup.countBases(p.getBases()).c;
@@ -320,6 +320,7 @@ class BaseTransitionTable {
     }
 
 }
+
 
 
 class ReferenceContextWindow {

@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.utils;
+package org.broadinstitute.sting.playground.gatk.walkers.poolseq;
 
 import org.broadinstitute.sting.utils.Pair;
 
