@@ -543,7 +543,7 @@ public class GenomeAnalysisEngine {
         ShardStrategyFactory.SHATTER_STRATEGY shardType;
 
         if (walker instanceof LocusWalker) {
-            if (walker instanceof RodWalker) SHARD_SIZE *= 100;
+            if (walker instanceof RodWalker) SHARD_SIZE *= 1000;
 
             if (intervals != null) {
                 shardType = (walker.isReduceByInterval()) ?

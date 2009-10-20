@@ -21,19 +21,29 @@ import java.util.List;
  *
  */
 public class ClusterCounterAnalysis extends BasicVariantAnalysis implements GenotypeAnalysis, PopulationAnalysis {
-    ArrayList<HashSet<GenomeLoc>> variantsWithClusters;
     int minDistanceForFlagging = 5;
+
+    /**
+     * Threshold distances between neighboring SNPs we will track and assess
+     */
     int[] neighborWiseBoundries = {1, 2, 5, 10, 20, 50, 100};
+    int[] variantsWithClusters = new int[neighborWiseBoundries.length];
+    /**
+     * Keep track of the last variation we saw in the stream
+     */
     Variation lastVariation = null;
+
+    /**
+     * The interval that the last variation occurred in.  Don't think that SNPs from different intervals are
+     * too close together in hybrid selection.
+     */
     GenomeLoc lastVariantInterval = null;
     int nSeen = 0;
 
+
+
     public ClusterCounterAnalysis() {
         super("cluster_counter_analysis");
-
-        variantsWithClusters = new ArrayList<HashSet<GenomeLoc>>(neighborWiseBoundries.length);
-        for (int i = 0; i < neighborWiseBoundries.length; i++)
-            variantsWithClusters.add(new HashSet<GenomeLoc>());
     }
 
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
@@ -46,26 +56,27 @@ public class ClusterCounterAnalysis extends BasicVariantAnalysis implements Geno
             if (lastVariation != null) {
                 GenomeLoc eL = eval.getLocation();
                 GenomeLoc lvL = lastVariation.getLocation();
-                if (eL.getContigIndex() == lvL.getContigIndex()) {
+
+                // if we are on the same contig, and we in the same interval
+                if (eL.getContigIndex() == lvL.getContigIndex() && ! (lastVariantInterval != null && lastVariantInterval.compareTo(interval) != 0)) {
                     long d = eL.distance(lvL);
-                    if ( lastVariantInterval != null && lastVariantInterval.compareTo(interval) != 0) {
-                        // we're on different intervals
-                        //out.printf("# Excluding %d %s %s vs. %s %s%n", d, eL, interval, lvL, lastVariantInterval);
-                    } else {
-                        nSeen++;
-                        StringBuilder s = new StringBuilder();
-                        for (int i = 0; i < neighborWiseBoundries.length; i++) {
-                            int maxDist = neighborWiseBoundries[i];
-                            s.append(String.format("%d ", d <= maxDist ? maxDist : 0));
-                            if ( d <= maxDist ) {
-                                variantsWithClusters.get(i).add(eL);
-                            }
+                    nSeen++;
+                    StringBuilder s = new StringBuilder();
+                    for (int i = 0; i < neighborWiseBoundries.length; i++) {
+                        int maxDist = neighborWiseBoundries[i];
+                        s.append(String.format("%d ", d <= maxDist ? maxDist : 0));
+                        if ( d <= maxDist ) {
+                            variantsWithClusters[i]++;
                         }
-                        r = d <= minDistanceForFlagging ? String.format("snp_within_cluster %d %s %s %s", d, eL, lvL, s.toString()) : null;
                     }
+
+                    // lookup in master for performance reasons
+                    if ( d <= minDistanceForFlagging && getMaster().includeViolations() )
+                        r = String.format("snp_within_cluster %d %s %s %s", d, eL, lvL, s.toString());
                 }
             }
 
+            // eval is now the last variation
             lastVariation = eval;
             lastVariantInterval = interval;
         }
@@ -79,7 +90,7 @@ public class ClusterCounterAnalysis extends BasicVariantAnalysis implements Geno
         s.add(String.format("description        maxDist count"));
         for ( int i = 0; i < neighborWiseBoundries.length; i++ ) {
             int maxDist = neighborWiseBoundries[i];
-            int count = variantsWithClusters.get(i).size();
+            int count = variantsWithClusters[i];
             s.add(String.format("snps_within_clusters_of_size %10d %10d", maxDist, count));
         }
 

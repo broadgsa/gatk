@@ -27,7 +27,8 @@ import java.util.*;
  */
 @Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="eval",type=ReferenceOrderedDatum.class)}) // right now we have no base variant class for rods, this should change
 @Allows(value={DataSource.REFERENCE},referenceMetaData = {@RMD(name="eval",type=ReferenceOrderedDatum.class), @RMD(name="dbsnp",type=rodDbSNP.class),@RMD(name="hapmap-chip",type=ReferenceOrderedDatum.class), @RMD(name="interval",type=IntervalRod.class), @RMD(name="validation",type=RodGenotypeChipAsGFF.class)})
-public class VariantEvalWalker extends RefWalker<Integer, Integer> {
+//public class VariantEvalWalker extends RefWalker<Integer, Integer> {
+public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(shortName="minConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
     public int minConfidenceScore = -1;
 
@@ -44,7 +45,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     public boolean explode = false;
 
     @Argument(fullName="includeViolations", shortName = "V", doc="If provided, violations will be written out along with summary information", required=false)
-    public boolean includeViolations = false;
+    public boolean mIncludeViolations = false;
 
     @Argument(fullName="extensiveSubsets", shortName = "A", doc="If provided, output will be calculated over a lot of subsets, by default we only operate over all variants", required=false)
     public boolean extensiveSubsets = false;
@@ -204,6 +205,16 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        nMappedSites += context.getSkippedBases();
+
+        //System.out.printf("Tracker at %s is %s, ref is %s%n", context.getLocation(), tracker, ref);
+        //if ( ref == null )
+        //    out.printf("Last position was %s: skipping %d bases%n",
+        //        context.getLocation(), context.getSkippedBases() );
+        if ( ref == null ) { // we are seeing the last site
+            return 0;
+        }
+
         nMappedSites++;
 
         int nBoundGoodRods = tracker.getNBoundRodTracks("interval");
@@ -244,14 +255,16 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         return 1;
     }
 
+    public boolean includeViolations() { return mIncludeViolations; }
 
     public void updateAnalysisSet(final ANALYSIS_TYPE analysisSetName, Variation eval,
                                   RefMetaDataTracker tracker, char ref, AlignmentContext context) {
         // Iterate over each analysis, and update it
-        if (getAnalysisSet(analysisSetName) != null) {
-            for (VariantAnalysis analysis : getAnalysisSet(analysisSetName)) {
+        ArrayList<VariantAnalysis> set = getAnalysisSet(analysisSetName);
+        if ( set != null ) {
+            for ( VariantAnalysis analysis : set ) {
                 String s = analysis.update(eval, tracker, ref, context);
-                if (s != null && includeViolations) {
+                if ( s != null && includeViolations() ) {
                     analysis.getCallPrintStream().println(getLineHeader(analysisSetName, "flagged", analysis.getName()) + s);
                 }
             }

@@ -28,11 +28,6 @@ import net.sf.samtools.SAMRecord;
  */
 public class RodLocusView extends LocusView implements ReferenceOrderedView {
     /**
-     * The provider that's supplying our backing data.
-     */
-    //private final ShardDataProvider provider;
-
-    /**
      * The data sources along with their current states.
      */
     private MergingIterator<RODRecordList<ReferenceOrderedDatum>> rodQueue = null;
@@ -64,14 +59,19 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         List< Iterator<RODRecordList<ReferenceOrderedDatum>> > iterators = new LinkedList< Iterator<RODRecordList<ReferenceOrderedDatum>> >();
         for( ReferenceOrderedDataSource dataSource: provider.getReferenceOrderedData() ) {
             if ( DEBUG ) System.out.printf("Shard is %s%n", loc);
+
+            // grab the ROD iterator from the data source, and compute the first location in this shard, forwarding
+            // the iterator to immediately before it, so that it can be added to the merging iterator primed for
+            // next() to return the first real ROD in this shard
             SeekableRODIterator it = (SeekableRODIterator)dataSource.seek(provider.getShard());
-            RODRecordList<ReferenceOrderedDatum> x = it.seekForward(loc);
+            GenomeLoc shardLoc = provider.getShard().getGenomeLoc();
+            it.seekForward(GenomeLocParser.createGenomeLoc(shardLoc.getContigIndex(), shardLoc.getStart()-1, shardLoc.getStart()-1));
 
             // we need to special case the interval so we don't always think there's a rod at the first location
             if ( dataSource.getName().equals(INTERVAL_ROD_NAME) ) {
                 if ( interval != null )
                     throw new RuntimeException("BUG: interval local variable already assigned " + interval);
-                interval = x;
+                interval = (RODRecordList<ReferenceOrderedDatum>)it.next();
             } else {
                 iterators.add( it );
             }
@@ -142,30 +142,16 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         return rodQueue.allElementsLTE(marker);
     }
 
-//    private Collection<ReferenceOrderedDatum> getSpanningRods(ReferenceOrderedDatum marker) {
-//        Collection<ReferenceOrderedDatum> allFromQueue = rodQueue.allElementsLTE(marker);
-//        Collection<ReferenceOrderedDatum> all = new LinkedList<ReferenceOrderedDatum>(allFromQueue);
-//
-//        Iterator<ReferenceOrderedDatum> it = multiLocusRODs.iterator();
-//        while ( it.hasNext() ) {
-//            ReferenceOrderedDatum mlr = it.next();
-//            if ( mlr.getLocation().overlapsP(marker.getLocation()) ) {
-//                all.add(mlr);
-//            } else {
-//                it.remove();    // no long covering this site
-//            }
-//        }
-//
-//        for ( ReferenceOrderedDatum datum : allFromQueue ) {
-//            if ( ! datum.getLocation().isSingleBP() ) {
-//                System.out.printf("Adding multi-locus %s%n", datum);
-//                multiLocusRODs.add(datum);
-//            }
-//        }
-//
-//        return all;
-//    }
-
+    /**
+     * Returns the number of reference bases that have been skipped:
+     *
+     * 1 -- since the last processed location if we have one
+     * 2 -- from the beginning of the shard if this is the first loc
+     * 3 -- from the last location to the current position
+     *
+     * @param currentPos
+     * @return
+     */
     private long getSkippedBases( GenomeLoc currentPos ) {
         long skippedBases = 0;
 
@@ -179,7 +165,8 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         }
 
         if ( skippedBases < -1 ) { // minus 1 value is ok
-            throw new RuntimeException(String.format("BUG: skipped bases is < 0: cur=%s vs. last=%s", currentPos, lastLoc));
+            throw new RuntimeException(String.format("BUG: skipped bases=%d is < 0: cur=%s vs. last=%s, shard=%s",
+                    skippedBases, currentPos, lastLoc, shard.getGenomeLoc()));
         }
         return Math.max(skippedBases, 0);
     }
@@ -215,8 +202,6 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
      * Closes the current view.
      */
     public void close() {
-        //rodQueue.close();
-
         rodQueue = null;
         tracker = null;
     }

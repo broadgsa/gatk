@@ -49,9 +49,8 @@ public class TraverseLoci extends TraversalEngine {
 
         LocusView locusView = getLocusView( walker, dataProvider );
 
-
-        if ( WalkerManager.getWalkerDataSource(walker) == DataSource.REFERENCE_ORDERED_DATA )
-            throw new RuntimeException("Engine currently doesn't support RodWalkers");
+        //if ( WalkerManager.getWalkerDataSource(walker) == DataSource.REFERENCE_ORDERED_DATA )
+        //    throw new RuntimeException("Engine currently doesn't support RodWalkers");
 
         if ( locusView.hasNext() ) { // trivial optimization to avoid unnecessary processing when there's nothing here at all
 

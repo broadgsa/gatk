@@ -6,6 +6,8 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.Utils;
 import org.junit.Test;
+import org.apache.log4j.Appender;
+import org.apache.log4j.WriterAppender;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -25,12 +27,13 @@ public class WalkerTest extends BaseTest {
             String filemd5sum = bigInt.toString(16);
             while (filemd5sum.length() < 32) filemd5sum = "0" + filemd5sum; // pad to length 32
             if ( parameterize() || expectedMD5.equals("") ) {
-                logger.warn(String.format("PARAMETERIZATION[%s]: file %s has md5 = %s, stated expectation is %s, equal? = %b",
+                System.out.println(String.format("PARAMETERIZATION[%s]: file %s has md5 = %s, stated expectation is %s, equal? = %b",
                         name, resultsFile, filemd5sum, expectedMD5, filemd5sum.equals(expectedMD5)));
             } else {
-                logger.warn(String.format("Checking MD5 for %s [calculated=%s, expected=%s]", resultsFile, filemd5sum, expectedMD5));
+                System.out.println(String.format("Checking MD5 for %s [calculated=%s, expected=%s]", resultsFile, filemd5sum, expectedMD5));
+                System.out.flush();
                 Assert.assertEquals(name + " Mismatching MD5s", expectedMD5, filemd5sum);
-                logger.warn(String.format("  => %s PASSED", name));
+                System.out.println(String.format("  => %s PASSED", name));
             }
 
             return filemd5sum;
@@ -119,8 +122,8 @@ public class WalkerTest extends BaseTest {
         }
 
         final String args = String.format(spec.args, tmpFiles.toArray());
-        logger.warn(Utils.dupString('-', 80));
-        logger.warn(String.format("Executing test %s with GATK arguments: %s", name, args));
+        System.out.println(Utils.dupString('-', 80));
+        System.out.println(String.format("Executing test %s with GATK arguments: %s", name, args));
 
         CommandLineGATK instance = new CommandLineGATK();
         CommandLineExecutable.start(instance, args.split(" "));
@@ -134,6 +137,6 @@ public class WalkerTest extends BaseTest {
 
     @Test
     public void testWalkerTest() {
-        //logger.warn("WalkerTest is just a framework");
+        //System.out.println("WalkerTest is just a framework");
     }
 }
