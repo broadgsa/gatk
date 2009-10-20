@@ -77,9 +77,8 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         return vcf;
     }
 
-    public void assertMultiAllelic() {
-        if (this.getAlternateBaseList().size() < 1)
-            throw new StingException("We're not multi-allelic.");
+    public void assertBiAllelic() {
+        if (!this.isBiallelic()) throw new StingException("We're not bi-allelic.");
     }
 
     /**
@@ -121,7 +120,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     @Override
     public boolean isSNP() {
         this.assertNotNull();
-        assertMultiAllelic();
+        assertBiAllelic();
         for (VCFGenotypeEncoding alt : this.mCurrentRecord.getAlternateAlleles()) {
             if (alt.getType() != VCFGenotypeEncoding.TYPE.SINGLE_BASE)
                 return false;
@@ -137,7 +136,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     @Override
     public boolean isInsertion() {
         this.assertNotNull();
-        assertMultiAllelic();
+        assertBiAllelic();
         if (!mCurrentRecord.hasAlternateAllele())
             return false;
         for (VCFGenotypeEncoding alt : this.mCurrentRecord.getAlternateAlleles()) {
@@ -155,7 +154,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     @Override
     public boolean isDeletion() {
         this.assertNotNull();
-        assertMultiAllelic();
+        assertBiAllelic();
         if (!mCurrentRecord.hasAlternateAllele())
             return false;
         for (VCFGenotypeEncoding alt : this.mCurrentRecord.getAlternateAlleles()) {
