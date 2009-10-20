@@ -138,7 +138,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
 
     public boolean useRead( SAMRecord read, int offset, ReferenceContext ref ) {
 
-        if ( Character.toUpperCase(read.getReadBases()[offset]) == ref.getBase() ) {
+        if ( Character.toUpperCase(read.getReadBases()[offset]) == Character.toUpperCase(ref.getBase()) ) {
             return false;
         } else if ( read.getMappingQuality() <= minMappingQuality ) {
             return false;
@@ -300,6 +300,9 @@ class BaseTransitionTable {
     }
 
     public void update(char observedBase, char refBase ) {
+        //if ( observedBase == refBase ) {
+        //    throw new StingException("BaseTransitionTable received equal observed and reference bases, which should not happen.");
+        //}
         table[BaseUtils.simpleBaseToBaseIndex(observedBase)][BaseUtils.simpleBaseToBaseIndex(refBase)] ++;
     }
 
