@@ -24,7 +24,7 @@
     <!-- Variant filtration -->
     <class>org.broadinstitute.sting.gatk.walkers.filters.VariantFiltrationWalker</class>
     <!-- Single sample genotyper -->
-    <class>org.broadinstitute.sting.gatk.walkers.genotyper.SingleSampleGenotyper</class>
+    <class>org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper</class>
     <!-- And the filters -->
     <class>org.broadinstitute.sting.gatk.walkers.filters.IVFSecondaryBases</class>
     <class>org.broadinstitute.sting.gatk.walkers.filters.VECFisherStrand</class>

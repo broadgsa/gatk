@@ -59,9 +59,6 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     @Argument(fullName = "outputBam", shortName = "ob", doc = "Write output to this BAM filename instead of STDOUT", required = false)
     String outputBamFile = null;
 
-    @Argument(fullName = "", shortName = "STD", doc = "FOR DEBUGGING ONLY", required = false)
-    boolean toStandardOut = false;
-
     @Argument(fullName = "qTrimmingThreshold", shortName = "QT", doc = "", required = false)
     int qTrimmingThreshold = -1;
 
@@ -304,9 +301,10 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     public ClippingData reduceInit() {
         SAMFileWriter outputBam = null;
 
-        if ( outputBamFile != null && ! toStandardOut ) {
+        if ( outputBamFile != null ) {
             SAMFileHeader header = this.getToolkit().getSAMFileHeader();
-            outputBam = Utils.createSAMFileWriterWithCompression(header, false, outputBamFile, 5);
+            boolean maintainsSort = clippingRepresentation != ClippingRepresentation.SOFTCLIP_BASES;
+            outputBam = Utils.createSAMFileWriterWithCompression(header, maintainsSort, outputBamFile, 5);
         }
 
         return new ClippingData(outputBam, sequencesToClip);
@@ -315,7 +313,7 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     public ClippingData reduce(ReadClipper clipper, ClippingData data) {
         if (data.output != null) {
             data.output.addAlignment(clipper.clipRead(clippingRepresentation));
-        } else if (toStandardOut) {
+        } else {
             out.println(clipper.clipRead(clippingRepresentation).format());
         }
 
