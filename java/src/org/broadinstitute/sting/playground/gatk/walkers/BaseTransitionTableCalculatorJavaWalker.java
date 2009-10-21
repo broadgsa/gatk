@@ -26,23 +26,23 @@ import net.sf.samtools.SAMRecord;
  */
 @By(DataSource.REFERENCE)
 public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<ReferenceContextWindow,Integer>{
-@Argument(fullName="usePreviousBases", doc="Use previous bases of the reference as part of the calculation, uses the specified number, defaults to 0", required=false)
+    @Argument(fullName="usePreviousBases", doc="Use previous bases of the reference as part of the calculation, uses the specified number, defaults to 0", required=false)
     int nPreviousBases = 0;
-@Argument(fullName="useSecondaryBase",doc="Use the secondary base of a read as part of the calculation", required=false)
+    @Argument(fullName="useSecondaryBase",doc="Use the secondary base of a read as part of the calculation", required=false)
     boolean useSecondaryBase = false;
-@Argument(fullName="confidentRefThreshold",doc="Set the lod score that defines confidence in ref, defaults to 4", required=false)
+    @Argument(fullName="confidentRefThreshold",doc="Set the lod score that defines confidence in ref, defaults to 4", required=false)
     int confidentRefThreshold = 5;
-@Argument(fullName="maxNumMismatches",doc="Set the maximum number of mismatches at a locus before choosing not to use it in calculation. Defaults to 1.", required=false)
+    @Argument(fullName="maxNumMismatches",doc="Set the maximum number of mismatches at a locus before choosing not to use it in calculation. Defaults to 1.", required=false)
     int maxNumMismatches = 1;
-@Argument(fullName="minMappingQuality", doc ="Set the alignment quality below which to ignore reads; defaults to 30", required = false)
+    @Argument(fullName="minMappingQuality", doc ="Set the alignment quality below which to ignore reads; defaults to 30", required = false)
     int minMappingQuality = 30;
-@Argument(fullName="minQualityScore", doc = "Set the base quality score below which to ignore bases in the pileup, defaults to 20", required = false)
+    @Argument(fullName="minQualityScore", doc = "Set the base quality score below which to ignore bases in the pileup, defaults to 20", required = false)
     int minQualityScore = 20;
-@Argument(fullName="usePileupMismatches", doc = "Use the number of mismatches in the pileup as a condition for the table", required=false)
+    @Argument(fullName="usePileupMismatches", doc = "Use the number of mismatches in the pileup as a condition for the table", required=false)
     boolean usePileupMismatches = false;
-@Argument(fullName="usePreviousReadBases", doc="Use previous bases of the read as part of the calculation. Will ignore reads if there aren't this many previous bases. Uses the specified number. Defaults to 0", required=false)
+    @Argument(fullName="usePreviousReadBases", doc="Use previous bases of the read as part of the calculation. Will ignore reads if there aren't this many previous bases. Uses the specified number. Defaults to 0", required=false)
     int nPreviousReadBases = 0;
-@Argument(fullName="useReadGroup", doc="Use the group number of the read as a condition of the table.", required = false)
+    @Argument(fullName="useReadGroup", doc="Use the group number of the read as a condition of the table.", required = false)
     boolean useReadGroup = false;
 
     private UnifiedGenotyper ug;
@@ -60,7 +60,10 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
         return 0;
     }
 
+    // todo -- emit table from map and reduce just sums
     public ReferenceContextWindow map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
+        // todo -- change to use windowed reference itself
+        // todo -- move up calculations into map not reduce
         ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(),context);
         refWindow.update(ref,pileup,baseIsUsable(tracker,ref,pileup,context));
 
@@ -242,13 +245,13 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
     }
 
     public boolean pileupContainsNoNs(ReadBackedPileup pileup) {
-	for ( char c : pileup.getBases().toCharArray() ) {
-	    if ( c == 'N' ) {
-		return false;
-	    }
-	}
+        for ( char c : pileup.getBases().toCharArray() ) {
+            if ( c == 'N' ) {
+                return false;
+            }
+        }
 	
-	return true;
+        return true;
     }
 
     public boolean baseIsConfidentRef( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
@@ -260,7 +263,6 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Referen
     }
 
 }
-
 
 class BaseTransitionTable implements Comparable {
 
@@ -310,6 +312,7 @@ class BaseTransitionTable implements Comparable {
                     ListIterator<Comparable> thisIter = this.conditions.listIterator();
                     ListIterator<Comparable> thatIter = t.conditions.listIterator();
                     while ( thisIter.next() == thatIter.next() ) {
+                        // todo -- compareTo
                         // do nothing
                     }
                     return thisIter.previous().compareTo(thatIter.previous());
@@ -325,6 +328,8 @@ class BaseTransitionTable implements Comparable {
 
         for ( char observedBase : BaseUtils.BASES ) {
             for ( char refBase : BaseUtils.BASES ) {
+                // todo -- String.format please
+                // todo -- in these situations use StringBuilder
                 String outString = observedBase+"\t"+refBase;
                 for ( Comparable c : conditions ) {
                     outString = outString+"\t"+c.toString();
@@ -338,7 +343,7 @@ class BaseTransitionTable implements Comparable {
         //if ( observedBase == refBase ) {
         //    throw new StingException("BaseTransitionTable received equal observed and reference bases, which should not happen.");
         //}
-        table[BaseUtils.simpleBaseToBaseIndex(observedBase)][BaseUtils.simpleBaseToBaseIndex(refBase)] ++;
+        table[BaseUtils.simpleBaseToBaseIndex(observedBase)][BaseUtils.simpleBaseToBaseIndex(refBase)]++;
     }
 
     public void update(byte observed, char ref) {
