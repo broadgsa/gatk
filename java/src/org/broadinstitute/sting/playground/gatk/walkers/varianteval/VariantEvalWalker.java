@@ -149,7 +149,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             VariantAnalysis analysis = iter.next();
             boolean disableForGenotyping = evalContainsGenotypes && !(analysis instanceof GenotypeAnalysis);
             boolean disableForPopulation = !evalContainsGenotypes && !(analysis instanceof PopulationAnalysis);
-            boolean disableForPools = (pathToHapmapPoolFile == null && analysis instanceof PooledGenotypeConcordance) || (numPeopleInPool < 1 && analysis instanceof PooledGenotypeConcordance);
+            boolean disableForPools = (pathToHapmapPoolFile == null && analysis instanceof PooledGenotypeConcordance) || (numPeopleInPool < 1 && analysis instanceof PoolAnalysis);
             boolean disable = disableForGenotyping | disableForPopulation | disableForPools;
             String causeName = disableForGenotyping ? "population" : (disableForPopulation ? "genotype" : (disableForPools ? "pool" : null));
             if (disable) {

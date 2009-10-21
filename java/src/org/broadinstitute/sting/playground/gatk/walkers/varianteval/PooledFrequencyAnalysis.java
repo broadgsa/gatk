@@ -26,15 +26,17 @@ public class PooledFrequencyAnalysis extends BasicPoolVariantAnalysis implements
 
     public PooledFrequencyAnalysis(int poolSize, String knownDBSNPName ) {
         super("Pooled_Frequency_Analysis",poolSize);
-        coverageAnalysisByFrequency = new VariantDBCoverage[getNumberOfAllelesInPool()+1];
-        variantCounterByFrequency = new VariantCounter[getNumberOfAllelesInPool()+1];
-        transitionTransversionByFrequency = new TransitionTranversionAnalysis[getNumberOfAllelesInPool()+1];
-        for ( int j = 0; j < getNumberOfAllelesInPool()+1; j ++ ) {
-            coverageAnalysisByFrequency[j] = new VariantDBCoverage(knownDBSNPName);
-            variantCounterByFrequency[j] = new VariantCounter();
-            transitionTransversionByFrequency[j] = new TransitionTranversionAnalysis();
+        if ( poolSize > 0 ) {
+            coverageAnalysisByFrequency = new VariantDBCoverage[getNumberOfAllelesInPool()+1];
+            variantCounterByFrequency = new VariantCounter[getNumberOfAllelesInPool()+1];
+            transitionTransversionByFrequency = new TransitionTranversionAnalysis[getNumberOfAllelesInPool()+1];
+            for ( int j = 0; j < getNumberOfAllelesInPool()+1; j ++ ) {
+                coverageAnalysisByFrequency[j] = new VariantDBCoverage(knownDBSNPName);
+                variantCounterByFrequency[j] = new VariantCounter();
+                transitionTransversionByFrequency[j] = new TransitionTranversionAnalysis();
+            }
         }
-    }
+    }      
 
     public void initialize(VariantEvalWalker master, PrintStream out1, PrintStream out2, String name) {
         super.initialize(master,out1,out2,name);
