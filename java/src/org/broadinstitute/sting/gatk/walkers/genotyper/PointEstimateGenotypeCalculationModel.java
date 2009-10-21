@@ -133,7 +133,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
         }
 
         // normalize
-        double sum = 0;
+        double sum = 0.0;
         for (int i = 0; i < 4; i++)
             sum += alleleFrequencies[i];
         for (int i = 0; i < 4; i++)
