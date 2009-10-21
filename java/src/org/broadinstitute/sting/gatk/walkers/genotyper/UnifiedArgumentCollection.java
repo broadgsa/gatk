@@ -31,7 +31,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 public class UnifiedArgumentCollection {
 
     // control the various models to be used
-    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- EM_POINT_ESTIMATE is currently the default, while EM_ALL_MAFS is under development.  An exception will be thrown if an attempt is made to use EM_POINT_ESTIMATE with a pooled genotype calculation.", required = false)
+    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- EM_POINT_ESTIMATE is currently the default, while JOINT_ESTIMATE is under development.  An exception will be thrown if an attempt is made to use EM_POINT_ESTIMATE with pooled data.", required = false)
     public GenotypeCalculationModel.Model genotypeModel = GenotypeCalculationModel.Model.EM_POINT_ESTIMATE;
 
     @Argument(fullName = "base_model", shortName = "bm", doc = "Base substitution model to employ -- EMPIRICAL is the recommended default, but it's possible to select the ONE_STATE and THREE_STATE models for comparison purposes", required = false)
@@ -73,6 +73,8 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "max_coverage", shortName = "coverage", doc = "Maximum reads at this locus for it to be callable; to disable, provide value < 1 [default:10,000]", required = false)
     public Integer MAX_READS_IN_PILEUP = 10000;
 
+    @Argument(fullName = "min_allele_frequency", shortName = "minFreq", doc = "The minimum possible allele frequency in a population (advanced)", required = false)
+    public double MINIMUM_ALLELE_FREQUENCY = 1e-8;
 
     //@Argument(fullName = "disableCache", doc = "[ADVANCED] If true, we won't use the caching system.  This argument is for testing purposes only", required = false)
     //public boolean disableCache = false;

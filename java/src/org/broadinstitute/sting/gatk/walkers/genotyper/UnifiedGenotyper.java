@@ -82,13 +82,15 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
     /** Enable deletions in the pileup **/
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
+
     /**
-     * Sets the single sample to assume when read groups are missing.
+     * Sets the argument collection for the UnifiedGenotyper.
      * To be used with walkers that call the UnifiedGenotyper's map function
+     * and consequently can't set these arguments on the command-line
      *
      **/
-    public void setAssumedSingleSample(String sample) {
-        gcm.setAssumedSingleSample(sample);
+    public void setUnifiedArgumentCollection(UnifiedArgumentCollection UAC) {
+        gcm.setUnifiedArgumentCollection(UAC);
     }
 
     /**

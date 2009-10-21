@@ -58,8 +58,8 @@ public class GenotypeCalculationModelFactory {
             case EM_POINT_ESTIMATE:
                 gcm = new PointEstimateGenotypeCalculationModel();
                 break;
-            case EM_ALL_MAFS:
-                gcm = new AllMAFsGenotypeCalculationModel();
+            case JOINT_ESTIMATE:
+                gcm = new JointEstimateGenotypeCalculationModel();
                 break;
             default: throw new RuntimeException("Unexpected GenotypeCalculationModel " + UAC.genotypeModel);
         }
