@@ -55,7 +55,10 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
             throw new StingException("You have opted to use a number of previous bases in excess of 3. In order to do this you must change the reference window size in the walker itself.");
         }
         ug = new UnifiedGenotyper();
+        UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         ug.initialize();
+        uac.baseModel = BaseMismatchModel.THREE_STATE;
+        ug.setUnifiedArgumentCollection(uac);
         // refWindow = new ReferenceContextWindow(nPreviousBases);
         usePreviousBases = new ArrayList<Boolean>();
         previousBaseLoci = new ArrayList<GenomeLoc>();
