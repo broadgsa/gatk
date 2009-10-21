@@ -44,10 +44,10 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
     @Argument(fullName="minimumMappingQuality", shortName="mmq", doc="Only use reads above this mapping quality in the power calculation", required=false)
     int minMappingQuality = -1;
 
-    @Argument(fullName="ignoreForwardReads",doc="Use the forward reads at a site. Defaults to true.", required = false)
+    @Argument(fullName="ignoreForwardReads",doc="Ignore the forward reads at a site. Defaults to false.", required = false)
     boolean ignoreForwardReads = false;
 
-    @Argument(fullName="ignoreReverseReads",doc="Use the reverse reads at a site. Defaults to true.", required = false)
+    @Argument(fullName="ignoreReverseReads",doc="Ignore the reverse reads at a site. Defaults to false.", required = false)
     boolean ignoreReverseReads = false;
 
     public void initialize() {

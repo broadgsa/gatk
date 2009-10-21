@@ -260,16 +260,16 @@ class PooledConcordanceTable {
             } else {
                 mismatch = ( evalF != chipS && evalS != chipS ); // test against het nonref
             }
-        } else if ( chipS == ref ) {
+        } else if ( chipS == ref ) { // het nonref (somehow made nonref|ref rather than ref|nonref)
             mismatch = ( evalF != chipF && evalS != chipF ); // test against het nonref
-        } else {
+        } else { // chip is homozygous nonreference
             if( evalF == ref ) {
-                mismatch = ( evalS != chipF && evalS != chipF ); // test against hom nonref
+                mismatch = ( evalS != chipF && evalS != chipS ); // make sure the nonref call of eval matches one of the chip alleles
             } else if ( evalS == ref ) {
-                mismatch = ( evalF != chipF && evalF != chipF ); // test against hom nonref
+                mismatch = ( evalF != chipF && evalF != chipS ); // make sure the nonref call of eval matches one of the chip alleles
             } else {
                 // both are hom nonref
-                mismatch = ( evalF != chipF );
+                mismatch = ( evalF != chipF || evalS != chipS); // could be multiallelic calls
             }
         }
         return mismatch;
@@ -373,14 +373,17 @@ class PooledConcordanceTable {
     }
 
     public int getLargestOutputAlleleFrequencyIndex() {
-        // TODO -- this code may be bugged -- is the first index at which no hapmap sites appear
-        // TODO -- also the index above which no hapmap sites are guaranteed to appear with said frequency
-        int nHapmapSitesAtFreq = 1;
+        // fixed - returns the last index at which genotype sites appear
+
         int freqIndex = -1;
-        while ( nHapmapSitesAtFreq > 0 && freqIndex < calculateNumFrequencyIndeces(poolSize) ) {
-            freqIndex ++;
+        for ( int j = 0; j < calculateNumFrequencyIndeces(poolSize); j ++ ) {
+            int nHapmapSitesAtFreq = 0;
             for ( int i = 0; i < CALL_INDECES; i ++) {
                 nHapmapSitesAtFreq += table[TRUTH_REF][i] + table[TRUTH_VAR][i] + table[TRUTH_UNKNOWN][i];
+            }
+
+            if ( nHapmapSitesAtFreq > 0 ) {
+                freqIndex = j;
             }
         }
 

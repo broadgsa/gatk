@@ -19,7 +19,7 @@ import java.util.ArrayList;
 public abstract class BasicPoolVariantAnalysis implements VariantAnalysis{
     protected int numIndividualsInPool;
     protected String name;
-    protected String[] filenames;
+    protected String filenames;
     protected PrintStream out, callOut;
     private VariantEvalWalker master;
 
@@ -42,7 +42,9 @@ public abstract class BasicPoolVariantAnalysis implements VariantAnalysis{
 
     public List<String> done() { return new ArrayList<String>(); }
 
-    public void initialize(VariantEvalWalker master, PrintStream out, PrintStream callOut, String[] filenames) {
+    public int getNumberOfAllelesInPool() { return 2*getNumberOfIndividualsInPool(); }
+
+    public void initialize(VariantEvalWalker master, PrintStream out, PrintStream callOut, String filenames) {
         this.master = master;
         this.out = out;
         this.callOut = callOut;
@@ -53,6 +55,6 @@ public abstract class BasicPoolVariantAnalysis implements VariantAnalysis{
         // no need to finalize data in general
     }
 
-    public abstract String update(Variation variant, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context);
+    public abstract String update(Variation variant, RefMetaDataTracker tracker, char ref, AlignmentContext context);
 
 }

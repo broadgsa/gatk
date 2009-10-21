@@ -54,7 +54,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     public boolean supressDateInformation = false;
 
     @Argument(fullName = "numPeopleInPool", shortName="PS", doc="If using a variant file from a pooled caller, this field provides the number of individuals in each pool", required=false)
-    public int numPeopleInPool = 1;
+    public int numPeopleInPool = -1;
 
     @Argument(fullName = "pathToHapmapPoolFile", shortName="HPF", doc="If using a variant file from a pooled caller on pools of hapmap individuals, this field provides a filepath to the pool construction file listing which hapmap individuals are in which pool", required=false)
     public String pathToHapmapPoolFile = null;
@@ -132,6 +132,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         analyses.add(new PooledGenotypeConcordance(pathToHapmapPoolFile));
         analyses.add(new VariantCounter());
         analyses.add(new VariantDBCoverage(knownSNPDBName));
+        analyses.add(new PooledFrequencyAnalysis(numPeopleInPool,knownSNPDBName));
         analyses.add(new GenotypeConcordance(genotypeChipName));
         analyses.add(new TransitionTranversionAnalysis());
         analyses.add(new NeighborDistanceAnalysis());
@@ -148,7 +149,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             VariantAnalysis analysis = iter.next();
             boolean disableForGenotyping = evalContainsGenotypes && !(analysis instanceof GenotypeAnalysis);
             boolean disableForPopulation = !evalContainsGenotypes && !(analysis instanceof PopulationAnalysis);
-            boolean disableForPools = (pathToHapmapPoolFile == null && analysis instanceof PooledGenotypeConcordance);
+            boolean disableForPools = (pathToHapmapPoolFile == null && analysis instanceof PooledGenotypeConcordance) || (numPeopleInPool < 1 && analysis instanceof PooledGenotypeConcordance);
             boolean disable = disableForGenotyping | disableForPopulation | disableForPools;
             String causeName = disableForGenotyping ? "population" : (disableForPopulation ? "genotype" : (disableForPools ? "pool" : null));
             if (disable) {
