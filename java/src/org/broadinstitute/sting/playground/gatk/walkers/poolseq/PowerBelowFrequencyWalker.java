@@ -45,10 +45,10 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
     int minMappingQuality = -1;
 
     @Argument(fullName="ignoreForwardReads",doc="Use the forward reads at a site. Defaults to true.", required = false)
-    boolean ignoreForwardReads = true;
+    boolean ignoreForwardReads = false;
 
     @Argument(fullName="ignoreReverseReads",doc="Use the reverse reads at a site. Defaults to true.", required = false)
-    boolean ignoreReverseReads = true;
+    boolean ignoreReverseReads = false;
 
     public void initialize() {
         if ( alleleFreq < 1 ) {
