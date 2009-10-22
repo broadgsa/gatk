@@ -131,8 +131,8 @@ public class rodRefSeq extends BasicReferenceOrderedDatum implements Transcript 
     }
 
     /** Convenience method, which is packaged here for a lack of better place; it is indeed closely related to
-     * rodRefSeqSimple though: takes list of rods (transcripts) at determines whether the current position of the
-     * whole list is fully whithin an exon of <i>any</i> of those transcripts. Passing null is safe (will return false).
+     * rodRefSeq though: takes list of rods (transcripts) overlapping with a given position and determines whether
+     * this position is fully whithin an exon of <i>any</i> of those transcripts. Passing null is safe (will return false).
      * NOTE: position can be still within a UTR, see #isCoding
      * @return
      */
@@ -150,12 +150,13 @@ public class rodRefSeq extends BasicReferenceOrderedDatum implements Transcript 
     }
 
     /** Convenience method, which is packaged here for a lack of better place; it is indeed closely related to
-     * rodRefSeqSimple though: takes list of rods (transcripts) at determines whether the current position of the
-     * whole list is fully whithin a coding region of <i>any</i> of those transcripts. Passing null is safe (will return false).
+     * rodRefSeq though: takes list of rods (transcripts) overlapping with a given position and determines whether
+     * this position is fully whithin a coding region of <i>any</i> of those transcripts.
+     * Passing null is safe (will return false).
      * NOTE: "coding" interval is defined as a single genomic interval, so it
 	 * does not include the UTRs of the outermost exons, but it includes introns between exons spliced into a
 	 * transcript, or internal exons that are not spliced into a given transcript. To check that a position is
-	 * indeed within an exon but not in UTR, use isExon() && isCoding(). #see isExon .
+	 * indeed within an exon but not in UTR, use #isCodingExon().
      * @return
      */
     public static boolean isCoding(RODRecordList<rodRefSeq> l) {
@@ -170,4 +171,25 @@ public class rodRefSeq extends BasicReferenceOrderedDatum implements Transcript 
         return false;
 
     }
+
+    /** Convenience method, which is packaged here for a lack of better place; it is indeed closely related to
+     * rodRefSeq though: takes list of rods (transcripts) overlapping with a given position and determines whether
+     * this position is fully whithin a coding exon portion (i.e. true coding sequence) of <i>any</i> of those transcripts.
+     * Passing null is safe (will return false). In other words, this method returns true if the list contains a transcript,
+     * for which the current position is within an exon <i>and</i> within a coding interval simultaneously.
+     * @return
+     */
+    public static boolean isCodingExon(RODRecordList<rodRefSeq> l) {
+
+        if ( l == null ) return false;
+
+        GenomeLoc loc = l.getLocation();
+
+        for ( rodRefSeq t : l ) {
+            if ( t.overlapsCodingP(loc) && t.overlapsExonP(loc) ) return true;
+        }
+        return false;
+
+    }
+
 }
