@@ -343,8 +343,9 @@ public class GenomeLocParser {
                 List<String> lines = reader.readLines();
                 reader.close();
                 String locStr = Utils.join(";", lines);
-                logger.debug("locStr: " + locStr);
                 ret = parseGenomeLocs(locStr);
+                for(GenomeLoc locus: ret)
+                    verifyGenomeLocBounds(locus);
                 return ret;
             } catch (Exception e2) {
                 logger.error("Attempt to parse interval file in GATK format failed: " + e2.getMessage());
@@ -447,8 +448,9 @@ public class GenomeLocParser {
 
     /**
      * verify the specified genome loc is valid, if it's not, throw an exception
+     * Will not verify the location against contig bounds.
      *
-     * @param toReturn teh genome loc we're about to return
+     * @param toReturn the genome loc we're about to return
      *
      * @return the genome loc if it's valid, otherwise we throw an exception
      */
@@ -468,6 +470,20 @@ public class GenomeLocParser {
         }
         return toReturn;
 
+    }
+
+    /**
+     * Verify the locus against the bounds of the contig.
+     * @param locus Locus to verify.
+     */
+    private static void verifyGenomeLocBounds(GenomeLoc locus) {
+        verifyGenomeLoc(locus);
+
+        int contigSize = contigInfo.getSequence(locus.getContigIndex()).getSequenceLength();
+        if(locus.getStart() > contigSize)
+            throw new StingException(String.format("GenomeLoc is invalid: locus start %d is after the end of contig %s",locus.getStart(),locus.getContig()));
+        if(locus.getStop() > contigSize)
+            throw new StingException(String.format("GenomeLoc is invalid: locus stop %d is after the end of contig %s",locus.getStop(),locus.getContig()));
     }
 
 
