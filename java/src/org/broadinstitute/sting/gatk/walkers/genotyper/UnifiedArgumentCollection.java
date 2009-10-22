@@ -51,8 +51,8 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confident genotypes or just the variants?", required = false)
     public boolean GENOTYPE = false;
 
-    @Argument(fullName = "verbose", shortName = "v", doc = "EXPERIMENTAL", required = false)
-    public boolean VERBOSE = false;
+    @Argument(fullName = "verboseMode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
+    public String VERBOSE = null;
 
 
     // control the error modes
@@ -75,8 +75,4 @@ public class UnifiedArgumentCollection {
 
     @Argument(fullName = "min_allele_frequency", shortName = "minFreq", doc = "The minimum possible allele frequency in a population (advanced)", required = false)
     public double MINIMUM_ALLELE_FREQUENCY = 1e-8;
-
-    //@Argument(fullName = "disableCache", doc = "[ADVANCED] If true, we won't use the caching system.  This argument is for testing purposes only", required = false)
-    //public boolean disableCache = false;
-
 }

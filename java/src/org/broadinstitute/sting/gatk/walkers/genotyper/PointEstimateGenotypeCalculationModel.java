@@ -60,7 +60,6 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
         // create the GenotypeLikelihoods object
         GenotypeLikelihoods GL = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, priors, defaultPlatform);
-        GL.setVerbose(VERBOSE);
         GL.add(pileup, true);
         return new Pair<ReadBackedPileup, GenotypeLikelihoods>(pileup, GL);
     }
@@ -85,7 +84,6 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
             // create the GenotypeLikelihoods object
             GenotypeLikelihoods GL = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, AFPriors, defaultPlatform);
-            GL.setVerbose(VERBOSE);
             GL.add(pileup, true);
 
             GLs.put(sample, GL);

@@ -17,7 +17,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
 
     // because the Hardy-Weinberg values for a given frequency are constant,
     // we cache the results to avoid having to recompute everything
-    private HashMap<Double, Pair<double[], double[]>> hardyWeinbergValueCache = new HashMap<Double, Pair<double[], double[]>>();
+    private HashMap<Double, double[]> hardyWeinbergValueCache = new HashMap<Double, double[]>();
 
     // the allele frequency priors
     private double[] log10AlleleFrequencyPriors;
@@ -44,7 +44,11 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         if ( contexts == null )
             return null;
 
-        calculate(ref, contexts, StratifiedContext.OVERALL);
+        initializeAlleleFrequencies(contexts.size());
+
+        // run joint estimation for the full GL contexts
+        initializeGenotypeLikelihoods(ref, contexts, StratifiedContext.OVERALL);
+        calculateAlleleFrequencyPosteriors(ref, context.getLocation());
 
 
         //double lod = overall.getPofD() - overall.getPofNull();
@@ -66,15 +70,6 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         return null;
     }
 
-    private void calculate(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
-
-        initializeAlleleFrequencies(contexts.size());
-
-        initializeGenotypeLikelihoods(ref, contexts, contextType);
-
-        calculateAlleleFrequencyPosteriors(ref);
-    }
-
     private void initializeAlleleFrequencies(int numSamples) {
 
         // calculate the number of estimation points to use:
@@ -84,9 +79,6 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
 
         // set up the allele frequency priors
         log10AlleleFrequencyPriors = getNullAlleleFrequencyPriors(frequencyEstimationPoints);
-
-        for (int i = 0; i < frequencyEstimationPoints; i++)
-            logger.debug("Null allele frequency for MAF=" + i + "/" + (frequencyEstimationPoints-1) + ": " + log10AlleleFrequencyPriors[i]);
     }
 
     private double[] getNullAlleleFrequencyPriors(int N) {
@@ -124,20 +116,22 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
     private void initializeGenotypeLikelihoods(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
         GLs.clear();
 
+        // use flat priors for GLs
+        DiploidGenotypePriors priors = new DiploidGenotypePriors();
+
         for ( String sample : contexts.keySet() ) {
             AlignmentContextBySample context = contexts.get(sample);
             ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getContext(contextType));
 
             // create the GenotypeLikelihoods object
-            GenotypeLikelihoods GL = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, new DiploidGenotypePriors(), defaultPlatform);
-            GL.setVerbose(VERBOSE);
+            GenotypeLikelihoods GL = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, priors, defaultPlatform);
             GL.add(pileup, true);
 
             GLs.put(sample, GL);
         }
     }
 
-    private void calculateAlleleFrequencyPosteriors(char ref) {
+    private void calculateAlleleFrequencyPosteriors(char ref, GenomeLoc verboseLocation) {
 
         // initialization
         for ( char altAllele : BaseUtils.BASES ) {
@@ -151,14 +145,9 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         for (int i = 0; i < frequencyEstimationPoints; i++) {
             double f = (double)i / (double)(frequencyEstimationPoints-1);
 
-            DiploidGenotypePriors hardyWeinberg = getHardyWeinbergValues(f, ref);
-
             // for each sample
             for ( GenotypeLikelihoods GL : GLs.values() ) {
 
-                // set the GL prior to be the AF priors and get the corresponding posteriors
-                //GL.setPriors(hardyWeinberg);
-                GL.setPriors(new DiploidGenotypePriors());
                 double[] posteriors = GL.getPosteriors();
 
                 // get the ref data
@@ -180,7 +169,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
                     //logger.debug("Normalized posteriors for " + altAllele + ": " + allelePosteriors[0] + " " + allelePosteriors[1] + " " + allelePosteriors[2]);
 
                     // calculate the posterior weighted frequencies
-                    double[] HWvalues = hardyWeinbergValueCache.get(f).first;
+                    double[] HWvalues = getHardyWeinbergValues(f);
                     double PofDgivenAFi = 0.0;
                     PofDgivenAFi += HWvalues[GenotypeType.REF.ordinal()] * allelePosteriors[GenotypeType.REF.ordinal()];
                     PofDgivenAFi += HWvalues[GenotypeType.HET.ordinal()] * allelePosteriors[GenotypeType.HET.ordinal()];
@@ -197,28 +186,25 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
 
             int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
 
-            for (int i = 0; i < frequencyEstimationPoints; i++)
-                logger.debug("P(D|AF=" + i + ") for alt allele " + altAllele + ": " + log10PofDgivenAFi[baseIndex][i]);
-
             // multiply by null allele frequency priors to get AF posteriors, then normalize
             for (int i = 0; i < frequencyEstimationPoints; i++)
                 alleleFrequencyPosteriors[baseIndex][i] = log10AlleleFrequencyPriors[i] + log10PofDgivenAFi[baseIndex][i];
             normalizeFromLog10(alleleFrequencyPosteriors[baseIndex]);
-
-            for (int i = 0; i < frequencyEstimationPoints; i++)
-                logger.debug("Allele frequency posterior estimate for alt allele " + altAllele + " MAF=" + i + "/" + (frequencyEstimationPoints-1) + ": " + alleleFrequencyPosteriors[baseIndex][i]);
 
             // calculate p(f>0)
             double sum = 0.0;
             for (int i = 1; i < frequencyEstimationPoints; i++)
                 sum += alleleFrequencyPosteriors[baseIndex][i];
             PofFs[baseIndex] = Math.min(sum, 1.0); // deal with precision errors
-            logger.info("P(f>0), LOD for alt allele " + altAllele + ": " + Math.log10(PofFs[baseIndex]) + ", " +  (Math.log10(PofFs[baseIndex]) - Math.log10(alleleFrequencyPosteriors[baseIndex][0])));
         }
+
+        // print out stats if we have a position and a writer
+        if ( verboseLocation != null && verboseWriter != null )
+            printAlleleFrequencyData(ref, verboseLocation);
     }
 
-    private DiploidGenotypePriors getHardyWeinbergValues(double f, char ref) {
-        Pair<double[], double[]> HWvalues = hardyWeinbergValueCache.get(f);
+    private double[] getHardyWeinbergValues(double f) {
+        double[] HWvalues = hardyWeinbergValueCache.get(f);
 
         // if it hasn't been calculated yet, do so now
         if ( HWvalues == null ) {
@@ -236,26 +222,11 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
                 q -= MINIMUM_ALLELE_FREQUENCY;
             }
 
-            double[] freqs = new double[] { Math.pow(p, 2), 2.0 * p * q, Math.pow(q, 2) };
-            double[] log10Freqs = new double[] { Math.log10(freqs[0]), Math.log10(freqs[1]), Math.log10(freqs[2]) };
-            HWvalues = new Pair<double[], double[]>(freqs, log10Freqs);
+            HWvalues = new double[] { Math.pow(p, 2), 2.0 * p * q, Math.pow(q, 2) };
             hardyWeinbergValueCache.put(f, HWvalues);
         }
 
-        // create the priors based on the HW frequencies
-        double[] alleleFreqPriors = new double[10];
-        for ( DiploidGenotype g : DiploidGenotype.values() ) {
-            if ( g.isHomRef(ref) )
-                alleleFreqPriors[g.ordinal()] = HWvalues.second[GenotypeType.REF.ordinal()];
-            else if ( g.isHomVar(ref) )
-                alleleFreqPriors[g.ordinal()] = HWvalues.second[GenotypeType.HOM.ordinal()];
-            else if ( g.isHetRef(ref) )
-                alleleFreqPriors[g.ordinal()] = HWvalues.second[GenotypeType.HET.ordinal()];
-            else // g is het non-ref
-                alleleFreqPriors[g.ordinal()] = 0.0;
-        }
-
-        return new DiploidGenotypePriors(alleleFreqPriors);
+        return HWvalues;
     }
 
     private void normalizeFromLog10(double[] array) {
@@ -280,5 +251,40 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
                 max = array[index];
         }
         return max;
+    }
+
+    private void printAlleleFrequencyData(char ref, GenomeLoc loc) {
+
+        verboseWriter.println("Location=" + loc + ", ref=" + ref);
+        StringBuilder header = new StringBuilder("MAF\tNullAFpriors\t");
+        for ( char altAllele : BaseUtils.BASES ) {
+            if ( altAllele != ref ) {
+                char base = Character.toLowerCase(altAllele);
+                header.append("P(D|AF)_" + base + "\t");
+                header.append("PosteriorAF_" + base + "\t");
+            }
+        }
+        verboseWriter.println(header);
+
+        for (int i = 0; i < frequencyEstimationPoints; i++) {
+            StringBuilder AFline = new StringBuilder(i + "/" + (frequencyEstimationPoints-1) + "\t" + String.format("%.8f", log10AlleleFrequencyPriors[i]) + "\t");
+            for ( char altAllele : BaseUtils.BASES ) {
+                if ( altAllele != ref ) {
+                    int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
+                    AFline.append(String.format("%.8f\t%.8f\t", log10PofDgivenAFi[baseIndex][i], alleleFrequencyPosteriors[baseIndex][i]));
+                }
+            }
+            verboseWriter.println(AFline);
+        }
+
+        for ( char altAllele : BaseUtils.BASES ) {
+            if ( altAllele != ref ) {
+                char base = Character.toLowerCase(altAllele);
+                int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
+                verboseWriter.println("P(f>0)_" + base + " = " + Math.log10(PofFs[baseIndex]));
+                verboseWriter.println("LOD_" + base + " = " + (Math.log10(PofFs[baseIndex]) - Math.log10(alleleFrequencyPosteriors[baseIndex][0])));
+            }
+        }
+        verboseWriter.println();
     }
 }

@@ -254,10 +254,11 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
         return sum + 1;
     }
 
-    /** Close the variant file. */
+    // Close any file writers
     public void onTraversalDone(Integer sum) {
-        logger.info("Processed " + sum + " loci that are callable for SNPs");
         writer.close();
+        gcm.close();
+        logger.info("Processed " + sum + " loci that are callable for SNPs");
     }
 
     /**

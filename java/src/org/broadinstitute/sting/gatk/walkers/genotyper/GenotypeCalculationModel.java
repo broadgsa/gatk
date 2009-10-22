@@ -8,6 +8,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.apache.log4j.Logger;
 
+import java.io.*;
 import java.util.*;
 
 import net.sf.samtools.SAMRecord;
@@ -36,7 +37,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected double MINIMUM_ALLELE_FREQUENCY;
     protected int maxDeletionsInPileup;
     protected String assumedSingleSample;
-    protected boolean VERBOSE;
+    protected PrintWriter verboseWriter;
 
     /**
      * Create a new GenotypeCalculationModel object
@@ -66,34 +67,24 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         MINIMUM_ALLELE_FREQUENCY = UAC.MINIMUM_ALLELE_FREQUENCY;
         maxDeletionsInPileup = UAC.MAX_DELETIONS;
         assumedSingleSample = UAC.ASSUME_SINGLE_SAMPLE;
-        VERBOSE = UAC.VERBOSE;
-    }
-
-    /**
-     * Cloning of the object
-     * @return clone
-     * @throws CloneNotSupportedException
-     */
-    protected Object clone() throws CloneNotSupportedException {
-        GenotypeCalculationModel gcm = (GenotypeCalculationModel)super.clone();
-        gcm.samples = new HashSet<String>(samples);
-        gcm.logger = logger;
-        gcm.baseModel = baseModel;
-        gcm.heterozygosity = heterozygosity;
-        gcm.defaultPlatform = defaultPlatform;
-        gcm.GENOTYPE_MODE = GENOTYPE_MODE;
-        gcm.POOLED_INPUT = POOLED_INPUT;
-        gcm.LOD_THRESHOLD = LOD_THRESHOLD;
-        gcm.MINIMUM_ALLELE_FREQUENCY = MINIMUM_ALLELE_FREQUENCY;
-        gcm.maxDeletionsInPileup = maxDeletionsInPileup;
-        gcm.assumedSingleSample = assumedSingleSample;
-        gcm.VERBOSE = VERBOSE;
-        return gcm;
+        if ( UAC.VERBOSE != null ) {
+            try {
+                verboseWriter = new PrintWriter(UAC.VERBOSE);
+            } catch (FileNotFoundException e) {
+                throw new StingException("Could not open file " + UAC.VERBOSE + " for writing");
+            }
+        }
     }
 
     public void setUnifiedArgumentCollection(UnifiedArgumentCollection UAC) {
-        // just re-initialize
+        // just close and re-initialize
+        close();
         initialize(this.samples, this.logger, UAC);
+    }
+
+    public void close() {
+        if ( verboseWriter != null )
+            verboseWriter.close();
     }
 
     /**
