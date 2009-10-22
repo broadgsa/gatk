@@ -24,7 +24,7 @@ import net.sf.samtools.SAMRecord;
  */
 @By(DataSource.REFERENCE)
 @Reference(window=@Window(start=-3,stop=3))
-public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<BaseTransitionTable>,Set<BaseTransitionTable>> {
+public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<BaseTransitionTable>,Set<BaseTransitionTable>> implements TreeReducible<Set<BaseTransitionTable>> {
     @Argument(fullName="usePreviousBases", doc="Use previous bases of the reference as part of the calculation, uses the specified number, defaults to 0", required=false)
     int nPreviousBases = 0;
     @Argument(fullName="useSecondaryBase",doc="Use the secondary base of a read as part of the calculation", required=false)
@@ -109,6 +109,10 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
         }
         // System.out.println("Reduce: size of TransitionTable set is " + reduce.size() + " -- size of Map: " + (map != null ? map.size() : "null"));
         return reduce;
+    }
+
+    public Set<BaseTransitionTable> treeReduce( Set<BaseTransitionTable> reduce1, Set<BaseTransitionTable> reduce2 ) {
+        return reduce(reduce1,reduce2);
     }
 
     public void onTraversalDone( Set<BaseTransitionTable> conditionalTables ) {

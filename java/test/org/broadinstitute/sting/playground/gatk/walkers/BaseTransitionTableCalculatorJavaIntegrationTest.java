@@ -13,7 +13,7 @@ import java.util.Arrays;
  * To change this template use File | Settings | File Templates.
  */
 public class BaseTransitionTableCalculatorJavaIntegrationTest extends WalkerTest{
-    // MD5s last computed 10/20 at revision 1877
+    // MD5s last computed 10/21 at revision 1897
     public static final String OUTPUT_MD5_STANDARD = "e88f010ea842bcdb6503a4da24b90edc";
     public static final String OUTPUT_MD5_3MISMATCHES = "46f9aadbfe260a286fb6c8cac137dddd";
     public static final String OUTPUT_MD5_LOWMAPPINGQUALITY = "0b7447e0a271ffa5c8ff1719db3585e6";
