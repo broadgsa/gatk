@@ -201,7 +201,7 @@ class PooledConcordanceTable {
 
     public boolean pooledCallIsRef(Variation eval, char ref) {
         // code broken out for easy alteration when we start using pool-specific variations
-        return eval.getAlternateBases().equalsIgnoreCase((Utils.dupString(ref,2)));
+        return Utils.join("",eval.getAlleleList()).equalsIgnoreCase((Utils.dupString(ref,2)));
     }
 
     public int calculateNumFrequencyIndeces(int poolSize) {
@@ -225,7 +225,7 @@ class PooledConcordanceTable {
         for ( Variation eval : evals ) {
             if ( mismatchingCalls(firstEval, eval, ref) ) {
                 // todo -- make this not a StingException but go to the log
-                throw new StingException("Tri-Allelic Position "+eval.getAlternateBases()+"/"+firstEval.getAlternateBases() + " Ref: "+ ref + " not supported");
+                throw new StingException("Tri-Allelic Position "+Utils.join("",eval.getAlleleList())+"/"+Utils.join("",firstEval.getAlleleList()) + " Ref: "+ ref + " not supported");
             } else {
                 alternateFrequency += calledVariantFrequency(eval,ref);
             }
@@ -249,10 +249,10 @@ class PooledConcordanceTable {
 
     public boolean mismatchingCalls(Variation eval, Variation chip, char ref) {
         // eval and chip guaranteed to be non-null
-        char chipF = chip.getAlternateBases().charAt(0);
-        char chipS = chip.getAlternateBases().charAt(1);
-        char evalF = chip.getAlternateBases().charAt(0);
-        char evalS = chip.getAlternateBases().charAt(1);
+        char chipF = Utils.stringToChar(chip.getAlleleList().get(0));
+        char chipS = Utils.stringToChar(chip.getAlleleList().get(1));
+        char evalF = Utils.stringToChar(eval.getAlleleList().get(0));
+        char evalS = Utils.stringToChar(eval.getAlleleList().get(1));
         boolean mismatch;
         if (chipF == ref) {
             if ( chipS == ref ) {
@@ -277,7 +277,7 @@ class PooledConcordanceTable {
 
     public double calledVariantFrequency( Variation var, char ref ) {
         // code broken out for easy alteration when we start using pool-specific variations
-        String varStr = var.getAlternateBases();
+        String varStr = Utils.join("",var.getAlleleList());
         double freq;
         if ( varStr.charAt(0) != ref && varStr.charAt(1) != ref ) {
             freq = (double) 2;

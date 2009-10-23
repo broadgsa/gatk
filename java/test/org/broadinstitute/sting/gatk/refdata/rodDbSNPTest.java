@@ -56,10 +56,10 @@ public class rodDbSNPTest extends BaseTest {
                 rodDbSNP var = (rodDbSNP)rod;
                 if (rod.isSNP()) {
                     // quick check, if we're not triallelic, make sure the ref is right
-                    if (var.getRefSnpFWD() == var.refBases.charAt(0) || var.getAltSnpFWD() == var.refBases.charAt(0))
+                    if (var.getReferenceForSNP() == var.refBases.charAt(0) || var.getAlternativeBaseForSNP() == var.refBases.charAt(0))
                         // also make sure the ref is a single character
                         if (var.refBases.length() == 1)
-                            Assert.assertTrue(var.refBases.charAt(0)==var.getRefSnpFWD());
+                            Assert.assertTrue(var.refBases.charAt(0)==var.getReferenceForSNP());
                     if (var.getLocation().getContig().equals("1") &&
                             var.getLocation().getStart() >= 10000000 &&
                             var.getLocation().getStart() <= 11000000) {

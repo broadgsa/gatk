@@ -1,9 +1,11 @@
 package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Utils;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * User: aaron
@@ -40,6 +42,7 @@ public class BasicVariation implements Variation {
     public BasicVariation(String bases, String reference, int length, GenomeLoc location, double confidence) {
         mBases = bases;
         mRef = reference;
+        if (mRef.length() != 1) throw new StingException("The reference must be a single base");
         mLength = length;
         mLocation = location;
         mConfidence = confidence;
@@ -83,23 +86,6 @@ public class BasicVariation implements Variation {
     }
 
     @Override
-    public String getAlternateBases() {
-        return mBases;
-    }
-
-    /**
-     * gets the alternate bases.  Use this method if teh allele count is greater then 2
-     *
-     * @return
-     */
-    @Override
-    public List<String> getAlternateBaseList() {
-        List<String> list = new ArrayList<String>();
-        list.add(this.getAlternateBases());
-        return list;
-    }
-
-    @Override
     public GenomeLoc getLocation() {
         return mLocation;
     }
@@ -112,12 +98,46 @@ public class BasicVariation implements Variation {
     /** are we bi-allelic? */
     @Override
     public boolean isBiallelic() {
-        return true;
+        return (getAlternateAlleleList().size() == 1);
     }
 
     @Override
     public double getNegLog10PError() {
         return mConfidence;
+    }
+
+    /**
+     * gets the alternate alleles.  This method should return all the alleles present at the location,
+     * NOT including the reference base.  This is returned as a string list with no guarantee ordering
+     * of alleles (i.e. the first alternate allele is not always going to be the allele with the greatest
+     * frequency).
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlternateAlleleList() {
+        List<String> list = new ArrayList<String>();
+        for (char c : this.mBases.toCharArray())
+            if (c != Utils.stringToChar(mRef))
+                list.add(String.valueOf(c));
+        return list;
+    }
+
+    /**
+     * gets the alleles.  This method should return all the alleles present at the location,
+     * including the reference base.  The first allele should always be the reference allele, followed
+     * by an unordered list of alternate alleles.
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlleleList() {
+        List<String> list = new ArrayList<String>();
+        if (this.mBases.contains(mRef)) list.add(mRef);
+        for (char c : this.mBases.toCharArray())
+            if (c != Utils.stringToChar(mRef))
+                list.add(String.valueOf(c));
+        return list;
     }
 
     @Override
@@ -149,11 +169,8 @@ public class BasicVariation implements Variation {
     @Override
     public char getAlternativeBaseForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-
-        // we know that if we're a snp, the reference is a single base, so charAt(0) is safe
-        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
-            return getAlternateBases().charAt(1);
-        return getAlternateBases().charAt(0);
+        if (!this.isBiallelic() || this.getAlternateAlleleList().size() != 1) throw new IllegalStateException("we're not biallelic");
+        return Utils.stringToChar(this.getAlternateAlleleList().get(0));
     }
 
     /**
@@ -164,11 +181,8 @@ public class BasicVariation implements Variation {
     @Override
     public char getReferenceForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-
-        // we know that if we're a snp, the reference is a single base, so charAt(0) is safe
-        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
-            return getAlternateBases().charAt(0);
-        return getAlternateBases().charAt(1);
+        if (!this.isBiallelic()) throw new IllegalStateException("we're not biallelic");
+        return Utils.stringToChar(this.mRef);
     }
 
 

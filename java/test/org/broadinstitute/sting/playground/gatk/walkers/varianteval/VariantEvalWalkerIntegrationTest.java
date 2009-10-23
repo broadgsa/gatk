@@ -82,7 +82,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
      @Test
     public void testEvalVariantRODOutputViolations() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("ad2ca71dfa7e45f369380178c4f8e69f");
+        md5.add("d84e5b2a23ab1cf028145f09cd1e9f5b");
 
         /**
          * the above MD5 was calculated from running the following command:

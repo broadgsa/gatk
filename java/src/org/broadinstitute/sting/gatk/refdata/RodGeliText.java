@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
@@ -134,6 +135,40 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
         return Math.abs(lodBtr);
     }
 
+    /**
+     * gets the alternate alleles.  This method should return all the alleles present at the location,
+     * NOT including the reference base.  This is returned as a string list with no guarantee ordering
+     * of alleles (i.e. the first alternate allele is not always going to be the allele with the greatest
+     * frequency).
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlternateAlleleList() {
+        List<String> list = new ArrayList<String>();
+        for (char base : bestGenotype.toCharArray())
+            if (base != refBase)
+                list.add(String.valueOf(base));
+        return list;
+    }
+
+    /**
+     * gets the alleles.  This method should return all the alleles present at the location,
+     * including the reference base.  The first allele should always be the reference allele, followed
+     * by an unordered list of alternate alleles.
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlleleList() {
+        List<String> list = new ArrayList<String>();
+        if (this.bestGenotype.contains(getReference())) list.add(getReference());
+        for (char c : this.bestGenotype.toCharArray())
+            if (c != Utils.stringToChar(getReference()))
+                list.add(String.valueOf(c));
+        return list;
+    }
+
     public String getRefBasesFWD() {
         return String.format("%c", getRefSnpFWD());
     }
@@ -147,7 +182,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
     }
 
     public char getAltSnpFWD() throws IllegalStateException {
-	// both ref and bestGenotype have been uppercased, so it's safe to use ==
+        // both ref and bestGenotype have been uppercased, so it's safe to use ==
         char c = (bestGenotype.charAt(0) == refBase) ? bestGenotype.charAt(1) : bestGenotype.charAt(0);
         //System.out.printf("%s : %c and %c%n", bestGenotype, refBase, c);
         return c;
@@ -185,28 +220,6 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
 
     public boolean isDeletion() {
         return false;
-    }
-
-    /**
-     * get the base representation of this Variant
-     *
-     * @return a string, of ploidy
-     */
-    @Override
-    public String getAlternateBases() {
-        return this.bestGenotype;
-    }
-
-    /**
-     * gets the alternate bases.  If this is homref, throws an UnsupportedOperationException
-     *
-     * @return
-     */
-    @Override
-    public List<String> getAlternateBaseList() {
-        List<String> list = new ArrayList<String>();
-        list.add(this.getAlternateBases());
-        return list; 
     }
 
     public boolean isIndel() {

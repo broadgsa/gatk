@@ -1,9 +1,10 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser; 
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.genotype.Genotype;
-import java.util.Arrays;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class SangerSNPROD extends TabularROD implements SNPCallFromGenotypes {
@@ -100,23 +101,35 @@ public class SangerSNPROD extends TabularROD implements SNPCallFromGenotypes {
     }
 
     /**
-     * gets the alternate base.  Use this method if we're biallelic
+     * gets the alternate alleles.  This method should return all the alleles present at the location,
+     * NOT including the reference base.  This is returned as a string list with no guarantee ordering
+     * of alleles (i.e. the first alternate allele is not always going to be the allele with the greatest
+     * frequency).
      *
-     * @return
+     * @return an alternate allele list
      */
     @Override
-    public String getAlternateBases() {
-        return this.get("3");
+    public List<String> getAlternateAlleleList() {
+        List<String> ret = new ArrayList<String>();
+        for (char c : get("3").toCharArray())
+            ret.add(String.valueOf(c));
+        return ret;
     }
 
     /**
-     * gets the alternate bases.  Use this method if the allele count is greater then 2 (not biallelic)
+     * gets the alleles.  This method should return all the alleles present at the location,
+     * including the reference base.  The first allele should always be the reference allele, followed
+     * by an unordered list of alternate alleles.
      *
-     * @return
+     * @return an alternate allele list
      */
     @Override
-    public List<String> getAlternateBaseList() {
-        return Arrays.asList(this.get("3"));
+    public List<String> getAlleleList() {
+        List<String> ret = new ArrayList<String>();
+        ret.add(this.getReference());
+        for (char c : get("3").toCharArray())
+            ret.add(String.valueOf(c));
+        return ret;
     }
 
     public int length() { return 1; }

@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -96,23 +97,31 @@ public class SequenomROD extends TabularROD implements Variation {
     }
 
     /**
-     * gets the alternate bases.  Use this method if we're biallelic
+     * gets the alternate alleles.  This method should return all the alleles present at the location,
+     * NOT including the reference base.  This is returned as a string list with no guarantee ordering
+     * of alleles (i.e. the first alternate allele is not always going to be the allele with the greatest
+     * frequency).
      *
-     * @return
+     * @return an alternate allele list
      */
     @Override
-    public String getAlternateBases() {
-        return getAltBasesFWD();
+    public List<String> getAlternateAlleleList() {
+        List<String> ret = new ArrayList<String>();
+        for (char c: getAltBasesFWD().toCharArray())
+            ret.add(String.valueOf(c));
+        return ret;
     }
 
     /**
-     * gets the alternate bases.  Use this method if the allele count is greater then 2 (not biallelic)
+     * gets the alleles.  This method should return all the alleles present at the location,
+     * including the reference base.  The first allele should always be the reference allele, followed
+     * by an unordered list of alternate alleles.
      *
-     * @return
+     * @return an alternate allele list
      */
     @Override
-    public List<String> getAlternateBaseList() {
-        throw new StingException("SequenomRod is not biallelic");
+    public List<String> getAlleleList() {
+       throw new StingException("SequenomRod doesn't know of the reference, and can't generate allele lists");
     }
 
     public boolean isHom() { return false; }

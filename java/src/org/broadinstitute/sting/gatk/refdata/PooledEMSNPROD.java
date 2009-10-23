@@ -2,8 +2,9 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.genotype.Genotype;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+
 /**
  * loc ref alt EM_alt_freq discovery_likelihood discovery_null discovery_prior discovery_lod EM_N n_ref n_het n_hom
  * chr1:1104840 A N 0.000000 -85.341265 -85.341265 0.000000 0.000000 324.000000 162 0 0
@@ -22,28 +23,6 @@ public class PooledEMSNPROD extends TabularROD implements SNPCallFromGenotypes, 
     public String getAltBasesFWD() { return this.get("alt"); }
     public char getAltSnpFWD() throws IllegalStateException { return getAltBasesFWD().charAt(0); }
     public boolean isReference()   { return getVariationConfidence() < 0.01; }
-
-    /**
-     * gets the alternate base.  Use this method if we're biallelic
-     *
-     * @return
-     */
-    @Override
-    public String getAlternateBases() {
-        return getAltBasesFWD();
-    }
-
-    /**
-     * gets the alternate bases.  Use this method if the allele count is greater then 2
-     *
-     * @return
-     */
-    @Override
-    public List<String> getAlternateBaseList() {
-        List<String> str = new ArrayList<String>();
-        str.add(this.getAltBasesFWD());
-        return str;
-    }
 
     /**
      * get the frequency of this variant
@@ -118,6 +97,33 @@ public class PooledEMSNPROD extends TabularROD implements SNPCallFromGenotypes, 
     @Override
     public double getNegLog10PError() {
         return this.getVariationConfidence();
+    }
+
+    /**
+     * gets the alternate alleles.  This method should return all the alleles present at the location,
+     * NOT including the reference base.  This is returned as a string list with no guarantee ordering
+     * of alleles (i.e. the first alternate allele is not always going to be the allele with the greatest
+     * frequency).
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlternateAlleleList() {
+        return Arrays.asList(getAltBasesFWD());
+    }
+
+    /**
+     * gets the alleles.  This method should return all the alleles present at the location,
+     * including the reference base.  The first allele should always be the reference allele, followed
+     * by an unordered list of alternate alleles.
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlleleList() {
+        List<String> alleles = Arrays.asList(this.getReference());
+        alleles.addAll(getAlternateAlleleList());
+        return alleles;
     }
 
     public int length() { return 1; }

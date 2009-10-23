@@ -14,14 +14,21 @@ import java.util.List;
 public interface Variation {
     // the types of variants we currently allow
     public enum VARIANT_TYPE {
-        SNP, INDEL, REFERENCE // though reference is not really a variant
+        SNP, INDEL, REFERENCE // though reference is not really a variant, we need to represent it
     }
+
+    /** are we bi-allelic? */
+    public boolean isBiallelic();
 
     /**
      * get the frequency of this variant, if we're a variant.  If we're reference this method
-     * should return 0.
+     * should return 0.  If we can't provide an alternate allele frequency, this should also
+     * return 0.
      *
-     * @return double with the stored frequency
+     * WARNING: This method is only valid for biAllelic data, the contract is to check isBiallelic()
+     * before calling this method
+     *
+     * @return double the minor allele frequency
      */
     public double getNonRefAlleleFrequency();
 
@@ -32,7 +39,8 @@ public interface Variation {
     public VARIANT_TYPE getType();
 
     /**
-     * are we a SNP? If not we're a Indel/deletion or the reference
+     * are we a SNP? If not we're a Indel/deletion or the reference.  This method must be call before you use
+     * the convenience methods getAlternativeBaseForSNP or getReferenceForSNP, to ensure that you're working with a SNP
      *
      * @return true if we're a SNP
      */
@@ -60,21 +68,25 @@ public interface Variation {
     public boolean isReference();
 
     /**
-     * get the location that this Variant represents
+     * are we an insertion or a deletion? yes, then return true.  No? false.
+     *
+     * @return true if we're an insertion or deletion
+     */
+    public boolean isIndel();
+
+    /**
+     * get the location of this Variant
      *
      * @return a GenomeLoc
      */
     public GenomeLoc getLocation();
 
     /**
-     * get the reference base(s) at this position
+     * get the reference base(s) for this Variant
      *
      * @return the reference base or bases, as a string
      */
     public String getReference();
-
-    /** are we bi-allelic? */
-    public boolean isBiallelic();
 
     /**
      * get the -1 * (log 10 of the error value)
@@ -83,26 +95,26 @@ public interface Variation {
      */
     public double getNegLog10PError();
 
-    /**
-     * gets the alternate base.  Use this method if we're biallelic
-     *
-     * @return
-     */
-    public String getAlternateBases();
 
     /**
-     * gets the alternate bases.  Use this method if the allele count is greater then 2 (not biallelic)
+     * gets the alternate alleles.  This method should return all the alleles present at the location,
+     * NOT including the reference base.  This is returned as a string list with no guarantee ordering
+     * of alleles (i.e. the first alternate allele is not always going to be the allele with the greatest
+     * frequency).
      *
-     * @return
+     * @return an alternate allele list
      */
-    public List<String> getAlternateBaseList();
+    public List<String> getAlternateAlleleList();
 
     /**
-     * are we an insertion or a deletion? yes, then return true.  No? false.
+     * gets the alleles.  This method should return all the alleles present at the location,
+     * including the reference base.  The first allele should always be the reference allele, followed
+     * by an unordered list of alternate alleles. If the reference base is not an allele in this varation
+     * it will not be in the list (i.e. there is no guarantee that the reference base is in the list).
      *
-     * @return true if we're an insertion or deletion
+     * @return an alternate allele list
      */
-    public boolean isIndel();
+    public List<String> getAlleleList();
 
     /**
      * gets the alternate base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP

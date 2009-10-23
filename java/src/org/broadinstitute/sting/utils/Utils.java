@@ -2,15 +2,10 @@ package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.*;
 import net.sf.samtools.util.StringUtil;
-import net.sf.picard.reference.ReferenceSequenceFile;
-
-import java.util.*;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.BufferedReader;
-
 import org.apache.log4j.Logger;
+
+import java.io.File;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -20,9 +15,7 @@ import org.apache.log4j.Logger;
  * To change this template use File | Settings | File Templates.
  */
 public class Utils {
-    /**
-     * our log, which we want to capture anything from this class
-     */
+    /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(Utils.class);
 
     public static void warnUser(final String msg) {
@@ -45,25 +38,28 @@ public class Utils {
 
     /**
      * Compares two objects, either of which might be null.
+     *
      * @param lhs One object to compare.
      * @param rhs The other object to compare.
+     *
      * @return True if the two objects are equal, false otherwise.
      */
     public static boolean equals(Object lhs, Object rhs) {
-        if( lhs == null && rhs == null ) return true;
-        else if( lhs == null ) return false;
+        if (lhs == null && rhs == null) return true;
+        else if (lhs == null) return false;
         else return lhs.equals(rhs);
     }
 
     public static <T> List<T> cons(final T elt, final List<T> l) {
         List<T> l2 = new ArrayList<T>();
         l2.add(elt);
-        if ( l != null ) l2.addAll(l);
+        if (l != null) l2.addAll(l);
         return l2;
     }
 
     /**
      * pretty print the warning message supplied
+     *
      * @param message the message
      */
     private static void prettyPrintWarningMessage(String message) {
@@ -71,13 +67,13 @@ public class Utils {
         while (builder.length() > 70) {
             int space = builder.lastIndexOf(" ", 70);
             if (space <= 0) space = 70;
-            logger.warn(String.format("* %s", builder.substring(0,space)));
-            builder.delete(0,space + 1);
+            logger.warn(String.format("* %s", builder.substring(0, space)));
+            builder.delete(0, space + 1);
         }
         logger.warn(String.format("* %s", builder));
     }
 
-    public static SAMFileHeader copySAMFileHeader( SAMFileHeader toCopy ) {
+    public static SAMFileHeader copySAMFileHeader(SAMFileHeader toCopy) {
         SAMFileHeader copy = new SAMFileHeader();
 
         copy.setSortOrder(toCopy.getSortOrder());
@@ -86,9 +82,9 @@ public class Utils {
         copy.setReadGroups(toCopy.getReadGroups());
         copy.setSequenceDictionary(toCopy.getSequenceDictionary());
 
-        for ( Map.Entry<String, Object> e : toCopy.getAttributes())
+        for (Map.Entry<String, Object> e : toCopy.getAttributes())
             copy.setAttribute(e.getKey(), e.getValue());
-        
+
         return copy;
     }
 
@@ -104,6 +100,7 @@ public class Utils {
      *
      * @param pred filtering condition ( objects, for which pred.apply() is true pass the filter )
      * @param c    collection to filter (will not be modified)
+     *
      * @return new list built from elements of <c> passing the filter
      * @see #filterInPlace(Predicate pred, Collection c)
      */
@@ -135,6 +132,7 @@ public class Utils {
      *
      * @param pred filtering condition (only elements, for which pred.apply() is true will be kept in the collection)
      * @param c    collection to filter (will be modified - should be mutable and should implement remove() )
+     *
      * @return reference to the same (modified) collection <c>
      * @see #filter(Predicate pred, Collection c)
      */
@@ -175,12 +173,12 @@ public class Utils {
 
     public static ArrayList<Byte> subseq(char[] fullArray) {
         byte[] fullByteArray = new byte[fullArray.length];
-        StringUtil.charsToBytes(fullArray,0,fullArray.length,fullByteArray,0);
+        StringUtil.charsToBytes(fullArray, 0, fullArray.length, fullByteArray, 0);
         return subseq(fullByteArray);
     }
 
     public static ArrayList<Byte> subseq(byte[] fullArray) {
-        return subseq(fullArray, 0, fullArray.length-1);
+        return subseq(fullArray, 0, fullArray.length - 1);
     }
 
     public static ArrayList<Byte> subseq(byte[] fullArray, int start, int end) {
@@ -204,9 +202,9 @@ public class Utils {
 
     public static boolean is454Read(SAMRecord read) {
         SAMReadGroupRecord readGroup = read.getReadGroup();
-        if ( readGroup != null ) {
+        if (readGroup != null) {
             Object readPlatformAttr = readGroup.getAttribute("PL");
-            if ( readPlatformAttr != null )
+            if (readPlatformAttr != null)
                 return readPlatformAttr.toString().toUpperCase().contains("454");
         }
         return false;
@@ -248,7 +246,7 @@ public class Utils {
             return "";
         }
         StringBuilder ret = new StringBuilder(strings[start]);
-        for (int i = start+1; i < end; ++i) {
+        for (int i = start + 1; i < end; ++i) {
             ret.append(separator);
             ret.append(strings[i]);
         }
@@ -332,13 +330,13 @@ public class Utils {
     public static Integer[] SortPermutation(final double[] A) {
         class comparator implements Comparator<Integer> {
             public int compare(Integer a, Integer b) {
-                if (A[a.intValue()] < A[ b.intValue() ]) {
+                if (A[a.intValue()] < A[b.intValue()]) {
                     return -1;
                 }
-                if (A[ a.intValue() ] == A[ b.intValue() ]) {
+                if (A[a.intValue()] == A[b.intValue()]) {
                     return 0;
                 }
-                if (A[ a.intValue() ] > A[ b.intValue() ]) {
+                if (A[a.intValue()] > A[b.intValue()]) {
                     return 1;
                 }
                 return 0;
@@ -401,8 +399,7 @@ public class Utils {
         return output;
     }
 
-    public static <T> List<T> PermuteList(List<T> list, Integer[] permutation) 
-    {
+    public static <T> List<T> PermuteList(List<T> list, Integer[] permutation) {
         List<T> output = new ArrayList<T>();
         for (int i = 0; i < permutation.length; i++) {
             output.add(list.get(permutation[i]));
@@ -412,47 +409,59 @@ public class Utils {
 
 
     /** Draw N random elements from list. */
-    public static <T> List<T> RandomSubset(List<T> list, int N)
-    {
-        if (list.size() <= N) { return list; }
+    public static <T> List<T> RandomSubset(List<T> list, int N) {
+        if (list.size() <= N) {
+            return list;
+        }
 
         java.util.Random random = new java.util.Random();
 
         int idx[] = new int[list.size()];
-        for (int i = 0; i < list.size(); i++) { idx[i] = random.nextInt(); }
+        for (int i = 0; i < list.size(); i++) {
+            idx[i] = random.nextInt();
+        }
 
-        Integer[] perm = SortPermutation(idx);        
+        Integer[] perm = SortPermutation(idx);
 
         List<T> ans = new ArrayList<T>();
-        for (int i = 0; i < N; i++) { ans.add(list.get(perm[i])); }
+        for (int i = 0; i < N; i++) {
+            ans.add(list.get(perm[i]));
+        }
 
         return ans;
     }
 
     // lifted from the internet 
     // http://www.cs.princeton.edu/introcs/91float/Gamma.java.html
-    public static double logGamma(double x) 
-    {
-		double tmp = (x - 0.5) * Math.log(x + 4.5) - (x + 4.5);
-		double ser = 1.0 + 76.18009173    / (x + 0)   - 86.50532033    / (x + 1)
-		                 + 24.01409822    / (x + 2)   -  1.231739516   / (x + 3)
-		                 +  0.00120858003 / (x + 4)   -  0.00000536382 / (x + 5);
-		return tmp + Math.log(ser * Math.sqrt(2 * Math.PI));
+    public static double logGamma(double x) {
+        double tmp = (x - 0.5) * Math.log(x + 4.5) - (x + 4.5);
+        double ser = 1.0 + 76.18009173 / (x + 0) - 86.50532033 / (x + 1)
+                + 24.01409822 / (x + 2) - 1.231739516 / (x + 3)
+                + 0.00120858003 / (x + 4) - 0.00000536382 / (x + 5);
+        return tmp + Math.log(ser * Math.sqrt(2 * Math.PI));
     }
 
-    public static double percentage(double x, double base) { return (base> 0 ? (x/base)*100.0 : 0); }
-    public static double percentage(int x, int base) { return (base> 0 ? ((double)x/(double)base)*100.0 : 0); }
-    public static double percentage(long x, long base) { return (base> 0 ? ((double)x/(double)base)*100.0 : 0); }
+    public static double percentage(double x, double base) {
+        return (base > 0 ? (x / base) * 100.0 : 0);
+    }
 
-    public static String dupString( char c, int nCopies ) {
+    public static double percentage(int x, int base) {
+        return (base > 0 ? ((double) x / (double) base) * 100.0 : 0);
+    }
+
+    public static double percentage(long x, long base) {
+        return (base > 0 ? ((double) x / (double) base) * 100.0 : 0);
+    }
+
+    public static String dupString(char c, int nCopies) {
         char[] chars = new char[nCopies];
-        Arrays.fill(chars,c);
+        Arrays.fill(chars, c);
         return new String(chars);
     }
 
     public static int countOccurrences(char c, String s) {
         int count = 0;
-        for ( int i = 0; i < s.length(); i++ ) {
+        for (int i = 0; i < s.length(); i++) {
             count += s.charAt(i) == c ? 1 : 0;
         }
         return count;
@@ -460,17 +469,17 @@ public class Utils {
 
     public static <T> int countOccurrences(T x, List<T> l) {
         int count = 0;
-        for ( T y : l ) {
-            if ( x.equals(y) ) count++;
+        for (T y : l) {
+            if (x.equals(y)) count++;
         }
-        
+
         return count;
     }
 
     public static byte listMaxByte(List<Byte> quals) {
-        if ( quals.size() == 0 ) return 0;
+        if (quals.size() == 0) return 0;
         byte m = quals.get(0);
-        for ( byte b : quals ) {
+        for (byte b : quals) {
             m = b > m ? b : m;
         }
         return m;
@@ -479,67 +488,84 @@ public class Utils {
 
     /** Returns indices of all occurrences of the specified symbol in the string */
     public static int[] indexOfAll(String s, int ch) {
-    	int[] pos = new int[64];
-    	int z = 0;
-    	
-    	for ( int i = 0 ; i < s.length() ; i++ ) {
-    		if ( s.charAt(i) == ch ) pos[z++] = i; 
-    	}
-    	return reallocate(pos,z);
+        int[] pos = new int[64];
+        int z = 0;
+
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) == ch) pos[z++] = i;
+        }
+        return reallocate(pos, z);
     }
-    
-    /** Returns new (reallocated) integer array of the specified size, with content
+
+    /**
+     * Returns new (reallocated) integer array of the specified size, with content
      * of the original array <code>orig</code> copied into it. If <code>newSize</code> is
      * less than the size of the original array, only first <code>newSize</code> elements will be copied.
      * If new size is greater than the size of the original array, the content of the original array will be padded
-     * with zeros up to the new size. Finally, if new size is the same as original size, no memory reallocation 
-     * will be performed and the original array will be returned instead. 
+     * with zeros up to the new size. Finally, if new size is the same as original size, no memory reallocation
+     * will be performed and the original array will be returned instead.
+     *
      * @param orig
      * @param newSize
+     *
      * @return
      */
     public static int[] reallocate(int[] orig, int newSize) {
-    	if ( orig.length == newSize ) return orig;
-    	int[] new_array = new int[newSize];
-    	int L = ( newSize > orig.length ? orig.length : newSize );
-    	for ( int i = 0 ; i < L ; i++ ) new_array[i] = orig[i];
-    	return new_array;
+        if (orig.length == newSize) return orig;
+        int[] new_array = new int[newSize];
+        int L = (newSize > orig.length ? orig.length : newSize);
+        for (int i = 0; i < L; i++) new_array[i] = orig[i];
+        return new_array;
     }
-    
+
     /* TEST ME
-    public static void main(String[] argv) {
-        List<Integer> l1 = new LinkedList<Integer>();
-        List<Integer> l2 = new ArrayList<Integer>();
+        public static void main(String[] argv) {
+            List<Integer> l1 = new LinkedList<Integer>();
+            List<Integer> l2 = new ArrayList<Integer>();
 
-        l1.add(1);
-        l1.add(5);
-        l1.add(3);
-        l1.add(10);
-        l1.add(4);
-        l1.add(2);
-        l2.add(1);
-        l2.add(5);
-        l2.add(3);
-        l2.add(10);
-        l2.add(4);
-        l2.add(2);
+            l1.add(1);
+            l1.add(5);
+            l1.add(3);
+            l1.add(10);
+            l1.add(4);
+            l1.add(2);
+            l2.add(1);
+            l2.add(5);
+            l2.add(3);
+            l2.add(10);
+            l2.add(4);
+            l2.add(2);
 
-        Predicate<Integer> p = new Predicate<Integer>() {
-            public boolean apply(Integer i) {
-                return i > 2;
-            }
-        };
-        filterInPlace(p, l1);
-        filterInPlace(p, l2);
+            Predicate<Integer> p = new Predicate<Integer>() {
+                public boolean apply(Integer i) {
+                    return i > 2;
+                }
+            };
+            filterInPlace(p, l1);
+            filterInPlace(p, l2);
 
-        for ( int i = 0 ; i < l1.size(); i++ ) System.out.print(" "+l1.get(i));
-        System.out.println();
-        for ( int i = 0 ; i < l2.size(); i++ ) System.out.print(" " + l2.get(i));
-        System.out.println();
+            for ( int i = 0 ; i < l1.size(); i++ ) System.out.print(" "+l1.get(i));
+            System.out.println();
+            for ( int i = 0 ; i < l2.size(); i++ ) System.out.print(" " + l2.get(i));
+            System.out.println();
 
+        }
+
+    */
+
+    /**
+     * a helper method. Turns a single character string into a char.
+     *
+     * @param str the string
+     *
+     * @return a char
+     */
+    public static char stringToChar(String str) {
+        if (str.length() != 1) throw new IllegalArgumentException("String length must be one");
+        return str.charAt(0);
     }
 
-*/
+
 }
 
 

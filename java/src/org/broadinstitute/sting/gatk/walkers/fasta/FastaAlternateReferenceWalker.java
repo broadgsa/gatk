@@ -49,19 +49,20 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
                 continue;
             // if we have multiple variants at a locus, just take the first damn one we see for now
             Variation variant = (Variation) rod;
+            if (variant.getAlleleList().size() != 2) System.err.println("Not two " + Utils.join("-",variant.getAlleleList()));
             if (!rod.getName().startsWith("snpmask") && variant.isDeletion()) {
-                deletionBasesRemaining = variant.getAlternateBases().length();
+                deletionBasesRemaining = variant.getAlleleList().get(0).length();
                 basesSeen++;
                 if (indelsWriter != null)
-                    indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.getAlternateBases().length()));
+                    indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.getAlleleList().get(0).length()));
                 // delete the next n bases, not this one
                 return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
             } else if (!rod.getName().startsWith("snpmask") && variant.isInsertion()) {
                 basesSeen++;
                 if (indelsWriter != null)
-                    indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.getAlternateBases().length()));
-                basesSeen += variant.getAlternateBases().length();
-                return new Pair<GenomeLoc, String>(context.getLocation(), refBase.concat(variant.getAlternateBases()));
+                    indelsWriter.println(fasta.getCurrentID() + ":" + basesSeen + "-" + (basesSeen + variant.getAlleleList().get(0).length()));
+                basesSeen += variant.getAlleleList().get(0).length();
+                return new Pair<GenomeLoc, String>(context.getLocation(), refBase.concat(Utils.join("",variant.getAlleleList())));
             } else if (variant.isSNP()) {
                 basesSeen++;
                 return new Pair<GenomeLoc, String>(context.getLocation(), (rod.getName().startsWith("snpmask") ? "N" : String.valueOf(variant.getAlternativeBaseForSNP())));

@@ -12,10 +12,9 @@ import java.util.List;
  * SOFTWARE COPYRIGHT NOTICE AGREEMENT
  * This software and its documentation are copyright 2009 by the
  * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
- *
+ * <p/>
  * This software is supplied without any warranty or guaranteed support whatsoever. Neither
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
- *
  */
 public class IndelMetricsAnalysis extends BasicVariantAnalysis implements GenotypeAnalysis, PopulationAnalysis {
     long insertions = 0;
@@ -30,19 +29,20 @@ public class IndelMetricsAnalysis extends BasicVariantAnalysis implements Genoty
     }
 
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
-        if ( eval != null && eval.isInsertion() ) {
-            if ( eval.isInsertion() )
+        if (eval != null && eval.isInsertion()) {
+            if (eval.isInsertion())
                 insertions++;
-            else if ( eval.isDeletion() )
+            else if (eval.isDeletion())
                 deletions++;
             else
                 throw new RuntimeException("Variation is indel, but isn't insertion or deletion!");
 
-            if ( eval.getAlternateBases().length() < 100 ) {
-                sizes[eval.isDeletion() ? 0 : 1][eval.getAlternateBases().length()]++;
-                if ( eval.getAlternateBases().length() > maxSize )
-                    maxSize = eval.getAlternateBases().length();
-            }
+            for (String allele : eval.getAlleleList())
+                if (allele.length() < 100) {
+                    sizes[eval.isDeletion() ? 0 : 1][allele.length()]++;
+                    if (allele.length() > maxSize)
+                        maxSize = allele.length();
+                }
         }
 
         return null;
@@ -56,7 +56,7 @@ public class IndelMetricsAnalysis extends BasicVariantAnalysis implements Genoty
 
         s.add("Size Distribution");
         s.add("size\tdeletions\tinsertions");
-        for ( int i = 1; i <= maxSize; i++ )
+        for (int i = 1; i <= maxSize; i++)
             s.add(String.format("%d\t%d\t\t%d", i, sizes[0][i], sizes[1][i]));
 
         return s;

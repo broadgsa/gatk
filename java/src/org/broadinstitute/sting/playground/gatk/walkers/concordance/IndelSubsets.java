@@ -68,7 +68,8 @@ public class IndelSubsets implements ConcordanceType {
         // only deal with a valid indel
         Variation indel = ( indel1 != null ? indel1 : indel2 );
 
-        int size = ( indel.getAlternateBases().length() <= sizeCutoff ? 0 : 1 );
+        // we only deal with the first allele
+        int size = ( indel.getAlternateAlleleList().get(0).length() <= sizeCutoff ? 0 : 1 );
         int homopol = ( homopolymerRunSize(ref, indel) <= homopolymerCutoff ? 0 : 1 );
 
         writers[set1][set2][size][homopol].println(indel.toString());
@@ -80,7 +81,7 @@ public class IndelSubsets implements ConcordanceType {
         GenomeLoc locus = ref.getLocus();
 
         int refBasePos = (int)(locus.getStart() - window.getStart());
-        char indelBase = indel.isDeletion() ? bases[refBasePos+1] : indel.getAlternateBases().charAt(0);
+        char indelBase = indel.isDeletion() ? bases[refBasePos+1] : indel.getAlternateAlleleList().get(0).charAt(0);
         int leftRun = 0;
         for ( int i = refBasePos; i >= 0; i--) {
             if ( bases[i] != indelBase )
@@ -88,9 +89,9 @@ public class IndelSubsets implements ConcordanceType {
             leftRun++;
         }
 
-        indelBase = indel.isDeletion() ? bases[Math.min(refBasePos+indel.getAlternateBases().length(),bases.length-1)] : indel.getAlternateBases().charAt(indel.getAlternateBases().length()-1);
+        indelBase = indel.isDeletion() ? bases[Math.min(refBasePos+indel.getAlternateAlleleList().get(0).length(),bases.length-1)] : indel.getAlternateAlleleList().get(0).charAt(indel.getAlternateAlleleList().get(0).length()-1);
         int rightRun = 0;
-        for ( int i = refBasePos + (indel.isDeletion() ? 1+indel.getAlternateBases().length() : 1); i < bases.length; i++) {
+        for ( int i = refBasePos + (indel.isDeletion() ? 1+indel.getAlternateAlleleList().get(0).length() : 1); i < bases.length; i++) {
             if ( bases[i] != indelBase )
                 break;
             rightRun++;

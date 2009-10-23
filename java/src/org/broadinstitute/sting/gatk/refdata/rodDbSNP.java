@@ -4,10 +4,12 @@ import net.sf.samtools.util.SequenceUtil;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -22,8 +24,8 @@ import java.util.List;
  */
 public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype {
     public GenomeLoc loc;       // genome location of SNP
-                                // Reference sequence chromosome or scaffold
-                                // Start and stop positions in chrom
+    // Reference sequence chromosome or scaffold
+    // Start and stop positions in chrom
 
     public String name;        // Reference SNP identifier or Affy SNP name
     public String strand;      // Which DNA strand contains the observed alleles
@@ -33,18 +35,18 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
 
     public String molType;     // Sample type from exemplar ss
     public String varType;     // The class of variant (simple, insertion, deletion, range, etc.)
-                                // Can be 'unknown','single','in-del','het','microsatellite','named','mixed','mnp','insertion','deletion'
+    // Can be 'unknown','single','in-del','het','microsatellite','named','mixed','mnp','insertion','deletion'
     public String validationStatus;    // The validation status of the SNP
-                                        // one of set('unknown','by-cluster','by-frequency','by-submitter','by-2hit-2allele','by-hapmap')
+    // one of set('unknown','by-cluster','by-frequency','by-submitter','by-2hit-2allele','by-hapmap')
 
     public double avHet;        // The average heterozygosity from all observations
     public double avHetSE;      // The Standard Error for the average heterozygosity
 
     public String func;         // The functional category of the SNP (coding-synon, coding-nonsynon, intron, etc.)
-                                // set('unknown','coding-synon','intron','cds-reference','near-gene-3','near-gene-5',
-                                // 'nonsense','missense','frameshift','untranslated-3','untranslated-5','splice-3','splice-5')
+    // set('unknown','coding-synon','intron','cds-reference','near-gene-3','near-gene-5',
+    // 'nonsense','missense','frameshift','untranslated-3','untranslated-5','splice-3','splice-5')
     public String locType;      // How the variant affects the reference sequence
-                                // enum('range','exact','between','rangeInsertion','rangeSubstitution','rangeDeletion')
+    // enum('range','exact','between','rangeInsertion','rangeSubstitution','rangeDeletion')
 
     public int weight;          // The quality of the alignment
 
@@ -73,7 +75,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      */
     @Override
     public String getReference() {
-        return getRefBasesFWD();
+        return refBases;
     }
 
     /**
@@ -86,56 +88,41 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
         return 4; // -log10(0.0001)
     }
 
+    /**
+     * gets the alternate alleles.  This method should return all the alleles present at the location,
+     * NOT including the reference base.  This is returned as a string list with no guarantee ordering
+     * of alleles (i.e. the first alternate allele is not always going to be the allele with the greatest
+     * frequency).
+     *
+     * @return an alternate allele list
+     */
+    public List<String> getAlternateAlleleList() {
+        List<String> ret = getAlleleList();
+        for (String allele : ret)
+            if (allele.equals(getReference())) ret.remove(allele);
+        return ret;
+    }
+
+    /**
+     * gets the alleles.  This method should return all the alleles present at the location,
+     * including the reference base.  The first allele should always be the reference allele, followed
+     * by an unordered list of alternate alleles.
+     *
+     * @return an alternate allele list
+     */
+    public List<String> getAlleleList() {
+        List<String> ret; //ref first!!!!!
+        if (onFwdStrand())
+            ret = Arrays.asList(observed.split("/"));
+        else
+            ret = Arrays.asList(SequenceUtil.reverseComplement(observed).split("/"));
+        if (ret.size() > 0 && ret.contains(getReference()) && !ret.get(0).equals(this.getReference()))
+            Collections.swap(ret,ret.indexOf(getReference()),0);
+        return ret;
+    }
+
     public boolean onFwdStrand() {
         return strand.equals("+");
-    }
-
-    /**
-     * Returns bases in the reference allele as a String. String can be empty (as in insertion into
-     * the reference), can contain a single character (as in SNP or one-base deletion), or multiple characters
-     * (for longer indels).
-     *
-     * @return reference allele, forward strand
-     */
-    public String getRefBasesFWD() {
-        // fix - at least this way we ensure that we'll get the other base compared to getAltBasesFWD()
-        return (getAllelesFWD().get(0).equals(refBases)) ? getAllelesFWD().get(0) : getAllelesFWD().get(1);
-        //if ( onFwdStrand() )
-        //    return refBases;
-        //else
-        //    return SequenceUtil.reverseComplement(refBases);
-    }
-
-    /**
-     * Returns reference (major) allele base for a SNP variant as a character; should throw IllegalStateException
-     * if variant is not a SNP.
-     *
-     * @return reference base on the forward strand
-     */
-    public char getRefSnpFWD() throws IllegalStateException {
-        //System.out.printf("refbases is %s but %s%n", refBases, toString());
-        if (isIndel()) throw new IllegalStateException("Variant is not a SNP");
-        // fix - at least this way we ensure that we'll get the other base compared to getAltBasesFWD()
-        List<String> alleles = getAllelesFWD();
-        String val = (alleles.get(0).equals(refBases) ? alleles.get(0) : alleles.get(1));
-        return val.charAt(0);
-        // if ( onFwdStrand() ) return refBases.charAt(0);
-        // else return SequenceUtil.reverseComplement(refBases).charAt(0);
-    }
-
-    public List<String> getAllelesFWD() {
-        List<String> alleles = null;
-        if (onFwdStrand())
-            alleles = Arrays.asList(observed.split("/"));
-        else
-            alleles = Arrays.asList(SequenceUtil.reverseComplement(observed).split("/"));
-
-        //System.out.printf("getAlleles %s on %s %b => %s %n", observed, strand, onFwdStrand(), Utils.join("/", alleles));
-        return alleles;
-    }
-
-    public String getAllelesFWDString() {
-        return Utils.join("", getAllelesFWD());
     }
 
     /**
@@ -145,7 +132,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      */
     @Override
     public double getNonRefAlleleFrequency() {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        return 0;  // dbSNP doesn't know the allele frequency
     }
 
     /** @return the VARIANT_TYPE of the current variant */
@@ -170,28 +157,6 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
         return varType.contains("deletion");
     }
 
-    /**
-     * get the base representation of this Variant
-     *
-     * @return a string, of ploidy
-     */
-    @Override
-    public String getAlternateBases() {
-        return getAllelesFWDString();
-    }
-
-    /**
-     * gets the alternate bases.  Use this method if teh allele count is greater then 2
-     *
-     * @return
-     */
-    @Override
-    public List<String> getAlternateBaseList() {
-        List<String> list = new ArrayList<String>();
-        list.add(this.getAlternateBases());
-        return list;
-    }
-
     public boolean isIndel() {
         return isInsertion() || isDeletion() || varType.contains("in-del");
     }
@@ -204,11 +169,12 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      */
     @Override
     public char getAlternativeBaseForSNP() {
-        return getAltSnpFWD(); /*
-        if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-        if (getAlternateBases().charAt(0) == this.getReference())
-            return getAlternateBases().charAt(1);
-        return getAlternateBases().charAt(0); */
+        if (!isSNP())  throw new StingException("We're not a SNP; called in DbSNP rod at position " + this.loc);
+        if (!isBiallelic()) throw new StingException("We're not biallelic; at position " + this.loc);
+        List<String> ret = this.getAlternateAlleleList();
+        if (ret.size() == 1 && ret.get(0).length() == 1)
+            return ret.get(0).charAt(0);
+        throw new StingException("getAlternativeBaseForSNP failed for DbSNP rod " + this.loc);
     }
 
     /**
@@ -218,12 +184,14 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      */
     @Override
     public char getReferenceForSNP() {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        if (!isSNP())  throw new StingException("We're not a SNP; called in DbSNP rod at position " + this.loc);
+        if (refBases.length() != 1) throw new StingException("The reference base in DbSNP must be zero, at position " + this.loc + " was " + refBases);
+        return refBases.charAt(0); // we know it's length 1, this is ok
     }
 
     public boolean isReference() {
-        return false;
-    } // snp locations are never "reference", there's always a variant
+        return false; // snp locations are never "reference", there's always a variant
+    }
 
     public boolean isHapmap() {
         return validationStatus.contains("by-hapmap");
@@ -250,7 +218,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
     }
 
     public String toMediumString() {
-        String s = String.format("%s:%s:%s", getLocation().toString(), name, getAllelesFWDString());
+        String s = String.format("%s:%s:%s", getLocation().toString(), name, Utils.join("",this.getAlleleList()));
         if (isSNP()) s += ":SNP";
         if (isIndel()) s += ":Indel";
         if (isHapmap()) s += ":Hapmap";
@@ -300,58 +268,17 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
         }
     }
 
-    public String getAltBasesFWD() {
-        List<String> alleles = getAllelesFWD();
-        return (alleles.get(0).equals(refBases) ? alleles.get(1) : alleles.get(0));
-    }
-
-    public char getAltSnpFWD() throws IllegalStateException {
-        if (!isSNP())
-            throw new IllegalStateException("I'm not a SNP");
-        return getAltBasesFWD().charAt(0);
-    }
-
-    public double getConsensusConfidence() {
-        // TODO Auto-generated method stub
-        return Double.MAX_VALUE;
-    }
-
-    public List<String> getGenotype() throws IllegalStateException {
-        return Arrays.asList(Utils.join("", getAllelesFWD()));
-    }
-
-    public double getMAF() {
-        // Fixme: update to actually get MAF
-        //return avHet;
-        return -1;
-    }
-
     public double getHeterozygosity() {
         return avHet;
     }
 
     public int getPloidy() throws IllegalStateException {
-        // TODO Auto-generated method stub
-        return 0;
-    }
-
-    public double getVariationConfidence() {
-        // TODO Auto-generated method stub
-        return Double.MAX_VALUE;
-    }
-
-    public boolean isGenotype() {
-        // TODO Auto-generated method stub
-        return false;
+        return 2; // our DbSNP assumes a diploid human
     }
 
     public boolean isBiallelic() {
         // TODO Auto-generated method stub
         return observed.indexOf('/') == observed.lastIndexOf('/');
-    }
-
-    public int length() {
-        return (int) (loc.getStop() - loc.getStart() + 1);
     }
 
     /**
@@ -361,7 +288,10 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      */
     @Override
     public org.broadinstitute.sting.utils.genotype.Genotype getCalledGenotype() {
-        return new BasicGenotype(this.getLocation(), this.getAltBasesFWD(), this.getRefSnpFWD(), this.getConsensusConfidence());
+        return new BasicGenotype(getLocation(),
+                                 BasicGenotype.alleleListToString(getAlleleList()),
+                                 Utils.stringToChar(getReference()),
+                                 getNegLog10PError());
     }
 
     /**
@@ -371,10 +301,11 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      */
     @Override
     public List<org.broadinstitute.sting.utils.genotype.Genotype> getGenotypes() {
-        List<org.broadinstitute.sting.utils.genotype.Genotype> list = new ArrayList<org.broadinstitute.sting.utils.genotype.Genotype>();
-        list.add(new BasicGenotype(this.getLocation(), this.getAltBasesFWD(), this.getRefSnpFWD(), this.getConsensusConfidence()));
+        ArrayList<Genotype> list = new ArrayList<Genotype>();
+        list.add(getCalledGenotype());
         return list;
     }
+
 
     /**
      * do we have the specified genotype?  not all backedByGenotypes
@@ -386,21 +317,21 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      */
     @Override
     public boolean hasGenotype(DiploidGenotype x) {
-        return (!x.toString().equals(this.getAltBasesFWD())) ? false : true;
+        return (!x.toString().equals(BasicGenotype.alleleListToString(getAlleleList()))) ? false : true;
     }
 
     public static rodDbSNP getFirstRealSNP(RODRecordList<ReferenceOrderedDatum> dbsnpList) {
-	if ( dbsnpList == null )
-	    return null;
+        if (dbsnpList == null)
+            return null;
 
-	rodDbSNP dbsnp = null;
-	for ( ReferenceOrderedDatum d : dbsnpList ) {
-	    if ( ((rodDbSNP)d).isSNP() ) {
-		dbsnp = (rodDbSNP)d;
-		break;
-	    }
-	}
+        rodDbSNP dbsnp = null;
+        for (ReferenceOrderedDatum d : dbsnpList) {
+            if (((rodDbSNP) d).isSNP()) {
+                dbsnp = (rodDbSNP) d;
+                break;
+            }
+        }
 
-	return dbsnp;
+        return dbsnp;
     }
 }

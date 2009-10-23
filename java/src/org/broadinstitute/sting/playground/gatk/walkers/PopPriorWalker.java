@@ -1,22 +1,22 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
-import org.broadinstitute.sting.gatk.refdata.HapMapAlleleFrequenciesROD;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import net.sf.samtools.SAMRecord;
-
-import java.util.List;
-import java.util.Formatter;
-import static java.lang.Math.log10;
-
 import edu.mit.broad.picard.genotype.DiploidGenotype;
 import net.sf.picard.PicardException;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.HapMapAlleleFrequenciesROD;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
+
+import static java.lang.Math.log10;
+import java.util.Arrays;
+import java.util.Formatter;
+import java.util.List;
 
 public class PopPriorWalker extends LocusWalker<Integer, Integer> {
 
@@ -174,7 +174,7 @@ public class PopPriorWalker extends LocusWalker<Integer, Integer> {
 
             priors = getKnownSiteKnownFreqPriors(((byte)(upRef & 0xff)), knownAlleles, hapmap.getVarAlleleFreq());
         } else if (dbsnpInfo != null && dbsnpInfo.isSNP()) {
-            List<String> knownAlleles = dbsnpInfo.getAllelesFWD();
+            List<String> knownAlleles = Arrays.asList(Utils.join("",dbsnpInfo.getAlleleList()));
             priorType = "DBSNP";
             rodString = "[DBSNP: " + dbsnpInfo.toMediumString() + "]";
 

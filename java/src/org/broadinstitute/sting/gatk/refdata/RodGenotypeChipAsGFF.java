@@ -2,10 +2,13 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
+
 import java.util.*;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
@@ -96,6 +99,34 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
         return 4; // 1/10000 error
     }
 
+    /**
+     * gets the alternate alleles.  This method should return all the alleles present at the location,
+     * NOT including the reference base.  This is returned as a string list with no guarantee ordering
+     * of alleles (i.e. the first alternate allele is not always going to be the allele with the greatest
+     * frequency).
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlternateAlleleList() {
+        throw new StingException("Hapmap is unable to provide an alternate allele list; the reference is unknown");
+    }
+
+    /**
+     * gets the alleles.  This method should return all the alleles present at the location,
+     * including the reference base.  The first allele should always be the reference allele, followed
+     * by an unordered list of alternate alleles.
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlleleList() {
+        List<String> ret = new ArrayList<String>();
+        for (char c : feature.toCharArray())
+            ret.add(String.valueOf(c));
+        return ret;
+    }
+
     public String getAttribute(final String key) {
         return attributes.get(key);
     }
@@ -180,28 +211,6 @@ public class RodGenotypeChipAsGFF extends BasicReferenceOrderedDatum implements 
     public String getAltBasesFWD() { return null; }
     public char getAltSnpFWD() throws IllegalStateException { return 0; }
     public boolean isReference() { return ! isSNP(); }
-
-    /**
-     * gets the alternate bases.  If this is homref, throws an UnsupportedOperationException
-     *
-     * @return
-     */
-    @Override
-    public String getAlternateBases() {
-        return this.feature;
-    }
-
-    /**
-     * gets the alternate bases.  Use this method if teh allele count is greater then 2
-     *
-     * @return
-     */
-    @Override
-    public List<String> getAlternateBaseList() {
-        List<String> list = new ArrayList<String>();
-        list.add(this.getAlternateBases());
-        return list; 
-    }
 
     /**
      * get the frequency of this variant

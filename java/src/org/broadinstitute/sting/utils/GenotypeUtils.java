@@ -81,7 +81,7 @@ public class GenotypeUtils {
         if ( var instanceof Genotype )
             return ((Genotype)var).isHet();
 
-        String genotype = var.getAlternateBases();
+        String genotype = Utils.join("",var.getAlleleList());
         if ( genotype.length() < 1 )
             return false;
 

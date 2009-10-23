@@ -183,7 +183,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     /** are we bi-allelic? */
     @Override
     public boolean isBiallelic() {
-        return (this.getAlternateBaseList().size() == 1);
+        return (this.getAlternateAlleleList().size() == 1);
     }
 
     /**
@@ -198,6 +198,37 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     }
 
     /**
+     * gets the alternate alleles.  This method should return all the alleles present at the location,
+     * NOT including the reference base.  This is returned as a string list with no guarantee ordering
+     * of alleles (i.e. the first alternate allele is not always going to be the allele with the greatest
+     * frequency).
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlternateAlleleList() {
+        List<String> list = new ArrayList<String>();
+        for (VCFGenotypeEncoding enc : mCurrentRecord.getAlternateAlleles())
+            list.add(enc.toString());
+        return list;
+    }
+
+    /**
+     * gets the alleles.  This method should return all the alleles present at the location,
+     * including the reference base.  The first allele should always be the reference allele, followed
+     * by an unordered list of alternate alleles.
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlleleList() {
+        List<String> ret = new ArrayList<String>();
+        ret.add(String.valueOf(mCurrentRecord.getReferenceBase()));
+        ret.addAll(getAlternateAlleleList());
+        return ret;
+    }
+
+    /**
      * are we truely a variant, given a reference
      *
      * @return false if we're a variant(indel, delete, SNP, etc), true if we're not
@@ -205,31 +236,6 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     @Override
     public boolean isReference() {
         return (!mCurrentRecord.hasAlternateAllele());
-    }
-
-    /**
-     * gets the alternate bases.  If this is homref, throws an UnsupportedOperationException
-     *
-     * @return
-     */
-    @Override
-    public String getAlternateBases() {
-        if (!this.isBiallelic())
-            throw new UnsupportedOperationException("We're not biallelic, so please call getAlternateBaseList instead");
-        return this.mCurrentRecord.getAlternateAlleles().get(0).toString();
-    }
-
-    /**
-     * gets the alternate bases.  If this is homref, throws an UnsupportedOperationException
-     *
-     * @return
-     */
-    @Override
-    public List<String> getAlternateBaseList() {
-        List<String> list = new ArrayList<String>();
-        for (VCFGenotypeEncoding enc : mCurrentRecord.getAlternateAlleles())
-            list.add(enc.toString());
-        return list;
     }
 
     /**

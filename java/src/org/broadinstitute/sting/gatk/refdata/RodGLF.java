@@ -161,10 +161,9 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
     @Override
     public char getAlternativeBaseForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
-            return getAlternateBases().charAt(1);
-        return getAlternateBases().charAt(0);
-
+        List<String> alleles = this.getAlternateAlleleList();
+        if (alleles.size() != 1) throw new StingException("We're not biAllelic()");
+        return Utils.stringToChar(alleles.get(0));
     }
 
     /**
@@ -175,10 +174,7 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
     @Override
     public char getReferenceForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-        if (getAlternateBases().charAt(0) == this.getReference().charAt(0))
-            return getAlternateBases().charAt(0);
-        return getAlternateBases().charAt(1);
-
+        return Utils.stringToChar(getReference());
     }
 
     /**
@@ -207,7 +203,7 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
      * Get the nth best genotype (one based), i.e. to get the best genotype pass in 1,
      * the second best 2, etdc.
      *
-     * @param nthBest the nth best genotype to get
+     * @param nthBest the nth best genotype to get (1 based, NOT ZERO BASED)
      *
      * @return a GENOTYPE object representing the nth best genotype
      */
@@ -254,28 +250,6 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
     }
 
     /**
-     * get the base representation of this Variant
-     *
-     * @return a string, of ploidy
-     */
-    @Override
-    public String getAlternateBases() {
-        return this.getBestGenotype(1).toString();
-    }
-
-    /**
-     * gets the alternate bases.  Use this method if teh allele count is greater then 2
-     *
-     * @return
-     */
-    @Override
-    public List<String> getAlternateBaseList() {
-        List<String> list = new ArrayList<String>();
-        list.add(this.getAlternateBases());
-        return list; 
-    }
-
-    /**
      * Returns minor allele frequency.
      *
      * @return
@@ -308,6 +282,42 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
             index++;
         }
         return Math.abs(getBestGenotypeValue(1) - ((SinglePointCall) mRecord).getLikelihoods()[index]) / GLFRecord.LIKELIHOOD_SCALE_FACTOR;
+    }
+
+    /**
+     * gets the alternate alleles.  This method should return all the alleles present at the location,
+     * NOT including the reference base.  This is returned as a string list with no guarantee ordering
+     * of alleles (i.e. the first alternate allele is not always going to be the allele with the greatest
+     * frequency).
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlternateAlleleList() {
+        LikelihoodObject.GENOTYPE genotype = getBestGenotype(1);
+        List<String> ret = new ArrayList<String>();
+        for (char c : genotype.toString().toCharArray()) {
+            if (!String.valueOf(c).equals(this.getReference())) ret.add(String.valueOf(c));
+        }
+        return ret;
+    }
+
+    /**
+     * gets the alleles.  This method should return all the alleles present at the location,
+     * including the reference base.  The first allele should always be the reference allele, followed
+     * by an unordered list of alternate alleles.
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlleleList() {
+        LikelihoodObject.GENOTYPE genotype = getBestGenotype(1);
+        List<String> list = new ArrayList<String>();
+        if (genotype.toString().contains(this.getReference())) list.add(this.getReference());
+        for (char c : genotype.toString().toCharArray())
+            if (c != Utils.stringToChar(getReference()))
+                list.add(String.valueOf(c));
+        return list;
     }
 
     public int length() {

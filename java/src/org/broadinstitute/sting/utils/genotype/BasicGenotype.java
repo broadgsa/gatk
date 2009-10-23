@@ -2,6 +2,8 @@ package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 
+import java.util.List;
+
 
 /**
  * @author aaron
@@ -153,4 +155,17 @@ public class BasicGenotype implements Genotype {
         if (!isVariant(this.mRef)) throw new IllegalStateException("this genotype is not a variant");
         return new BasicVariation(this.getBases(), String.valueOf(mRef), this.getBases().length(), mLocation, mNegLog10PError);
     }
+
+    /**
+     * Turn a list of alleles into a genotype 
+     * @param alleles the list of alleles
+     * @return a string representation of this list
+     */
+    public static String alleleListToString(List<String> alleles) {
+        StringBuilder builder = new StringBuilder();
+        for (String allele : alleles)
+            builder.append(allele);
+        return builder.toString();
+    }
+
 }

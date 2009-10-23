@@ -1,7 +1,9 @@
 package org.broadinstitute.sting.playground.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.BrokenRODSimulator;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.ArrayList;
@@ -90,9 +92,9 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
     }
     public boolean discordantP(Variation dbSNP, Variation eval) {
         if (eval != null) {
-            char alt = (eval.isSNP()) ? eval.getAlternativeBaseForSNP() : eval.getReference().charAt(0);
+            char alt = (eval.isSNP()) ? eval.getAlternativeBaseForSNP() : Utils.stringToChar(eval.getReference());
             if (dbSNP != null && dbSNP.isSNP())
-                return !dbSNP.getAlternateBases().contains(String.valueOf(alt));
+                return !dbSNP.getAlleleList().contains(String.valueOf(alt));
         }
         return false;
     }
@@ -125,7 +127,7 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
             if (dbsnp.isSNP() && eval.isSNP() && discordantP(dbsnp, eval)) {
                 return String.format("Discordant [DBSNP %s] [EVAL %s]", dbsnp, eval);
             } else if (dbsnp.isIndel() && eval.isSNP()) {
-                return String.format("SNP-at-indel DBSNP=%s %s", dbsnp.getAlternateBases(), eval);
+                return String.format("SNP-at-indel DBSNP=%s %s", Utils.join("",dbsnp.getAlleleList()), eval);
             } else {
                 return null;
             }

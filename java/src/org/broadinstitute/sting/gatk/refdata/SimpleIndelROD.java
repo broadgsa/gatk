@@ -67,26 +67,6 @@ public class SimpleIndelROD extends TabularROD implements Genotype, VariationRod
     public boolean isSNP() { return false; }
     public boolean isReference() { return false; }
 
-    /**
-     * gets the alternate base.  Use this method if we're biallelic
-     *
-     * @return
-     */
-    @Override
-    public String getAlternateBases() {
-       return getFWDAlleles().get(0);
-    }
-
-    /**
-     * gets the alternate bases.  Use this method if teh allele count is greater then 2
-     *
-     * @return
-     */
-    @Override
-    public List<String> getAlternateBaseList() {
-        return getFWDAlleles();
-    }
-
     public boolean isInsertion() {
         if ( is1KGFormat() )
             return this.get("3").equals("I");
@@ -133,6 +113,35 @@ public class SimpleIndelROD extends TabularROD implements Genotype, VariationRod
     @Override
     public double getNegLog10PError() {
         return getVariationConfidence();
+    }
+
+    /**
+     * gets the alternate alleles.  This method should return all the alleles present at the location,
+     * NOT including the reference base.  This is returned as a string list with no guarantee ordering
+     * of alleles (i.e. the first alternate allele is not always going to be the allele with the greatest
+     * frequency).
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlternateAlleleList() {
+        List<String> ret = getAlleleList();
+        for (String val : ret) {
+            if (val.equals(this.getReference())) ret.remove(val);
+        }
+        return ret;
+    }
+
+    /**
+     * gets the alleles.  This method should return all the alleles present at the location,
+     * including the reference base.  The first allele should always be the reference allele, followed
+     * by an unordered list of alternate alleles.
+     *
+     * @return an alternate allele list
+     */
+    @Override
+    public List<String> getAlleleList() {
+        return this.getFWDAlleles();
     }
 
     public boolean isHom() { return false; }
