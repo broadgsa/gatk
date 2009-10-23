@@ -40,6 +40,11 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
     //List<ReferenceOrderedDatum> multiLocusRODs = new LinkedList<ReferenceOrderedDatum>();
 
     /**
+     * The data sources along with their current states.
+     */
+    private List<ReferenceOrderedDataState> states = new ArrayList<ReferenceOrderedDataState>();    
+
+    /**
      * Enable debugging output -- todo remove me
      */
     final static boolean DEBUG = false;
@@ -66,6 +71,8 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
             SeekableRODIterator it = (SeekableRODIterator)dataSource.seek(provider.getShard());
             GenomeLoc shardLoc = provider.getShard().getGenomeLoc();
             it.seekForward(GenomeLocParser.createGenomeLoc(shardLoc.getContigIndex(), shardLoc.getStart()-1, shardLoc.getStart()-1));
+
+            states.add(new ReferenceOrderedDataState(dataSource,it));            
 
             // we need to special case the interval so we don't always think there's a rod at the first location
             if ( dataSource.getName().equals(INTERVAL_ROD_NAME) ) {
@@ -202,6 +209,9 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
      * Closes the current view.
      */
     public void close() {
+        for( ReferenceOrderedDataState state: states )
+            state.dataSource.close( state.iterator );        
+
         rodQueue = null;
         tracker = null;
     }

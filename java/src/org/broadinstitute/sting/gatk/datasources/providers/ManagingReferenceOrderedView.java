@@ -27,11 +27,6 @@ import java.util.Collections;
  */
 public class ManagingReferenceOrderedView implements ReferenceOrderedView {
     /**
-     * The provider that's supplying our backing data.
-     */
-    //private final ShardDataProvider provider;
-
-    /**
      * The data sources along with their current states.
      */
     private List<ReferenceOrderedDataState> states = new ArrayList<ReferenceOrderedDataState>();
@@ -41,7 +36,6 @@ public class ManagingReferenceOrderedView implements ReferenceOrderedView {
      * @param provider
      */
     public ManagingReferenceOrderedView( ShardDataProvider provider ) {
-        //this.provider = provider;
         for( ReferenceOrderedDataSource dataSource: provider.getReferenceOrderedData() )
             states.add( new ReferenceOrderedDataState( dataSource, (SeekableRODIterator)dataSource.seek(provider.getShard()) ) );
 
@@ -72,17 +66,17 @@ public class ManagingReferenceOrderedView implements ReferenceOrderedView {
         // Clear out the existing data so that post-close() accesses to this data will fail-fast.
         states = null;
     }
+}
 
-    /**
-     * Models the traversal state of a given ROD lane.
-     */
-    private class ReferenceOrderedDataState {
-        public final ReferenceOrderedDataSource dataSource;
-        public final SeekableRODIterator iterator;
+/**
+ * Models the traversal state of a given ROD lane.
+ */
+class ReferenceOrderedDataState {
+    public final ReferenceOrderedDataSource dataSource;
+    public final SeekableRODIterator iterator;
 
-        public ReferenceOrderedDataState( ReferenceOrderedDataSource dataSource, SeekableRODIterator iterator ) {
-            this.dataSource = dataSource;
-            this.iterator = iterator;
-        }
+    public ReferenceOrderedDataState( ReferenceOrderedDataSource dataSource, SeekableRODIterator iterator ) {
+        this.dataSource = dataSource;
+        this.iterator = iterator;
     }
 }
