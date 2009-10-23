@@ -30,10 +30,12 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected Logger logger;
     protected double heterozygosity;
     protected EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform defaultPlatform;
+    protected boolean ALL_BASE_MODE;
     protected boolean GENOTYPE_MODE;
     protected boolean POOLED_INPUT;
     protected int POOL_SIZE;
     protected double LOD_THRESHOLD;
+    protected double CONFIDENCE_THRESHOLD;
     protected double MINIMUM_ALLELE_FREQUENCY;
     protected int maxDeletionsInPileup;
     protected String assumedSingleSample;
@@ -60,10 +62,12 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         baseModel = UAC.baseModel;
         heterozygosity = UAC.heterozygosity;
         defaultPlatform = UAC.defaultPlatform;
+        ALL_BASE_MODE = UAC.ALL_BASES;
         GENOTYPE_MODE = UAC.GENOTYPE;
         POOLED_INPUT = UAC.POOLED;
         POOL_SIZE = UAC.POOLSIZE;
         LOD_THRESHOLD = UAC.LOD_THRESHOLD;
+        CONFIDENCE_THRESHOLD = UAC.CONFIDENCE_THRESHOLD;
         MINIMUM_ALLELE_FREQUENCY = UAC.MINIMUM_ALLELE_FREQUENCY;
         maxDeletionsInPileup = UAC.MAX_DELETIONS;
         assumedSingleSample = UAC.ASSUME_SINGLE_SAMPLE;

@@ -51,21 +51,27 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confident genotypes or just the variants?", required = false)
     public boolean GENOTYPE = false;
 
-    @Argument(fullName = "verboseMode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
+    @Argument(fullName = "output_all_callable_bases", shortName = "all_bases", doc = "Should we output nonconfident variant or confident ref calls too?", required = false)
+    public boolean ALL_BASES = false;
+
+    @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
     public String VERBOSE = null;
 
 
     // control the error modes
-    @Argument(fullName = "assumeSingleSampleReads", shortName = "singleSample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)
+    @Argument(fullName = "assume_single_sample_reads", shortName = "single_sample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)
     public String ASSUME_SINGLE_SAMPLE = null;
-
-
-    // control the various parameters to be used
-    @Argument(fullName = "lod_threshold", shortName = "lod", doc = "The lod threshold on which variants should be filtered", required = false)
-    public double LOD_THRESHOLD = Double.MIN_VALUE;
 
     @Argument(fullName = "platform", shortName = "pl", doc = "Causes the genotyper to assume that reads without PL header TAG are this platform.  Defaults to null, indicating that the system will throw a runtime exception when such reads are detected", required = false)
     public EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform defaultPlatform = null;
+
+
+    // control the various parameters to be used
+    @Argument(fullName = "lod_threshold", shortName = "lod", doc = "The lod threshold by which variants should be filtered (for EM_POINT_ESTIMATE model)", required = false)
+    public double LOD_THRESHOLD = Double.MIN_VALUE;
+
+    @Argument(fullName = "min_confidence_threshold", shortName = "confidence", doc = "The phred-scaled confidence threshold by which variants should be filtered (for JOINT_ESTIMATE model)", required = false)
+    public double CONFIDENCE_THRESHOLD = Double.MIN_VALUE;
 
     @Argument(fullName = "max_deletions", shortName = "deletions", doc = "Maximum reads with deletions spanning this locus for it to be callable [default:1]", required = false)
     public Integer MAX_DELETIONS = 1;

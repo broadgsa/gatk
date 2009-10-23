@@ -28,7 +28,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
     private double[] PofFs = new double[BaseUtils.BASES.length];
 
     // the minimum and actual number of points in our allele frequency estimation
-    private static final int MIN_ESTIMATION_POINTS = 100; //1000;
+    private static final int MIN_ESTIMATION_POINTS = 100;
     private int frequencyEstimationPoints;
 
     // the GenotypeLikelihoods map
@@ -49,7 +49,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         // run joint estimation for the full GL contexts
         initializeGenotypeLikelihoods(ref, contexts, StratifiedContext.OVERALL);
         calculateAlleleFrequencyPosteriors(ref, context.getLocation());
-
+        return createCalls(ref, contexts);
 
         //double lod = overall.getPofD() - overall.getPofNull();
         //logger.debug("lod=" + lod);
@@ -67,7 +67,6 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         // generate the calls
         //GenotypeMetaData metadata = new GenotypeMetaData(lod, strandScore, overall.getMAF());
         //return new Pair<List<GenotypeCall>, GenotypeMetaData>(genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts), metadata);
-        return null;
     }
 
     private void initializeAlleleFrequencies(int numSamples) {
@@ -232,7 +231,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
     private void normalizeFromLog10(double[] array) {
         // for precision purposes, we need to add (or really subtract, since they're
         // all negative) the largest value; also, we need to convert to normal-space.
-        double maxValue = findMaxEntry(array);
+        double maxValue = findMaxEntry(array).first;
         for (int i = 0; i < array.length; i++)
             array[i] = Math.pow(10, array[i] - maxValue);
 
@@ -244,13 +243,17 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
             array[i] /= sum;
     }
 
-    private static double findMaxEntry(double[] array) {
+    // returns the maximum value in the array and its index
+    private static Pair<Double, Integer> findMaxEntry(double[] array) {
+        int index = 0;
         double max = array[0];
-        for (int index = 1; index < array.length; index++) {
-            if ( array[index] > max )
-                max = array[index];
+        for (int i = 1; i < array.length; i++) {
+            if ( array[i] > max ) {
+                max = array[i];
+                index = i;
+            }
         }
-        return max;
+        return new Pair<Double, Integer>(max, index);
     }
 
     private void printAlleleFrequencyData(char ref, GenomeLoc loc) {
@@ -282,9 +285,55 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
                 char base = Character.toLowerCase(altAllele);
                 int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
                 verboseWriter.println("P(f>0)_" + base + " = " + Math.log10(PofFs[baseIndex]));
+                verboseWriter.println("Qscore_" + base + " = " + (-10.0 * Math.log10(alleleFrequencyPosteriors[baseIndex][0])));
                 verboseWriter.println("LOD_" + base + " = " + (Math.log10(PofFs[baseIndex]) - Math.log10(alleleFrequencyPosteriors[baseIndex][0])));
             }
         }
         verboseWriter.println();
+    }
+
+    private Pair<List<GenotypeCall>, GenotypeMetaData> createCalls(char ref, HashMap<String, AlignmentContextBySample> contexts) {
+        // first, find the alt allele with maximum confidence
+        int indexOfMax = 0;
+        char baseOfMax = ref;
+        double maxConfidence = Double.MIN_VALUE;
+        for ( char altAllele : BaseUtils.BASES ) {
+            if ( altAllele != ref ) {
+                int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
+                if ( PofFs[baseIndex] > maxConfidence ) {
+                    indexOfMax = baseIndex;
+                    baseOfMax = altAllele;
+                    maxConfidence = PofFs[baseIndex];
+                }
+            }
+        }
+        double phredScaledConfidence = -10.0 * Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
+        double bestAFguess = (double)findMaxEntry(alleleFrequencyPosteriors[indexOfMax]).second / (double)(frequencyEstimationPoints-1);
+
+        ArrayList<GenotypeCall> calls = new ArrayList<GenotypeCall>();
+        // TODO -- generate strand score
+        double strandScore = 0.0;
+        GenotypeMetaData metadata = new GenotypeMetaData(phredScaledConfidence, strandScore, bestAFguess);
+
+        // generate calls only if we pass the threshold or we want ref calls
+        if ( phredScaledConfidence >= CONFIDENCE_THRESHOLD || ALL_BASE_MODE ) {
+
+            for ( String sample : GLs.keySet() ) {
+                // get the pileup
+                AlignmentContext context = contexts.get(sample).getContext(StratifiedContext.OVERALL);
+                ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
+                pileup.setIncludeDeletionsInPileupString(true);
+                // TODO -- fix GenotypeCall code so that each call doesn't need its own pileup
+
+                // create the call
+                GenotypeCall call = new GenotypeCall(sample, context.getLocation(), ref, GLs.get(sample), pileup);
+                calls.add(call);
+
+                // TODO -- fix GenotypeCall code so that UG tells it which genotypes to use
+                // TODO -- all of the intelligence for making calls should be in UG
+            }
+        }
+
+        return new Pair<List<GenotypeCall>, GenotypeMetaData>(calls, metadata);
     }
 }
