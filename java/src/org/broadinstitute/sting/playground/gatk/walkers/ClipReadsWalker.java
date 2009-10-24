@@ -71,6 +71,12 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     @Argument(fullName = "clipSequence", shortName = "X", doc = "Remove sequences within reads matching this sequence", required = false)
     String[] clipSequencesArgs = null;
 
+    @Argument(fullName="read", doc="", required=false)
+    String onlyDoRead = null;
+
+    //@Argument(fullName = "keepCompletelyClipped", shortName = "KCC", doc = "Unfortunately, sometimes a read is completely clipped away but with SOFTCLIP_BASES this results in an invalid CIGAR string.  ", required = false)
+    //boolean keepCompletelyClippedReads = false;
+
 //    @Argument(fullName = "onlyClipFirstSeqMatch", shortName = "ESC", doc="Only clip the first occurrence of a clipping sequence, rather than all subsequences within a read that match", required = false)
 //    boolean onlyClipFirstSeqMatch = false;
 
@@ -164,16 +170,19 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
      * @return the ReadClipper object describing what should be done to clip this read
      */
     public ReadClipper map(char[] ref, SAMRecord read) {
-        ReadClipper clipper = new ReadClipper(read);
+        if ( onlyDoRead == null || read.getReadName().equals(onlyDoRead) ) {
+            ReadClipper clipper = new ReadClipper(read);
 
-        //
-        // run all three clipping modules
-        //
-        clipBadQualityScores(clipper);
-        clipCycles(clipper);
-        clipSequences(clipper);
+            //
+            // run all three clipping modules
+            //
+            clipBadQualityScores(clipper);
+            clipCycles(clipper);
+            clipSequences(clipper);
+            return clipper;
+        }
 
-        return clipper;
+        return null;
     }
 
     /**
@@ -311,6 +320,9 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
     }
 
     public ClippingData reduce(ReadClipper clipper, ClippingData data) {
+        if ( clipper == null )
+            return data;
+
         if (data.output != null) {
             data.output.addAlignment(clipper.clipRead(clippingRepresentation));
         } else {
@@ -425,6 +437,13 @@ public class ClipReadsWalker extends ReadWalker<ClipReadsWalker.ReadClipper, Cli
                 case SOFTCLIP_BASES:
                     if ( ! clippedRead.getReadUnmappedFlag() ) {
                         // we can't process unmapped reads
+
+                        //System.out.printf("%d %d %d%n", stop, start, clippedRead.getReadLength());
+                        if ( (stop + 1 - start) == clippedRead.getReadLength() ) {
+                            // BAM representation issue -- we can't SOFTCLIP away all bases in a read, just leave it alone
+                            logger.info(String.format("Warning, read %s has all bases clip but this can't be represented with SOFTCLIP_BASES, just leaving it alone", clippedRead.getReadName()));
+                            break;
+                        }
 
                         if ( start > 0 && stop != clippedRead.getReadLength() - 1 )
                             throw new RuntimeException(String.format("Cannot apply soft clipping operator to the middle of a read: %s to be clipped at %d-%d",
