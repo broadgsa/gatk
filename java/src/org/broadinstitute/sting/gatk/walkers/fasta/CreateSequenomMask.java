@@ -15,6 +15,8 @@ public class CreateSequenomMask extends RodWalker<Integer, Integer> {
 
 	public Integer map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
         int result = 0;
+        if ( rodData == null ) // apparently, RodWalkers make funky map calls
+            return 0;
 
         Iterator<ReferenceOrderedDatum> rods = rodData.getAllRods().iterator();
         while (rods.hasNext()) {
