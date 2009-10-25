@@ -28,7 +28,7 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
     public String filterFile = "";
 
     @Argument(fullName = "ethnicity", shortName = "ethnicity", doc = "Use allele frequencies for this ethnic group", required = false)
-    public String ethnicity = "Caucasian";
+    public String ethnicity = "CaucasiansUSA";
 
     @Argument(fullName = "debugAlleles", shortName = "debugAlleles", doc = "Print likelihood scores for these alleles", required = false)
     public String debugAlleles = "";
@@ -39,11 +39,14 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
     @Argument(fullName = "onlyfrequent", shortName = "onlyfrequent", doc = "Only consider alleles with frequency > 0.0001", required = false)
     public boolean ONLYFREQUENT = false;
 
+    @Argument(fullName = "minAllowedMismatches", shortName = "minAllowedMismatches", doc = "Min number of mismatches tolerated per read (default 7)", required = false)
+    public int MINALLOWEDMISMATCHES = 7;
+
     GATKArgumentCollection args = this.getToolkit().getArguments();
     
     String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
-    String BlackAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_BlackUSA.freq";
-    String AlleleFrequencyFile;
+    String BlackAlleleFrequencyFile     = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_BlackUSA.freq";
+    String AlleleFrequencyFile          = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
     
     String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.nuc.imputed.4digit.sam";
     SAMFileReader HLADictionaryReader = new SAMFileReader();
@@ -58,6 +61,11 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
     CigarParser cigarparser = new CigarParser();
     Hashtable AlleleFrequencies;
     int numIntervals;
+
+    double P_err = 0.01;
+    double P_correct = 1 - P_err;
+    double L_err = Math.log10(P_err);
+    double L_correct = Math.log10(P_correct);
 
     public Integer reduceInit() {
 
@@ -76,7 +84,7 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
             if (!filterFile.equals("")){
                 out.printf("INFO  Reading properties file ... ");
                 SimilarityFileReader similarityReader = new SimilarityFileReader();
-                similarityReader.ReadFile(filterFile);
+                similarityReader.ReadFile(filterFile,MINALLOWEDMISMATCHES);
                 ReadsToDiscard = similarityReader.GetReadsToDiscard();
                 out.printf("Done! Found %s misaligned reads to discard.\n",ReadsToDiscard.size());
             }
@@ -102,12 +110,10 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
             totalObservations = new int[l][l];
 
             //Read allele frequencies
-            if (ethnicity.equals("Black")){
-                AlleleFrequencyFile = BlackAlleleFrequencyFile;
-            }else{
-                AlleleFrequencyFile = CaucasianAlleleFrequencyFile;
+            if (!ethnicity.equals("CaucasianUSA")){
+                AlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_" + ethnicity + ".freq";
             }
-            out.printf("INFO  Reading HLA allele frequencies ... ");
+            out.printf("INFO  Reading HLA allele frequencies for %s population ... ", ethnicity);
             FrequencyFileReader HLAfreqReader = new FrequencyFileReader();
             HLAfreqReader.ReadFile(AlleleFrequencyFile);
             AlleleFrequencies = HLAfreqReader.GetAlleleFrequencies();
@@ -295,7 +301,7 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
         int numPositions = PolymorphicSites.length, SNPcount = 0;
         int i, j, a1, a2, b1, b2;
         char c11, c12, c21, c22;
-        int numInPhase = 0;
+        int numInPhase = 0, numOutOfPhase = 0;
         double sumInPhase = 0.0, sumObservations = 0.0;
 
 
@@ -334,15 +340,18 @@ public class CalculatePhaseLikelihoodsWalker extends ReadWalker<Integer, Integer
                                 }else{
                                     numInPhase = numObservations[a1][b1] + numObservations[a2][b2];
                                 }
-                                prob = Math.max((double) numInPhase / (double) totalObservations[i][j], 0.0001);
+                                numOutOfPhase = totalObservations[i][j] - numInPhase;
                                 sumInPhase += (double) numInPhase;
                                 sumObservations += (double) totalObservations[i][j];
                                 
-                                likelihood += Math.log10(prob);
+                                likelihood += numInPhase * L_correct + numOutOfPhase * L_err;
+
+                                //prob = Math.max((double) numInPhase / (double) totalObservations[i][j], 0.0001);
+                                //likelihood += Math.log10(prob);
                                 //likelihood = Math.max(Math.log10(sumInPhase / sumObservations),-10);
                             
                                 if (PRINTDEBUG){
-                                    out.printf("DEBUG  %s %s %s[%s%s] %s[%s%s]\t[%s,%s]\t[%s,%s] [%s,%s]\t%s / %s\t%s / %s\t%.4f\t%.2f\n",HLAnames[alleleIndex1],HLAnames[alleleIndex2],PolymorphicSites[i],c11,c21,PolymorphicSites[j],c12,c22, i,j,a1,b1,a2,b2,numInPhase,totalObservations[i][j],sumInPhase,sumObservations,prob,likelihood);
+                                    out.printf("DEBUG  %s %s %s[%s%s] %s[%s%s]\t[%s,%s]\t[%s,%s] [%s,%s]\t%s / %s\t%s / %s\t    %.2f\n",HLAnames[alleleIndex1],HLAnames[alleleIndex2],PolymorphicSites[i],c11,c21,PolymorphicSites[j],c12,c22, i,j,a1,b1,a2,b2,numInPhase,totalObservations[i][j],sumInPhase,sumObservations,likelihood);
                                 }
                             }
                         }

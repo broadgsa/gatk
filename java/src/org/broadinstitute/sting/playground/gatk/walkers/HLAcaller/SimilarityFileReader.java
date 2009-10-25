@@ -22,7 +22,7 @@ public class SimilarityFileReader {
         return ReadsToDiscard.toArray(new String[ReadsToDiscard.size()]);
     }
 
-    public void ReadFile(String filename){
+    public void ReadFile(String filename, int minAllowedMismatches){
         try{
             FileInputStream fstream = new FileInputStream(filename);
             DataInputStream in = new DataInputStream(fstream);
@@ -35,7 +35,7 @@ public class SimilarityFileReader {
                 if (s.length >= 6){
                     Double matchFraction = Double.valueOf(s[4]);
                     int numMismatches = Integer.valueOf(s[6]);
-                    if ((matchFraction < 0.9 && numMismatches > 3) || (numMismatches >= 6)){
+                    if ((matchFraction < 0.9 && numMismatches > 3) || (numMismatches > minAllowedMismatches)){
                         ReadsToDiscard.add(s[0]);
                     }
                 }

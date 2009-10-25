@@ -28,14 +28,16 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
     @Argument(fullName = "debugAlleles", shortName = "debugAlleles", doc = "Print likelihood scores for these alleles", required = false)
     public String inputAlleles = "";
     @Argument(fullName = "ethnicity", shortName = "ethnicity", doc = "Use allele frequencies for this ethnic group", required = false)
-    public String ethnicity = "Caucasian";
+    public String ethnicity = "CaucasianUSA";
     @Argument(fullName = "filter", shortName = "filter", doc = "file containing reads to exclude", required = false)
     public String filterFile = "";
+    @Argument(fullName = "minAllowedMismatches", shortName = "minAllowedMismatches", doc = "Min number of mismatches tolerated per read (default 7)", required = false)
+    public int MINALLOWEDMISMATCHES = 7;
 
     String HLAdatabaseFile ="/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA.nuc.imputed.4digit.sam";
     String CaucasianAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
     String BlackAlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_BlackUSA.freq";
-    String AlleleFrequencyFile;
+    String AlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_CaucasiansUSA.freq";
 
     SAMFileReader HLADictionaryReader = new SAMFileReader();
     String[] HLAreads, HLAnames;
@@ -67,10 +69,8 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
 
 
 
-            if (ethnicity.equals("Black")){
-                AlleleFrequencyFile = BlackAlleleFrequencyFile;
-            }else{
-                AlleleFrequencyFile = CaucasianAlleleFrequencyFile;
+            if (!ethnicity.equals("CaucasianUSA")){
+                AlleleFrequencyFile = "/humgen/gsa-scr1/GSA/sjia/454_HLA/HLA/HLA_" + ethnicity + ".freq";
             }
             out.printf("INFO  Reading HLA allele frequencies ... ");
             FrequencyFileReader HLAfreqReader = new FrequencyFileReader();
@@ -82,7 +82,7 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
             if (!filterFile.equals("")){
                 out.printf("INFO  Reading properties file ... ");
                 SimilarityFileReader similarityReader = new SimilarityFileReader();
-                similarityReader.ReadFile(filterFile);
+                similarityReader.ReadFile(filterFile,MINALLOWEDMISMATCHES);
                 ReadsToDiscard = similarityReader.GetReadsToDiscard();
                 out.printf("Done! Found %s misaligned reads to discard.\n",ReadsToDiscard.size());
                 for (int i = 0; i < ReadsToDiscard.size(); i++){
