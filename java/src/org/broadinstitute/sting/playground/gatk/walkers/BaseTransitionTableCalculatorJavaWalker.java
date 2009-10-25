@@ -12,6 +12,8 @@ import org.broadinstitute.sting.utils.genotype.GenotypeMetaData;
 import java.util.*;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.OutputStream;
+import java.io.FileNotFoundException;
 
 import net.sf.samtools.SAMRecord;
 
@@ -43,6 +45,8 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     int nPreviousReadBases = 0;
     @Argument(fullName="useReadGroup", doc="Use the group number of the read as a condition of the table.", required = false)
     boolean useReadGroup = false;
+    @Argument(fullName="outputFile", shortName="of", doc="Output to this file rather than standard out. Must be used with -nt.", required = false)
+    String outFilePath = null;
 
     private UnifiedGenotyper ug;
     // private ReferenceContextWindow refWindow;
@@ -116,9 +120,19 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     }
 
     public void onTraversalDone( Set<BaseTransitionTable> conditionalTables ) {
-        out.print(createHeaderFromConditions());
+        PrintStream output;
+        if ( outFilePath == null ) {
+            output = out;
+        } else {
+            try {
+                output = new PrintStream(outFilePath);
+            } catch ( FileNotFoundException e ) {
+                throw new StingException("File given as input to -of, "+outFilePath+" could not be opened.",e);
+            }
+        }
+        output.print(createHeaderFromConditions());
         for ( BaseTransitionTable t : conditionalTables )
-            t.print(out);
+            t.print(output);
     }
 
     public void updatePreviousBases(List<Boolean> usage, boolean canUse, List<GenomeLoc> loci, GenomeLoc locus) {
