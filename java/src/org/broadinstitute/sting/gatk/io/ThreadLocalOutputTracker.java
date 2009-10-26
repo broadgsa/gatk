@@ -36,7 +36,7 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * An output tracker that tracks its output per-thread.
+ * An output tracker that can either track its output per-thread or directly,
  *
  * @author mhanna
  * @version 0.1
@@ -47,18 +47,38 @@ public class ThreadLocalOutputTracker extends OutputTracker {
      */
     private ThreadLocal<Map<Stub, Storage>> storage = new ThreadLocal<Map<Stub,Storage>>();
 
+    /**
+     * A total hack.  If bypass = true, bypass thread local storage and write directly
+     * to the target file.  Used to handle output during initialize() and onTraversalDone().
+     */
+    private boolean bypass = false;
+    public void bypassThreadLocalStorage(boolean bypass) {
+        this.bypass = bypass;
+    }
+
     public <T> T getStorage( Stub<T> stub ) {
-        Map<Stub,Storage> threadLocalOutputStreams = storage.get();
+        Storage target;
 
-        if( threadLocalOutputStreams == null ) {
-            threadLocalOutputStreams = new HashMap<Stub,Storage>();
-            storage.set( threadLocalOutputStreams );
+        if(bypass) {
+            target = outputs.get(stub);
+            if( target == null ) {
+                target = StorageFactory.createStorage(stub);
+                outputs.put(stub, target);
+            }
         }
+        else {
+            Map<Stub,Storage> threadLocalOutputStreams = storage.get();
 
-        Storage target = threadLocalOutputStreams.get(stub);
-        if( target == null ) {
-            target = StorageFactory.createStorage(stub, createTempFile(stub));
-            threadLocalOutputStreams.put(stub, target);
+            if( threadLocalOutputStreams == null ) {
+                threadLocalOutputStreams = new HashMap<Stub,Storage>();
+                storage.set( threadLocalOutputStreams );
+            }
+
+            target = threadLocalOutputStreams.get(stub);
+            if( target == null ) {
+                target = StorageFactory.createStorage(stub, createTempFile(stub));
+                threadLocalOutputStreams.put(stub, target);
+            }
         }
 
         return (T)target;
@@ -68,13 +88,13 @@ public class ThreadLocalOutputTracker extends OutputTracker {
      * Close down any existing temporary files which have been opened.
      */
     public OutputMergeTask closeStorage() {
-        Map<Stub,Storage> threadLocalStorage = storage.get();
+        Map<Stub,Storage> threadLocalOutputStreams = storage.get();
 
-        if( threadLocalStorage == null || threadLocalStorage.isEmpty() )
+        if( threadLocalOutputStreams == null || threadLocalOutputStreams.isEmpty() )
             return null;
 
         OutputMergeTask outputMergeTask = new OutputMergeTask();
-        for( Map.Entry<Stub,Storage> entry: threadLocalStorage.entrySet() ) {
+        for( Map.Entry<Stub,Storage> entry: threadLocalOutputStreams.entrySet() ) {
             Stub stub = entry.getKey();
             Storage storageEntry = entry.getValue();
 
@@ -82,7 +102,7 @@ public class ThreadLocalOutputTracker extends OutputTracker {
             outputMergeTask.addMergeOperation(getTargetStream(stub),storageEntry);            
         }
         
-        threadLocalStorage.clear();
+        threadLocalOutputStreams.clear();
 
         return outputMergeTask;
     }

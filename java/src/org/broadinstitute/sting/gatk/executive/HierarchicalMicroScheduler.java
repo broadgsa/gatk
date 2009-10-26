@@ -102,7 +102,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
         ReduceTree reduceTree = new ReduceTree(this);
 
-        walker.initialize();
+        initializeWalker(walker);
 
         for (Shard shard : shardStrategy)
             traverseTasks.add(shard);
@@ -124,27 +124,57 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
                 queueNextShardTraverse(walker, reduceTree);
         }
 
+        threadPool.shutdown();
+
         // Merge any lingering output files.  If these files aren't ready,
         // sit around and wait for them, then merge them.
         mergeExistingOutput(true);
 
-        threadPool.shutdown();
-
         Object result = null;
         try {
             result = reduceTree.getResult().get();
+            notifyTraversalDone(walker,result);
         }
         catch (Exception ex) {
             throw new StingException("Unable to retrieve result", ex);
         }
 
-        walker.onTraversalDone(result);        
-
-        printOnTraversalDone(result);
-
-        getOutputTracker().close();
+        outputTracker.close();
 
         return result;
+    }
+
+    /**
+     * Run the initialize method of the walker.  Ensure that any calls
+     * to the output stream will bypass thread local storage and write
+     * directly to the output file.
+     * @param walker Walker to initialize.
+     */
+    protected void initializeWalker(Walker walker) {
+        outputTracker.bypassThreadLocalStorage(true);
+        try {
+            walker.initialize();
+        }
+        finally {
+            outputTracker.bypassThreadLocalStorage(false);
+        }
+    }
+
+    /**
+     * Run the initialize method of the walker.  Ensure that any calls
+     * to the output stream will bypass thread local storage and write
+     * directly to the output file.
+     * @param walker Walker to initialize.
+     */
+    protected void notifyTraversalDone(Walker walker, Object result) {
+        outputTracker.bypassThreadLocalStorage(true);
+        try {
+            walker.onTraversalDone(result);
+            printOnTraversalDone(result);
+        }
+        finally {
+            outputTracker.bypassThreadLocalStorage(false);
+        }
     }
 
     /**
