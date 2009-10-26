@@ -49,7 +49,6 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
                 continue;
             // if we have multiple variants at a locus, just take the first damn one we see for now
             Variation variant = (Variation) rod;
-            if (variant.getAlleleList().size() != 2) System.err.println("Not two " + Utils.join("-",variant.getAlleleList()));
             if (!rod.getName().startsWith("snpmask") && variant.isDeletion()) {
                 deletionBasesRemaining = variant.getAlleleList().get(0).length();
                 basesSeen++;

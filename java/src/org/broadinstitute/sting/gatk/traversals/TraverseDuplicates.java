@@ -57,10 +57,10 @@ import java.util.List;
 /**
  * @author Mark DePristo
  * @version 0.1
- * <p/>
- * Class TraverseDuplicates
- * <p/>
- * This class handles traversing lists of duplicate reads in the new shardable style
+ *          <p/>
+ *          Class TraverseDuplicates
+ *          <p/>
+ *          This class handles traversing lists of duplicate reads in the new shardable style
  */
 public class TraverseDuplicates extends TraversalEngine {
     /** our log, which we want to capture anything from this class */
@@ -90,10 +90,10 @@ public class TraverseDuplicates extends TraversalEngine {
         return l;
     }
 
-    private Pair<List<SAMRecord>, List<SAMRecord>> splitDuplicates(List<SAMRecord> reads) {
+    protected Pair<List<SAMRecord>, List<SAMRecord>> splitDuplicates(List<SAMRecord> reads) {
         List<SAMRecord> uniques = new ArrayList<SAMRecord>();
         List<SAMRecord> dups = new ArrayList<SAMRecord>();
-
+        
         // find the first duplicate
         SAMRecord key = null;
         for (SAMRecord read : reads) {
@@ -109,22 +109,27 @@ public class TraverseDuplicates extends TraversalEngine {
         // if it's a dup, add it to the dups list, otherwise add it to the uniques list 
         if (key != null) {
             final GenomeLoc keyLoc = GenomeLocParser.createGenomeLoc(key);
-            final GenomeLoc keyMateLoc = GenomeLocParser.createGenomeLoc(key.getMateReferenceIndex(), key.getMateAlignmentStart(), key.getMateAlignmentStart());
-
+            final GenomeLoc keyMateLoc = (!key.getReadPairedFlag()) ? null :
+                    GenomeLocParser.createGenomeLoc(key.getMateReferenceIndex(), key.getMateAlignmentStart(), key.getMateAlignmentStart());
             for (SAMRecord read : reads) {
                 final GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
-                final GenomeLoc readMateLoc = GenomeLocParser.createGenomeLoc(read.getMateReferenceIndex(), read.getMateAlignmentStart(), read.getMateAlignmentStart());
+                final GenomeLoc readMateLoc = (!key.getReadPairedFlag()) ? null :
+                        GenomeLocParser.createGenomeLoc(read.getMateReferenceIndex(), read.getMateAlignmentStart(), read.getMateAlignmentStart());
                 if (DEBUG)
                     logger.debug(String.format("Examining reads at %s vs. %s at %s / %s vs. %s / %s%n", key.getReadName(), read.getReadName(), keyLoc, keyMateLoc, readLoc, readMateLoc));
 
                 // read and key start at the same place, and either the this read and the key
                 // share a mate location or the read is flagged as a duplicate
-                if (readLoc.compareTo(keyLoc) == 0 &&
-                        (readMateLoc.compareTo(keyMateLoc) == 0) ||
+                if (readLoc.compareTo(keyLoc) == 0 ||
                         read.getDuplicateReadFlag()) {
-                    // we are at the same position as the dup and have the same mat pos, it's a dup
-                    if (DEBUG) logger.debug(String.format("  => Adding read to dups list: %s%n", read));
-                    dups.add(read);
+                    if ((readMateLoc != null && keyMateLoc != null && readMateLoc.compareTo(keyMateLoc) == 0) ||
+                            (readMateLoc == null && keyMateLoc == null)) {
+                        // we are at the same position as the dup and have the same mat pos, it's a dup
+                        if (DEBUG) logger.debug(String.format("  => Adding read to dups list: %s%n", read));
+                        dups.add(read);
+                    } else {
+                        uniques.add(read);
+                    }
                 } else {
                     uniques.add(read);
                 }
@@ -139,11 +144,11 @@ public class TraverseDuplicates extends TraversalEngine {
     /**
      * Traverse by reads, given the data and the walker
      *
-     * @param sum of type T, the return from the walker
-     * @param <M> the generic type
-     * @param <T> the return type of the reduce function
+     * @param sum       of type T, the return from the walker
+     * @param <M>       the generic type
+     * @param <T>       the return type of the reduce function
      * @param dupWalker our duplicates walker
-     * @param readIter our iterator
+     * @param readIter  our iterator
      *
      * @return the reduce type, T, the final product of all the reduce calls
      */
@@ -171,10 +176,10 @@ public class TraverseDuplicates extends TraversalEngine {
             List<SAMRecord> duplicateReads = split.getSecond();
 
             logger.debug(String.format("*** TraverseDuplicates.traverse at %s with %d reads has %d unique and %d duplicate reads",
-                    site, reads.size(), uniqueReads.size(), duplicateReads.size()));
+                                       site, reads.size(), uniqueReads.size(), duplicateReads.size()));
             if (reads.size() != uniqueReads.size() + duplicateReads.size())
                 throw new RuntimeException(String.format("Bug occurred spliting reads [N=%d] at loc %s into unique [N=%d] and duplicates [N=%d], sizes don't match",
-                        reads.size(), site.toString(), uniqueReads.size(), duplicateReads.size()));
+                                                         reads.size(), site.toString(), uniqueReads.size(), duplicateReads.size()));
 
             // Jump forward in the reference to this locus location
             AlignmentContext locus = new AlignmentContext(site, duplicateReads, Arrays.asList(0));
