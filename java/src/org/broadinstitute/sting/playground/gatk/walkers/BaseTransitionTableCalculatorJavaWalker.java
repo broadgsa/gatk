@@ -171,6 +171,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
 
     public Set<BaseTransitionTable> updateTables ( Set<BaseTransitionTable> tables, SAMRecord read, int offset, ReferenceContext ref, ReadBackedPileup pileup ) {
         List<Comparable> readConditions = buildConditions(read,offset,ref, pileup);
+        // System.out.println("Updating table with pileup: "+pileup.getBases()+ ( read.getReadNegativeStrandFlag() ? "-" : "+" ) + "  Quality: "+read.getBaseQualities()[offset] + "  MapQ:  "+read.getMappingQuality());
 
         if ( tables == null ) {
             tables = new TreeSet<BaseTransitionTable>();
@@ -257,7 +258,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     }
 
     public String createHeaderFromConditions() {
-        String header = "True_base\tObserved_base";
+        String header = "Observed_base\tTrue_base";
 
         if ( nPreviousBases > 0) {
             header = header+"\tPrevious_"+nPreviousBases+"_bases";
@@ -327,7 +328,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
         Pair<List<GenotypeCall>, GenotypeMetaData> calls = ug.map(tracker,ref,context);
         if (calls == null)
             return false;
-        return  (! calls.first.get(0).isVariant()) && calls.first.get(0).getNegLog10PError() >= confidentRefThreshold && BaseUtils.isRegularBase(ref.getBase());
+        return  (! calls.first.get(0).isVariant()) && calls.first.get(0).getNegLog10PError() > confidentRefThreshold && BaseUtils.isRegularBase(ref.getBase());
 
     }
 
@@ -422,6 +423,7 @@ class BaseTransitionTable implements Comparable {
         //if ( observedBase == refBase ) {
         //    throw new StingException("BaseTransitionTable received equal observed and reference bases, which should not happen.");
         //}
+        // System.out.println("Table updating: Observed Base: "+observedBase+" Ref base: "+refBase);
         table[BaseUtils.simpleBaseToBaseIndex(observedBase)][BaseUtils.simpleBaseToBaseIndex(refBase)]++;
     }
 

@@ -13,15 +13,15 @@ import java.util.Arrays;
  * To change this template use File | Settings | File Templates.
  */
 public class BaseTransitionTableCalculatorJavaIntegrationTest extends WalkerTest{
-    // MD5s last computed 10/21 at revision 1897
-    public static final String OUTPUT_MD5_STANDARD = "e88f010ea842bcdb6503a4da24b90edc";
-    public static final String OUTPUT_MD5_3MISMATCHES = "46f9aadbfe260a286fb6c8cac137dddd";
-    public static final String OUTPUT_MD5_LOWMAPPINGQUALITY = "0b7447e0a271ffa5c8ff1719db3585e6";
-    public static final String OUTPUT_MD5_LOWQUALITYSCORE = "87d793f751328b0a9299a69b99cd0112";
-    public static final String OUTPUT_MD5_LOWCONFIDENTREFTHRESHOLD = "bc70acf997295a6cc13f3e88b254cc24";
-    public static final String OUTPUT_MD5_HIGHCONFIDENTREFTHRESHOLD = "17d49c12fc64926a71bc32ac1eec7f68";
-    public static final String OUTPUT_MD5_ALLARGUMENTS = "5599a4a577927fb9875adc26140dee7e";
-    public static final String OUTPUT_MD5_USEREADGROUP = "f6e8bd2101316deae93512dd09a69567";
+    // MD5s last computed 10/26 at revision 1897
+    public static final String OUTPUT_MD5_STANDARD = "bb7f7c8b71a2a19dbbd47699708816b0";
+    public static final String OUTPUT_MD5_3MISMATCHES = "000bd16dfea8df415e2104fe894aec83";
+    public static final String OUTPUT_MD5_LOWMAPPINGQUALITY = "db3af69e61e90c59a3ca0ca25605fa67";
+    public static final String OUTPUT_MD5_LOWQUALITYSCORE = "f990bd4ba5a951b16603131906b74326";
+    public static final String OUTPUT_MD5_LOWCONFIDENTREFTHRESHOLD = "7c6c2ed2110ee3030fcd060346623fcc";
+    public static final String OUTPUT_MD5_HIGHCONFIDENTREFTHRESHOLD = "b30efed02e8f6b356e56e5875db40f2c";
+    public static final String OUTPUT_MD5_ALLARGUMENTS = "3f1901a40e79300da4cbab1488c4839d";
+    public static final String OUTPUT_MD5_USEREADGROUP = "7422ea018b8dea52398b81502cbe5c38";
     public static final String LOCUS = "1:10,000,000-10,200,000";
     public static final String BAM_FILE = "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam";
     public static final String REFERENCE = "/broad/1KG/reference/human_b36_both.fasta";
@@ -31,6 +31,13 @@ public class BaseTransitionTableCalculatorJavaIntegrationTest extends WalkerTest
         String args = "-T BaseTransitionTableCalculatorJava -o %s -I "+BAM_FILE+" -L "+LOCUS+" -R "+REFERENCE;
         WalkerTest.WalkerTestSpec spec =  new WalkerTest.WalkerTestSpec(args,1,Arrays.asList(OUTPUT_MD5_STANDARD));
         executeTest("testBaseTransitionTableCalculatorJava", spec);
+    }
+
+    @Test
+    public void testBaseTransitionTableCalculatorJavaTreeReduce() {
+        String args = "-T BaseTransitionTableCalculatorJava -of %s -I "+BAM_FILE+" -L "+LOCUS+" -R "+REFERENCE+" -nt 5";
+        WalkerTest.WalkerTestSpec spec =  new WalkerTest.WalkerTestSpec(args,1,Arrays.asList(OUTPUT_MD5_STANDARD));
+        executeTest("testBaseTransitionTableCalculatorJava: tree reduce", spec);
     }
 
     @Test
