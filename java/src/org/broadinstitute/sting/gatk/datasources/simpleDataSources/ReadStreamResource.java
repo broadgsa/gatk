@@ -45,6 +45,8 @@ import java.io.File;
  * @version 0.1
  */
 class ReadStreamResource {
+    final static boolean eagerDecode = true;
+
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(ReadStreamPointer.class);
 
@@ -124,7 +126,7 @@ class ReadStreamResource {
         // right now this is pretty damn heavy, it copies the file list into a reader list every time
         List<SAMFileReader> lst = new ArrayList<SAMFileReader>();
         for (File f : reads.getReadsFiles()) {
-            SAMFileReader reader = new SAMFileReader(f, true);
+            SAMFileReader reader = new SAMFileReader(f, eagerDecode);
             reader.setValidationStringency(reads.getValidationStringency());
 
             final SAMFileHeader header = reader.getFileHeader();
