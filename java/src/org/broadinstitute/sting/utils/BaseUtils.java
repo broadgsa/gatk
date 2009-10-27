@@ -410,6 +410,15 @@ public class BaseUtils {
     	}
     	return period;
     }
+
+    public static byte[] charSeq2byteSeq(char[] seqIn) {
+        byte[] seqOut = new byte[seqIn.length];
+        for ( int i = 0; i < seqIn.length; i++ ) {
+            seqOut[i] = (byte)seqIn[i];
+        }
+        return seqOut;
+    }
+
 }
 
 /* code snippet for testing sequencePeriod():
