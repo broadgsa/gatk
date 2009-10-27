@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.SAMRecord;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.io.Serializable;
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,9 +16,7 @@ import java.util.List;
  *
  *
  */
-public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
-    private static Logger logger = Logger.getLogger(GenomeLoc.class);
-
+public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable {
     /**
      * the basic components of a genome loc, its contig index,
      * start and stop position, and (optionally) the contig name
@@ -176,6 +174,15 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable {
 
     public final boolean containsP(GenomeLoc that) {
         return onSameContig(that) && getStart() <= that.getStart() && getStop() >= that.getStop();
+    }
+
+    /**
+     * Returns true if this GenomeLoc contains the start position of GenomeLoc that, on the same contig
+     * @param start
+     * @return 
+     */
+    public final boolean containsStartPosition(long start) {
+        return getStart() <= start && start <= getStop();
     }
 
     public final boolean onSameContig(GenomeLoc that) {
