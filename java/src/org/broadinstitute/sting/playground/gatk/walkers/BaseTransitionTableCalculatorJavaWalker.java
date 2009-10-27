@@ -217,9 +217,28 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
             return false;
         } else if ( useSecondaryBase && read.getAttribute("SQ") == null )
             return false;
+        else if ( nPreviousBases >= 1 && previousReadBasesMismatchRef(read, offset, ref) )
+            return false;
         else {
             return true;
         }
+    }
+
+    public boolean previousReadBasesMismatchRef( SAMRecord read, int offset, ReferenceContext ref ) {
+        int c = read.getReadNegativeStrandFlag() ? 1 : -1;
+        if ( offset + nPreviousBases*c < 0 ) {
+            return true;
+        } else if ( offset + nPreviousBases*c > read.getReadLength() ) {
+            return true;
+        }
+
+        for ( int prevBase = 1; prevBase <= nPreviousBases; prevBase ++ ) {
+            if ( Character.toUpperCase(read.getReadBases()[offset + prevBase*c]) != Character.toUpperCase(ref.getBases()[nPreviousBases+1+prevBase*c]) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public List<Comparable> buildConditions( SAMRecord read, int offset, ReferenceContext ref, ReadBackedPileup pileup ) {
