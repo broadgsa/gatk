@@ -2,6 +2,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RODRecordList;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
@@ -38,8 +40,10 @@ public class SimpleVenn implements ConcordanceType {
     }
 
     public void computeConcordance(RefMetaDataTracker tracker, ReferenceContext ref) {
-        Variation call1 = (Variation)tracker.lookup("callset1", null);
-        Variation call2 = (Variation)tracker.lookup("callset2", null);
+        RODRecordList<ReferenceOrderedDatum> call1List = tracker.getTrackData("callset1", null);
+        RODRecordList<ReferenceOrderedDatum> call2List = tracker.getTrackData("callset2", null);
+        Variation call1 = (call1List == null ? null : (Variation)call1List.getRecords().get(0));
+        Variation call2 = (call2List == null ? null : (Variation)call2List.getRecords().get(0));
 
         if ( call1 == null && call2 == null )
             return;
@@ -55,13 +59,15 @@ public class SimpleVenn implements ConcordanceType {
         else if ( call1 == null )
             printVariant(set2_writer, call2);
 
-        // intersection (concordant)
-        else if ( call1.getAlternativeBaseForSNP() == call2.getAlternativeBaseForSNP())
-            printVariant(intersect_writer, call1);
-
-        // intersection (discordant)
-        else
-            printVariant(discord_writer, call1);
+        // we can't really deal with multi-allelic variants
+        else if ( call1.isBiallelic() && call2.isBiallelic() ) {
+            // intersection (concordant)
+            if ( call1.getAlternativeBaseForSNP() == call2.getAlternativeBaseForSNP() )
+                printVariant(intersect_writer, call1);
+            // intersection (discordant)
+            else
+                printVariant(discord_writer, call1);
+        }
     }
 
     private static void printVariant(PrintWriter writer, Variation variant) {

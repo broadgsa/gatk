@@ -2,6 +2,8 @@ package org.broadinstitute.sting.playground.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RODRecordList;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
@@ -52,8 +54,10 @@ public class SNPGenotypeConcordance implements ConcordanceType {
     }
 
     public void computeConcordance(RefMetaDataTracker tracker, ReferenceContext ref) {
-        Variation call1 = (Variation)tracker.lookup("callset1", null);
-        Variation call2 = (Variation)tracker.lookup("callset2", null);
+        RODRecordList<ReferenceOrderedDatum> call1List = tracker.getTrackData("callset1", null);
+        RODRecordList<ReferenceOrderedDatum> call2List = tracker.getTrackData("callset2", null);
+        Variation call1 = (call1List == null ? null : (Variation)call1List.getRecords().get(0));
+        Variation call2 = (call2List == null ? null : (Variation)call2List.getRecords().get(0));
 
         // the only reason they would be null is a lack of coverage
         if ( call1 == null || call2 == null ) {
