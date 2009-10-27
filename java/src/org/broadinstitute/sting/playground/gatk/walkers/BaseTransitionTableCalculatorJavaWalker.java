@@ -47,6 +47,8 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     boolean useReadGroup = false;
     @Argument(fullName="outputFile", shortName="of", doc="Output to this file rather than standard out. Must be used with -nt.", required = false)
     String outFilePath = null;
+    @Argument(fullName="forcePreviousReadBasesToMatchRef", doc="Forces previous read bases to match the reference", required = false)
+    boolean readBasesMustMatchRef = false;
 
     private UnifiedGenotyper ug;
     // private ReferenceContextWindow refWindow;
@@ -55,7 +57,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     private List<GenomeLoc> previousBaseLoci;
 
     public void initialize() {
-        if ( nPreviousBases > 3 ) {
+        if ( nPreviousBases > 3 || ( nPreviousReadBases > 3 && readBasesMustMatchRef ) ) {
             throw new StingException("You have opted to use a number of previous bases in excess of 3. In order to do this you must change the reference window size in the walker itself.");
         }
         ug = new UnifiedGenotyper();
@@ -116,6 +118,13 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     }
 
     public Set<BaseTransitionTable> treeReduce( Set<BaseTransitionTable> reduce1, Set<BaseTransitionTable> reduce2 ) {
+        // check to see if this is a truly tree-reducable calculation
+        if ( nPreviousBases >= 1 ) {
+            String errMsg = "Parallelization cannot be used with UsePreviousBases due to the fact that internal walker data specifies whether a previous reference base is usable or not.";
+            String errMsg2 = " This can cause cause concurrency issues and unpredictable behavior when used with parallelization. Either do not specify -nt, or try a the conjunction of ";
+            String errMsg3 = "--usePreviousReadBases and --forcePreviousReadBasesToMatchRef.";
+            throw new StingException(errMsg+errMsg2+errMsg3);
+        }
         return reduce(reduce1,reduce2);
     }
 
@@ -215,11 +224,15 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
             return false;
         } else if ( read.getBaseQualities()[offset] <= minQualityScore ) {
             return false;
-        } else if ( useSecondaryBase && read.getAttribute("SQ") == null )
+        } else if ( useSecondaryBase && read.getAttribute("SQ") == null ) {
             return false;
-        else if ( nPreviousBases >= 1 && previousReadBasesMismatchRef(read, offset, ref) )
+        } else if ( nPreviousBases >= 1 && previousReadBasesMismatchRef(read, offset, ref) ) {
             return false;
-        else {
+        } else if ( nPreviousReadBases >= 1 && readLacksPreviousBases(read,offset,nPreviousReadBases) ) {
+            return false;
+        } else if ( nPreviousReadBases >= 1 && readBasesMustMatchRef && previousReadBasesMismatchRef(read, offset, ref) ) {
+            return false;
+        } else {
             return true;
         }
     }
@@ -241,6 +254,14 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
         return false;
     }
 
+    public boolean readLacksPreviousBases( SAMRecord read, int offset, int prevBases ) {
+        if ( ! read.getReadNegativeStrandFlag() ) {
+            return offset - prevBases < 0;
+        } else {
+            return offset + prevBases + 1 >= read.getReadLength();
+        }
+    }
+
     public List<Comparable> buildConditions( SAMRecord read, int offset, ReferenceContext ref, ReadBackedPileup pileup ) {
         ArrayList<Comparable> conditions = new ArrayList<Comparable>();
 
@@ -254,7 +275,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
         }
 
         if ( nPreviousReadBases > 0 ) {
-            conditions.add(read.getReadString().substring(offset-nPreviousReadBases,offset));
+            conditions.add(buildReadString(read, offset, nPreviousReadBases));
         }
 
         if ( usePileupMismatches ) {
@@ -273,6 +294,14 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
             return ( new String(ref.getBases()) ).substring(0,nPreviousBases-1);
         } else {
             return BaseUtils.simpleReverseComplement( ( new String(ref.getBases()) ).substring(nPreviousBases+1) );
+        }
+    }
+
+    public String buildReadString( SAMRecord read, int offset, int nPreviousReadBases ) {
+        if ( ! read.getReadNegativeStrandFlag() ) {
+            return read.getReadString().substring(offset-nPreviousReadBases,offset);
+        } else {
+            return BaseUtils.simpleReverseComplement( read.getReadString().substring(offset+1,offset+nPreviousReadBases+1) );
         }
     }
 
