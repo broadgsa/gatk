@@ -33,6 +33,9 @@ public class FastaReferenceWalker extends RefWalker<Pair<GenomeLoc, String>, Gen
     }
 
 	public GenomeLoc reduce(Pair<GenomeLoc, String> value, GenomeLoc sum) {
+        if ( value == null )
+            return sum;
+
         // if there is no interval to the left, then this is the first one
         if ( sum == null ) {
             sum = value.first;
