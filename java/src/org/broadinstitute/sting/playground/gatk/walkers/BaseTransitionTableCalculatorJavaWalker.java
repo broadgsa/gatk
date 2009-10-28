@@ -246,7 +246,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
         }
 
         for ( int prevBase = 1; prevBase <= nPreviousBases; prevBase ++ ) {
-            if ( Character.toUpperCase(read.getReadBases()[offset + prevBase*c]) != Character.toUpperCase(ref.getBases()[nPreviousBases+1+prevBase*c]) ) {
+            if ( Character.toUpperCase(read.getReadBases()[offset + prevBase*c]) != Character.toUpperCase(ref.getBases()[nPreviousBases+1+prevBase*c]) || ! BaseUtils.isRegularBase(ref.getBases()[nPreviousBases+1+prevBase*c])) {
                 return true;
             }
         }
