@@ -59,7 +59,7 @@ public class GeliTextWriter implements GenotypeWriter {
         char ref = locus.getReference();
 
 
-        if (!(locus instanceof GenotypesBacked)) {
+        if (!(locus instanceof PosteriorsBacked)) {
             posteriors = new double[10];
             Arrays.fill(posteriors, 0.0);
         } else {

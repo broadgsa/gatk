@@ -49,7 +49,7 @@ public class TabularLFWriter implements GenotypeWriter {
         int readDepth = -1;
         double nextVrsBest = 0;
         double nextVrsRef = 0;
-        if (!(locus instanceof GenotypesBacked)) {
+        if (!(locus instanceof LikelihoodsBacked)) {
             likelihoods = new double[10];
             Arrays.fill(likelihoods, Double.MIN_VALUE);
         } else {

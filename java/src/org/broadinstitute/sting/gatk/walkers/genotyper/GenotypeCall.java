@@ -18,7 +18,7 @@ import java.util.List;
  *         The implementation of the genotype interface, which contains
  *         extra information for the various genotype outputs
  */
-public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, LikelihoodsBacked, PosteriorsBacked, SampleBacked {
+public class GenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked, PosteriorsBacked, SampleBacked {
     private final char mRefBase;
     private final GenotypeLikelihoods mGenotypeLikelihoods;
 
@@ -265,16 +265,7 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
     }
 
     /**
-     * get the likelihoods
-     *
-     * @return an array in lexigraphical order of the likelihoods
-     */
-    public Genotype getGenotype(DiploidGenotype x) {
-        return new GenotypeCall(mSampleName, mLocation, mRefBase, mGenotypeLikelihoods, mPileup, x);
-    }
-
-    /**
-     * get the likelihood information for this
+     * get the likelihood information for this call
      *
      * @return
      */
@@ -284,7 +275,7 @@ public class GenotypeCall implements Genotype, ReadBacked, GenotypesBacked, Like
 
 
     /**
-     * get the likelihood information for this
+     * get the posteriors information for this call
      *
      * @return
      */

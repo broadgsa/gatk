@@ -121,7 +121,7 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
         if (locus instanceof ReadBacked) {
             readDepth = ((ReadBacked)locus).getReadCount();
         }
-        if (!(locus instanceof GenotypesBacked)) {
+        if (!(locus instanceof PosteriorsBacked)) {
             posteriors = new double[10];
             Arrays.fill(posteriors, 0.0);
         } else {
