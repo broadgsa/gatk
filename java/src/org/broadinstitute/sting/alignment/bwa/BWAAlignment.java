@@ -11,7 +11,7 @@ import net.sf.samtools.Cigar;
  * @author mhanna
  * @version 0.1
  */
-public class BWAAlignment implements Alignment, Cloneable {
+public class BWAAlignment extends Alignment implements Cloneable {
     /**
      * Track the number of alignments that have been created.
      */
@@ -26,16 +26,6 @@ public class BWAAlignment implements Alignment, Cloneable {
      * The aligner performing the alignments.
      */
     protected BWAAligner aligner;
-
-    /**
-     * Start of the final alignment.
-     */
-    protected long alignmentStart;
-
-    /**
-     * Is this match being treated as a negative or positive strand?
-     */
-    protected boolean negativeStrand;
 
     /**
      * The sequence of matches/mismatches/insertions/deletions.
@@ -72,26 +62,18 @@ public class BWAAlignment implements Alignment, Cloneable {
      */
     protected long hiBound;
 
+    protected void setAlignmentStart(long position) {
+        this.alignmentStart = position;
+    }
+
+    protected void setNegativeStrand(boolean negativeStrand) {
+        this.negativeStrand = negativeStrand;
+    }
+
     /**
      * Cache the score.
      */
     private int score;
-
-    /**
-     * Gets the starting position for the given alignment.
-     * @return Starting position.
-     */
-    public long getAlignmentStart() {
-        return alignmentStart;
-    }
-
-    /**
-     * Is the given alignment on the reverse strand?
-     * @return True if the alignment is on the reverse strand.
-     */
-    public boolean isNegativeStrand() {
-        return negativeStrand;    
-    }
 
     public Cigar getCigar() {
         return alignmentMatchSequence.convertToCigar(isNegativeStrand());

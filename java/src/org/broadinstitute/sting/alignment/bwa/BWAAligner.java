@@ -107,9 +107,9 @@ public class BWAAligner implements Aligner {
             if( alignment.getScore() > bestScore + MISMATCH_PENALTY )
                 break;
 
-            Byte[] bases = alignment.negativeStrand ? complementedBases : uncomplementedBases;
-            BWT bwt = alignment.negativeStrand ? forwardBWT : reverseBWT;
-            List<LowerBound> lowerBounds = alignment.negativeStrand ? reverseLowerBounds : forwardLowerBounds;
+            Byte[] bases = alignment.isNegativeStrand() ? complementedBases : uncomplementedBases;
+            BWT bwt = alignment.isNegativeStrand() ? forwardBWT : reverseBWT;
+            List<LowerBound> lowerBounds = alignment.isNegativeStrand() ? reverseLowerBounds : forwardLowerBounds;
 
             // if z < D(i) then return {}
             int mismatches = maxDiff - alignment.getMismatches() - alignment.getGapOpens() - alignment.getGapExtensions();
@@ -128,12 +128,12 @@ public class BWAAligner implements Aligner {
                     BWAAlignment finalAlignment = alignment.clone();
 
                     if( finalAlignment.isNegativeStrand() )
-                        finalAlignment.alignmentStart = forwardSuffixArray.get(bwtIndex) + 1;
+                        finalAlignment.setAlignmentStart(forwardSuffixArray.get(bwtIndex) + 1);
                     else {
                         int sizeAlongReference = read.getReadLength() -
                                 finalAlignment.getNumberOfBasesMatchingState(AlignmentState.INSERTION) +
                                 finalAlignment.getNumberOfBasesMatchingState(AlignmentState.DELETION);
-                        finalAlignment.alignmentStart = reverseBWT.length() - reverseSuffixArray.get(bwtIndex) - sizeAlongReference + 1;
+                        finalAlignment.setAlignmentStart(reverseBWT.length() - reverseSuffixArray.get(bwtIndex) - sizeAlongReference + 1);
                     }
 
                     successfulMatches.add(finalAlignment);
@@ -215,7 +215,7 @@ public class BWAAligner implements Aligner {
      */
     private BWAAlignment createSeedAlignment(BWT bwt) {
         BWAAlignment seed = new BWAAlignment(this);
-        seed.negativeStrand = (bwt == forwardBWT);
+        seed.setNegativeStrand(bwt == forwardBWT);
         seed.position = -1;
         seed.loBound = 0;
         seed.hiBound = bwt.length();
