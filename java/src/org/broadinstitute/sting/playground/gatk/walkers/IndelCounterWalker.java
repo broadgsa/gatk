@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -15,7 +16,7 @@ import org.broadinstitute.sting.utils.BasicPileup;
  * Time: 3:19:48 PM
  * To change this template use File | Settings | File Templates.
  */
-public class IndelCounterWalker extends LocusWalker<Integer,Integer> {
+public class IndelCounterWalker extends LocusWalker<Integer,Integer> implements TreeReducible<Integer> {
 
     public Integer reduceInit() {
         return 0;
@@ -25,8 +26,8 @@ public class IndelCounterWalker extends LocusWalker<Integer,Integer> {
         return map + prevReduce;
     }
 
-    public Integer treeReduce( Integer reduce1, Integer reduce2 ) {
-        return reduce(reduce1,reduce2);
+    public Integer treeReduce(Integer lhs, Integer rhs) {
+        return reduce(lhs,rhs);
     }
 
     public Integer map ( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
