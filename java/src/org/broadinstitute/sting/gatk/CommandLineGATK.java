@@ -1,7 +1,9 @@
 package org.broadinstitute.sting.gatk;
 
+import org.broadinstitute.sting.utils.GATKErrorReport;
 import org.broadinstitute.sting.utils.cmdLine.*;
 
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -38,17 +40,30 @@ public class CommandLineGATK extends CommandLineExecutable {
 
     // our argument collection, the collection of command line args we accept
     @ArgumentCollection
-    private GATKArgumentCollection argCollection = new GATKArgumentCollection();    
+    private GATKArgumentCollection argCollection = new GATKArgumentCollection();
 
     /**
      * Get pleasing info about the GATK.
+     *
      * @return A list of Strings that contain pleasant info about the GATK.
      */
     @Override
     protected ApplicationDetails getApplicationDetails() {
-        return new ApplicationDetails( createApplicationHeader(),
-                                       ApplicationDetails.createDefaultRunningInstructions(getClass()),
-                                       getAdditionalHelp() );
+        return new ApplicationDetails(createApplicationHeader(),
+                ApplicationDetails.createDefaultRunningInstructions(getClass()),
+                getAdditionalHelp());
+    }
+
+    /**
+     * generate an error log, given the stream to write to and the exception that was thrown
+     *
+     * @param stream the output stream
+     * @param e      the exception
+     */
+    @Override
+    public void generateErrorLog(PrintStream stream, Exception e) {
+        GATKErrorReport report = new GATKErrorReport(e, this.argCollection);
+        report.reportToStream(stream);
     }
 
     @Override
@@ -61,7 +76,9 @@ public class CommandLineGATK extends CommandLineExecutable {
         return argCollection;
     }
 
-    /** Required main method implementation. */
+    /**
+     * Required main method implementation.
+     */
     public static void main(String[] argv) {
         try {
             CommandLineGATK instance = new CommandLineGATK();
@@ -74,9 +91,10 @@ public class CommandLineGATK extends CommandLineExecutable {
 
     /**
      * Creates the a short blurb about the GATK, copyright info, and where to get documentation.
+     *
      * @return The application header.
      */
-    private List<String> createApplicationHeader() {
+    public static List<String> createApplicationHeader() {
         List<String> header = new ArrayList<String>();
         header.add("The Genome Analysis Toolkit (GATK)");
         header.add("Copyright (c) 2009 The Broad Institute");
@@ -89,7 +107,8 @@ public class CommandLineGATK extends CommandLineExecutable {
     /**
      * Retrieves additional information about GATK walkers.
      * TODO: This functionality is very similar to that employed by the HelpFormatter.  Generalize
-     *       the code in HelpFormatter and supply it as a helper to this method.
+     * the code in HelpFormatter and supply it as a helper to this method.
+     *
      * @return A string summarizing the walkers available in this distribution.
      */
     private String getAdditionalHelp() {
@@ -97,34 +116,34 @@ public class CommandLineGATK extends CommandLineExecutable {
         Set<String> walkerNames = GATKEngine.getWalkerNames();
 
         // Sort the list of walker names.
-        walkerNames = new TreeSet<String>( walkerNames );
+        walkerNames = new TreeSet<String>(walkerNames);
 
         // Construct a help string to output available walkers.         
         StringBuilder additionalHelp = new StringBuilder();
-        Formatter formatter = new Formatter( additionalHelp );
+        Formatter formatter = new Formatter(additionalHelp);
 
-        formatter.format( "Available analyses:%n" );
+        formatter.format("Available analyses:%n");
 
         // Compute the max size of any walker name
         int maxNameLength = 0;
-        for( String walkerName: walkerNames ) {
-            if( maxNameLength < walkerName.length() )
+        for (String walkerName : walkerNames) {
+            if (maxNameLength < walkerName.length())
                 maxNameLength = walkerName.length();
         }
-        
+
         final int fieldWidth = maxNameLength + HelpFormatter.FIELD_SEPARATION_WIDTH;
-        final int walkersPerLine = Math.min(HelpFormatter.LINE_WIDTH / fieldWidth, 4 );
+        final int walkersPerLine = Math.min(HelpFormatter.LINE_WIDTH / fieldWidth, 4);
         final int columnSpacing = Math.max((HelpFormatter.LINE_WIDTH - (fieldWidth * walkersPerLine)) / walkersPerLine, 1);
 
         int currentWalkerName = 0;
-        for( String walkerName: walkerNames ) {
-            formatter.format( "%-" + HelpFormatter.FIELD_SEPARATION_WIDTH + "s" +
-                              "%-" + fieldWidth + "s" +
-                              "%-" + columnSpacing + "s", "", walkerName, "" );
-            if( ++currentWalkerName % walkersPerLine == 0 )
+        for (String walkerName : walkerNames) {
+            formatter.format("%-" + HelpFormatter.FIELD_SEPARATION_WIDTH + "s" +
+                    "%-" + fieldWidth + "s" +
+                    "%-" + columnSpacing + "s", "", walkerName, "");
+            if (++currentWalkerName % walkersPerLine == 0)
                 formatter.format("%n");
         }
 
-        return additionalHelp.toString();                
+        return additionalHelp.toString();
     }
 }

@@ -10,6 +10,7 @@ import org.simpleframework.xml.stream.HyphenStyle;
 
 import java.io.File;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -143,7 +144,22 @@ public class GATKArgumentCollection {
         try {
             serializer.write(collection, result);
         } catch (Exception e) {
-            throw new StingException("Failed to marshal the data from the file " + outputFile, e);
+            throw new StingException("Failed to marshal the data to the file " + outputFile, e);
+        }
+    }
+
+    /**
+     * marshal the data out to a object
+     *
+     * @param collection the GATKArgumentCollection to load into
+     * @param outputFile the stream to write to
+     */
+    public static void marshal( GATKArgumentCollection collection, PrintStream outputFile ) {
+        Serializer serializer = new Persister(new Format(new HyphenStyle()));
+        try {
+            serializer.write(collection, outputFile);
+        } catch (Exception e) {
+            throw new StingException("Failed to marshal the data to the file " + outputFile, e);
         }
     }
 
@@ -159,7 +175,7 @@ public class GATKArgumentCollection {
             GATKArgumentCollection example = serializer.read(GATKArgumentCollection.class, source);
             return example;
         } catch (Exception e) {
-            throw new StingException("Failed to marshal the data to file " + filename, e);
+            throw new StingException("Failed to marshal the data from file " + filename, e);
         }
     }
 
@@ -174,7 +190,7 @@ public class GATKArgumentCollection {
             GATKArgumentCollection example = serializer.read(GATKArgumentCollection.class, file);
             return example;
         } catch (Exception e) {
-            throw new StingException("Failed to marshal the data to file " + file.toString(), e);
+            throw new StingException("Failed to marshal the data from file " + file.toString(), e);
         }
     }
 
