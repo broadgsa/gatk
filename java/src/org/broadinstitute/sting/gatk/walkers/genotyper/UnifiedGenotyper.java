@@ -52,16 +52,13 @@ import java.util.ArrayList;
 
 
 @ReadFilters({ZeroMappingQualityReadFilter.class})
-public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, GenotypeMetaData>, Integer> {
+public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeMetaData>, Integer> {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
     // control the output
     @Argument(fullName = "variants_out", shortName = "varout", doc = "File to which variants should be written", required = false)
     public File VARIANTS_FILE = null;
-
-    @Argument(fullName = "variant_output_format", shortName = "vf", doc = "File format to be used; default is VCF", required = false)
-    public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
 
 
     // the model used for calculating genotypes
@@ -88,9 +85,13 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
      * To be used with walkers that call the UnifiedGenotyper's map function
      * and consequently can't set these arguments on the command-line
      *
+     * @param UAC the UnifiedArgumentCollection
+     *
      **/
     public void setUnifiedArgumentCollection(UnifiedArgumentCollection UAC) {
-        gcm.setUnifiedArgumentCollection(UAC);
+        gcm.close();
+        this.UAC = UAC;
+        initialize();
     }
 
     /**
@@ -130,12 +131,12 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
 
         // create the output writer stream
         if ( VARIANTS_FILE != null )
-            writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE,
+            writer = GenotypeWriterFactory.create(UAC.VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE,
                                                   "UnifiedGenotyper",
                                                   this.getToolkit().getArguments().referenceFile.getName(),
                                                   samples);
         else
-            writer = GenotypeWriterFactory.create(VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out, "UnifiedGenotyper",
+            writer = GenotypeWriterFactory.create(UAC.VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out, "UnifiedGenotyper",
                                                   this.getToolkit().getArguments().referenceFile.getName(),
                                                   samples);
         callsMetrics = new CallMetrics();
@@ -148,7 +149,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
      * @param refContext the reference base
      * @param context contextual information around the locus
      */
-    public Pair<List<GenotypeCall>, GenotypeMetaData> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
+    public Pair<List<Genotype>, GenotypeMetaData> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
         char ref = Character.toUpperCase(refContext.getBase());
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
@@ -210,7 +211,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
 
     public Integer reduceInit() { return 0; }
 
-    public Integer reduce(Pair<List<GenotypeCall>, GenotypeMetaData> value, Integer sum) {
+    public Integer reduce(Pair<List<Genotype>, GenotypeMetaData> value, Integer sum) {
         if ( value == null || value.first == null )
             return sum;
 
@@ -221,7 +222,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
 
         // special-case for single-sample using PointEstimate model
         if ( value.second == null ) {
-            GenotypeCall call = value.first.get(0);
+            Genotype call = value.first.get(0);
             if ( UAC.GENOTYPE || call.isVariant(call.getReference()) ) {
                 double confidence = (UAC.GENOTYPE ? call.getNegLog10PError() : call.toVariation().getNegLog10PError());
                 if ( confidence >= UAC.LOD_THRESHOLD ) {
@@ -236,13 +237,12 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<GenotypeCall>, Genot
         // use multi-sample mode if we have multiple samples or the output type allows it
         else if ( writer.supportsMultiSample() || samples.size() > 1 ) {
 
-            // annoying hack to get around Java generics
-            ArrayList<Genotype> callList = new ArrayList<Genotype>();
-            for ( GenotypeCall call : value.first )
-                callList.add(call);
-
-            callsMetrics.nConfidentCalls++;
-            writer.addMultiSampleCall(callList, value.second);
+            if ( UAC.CONFIDENCE_THRESHOLD <= value.second.getLOD() && UAC.LOD_THRESHOLD <= value.second.getLOD() ) {
+                callsMetrics.nConfidentCalls++;
+                writer.addMultiSampleCall(value.first, value.second);
+            } else {
+                callsMetrics.nNonConfidentCalls++;
+            }
         }
 
         // otherwise, use single sample mode

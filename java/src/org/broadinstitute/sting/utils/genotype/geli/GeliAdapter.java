@@ -9,7 +9,6 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.List;
 
 
@@ -79,7 +78,7 @@ public class GeliAdapter implements GenotypeWriter {
         GenotypeLikelihoods lk = likelihoods.convertToGenotypeLikelihoods(writer.getFileHeader(), contig.getSequenceIndex(), position, (byte) referenceBase);
         lk.setNumReads(readCount);
 
-        lk.setMaxMappingQuality(maxMappingQuality > Short.MAX_VALUE ? (short)Short.MAX_VALUE : (short)Math.round(maxMappingQuality));
+        lk.setMaxMappingQuality(maxMappingQuality > Short.MAX_VALUE ? Short.MAX_VALUE : (short)Math.round(maxMappingQuality));
         writer.addGenotypeLikelihoods(lk);
     }
 
@@ -100,37 +99,27 @@ public class GeliAdapter implements GenotypeWriter {
     }
 
     /**
-     * Add a genotype, given a genotype locus
+     * Add a genotype, given a genotype call
      *
-     * @param locus the locus to add
+     * @param call the call to add
      */
-    @Override
-    public void addGenotypeCall(Genotype locus) {
-        double posteriors[];
-        int readDepth = -1;
-        double nextVrsBest = 0;
-        double nextVrsRef = 0;
-        if (!(locus instanceof PosteriorsBacked)) {
-            posteriors = new double[10];
-            Arrays.fill(posteriors, Double.MIN_VALUE);
-        } else {
-            posteriors = ((PosteriorsBacked) locus).getPosteriors();
+    public void addGenotypeCall(Genotype call) {
+        if ( !(call instanceof GeliGenotypeCall) )
+            throw new IllegalArgumentException("Only GeliGenotypeCalls should be passed in to the Geli writers");
+        GeliGenotypeCall gCall = (GeliGenotypeCall)call;
 
-        }
-        char ref = locus.getReference();
-        int readCount = 0;
+        char ref = gCall.getReference();
+        List<SAMRecord> recs = gCall.getReads();
+        int readCount = recs.size();
         double maxMappingQual = 0;
-        if (locus instanceof ReadBacked) {
-            List<SAMRecord> recs = ((ReadBacked)locus).getReads();
-            readCount = recs.size();
-            for (SAMRecord rec : recs) {
-                if (maxMappingQual < rec.getMappingQuality()) maxMappingQual = rec.getMappingQuality();
-            }
+        for (SAMRecord rec : recs) {
+            if (maxMappingQual < rec.getMappingQuality()) maxMappingQual = rec.getMappingQuality();
         }
 
+        double[] posteriors = gCall.getPosteriors();
         LikelihoodObject obj = new LikelihoodObject(posteriors, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
-        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),
-                             (int)locus.getLocation().getStart(),
+        this.addGenotypeCall(GenomeLocParser.getContigInfo(gCall.getLocation().getContig()),
+                             (int)gCall.getLocation().getStart(),
                              ref,
                              maxMappingQual,
                              readCount,
@@ -142,13 +131,11 @@ public class GeliAdapter implements GenotypeWriter {
      *
      * @param position
      */
-    @Override
     public void addNoCall(int position) {
         throw new UnsupportedOperationException("Geli format does not support no-calls");
     }
 
     /** finish writing, closing any open files. */
-    @Override
     public void close() {
         if (this.writer != null) {
             this.writer.close();
@@ -158,15 +145,13 @@ public class GeliAdapter implements GenotypeWriter {
     /**
      * add a multi-sample call if we support it
      *
-     * @param genotypes the list of genotypes, that are backed by sample information
+     * @param genotypes the list of genotypes
      */
-    @Override
     public void addMultiSampleCall( List<Genotype> genotypes, GenotypeMetaData metadata) {
         throw new UnsupportedOperationException("Geli binary doesn't support multisample calls");
     }
 
     /** @return true if we support multisample, false otherwise */
-    @Override
     public boolean supportsMultiSample() {
         return false;
     }

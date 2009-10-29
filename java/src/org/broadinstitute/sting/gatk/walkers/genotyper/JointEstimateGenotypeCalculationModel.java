@@ -37,7 +37,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
     private enum GenotypeType { REF, HET, HOM }
 
 
-    public Pair<List<GenotypeCall>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public Pair<List<Genotype>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
         // keep track of the context for each sample, overall and separated by strand
         HashMap<String, AlignmentContextBySample> contexts = splitContextBySample(context);
@@ -292,7 +292,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         verboseWriter.println();
     }
 
-    private Pair<List<GenotypeCall>, GenotypeMetaData> createCalls(char ref, HashMap<String, AlignmentContextBySample> contexts) {
+    private Pair<List<Genotype>, GenotypeMetaData> createCalls(char ref, HashMap<String, AlignmentContextBySample> contexts) {
         // first, find the alt allele with maximum confidence
         int indexOfMax = 0;
         char baseOfMax = ref;
@@ -308,9 +308,9 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
             }
         }
         double phredScaledConfidence = -10.0 * Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
-        double bestAFguess = (double)findMaxEntry(alleleFrequencyPosteriors[indexOfMax]).second / (double)(frequencyEstimationPoints-1);
+        double bestAFguess = findMaxEntry(alleleFrequencyPosteriors[indexOfMax]).second / (double)(frequencyEstimationPoints-1);
 
-        ArrayList<GenotypeCall> calls = new ArrayList<GenotypeCall>();
+        ArrayList<Genotype> calls = new ArrayList<Genotype>();
         // TODO -- generate strand score
         double strandScore = 0.0;
         GenotypeMetaData metadata = new GenotypeMetaData(phredScaledConfidence, strandScore, bestAFguess);
@@ -319,21 +319,31 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         if ( phredScaledConfidence >= CONFIDENCE_THRESHOLD || ALL_BASE_MODE ) {
 
             for ( String sample : GLs.keySet() ) {
-                // get the pileup
-                AlignmentContext context = contexts.get(sample).getContext(StratifiedContext.OVERALL);
-                ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-                pileup.setIncludeDeletionsInPileupString(true);
-                // TODO -- fix GenotypeCall code so that each call doesn't need its own pileup
 
                 // create the call
-                GenotypeCall call = new GenotypeCall(sample, context.getLocation(), ref, GLs.get(sample), pileup);
-                calls.add(call);
+                Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT);
+                call.setReference(ref);
 
-                // TODO -- fix GenotypeCall code so that UG tells it which genotypes to use
-                // TODO -- all of the intelligence for making calls should be in UG
+                AlignmentContext context = contexts.get(sample).getContext(StratifiedContext.OVERALL);
+                call.setLocation(context.getLocation());
+
+                if ( call instanceof ReadBacked ) {
+                    ((ReadBacked)call).setReads(context.getReads());
+                }
+                if ( call instanceof SampleBacked ) {
+                    ((SampleBacked)call).setSampleName(sample);
+                }
+                if ( call instanceof LikelihoodsBacked ) {
+                    ((LikelihoodsBacked)call).setLikelihoods(GLs.get(sample).getLikelihoods());
+                }
+                if ( call instanceof PosteriorsBacked ) {
+                    ((PosteriorsBacked)call).setPosteriors(GLs.get(sample).getPosteriors());
+                }
+
+                calls.add(call);
             }
         }
 
-        return new Pair<List<GenotypeCall>, GenotypeMetaData>(calls, metadata);
+        return new Pair<List<Genotype>, GenotypeMetaData>(calls, metadata);
     }
 }

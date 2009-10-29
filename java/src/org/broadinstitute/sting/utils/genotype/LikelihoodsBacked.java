@@ -10,8 +10,15 @@ package org.broadinstitute.sting.utils.genotype;
 public interface LikelihoodsBacked {
 
     /**
-     * get the likelihood information for this 
-     * @return
+     *   
+     * @return the likelihood information for this genotype
      */
     public double[] getLikelihoods();
+
+    /**
+     *
+     * @param   likelihoods    the likelihoods for this genotype
+     */
+    public void setLikelihoods(double[] likelihoods);
+
 }

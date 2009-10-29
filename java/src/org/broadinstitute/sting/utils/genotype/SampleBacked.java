@@ -2,10 +2,10 @@ package org.broadinstitute.sting.utils.genotype;
 
 /**
  * @author aaron
- *         <p/>
- *         Interface SampleBacked
- *         <p/>
- *         A descriptions should go here. Blame aaron if it's missing.
+ * Interface PosteriorsBacked
+ *
+ * this interface indicates that the genotype is
+ * backed up by sample information.
  */
 public interface SampleBacked {
 
@@ -16,8 +16,9 @@ public interface SampleBacked {
     public String getSampleName();
 
     /**
-     * get the filtering string for this genotype
-     * @return a string, representing the genotyping value
+     *
+     * @param   name    the sample name for this genotype
      */
-    public String getFilteringValue();
+    public void setSampleName(String name);
+    
 }

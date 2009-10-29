@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.GenotypeMetaData;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.*;
 import java.io.PrintStream;
@@ -373,10 +373,10 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     }
 
     public boolean baseIsConfidentRef( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
-        Pair<List<GenotypeCall>, GenotypeMetaData> calls = ug.map(tracker,ref,context);
+        Pair<List<Genotype>, GenotypeMetaData> calls = ug.map(tracker,ref,context);
         if (calls == null)
             return false;
-        return  (! calls.first.get(0).isVariant()) && calls.first.get(0).getNegLog10PError() > confidentRefThreshold && BaseUtils.isRegularBase(ref.getBase());
+        return  (! calls.first.get(0).isVariant(ref.getBase())) && calls.first.get(0).getNegLog10PError() > confidentRefThreshold && BaseUtils.isRegularBase(ref.getBase());
 
     }
 

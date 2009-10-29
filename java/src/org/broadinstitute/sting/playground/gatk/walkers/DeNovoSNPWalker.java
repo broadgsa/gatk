@@ -7,10 +7,8 @@ import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariationRod;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCall;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
-import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.genotype.GenotypeMetaData;
+import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.Pair;
 
 import java.util.ArrayList;
@@ -72,14 +70,14 @@ public class DeNovoSNPWalker extends RefWalker<String, Integer>{
                 }
 
                 AlignmentContext parent1_subContext = new AlignmentContext(context.getLocation(), parent1_reads, parent1_offsets);
-                Pair<List<GenotypeCall>, GenotypeMetaData> parent1 = UG.map(tracker, ref, parent1_subContext);
+                Pair<List<Genotype>, GenotypeMetaData> parent1 = UG.map(tracker, ref, parent1_subContext);
 
                 AlignmentContext parent2_subContext = new AlignmentContext(context.getLocation(), parent2_reads, parent2_offsets);
-                Pair<List<GenotypeCall>, GenotypeMetaData> parent2 = UG.map(tracker, ref, parent2_subContext);
+                Pair<List<Genotype>, GenotypeMetaData> parent2 = UG.map(tracker, ref, parent2_subContext);
 
                 if ( parent1 != null && parent1.first != null && parent2 != null && parent2.first != null ) {
-                    GenotypeCall parent1call = parent1.first.get(0);
-                    GenotypeCall parent2call = parent2.first.get(0);
+                    Genotype parent1call = parent1.first.get(0);
+                    Genotype parent2call = parent2.first.get(0);
 
                     if (!parent1call.isVariant(parent1call.getReference()) &&
                         parent1call.getNegLog10PError() > 5 &&

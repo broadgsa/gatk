@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 
 
 public class UnifiedArgumentCollection {
@@ -48,6 +49,9 @@ public class UnifiedArgumentCollection {
 
 
     // control the output
+    @Argument(fullName = "variant_output_format", shortName = "vf", doc = "Format to be used to represent variants; default is VCF", required = false)
+    public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
+
     @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confident genotypes or just the variants?", required = false)
     public boolean GENOTYPE = false;
 

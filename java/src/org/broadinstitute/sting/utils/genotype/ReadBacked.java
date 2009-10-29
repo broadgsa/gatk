@@ -19,6 +19,12 @@ public interface ReadBacked {
     public List<SAMRecord> getReads();
 
     /**
+     *
+     * @param   reads    the reads for this genotype
+     */
+    public void setReads(List<SAMRecord> reads);
+
+    /**
      * get the count of reads
      * @return the number of reads we're backed by
      */

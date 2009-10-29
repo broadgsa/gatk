@@ -18,7 +18,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
 
     protected EMGenotypeCalculationModel() {}
 
-    public Pair<List<GenotypeCall>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public Pair<List<Genotype>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
         // keep track of the context for each sample, overall and separated by strand
         HashMap<String, AlignmentContextBySample> contexts = splitContextBySample(context);
@@ -42,26 +42,42 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
 
         // generate the calls
         GenotypeMetaData metadata = new GenotypeMetaData(lod, strandScore, overall.getMAF());
-        return new Pair<List<GenotypeCall>, GenotypeMetaData>(genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts), metadata);
+        return new Pair<List<Genotype>, GenotypeMetaData>(genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts), metadata);
     }
 
-    protected List<GenotypeCall> genotypeCallsFromGenotypeLikelihoods(EMOutput results, char ref, HashMap<String, AlignmentContextBySample> contexts) {
+    protected List<Genotype> genotypeCallsFromGenotypeLikelihoods(EMOutput results, char ref, HashMap<String, AlignmentContextBySample> contexts) {
         HashMap<String, GenotypeLikelihoods> GLs = results.getGenotypeLikelihoods();
 
-        ArrayList<GenotypeCall> calls = new ArrayList<GenotypeCall>();
+        ArrayList<Genotype> calls = new ArrayList<Genotype>();
         int variantCalls = 0;
 
         for ( String sample : GLs.keySet() ) {
-            // get the pileup
-            AlignmentContext context = contexts.get(sample).getContext(StratifiedContext.OVERALL);
-            ReadBackedPileup pileup = new ReadBackedPileup(ref, context);
-            pileup.setIncludeDeletionsInPileupString(true);
+
             // create the call
-            GenotypeCall call = new GenotypeCall(sample, context.getLocation(), ref, GLs.get(sample), pileup);
+            Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT);
+            call.setReference(ref);
+
+            // get the context
+            AlignmentContext context = contexts.get(sample).getContext(StratifiedContext.OVERALL);
+            call.setLocation(context.getLocation());
+
+            if ( call instanceof ReadBacked ) {
+                ((ReadBacked)call).setReads(context.getReads());
+            }
+            if ( call instanceof SampleBacked ) {
+                ((SampleBacked)call).setSampleName(sample);
+            }
+            if ( call instanceof LikelihoodsBacked ) {
+                ((LikelihoodsBacked)call).setLikelihoods(GLs.get(sample).getLikelihoods());
+            }
+            if ( call instanceof PosteriorsBacked ) {
+                ((PosteriorsBacked)call).setPosteriors(GLs.get(sample).getPosteriors());
+            }
+
             calls.add(call);
 
             // increment the variant count if it's non-ref
-            if ( call.isVariant() )
+            if ( call.isVariant(ref) )
                 variantCalls++;
         }
 

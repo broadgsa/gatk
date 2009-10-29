@@ -53,6 +53,12 @@ public interface Genotype {
     public GenomeLoc getLocation();
 
     /**
+     * set the location.
+     * @param loc the location
+     */
+    public void setLocation(GenomeLoc loc);
+
+    /**
      * returns true if the genotype is a point genotype, false if it's a indel / deletion
      *
      * @return true is a SNP
@@ -73,6 +79,12 @@ public interface Genotype {
      * @return a character, representing the reference base
      */
     public char getReference();
+
+    /**
+     * set the reference base.
+     * @param ref the ref base
+     */
+    public void setReference(char ref);
 
     /**
      * return this genotype as a variant

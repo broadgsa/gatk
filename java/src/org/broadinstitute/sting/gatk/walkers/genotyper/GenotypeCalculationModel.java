@@ -2,9 +2,9 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.genotype.GenotypeMetaData;
-import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.StingException;
 import org.apache.log4j.Logger;
 
@@ -30,6 +30,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected Logger logger;
     protected double heterozygosity;
     protected EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform defaultPlatform;
+    protected GenotypeWriterFactory.GENOTYPE_FORMAT OUTPUT_FORMAT;
     protected boolean ALL_BASE_MODE;
     protected boolean GENOTYPE_MODE;
     protected boolean POOLED_INPUT;
@@ -62,6 +63,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         baseModel = UAC.baseModel;
         heterozygosity = UAC.heterozygosity;
         defaultPlatform = UAC.defaultPlatform;
+        OUTPUT_FORMAT = UAC.VAR_FORMAT;
         ALL_BASE_MODE = UAC.ALL_BASES;
         GENOTYPE_MODE = UAC.GENOTYPE;
         POOLED_INPUT = UAC.POOLED;
@@ -80,12 +82,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         }
     }
 
-    public void setUnifiedArgumentCollection(UnifiedArgumentCollection UAC) {
-        // just close and re-initialize
-        close();
-        initialize(this.samples, this.logger, UAC);
-    }
-
     public void close() {
         if ( verboseWriter != null )
             verboseWriter.close();
@@ -100,10 +96,10 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      *
      * @return calls
      */
-    public abstract Pair<List<GenotypeCall>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker,
-                                                                                 char ref,
-                                                                                 AlignmentContext context,
-                                                                                 DiploidGenotypePriors priors);
+    public abstract Pair<List<Genotype>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker,
+                                                                             char ref,
+                                                                             AlignmentContext context,
+                                                                             DiploidGenotypePriors priors);
 
 
     /**

@@ -2,7 +2,6 @@ package org.broadinstitute.sting.utils.genotype.geli;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.File;
@@ -46,48 +45,41 @@ public class GeliTextWriter implements GenotypeWriter {
     public final static String headerLine = "#Sequence       Position        ReferenceBase   NumberOfReads   MaxMappingQuality       BestGenotype    BtrLod  BtnbLod    AA      AC      AG      AT      CC      CG      CT      GG      GT      TT";
 
     /**
-     * Add a genotype, given a genotype locus
+     * Add a genotype, given a call
      *
-     * @param locus the locus to add
+     * @param call the call to add
      */
-    public void addGenotypeCall(Genotype locus) {
-        double posteriors[];
-        int readDepth = -1;
-        double nextVrsBest = 0;
+    public void addGenotypeCall(Genotype call) {
+        if ( !(call instanceof GeliGenotypeCall) )
+            throw new IllegalArgumentException("Only GeliGenotypeCalls should be passed in to the Geli writers");
+        GeliGenotypeCall gCall = (GeliGenotypeCall)call;
+
+        char ref = gCall.getReference();
+
+        double[] posteriors = gCall.getPosteriors();
+        double[] lks;
+        lks = Arrays.copyOf(posteriors, posteriors.length);
+        Arrays.sort(lks);
+
+        double nextVrsBest = lks[9] - lks[8];
         double nextVrsRef = 0;
+        if (ref != 'X')
+            nextVrsRef = lks[9] - posteriors[DiploidGenotype.createHomGenotype(ref).ordinal()];
 
-        char ref = locus.getReference();
-
-
-        if (!(locus instanceof PosteriorsBacked)) {
-            posteriors = new double[10];
-            Arrays.fill(posteriors, 0.0);
-        } else {
-            posteriors = ((PosteriorsBacked) locus).getPosteriors();
-            double[] lks;
-            lks = Arrays.copyOf(posteriors, posteriors.length);
-            Arrays.sort(lks);
-            nextVrsBest = lks[9] - lks[8];
-            if (ref != 'X') {
-                int index = (DiploidGenotype.valueOf(Utils.dupString(ref, 2)).ordinal());
-                nextVrsRef = lks[9] - posteriors[index];
-            }
-        }
         double maxMappingQual = 0;
-        if (locus instanceof ReadBacked) {
-            List<SAMRecord> recs = ((ReadBacked) locus).getReads();
-            readDepth = recs.size();
-            for (SAMRecord rec : recs) {
-                if (maxMappingQual < rec.getMappingQuality()) maxMappingQual = rec.getMappingQuality();
-            }
+        List<SAMRecord> recs = gCall.getReads();
+        int readDepth = recs.size();
+        for (SAMRecord rec : recs) {
+            if (maxMappingQual < rec.getMappingQuality()) maxMappingQual = rec.getMappingQuality();
         }
+
         mWriter.println(String.format("%s    %16d  %c  %8d  %.0f  %s %.6f %.6f    %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f %6.6f",
-                                      locus.getLocation().getContig(),
-                                      locus.getLocation().getStart(),
+                                      gCall.getLocation().getContig(),
+                                      gCall.getLocation().getStart(),
                                       ref,
                                       readDepth,
                                       maxMappingQual,
-                                      locus.getBases(),
+                                      gCall.getBases(),
                                       nextVrsRef,
                                       nextVrsBest,
                                       posteriors[0],
@@ -107,13 +99,11 @@ public class GeliTextWriter implements GenotypeWriter {
      *
      * @param position the position to add the no call at
      */
-    @Override
     public void addNoCall(int position) {
         throw new UnsupportedOperationException("Geli text format doesn't support a no-call call.");
     }
 
     /** finish writing, closing any open files. */
-    @Override
     public void close() {
         mWriter.close();
     }
@@ -121,15 +111,13 @@ public class GeliTextWriter implements GenotypeWriter {
     /**
      * add a multi-sample call if we support it
      *
-     * @param genotypes the list of genotypes, that are backed by sample information
+     * @param genotypes the list of genotypes
      */
-    @Override
     public void addMultiSampleCall(List<Genotype> genotypes, GenotypeMetaData metadata) {
         throw new UnsupportedOperationException("Geli text doesn't support multisample calls");
     }
 
     /** @return true if we support multisample, false otherwise */
-    @Override
     public boolean supportsMultiSample() {
         return false;
     }

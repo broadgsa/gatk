@@ -52,10 +52,10 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     /**
      * initialize this VCF writer
      *
-     * @param genotypes the genotypes
      * @param file      the file location to write to
+     * @param stream    the output stream
      */
-    private void lazyInitialize(List<Genotype> genotypes, File file, OutputStream stream) {
+    private void lazyInitialize(File file, OutputStream stream) {
         Map<String, String> hInfo = new HashMap<String, String>();
 
         // setup the header fields
@@ -82,9 +82,9 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     private static List<String> getSampleNames(List<Genotype> genotypes) {
         List<String> strings = new ArrayList<String>();
         for (Genotype genotype : genotypes) {
-            if (!(genotype instanceof SampleBacked))
+            if (!(genotype instanceof VCFGenotypeCall))
                 throw new IllegalArgumentException("Genotypes passed to VCF must be backed by SampledBacked interface");
-            strings.add(((SampleBacked) genotype).getSampleName());
+            strings.add(((VCFGenotypeCall) genotype).getSampleName());
         }
         return strings;
     }
@@ -94,9 +94,8 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      *
      * @param call the locus to add
      */
-    @Override
     public void addGenotypeCall(Genotype call) {
-        addMultiSampleCall(Arrays.asList(call), null);
+        throw new UnsupportedOperationException("VCF calls require metadata; use the addMultiSampleCall method instead");
     }
 
     /**
@@ -104,13 +103,11 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      *
      * @param position the position to add the no call at
      */
-    @Override
     public void addNoCall(int position) {
         throw new UnsupportedOperationException("We don't currently support no-calls in VCF");
     }
 
     /** finish writing, closing any open files. */
-    @Override
     public void close() {
         if (mInitialized)
             mWriter.close();
@@ -119,12 +116,11 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     /**
      * add a multi-sample call if we support it
      *
-     * @param genotypes the list of genotypes, that are backed by sample information
+     * @param genotypes the list of genotypes
      */
-    @Override
     public void addMultiSampleCall(List<Genotype> genotypes, GenotypeMetaData metadata) {
         if (!mInitialized)
-            lazyInitialize(genotypes, mFile, mStream);
+            lazyInitialize(mFile, mStream);
 
 
         VCFParameters params = new VCFParameters();
@@ -132,22 +128,22 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
 
         // mapping of our sample names to genotypes
         if (genotypes.size() < 1) {
-            throw new IllegalArgumentException("Unable to parse out the current location: genotype array must at least contain one entry");
+            throw new IllegalArgumentException("Unable to parse out the current location: genotype array must contain at least one entry");
         }
 
         // get the location and reference
         params.setLocations(genotypes.get(0).getLocation(), genotypes.get(0).getReference());
 
-        Map<String, Genotype> genotypeMap = genotypeListToSampleNameMap(genotypes);
+        Map<String, VCFGenotypeCall> genotypeMap = genotypeListToSampleNameMap(genotypes);
 
         for (String name : mHeader.getGenotypeSamples()) {
             if (genotypeMap.containsKey(name)) {
                 Genotype gtype = genotypeMap.get(name);
-                VCFGenotypeRecord record = createVCFGenotypeRecord(params, gtype);
+                VCFGenotypeRecord record = createVCFGenotypeRecord(params, (VCFGenotypeCall)gtype);
                 params.addGenotypeRecord(record);
                 genotypeMap.remove(name);
             } else {
-                VCFGenotypeRecord record = createNoCallRecord(params, name);
+                VCFGenotypeRecord record = createNoCallRecord(name);
                 params.addGenotypeRecord(record);
             }
         }
@@ -161,14 +157,9 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         Map<String, String> infoFields = getInfoFields(metadata, params);
 
         double qual = (metadata == null) ? 0 : (metadata.getLOD()) * 10;
-
-        /**
-         * TODO: Eric fix the next line when our LOD scores are 0->Inf based instead
-         * of -3 to Inf based.
-         */
-        if (qual < 0.0) {
-            qual = 0.0;
-        }
+        // maintain 0-99 based Q-scores
+        qual = Math.min(qual, 99);
+        qual = Math.max(qual, 0);
 
         VCFRecord vcfRecord = new VCFRecord(params.getReferenceBase(),
                                             params.getContig(),
@@ -176,7 +167,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
                                             ".",
                                             params.getAlternateBases(),
                                             qual,
-                                            ".",
+                                            "0",
                                             infoFields,
                                             params.getFormatString(),
                                             params.getGenotypesRecords());
@@ -210,18 +201,13 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      *
      * @return a VCFGenotypeRecord
      */
-    private VCFGenotypeRecord createVCFGenotypeRecord(VCFParameters params, Genotype gtype) {
+    private VCFGenotypeRecord createVCFGenotypeRecord(VCFParameters params, VCFGenotypeCall gtype) {
         Map<String, String> map = new HashMap<String, String>();
-        if (!(gtype instanceof SampleBacked)) {
-            throw new IllegalArgumentException("Genotypes passed to VCF must be backed by SampledBacked interface");
-        }
 
         // calculate the RMS mapping qualities and the read depth
-        if (gtype instanceof ReadBacked) {
-            int readDepth = ((ReadBacked) gtype).getReadCount();
-            map.put("RD", String.valueOf(readDepth));
-            params.addFormatItem("RD");
-        }
+        int readDepth = gtype.getReadCount();
+        map.put("RD", String.valueOf(readDepth));
+        params.addFormatItem("RD");
         double qual = gtype.getNegLog10PError();
         map.put("GQ", String.format("%.2f", qual));
         params.addFormatItem("GQ");
@@ -231,7 +217,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
             params.addAlternateBase(allele);
         }
 
-        VCFGenotypeRecord record = new VCFGenotypeRecord(((SampleBacked) gtype).getSampleName(),
+        VCFGenotypeRecord record = new VCFGenotypeRecord(gtype.getSampleName(),
                                                          alleles,
                                                          VCFGenotypeRecord.PHASE.UNPHASED,
                                                          map);
@@ -241,12 +227,11 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     /**
      * create a no call record
      *
-     * @param params     the VCF parameters object
      * @param sampleName the sample name
      *
      * @return a VCFGenotypeRecord for the no call situation
      */
-    private VCFGenotypeRecord createNoCallRecord(VCFParameters params, String sampleName) {
+    private VCFGenotypeRecord createNoCallRecord(String sampleName) {
         Map<String, String> map = new HashMap<String, String>();
 
 
@@ -277,24 +262,24 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     }
 
     /** @return true if we support multisample, false otherwise */
-    @Override
     public boolean supportsMultiSample() {
         return true;
     }
 
     /**
      * create a genotype mapping from a list and their sample names
+     * while we're at it, checks that all genotypes are VCF-based
      *
      * @param list a list of genotype samples
      *
      * @return a mapping of the sample name to genotype fields
      */
-    private static Map<String, Genotype> genotypeListToSampleNameMap(List<Genotype> list) {
-        Map<String, Genotype> map = new HashMap<String, Genotype>();
+    private static Map<String, VCFGenotypeCall> genotypeListToSampleNameMap(List<Genotype> list) {
+        Map<String, VCFGenotypeCall> map = new HashMap<String, VCFGenotypeCall>();
         for (Genotype rec : list) {
-            if (!(rec instanceof SampleBacked))
-                throw new IllegalArgumentException("Genotype must be backed by sample information");
-            map.put(((SampleBacked) rec).getSampleName(), rec);
+            if ( !(rec instanceof VCFGenotypeCall) )
+                throw new IllegalArgumentException("Only VCFGenotypeCalls should be passed in to the VCF writers");
+            map.put(((VCFGenotypeCall) rec).getSampleName(), (VCFGenotypeCall) rec);
         }
         return map;
     }

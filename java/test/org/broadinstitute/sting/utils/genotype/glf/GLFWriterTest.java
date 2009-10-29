@@ -132,7 +132,7 @@ public class GLFWriterTest extends BaseTest {
 
 }
 
-class FakeGenotype extends BasicGenotype implements LikelihoodsBacked, Comparable<FakeGenotype> {
+class FakeGenotype extends GLFGenotypeCall implements Comparable<FakeGenotype> {
 
     private double[] likelihoods;
 
@@ -145,8 +145,12 @@ class FakeGenotype extends BasicGenotype implements LikelihoodsBacked, Comparabl
      * @param negLog10PError the confidence score
      */
     public FakeGenotype(GenomeLoc location, String genotype, char ref, double negLog10PError, double likelihoods[]) {
-        super(location, genotype, ref, negLog10PError);
-        this.likelihoods = likelihoods;
+        setLocation(location);
+        setReference(ref);
+        setLikelihoods(likelihoods);
+        setGenotype(genotype);
+        setNegLog10PError(negLog10PError);
+
     }
 
     /**
@@ -157,6 +161,10 @@ class FakeGenotype extends BasicGenotype implements LikelihoodsBacked, Comparabl
     @Override
     public double[] getLikelihoods() {
         return likelihoods;
+    }
+
+    public void setLikelihoods(double[] likelihoods) {
+        this.likelihoods = likelihoods;
     }
 
 

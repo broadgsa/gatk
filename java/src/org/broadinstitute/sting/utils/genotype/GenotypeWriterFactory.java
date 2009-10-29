@@ -2,14 +2,12 @@ package org.broadinstitute.sting.utils.genotype;
 
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.geli.GeliAdapter;
-import org.broadinstitute.sting.utils.genotype.geli.GeliTextWriter;
-import org.broadinstitute.sting.utils.genotype.glf.GLFWriter;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeWriterAdapter;
+import org.broadinstitute.sting.utils.genotype.geli.*;
+import org.broadinstitute.sting.utils.genotype.glf.*;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.List;
 import java.util.Set;
 
 
@@ -68,6 +66,25 @@ public class GenotypeWriterFactory {
                 return new VCFGenotypeWriterAdapter(source, referenceName, destination, sampleNames);
             default:
                 throw new StingException("Genotype writer to " + format.toString() + " to standard output is not implemented");
+        }
+    }
+
+    /**
+     * create a genotype call
+     * @param format the format
+     * @return an unpopulated genotype call object
+     */
+    public static Genotype createSupportedCall(GENOTYPE_FORMAT format) {
+        switch (format) {
+            case VCF:
+                return new VCFGenotypeCall();
+            case GELI:
+            case GELI_BINARY:
+                return new GeliGenotypeCall();
+            case GLF:
+                return new GLFGenotypeCall();
+            default:
+                throw new StingException("Genotype format " + format.toString() + " is not implemented");
         }
     }
 }

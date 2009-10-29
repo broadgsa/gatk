@@ -3,8 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.genotype.GenotypeMetaData;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.*;
 
@@ -25,7 +24,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
 
     // overload this method so we can special-case the single sample
-    public Pair<List<GenotypeCall>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public Pair<List<Genotype>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
         // we don't actually want to run EM for single samples
         if ( samples.size() == 1 ) {
@@ -44,9 +43,27 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                 return null;
 
             // create the genotype call object
+            // create the call
+            Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT);
+            call.setReference(ref);
+            call.setLocation(context.getLocation());
+
             Pair<ReadBackedPileup, GenotypeLikelihoods> discoveryGL = getSingleSampleLikelihoods(ref, sampleContext, priors, StratifiedContext.OVERALL);
-            GenotypeCall call = new GenotypeCall(sample, context.getLocation(), ref, discoveryGL.second, discoveryGL.first);
-            return new Pair<List<GenotypeCall>, GenotypeMetaData>(Arrays.asList(call), null);
+
+            if ( call instanceof ReadBacked ) {
+                ((ReadBacked)call).setReads(discoveryGL.first.getReads());
+            }
+            if ( call instanceof SampleBacked ) {
+                ((SampleBacked)call).setSampleName(sample);
+            }
+            if ( call instanceof LikelihoodsBacked ) {
+                ((LikelihoodsBacked)call).setLikelihoods(discoveryGL.second.getLikelihoods());
+            }
+            if ( call instanceof PosteriorsBacked ) {
+                ((PosteriorsBacked)call).setPosteriors(discoveryGL.second.getPosteriors());
+            }
+
+            return new Pair<List<Genotype>, GenotypeMetaData>(Arrays.asList(call), null);
         }
 
         return super.calculateGenotype(tracker, ref, context, priors);

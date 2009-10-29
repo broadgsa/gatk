@@ -11,7 +11,6 @@ import org.broadinstitute.sting.utils.genotype.*;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.List;
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -118,33 +117,25 @@ public class GLFWriter implements GenotypeWriter {
     }
 
     /**
-     * Add a genotype, given a genotype locus
+     * Add a genotype, given a genotype call
      *
-     * @param locus the genotype called at a locus
+     * @param call the genotype call
      */
-    @Override
-    public void addGenotypeCall(Genotype locus) {
-        char ref = locus.getReference();
+    public void addGenotypeCall(Genotype call) {
+        if ( !(call instanceof GLFGenotypeCall) )
+            throw new IllegalArgumentException("Only GeliGenotypeCalls should be passed in to the Geli writers");
+        GLFGenotypeCall gCall = (GLFGenotypeCall)call;
+
+        char ref = gCall.getReference();
 
         // get likelihood information if available
-        LikelihoodObject obj;
-        if (locus instanceof LikelihoodsBacked) {
-            obj = new LikelihoodObject(((LikelihoodsBacked) locus).getLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
-        } else {
-            double values[] = new double[10];
-            Arrays.fill(values,-255.0);
-            obj = new LikelihoodObject(values, LikelihoodObject.LIKELIHOOD_TYPE.LOG);
-        }
+        LikelihoodObject obj = new LikelihoodObject(gCall.getLikelihoods(), LikelihoodObject.LIKELIHOOD_TYPE.LOG);
         obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);  // transform! ... to negitive log likelihoods
 
-        double rms = 0;
-        int readCount = 0;
         // calculate the RMS mapping qualities and the read depth
-        if (locus instanceof ReadBacked) {
-            rms = calculateRMS(((ReadBacked)locus).getReads());
-            readCount = ((ReadBacked)locus).getReadCount();
-        }
-        this.addGenotypeCall(GenomeLocParser.getContigInfo(locus.getLocation().getContig()),(int)locus.getLocation().getStart(),(float)rms,ref,readCount,obj);
+        double rms = calculateRMS(gCall.getReads());
+        int readCount = gCall.getReadCount();
+        this.addGenotypeCall(GenomeLocParser.getContigInfo(gCall.getLocation().getContig()),(int)gCall.getLocation().getStart(),(float)rms,ref,readCount,obj);
     }
 
 
@@ -207,7 +198,6 @@ public class GLFWriter implements GenotypeWriter {
      *
      * @param position the position
      */
-    @Override
     public void addNoCall(int position) {
         // glf doesn't support this operation
         throw new UnsupportedOperationException("GLF doesn't support a 'no call' call.");
@@ -277,7 +267,6 @@ public class GLFWriter implements GenotypeWriter {
      * close the file.  You must close the file to ensure any remaining data gets
      * written out.
      */
-    @Override
     public void close() {
         writeEndRecord();
         outputBinaryCodec.close();
@@ -286,7 +275,7 @@ public class GLFWriter implements GenotypeWriter {
     /**
      * get the reference sequence
      *
-     * @return
+     * @return the reference sequence
      */
     public String getReferenceSequenceName() {
         return referenceSequenceName;
@@ -296,15 +285,13 @@ public class GLFWriter implements GenotypeWriter {
     /**
      * add a multi-sample call if we support it
      *
-     * @param genotypes the list of genotypes, that are backed by sample information
+     * @param genotypes the list of genotypes
      */
-    @Override
     public void addMultiSampleCall(List<Genotype> genotypes, GenotypeMetaData metadata) {
         throw new UnsupportedOperationException("GLF writer doesn't support multisample calls");
     }
 
     /** @return true if we support multisample, false otherwise */
-    @Override
     public boolean supportsMultiSample() {
         return false;
     }
