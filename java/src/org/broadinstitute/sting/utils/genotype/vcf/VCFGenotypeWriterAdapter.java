@@ -156,7 +156,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
 
         Map<String, String> infoFields = getInfoFields(metadata, params);
 
-        double qual = (metadata == null) ? 0 : (metadata.getLOD()) * 10;
+        double qual = (metadata == null) ? 0 : metadata.getLOD();
         // maintain 0-99 based Q-scores
         qual = Math.min(qual, 99);
         qual = Math.max(qual, 0);

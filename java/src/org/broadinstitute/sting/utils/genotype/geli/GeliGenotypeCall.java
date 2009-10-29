@@ -18,8 +18,8 @@ import java.util.Arrays;
  *         The implementation of the genotype interface, specific to Geli
  */
 public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked {
-    private char mRefBase;
-    private GenomeLoc mLocation;
+    private final char mRefBase;
+    private final GenomeLoc mLocation;
 
     private List<SAMRecord> mReads;
     private double[] mPosteriors;

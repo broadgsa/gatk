@@ -18,8 +18,8 @@ import java.util.Arrays;
  *         The implementation of the genotype interface, specific to GLF
  */
 public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked {
-    private char mRefBase;
-    private GenomeLoc mLocation;
+    private final char mRefBase;
+    private final GenomeLoc mLocation;
 
     private List<SAMRecord> mReads;
     private double[] mLikelihoods;

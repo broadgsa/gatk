@@ -18,8 +18,8 @@ import java.util.List;
  *         The implementation of the genotype interface, specific to VCF
  */
 public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, SampleBacked {
-    private char mRefBase;
-    private GenomeLoc mLocation;
+    private final char mRefBase;
+    private final GenomeLoc mLocation;
 
     private List<SAMRecord> mReads;
     private double[] mPosteriors;
