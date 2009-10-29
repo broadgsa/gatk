@@ -28,7 +28,7 @@ BWA::~BWA() {
 void BWA::align(const char* bases, const unsigned read_length, Alignment*& alignments, unsigned& num_alignments) 
 {
   bwa_seq_t* sequence = create_sequence();
-  copy_bases_into_sequence(sequence, bases, read_length, true);
+  copy_bases_into_sequence(sequence, bases, read_length);
 
   // Calculate the suffix array interval for each sequence, storing the result in sequence.aln (and sequence.n_aln).
   // This method will destroy the contents of seq and rseq.
@@ -39,7 +39,7 @@ void BWA::align(const char* bases, const unsigned read_length, Alignment*& align
 
   // Calculate and refine the position for each alignment.  This position may be inaccurate 
   // if the read contains indels, etc.  Refinement requires the original sequences in the proper order.
-  copy_bases_into_sequence(sequence, bases, read_length, false);
+  copy_bases_into_sequence(sequence, bases, read_length);
   create_alignments(sequence, alignments, num_alignments);
 
   bwa_free_read_seq(1,sequence);
@@ -89,17 +89,18 @@ bwa_seq_t* BWA::create_sequence()
   return sequence;
 }
 
-void BWA::copy_bases_into_sequence(bwa_seq_t* sequence, const char* bases, unsigned read_length, bool reverse) 
+void BWA::copy_bases_into_sequence(bwa_seq_t* sequence, const char* bases, const unsigned read_length) 
 {
   // seq, rseq will ultimately be freed by bwa_cal_sa_reg_gap
   sequence->seq = new ubyte_t[read_length];
   sequence->rseq = new ubyte_t[read_length];
   for(unsigned i = 0; i < read_length; i++) sequence->seq[i] = nst_nt4_table[(unsigned)bases[i]];
   memcpy(sequence->rseq,sequence->seq,read_length);
-  if(reverse) {
-    seq_reverse(read_length,sequence->seq,0);
-    seq_reverse(read_length,sequence->rseq,1);
-  }
+
+  // BWA expects the read bases to arrive reversed.
+  seq_reverse(read_length,sequence->seq,0);
+  seq_reverse(read_length,sequence->rseq,1);
+
   sequence->full_len = sequence->len = read_length;
 }
 
@@ -136,9 +137,14 @@ void BWA::create_alignments(bwa_seq_t* sequence, Alignment*& alignments, unsigne
       bns_coor_pac2real(bns, sequence->pos, pos_end(sequence) - sequence->pos, &alignment.contig);
       alignment.pos = sequence->pos - bns->anns[alignment.contig].offset + 1;
       alignment.negative_strand = sequence->strand;
-      alignment.cigar = sequence->cigar;
-      alignment.n_cigar = sequence->n_cigar;
       alignment.mapQ = sequence->mapQ;
+
+      alignment.cigar = NULL;
+      if(sequence->cigar) {
+	alignment.cigar = new uint16_t[sequence->n_cigar];
+	memcpy(alignment.cigar,sequence->cigar,sequence->n_cigar*sizeof(uint16_t));
+      }
+      alignment.n_cigar = sequence->n_cigar;
 
       alignment_idx++;
     }

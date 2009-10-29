@@ -3,9 +3,11 @@ package org.broadinstitute.sting.alignment.bwa;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.alignment.Alignment;
 
 import java.io.File;
+import java.util.Scanner;
 
 /**
  * An aligner using the BWA/C implementation.
@@ -109,20 +111,31 @@ public class BWACAligner {
 
         int count = 0;
 
+        try{
+            System.out.println("Press any key");
+            System.in.read();
+        }
+        catch(Exception ex) {
+            
+        }
+
         for(SAMRecord read: reader) {
             count++;
             //if(count > 1) break;
-            Alignment[] alignments = thunk.align(read.getReadBases());
-            /*
-            System.out.printf("Read: %s: ", read.getReadName());
-            for(Alignment alignment: alignments)
-                System.out.printf("tig = %d; pos = %d, neg strand = %b, mapQ = %d, cigar = %s;",
-                                  alignment.getContigIndex(),
-                                  alignment.getAlignmentStart(),
-                                  alignment.isNegativeStrand(),
-                                  alignment.getMappingQuality(),
-                                  alignment.getCigarString());
-                                  */
+            //if(!read.getReadName().equals("SL-XBC:1:83:664:1077#0"))
+            //    continue;
+            byte[] bases = read.getReadBases();
+            if(read.getReadNegativeStrandFlag()) bases = BaseUtils.simpleReverseComplement(bases);
+
+            Alignment[] alignments = thunk.align(bases);
+            //System.out.printf("Read: %s: ", read.getReadName());
+            //for(Alignment alignment: alignments)
+            //    System.out.printf("tig = %d; pos = %d, neg strand = %b, mapQ = %d, cigar = %s;",
+            //                      alignment.getContigIndex(),
+            //                      alignment.getAlignmentStart(),
+            //                      alignment.isNegativeStrand(),
+            //                      alignment.getMappingQuality(),
+            //                      alignment.getCigarString());
             if(count % 10000 == 0) System.out.printf("Processed %d reads.%n",count);
             //System.out.printf("%n");
         }

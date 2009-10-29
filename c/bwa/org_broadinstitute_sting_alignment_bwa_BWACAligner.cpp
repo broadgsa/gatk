@@ -110,6 +110,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACA
 					    java_cigar_operators,
 					    java_cigar_lengths);
     env->SetObjectArrayElement(java_alignments,alignment_idx,java_alignment);
+
+    delete[] alignment.cigar;
   }
 
   delete[] alignments;
