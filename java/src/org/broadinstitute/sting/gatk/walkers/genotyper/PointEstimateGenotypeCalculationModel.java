@@ -44,9 +44,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
             // create the genotype call object
             // create the call
-            Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT);
-            call.setReference(ref);
-            call.setLocation(context.getLocation());
+            Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation());
 
             Pair<ReadBackedPileup, GenotypeLikelihoods> discoveryGL = getSingleSampleLikelihoods(ref, sampleContext, priors, StratifiedContext.OVERALL);
 

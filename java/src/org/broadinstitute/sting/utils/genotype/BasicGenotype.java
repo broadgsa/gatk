@@ -113,11 +113,6 @@ public class BasicGenotype implements Genotype {
         return mLocation;
     }
 
-    // set the location
-    public void setLocation(GenomeLoc loc) {
-        mLocation = loc;
-    }
-
     /**
      * returns true if the genotype is a point genotype, false if it's a indel / deletion
      *
@@ -148,11 +143,6 @@ public class BasicGenotype implements Genotype {
     @Override
     public char getReference() {
         return mRef;
-    }
-
-    // set the reference base
-    public void setReference(char refBase) {
-        mRef = Character.toUpperCase(refBase);
     }
 
     /**

@@ -37,21 +37,15 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
      * Generate a single sample genotype object
      *
      */
-    public VCFGenotypeCall() {
+    public VCFGenotypeCall(char ref, GenomeLoc loc) {
+        mRefBase = ref;
+        mLocation = loc;
+
         // fill in empty data
-        mRefBase = 'N';
         mPosteriors = new double[10];
         Arrays.fill(mPosteriors, Double.MIN_VALUE);
         mSampleName = "";
         mReads = new ArrayList<SAMRecord>();
-    }
-
-    public void setReference(char refBase) {
-        mRefBase = Character.toUpperCase(refBase);
-    }
-
-    public void setLocation(GenomeLoc loc) {
-        mLocation = loc;
     }
 
     public void setReads(List<SAMRecord> reads) {

@@ -31,22 +31,16 @@ public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked 
      * Generate a single sample genotype object, containing everything we need to represent calls out of a genotyper object
      *
      */
-    public GLFGenotypeCall() {
+    public GLFGenotypeCall(char ref, GenomeLoc loc) {
+        mRefBase = ref;
+        mGenotype = Utils.dupString(ref, 2);
+
         // fill in empty data
-        mRefBase = 'N';
-        mGenotype = "NN";
+        mLocation = loc;
         mLikelihoods = new double[10];
         Arrays.fill(mLikelihoods, Double.MIN_VALUE);
         mReads = new ArrayList<SAMRecord>();
         mNegLog10PError = Double.MIN_VALUE;
-    }
-
-    public void setReference(char refBase) {
-        mRefBase = Character.toUpperCase(refBase);
-    }
-
-    public void setLocation(GenomeLoc loc) {
-        mLocation = loc;
     }
 
     public void setReads(List<SAMRecord> reads) {

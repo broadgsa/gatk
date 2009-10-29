@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype;
 
 import net.sf.samtools.SAMFileHeader;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.geli.*;
 import org.broadinstitute.sting.utils.genotype.glf.*;
@@ -74,15 +75,15 @@ public class GenotypeWriterFactory {
      * @param format the format
      * @return an unpopulated genotype call object
      */
-    public static Genotype createSupportedCall(GENOTYPE_FORMAT format) {
+    public static Genotype createSupportedCall(GENOTYPE_FORMAT format, char ref, GenomeLoc loc) {
         switch (format) {
             case VCF:
-                return new VCFGenotypeCall();
+                return new VCFGenotypeCall(ref, loc);
             case GELI:
             case GELI_BINARY:
-                return new GeliGenotypeCall();
+                return new GeliGenotypeCall(ref, loc);
             case GLF:
-                return new GLFGenotypeCall();
+                return new GLFGenotypeCall(ref, loc);
             default:
                 throw new StingException("Genotype format " + format.toString() + " is not implemented");
         }

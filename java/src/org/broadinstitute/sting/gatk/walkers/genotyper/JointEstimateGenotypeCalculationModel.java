@@ -321,11 +321,8 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
             for ( String sample : GLs.keySet() ) {
 
                 // create the call
-                Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT);
-                call.setReference(ref);
-
                 AlignmentContext context = contexts.get(sample).getContext(StratifiedContext.OVERALL);
-                call.setLocation(context.getLocation());
+                Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation());
 
                 if ( call instanceof ReadBacked ) {
                     ((ReadBacked)call).setReads(context.getReads());

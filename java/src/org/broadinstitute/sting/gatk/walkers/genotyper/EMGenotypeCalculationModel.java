@@ -54,12 +54,8 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         for ( String sample : GLs.keySet() ) {
 
             // create the call
-            Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT);
-            call.setReference(ref);
-
-            // get the context
             AlignmentContext context = contexts.get(sample).getContext(StratifiedContext.OVERALL);
-            call.setLocation(context.getLocation());
+            Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation());
 
             if ( call instanceof ReadBacked ) {
                 ((ReadBacked)call).setReads(context.getReads());

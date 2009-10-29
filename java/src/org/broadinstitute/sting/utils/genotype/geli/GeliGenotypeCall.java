@@ -34,20 +34,14 @@ public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked 
      * Generate a single sample genotype object
      *
      */
-    public GeliGenotypeCall() {
+    public GeliGenotypeCall(char ref, GenomeLoc loc) {
+        mRefBase = ref;
+        mLocation = loc;
+
         // fill in empty data
-        mRefBase = 'N';
         mPosteriors = new double[10];
         Arrays.fill(mPosteriors, Double.MIN_VALUE);
         mReads = new ArrayList<SAMRecord>();
-    }
-
-    public void setReference(char refBase) {
-        mRefBase = Character.toUpperCase(refBase);
-    }
-
-    public void setLocation(GenomeLoc loc) {
-        mLocation = loc;
     }
 
     public void setReads(List<SAMRecord> reads) {
