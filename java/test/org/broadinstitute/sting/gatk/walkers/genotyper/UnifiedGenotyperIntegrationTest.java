@@ -42,8 +42,8 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testMultiSamplePilot1() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,000,000-10,001,000 -bm empirical -gm EM_POINT_ESTIMATE -lod 5", 1,
-                Arrays.asList("d41d8cd98f00b204e9800998ecf8427e"));
+                "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,023,400-10,024,000 -bm empirical -gm EM_POINT_ESTIMATE -lod 5", 1,
+                Arrays.asList("dba7f51b0ddb1afebcd8f229444f70e5"));
         executeTest("testMultiSamplePilot1", spec);
     }
 
@@ -51,7 +51,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot2() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/pilot2_daughters.chr20.10k-11k.bam -varout %s -L 20:10,000,000-10,010,000 -bm empirical -gm EM_POINT_ESTIMATE -lod 5", 1,
-                Arrays.asList("394f009c9bad34eb584fa10d133d79e0"));
+                Arrays.asList("c2a7dd9bec6819b2d7702564955c993b"));
         executeTest("testMultiSamplePilot2", spec);
     }
 
