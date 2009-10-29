@@ -21,6 +21,7 @@ import java.util.ArrayList;
  */
 public class TraverseLoci extends TraversalEngine {
     final private static String UNIT_STRING = "sites";
+    final private static boolean ENABLE_ROD_TRAVERSAL = false;
 
 
     /**
@@ -56,7 +57,7 @@ public class TraverseLoci extends TraversalEngine {
 
             //ReferenceOrderedView referenceOrderedDataView = new ReferenceOrderedView( dataProvider );
             ReferenceOrderedView referenceOrderedDataView = null;
-            if ( WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE_ORDERED_DATA )
+            if ( ! ENABLE_ROD_TRAVERSAL || WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE_ORDERED_DATA )
                 referenceOrderedDataView = new ManagingReferenceOrderedView( dataProvider );
             else
                 referenceOrderedDataView = (RodLocusView)locusView;
@@ -91,7 +92,7 @@ public class TraverseLoci extends TraversalEngine {
 
             // We have a final map call to execute here to clean up the skipped based from the
             // last position in the ROD to that in the interval
-        if ( WalkerManager.getWalkerDataSource(walker) == DataSource.REFERENCE_ORDERED_DATA ) {
+        if ( ENABLE_ROD_TRAVERSAL && WalkerManager.getWalkerDataSource(walker) == DataSource.REFERENCE_ORDERED_DATA ) {
             RodLocusView rodLocusView = (RodLocusView)locusView;
             long nSkipped = rodLocusView.getLastSkippedBases();
             if ( nSkipped > 0 ) {
@@ -124,7 +125,7 @@ public class TraverseLoci extends TraversalEngine {
         DataSource dataSource = WalkerManager.getWalkerDataSource(walker);
         if( dataSource == DataSource.READS )
             return new CoveredLocusView(dataProvider);
-        else if( dataSource == DataSource.REFERENCE )
+        else if( dataSource == DataSource.REFERENCE || ! ENABLE_ROD_TRAVERSAL )
             return new AllLocusView(dataProvider);
         else if( dataSource == DataSource.REFERENCE_ORDERED_DATA )
             return new RodLocusView(dataProvider);

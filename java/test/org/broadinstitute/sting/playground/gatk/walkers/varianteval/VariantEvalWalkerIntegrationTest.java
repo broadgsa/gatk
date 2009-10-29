@@ -171,5 +171,21 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
                 md5);
         List<File> result = executeTest("testEvalMarksGenotypingExample", spec).getFirst();
     }
+
+    @Test
+	public void testEvalRuntimeWithLotsOfIntervals() {
+        List<String> md5 = new ArrayList<String>();
+        md5.add("bfdc82c3fd8a286f5855d3932ede3124");
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T VariantEval -R /broad/1KG/reference/human_b36_both.fasta " +
+                "-B eval,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.pilot_3.all.geli.calls " +
+                "-D /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod " +
+                "--supressDateInformation " +
+                "-L /humgen/gsa-scr1/GATK_Data/thousand_genomes_alpha_redesign.targets.b36.interval_list " +
+                "--outerr %s",
+                1, // just one output file                                                                                                                                                          
+                md5);
+        List<File> result = executeTest("testEvalRuntimeWithLotsOfIntervals", spec).getFirst();
+    }
 }
 

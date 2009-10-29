@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MergingIterator;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
 
@@ -85,6 +86,8 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         }
 
         rodQueue = new MergingIterator<RODRecordList<ReferenceOrderedDatum>>(iterators);
+
+        throw new StingException("RodLocusView currently disabled");
     }
 
     public RefMetaDataTracker getReferenceOrderedDataAtLocus( GenomeLoc loc ) {
