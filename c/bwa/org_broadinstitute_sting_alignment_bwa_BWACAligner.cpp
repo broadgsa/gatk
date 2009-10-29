@@ -67,7 +67,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACA
   jbyte *read_bases = env->GetByteArrayElements(java_bases,JNI_FALSE); 
 
   Alignment* alignments = NULL;
-  unsigned num_alignments = 1;
+  unsigned num_alignments = 0;
   bwa->align((const char*)read_bases,read_length,alignments,num_alignments);
 
   jobjectArray java_alignments = env->NewObjectArray(num_alignments, env->FindClass("org/broadinstitute/sting/alignment/Alignment"), NULL);  

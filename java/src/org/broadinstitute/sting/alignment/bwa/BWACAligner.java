@@ -113,6 +113,7 @@ public class BWACAligner {
             count++;
             //if(count > 1) break;
             Alignment[] alignments = thunk.align(read.getReadBases());
+            /*
             System.out.printf("Read: %s: ", read.getReadName());
             for(Alignment alignment: alignments)
                 System.out.printf("tig = %d; pos = %d, neg strand = %b, mapQ = %d, cigar = %s;",
@@ -121,8 +122,9 @@ public class BWACAligner {
                                   alignment.isNegativeStrand(),
                                   alignment.getMappingQuality(),
                                   alignment.getCigarString());
+                                  */
             if(count % 10000 == 0) System.out.printf("Processed %d reads.%n",count);
-            System.out.printf("%n");
+            //System.out.printf("%n");
         }
 
         thunk.close();

@@ -16,9 +16,9 @@ class BWA {
   gap_opt_t options;
 
   void load_default_options();
-  void initialize_sequence(bwa_seq_t& sequence);
-  void copy_bases_into_sequence(bwa_seq_t& sequence, const char* bases, const unsigned read_length, const bool reverse);
-  void create_alignments(bwa_seq_t& sequence, Alignment*& alignments, unsigned& num_alignments);
+  bwa_seq_t* create_sequence();
+  void copy_bases_into_sequence(bwa_seq_t* sequence, const char* bases, const unsigned read_length, const bool reverse);
+  void create_alignments(bwa_seq_t* sequence, Alignment*& alignments, unsigned& num_alignments);
 
  public:
   BWA(const char* ann_filename,

@@ -27,21 +27,22 @@ BWA::~BWA() {
 
 void BWA::align(const char* bases, const unsigned read_length, Alignment*& alignments, unsigned& num_alignments) 
 {
-  bwa_seq_t sequence;
-  initialize_sequence(sequence);
+  bwa_seq_t* sequence = create_sequence();
   copy_bases_into_sequence(sequence, bases, read_length, true);
 
   // Calculate the suffix array interval for each sequence, storing the result in sequence.aln (and sequence.n_aln).
   // This method will destroy the contents of seq and rseq.
-  bwa_cal_sa_reg_gap(0,bwts,1,&sequence,&options);
+  bwa_cal_sa_reg_gap(0,bwts,1,sequence,&options);
 
   // Translate suffix array indices into exactly how many alignments have been found.
-  bwa_aln2seq(sequence.n_aln,sequence.aln,&sequence);
+  bwa_aln2seq(sequence->n_aln,sequence->aln,sequence);
 
   // Calculate and refine the position for each alignment.  This position may be inaccurate 
   // if the read contains indels, etc.  Refinement requires the original sequences in the proper order.
   copy_bases_into_sequence(sequence, bases, read_length, false);
   create_alignments(sequence, alignments, num_alignments);
+
+  bwa_free_read_seq(1,sequence);
 }
 
 void BWA::load_default_options() 
@@ -64,44 +65,55 @@ void BWA::load_default_options()
   options.trim_qual = 0;
 }
 
-void BWA::initialize_sequence(bwa_seq_t& sequence) 
+/**
+ * Create a sequence with a set of reasonable initial defaults.  
+ * Will leave seq and rseq empty.
+ */
+bwa_seq_t* BWA::create_sequence() 
 {
-  sequence.tid = -1;
-  sequence.name = 0;
-  sequence.qual = 0;
+  bwa_seq_t* sequence = new bwa_seq_t;
 
-  sequence.seq = NULL;
-  sequence.rseq = NULL;
+  sequence->tid = -1;
 
-  sequence.cigar = 0;
-  sequence.n_cigar = NULL;
+  sequence->name = 0;
+
+  sequence->seq = NULL;
+  sequence->rseq = NULL;
+  sequence->qual = 0;
+  sequence->aln = 0;
+  sequence->md = 0;
+
+  sequence->cigar = NULL;
+  sequence->n_cigar = 0;
+
+  return sequence;
 }
 
-void BWA::copy_bases_into_sequence(bwa_seq_t& sequence, const char* bases, unsigned read_length, bool reverse) 
+void BWA::copy_bases_into_sequence(bwa_seq_t* sequence, const char* bases, unsigned read_length, bool reverse) 
 {
   // seq, rseq will ultimately be freed by bwa_cal_sa_reg_gap
-  sequence.seq = new ubyte_t[read_length];
-  sequence.rseq = new ubyte_t[read_length];
-  for(unsigned i = 0; i < read_length; i++) sequence.seq[i] = nst_nt4_table[(unsigned)bases[i]];
-  memcpy(sequence.rseq,sequence.seq,read_length);
+  sequence->seq = new ubyte_t[read_length];
+  sequence->rseq = new ubyte_t[read_length];
+  for(unsigned i = 0; i < read_length; i++) sequence->seq[i] = nst_nt4_table[(unsigned)bases[i]];
+  memcpy(sequence->rseq,sequence->seq,read_length);
   if(reverse) {
-    seq_reverse(read_length,sequence.seq,0);
-    seq_reverse(read_length,sequence.rseq,1);
+    seq_reverse(read_length,sequence->seq,0);
+    seq_reverse(read_length,sequence->rseq,1);
   }
-  sequence.full_len = sequence.len = read_length;
+  sequence->full_len = sequence->len = read_length;
 }
 
-void BWA::create_alignments(bwa_seq_t& sequence, Alignment*& alignments, unsigned& num_alignments) {
+void BWA::create_alignments(bwa_seq_t* sequence, Alignment*& alignments, unsigned& num_alignments) {
   num_alignments = 0;
-  for(unsigned i = 0; i < (unsigned)sequence.n_aln; i++)
-    num_alignments += (sequence.aln + i)->l - (sequence.aln + i)->k + 1;
+  for(unsigned i = 0; i < (unsigned)sequence->n_aln; i++)
+    num_alignments += (sequence->aln + i)->l - (sequence->aln + i)->k + 1;
 
   alignments = new Alignment[num_alignments];
   unsigned alignment_idx = 0;
 
   // backup existing alignment blocks.
-  bwt_aln1_t* alignment_blocks = sequence.aln;
-  int num_alignment_blocks = sequence.n_aln;
+  bwt_aln1_t* alignment_blocks = sequence->aln;
+  int num_alignment_blocks = sequence->n_aln;
 
   for(unsigned alignment_block_idx = 0; alignment_block_idx < (unsigned)num_alignment_blocks; alignment_block_idx++) {
     // Stub in a 'working' alignment block, so that only the desired alignment is local-aligned.
@@ -111,27 +123,28 @@ void BWA::create_alignments(bwa_seq_t& sequence, Alignment*& alignments, unsigne
     // Loop through all alignments, aligning each one individually.
     for(unsigned sa_idx = alignment_block->k; sa_idx <= alignment_block->l; sa_idx++) {
       working_alignment_block.k = working_alignment_block.l = sa_idx;
-      sequence.aln = &working_alignment_block;
-      sequence.n_aln = 1;
+      sequence->aln = &working_alignment_block;
+      sequence->n_aln = 1;
 
       // Calculate the local alignment.
-      bwa_cal_pac_pos_core(bwts[0],bwts[1],&sequence,options.max_diff,options.fnr);
-      bwa_refine_gapped(bns, 1, &sequence, 0, NULL);
+      bwa_cal_pac_pos_core(bwts[0],bwts[1],sequence,options.max_diff,options.fnr);
+      bwa_refine_gapped(bns, 1, sequence, 0, NULL);
 
       // Copy the local alignment data into the alignment object.
       Alignment& alignment = *(alignments + alignment_idx);
-      alignment.type = sequence.type;
-      bns_coor_pac2real(bns, sequence.pos, pos_end(&sequence) - sequence.pos, &alignment.contig);
-      alignment.pos = sequence.pos - bns->anns[alignment.contig].offset + 1;
-      alignment.negative_strand = sequence.strand;
-      alignment.cigar = sequence.cigar;
-      alignment.n_cigar = sequence.n_cigar;
-      alignment.mapQ = sequence.mapQ;
+      alignment.type = sequence->type;
+      bns_coor_pac2real(bns, sequence->pos, pos_end(sequence) - sequence->pos, &alignment.contig);
+      alignment.pos = sequence->pos - bns->anns[alignment.contig].offset + 1;
+      alignment.negative_strand = sequence->strand;
+      alignment.cigar = sequence->cigar;
+      alignment.n_cigar = sequence->n_cigar;
+      alignment.mapQ = sequence->mapQ;
 
       alignment_idx++;
     }
   }
 
-  sequence.aln = alignment_blocks;
-  sequence.n_aln = num_alignment_blocks;
+  // Restore original alignment blocks.
+  sequence->aln = alignment_blocks;
+  sequence->n_aln = num_alignment_blocks;
 }
