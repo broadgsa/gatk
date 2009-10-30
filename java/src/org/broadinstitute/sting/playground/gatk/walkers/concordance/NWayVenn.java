@@ -22,12 +22,11 @@ import java.util.Map.Entry;
 public class NWayVenn implements ConcordanceType {
 
     // TODO -- change this to use Ryan's generic map object when it's ready
-    private HashMap<Integer, PrintWriter> writers = new HashMap<Integer, PrintWriter>();
+    private HashMap<String, PrintWriter> writers = new HashMap<String, PrintWriter>();
+    private PrintWriter union_writer = null;
 
     private String prefix;
     private int N;
-
-    private PrintWriter union_writer = null;
 
     public NWayVenn() {}
 
@@ -59,7 +58,7 @@ public class NWayVenn implements ConcordanceType {
 
         try {
             for ( Entry<String, String> file : files.entrySet() )
-                writers.put(stringToHash(file.getKey()), new PrintWriter(prefix + "." + N + "wayVenn" + file.getValue() + ".calls"));
+                writers.put(file.getKey(), new PrintWriter(prefix + "." + N + "wayVenn" + file.getValue() + ".calls"));
             union_writer = new PrintWriter(prefix + "." + N + "wayVenn.union.calls");
         } catch (FileNotFoundException e) {
             throw new StingException(String.format("Could not open file(s) for writing"));
@@ -87,7 +86,7 @@ public class NWayVenn implements ConcordanceType {
         StringBuilder hashString = new StringBuilder();
         for (int i = 0; i < N; i++)
             hashString.append(calls[i] != null ? "1" : "0");
-        printVariant(writers.get(stringToHash(hashString.toString())), calls);
+        printVariant(writers.get(hashString.toString()), calls);
     }
 
     private static void printVariant(PrintWriter writer, Variation[] variants) {
@@ -103,14 +102,5 @@ public class NWayVenn implements ConcordanceType {
         union_writer.close();
         for ( PrintWriter writer : writers.values() )
             writer.close();
-    }
-
-    private int stringToHash(String s) {
-        int hash = 0;
-        for (int i = 0; i < s.length(); i++) {
-            if ( s.charAt(i) == '1' )
-                hash += Math.pow(2, i);
-        }
-        return hash;
     }
 }
