@@ -1,16 +1,13 @@
 package org.broadinstitute.sting.alignment.bwa;
 
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import net.sf.samtools.SAMRecord;
 
 import java.util.Random;
 
 /**
- * Javadoc goes here.
+ * Align reads to the reference specified by BWTPrefix.
  *
  * @author mhanna
  * @version 0.1
@@ -29,6 +26,9 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
      */
     private Random random = new Random();
 
+    /**
+     * Create an aligner object.  The aligner object will load and hold the BWT until close() is called.
+     */    
     @Override
     public void initialize() {
         aligner = new BWACAligner(prefix + ".ann",
@@ -40,20 +40,42 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
                                   prefix + ".rsa");
     }
 
-    public Integer reduceInit() { return 0; }
-
+    /**
+     * Aligns a read to the given reference.
+     * @param ref Reference over the read.  Read will most likely be unmapped, so ref will be null.
+     * @param read Read to align.
+     * @return Number of alignments found for this read.
+     */
     @Override
     public Integer map(char[] ref, SAMRecord read) {
         SAMRecord[] alignedReads = aligner.align(read);
         SAMRecord selectedRead = alignedReads[random.nextInt(alignedReads.length)];
         out.println(selectedRead.format());
-        return 1;
+        return alignedReads.length;
     }
 
+    /**
+     * Initial value for reduce.  In this case, alignments will be counted.
+     * @return 0, indicating no alignments yet found.
+     */
+    @Override
+    public Integer reduceInit() { return 0; }
+
+    /**
+     * Calculates the number of alignments found.
+     * @param value Number of alignments found by this map.
+     * @param sum Number of alignments found before this map.
+     * @return Number of alignments found up to and including this map.
+     */    
+    @Override
     public Integer reduce(Integer value, Integer sum) {
         return value + sum;
     }
 
+    /**
+     * Cleanup.
+     * @param result Number of reads processed.
+     */    
     @Override
     public void onTraversalDone(Integer result) {
         aligner.close();
