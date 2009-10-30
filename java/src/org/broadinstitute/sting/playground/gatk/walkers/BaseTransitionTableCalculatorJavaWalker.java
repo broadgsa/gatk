@@ -64,6 +64,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         ug.initialize();
         uac.baseModel = BaseMismatchModel.THREE_STATE;
+        uac.ALL_BASES = true;
         ug.setUnifiedArgumentCollection(uac);
         // refWindow = new ReferenceContextWindow(nPreviousBases);
         usePreviousBases = new ArrayList<Boolean>();
