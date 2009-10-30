@@ -486,10 +486,10 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             private String bases;
             private Type type;
 
-            private Set<SAMRecord> reads = new HashSet<SAMRecord>(); // keep track of reads that have this indel
+            private Set<ExpandedSAMRecord> reads = new HashSet<ExpandedSAMRecord>(); // keep track of reads that have this indel
             private Set<String> samples = new HashSet<String>();   // which samples had the indel described by this object
 
-            public IndelVariant(SAMRecord read , Type type, String bases) {
+            public IndelVariant(ExpandedSAMRecord read , Type type, String bases) {
                 this.type = type;
                 this.bases = bases.toUpperCase();
                 addObservation(read);
@@ -500,11 +500,19 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
              * this indel was observed in as well.
              * @param read
              */
-            public void addObservation(SAMRecord read) {
-                if ( reads.contains(read) ) throw new StingException("Attempting to add indel observation that was already registered");
+            public void addObservation(ExpandedSAMRecord read) {
+                if ( reads.contains(read) ) {
+                    //TODO fix CleanedReadInjector and reinstate exception here: duplicate records may signal a problem with the bam
+                    // seeing the same read again can mean only one thing: the input bam file is corrupted and contains
+                    // duplicate records. We KNOW that this may happen for the time being due to bug in CleanedReadInjector
+                    // so this is a short-term patch: don't cry, but just ignore the duplicate record
+
+                    //throw new StingException("Attempting to add indel observation that was already registered");
+                    return;
+                }
                 reads.add(read);
                 String sample = null;
-                if ( read.getReadGroup() != null ) sample = read.getReadGroup().getSample();
+                if ( read.getSAMRecord().getReadGroup() != null ) sample = read.getSAMRecord().getReadGroup().getSample();
                 if ( sample != null ) samples.add(sample);
             }
 
@@ -535,7 +543,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 return sb.toString();
             }
 
-            public Set<SAMRecord> getReadSet() { return reads; }
+            public Set<ExpandedSAMRecord> getReadSet() { return reads; }
 
             public int getCount() { return reads.size(); }
 
@@ -614,16 +622,14 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             long left = Math.max( pos-nqs, context.getStart() );
             long right = Math.min(pos+nqs-1, context.getStop());
 //if ( pos == 3534096 ) System.out.println("pos="+pos +" total reads: "+context.getReads().size());
-            Iterator<SAMRecord> read_iter = context.getReads().iterator();
-            Iterator<byte[]> flag_iter = context.getMMFlags().iterator();
-            Iterator<Integer> mm_iter = context.getTotalMMs().iterator();
-            Iterator <byte[]> qual_iter = context.getExpandedQuals().iterator();
+            Iterator<ExpandedSAMRecord> read_iter = context.getReads().iterator();
 
             while ( read_iter.hasNext() ) {
-                SAMRecord read = read_iter.next();
-                byte[] flags = flag_iter.next();
-                byte[] quals = qual_iter.next();
-                Integer mm = mm_iter.next();
+                ExpandedSAMRecord rec = read_iter.next();
+                SAMRecord read = rec.getSAMRecord();
+                byte[] flags = rec.getExpandedMMFlags();
+                byte[] quals = rec.getExpandedQuals();
+                int mm = rec.getMMCount();
 
                 if( read.getAlignmentStart() > pos || read.getAlignmentEnd() < pos ) continue;
 
@@ -642,19 +648,19 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 }
 
                 if ( read_has_consensus ) {
-                    consensus_indel_read_total_mm += mm.intValue();
+                    consensus_indel_read_total_mm += mm;
                     consensus_indel_read_total_mapq += read.getMappingQuality();
                     if ( read.getReadNegativeStrandFlag() ) consensus_indel_read_orientation_cnt.second++;
                     else consensus_indel_read_orientation_cnt.first++;
                 }
                 if ( read_has_a_variant ) {
-                    all_indel_read_total_mm += mm.intValue();
+                    all_indel_read_total_mm += mm;
                     all_indel_read_total_mapq += read.getMappingQuality();
                     if ( read.getReadNegativeStrandFlag() ) all_indel_read_orientation_cnt.second++;
                     else all_indel_read_orientation_cnt.first++;
                 }
 
-                all_read_total_mm+= mm.intValue();
+                all_read_total_mm+= mm;
                 all_read_total_mapq += read.getMappingQuality();
                 if ( read.getReadNegativeStrandFlag() ) all_read_orientation_cnt.second++;
                 else all_read_orientation_cnt.first++;
@@ -893,11 +899,12 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
     }
 
-    class WindowContext {
-            private List<SAMRecord> reads;
-            private List<byte[]> mismatch_flags;
-            private List<byte[]> expanded_quals;
-            private List<Integer> mms;
+    interface IndelListener {
+        public void addObservation(int pos, IndelVariant.Type t, String bases, ExpandedSAMRecord r);
+    }
+
+    class WindowContext implements IndelListener {
+            private Set<ExpandedSAMRecord> reads;
             private long start=0; // where the window starts on the ref, 1-based
             private CircularArray< List< IndelVariant > > indels;
 
@@ -907,11 +914,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             public WindowContext(long start, int length) {
                 this.start = start;
                 indels = new CircularArray< List<IndelVariant> >(length);
-                reads = new LinkedList<SAMRecord>();
-                mismatch_flags = new LinkedList<byte[]>();
- //           offsets = new LinkedList<Integer>();
-                mms = new LinkedList<Integer>();
-                expanded_quals = new LinkedList<byte[]>();
+//                reads = new LinkedList<SAMRecord>();
+                reads = new HashSet<ExpandedSAMRecord>();
             }
 
             /** Returns 1-based reference start position of the interval this object keeps context for.
@@ -931,10 +935,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
              */
             public void clear() {
                 start = 0;
-                mms.clear();
                 reads.clear();
-                mismatch_flags.clear();
-                expanded_quals.clear();
                 indels.clear();
             }
 
@@ -952,10 +953,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 return false;               
             }
 
-            public List<SAMRecord> getReads() { return reads; }
-            public List<byte[]> getMMFlags() { return mismatch_flags; }
-            public List<Integer> getTotalMMs() { return mms; }
-            public List<byte[]> getExpandedQuals() { return expanded_quals; }
+            public Set<ExpandedSAMRecord> getReads() { return reads; }
 
             /** Returns the number of reads spanning over the specified reference position                                                                                                       
              * (regardless of whether they have a base or indel at that specific location)                                                                                                       
@@ -963,8 +961,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
              */
             public int coverageAt(final long refPos) {
                 int cov = 0;
-                for ( SAMRecord read : reads ) {
-                    if ( read.getAlignmentStart() > refPos || read.getAlignmentEnd() < refPos ) continue;
+                for ( ExpandedSAMRecord read : reads ) {
+                    if ( read.getSAMRecord().getAlignmentStart() > refPos || read.getSAMRecord().getAlignmentEnd() < refPos ) continue;
                     cov++;
                 } 
                 return cov;
@@ -983,111 +981,33 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                     IndelVariant indel =  indels.get(0).get(0);
 
                     throw new StingException("Indel found at the first position ("+start+") after a shift was performed: currently not supported: "+
-                    (indel.getType()==IndelVariant.Type.I?"+":"-")+indel.getBases()+"; reads: "+indel.getReadSet().iterator().next().getReadName());
+                    (indel.getType()==IndelVariant.Type.I?"+":"-")+indel.getBases()+"; reads: "+indel.getReadSet().iterator().next().getSAMRecord().getReadName());
                 }
                 
-                Iterator<SAMRecord> read_iter = reads.iterator();
-                Iterator<Integer> mm_iter = mms.iterator();
-                Iterator<byte[]> flags_iter = mismatch_flags.iterator();
-                Iterator<byte[]> quals_iter = expanded_quals.iterator();
+                Iterator<ExpandedSAMRecord> read_iter = reads.iterator();
 
                 while ( read_iter.hasNext() ) {
-                    SAMRecord r = read_iter.next();
-                    mm_iter.next();
-                    flags_iter.next();
-                    quals_iter.next();
-
-                    if ( r.getAlignmentEnd() < start ) { // discard reads and associated data that went out of scope
+                    ExpandedSAMRecord r = read_iter.next();
+                    if ( r.getSAMRecord().getAlignmentEnd() < start ) { // discard reads and associated data that went out of scope
                         read_iter.remove();
-                        mm_iter.remove();
-                        flags_iter.remove();
-                        quals_iter.remove();
                     }
                 }
             }
 
             public void add(SAMRecord read, char [] ref) {
 
-                final long rStart = read.getAlignmentStart();
-                final long rStop = read.getAlignmentEnd();
-                final String readBases = read.getReadString().toUpperCase();
-
-                byte flags[] = new byte[(int)(rStop-rStart+1)];
-                byte quals[] = new byte[(int)(rStop-rStart+1)];
-
-                int localStart = (int)( rStart - start ); // start of the alignment wrt start of the current window, 0-based
-
-                // now let's extract indels:
-
-                Cigar c = read.getCigar();
-                final int nCigarElems = c.numCigarElements();
-
-                int posOnRead = 0;
-                int posOnRef = 0; // the chunk of reference ref[] that we have access to is aligned with the read:
-                                  // its start on the actual full reference contig is r.getAlignmentStart()
-                int mm=0; // number of single-base mismatches in the current read (indels do not count!)
-
-                for ( int i = 0 ; i < nCigarElems ; i++ ) {
-
-                    final CigarElement ce = c.getCigarElement(i);
-                    IndelVariant.Type type = null;
-                    String bases = null;
-                    int eventPosition = posOnRef;
-	            	            
-                    switch(ce.getOperator()) {
-                    case I:
-                        type = IndelVariant.Type.I;
-                        bases = readBases.substring(posOnRead,posOnRead+ce.getLength());
-                        // will increment position on the read below, there's no 'break' statement yet...
-                    case H:
-                    case S:
-                        // here we also skip hard and soft-clipped bases on the read; according to SAM format specification,
-                        // alignment start position on the reference points to where the actually aligned
-                        // (not clipped) bases go, so we do not need to increment reference position here
-                        posOnRead += ce.getLength();
-                        break;
-                    case D:
-                        type = IndelVariant.Type.D;
-                        bases = new String( ref, posOnRef, ce.getLength() );
-                        for( int k = 0 ; k < ce.getLength(); k++, posOnRef++ ) flags[posOnRef] = quals[posOnRef] = -1;
-
-                        break;
-                    case M: 
-                        for ( int k = 0; k < ce.getLength(); k++, posOnRef++, posOnRead++ ) {
-                            if ( readBases.charAt(posOnRead) != //note: readBases was uppercased above!
-                                 Character.toUpperCase(ref[posOnRef]) ) { // mismatch!
-                                mm++;
-                                flags[posOnRef] = 1;
-                            }
-                            quals[posOnRef] = read.getBaseQualities()[posOnRead];
-                        }
-                        break; // advance along the gapless block in the alignment
-                    default :
-                        throw new IllegalArgumentException("Unexpected operator in cigar string: "+ce.getOperator());
-                    }
-
-                    if ( type == null ) continue; // element was not an indel, go grab next element...
-
-                    // we got an indel if we are here...
-                    if ( i == 0 ) logger.debug("Indel at the start of the read "+read.getReadName());
-                    if ( i == nCigarElems - 1) logger.debug("Indel at the end of the read "+read.getReadName());
-                
-                    // note that here we will be assigning indels to the first deleted base or to the first
-                    // base after insertion, not to the last base before the event!
-                    addIndelObservation(localStart+eventPosition, type, bases, read);
-                }
-                reads.add(read);
-                mms.add(mm);
-                mismatch_flags.add(flags);
-                expanded_quals.add(quals);
-                //                offsets.add(localStart);
+                ExpandedSAMRecord er = new ExpandedSAMRecord(read,ref,read.getAlignmentStart()-start,this);
+                //TODO duplicate records may actually indicate a problem with input bam file; throw an exception when the bug in CleanedReadInjector is fixed
+                if ( reads.contains(er)) return; // ignore duplicate records
+                reads.add(er);
             }
 
-            private void addIndelObservation(int pos, IndelVariant.Type type, String bases, SAMRecord r) {
+            public void addObservation(int pos, IndelVariant.Type type, String bases, ExpandedSAMRecord rec) {
                 List<IndelVariant> indelsAtSite;
                 try {
                     indelsAtSite = indels.get(pos);
                 } catch (IndexOutOfBoundsException e) {
+                    SAMRecord r = rec.getSAMRecord();
                     System.out.println("Read "+r.getReadName()+": out of coverage window bounds.Probably window is too small.\n"+
                         "Read length="+r.getReadLength()+"; cigar="+r.getCigarString()+"; start="+
                         r.getAlignmentStart()+"; end="+r.getAlignmentEnd()+"; window start="+getStart()+
@@ -1104,13 +1024,13 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 for ( IndelVariant v : indelsAtSite ) {
                     if ( ! v.equals(type, bases) ) continue;
 
-                    v.addObservation(r);
+                    v.addObservation(rec);
                     found = true;
                     break;
                 }
                 
                 if ( ! found ) {
-                    IndelVariant v = new IndelVariant(r, type, bases);
+                    IndelVariant v = new IndelVariant(rec, type, bases);
                     indelsAtSite.add(v);
                 }
             }
@@ -1124,4 +1044,98 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
         }
 
+
+    class ExpandedSAMRecord {
+        private SAMRecord read;
+        private byte[] mismatch_flags;
+        private byte[] expanded_quals;
+        private int mms;
+
+        public ExpandedSAMRecord(SAMRecord r, char [] ref, long offset, IndelListener l) {
+
+            read = r;
+            final long rStart = read.getAlignmentStart();
+            final long rStop = read.getAlignmentEnd();
+            final String readBases = read.getReadString().toUpperCase();
+
+            mismatch_flags = new byte[(int)(rStop-rStart+1)];
+            expanded_quals = new byte[(int)(rStop-rStart+1)];
+
+            // now let's extract indels:
+
+            Cigar c = read.getCigar();
+            final int nCigarElems = c.numCigarElements();
+
+            int posOnRead = 0;
+            int posOnRef = 0; // the chunk of reference ref[] that we have access to is aligned with the read:
+                              // its start on the actual full reference contig is r.getAlignmentStart()
+            for ( int i = 0 ; i < nCigarElems ; i++ ) {
+
+                final CigarElement ce = c.getCigarElement(i);
+                IndelVariant.Type type = null;
+                String bases = null;
+                int eventPosition = posOnRef;
+
+                switch(ce.getOperator()) {
+                case I:
+                    type = IndelVariant.Type.I;
+                    bases = readBases.substring(posOnRead,posOnRead+ce.getLength());
+                    // will increment position on the read below, there's no 'break' statement yet...
+                case H:
+                case S:
+                    // here we also skip hard and soft-clipped bases on the read; according to SAM format specification,
+                    // alignment start position on the reference points to where the actually aligned
+                    // (not clipped) bases go, so we do not need to increment reference position here
+                    posOnRead += ce.getLength();
+                    break;
+                case D:
+                    type = IndelVariant.Type.D;
+                    bases = new String( ref, posOnRef, ce.getLength() );
+                    for( int k = 0 ; k < ce.getLength(); k++, posOnRef++ ) mismatch_flags[posOnRef] = expanded_quals[posOnRef] = -1;
+
+                    break;
+                case M:
+                    for ( int k = 0; k < ce.getLength(); k++, posOnRef++, posOnRead++ ) {
+                        if ( readBases.charAt(posOnRead) != //note: readBases was uppercased above!
+                             Character.toUpperCase(ref[posOnRef]) ) { // mismatch!
+                            mms++;
+                            mismatch_flags[posOnRef] = 1;
+                        }
+                        expanded_quals[posOnRef] = read.getBaseQualities()[posOnRead];
+                    }
+                    break; // advance along the gapless block in the alignment
+                default :
+                    throw new IllegalArgumentException("Unexpected operator in cigar string: "+ce.getOperator());
+                }
+
+                if ( type == null ) continue; // element was not an indel, go grab next element...
+
+                // we got an indel if we are here...
+                if ( i == 0 ) logger.debug("Indel at the start of the read "+read.getReadName());
+                if ( i == nCigarElems - 1) logger.debug("Indel at the end of the read "+read.getReadName());
+
+                // note that here we will be assigning indels to the first deleted base or to the first
+                // base after insertion, not to the last base before the event!
+                l.addObservation((int)(offset+eventPosition), type, bases, this);
+            }
+        }
+
+        public SAMRecord getSAMRecord() { return read; }
+
+        public byte [] getExpandedMMFlags() { return mismatch_flags; }
+
+        public byte [] getExpandedQuals() { return expanded_quals; }
+
+        public int getMMCount() { return mms; }
+
+        public boolean equals(Object o) {
+            if ( this == o ) return true;
+            if ( read == null ) return false;
+            if ( o instanceof SAMRecord ) return read.equals(o);
+            if ( o instanceof ExpandedSAMRecord ) return read.equals(((ExpandedSAMRecord)o).read);
+            return false;
+        }
+
+
+    }
 }
