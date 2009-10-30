@@ -88,6 +88,8 @@ public class NeighborhoodQualityWalker extends LocusWalker<Integer, Long> {
 
         List<SAMRecord> reads = context.getReads();
         Iterator<SAMRecord> readsIter = reads.iterator();
+        // EB: the problem with "assert" in java is that it's disabled by default and you actively need
+        //  to enable them on the command line (-ea), so we should really use a formal if statement.
         assert reads.size() > 0 : "This locus has no reads.";
         
         while( readsIter.hasNext() ) { // for each read in this context
@@ -95,6 +97,9 @@ public class NeighborhoodQualityWalker extends LocusWalker<Integer, Long> {
 
             // Only consider reads for this calculation whose mapping quality isn't 0 or 255
             mappingQuality = read.getMappingQuality();
+            // EB: actually, mapping quality zero reads are crucial to this calculation as they
+            //  affect the overall reliability of this neighborhood (i.e. the more of them that
+            //  there are, the less we trust the alignments in the neighborhood).
             if ( mappingQuality > 0 && mappingQuality < 255 ) {
 
                 // Generate sum of mapping quality for all reads at this locus
@@ -103,10 +108,16 @@ public class NeighborhoodQualityWalker extends LocusWalker<Integer, Long> {
 
                 // Look to see if mate was mapped to different chromosome
                 //isGoodPair = ( read.getReadPairedFlag() ? read.getProperPairFlag() : true );
+
+                // EB: I'm pretty sure that getReadPairedFlag() just tells you whether the read has a mate
+                //  I think you want to be checking getMateReferenceIndex() relative to this read's ref index
                 isGoodPair = ( !read.getReadPairedFlag() || read.getProperPairFlag() ); // optimized version of above line
                 if ( !isGoodPair ) { numReadsMismatchedMate++; }
 
                 // Generate sum number of mismatches for all reads at this locus
+
+                // EB: It turns out that the NM attribute is not always set correctly (Mark found several cases)
+                //  so we can't trust it.  Check out AlignmentUtils for several methods that already determine the number of mismatches.
                 if( read.getAttribute("NM") != null ) {
                     sumMismatchRate += ((float) Integer.parseInt(read.getAttribute("NM").toString())) / ((float) read.getReadLength());
                 } else {
