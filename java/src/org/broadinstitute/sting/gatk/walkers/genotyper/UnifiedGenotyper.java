@@ -212,43 +212,28 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeM
     public Integer reduceInit() { return 0; }
 
     public Integer reduce(Pair<List<Genotype>, GenotypeMetaData> value, Integer sum) {
-        if ( value == null || value.first == null )
+        // can't call the locus because of no coverage
+        if ( value == null )
             return sum;
 
         callsMetrics.nCalledBases++;
 
-        if ( value.first.size() == 0 )
+        // can't make a confident variant call here
+        if ( value.first == null || value.first.size() == 0 ) {
+            callsMetrics.nNonConfidentCalls++;
             return sum;
+        }
 
-        // special-case for single-sample using PointEstimate model
-        if ( value.second == null ) {
-            Genotype call = value.first.get(0);
-            if ( UAC.GENOTYPE || call.isVariant(call.getReference()) ) {
-                double confidence = (UAC.GENOTYPE ? call.getNegLog10PError() : call.toVariation().getNegLog10PError());
-                if ( confidence >= UAC.LOD_THRESHOLD ) {
-                    callsMetrics.nConfidentCalls++;
-                    writer.addGenotypeCall(call);
-                }
-            } else {
-                callsMetrics.nNonConfidentCalls++;
-            }
+        callsMetrics.nConfidentCalls++;
+
+        // if we have a single-sample call (single sample from PointEstimate model returns no genotype locus data)
+        if ( value.second == null || (!writer.supportsMultiSample() && samples.size() == 1) ) {
+            writer.addGenotypeCall(value.first.get(0));
         }
 
         // use multi-sample mode if we have multiple samples or the output type allows it
-        else if ( writer.supportsMultiSample() || samples.size() > 1 ) {
-
-            if ( UAC.CONFIDENCE_THRESHOLD <= value.second.getLOD() && UAC.LOD_THRESHOLD <= value.second.getLOD() ) {
-                callsMetrics.nConfidentCalls++;
-                writer.addMultiSampleCall(value.first, value.second);
-            } else {
-                callsMetrics.nNonConfidentCalls++;
-            }
-        }
-
-        // otherwise, use single sample mode
         else {
-            callsMetrics.nConfidentCalls++;
-            writer.addGenotypeCall(value.first.get(0));
+            writer.addMultiSampleCall(value.first, value.second);
         }
 
         return sum + 1;

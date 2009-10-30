@@ -42,11 +42,25 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             if ( sampleContext == null )
                 return null;
 
-            // create the genotype call object
-            // create the call
-            Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation());
-
+            // get the genotype likelihoods
             Pair<ReadBackedPileup, GenotypeLikelihoods> discoveryGL = getSingleSampleLikelihoods(ref, sampleContext, priors, StratifiedContext.OVERALL);
+
+            // are we above the lod threshold for emitting calls (and not in all-bases-mode)?
+            if ( !ALL_BASE_MODE ) {
+                double[] posteriors = discoveryGL.second.getPosteriors();
+                Integer sortedPosteriors[] = Utils.SortPermutation(posteriors);
+                double bestGenotype = posteriors[sortedPosteriors[sortedPosteriors.length - 1]];
+                double nextBestGenotype = posteriors[sortedPosteriors[sortedPosteriors.length - 2]];
+                double refGenotype = posteriors[DiploidGenotype.createHomGenotype(ref).ordinal()];
+                double lodConfidence = (GENOTYPE_MODE ? (bestGenotype - nextBestGenotype) : (bestGenotype - refGenotype));
+
+                // return a null call
+                if ( lodConfidence < LOD_THRESHOLD )
+                    return new Pair<List<Genotype>, GenotypeMetaData>(null, null);
+            }
+
+            // we can now create the genotype call object
+            Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation());
 
             if ( call instanceof ReadBacked ) {
                 ((ReadBacked)call).setReads(discoveryGL.first.getReads());

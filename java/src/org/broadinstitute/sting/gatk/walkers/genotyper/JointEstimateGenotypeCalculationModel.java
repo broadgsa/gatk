@@ -307,38 +307,40 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
                 }
             }
         }
-        double phredScaledConfidence = -10.0 * Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
-        double bestAFguess = findMaxEntry(alleleFrequencyPosteriors[indexOfMax]).second / (double)(frequencyEstimationPoints-1);
 
+        double phredScaledConfidence = -10.0 * Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
+
+        // return a null call if we don't pass the confidence cutoff
+        if ( !ALL_BASE_MODE && phredScaledConfidence < CONFIDENCE_THRESHOLD )
+            return new Pair<List<Genotype>, GenotypeMetaData>(null, null);
+
+        double bestAFguess = findMaxEntry(alleleFrequencyPosteriors[indexOfMax]).second / (double)(frequencyEstimationPoints-1);
         ArrayList<Genotype> calls = new ArrayList<Genotype>();
+
         // TODO -- generate strand score
         double strandScore = 0.0;
         GenotypeMetaData metadata = new GenotypeMetaData(phredScaledConfidence, strandScore, bestAFguess);
 
-        // generate calls only if we pass the threshold or we want ref calls
-        if ( phredScaledConfidence >= CONFIDENCE_THRESHOLD || ALL_BASE_MODE ) {
+        for ( String sample : GLs.keySet() ) {
 
-            for ( String sample : GLs.keySet() ) {
+            // create the call
+            AlignmentContext context = contexts.get(sample).getContext(StratifiedContext.OVERALL);
+            Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation());
 
-                // create the call
-                AlignmentContext context = contexts.get(sample).getContext(StratifiedContext.OVERALL);
-                Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation());
-
-                if ( call instanceof ReadBacked ) {
-                    ((ReadBacked)call).setReads(context.getReads());
-                }
-                if ( call instanceof SampleBacked ) {
-                    ((SampleBacked)call).setSampleName(sample);
-                }
-                if ( call instanceof LikelihoodsBacked ) {
-                    ((LikelihoodsBacked)call).setLikelihoods(GLs.get(sample).getLikelihoods());
-                }
-                if ( call instanceof PosteriorsBacked ) {
-                    ((PosteriorsBacked)call).setPosteriors(GLs.get(sample).getPosteriors());
-                }
-
-                calls.add(call);
+            if ( call instanceof ReadBacked ) {
+                ((ReadBacked)call).setReads(context.getReads());
             }
+            if ( call instanceof SampleBacked ) {
+                ((SampleBacked)call).setSampleName(sample);
+            }
+            if ( call instanceof LikelihoodsBacked ) {
+                ((LikelihoodsBacked)call).setLikelihoods(GLs.get(sample).getLikelihoods());
+            }
+            if ( call instanceof PosteriorsBacked ) {
+                ((PosteriorsBacked)call).setPosteriors(GLs.get(sample).getPosteriors());
+            }
+
+            calls.add(call);
         }
 
         return new Pair<List<Genotype>, GenotypeMetaData>(calls, metadata);

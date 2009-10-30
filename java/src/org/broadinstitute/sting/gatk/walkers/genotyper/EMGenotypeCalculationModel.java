@@ -15,7 +15,6 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
     // We consider the EM stable when the MAF doesn't change more than 1/10,000
     protected static final double EM_STABILITY_METRIC = 1e-4;
 
-
     protected EMGenotypeCalculationModel() {}
 
     public Pair<List<Genotype>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
@@ -28,7 +27,10 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         // run the EM calculation
         EMOutput overall = runEM(ref, contexts, priors, StratifiedContext.OVERALL);
         double lod = overall.getPofD() - overall.getPofNull();
-        logger.debug("lod=" + lod);
+
+        // return a null call if we don't pass the lod cutoff
+        if ( !ALL_BASE_MODE && lod < LOD_THRESHOLD )
+            return new Pair<List<Genotype>, GenotypeMetaData>(null, null);
 
         // calculate strand score
         EMOutput forward = runEM(ref, contexts, priors, StratifiedContext.FORWARD);
