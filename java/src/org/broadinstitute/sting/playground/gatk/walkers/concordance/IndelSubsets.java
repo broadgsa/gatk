@@ -23,13 +23,10 @@ public class IndelSubsets implements ConcordanceType {
     private int sizeCutoff = 2;
 
     private PrintWriter[][][][] writers = new PrintWriter[2][2][2][2];
-    private String prefix;
 
-    public IndelSubsets(String prefix) {
-        this.prefix = prefix;
-    }
+    public IndelSubsets() {}
 
-    public void initialize(HashMap<String,String> args) {        
+    public void initialize(String prefix, HashMap<String,String> args) {        
         if ( args.get("sizeCutoff") != null )
             sizeCutoff = Integer.valueOf(args.get("sizeCutoff"));
         if ( args.get("homopolymerCutoff") != null )

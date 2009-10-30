@@ -26,32 +26,23 @@ public class CallsetConcordanceWalker extends RefWalker<Integer, Integer> {
 
     private ArrayList<ConcordanceType> requestedTypes;
 
-    private HashMap<String, ConcordanceType> initializeConcordanceTypes(String prefix) {
-        HashMap<String, ConcordanceType> types = new HashMap<String, ConcordanceType>();
-
-        //
-        // Add new concordance types here!
-        //
-        types.put("SNPGenotypeConcordance", new SNPGenotypeConcordance(prefix));
-        types.put("SimpleVenn", new SimpleVenn(prefix));
-        types.put("IndelSubsets", new IndelSubsets(prefix));
-
-        return types;
-    }
-
     /**
      * Prepare the output file and the list of available features.
      */
     public void initialize() {
-        HashMap<String, ConcordanceType> concordanceTypes = initializeConcordanceTypes(OUTPUT_PATH);
 
+        // get the possible concordance types
+        List<Class<? extends ConcordanceType>> classes = PackageUtils.getClassesImplementingInterface(ConcordanceType.class);
+
+        // print and exit if that's what was requested
         if (LIST_ONLY) {
-            Iterator<String> types = concordanceTypes.keySet().iterator();
             out.println("\nAvailable concordance types:");
-            while ( types.hasNext() )
-                out.println("\t" + types.next());
+            for (int i = 0; i < classes.size(); i++)
+                out.println("\t" + classes.get(i).getSimpleName());
+            out.println();
             System.exit(0);
         }
+
         requestedTypes = new ArrayList<ConcordanceType>();
 
         // initialize requested concordance types
@@ -59,22 +50,37 @@ public class CallsetConcordanceWalker extends RefWalker<Integer, Integer> {
             for ( String requestedTypeString : TYPES ) {
                 String[] requestedPieces = requestedTypeString.split(":");
                 String requestedType = requestedPieces[0];
-                ConcordanceType type = concordanceTypes.get(requestedType);
-                if ( type == null )
-                    throw new StingException("The requested concordance type (" + requestedType + ") isn't a valid option");
 
-                HashMap<String,String> requestedArgs = new HashMap<String,String>();
-                if ( requestedPieces.length == 2 ) {
-                    String[] argStrings = requestedPieces[1].split(",");
-                    for (int i = 0; i < argStrings.length; i++ ) {
-                        String[] arg = argStrings[i].split("=");
-                        if ( arg.length == 2 )
-                            requestedArgs.put(arg[0], arg[1]);
+                boolean foundClass = false;
+                for ( Class type : classes ) {
+
+                    if (requestedType.equalsIgnoreCase(type.getSimpleName())) {
+                        foundClass = true;
+                        try {
+                            ConcordanceType concordance = (ConcordanceType)type.newInstance();
+                            HashMap<String,String> requestedArgs = new HashMap<String,String>();
+                            if ( requestedPieces.length == 2 ) {
+                                String[] argStrings = requestedPieces[1].split(",");
+                                for (int i = 0; i < argStrings.length; i++ ) {
+                                    String[] arg = argStrings[i].split("=");
+                                    if ( arg.length == 2 )
+                                        requestedArgs.put(arg[0], arg[1]);
+                                }
+                            }
+
+                            concordance.initialize(OUTPUT_PATH, requestedArgs);
+                            requestedTypes.add(concordance);
+                            break;
+                        } catch (InstantiationException e) {
+                            throw new StingException(String.format("Cannot instantiate concordance class '%s': must be concrete class", type.getSimpleName()));
+                        } catch (IllegalAccessException e) {
+                            throw new StingException(String.format("Cannot instantiate concordance class '%s': must have no-arg constructor", type.getSimpleName()));
+                        }
                     }
                 }
 
-                type.initialize(requestedArgs);
-                requestedTypes.add(type);
+                if ( !foundClass )
+                    throw new StingException("The requested concordance type (" + requestedType + ") isn't a valid concordance option");
             }
         }
      }

@@ -7,7 +7,7 @@ import java.util.HashMap;
 
 public interface ConcordanceType {
 
-    public void initialize(HashMap<String,String> args);
+    public void initialize(String prefix, HashMap<String,String> args);
     public void computeConcordance(RefMetaDataTracker tracker, ReferenceContext ref);
     public void cleanup();
 

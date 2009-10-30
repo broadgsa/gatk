@@ -21,13 +21,10 @@ public class SimpleVenn implements ConcordanceType {
     private PrintWriter discord_writer = null;
     private PrintWriter set1_writer = null;
     private PrintWriter set2_writer = null;
-    private String prefix;
 
-    public SimpleVenn(String prefix) {
-        this.prefix = prefix;
-    }
+    public SimpleVenn() {}
 
-    public void initialize(HashMap<String,String> args) {
+    public void initialize(String prefix, HashMap<String,String> args) {
         try {
             union_writer = new PrintWriter(prefix + ".venn.union.calls");
             intersect_writer = new PrintWriter(prefix + ".venn.intersection.calls");

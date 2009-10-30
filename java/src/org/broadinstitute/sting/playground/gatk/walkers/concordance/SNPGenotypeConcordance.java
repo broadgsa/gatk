@@ -28,13 +28,10 @@ public class SNPGenotypeConcordance implements ConcordanceType {
     private PrintWriter comboVarWriter = null;
     private PrintWriter coverageVar1Writer = null;
     private PrintWriter coverageVar2Writer = null;
-    private String prefix;
 
-    public SNPGenotypeConcordance(String prefix) {
-        this.prefix = prefix;
-    }
+    public SNPGenotypeConcordance() {}
 
-    public void initialize(HashMap<String,String> args) {
+    public void initialize(String prefix, HashMap<String,String> args) {
         try {
             sameVarWriter = new PrintWriter(prefix + ".snp_concordance.sameConfidentVariant.calls");
             oneVarWriter = new PrintWriter(prefix + ".snp_concordance.bothVariantOnlyOneIsConfident.calls");
