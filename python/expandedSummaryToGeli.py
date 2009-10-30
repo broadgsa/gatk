@@ -14,7 +14,9 @@ def grep(string, list):
 
 callFile = open(sys.argv[1])
 pileupFileLines = open(sys.argv[2])
+callFileWithLodScores = open(sys.argv[3])
 pileupFileLines = pileupFileLines.readlines()
+lodFileLines = callFileWithLodScores.readlines()
 
 for line in callFile:
 # note: file is a .csv; so comma delimited with headers
@@ -42,9 +44,10 @@ for line in callFile:
         #somehow this next line don't work
         #chrompos.replace(":"," ")
         g = chrompos.split(":");
-        chrompos = g.pop(0)+" "+g.pop(0)
+        chromposspc = g.pop(0)+" "+g.pop(0)
         #print(chrompos)
-        pileupLine = grep(chrompos,pileupFileLines)
+        pileupLine = grep(chromposspc,pileupFileLines)
+        lodLine = grep(chrompos,lodFileLines)
         #print(pileupLine)
         # line is
         # chr pos ref num_A num_C num_G num_T
@@ -60,7 +63,11 @@ for line in callFile:
             num_G = int(pileupList.pop(2))
             num_T = int(pileupList.pop(2))
             depth = num_A+num_C+num_G+num_T
+            lodLine = lodLine.pop(0)
+            lodLine = lodLine.split(" ")
+            # print(lodLine)
+            lod = max(float(lodLine.pop(21)),float(lodLine.pop(19)))
             # output is
             # chr pos ref depth mapping call btr btnb AA AC AG AT CC CG CT GG GT TT
-            outStr = chrompos+" "+ref+" "+str(depth)+" 5 "+variant+" -1 -2 -3 -4 -5 -6 -7 -8 -9 -10 -11 -12"
+            outStr = chrompos+" "+ref+" "+str(depth)+" 5 "+variant+" "+str(lod)+" -2 -3 -4 -5 -6 -7 -8 -9 -10 -11 -12"
             print(outStr)
