@@ -13,7 +13,8 @@ def grep(string, list):
     return [elem for elem in list if expr.match(elem)]
 
 callFile = open(sys.argv[1])
-pileupFileName = sys.argv[2]
+pileupFileLines = open(sys.argv[2])
+pileupFileLines = pileupFileLines.readlines()
 
 for line in callFile:
 # note: file is a .csv; so comma delimited with headers
@@ -43,7 +44,7 @@ for line in callFile:
         g = chrompos.split(":");
         chrompos = g.pop(0)+" "+g.pop(0)
         #print(chrompos)
-        pileupLine = grepFile(chrompos,open(pileupFileName))
+        pileupLine = grep(chrompos,pileupFileLines)
         #print(pileupLine)
         # line is
         # chr pos ref num_A num_C num_G num_T
