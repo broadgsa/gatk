@@ -60,7 +60,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_d
   delete bwa;
 }
 
-JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_align(JNIEnv* env, jobject object, jlong java_bwa, jbyteArray java_bases) {
+JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_getAlignments(JNIEnv* env, jobject object, jlong java_bwa, jbyteArray java_bases) {
   BWA* bwa = (BWA*)java_bwa;
 
   const jsize read_length = env->GetArrayLength(java_bases);

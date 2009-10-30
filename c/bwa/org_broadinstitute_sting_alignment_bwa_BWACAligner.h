@@ -25,10 +25,10 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_d
 
 /*
  * Class:     org_broadinstitute_sting_alignment_bwa_BWACAligner
- * Method:    align
+ * Method:    getAlignments
  * Signature: (J[B)[Lorg/broadinstitute/sting/alignment/Alignment;
  */
-JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_align
+JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_getAlignments
   (JNIEnv *, jobject, jlong, jbyteArray);
 
 #ifdef __cplusplus

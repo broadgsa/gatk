@@ -82,10 +82,40 @@ public class BWACAligner {
      * @param bases ASCII representation of byte array.
      * @return an array of indices into the bwa.
      */
-    public Alignment[] align(byte[] bases) {
+    public Alignment[] getAlignments(byte[] bases) {
         if(thunkPointer == 0)
             throw new StingException("BWA/C align attempted, but BWA/C was never properly initialized.");
-        return align(thunkPointer,bases);
+        return getAlignments(thunkPointer,bases);
+    }
+
+    /**
+     * Push all alignment data into individual SAMRecords, gaining in convenience but losing some of
+     * the additional data stored in an alignment object.
+     * @param read The read to align.
+     * @return A list of potential alignments.
+     */
+    public SAMRecord[] align(SAMRecord read) {
+        Alignment[] alignments = getAlignments(read.getReadBases());
+        SAMRecord[] reads = new SAMRecord[alignments.length];
+        for(int i = 0; i < alignments.length; i++) {
+            try {
+                reads[i] = (SAMRecord)read.clone();
+                reads[i].setReadUmappedFlag(false);
+                reads[i].setAlignmentStart((int)alignments[i].getAlignmentStart());
+                reads[i].setReadNegativeStrandFlag(alignments[i].isNegativeStrand());
+                reads[i].setMappingQuality(alignments[i].getMappingQuality());
+                reads[i].setCigar(alignments[i].getCigar());
+                if(alignments[i].isNegativeStrand()) {
+                    reads[i].setReadBases(BaseUtils.reverse(reads[i].getReadBases()));
+                    reads[i].setBaseQualities(BaseUtils.reverse(reads[i].getBaseQualities()));
+                }
+            }
+            catch(CloneNotSupportedException ex) {
+                throw new StingException("Unable to create aligned read from template.");
+            }
+        }
+
+        return reads;
     }
 
     /**
@@ -94,52 +124,5 @@ public class BWACAligner {
      * @param thunkPointer pointer to the C++ object managing BWA/C.
      * @param bases ASCII representation of byte array.
      */
-    protected native Alignment[] align(long thunkPointer, byte[] bases);
-
-    public static void main(String[] args) {
-        String prefix = "/Users/mhanna/reference/Ecoli/Escherichia_coli_K12_MG1655.fasta";
-        BWACAligner thunk = new BWACAligner(prefix + ".ann",
-                                        prefix + ".amb",
-                                        prefix + ".pac",
-                                        prefix + ".bwt",
-                                        prefix + ".sa",
-                                        prefix + ".rbwt",
-                                        prefix + ".rsa");
-
-        SAMFileReader reader = new SAMFileReader(new File("/Users/mhanna/reference/Ecoli/MV1994.bam"));
-        reader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
-
-        int count = 0;
-
-        try{
-            System.out.println("Press any key");
-            System.in.read();
-        }
-        catch(Exception ex) {
-            
-        }
-
-        for(SAMRecord read: reader) {
-            count++;
-            //if(count > 1) break;
-            //if(!read.getReadName().equals("SL-XBC:1:83:664:1077#0"))
-            //    continue;
-            byte[] bases = read.getReadBases();
-            if(read.getReadNegativeStrandFlag()) bases = BaseUtils.simpleReverseComplement(bases);
-
-            Alignment[] alignments = thunk.align(bases);
-            //System.out.printf("Read: %s: ", read.getReadName());
-            //for(Alignment alignment: alignments)
-            //    System.out.printf("tig = %d; pos = %d, neg strand = %b, mapQ = %d, cigar = %s;",
-            //                      alignment.getContigIndex(),
-            //                      alignment.getAlignmentStart(),
-            //                      alignment.isNegativeStrand(),
-            //                      alignment.getMappingQuality(),
-            //                      alignment.getCigarString());
-            if(count % 10000 == 0) System.out.printf("Processed %d reads.%n",count);
-            //System.out.printf("%n");
-        }
-
-        thunk.close();
-    }
+    protected native Alignment[] getAlignments(long thunkPointer, byte[] bases);
 }
