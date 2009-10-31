@@ -624,12 +624,14 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 //if ( pos == 3534096 ) System.out.println("pos="+pos +" total reads: "+context.getReads().size());
             Iterator<ExpandedSAMRecord> read_iter = context.getReads().iterator();
 
+
             while ( read_iter.hasNext() ) {
                 ExpandedSAMRecord rec = read_iter.next();
                 SAMRecord read = rec.getSAMRecord();
                 byte[] flags = rec.getExpandedMMFlags();
                 byte[] quals = rec.getExpandedQuals();
                 int mm = rec.getMMCount();
+
 
                 if( read.getAlignmentStart() > pos || read.getAlignmentEnd() < pos ) continue;
 
@@ -638,9 +640,9 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                                           // automatically since flags/quals are set to -1 there
 
                 boolean read_has_a_variant = false;
-                boolean read_has_consensus = ( consensus_indel!= null && consensus_indel.getReadSet().contains(read) );
+                boolean read_has_consensus = ( consensus_indel!= null && consensus_indel.getReadSet().contains(rec) );
                 for ( IndelVariant v : variants ) {
-                    if ( v.getReadSet().contains(read) ) {
+                    if ( v.getReadSet().contains(rec) ) {
                         read_has_a_variant = true;
                         local_right += v.lengthOnRef();
                         break;
