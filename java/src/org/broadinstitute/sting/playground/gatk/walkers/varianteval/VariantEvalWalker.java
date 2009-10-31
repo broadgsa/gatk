@@ -72,7 +72,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
     // the types of analysis we support, and the string tags we associate with the enumerated value
     enum ANALYSIS_TYPE {
-        ALL_SNPS("all"), SINGLETON_SNPS("singletons"), TWOHIT_SNPS("2plus_hit"), KNOWN_SNPS("2plus_hit"), NOVEL_SNPS("2plus_hit");
+        ALL_SNPS("all"), SINGLETON_SNPS("singletons"), TWOHIT_SNPS("2plus_hit"), KNOWN_SNPS("known"), NOVEL_SNPS("novel");
 
         private final String value;
         ANALYSIS_TYPE(String value) { this.value = value;}
@@ -226,7 +226,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             Variation eval = (Variation) tracker.lookup("eval", null);
 
             // ensure that the variation we're looking at is bi-allelic
-            if (eval != null && !eval.isBiallelic())
+            if ( eval != null && ! eval.isBiallelic() )
                 eval = null;  
 
             if (eval != null)
