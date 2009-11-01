@@ -17,7 +17,7 @@ import java.util.*;
  * To change this template use File | Settings | File Templates.
  */
     
-public class PooledGenotypeConcordance extends BasicVariantAnalysis implements GenotypeAnalysis {
+public class PooledGenotypeConcordance extends BasicVariantAnalysis implements PoolAnalysis, GenotypeAnalysis {
 
     private PooledConcordanceTable table;
     private String[] hapmapNames;

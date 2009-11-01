@@ -28,10 +28,10 @@ package org.broadinstitute.sting.gatk.refdata;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
+import org.broadinstitute.sting.utils.genotype.geli.GeliGenotypeCall;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -366,7 +366,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
      */
     @Override
     public Genotype getCalledGenotype() {
-        return new BasicGenotype(getLocation(), bestGenotype, refBase, lodBtnb);
+        return new GeliGenotypeCall(refBase, getLocation(), bestGenotype, lodBtnb);
     }
 
     /**
@@ -377,7 +377,7 @@ public class RodGeliText extends BasicReferenceOrderedDatum implements Variation
     @Override
     public List<Genotype> getGenotypes() {
         List<Genotype> ret = new ArrayList<Genotype>();
-        ret.add(new BasicGenotype(getLocation(), bestGenotype, refBase, lodBtnb));
+        ret.add(new GeliGenotypeCall(refBase, getLocation(), bestGenotype, lodBtnb));
         return ret;
     }
 

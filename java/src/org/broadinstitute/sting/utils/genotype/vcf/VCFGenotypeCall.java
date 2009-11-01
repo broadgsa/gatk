@@ -1,8 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.Arrays;
@@ -45,6 +44,33 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
         mPosteriors = new double[10];
         Arrays.fill(mPosteriors, Double.MIN_VALUE);
         mSampleName = "";
+        mReads = new ArrayList<SAMRecord>();
+    }
+
+    public VCFGenotypeCall(char ref, GenomeLoc loc, String genotype, double negLog10PError, String sample) {
+        mRefBase = ref;
+        mLocation = loc;
+        mBestGenotype = DiploidGenotype.valueOf(genotype);
+        mRefGenotype = DiploidGenotype.createHomGenotype(ref);
+        mSampleName = sample;
+
+        // set general posteriors to min double value
+        mPosteriors = new double[10];
+        Arrays.fill(mPosteriors, Double.MIN_VALUE);
+
+        // set the ref to PError
+        mPosteriors[mRefGenotype.ordinal()] = -1.0 * negLog10PError;
+
+        // set the best genotype to zero (need to do this after ref in case ref=best)
+        mPosteriors[mBestGenotype.ordinal()] = 0.0;
+
+        // choose a smart next best genotype and set it to PError
+        if ( mBestGenotype == mRefGenotype )
+            mNextGenotype = DiploidGenotype.valueOf(BaseUtils.simpleComplement(genotype));
+        else
+            mNextGenotype = mRefGenotype;
+        mPosteriors[mNextGenotype.ordinal()] = -1.0 * negLog10PError;
+
         mReads = new ArrayList<SAMRecord>();
     }
 

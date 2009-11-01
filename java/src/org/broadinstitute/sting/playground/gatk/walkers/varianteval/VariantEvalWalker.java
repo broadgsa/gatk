@@ -56,8 +56,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName = "numPeopleInPool", shortName="PS", doc="If using a variant file from a pooled caller, this field provides the number of individuals in each pool", required=false)
     public int numPeopleInPool = -1;
 
-    @Argument(fullName = "pathToHapmapPoolFile", shortName="HPF", doc="If using a variant file from a pooled caller on pools of hapmap individuals, this field provides a filepath to the pool construction file listing which hapmap individuals are in which pool", required=false)
-    public String pathToHapmapPoolFile = null;
+    @Argument(fullName = "samplesFile", shortName="samples", doc="When running an analysis on a number of individuals with truth data, this field provides a filepath to the listing of which samples are used (and are used to name corresponding rods with -B)", required=false)
+    public String samplesFile = null;
 
     String analysisFilenameBase = null;
 
@@ -129,7 +129,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         // Add new analyses here!
         //
         analyses.add(new ValidationDataAnalysis());
-        analyses.add(new PooledGenotypeConcordance(pathToHapmapPoolFile));
+        analyses.add(new PooledGenotypeConcordance(samplesFile));
         analyses.add(new VariantCounter());
         analyses.add(new VariantDBCoverage(knownSNPDBName));
         analyses.add(new PooledFrequencyAnalysis(numPeopleInPool,knownSNPDBName));
@@ -149,7 +149,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             VariantAnalysis analysis = iter.next();
             boolean disableForGenotyping = evalContainsGenotypes && !(analysis instanceof GenotypeAnalysis);
             boolean disableForPopulation = !evalContainsGenotypes && !(analysis instanceof PopulationAnalysis);
-            boolean disableForPools = (pathToHapmapPoolFile == null && analysis instanceof PooledGenotypeConcordance) || (numPeopleInPool < 1 && analysis instanceof PoolAnalysis);
+            boolean disableForPools = numPeopleInPool < 1 && analysis instanceof PoolAnalysis;
             boolean disable = disableForGenotyping | disableForPopulation | disableForPools;
             String causeName = disableForGenotyping ? "population" : (disableForPopulation ? "genotype" : (disableForPools ? "pool" : null));
             if (disable) {

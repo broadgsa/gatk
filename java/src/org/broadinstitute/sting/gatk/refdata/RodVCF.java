@@ -8,10 +8,7 @@ import org.broadinstitute.sting.utils.genotype.BasicGenotype;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeEncoding;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFReader;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -291,7 +288,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
                 qual = refQual;
             else if (lst.get(0).getFields().containsKey("GQ"))
                 qual = Double.valueOf(lst.get(0).getFields().get("GQ")) / 10.0;
-            return new BasicGenotype(this.getLocation(), Utils.join("", lst.get(0).getAlleles()), this.getReference().charAt(0), qual);
+            return new VCFGenotypeCall(this.getReference().charAt(0), this.getLocation(), Utils.join("", lst.get(0).getAlleles()), qual, lst.get(0).getSampleName());
         }
         return null;
     }
@@ -315,7 +312,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
                 qual = refQual;
             else if (rec.getFields().containsKey("GQ"))
                 qual = Double.valueOf(rec.getFields().get("GQ")) / 10.0;
-            genotypes.add(new BasicGenotype(this.getLocation(), Utils.join("", rec.getAlleles()), this.getReference().charAt(0), qual));
+            genotypes.add(new VCFGenotypeCall(this.getReference().charAt(0), this.getLocation(), Utils.join("", rec.getAlleles()), qual, rec.getSampleName()));
         }
         return genotypes;
     }
@@ -335,7 +332,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
                     qual = this.getNegLog10PError();
                 else if (record.getFields().containsKey("GQ"))
                     qual = Double.valueOf(record.getFields().get("GQ")) / 10.0;
-                return new BasicGenotype(this.getLocation(), Utils.join("", record.getAlleles()), this.getReference().charAt(0), qual);
+                return new VCFGenotypeCall(this.getReference().charAt(0), this.getLocation(), Utils.join("", record.getAlleles()), qual, record.getSampleName());
             }
         }
         return null;
