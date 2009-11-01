@@ -61,13 +61,29 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
                 matches &= (alignment.getAlignmentStart() == read.getAlignmentStart());
                 matches &= (alignment.isNegativeStrand() == read.getReadNegativeStrandFlag());
                 matches &= (alignment.getCigar().equals(read.getCigar()));
-                matches &= (alignment.getMappingQuality() == read.getMappingQuality());
+                //matches &= (alignment.getMappingQuality() == read.getMappingQuality());
                 if(matches) break;
             }
         }
 
-        if(!matches)
+        if(!matches) {
+            logger.error("Found mismatch!");
+            logger.error(String.format("Read %s:",read.getReadName()));
+            logger.error(String.format("    Contig index: %d",read.getReferenceIndex()));
+            logger.error(String.format("    Alignment start: %d", read.getAlignmentStart()));
+            logger.error(String.format("    Negative strand: %b", read.getReadNegativeStrandFlag()));
+            logger.error(String.format("    Cigar: %s%n", read.getCigarString()));
+            logger.error(String.format("    Mapping quality: %s%n", read.getMappingQuality()));
+            for(int i = 0; i < alignments.length; i++) {
+                logger.error(String.format("Alignment %d:",i));
+                logger.error(String.format("    Contig index: %d",alignments[i].getContigIndex()));
+                logger.error(String.format("    Alignment start: %d", alignments[i].getAlignmentStart()));
+                logger.error(String.format("    Negative strand: %b", alignments[i].isNegativeStrand()));
+                logger.error(String.format("    Cigar: %s", alignments[i].getCigarString()));
+                logger.error(String.format("    Mapping quality: %s%n", alignments[i].getMappingQuality()));
+            }
             throw new StingException(String.format("Read %s mismatches!", read.getReadName()));
+        }
 
         return 1;
     }
