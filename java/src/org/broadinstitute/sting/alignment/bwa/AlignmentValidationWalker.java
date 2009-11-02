@@ -26,6 +26,11 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
     private BWACAligner aligner = null;
 
     /**
+     * Number of reads processed.
+     */
+    private int count = 0;
+
+    /**
      * Create an aligner object.  The aligner object will load and hold the BWT until close() is called.
      */
     @Override
@@ -39,6 +44,15 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
                                   prefix + ".rsa");        
     }
 
+    /** Must return true for reads that need to be processed. Reads, for which this method return false will
+     * be skipped by the engine and never passed to the walker.
+     */
+    @Override
+    public boolean filter(char[] ref, SAMRecord read) {
+        return true;
+        //return read.getReadName().contains("SL-XBC:1:76:604:397#0");
+    }
+
     /**
      * Aligns a read to the given reference.
      * @param ref Reference over the read.  Read will most likely be unmapped, so ref will be null.
@@ -47,6 +61,8 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
      */
     @Override
     public Integer map(char[] ref, SAMRecord read) {
+        //logger.info(String.format("examining read %s", read.getReadName()));
+
         byte[] bases = read.getReadBases();
         if(read.getReadNegativeStrandFlag()) bases = BaseUtils.simpleReverseComplement(bases);
 
@@ -84,6 +100,10 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
             }
             throw new StingException(String.format("Read %s mismatches!", read.getReadName()));
         }
+
+        if(++count % 10000 == 0) logger.info(String.format("Processed %d reads", count));
+
+        //logger.info(String.format("validated read %s", read.getReadName()));        
 
         return 1;
     }

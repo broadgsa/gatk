@@ -105,6 +105,8 @@ void BWA::copy_bases_into_sequence(bwa_seq_t* sequence, const char* bases, const
 }
 
 void BWA::create_alignments(bwa_seq_t* sequence, Alignment*& alignments, unsigned& num_alignments) {
+  bool debug = false;
+
   num_alignments = 0;
   for(unsigned i = 0; i < (unsigned)sequence->n_aln; i++)
     num_alignments += (sequence->aln + i)->l - (sequence->aln + i)->k + 1;
@@ -127,8 +129,22 @@ void BWA::create_alignments(bwa_seq_t* sequence, Alignment*& alignments, unsigne
       sequence->aln = &working_alignment_block;
       sequence->n_aln = 1;
 
+      sequence->sa = sa_idx;
+      sequence->strand = alignment_block->a;
+      sequence->score = alignment_block->score;
+
+      // Each time through bwa_refine_gapped, seq gets reversed.  Revert the reverse.
+      // TODO: Fix the interface to bwa_refine_gapped so its easier to work with.
+      if(alignment_idx > 0)
+	seq_reverse(sequence->len, sequence->seq, 0);
+
       // Calculate the local alignment.
       bwa_cal_pac_pos_core(bwts[0],bwts[1],sequence,options.max_diff,options.fnr);
+      if(debug) {
+	printf("alignment_idx = %d, k = %d, l = %d, sa_idx = %d\n", alignment_idx, alignment_block->k, alignment_block->l, sa_idx);
+	printf("sequence->pos = %d\n",sequence->pos);
+      }
+
       bwa_refine_gapped(bns, 1, sequence, 0, NULL);
 
       // Copy the local alignment data into the alignment object.
