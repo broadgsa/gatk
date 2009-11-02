@@ -258,6 +258,8 @@ public class GenomeAnalysisEngine {
             if (new File(interval).exists()) {
                 // support for the bed style interval format
                 if (interval.endsWith(".bed") || interval.endsWith(".BED")) {
+                    Utils.warnUser("Bed files are zero based half open intervals, which are converted to one based closed intervals in the GATK.  " +
+                            "Be aware that all output information and intervals are one based closed intervals.");
                     BedParser parser = new BedParser(new File(interval));
                     locs.addAll(parser.getSortedAndMergedLocations());
                 } else {
