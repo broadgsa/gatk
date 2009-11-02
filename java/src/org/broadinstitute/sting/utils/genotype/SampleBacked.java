@@ -2,7 +2,7 @@ package org.broadinstitute.sting.utils.genotype;
 
 /**
  * @author aaron
- * Interface PosteriorsBacked
+ * Interface SampleBacked
  *
  * this interface indicates that the genotype is
  * backed up by sample information.

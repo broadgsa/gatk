@@ -43,7 +43,7 @@ import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
 import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.GenotypeMetaData;
+import org.broadinstitute.sting.utils.genotype.GenotypeLocusData;
 
 import java.io.File;
 import java.util.HashSet;
@@ -52,7 +52,7 @@ import java.util.ArrayList;
 
 
 @ReadFilters({ZeroMappingQualityReadFilter.class})
-public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeMetaData>, Integer> {
+public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeLocusData>, Integer> {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
@@ -149,7 +149,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeM
      * @param refContext the reference base
      * @param context contextual information around the locus
      */
-    public Pair<List<Genotype>, GenotypeMetaData> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
+    public Pair<List<Genotype>, GenotypeLocusData> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
         char ref = Character.toUpperCase(refContext.getBase());
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
@@ -211,7 +211,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeM
 
     public Integer reduceInit() { return 0; }
 
-    public Integer reduce(Pair<List<Genotype>, GenotypeMetaData> value, Integer sum) {
+    public Integer reduce(Pair<List<Genotype>, GenotypeLocusData> value, Integer sum) {
         // can't call the locus because of no coverage
         if ( value == null )
             return sum;

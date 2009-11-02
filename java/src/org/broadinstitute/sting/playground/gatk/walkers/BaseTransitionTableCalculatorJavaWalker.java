@@ -11,8 +11,6 @@ import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.*;
 import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.OutputStream;
 import java.io.FileNotFoundException;
 
 import net.sf.samtools.SAMRecord;
@@ -374,7 +372,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     }
 
     public boolean baseIsConfidentRef( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
-        Pair<List<Genotype>, GenotypeMetaData> calls = ug.map(tracker,ref,context);
+        Pair<List<Genotype>, GenotypeLocusData> calls = ug.map(tracker,ref,context);
         if (calls == null || calls.first == null)
             return false;
         return  (! calls.first.get(0).isVariant(ref.getBase())) && calls.first.get(0).getNegLog10PError() > confidentRefThreshold && BaseUtils.isRegularBase(ref.getBase());

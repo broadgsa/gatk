@@ -95,7 +95,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      * @param call the locus to add
      */
     public void addGenotypeCall(Genotype call) {
-        throw new UnsupportedOperationException("VCF calls require metadata; use the addMultiSampleCall method instead");
+        throw new UnsupportedOperationException("VCF calls require locusdata; use the addMultiSampleCall method instead");
     }
 
     /**
@@ -118,10 +118,12 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      *
      * @param genotypes the list of genotypes
      */
-    public void addMultiSampleCall(List<Genotype> genotypes, GenotypeMetaData metadata) {
+    public void addMultiSampleCall(List<Genotype> genotypes, GenotypeLocusData locusdata) {
         if (!mInitialized)
             lazyInitialize(mFile, mStream);
 
+        if ( locusdata != null && !(locusdata instanceof VCFGenotypeLocusData) )
+            throw new IllegalArgumentException("Only VCFGenotypeLocusData objects should be passed in to the VCF writers");
 
         VCFParameters params = new VCFParameters();
         params.addFormatItem("GT");
@@ -154,9 +156,9 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
             throw new IllegalArgumentException("Genotype array passed to VCFGenotypeWriterAdapter contained Genotypes not in the VCF header");
         }
 
-        Map<String, String> infoFields = getInfoFields(metadata, params);
+        Map<String, String> infoFields = getInfoFields((VCFGenotypeLocusData)locusdata, params);
 
-        double qual = (metadata == null) ? 0 : metadata.getLOD();
+        double qual = (locusdata == null) ? 0 : ((VCFGenotypeLocusData)locusdata).getConfidence();
         // maintain 0-99 based Q-scores
         qual = Math.min(qual, 99);
         qual = Math.max(qual, 0);
@@ -178,16 +180,16 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     /**
      * get the information fields of the VCF record, given the meta data and parameters
      *
-     * @param metadata the metadata associated with this multi sample call
+     * @param locusdata the metadata associated with this multi sample call
      * @param params   the parameters
      *
      * @return a mapping of info field to value
      */
-    private Map<String, String> getInfoFields(GenotypeMetaData metadata, VCFParameters params) {
+    private Map<String, String> getInfoFields(VCFGenotypeLocusData locusdata, VCFParameters params) {
         Map<String, String> infoFields = new HashMap<String, String>();
-        if (metadata != null) {
-            infoFields.put("SB", String.format("%.2f", metadata.getSLOD()));
-            infoFields.put("AF", String.format("%.2f", metadata.getAlleleFrequency()));
+        if ( locusdata != null ) {
+            infoFields.put("SB", String.format("%.2f", locusdata.getSLOD()));
+            infoFields.put("AF", String.format("%.2f", locusdata.getAlleleFrequency()));
         }
         infoFields.put("NS", String.valueOf(params.getGenotypesRecords().size()));
         return infoFields;

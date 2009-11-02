@@ -257,7 +257,7 @@ public class ArtificialPoolContext {
     public Genotype getGenotype(int group) {
         AlignmentContext alicon = this.getAlignmentContext();
         Pair<List<SAMRecord>[],List<Integer>[]> byGroupSplitPair = this.splitByGroup(alicon.getReads(),alicon.getOffsets());
-        Pair<List<Genotype>, GenotypeMetaData> result = ug.map(this.getRefMetaDataTracker(),this.getReferenceContext(),
+        Pair<List<Genotype>, GenotypeLocusData> result = ug.map(this.getRefMetaDataTracker(),this.getReferenceContext(),
                 new AlignmentContext(this.getAlignmentContext().getLocation(), byGroupSplitPair.first[group],byGroupSplitPair.second[group]));
         return (result.first == null ? null : result.first.get(0));
     }

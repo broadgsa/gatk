@@ -30,6 +30,9 @@ public class GenotypeWriterFactory {
      * @param format the format
      * @param header the sam file header
      * @param destination the destination file
+     * @param source the source
+     * @param referenceName the ref name
+     * @param sampleNames the sample names
      * @return the genotype writer object
      */
     public static GenotypeWriter create(GENOTYPE_FORMAT format,
@@ -73,6 +76,8 @@ public class GenotypeWriterFactory {
     /**
      * create a genotype call
      * @param format the format
+     * @param ref the reference base
+     * @param loc the location
      * @return an unpopulated genotype call object
      */
     public static Genotype createSupportedCall(GENOTYPE_FORMAT format, char ref, GenomeLoc loc) {
@@ -84,6 +89,27 @@ public class GenotypeWriterFactory {
                 return new GeliGenotypeCall(ref, loc);
             case GLF:
                 return new GLFGenotypeCall(ref, loc);
+            default:
+                throw new StingException("Genotype format " + format.toString() + " is not implemented");
+        }
+    }
+
+    /**
+     * create a genotype locus data object
+     * @param format the format
+     * @param ref the reference base
+     * @param loc the location
+     * @return an unpopulated genotype locus data object
+     */
+    public static GenotypeLocusData createSupportedGenotypeLocusData(GENOTYPE_FORMAT format, char ref, GenomeLoc loc) {
+        switch (format) {
+            case VCF:
+                return new VCFGenotypeLocusData(ref, loc);
+            case GELI:
+            case GELI_BINARY:
+                return null;
+            case GLF:
+                return null;
             default:
                 throw new StingException("Genotype format " + format.toString() + " is not implemented");
         }

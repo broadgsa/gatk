@@ -104,7 +104,7 @@ public class TabularLFWriter implements GenotypeWriter {
      * @param genotypes the list of genotypes, that are backed by sample information
      */
     @Override
-    public void addMultiSampleCall(List<Genotype> genotypes, GenotypeMetaData metadata) {
+    public void addMultiSampleCall(List<Genotype> genotypes, GenotypeLocusData metadata) {
         throw new UnsupportedOperationException("Tabular LF doesn't support multisample calls");
     }
 

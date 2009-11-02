@@ -37,7 +37,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
     private enum GenotypeType { REF, HET, HOM }
 
 
-    public Pair<List<Genotype>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public Pair<List<Genotype>, GenotypeLocusData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
         // keep track of the context for each sample, overall and separated by strand
         HashMap<String, AlignmentContextBySample> contexts = splitContextBySample(context);
@@ -49,24 +49,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         // run joint estimation for the full GL contexts
         initializeGenotypeLikelihoods(ref, contexts, StratifiedContext.OVERALL);
         calculateAlleleFrequencyPosteriors(ref, context.getLocation());
-        return createCalls(ref, contexts);
-
-        //double lod = overall.getPofD() - overall.getPofNull();
-        //logger.debug("lod=" + lod);
-
-        // calculate strand score
-        //EMOutput forward = calculate(ref, contexts, priors, StratifiedContext.FORWARD);
-        //EMOutput reverse = calculate(ref, contexts, priors, StratifiedContext.REVERSE);
-        //double forwardLod = (forward.getPofD() + reverse.getPofNull()) - overall.getPofNull();
-        //double reverseLod = (reverse.getPofD() + forward.getPofNull()) - overall.getPofNull();
-        //logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
-        //double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
-
-        //logger.debug(String.format("LOD=%f, SLOD=%f", lod, strandScore));
-
-        // generate the calls
-        //GenotypeMetaData metadata = new GenotypeMetaData(lod, strandScore, overall.getMAF());
-        //return new Pair<List<GenotypeCall>, GenotypeMetaData>(genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts), metadata);
+        return createCalls(ref, contexts, context.getLocation());
     }
 
     private void initializeAlleleFrequencies(int numSamples) {
@@ -292,7 +275,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         verboseWriter.println();
     }
 
-    private Pair<List<Genotype>, GenotypeMetaData> createCalls(char ref, HashMap<String, AlignmentContextBySample> contexts) {
+    private Pair<List<Genotype>, GenotypeLocusData> createCalls(char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {
         // first, find the alt allele with maximum confidence
         int indexOfMax = 0;
         char baseOfMax = ref;
@@ -312,14 +295,35 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
 
         // return a null call if we don't pass the confidence cutoff
         if ( !ALL_BASE_MODE && phredScaledConfidence < CONFIDENCE_THRESHOLD )
-            return new Pair<List<Genotype>, GenotypeMetaData>(null, null);
+            return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
 
         double bestAFguess = findMaxEntry(alleleFrequencyPosteriors[indexOfMax]).second / (double)(frequencyEstimationPoints-1);
         ArrayList<Genotype> calls = new ArrayList<Genotype>();
 
-        // TODO -- generate strand score
-        double strandScore = 0.0;
-        GenotypeMetaData metadata = new GenotypeMetaData(phredScaledConfidence, strandScore, bestAFguess);
+        GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, loc);
+        if ( locusdata != null ) {
+            if ( locusdata instanceof ConfidenceBacked ) {
+                ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
+            }
+            if ( locusdata instanceof SLODBacked ) {
+                // TODO -- generate strand score
+                double strandScore = 0.0;
+
+                // calculate strand score
+                //EMOutput forward = runEM(ref, contexts, priors, StratifiedContext.FORWARD);
+                //EMOutput reverse = runEM(ref, contexts, priors, StratifiedContext.REVERSE);
+                //double forwardLod = (forward.getPofD() + reverse.getPofNull()) - overall.getPofNull();
+                //double reverseLod = (reverse.getPofD() + forward.getPofNull()) - overall.getPofNull();
+                //logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
+                //double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
+                //logger.debug(String.format("SLOD=%f", lod, strandScore));
+
+                ((SLODBacked)locusdata).setSLOD(strandScore);
+            }
+            if ( locusdata instanceof AlleleFrequencyBacked ) {
+                ((AlleleFrequencyBacked)locusdata).setAlleleFrequency(bestAFguess);
+            }
+        }
 
         for ( String sample : GLs.keySet() ) {
 
@@ -343,6 +347,6 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
             calls.add(call);
         }
 
-        return new Pair<List<Genotype>, GenotypeMetaData>(calls, metadata);
+        return new Pair<List<Genotype>, GenotypeLocusData>(calls, locusdata);
     }
 }

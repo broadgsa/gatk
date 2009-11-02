@@ -80,7 +80,7 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
                     List<Integer> sub_offsets = ListUtils.sliceListByIndices(subset_indices, offsets);
 
                     AlignmentContext subContext = new AlignmentContext(context.getLocation(), sub_reads, sub_offsets);
-                    Pair<List<Genotype>, GenotypeMetaData> calls = UG.map(tracker, ref, subContext);
+                    Pair<List<Genotype>, GenotypeLocusData> calls = UG.map(tracker, ref, subContext);
                     if (calls != null && calls.first != null) {
                         Genotype call = calls.first.get(0);
                         String callType = (call.isVariant(call.getReference())) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";

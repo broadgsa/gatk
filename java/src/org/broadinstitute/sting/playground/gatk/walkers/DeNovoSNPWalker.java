@@ -70,10 +70,10 @@ public class DeNovoSNPWalker extends RefWalker<String, Integer>{
                 }
 
                 AlignmentContext parent1_subContext = new AlignmentContext(context.getLocation(), parent1_reads, parent1_offsets);
-                Pair<List<Genotype>, GenotypeMetaData> parent1 = UG.map(tracker, ref, parent1_subContext);
+                Pair<List<Genotype>, GenotypeLocusData> parent1 = UG.map(tracker, ref, parent1_subContext);
 
                 AlignmentContext parent2_subContext = new AlignmentContext(context.getLocation(), parent2_reads, parent2_offsets);
-                Pair<List<Genotype>, GenotypeMetaData> parent2 = UG.map(tracker, ref, parent2_subContext);
+                Pair<List<Genotype>, GenotypeLocusData> parent2 = UG.map(tracker, ref, parent2_subContext);
 
                 if ( parent1 != null && parent1.first != null && parent2 != null && parent2.first != null ) {
                     Genotype parent1call = parent1.first.get(0);

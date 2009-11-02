@@ -24,7 +24,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
 
     // overload this method so we can special-case the single sample
-    public Pair<List<Genotype>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public Pair<List<Genotype>, GenotypeLocusData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
         // we don't actually want to run EM for single samples
         if ( samples.size() == 1 ) {
@@ -45,18 +45,17 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             // get the genotype likelihoods
             Pair<ReadBackedPileup, GenotypeLikelihoods> discoveryGL = getSingleSampleLikelihoods(ref, sampleContext, priors, StratifiedContext.OVERALL);
 
-            // are we above the lod threshold for emitting calls (and not in all-bases-mode)?
-            if ( !ALL_BASE_MODE ) {
-                double[] posteriors = discoveryGL.second.getPosteriors();
-                Integer sortedPosteriors[] = Utils.SortPermutation(posteriors);
-                double bestGenotype = posteriors[sortedPosteriors[sortedPosteriors.length - 1]];
-                double nextBestGenotype = posteriors[sortedPosteriors[sortedPosteriors.length - 2]];
-                double refGenotype = posteriors[DiploidGenotype.createHomGenotype(ref).ordinal()];
-                double lodConfidence = (GENOTYPE_MODE ? (bestGenotype - nextBestGenotype) : (bestGenotype - refGenotype));
+            // calculate the lod threshold
+            double[] posteriors = discoveryGL.second.getPosteriors();
+            Integer sortedPosteriors[] = Utils.SortPermutation(posteriors);
+            double bestGenotype = posteriors[sortedPosteriors[sortedPosteriors.length - 1]];
+            double nextBestGenotype = posteriors[sortedPosteriors[sortedPosteriors.length - 2]];
+            double refGenotype = posteriors[DiploidGenotype.createHomGenotype(ref).ordinal()];
+            double lodConfidence = (GENOTYPE_MODE ? (bestGenotype - nextBestGenotype) : (bestGenotype - refGenotype));
 
-                // return a null call
-                if ( lodConfidence < LOD_THRESHOLD )
-                    return new Pair<List<Genotype>, GenotypeMetaData>(null, null);
+            // are we above the lod threshold for emitting calls (and not in all-bases mode)?
+            if ( !ALL_BASE_MODE && lodConfidence < LOD_THRESHOLD ) {
+                    return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
             }
 
             // we can now create the genotype call object
@@ -75,7 +74,14 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                 ((PosteriorsBacked)call).setPosteriors(discoveryGL.second.getPosteriors());
             }
 
-            return new Pair<List<Genotype>, GenotypeMetaData>(Arrays.asList(call), null);
+            GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, context.getLocation());
+            if ( locusdata != null ) {
+                if ( locusdata instanceof ConfidenceBacked ) {
+                    ((ConfidenceBacked)locusdata).setConfidence(lodConfidence);
+                }
+            }
+
+            return new Pair<List<Genotype>, GenotypeLocusData>(Arrays.asList(call), locusdata);
         }
 
         return super.calculateGenotype(tracker, ref, context, priors);

@@ -96,7 +96,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      *
      * @return calls
      */
-    public abstract Pair<List<Genotype>, GenotypeMetaData> calculateGenotype(RefMetaDataTracker tracker,
+    public abstract Pair<List<Genotype>, GenotypeLocusData> calculateGenotype(RefMetaDataTracker tracker,
                                                                              char ref,
                                                                              AlignmentContext context,
                                                                              DiploidGenotypePriors priors);
