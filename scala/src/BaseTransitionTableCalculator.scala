@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.scala
+/**package org.broadinstitute.sting.scala
 
 import gatk.walkers.genotyper.{UnifiedGenotyper, GenotypeCall}
 import java.io.File
@@ -68,7 +68,7 @@ class TransitionTable() {
   }
 }
 
-class BaseTransitionTableCalculator extends LocusWalker[Unit,Int] {
+class BaseTransitionTableCalculator { // extends LocusWalker[Unit,Int] {
   private var MIN_MAPPING_QUALITY = 30
   private var MIN_BASE_QUALITY = 20
   private var MIN_LOD = 5
@@ -208,3 +208,4 @@ class BaseTransitionTableCalculator extends LocusWalker[Unit,Int] {
     print1("1-mismatch-rev", tableREV)
   }
 }
+*/

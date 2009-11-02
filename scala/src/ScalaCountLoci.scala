@@ -5,9 +5,8 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext
 
-class PrintReadsScala extends LocusWalker[Int,Int] {
+class ScalaCountLoci extends LocusWalker[Int,Int] {
     override def map(tracker: RefMetaDataTracker, ref: ReferenceContext, context: AlignmentContext): Int = {
-        //println(context.getReads().size())
         return 1
     }
 

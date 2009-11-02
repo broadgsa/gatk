@@ -40,21 +40,18 @@
     <property name="ivy.jar.file" value="ivy-${ivy.install.version}.jar"/>
     <property name="ivy.settings.dir" value="settings"/>
     <property file="${ivy.settings.dir}/ivysettings.properties"/>
-
+    <property name="ivy.conf" value="default"/>
     <target name="resolve" depends="init"
             description="locate and download library dependencies">
-        <!-- retrieve ivy if necessary -->
-        <mkdir dir="${ivy.jar.dir}"/>
-        <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
-             dest="${ivy.jar.dir}/${ivy.jar.file}"
-             usetimestamp="true"/>
-        <!-- initialize and load ivy -->
-        <taskdef resource="org/apache/ivy/ant/antlib.xml"
-                 uri="antlib:org.apache.ivy.ant"
-                 classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
-        <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
-        <!-- retrieve dependencies -->
-        <ivy:retrieve/>
+      <mkdir dir="${ivy.jar.dir}"/>
+      <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
+           dest="${ivy.jar.dir}/${ivy.jar.file}"
+           usetimestamp="true"/>
+      <taskdef resource="org/apache/ivy/ant/antlib.xml"
+               uri="antlib:org.apache.ivy.ant"
+               classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
+      <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
+      <ivy:retrieve file="ivy.xml" conf="${ivy.conf}" />
     </target>
 
 
@@ -104,10 +101,7 @@
         </jar>
 
         <jar jarfile="${dist}/GenomeAnalysisTK.jar">
-            <fileset dir="build">
-              <include name="**/gatk/**/*.class"/>
-              <include name="**/alignment/**/*.class"/>
-            </fileset>
+            <fileset dir="build" includes="**/gatk/**/*.class"/>
             <manifest>
                 <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.CommandLineGATK"/>
             </manifest>
@@ -134,6 +128,7 @@
         <pathconvert property="jar.classpath" pathsep=" ">
             <flattenmapper/>
             <fileset dir="${dist}" includes="*.jar"/>
+            <filelist files="GATKScala.jar"/>
         </pathconvert>
 
         <jar jarfile="${dist}/StingUtils.jar" update="true">
@@ -186,54 +181,47 @@
         </javac>
     </target>
 
-
-   <property name="scala.home" value="scala/installation"/>
-   <property
-      name="build.dir"
-      value="${base.dir}/build"
-       />
-    <target name="init.scala">
-      <property
-        name="scala-library.jar"
-        value="${scala.home}/lib/scala-library.jar"
-         />
-      <path id="build.classpath">
-        <pathelement location="${scala-library.jar}"   />
-        <!--<pathelement location="${your.path}"   />-->
-        <pathelement location="${build.dir}"   />
+    <!-- new scala target -->
+    
+    <target name="scala" description="build the scala directory">
+      <antcall target="resolve">
+        <param name="ivy.conf" value="scala"/>
+      </antcall>
+        <antcall target="dist"/>    
+      <property name="scala.src" value="scala/src" />
+      <property name="scala.classes" value="scala/classes" />
+      <pathconvert property="scalajar.classpath" pathsep=";">
+        <flattenmapper/>
+        <fileset dir="${basedir}" includes="dist/*.jar"/>
+      </pathconvert>
+      
+      <path id="scala.classpath">
+        <pathelement location="lib/scala-compiler-2.7.7.jar"/>
+        <pathelement location="lib/scala-library-2.7.7.jar"/>
+        <fileset dir="${dist}">
+          <patternset id="scalaStuff">
+            <include name="*.jar"/>
+        </patternset>
+        </fileset>
       </path>
-     <taskdef name="scalac" classname="scala.tools.ant.Scalac">
-        <classpath>
-          <pathelement location="${scala.home}/lib/scala-compiler.jar"   />
-          <pathelement location="${scala-library.jar}"   />
-        </classpath>
-    </taskdef>
+      <taskdef resource="scala/tools/ant/antlib.xml">
+        <classpath refid="scala.classpath"/>
+      </taskdef>
+      <mkdir dir="${scala.classes}"/>
+      <echo>Building Scala...</echo>
+      <scalac srcdir="${scala.src}" destdir="${scala.classes}" classpathref="scala.classpath" force="changed">
+        <include name="**/*.scala"/>
+      </scalac>
+      
+      <jar jarfile="${dist}/GATKScala.jar">
+        <fileset dir="${scala.classes}">
+          <include name="**/*.class"/>
+        </fileset>
+      </jar>
     </target>
     
-    <property name="scala.src" value="scala/src" />
-    <property name="scala.classes" value="scala/classes" />
-    <target name="scala" depends="init.scala" description="build the scala code">
-        <echo message="Sting: Compiling scala!"/>
-        <mkdir dir="${scala.classes}"/>
 
-        <scalac srcdir="${scala.src}" destdir="${scala.classes}" force="changed">
-            <include name="**/*.scala"/>
-            <classpath>
-                <path refid="runtime.dependencies" />
-                <pathelement location="build"/>
-                <pathelement location="lib/junit-4.4.jar"/>
-                <pathelement location="${scala.home}/lib/scala-compiler.jar"   />
-                <pathelement location="${scala-library.jar}"   />
-          </classpath>
-        </scalac>
-        
-        <delete file="${dist}/GATKScala.jar"/>
-        <jar jarfile="${dist}/GATKScala.jar">
-           <fileset dir="${scala.classes}">
-               <include name="**/*.class"/>
-           </fileset>
-        </jar>
-    </target>
+
 
     <!-- TEST -->
     <target name="test" depends="test.compile,agent" description="Run unit tests">
@@ -265,10 +253,13 @@
         <mkdir dir="${report}"/>
         <echo message="Sting: Running integration test cases!"/>
         <junit printsummary="yes" showoutput="yes" clonevm="yes" haltonfailure="yes" failureProperty="test.failure">
+
+            <jvmarg value="-Xdebug"/>
+            <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8090"/>
             <formatter type="${testOutput}" usefile="${usefile}" />
             <classpath>
                 <path refid="runtime.dependencies"/>
-                <pathelement location="build"/>
+                <pathelement location="${dist}/GenomeAnalysisTK.jar"/>
                 <pathelement location="${test.classes}"/>
                 <pathelement location="lib/junit-4.4.jar"/>
             </classpath>

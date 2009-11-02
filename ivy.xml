@@ -1,21 +1,30 @@
+
 <ivy-module version="1.0">
   <info organisation="org.broadinstitute" module="Sting"/>
-  <dependencies>
-    <dependency org="net.sf" name="sam" rev="latest.integration" />
-    <dependency org="net.sf" name="picard" rev="latest.integration" />
-    <dependency org="edu.mit.broad" name="picard-private" rev="latest.integration" />
-    <dependency org="junit" name="junit" rev="4.4" />
-    <dependency org="log4j" name="log4j" rev="1.2.15" />
-    <dependency org="colt" name="colt" rev="1.2.0" />
-    <dependency org="jboss" name="javassist" rev="3.7.ga" />
-    <dependency org="org.simpleframework" name="simple-xml" rev="2.0.4" />
-    <dependency org="org.apache.bcel" name="bcel" rev="5.2" />
-    
+  <configurations>
+    <conf name="default" description="the core dependencies for the GATK"/>
+    <conf name="scala" extends="default" description="the dependencies for scala"/>
+  </configurations>
+  <dependencies defaultconf="default">
+    <dependency org="net.sf" name="sam" rev="latest.integration" conf="default"/>
+    <dependency org="net.sf" name="picard" rev="latest.integration" conf="default"/>
+    <dependency org="edu.mit.broad" name="picard-private" rev="latest.integration" conf="default"/>
+    <dependency org="junit" name="junit" rev="4.4" conf="default"/>
+    <dependency org="log4j" name="log4j" rev="1.2.15" conf="default"/>
+    <dependency org="colt" name="colt" rev="1.2.0" conf="default"/>
+    <dependency org="jboss" name="javassist" rev="3.7.ga" conf="default"/>
+    <dependency org="org.simpleframework" name="simple-xml" rev="2.0.4" conf="default"/>
+    <dependency org="org.apache.bcel" name="bcel" rev="5.2" conf="default"/>
+   
     <!-- Dependencies for reflections mvn repository -->
-    <dependency org="org.reflections" name="reflections" rev="0.9.2" />
-    <dependency org="com.google.collections" name="google-collections" rev="0.9" />
-    
-    <!-- JGraph -->
-    <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3" />    
+    <dependency org="org.reflections" name="reflections" rev="0.9.2" conf="default"/>
+    <dependency org="com.google.collections" name="google-collections" rev="0.9" conf="default"/>
+
+    <!-- Dependencies for the graph aligner -->  
+      <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3" conf="default"/>
+     
+    <!-- Scala dependancies -->
+    <dependency org="org.scala-lang" name="scala-compiler" rev="2.7.7" conf="scala->default"/>
+    <dependency org="org.scala-lang" name="scala-library" rev="2.7.7" conf="scala->default"/>
   </dependencies>
 </ivy-module>
