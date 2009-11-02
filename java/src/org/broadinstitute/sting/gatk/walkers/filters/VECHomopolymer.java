@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
+import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.VariantContext;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -8,8 +9,6 @@ import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-
-import net.sf.picard.reference.ReferenceSequence;
 
 
 /**
@@ -33,7 +32,7 @@ public class VECHomopolymer implements VariantExclusionCriterion {
         if ( args.get("extent") != null )
             extent = Integer.valueOf(args.get("extent"));
         if ( args.get("fraction") != null )
-            frac = Integer.valueOf(args.get("fraction"));
+            frac = Float.valueOf(args.get("fraction"));
 
         File refFile = new File ("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta");
 
