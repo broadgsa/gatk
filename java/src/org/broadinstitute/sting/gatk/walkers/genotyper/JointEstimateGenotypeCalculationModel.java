@@ -300,31 +300,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         double bestAFguess = findMaxEntry(alleleFrequencyPosteriors[indexOfMax]).second / (double)(frequencyEstimationPoints-1);
         ArrayList<Genotype> calls = new ArrayList<Genotype>();
 
-        GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, loc);
-        if ( locusdata != null ) {
-            if ( locusdata instanceof ConfidenceBacked ) {
-                ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
-            }
-            if ( locusdata instanceof SLODBacked ) {
-                // TODO -- generate strand score
-                double strandScore = 0.0;
-
-                // calculate strand score
-                //EMOutput forward = runEM(ref, contexts, priors, StratifiedContext.FORWARD);
-                //EMOutput reverse = runEM(ref, contexts, priors, StratifiedContext.REVERSE);
-                //double forwardLod = (forward.getPofD() + reverse.getPofNull()) - overall.getPofNull();
-                //double reverseLod = (reverse.getPofD() + forward.getPofNull()) - overall.getPofNull();
-                //logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
-                //double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
-                //logger.debug(String.format("SLOD=%f", lod, strandScore));
-
-                ((SLODBacked)locusdata).setSLOD(strandScore);
-            }
-            if ( locusdata instanceof AlleleFrequencyBacked ) {
-                ((AlleleFrequencyBacked)locusdata).setAlleleFrequency(bestAFguess);
-            }
-        }
-
+        // first, populate the sample-specific data
         for ( String sample : GLs.keySet() ) {
 
             // create the call
@@ -345,6 +321,44 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
             }
 
             calls.add(call);
+        }
+
+        // next, the general locus data
+        // note that calculating strand bias involves overwriting data structures, so we do that last
+        GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, loc);
+        if ( locusdata != null ) {
+            if ( locusdata instanceof ConfidenceBacked ) {
+                ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
+            }
+            if ( locusdata instanceof AlleleFrequencyBacked ) {
+                ((AlleleFrequencyBacked)locusdata).setAlleleFrequency(bestAFguess);
+            }
+            if ( locusdata instanceof SLODBacked ) {
+                // the overall lod
+                double overallLog10PofNull = Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
+                double overallLog10PofF = Math.log10(PofFs[indexOfMax]);
+                double lod = overallLog10PofF - overallLog10PofNull;
+
+                // the forward lod
+                initializeGenotypeLikelihoods(ref, contexts, StratifiedContext.FORWARD);
+                calculateAlleleFrequencyPosteriors(ref, loc);
+                double forwardLog10PofNull = Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
+                double forwardLog10PofF = Math.log10(PofFs[indexOfMax]);
+
+                // the reverse lod
+                initializeGenotypeLikelihoods(ref, contexts, StratifiedContext.REVERSE);
+                calculateAlleleFrequencyPosteriors(ref, loc);
+                double reverseLog10PofNull = Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
+                double reverseLog10PofF = Math.log10(PofFs[indexOfMax]);
+
+                double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofNull;
+                double reverseLod = reverseLog10PofF + forwardLog10PofNull - overallLog10PofNull;
+                //logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
+                double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
+                //logger.debug(String.format("SLOD=%f", strandScore));
+
+                ((SLODBacked)locusdata).setSLOD(strandScore);
+            }
         }
 
         return new Pair<List<Genotype>, GenotypeLocusData>(calls, locusdata);
