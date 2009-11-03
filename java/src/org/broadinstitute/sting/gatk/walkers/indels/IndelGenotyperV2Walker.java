@@ -286,6 +286,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             if ( DEBUG ) System.out.println("DEBUG>> indel observations present within "+NQS_WIDTH+" bases ahead. Resetting shift to "+request);
             attempts++;
             if ( attempts == 4 ) {
+                System.out.println("DEBUG>> attempts to preserve full NQS window failed; now trying to find any suitable position.") ;
                 failure = true;
                 break;
             }
@@ -297,14 +298,15 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             // first position after the shift (this is bad for other reasons); if it breaks a nqs window, so be it
             request = initial_request;
             attempts = 0;
-            while ( tumor_context.hasIndelsInInterval(request,request) ||
-                  normal_context.hasIndelsInInterval(request,request) ) {
+            while ( tumor_context.hasIndelsInInterval(request,request+1) ||
+                  normal_context.hasIndelsInInterval(request,request+1) ) {
                 request--;
                 if ( DEBUG ) System.out.println("DEBUG>> indel observations present within "+NQS_WIDTH+" bases ahead. Resetting shift to "+request);
                 attempts++;
                 if ( attempts == 50 ) throw new StingException("Indel at every position in the interval ["+request+", "+initial_request+"]. Can not find a break to shift context window to");
             }
         }
+        if ( DEBUG ) System.out.println("DEBUG>> Found acceptable target position "+request);
         return request;
     }
 
