@@ -54,7 +54,7 @@ class VCFRecord:
 def parseInfo(s):
     def handleBoolean(key_val):
         if len(key_val) == 1:
-            return [key_val[0], True]
+            return [key_val[0], 1]
         else:
             return key_val
 
