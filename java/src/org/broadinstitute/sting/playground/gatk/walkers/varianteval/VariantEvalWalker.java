@@ -232,6 +232,11 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             if (eval != null)
                 if (eval.getNegLog10PError() < minConfidenceScore) eval = null;
 
+	    if ( eval != null && (eval instanceof RodVCF) && ((RodVCF)eval).mCurrentRecord.isFiltered() ) {
+		//System.out.printf("Rejecting filtered record %s%n", eval);
+		eval = null;
+	    }
+
             // update stats about all of the SNPs
             updateAnalysisSet(ANALYSIS_TYPE.ALL_SNPS, eval, tracker, ref.getBase(), context);
 

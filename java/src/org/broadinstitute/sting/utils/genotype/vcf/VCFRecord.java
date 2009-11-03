@@ -212,15 +212,23 @@ public class VCFRecord {
     /**
      * get the filter criteria
      *
-     * @return an array of strings representing the filtering criteria, or null if none were applied
+     * @return an array of strings representing the filtering criteria, or 0 is none are applied
      */
     public String[] getFilteringCodes() {
         if (mFilterString == null) return new String[]{"0"};
         return this.mFilterString.split(FILTER_CODE_SEPERATOR);
     }
 
+    public boolean isFiltered() {
+	String[] codes = getFilteringCodes();
+	if ( codes.length > 1 ) return true;
+	else if ( codes[0].equals(".") || codes[0].equals("0") ) return false;
+	else return true;
+    }
+
     public boolean hasFilteringCodes() {
-        return getAlternateAlleles() != null;
+	// todo --- currently always returns true
+        return getFilteringCodes() != null;
     }
 
     /**
