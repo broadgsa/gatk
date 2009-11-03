@@ -64,8 +64,9 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                     "by this application, so they will not contribute indels to consider and will not be counted.", required=false)
     PlatformUnitFilterHelper dummy;
      @Argument(fullName="indel_debug", shortName="idebug", doc="Detailed printout for debugging",required=false) Boolean DEBUG = false;
+    @Argument(fullName="window_size", shortName="ws", doc="Size (bp) of the sliding window used for accumulating the coverage. "+
+            "May need to be increased to accomodate longer reads or longer deletions.",required=false) int WINDOW_SIZE = 200;
 
-	private static int WINDOW_SIZE = 200;
 	private WindowContext tumor_context;
 	private WindowContext normal_context; 
 	private int currentContigIndex = -1;
