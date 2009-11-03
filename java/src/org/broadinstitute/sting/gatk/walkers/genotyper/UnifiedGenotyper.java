@@ -100,8 +100,16 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
      **/
     public void initialize() {
 
+        // deal with input errors
         if ( UAC.POOLED && UAC.genotypeModel == GenotypeCalculationModel.Model.EM_POINT_ESTIMATE ) {
             throw new StingException("This was an attempt to use an EM Point Estimate model with pooled genotype calculations. This model does not work with pooled data.");
+        }
+        if ( UAC.LOD_THRESHOLD > Double.MIN_VALUE ) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("\n***\tThe --lod_threshold argument is no longer supported; instead, please use --min_confidence_threshold.");
+            sb.append("\n***\tThere is approximately a 10-to-1 mapping from confidence to LOD.");
+            sb.append("\n***\tUse Q" + (10.0 * UAC.LOD_THRESHOLD) + " as an approximate equivalent to your LOD " + UAC.LOD_THRESHOLD + " cutoff");
+            throw new StingException(sb.toString());
         }
 
         // get all of the unique sample names

@@ -71,11 +71,11 @@ public class UnifiedArgumentCollection {
 
 
     // control the various parameters to be used
-    @Argument(fullName = "lod_threshold", shortName = "lod", doc = "The lod threshold by which variants should be filtered (for EM_POINT_ESTIMATE model)", required = false)
+    @Argument(fullName = "lod_threshold", shortName = "lod", doc = "[DEPRECATED] The lod threshold by which variants should be filtered", required = false)
     public double LOD_THRESHOLD = Double.MIN_VALUE;
 
-    @Argument(fullName = "min_confidence_threshold", shortName = "confidence", doc = "The phred-scaled confidence threshold by which variants should be filtered (for JOINT_ESTIMATE model)", required = false)
-    public double CONFIDENCE_THRESHOLD = Double.MIN_VALUE;
+    @Argument(fullName = "min_confidence_threshold", shortName = "confidence", doc = "The phred-scaled confidence threshold by which variants should be filtered", required = false)
+    public double CONFIDENCE_THRESHOLD = 0.0;
 
     @Argument(fullName = "max_deletions", shortName = "deletions", doc = "Maximum reads with deletions spanning this locus for it to be callable [default:1]", required = false)
     public Integer MAX_DELETIONS = 1;

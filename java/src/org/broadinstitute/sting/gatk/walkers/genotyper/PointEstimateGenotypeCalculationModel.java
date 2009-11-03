@@ -45,16 +45,27 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             // get the genotype likelihoods
             Pair<ReadBackedPileup, GenotypeLikelihoods> discoveryGL = getSingleSampleLikelihoods(ref, sampleContext, priors, StratifiedContext.OVERALL);
 
-            // calculate the lod threshold
-            double[] posteriors = discoveryGL.second.getPosteriors();
+            // find the index of the best genotype
+            double[] posteriors = discoveryGL.second.getNormalizedPosteriors();
             Integer sortedPosteriors[] = Utils.SortPermutation(posteriors);
-            double bestGenotype = posteriors[sortedPosteriors[sortedPosteriors.length - 1]];
-            double nextBestGenotype = posteriors[sortedPosteriors[sortedPosteriors.length - 2]];
-            double refGenotype = posteriors[DiploidGenotype.createHomGenotype(ref).ordinal()];
-            double lodConfidence = (GENOTYPE_MODE ? (bestGenotype - nextBestGenotype) : (bestGenotype - refGenotype));
+            int bestIndex = sortedPosteriors[sortedPosteriors.length - 1];
+
+            // flag to determine if ref is the best call (not necessary in genotype mode)
+            boolean bestIsRef = false;
+
+            // calculate the phred-scaled confidence score
+            double phredScaledConfidence;
+            if ( GENOTYPE_MODE ) {
+                phredScaledConfidence = -10.0 * Math.log10(1.0 - posteriors[bestIndex]);
+            } else {
+                int refIndex = DiploidGenotype.createHomGenotype(ref).ordinal();
+                bestIsRef = (refIndex == bestIndex);
+                double pError = (bestIsRef ? 1.0 - posteriors[refIndex] : posteriors[refIndex]);
+                phredScaledConfidence = -10.0 * Math.log10(pError);
+            }
 
             // are we above the lod threshold for emitting calls (and not in all-bases mode)?
-            if ( !ALL_BASE_MODE && lodConfidence < LOD_THRESHOLD ) {
+            if ( !ALL_BASE_MODE && (bestIsRef || phredScaledConfidence < CONFIDENCE_THRESHOLD) ) {
                     return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
             }
 
@@ -77,7 +88,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, context.getLocation());
             if ( locusdata != null ) {
                 if ( locusdata instanceof ConfidenceBacked ) {
-                    ((ConfidenceBacked)locusdata).setConfidence(lodConfidence);
+                    ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
                 }
             }
 

@@ -26,28 +26,46 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
 
         // run the EM calculation
         EMOutput overall = runEM(ref, contexts, priors, StratifiedContext.OVERALL);
-        double lod = overall.getPofD() - overall.getPofNull();
-        logger.debug(String.format("LOD=%f", lod));
 
-        // return a null call if we don't pass the lod cutoff
-        if ( !ALL_BASE_MODE && lod < LOD_THRESHOLD )
-            return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
+        double PofD = Math.pow(10, overall.getPofD());
+        double PofNull = Math.pow(10, overall.getPofNull());
+        double sum = PofD + PofNull;
+
+        // calculate the phred-scaled confidence score
+        double phredScaledConfidence;
+        boolean bestIsRef = false;
+        if ( PofD > PofNull ) {
+            phredScaledConfidence = -10.0 * Math.log10(PofNull / sum);
+        } else {
+            phredScaledConfidence = -10.0 * Math.log10(PofD / sum);
+            bestIsRef = true;
+        }
+
+        // are we above the lod threshold for emitting calls (and not in all-bases mode)?
+        if ( !ALL_BASE_MODE && (bestIsRef || phredScaledConfidence < CONFIDENCE_THRESHOLD) ) {
+                return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
+        }
 
         // generate the calls
         GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, context.getLocation());
         if ( locusdata != null ) {
             if ( locusdata instanceof ConfidenceBacked ) {
-                ((ConfidenceBacked)locusdata).setConfidence(lod);
+                ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
             }
             if ( locusdata instanceof SLODBacked ) {
+
                 // calculate strand score
+
+                double lod = overall.getPofD() - overall.getPofNull();
+                logger.debug(String.format("LOD=%f", lod));
+
                 EMOutput forward = runEM(ref, contexts, priors, StratifiedContext.FORWARD);
                 EMOutput reverse = runEM(ref, contexts, priors, StratifiedContext.REVERSE);
                 double forwardLod = (forward.getPofD() + reverse.getPofNull()) - overall.getPofNull();
                 double reverseLod = (reverse.getPofD() + forward.getPofNull()) - overall.getPofNull();
                 logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
                 double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
-                logger.debug(String.format("SLOD=%f", lod, strandScore));
+                logger.debug(String.format("SLOD=%f", strandScore));
 
                 ((SLODBacked)locusdata).setSLOD(strandScore);
             }
