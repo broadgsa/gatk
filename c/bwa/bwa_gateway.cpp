@@ -12,7 +12,13 @@ BWA::BWA(const char* ann_filename,
 	 const char* reverse_bwt_filename, 
 	 const char* reverse_sa_filename) 
 {
+  // Load the bns (?) and reference
   bns = bns_restore_core(ann_filename,amb_filename,pac_filename);
+  reference = new ubyte_t[bns->l_pac/4+1];
+  rewind(bns->fp_pac);
+  fread(reference, 1, bns->l_pac/4+1, bns->fp_pac);
+
+  // Load the BWTs (both directions) and suffix arrays (both directions)
   bwts[0] = bwt_restore_bwt(forward_bwt_filename);
   bwt_restore_sa(forward_sa_filename, bwts[0]);
   bwts[1] = bwt_restore_bwt(reverse_bwt_filename);
@@ -21,6 +27,8 @@ BWA::BWA(const char* ann_filename,
 }
 
 BWA::~BWA() {
+  delete[] reference;
+  bns_destroy(bns);
   bwt_destroy(bwts[0]);
   bwt_destroy(bwts[1]);
 }
@@ -105,8 +113,6 @@ void BWA::copy_bases_into_sequence(bwa_seq_t* sequence, const char* bases, const
 }
 
 void BWA::create_alignments(bwa_seq_t* sequence, Alignment*& alignments, unsigned& num_alignments) {
-  bool debug = false;
-
   num_alignments = 0;
   for(unsigned i = 0; i < (unsigned)sequence->n_aln; i++)
     num_alignments += (sequence->aln + i)->l - (sequence->aln + i)->k + 1;
@@ -138,14 +144,9 @@ void BWA::create_alignments(bwa_seq_t* sequence, Alignment*& alignments, unsigne
       if(alignment_idx > 0)
 	seq_reverse(sequence->len, sequence->seq, 0);
 
-      // Calculate the local alignment.
+      // Calculate the local coordinate and local alignment.
       bwa_cal_pac_pos_core(bwts[0],bwts[1],sequence,options.max_diff,options.fnr);
-      if(debug) {
-	printf("alignment_idx = %d, k = %d, l = %d, sa_idx = %d\n", alignment_idx, alignment_block->k, alignment_block->l, sa_idx);
-	printf("sequence->pos = %d\n",sequence->pos);
-      }
-
-      bwa_refine_gapped(bns, 1, sequence, 0, NULL);
+      bwa_refine_gapped(bns, 1, sequence, reference, NULL);
 
       // Copy the local alignment data into the alignment object.
       Alignment& alignment = *(alignments + alignment_idx);

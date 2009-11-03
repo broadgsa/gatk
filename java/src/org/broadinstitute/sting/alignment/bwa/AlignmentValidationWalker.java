@@ -31,6 +31,11 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
     private int count = 0;
 
     /**
+     * Max delta in mapping quality.
+     */
+    private int maxMapQDelta = 0;
+
+    /**
      * Create an aligner object.  The aligner object will load and hold the BWT until close() is called.
      */
     @Override
@@ -77,6 +82,8 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
                 matches &= (alignment.getAlignmentStart() == read.getAlignmentStart());
                 matches &= (alignment.isNegativeStrand() == read.getReadNegativeStrandFlag());
                 matches &= (alignment.getCigar().equals(read.getCigar()));
+                int mapQDelta = Math.abs(alignment.getMappingQuality()-read.getMappingQuality());
+                maxMapQDelta = Math.max(mapQDelta,maxMapQDelta);
                 //matches &= (alignment.getMappingQuality() == read.getMappingQuality());
                 if(matches) break;
             }
@@ -133,6 +140,7 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
     @Override
     public void onTraversalDone(Integer result) {
         aligner.close();
+        out.printf("Max mapping quality delta: %s%n", maxMapQDelta);
         super.onTraversalDone(result);
     }
 

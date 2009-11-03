@@ -12,6 +12,7 @@ class Alignment;
 class BWA {
  private:
   bntseq_t *bns;
+  ubyte_t* reference;
   bwt_t* bwts[2];
   gap_opt_t options;
 
