@@ -24,6 +24,9 @@ BWA::BWA(const char* ann_filename,
   bwts[1] = bwt_restore_bwt(reverse_bwt_filename);
   bwt_restore_sa(reverse_sa_filename, bwts[1]);
   load_default_options();
+
+  // initialize the bwase subsystem
+  bwase_initialize();
 }
 
 BWA::~BWA() {

@@ -55,7 +55,7 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
     @Override
     public boolean filter(char[] ref, SAMRecord read) {
         return true;
-        //return read.getReadName().contains("SL-XBC:1:76:604:397#0");
+        //return read.getReadName().contains("SL-XBC:1:61:1719:1512#0");
     }
 
     /**
@@ -84,7 +84,7 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
                 matches &= (alignment.getCigar().equals(read.getCigar()));
                 int mapQDelta = Math.abs(alignment.getMappingQuality()-read.getMappingQuality());
                 maxMapQDelta = Math.max(mapQDelta,maxMapQDelta);
-                //matches &= (alignment.getMappingQuality() == read.getMappingQuality());
+                matches &= (alignment.getMappingQuality() == read.getMappingQuality());
                 if(matches) break;
             }
         }
