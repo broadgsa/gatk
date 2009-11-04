@@ -23,7 +23,10 @@ def dictFromCombinedErrorCoverageFile(f):
     return dict(dictList)
 
 def qualFromLod(L):
-    X = math.exp(-L)
+    try: 
+        X = math.exp(-L)
+    except OverflowError:
+        return 0
     try:
         return math.floor(-10*math.log10(X/1+X))
     except OverflowError:
@@ -175,17 +178,3 @@ pooledCallsFile.close()
 for i in range(len(poolNames)):
     pooledOutputFiles[i].close()
 
-## sort the files -- system commands ##
-
-for pool in poolNames:
-    cmd1 = "cat "+directory+"/"+pool+"_calls.vcf | sort -n -k2,2 | perl "+sortByRefPath+" - /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta.fai > "+directory+"/tmp.vcf"
-    cmd2 = "cp "+directory+"/tmp.vcf "+directory+"/"+pool+"_calls.vcf"
-    os.system(cmd1)
-    os.system(cmd2)
-
-cmd = "cat "+directory+"/"+proj+"_combined_calls.vcf | sort -n -k2,2 | perl "+sortByRefPath+" - /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta.fai > "+directory+"/tmp.vcf"
-os.system(cmd)
-cmd = "cp "+directory+"/tmp.vcf "+directory+"/"+proj+"_combined_calls.vcf"
-os.system(cmd)
-cmd = "rm "+directory+"/tmp.vcf"
-os.system(cmd)
