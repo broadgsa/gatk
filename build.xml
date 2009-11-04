@@ -256,9 +256,6 @@
         <mkdir dir="${report}"/>
         <echo message="Sting: Running integration test cases!"/>
         <junit printsummary="yes" showoutput="yes" clonevm="yes" haltonfailure="yes" failureProperty="test.failure">
-
-            <jvmarg value="-Xdebug"/>
-            <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8090"/>
             <formatter type="${testOutput}" usefile="${usefile}" />
             <classpath>
                 <path refid="runtime.dependencies"/>
