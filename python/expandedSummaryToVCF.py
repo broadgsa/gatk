@@ -145,10 +145,11 @@ for line in callFile:
             except KeyError:
                 # do nothing
                 pass
-            #print this out to the file
-            chromsplit = chrompos.split(":")
-            outstr=chromsplit[0]+"\t"+chromsplit[1]+"\t"+dbSNP+"\t"+ref+"\t"+variant+"\t"+str(qual)+"\t0\t"+"DP="+str(depth)+";SB="+str(slod)+"\n"
-            pooledOutputFiles[i].write(outstr)
+            if grep(poolInternalIDs[i],supportingPools):
+                #print this out to the file
+                chromsplit = chrompos.split(":")
+                outstr=chromsplit[0]+"\t"+chromsplit[1]+"\t"+dbSNP+"\t"+ref+"\t"+variant+"\t"+str(qual)+"\t0\t"+"DP="+str(depth)+";SB="+str(slod)+"\n"
+                pooledOutputFiles[i].write(outstr)
             #now update data
             total_slod = total_slod + float(slod)
             total_depth = total_depth + int(depth)
@@ -163,7 +164,7 @@ for line in callFile:
         #propagate individual pool information
         for i in range(len(poolNames)):
             phase = "0/0"
-            if grep(poolNames[i],supportingPools):
+            if grep(poolInternalIDs[i],supportingPools):
                 phase = "0/1"
             else:
                 phase = "0/0"
