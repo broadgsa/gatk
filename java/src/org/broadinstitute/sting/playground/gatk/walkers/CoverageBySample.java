@@ -173,23 +173,11 @@ public class CoverageBySample extends LocusWalker<String, String>
 
     public String reduceInit() 
     { 
-		/*
-        String header = "contig offset";
-        for (int i = 0; i < sample_names.size(); i++)
-        {
-            header += " " + sample_names.get(i);
-        }
-        header += "\n";
-        out.print(header);
-        return header;
-		*/
 		return "";
     }
 
     public String reduce(String line, String sum) 
     {
-        //out.print(line);
-		out.flush();
         return "";
     }
 
