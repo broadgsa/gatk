@@ -172,7 +172,8 @@ public class SAMDataSource implements SimpleDataSource {
                     reads.getSupplementalFilters());
 
             // add the new overlapping detection iterator, if we have a last interval and we're a read based shard
-            if (mLastInterval != null && shard.getShardType() == Shard.ShardType.READ_INTERVAL ) iterator = new IntervalOverlapIterator(iterator,mLastInterval,false);
+            if (mLastInterval != null && shard.getShardType() == Shard.ShardType.READ_INTERVAL )
+                iterator = new PlusOneFixIterator(shard.getGenomeLoc(),new IntervalOverlapIterator(iterator,mLastInterval,false));
             mLastInterval = shard.getGenomeLoc();
         } else {
 

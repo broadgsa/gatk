@@ -143,7 +143,7 @@ class MappedReadStreamPointer extends ReadStreamPointer {
         // over a given interval would occasionally not pick up the last read in that interval.
         mergingIterator.queryOverlapping( segment.locus.getContig(),
                                           (int)segment.locus.getStart(),
-                                          (int)segment.locus.getStop()+1);
+                                          (int)segment.locus.getStop()+ PlusOneFixIterator.PLUS_ONE_FIX_CONSTANT);
 
         return StingSAMIteratorAdapter.adapt(sourceInfo,mergingIterator);
     }
