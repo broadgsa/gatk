@@ -29,7 +29,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected Set<String> samples;
     protected Logger logger;
     protected double heterozygosity;
-    protected EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform defaultPlatform;
+    protected EmpiricalSubstitutionProbabilities.SequencerPlatform defaultPlatform;
     protected GenotypeWriterFactory.GENOTYPE_FORMAT OUTPUT_FORMAT;
     protected boolean ALL_BASE_MODE;
     protected boolean GENOTYPE_MODE;

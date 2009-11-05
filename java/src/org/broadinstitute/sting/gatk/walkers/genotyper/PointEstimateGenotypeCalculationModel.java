@@ -105,7 +105,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
         pileup.setIncludeDeletionsInPileupString(true);
 
         // create the GenotypeLikelihoods object
-        GenotypeLikelihoods GL = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, priors, defaultPlatform);
+        GenotypeLikelihoods GL = new GenotypeLikelihoods(baseModel, priors, defaultPlatform);
         GL.add(pileup, true);
         return new Pair<ReadBackedPileup, GenotypeLikelihoods>(pileup, GL);
     }
@@ -129,7 +129,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getContext(contextType));
 
             // create the GenotypeLikelihoods object
-            GenotypeLikelihoods GL = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, AFPriors, defaultPlatform);
+            GenotypeLikelihoods GL = new GenotypeLikelihoods(baseModel, AFPriors, defaultPlatform);
             GL.add(pileup, true);
 
             GLs.put(sample, GL);

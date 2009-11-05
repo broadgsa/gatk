@@ -106,7 +106,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
             ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getContext(contextType));
 
             // create the GenotypeLikelihoods object
-            GenotypeLikelihoods GL = GenotypeLikelihoodsFactory.makeGenotypeLikelihoods(baseModel, priors, defaultPlatform);
+            GenotypeLikelihoods GL = new GenotypeLikelihoods(baseModel, priors, defaultPlatform);
             GL.add(pileup, true);
 
             GLs.put(sample, GL);

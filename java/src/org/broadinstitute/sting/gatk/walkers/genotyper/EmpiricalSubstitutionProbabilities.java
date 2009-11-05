@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.QualityUtils;
 
 import static java.lang.Math.log10;
 import java.util.TreeMap;
@@ -10,7 +9,7 @@ import java.util.EnumMap;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
 
-public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihoods {
+public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
     // --------------------------------------------------------------------------------------------------------------
     //
     // Static methods to manipulate machine platforms
@@ -62,6 +61,10 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihood
         }
 
         return plOfLastRead;
+    }
+
+    public int getReadSequencerPlatformIndex( SAMRecord read ) {
+        return getReadSequencerPlatform(read).ordinal();
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -189,17 +192,15 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihood
     //
     // forwarding constructors -- don't do anything at all
     //
-    public EmpiricalSubstitutionGenotypeLikelihoods() { super(); }
+    public EmpiricalSubstitutionProbabilities() { super(); }
 
-    public EmpiricalSubstitutionGenotypeLikelihoods(DiploidGenotypePriors priors) { super(priors); }
-
-    public EmpiricalSubstitutionGenotypeLikelihoods(DiploidGenotypePriors priors, boolean raiseErrorOnUnknownPlatform) {
-        super(priors);
+    public EmpiricalSubstitutionProbabilities(boolean raiseErrorOnUnknownPlatform) {
+        super();
         this.raiseErrorOnUnknownPlatform = raiseErrorOnUnknownPlatform;
     }
 
-    public EmpiricalSubstitutionGenotypeLikelihoods(DiploidGenotypePriors priors, SequencerPlatform assumeUnknownPlatformsAreThis) {
-        super(priors);
+    public EmpiricalSubstitutionProbabilities(SequencerPlatform assumeUnknownPlatformsAreThis) {
+        super();
 
         if ( assumeUnknownPlatformsAreThis != null ) {
             raiseErrorOnUnknownPlatform = false;
@@ -209,37 +210,12 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihood
 
     /**
      * Cloning of the object
-     * @return
+     * @return clone
      * @throws CloneNotSupportedException
      */
     protected Object clone() throws CloneNotSupportedException {
         return super.clone();
     }
-
-    // -----------------------------------------------------------------------------------------------------------------
-    //
-    //
-    // caching routines
-    //
-    //
-    // -----------------------------------------------------------------------------------------------------------------
-    static GenotypeLikelihoods[][][][][] EMPIRICAL_CACHE = new GenotypeLikelihoods[EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][MAX_PLOIDY][2];
-
-    protected GenotypeLikelihoods getSetCache( char observedBase, byte qualityScore, int ploidy,
-                                             SAMRecord read, int offset, GenotypeLikelihoods val ) {
-        SequencerPlatform pl = getReadSequencerPlatform(read);
-        int a = pl.ordinal();
-        int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
-        int j = qualityScore;
-        int k = ploidy;
-        int x = strandIndex(! read.getReadNegativeStrandFlag());
-
-        if ( val != null )
-            EMPIRICAL_CACHE[a][i][j][k][x] = val;
-
-        return EMPIRICAL_CACHE[a][i][j][k][x];
-    }
-
 
     // -----------------------------------------------------------------------------------------------------------------
     //
@@ -264,7 +240,7 @@ public class EmpiricalSubstitutionGenotypeLikelihoods extends GenotypeLikelihood
 
         //System.out.printf("%s for %s%n", pl, read);
 
-        double log10p = 0.0;
+        double log10p;
         if ( fwdStrand ) {
             log10p = getProbMiscallIsBase(pl, observedBase, chromBase);
         } else {

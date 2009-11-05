@@ -67,7 +67,7 @@ public class UnifiedArgumentCollection {
     public String ASSUME_SINGLE_SAMPLE = null;
 
     @Argument(fullName = "platform", shortName = "pl", doc = "Causes the genotyper to assume that reads without PL header TAG are this platform.  Defaults to null, indicating that the system will throw a runtime exception when such reads are detected", required = false)
-    public EmpiricalSubstitutionGenotypeLikelihoods.SequencerPlatform defaultPlatform = null;
+    public EmpiricalSubstitutionProbabilities.SequencerPlatform defaultPlatform = null;
 
 
     // control the various parameters to be used

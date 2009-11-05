@@ -119,7 +119,7 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
             //}
 
             //Calculate posterior probabilities
-            GenotypeLikelihoods G = new ThreeStateErrorGenotypeLikelihoods();
+            GenotypeLikelihoods G = new GenotypeLikelihoods(BaseMismatchModel.THREE_STATE);
             SAMRecord read; int offset; char base; byte qual; int mapquality; String readname;
 
             //Check for bad bases and ensure mapping quality
