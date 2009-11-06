@@ -133,7 +133,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         analyses.add(new VariantCounter());
         analyses.add(new VariantDBCoverage(knownSNPDBName));
         analyses.add(new PooledFrequencyAnalysis(numPeopleInPool,knownSNPDBName));
-        analyses.add(new GenotypeConcordance(genotypeChipName));
+        if ( samplesFile == null )
+            analyses.add(new GenotypeConcordance(genotypeChipName, false));
+        else
+            analyses.add(new GenotypeConcordance(samplesFile, true));        
         analyses.add(new TransitionTranversionAnalysis());
         analyses.add(new NeighborDistanceAnalysis());
         analyses.add(new HardyWeinbergEquilibrium(badHWEThreshold));
