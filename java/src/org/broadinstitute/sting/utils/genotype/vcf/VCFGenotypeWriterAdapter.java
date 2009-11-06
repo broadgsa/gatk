@@ -138,10 +138,14 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
 
         Map<String, VCFGenotypeCall> genotypeMap = genotypeListToSampleNameMap(genotypes);
 
+        // keep track of the total read depth
+        int totalReadDepth = 0;
+
         for (String name : mHeader.getGenotypeSamples()) {
             if (genotypeMap.containsKey(name)) {
                 Genotype gtype = genotypeMap.get(name);
                 VCFGenotypeRecord record = createVCFGenotypeRecord(params, (VCFGenotypeCall)gtype);
+                totalReadDepth += ((VCFGenotypeCall)gtype).getReadCount();
                 params.addGenotypeRecord(record);
                 genotypeMap.remove(name);
             } else {
@@ -157,6 +161,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         }
 
         Map<String, String> infoFields = getInfoFields((VCFGenotypeLocusData)locusdata, params);
+        infoFields.put("DP", String.format("%d", totalReadDepth));
 
         double qual = (locusdata == null) ? 0 : ((VCFGenotypeLocusData)locusdata).getConfidence();
         // maintain 0-99 based Q-scores
