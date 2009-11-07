@@ -104,4 +104,8 @@ public class RecalDatum {
     public Long getNumObservations() {
         return numObservations;
     }
+    
+    public String toString() {
+    	return String.format( "RecalDatum: %d,%d,%d", numObservations, numMismatches, (int)empiricalQualByte() );
+    }
 }

@@ -126,7 +126,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
     private void updateDataFromRead(SAMRecord read, int offset, ReferenceContext ref) {
 
-        ArrayList<Comparable<?>> key = new ArrayList<Comparable<?>>();
+        List<Comparable<?>> key = new ArrayList<Comparable<?>>();
         Comparable<?> keyElement; // preallocate for use in for loop below
         boolean badKey = false;
         for( Covariate covariate : requestedCovariates ) {

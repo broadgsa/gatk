@@ -21,7 +21,7 @@ public class CycleCovariate implements Covariate {
 
     public Comparable<?> getValue(SAMRecord read, int offset, char[] refBases) {
         //BUGBUG: assumes Solexia platform
-        int cycle = offset;
+        Integer cycle = offset;
         if( read.getReadNegativeStrandFlag() ) {
             cycle = read.getReadLength() - (offset + 1);
         }

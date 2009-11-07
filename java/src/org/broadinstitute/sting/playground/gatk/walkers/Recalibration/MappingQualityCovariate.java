@@ -13,7 +13,7 @@ public class MappingQualityCovariate implements Covariate {
     }
 
     public Comparable<?> getValue(SAMRecord read, int offset, char[] refBases) {
-        return read.getMappingQuality();
+        return (Integer)(read.getMappingQuality());
     }
     
     public Comparable<?> getValue(String str) {

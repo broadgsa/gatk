@@ -56,7 +56,7 @@ public class RecalDataManager {
             } else {
                 collapsedDatum.increment( thisDatum );
             }
-
+            
             newKey = new ArrayList<Comparable<?>>();
             newKey.add( key.get(0) ); // make a new key with just the read group
             sumExpectedErrors = dataSumExpectedErrors.get( newKey );
@@ -75,6 +75,7 @@ public class RecalDataManager {
             newKey.add( key.get(1) ); //                                    and quality score
             collapsedDatum = dataCollapsedQualityScore.get( newKey );
             if( collapsedDatum == null ) {
+            	//System.out.println("Added: " + newKey + "   " + newKey.hashCode());
                 dataCollapsedQualityScore.put( newKey, new RecalDatum( thisDatum ) );
             } else {
                 collapsedDatum.increment( thisDatum );
@@ -85,7 +86,7 @@ public class RecalDataManager {
                 newKey = new ArrayList<Comparable<?>>();
                 newKey.add( key.get(0) ); // make a new key with the read group ...
                 newKey.add( key.get(1) ); //                                    and quality score ...
-                newKey.add( key.get(iii) ); //                                                    and the given covariate
+                newKey.add( key.get(iii + 2) ); //                                                    and the given covariate
                 collapsedDatum = dataCollapsedByCovariate.get(iii).get( newKey );
                 if( collapsedDatum == null ) {
                     dataCollapsedByCovariate.get(iii).put( newKey, new RecalDatum( thisDatum ) );

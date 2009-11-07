@@ -32,7 +32,7 @@ public class MinimumNQSCovariate implements Covariate {
             }
         }
 
-        int minQual = quals[0];
+        Integer minQual = (int)(quals[0]);
         for ( int qual : quals ) {
             if( qual < minQual ) {
                 minQual = qual;

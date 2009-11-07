@@ -43,8 +43,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     public String MODE_STRING = RecalibrationMode.SEQUENTIAL.toString();
     public RecalibrationMode MODE = RecalibrationMode.SEQUENTIAL; //BUGBUG: need some code here to set this properly
 
-    protected static RecalDataManager dataManager;
-    protected static ArrayList<Covariate> requestedCovariates;
+    protected RecalDataManager dataManager;
+    protected ArrayList<Covariate> requestedCovariates;
 
     private static Pattern COVARIATE_PATTERN = Pattern.compile("^@!.*");
     public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ";
@@ -117,11 +117,13 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             dataManager.createCollapsedTables( requestedCovariates.size() );
             out.println( "...done!" );
         }
+        
+        //System.out.println(dataManager.getCollapsedTable(1));
     }
 
     private void addCSVData(String line) {
         String[] vals = line.split(",");
-        List<Comparable<?>> key = new ArrayList<Comparable<?>>();
+        ArrayList<Comparable<?>> key = new ArrayList<Comparable<?>>();
         Covariate cov; // preallocated for use in for loop below
         int iii;
         for( iii = 0; iii < requestedCovariates.size(); iii++ ) {
@@ -192,17 +194,18 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         byte qualFromRead = Byte.parseByte(key.get(1).toString());
         ArrayList<Comparable<?>> newKey;
-
+        
         newKey = new ArrayList<Comparable<?>>();
         newKey.add( key.get(0) ); // read group
         RecalDatum globalDeltaQDatum = dataManager.getCollapsedTable(0).get( newKey );
         double globalDeltaQ = 0.0;
+        double aggregrateQreported = 0.0;
         if( globalDeltaQDatum != null ) {
-            globalDeltaQ = globalDeltaQDatum.empiricalQualDouble( SMOOTHING ) - ( dataManager.dataSumExpectedErrors.get( newKey ) / ((double) globalDeltaQDatum.getNumObservations()) );
+        	aggregrateQreported = QualityUtils.phredScaleErrorRate( dataManager.dataSumExpectedErrors.get( newKey ) / ((double) globalDeltaQDatum.getNumObservations()) );
+           globalDeltaQ = globalDeltaQDatum.empiricalQualDouble( SMOOTHING ) - aggregrateQreported;
         }
-        //System.out.printf("Global quality score shift is %.2f - %.2f = %.2f%n",
-        //        globalDeltaQDatum.empiricalQualDouble( SMOOTHING ), ( dataManager.dataSumExpectedErrors.get( newKey ) / ((double) globalDeltaQDatum.getNumObservations())), globalDeltaQ);
-
+        
+       
         newKey = new ArrayList<Comparable<?>>();
         newKey.add( key.get(0) ); // read group
         newKey.add( key.get(1) ); // quality score
@@ -211,7 +214,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         if( deltaQReportedDatum != null ) {
             deltaQReported = deltaQReportedDatum.empiricalQualDouble( SMOOTHING ) - qualFromRead - globalDeltaQ;
         }
-
+        
+        
         double deltaQCovariates = 0.0;
         RecalDatum deltaQCovariateDatum;
         for( int iii = 2; iii < key.size(); iii++ ) {
@@ -227,10 +231,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         double newQuality = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;
         byte newQualityByte = QualityUtils.boundQual( (int)Math.round(newQuality), QualityUtils.MAX_REASONABLE_Q_SCORE );
-
-
-        //System.out.println( "base quality score calculated: " + key +
-        //                String.format( " => %d + %.2f + %.2f + %.2f = %d", qualFromRead, globalDeltaQ, deltaQReported, deltaQCovariates, newQualityByte ) );
         
         if( newQualityByte <= 0 && newQualityByte >= QualityUtils.MAX_REASONABLE_Q_SCORE ) {
             throw new StingException( "Illegal base quality score calculated: " + key +
@@ -259,8 +259,5 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
 
         return output;
-    }
-
-    public void onTraversalDone( SAMFileWriter reduceResult ) {
     }
 }

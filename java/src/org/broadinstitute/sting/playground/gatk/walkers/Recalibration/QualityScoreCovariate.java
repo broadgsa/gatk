@@ -32,7 +32,7 @@ public class QualityScoreCovariate implements Covariate {
             }
         }
 
-        return quals[offset];
+        return ((Integer)((int)quals[offset]));
     }
     
     public Comparable<?> getValue(String str) {
