@@ -26,9 +26,9 @@ import java.util.*;
  *
  */
 @Requires(value={DataSource.REFERENCE},referenceMetaData={@RMD(name="eval",type=ReferenceOrderedDatum.class)}) // right now we have no base variant class for rods, this should change
-@Allows(value={DataSource.REFERENCE},referenceMetaData = {@RMD(name="eval",type=ReferenceOrderedDatum.class), @RMD(name="dbsnp",type=rodDbSNP.class),@RMD(name="hapmap-chip",type=ReferenceOrderedDatum.class), @RMD(name="interval",type=IntervalRod.class), @RMD(name="validation",type=RodGenotypeChipAsGFF.class)})
-//public class VariantEvalWalker extends RefWalker<Integer, Integer> {
-public class VariantEvalWalker extends RodWalker<Integer, Integer> {
+//@Allows(value={DataSource.REFERENCE},referenceMetaData = {@RMD(name="eval",type=ReferenceOrderedDatum.class), @RMD(name="dbsnp",type=rodDbSNP.class),@RMD(name="hapmap-chip",type=ReferenceOrderedDatum.class), @RMD(name="interval",type=IntervalRod.class), @RMD(name="validation",type=RodGenotypeChipAsGFF.class)})
+public class VariantEvalWalker extends RefWalker<Integer, Integer> {
+//public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(shortName="minConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
     public int minConfidenceScore = -1;
 
@@ -129,10 +129,12 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         // Add new analyses here!
         //
         analyses.add(new ValidationDataAnalysis());
-        analyses.add(new PooledGenotypeConcordance(samplesFile));
+
+	// todo -- chris remove?
+        //analyses.add(new PooledGenotypeConcordance(samplesFile));
         analyses.add(new VariantCounter());
         analyses.add(new VariantDBCoverage(knownSNPDBName));
-        analyses.add(new PooledFrequencyAnalysis(numPeopleInPool,knownSNPDBName));
+        //analyses.add(new PooledFrequencyAnalysis(numPeopleInPool,knownSNPDBName));
         if ( samplesFile == null )
             analyses.add(new GenotypeConcordance(genotypeChipName, false));
         else
@@ -150,14 +152,22 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         Iterator<VariantAnalysis> iter = analyses.iterator();
         while (iter.hasNext()) {
             VariantAnalysis analysis = iter.next();
-            boolean disableForGenotyping = evalContainsGenotypes && !(analysis instanceof GenotypeAnalysis);
-            boolean disableForPopulation = !evalContainsGenotypes && !(analysis instanceof PopulationAnalysis);
-            boolean disableForPools = numPeopleInPool < 1 && analysis instanceof PoolAnalysis;
-            boolean disable = disableForGenotyping | disableForPopulation | disableForPools;
-            String causeName = disableForGenotyping ? "population" : (disableForPopulation ? "genotype" : (disableForPools ? "pool" : null));
-            if (disable) {
-                logger.info(String.format("Disabling %s-only analysis %s in set %s", causeName, analysis, setName));
+            VariantAnalysis removed = null;
+            if ( evalContainsGenotypes ) {
+                if ( ! (analysis instanceof GenotypeAnalysis ) ) {
+                    removed = analysis;
+                    iter.remove();
+                }
+            } else if ( ! (analysis instanceof PopulationAnalysis || analysis instanceof PoolAnalysis) ) {
+                removed = analysis;
                 iter.remove();
+            } else if ( numPeopleInPool > 1 && ! ( analysis instanceof PoolAnalysis ) ) {
+                removed = analysis;
+                iter.remove();
+            }
+
+            if ( removed != null ) {
+                logger.info(String.format("Disabling analysis %s in set %s", removed, setName));
             }
         }
 
@@ -235,10 +245,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             if (eval != null)
                 if (eval.getNegLog10PError() < minConfidenceScore) eval = null;
 
-	    if ( eval != null && (eval instanceof RodVCF) && ((RodVCF)eval).mCurrentRecord.isFiltered() ) {
-		//System.out.printf("Rejecting filtered record %s%n", eval);
-		eval = null;
-	    }
+            if ( eval != null && (eval instanceof RodVCF) && ((RodVCF)eval).mCurrentRecord.isFiltered() ) {
+                //System.out.printf("Rejecting filtered record %s%n", eval);
+                eval = null;
+            }
 
             // update stats about all of the SNPs
             updateAnalysisSet(ANALYSIS_TYPE.ALL_SNPS, eval, tracker, ref.getBase(), context);
