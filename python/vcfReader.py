@@ -31,6 +31,7 @@ class VCFRecord:
     
     def getChrom(self): return self.get("CHROM")
     def getPos(self): return self.get("POS")
+    def getLoc(self): return str(self.getChrom()) + ':' + str(self.getPos())
 
     def getID(self): return self.get("ID")
     def isNovel(self): return self.getID() == "."
