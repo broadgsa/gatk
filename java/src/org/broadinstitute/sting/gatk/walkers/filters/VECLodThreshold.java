@@ -28,7 +28,7 @@ public class VECLodThreshold implements VariantExclusionCriterion {
     }
 
     public String getStudyHeader() {
-        return "LodThreshold("+lod+")\tlod";
+        return "LodThreshold("+lodThreshold+")\tlod";
     }
 
     public String getStudyInfo() {
