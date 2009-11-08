@@ -294,12 +294,16 @@ public class SAMDataSource implements SimpleDataSource {
         }
         int x = 0;
         SAMRecord rec = null;
-        int lastPos = 0;
+
+        // Assuming that lastReadPos should never be null, because this is a mappedReadSeek
+        // and initial queries are handled by the previous conditional.
+        int lastContig = lastReadPos.getContigIndex();
+        int lastPos = (int)lastReadPos.getStart();
 
         while (x < readsTaken) {
             if (iter.hasNext()) {
                 rec = iter.next();
-                if (lastPos == rec.getAlignmentStart()) ++this.readsSeenAtLastPos;
+                if (lastContig == rec.getReferenceIndex() && lastPos == rec.getAlignmentStart()) ++this.readsSeenAtLastPos;
                 else this.readsSeenAtLastPos = 1;
                 lastPos = rec.getAlignmentStart();
                 ++x;
@@ -368,12 +372,9 @@ public class SAMDataSource implements SimpleDataSource {
     private void correctForReadPileupSeek( StingSAMIterator iter ) {
         // move the number of reads we read from the last pos
         boolean atLeastOneReadSeen = false; // we have a problem where some chomesomes don't have a single read (i.e. the chrN_random chrom.)
-        while (iter.hasNext() && this.readsSeenAtLastPos > 0) {
-            iter.next();
-            --readsSeenAtLastPos;
+        for(int i = 0; i < this.readsSeenAtLastPos && iter.hasNext(); i++,iter.next())
             atLeastOneReadSeen = true;
-        }
-        if (readsSeenAtLastPos != 0 && atLeastOneReadSeen) {
+        if (readsSeenAtLastPos > 0 && !atLeastOneReadSeen) {
             throw new SimpleDataSourceLoadException("Seek problem: reads at last position count != 0");
         }
     }
