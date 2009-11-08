@@ -20,6 +20,7 @@ import java.util.Random;
 public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
     @Argument(fullName="printVisualHits",   shortName="v",  doc="print visual hits",    required=false) public boolean printVisualHits = false;
     @Argument(fullName="useNextBestBase",   shortName="nb", doc="use next best base",   required=false) public boolean useNextBestBase = false;
+    @Argument(fullName="useNonNextBestBase",shortName="nnb",doc="use nonnext best base",required=false) public boolean useNonNextBestBase = false;
     @Argument(fullName="useNextRandomBase", shortName="nr", doc="use next random base", required=false) public boolean useNextRandomBase = false;
 
     /**
@@ -29,7 +30,7 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
      * @return true if the read can be processed, false if it should be ignored
      */
     public boolean filter(char[] ref, SAMRecord read) {
-        return (read.getCigar().numCigarElements() == 1 && read.getReadLength() <= ref.length);
+        return (read.getCigar().numCigarElements() == 1 && read.getReadLength() <= ref.length && (!useNonNextBestBase || read.getAttribute("SQ") != null));
     }
 
     /**
@@ -68,10 +69,16 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], int[]> {
             byte compBase = convertIUPACBaseToSimpleBase((byte)ref[cycle]);
 
             if (compBase != '.') {
-                if (useNextBestBase || useNextRandomBase) {
+                if (useNextBestBase || useNextRandomBase || useNonNextBestBase) {
                     byte nextBestBase;
                     if (useNextBestBase) {
                         nextBestBase = (byte) BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(sq[cycle]));
+                    } else if (useNonNextBestBase) {
+                        nextBestBase = bases[cycle];
+                        Random generator = new Random();
+                        while (nextBestBase == bases[cycle] || nextBestBase == (byte) BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(sq[cycle]))) {
+                            nextBestBase = (byte) BaseUtils.baseIndexToSimpleBase(generator.nextInt(4));
+                        }
                     } else {
                         nextBestBase = bases[cycle];
                         Random generator = new Random();
