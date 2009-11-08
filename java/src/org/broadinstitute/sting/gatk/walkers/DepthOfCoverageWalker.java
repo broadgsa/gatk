@@ -30,6 +30,11 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Pair;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMReadGroupRecord;
+
+import java.util.HashMap;
+import java.util.Collections;
+import java.util.ArrayList;
 
 /**
  * Display the depth of coverage at a given locus.
@@ -50,6 +55,9 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
     @Argument(fullName="minMAPQ", shortName = "minMAPQ", doc="If provided, we will exclude reads with MAPQ < this value at a locus in coverage",required=false)
     public int excludeMAPQBelowThis = -1;
 
+    @Argument(fullName="byReadGroup", shortName="byRG", doc="List read depths for each read group")
+    public boolean byReadGroup = false;
+
     public boolean includeReadsWithDeletionAtLoci() { return ! excludeDeletionsInCoverage; }
 
     public void initialize() {
@@ -66,6 +74,11 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         int nCleanReads = 0, nBadMAPQReads = 0, nDeletionReads = 0;
 
+        HashMap<String, Integer> depthByReadGroup = new HashMap<String, Integer>();
+        for (SAMReadGroupRecord rg : this.getToolkit().getSAMFileHeader().getReadGroups()) {
+            depthByReadGroup.put(rg.getReadGroupId(), 0);
+        }
+
         for ( int i = 0; i < context.getReads().size(); i++ ) {
             SAMRecord read = context.getReads().get(i);
             int offset = context.getOffsets().get(i);
@@ -73,6 +86,10 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
             if ( read.getMappingQuality() < excludeMAPQBelowThis ) nBadMAPQReads++;
             else if ( offset == -1 ) nDeletionReads++;
             else nCleanReads++;
+
+            String readGroupName = read.getReadGroup().getReadGroupId();
+            int oldDepth = depthByReadGroup.get(readGroupName);
+            depthByReadGroup.put(readGroupName, oldDepth + 1);
         }
 
         int nTotalReads = nCleanReads + (excludeDeletionsInCoverage ? 0 : nDeletionReads);
@@ -84,6 +101,15 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
             case DETAILED:
                 out.printf("%s %8d %8d %8d %8d%n", context.getLocation(), nTotalReads, nCleanReads, nDeletionReads, nBadMAPQReads);
                 break;
+        }
+
+        if (byReadGroup) {
+            ArrayList<String> rgs = new ArrayList<String>(depthByReadGroup.keySet());
+            Collections.sort(rgs);
+
+            for (String rg : rgs) {
+                out.printf("  %s %8d%n", rg, depthByReadGroup.get(rg));
+            }
         }
 
         return nTotalReads;
