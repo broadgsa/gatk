@@ -176,14 +176,18 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
     //
     // ----------------------------------------------------------------------
     public ReferenceOrderedData(final String name, File file, Class<ROD> type ) {
+        this.name = name;
         this.file = file;
         this.type = type;
-        this.name = name;
 //        this.header = initializeROD(name, file, type);
 //        this.fieldDelimiter = newROD(name, type).delimiterRegex();
     }
 
     public String getName() { return name; }
+
+    public File getFile() { return file; }
+
+    public Class<ROD> getType() { return type; }
 
     /**
      * Special equals override to see if this ROD is compatible with the given

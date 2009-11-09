@@ -54,6 +54,14 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
     }
 
     /**
+     * Return the underlying reference-ordered data.
+     * @return the underlying rod.
+     */
+    public ReferenceOrderedData getReferenceOrderedData() {
+        return this.rod;
+    }
+
+    /**
      * Seek to the specified position and return an iterator through the data.
      * @param shard Shard that points to the selected position.
      * @return Iterator through the data.

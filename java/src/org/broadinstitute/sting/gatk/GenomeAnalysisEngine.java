@@ -663,7 +663,7 @@ public class GenomeAnalysisEngine {
      * Returns data source object encapsulating all essential info and handlers used to traverse
      * reads; header merger, individual file readers etc can be accessed through the returned data source object.
      *
-     * @return
+     * @return the reads data source
      */
     public SAMDataSource getDataSource() {
         return this.readsDataSource;
@@ -676,5 +676,15 @@ public class GenomeAnalysisEngine {
      */
     public GATKArgumentCollection getArguments() {
         return this.argCollection;
+    }
+
+    /**
+     * Returns data source objects encapsulating all rod data;
+     * individual rods can be accessed through the returned data source objects.
+     *
+     * @return the rods data sources
+     */
+    public List<ReferenceOrderedDataSource> getRodDataSources() {
+        return this.rodDataSources;
     }
 }
