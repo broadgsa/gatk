@@ -58,5 +58,5 @@ public class SimpleVenn implements ConcordanceType {
         return "concordant";
     }
 
-    public String getInfoName() { return "SV"; }
+    public String getInfoName() { return "Venn"; }
 }

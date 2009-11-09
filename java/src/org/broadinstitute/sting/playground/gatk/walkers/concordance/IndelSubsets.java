@@ -101,5 +101,5 @@ public class IndelSubsets implements ConcordanceType {
         return Math.max(leftRun, rightRun);
     }
 
-    public String getInfoName() { return "IS"; }    
+    public String getInfoName() { return "IndelSubsets"; }    
 }

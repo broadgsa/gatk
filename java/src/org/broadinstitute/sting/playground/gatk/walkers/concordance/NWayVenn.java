@@ -32,11 +32,11 @@ public class NWayVenn implements ConcordanceType {
         while ( iter.hasNext() ) {
             tag.append(iter.next());
             if ( iter.hasNext() )
-                tag.append(".");
+                tag.append("-");
         }
 
         return tag.toString();
     }
 
-    public String getInfoName() { return "NV"; }    
+    public String getInfoName() { return "NwayVenn"; }    
 }

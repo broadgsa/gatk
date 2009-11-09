@@ -304,13 +304,17 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
             if (lst.size() != 1) {
                 throw new IllegalStateException("VCF object does not have one and only one genotype record");
             }
+            VCFGenotypeRecord rec = lst.get(0);
+            if ( rec.isEmptyGenotype() )
+                return null;
+
             double qual = 0;
-            if (lst.get(0).getAlleles().equals(this.getReference()))
+            if (rec.getAlleles().equals(this.getReference()))
                 qual = refQual;
-            else if (lst.get(0).getFields().containsKey("GQ"))
-                qual = Double.valueOf(lst.get(0).getFields().get("GQ")) / 10.0;
-            int coverage = (lst.get(0).getFields().containsKey("RD") ? Integer.valueOf(lst.get(0).getFields().get("RD")) : 0);
-            return new VCFGenotypeCall(this.getReference().charAt(0), this.getLocation(), Utils.join("", lst.get(0).getAlleles()), qual, coverage, lst.get(0).getSampleName());
+            else if (rec.getFields().containsKey("GQ"))
+                qual = Double.valueOf(rec.getFields().get("GQ")) / 10.0;
+            int coverage = (rec.getFields().containsKey("RD") ? Integer.valueOf(rec.getFields().get("RD")) : 0);
+            return new VCFGenotypeCall(this.getReference().charAt(0), this.getLocation(), Utils.join("", rec.getAlleles()), qual, coverage, rec.getSampleName());
         }
         return null;
     }
@@ -329,6 +333,9 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         double refQual = (this.getNegLog10PError());
         // add the reference
         for (VCFGenotypeRecord rec : mCurrentRecord.getVCFGenotypeRecords()) {
+            if ( rec.isEmptyGenotype() )
+                continue;
+ ;
             double qual = 0;
             if (rec.getAlleles().equals(this.getReference()))
                 qual = refQual;

@@ -94,5 +94,5 @@ public class SNPGenotypeConcordance implements ConcordanceType {
         return altAllele1 == altAllele2;
     }
 
-    public String getInfoName() { return "SG"; }    
+    public String getInfoName() { return "SnpConcordance"; }    
 }

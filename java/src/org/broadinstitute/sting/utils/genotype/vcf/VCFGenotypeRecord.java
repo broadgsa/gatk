@@ -115,6 +115,13 @@ public class VCFGenotypeRecord {
 
     }
 
+    public boolean isEmptyGenotype() {
+        for ( VCFGenotypeEncoding encoding : mGenotypeAlleles ) {
+            if ( encoding.getType() != VCFGenotypeEncoding.TYPE.UNCALLED )
+                return false;
+        }
+        return true;
+    }
 
     public boolean equals(Object other) {
         if (other instanceof VCFGenotypeRecord) {
