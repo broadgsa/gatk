@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.concordance;
+package org.broadinstitute.sting.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.StingException;
