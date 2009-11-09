@@ -78,6 +78,11 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         if (!this.isBiallelic()) throw new StingException("We're not bi-allelic.");
     }
 
+    public boolean hasNonRefAlleleFrequency() {
+        return (this.mCurrentRecord.getInfoValues().containsKey("AF") ||
+                (this.mCurrentRecord.getInfoValues().containsKey("AC") && this.mCurrentRecord.getInfoValues().containsKey("AN")));
+    }
+
     /**
      * get the frequency of this variant
      *
@@ -98,6 +103,22 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
             }
         }
 
+        return 0.0;
+    }
+
+    public boolean hasStrandBias() {
+        return this.mCurrentRecord.getInfoValues().containsKey("SB");
+    }
+
+    /**
+     * get the strand bias of this variant
+     *
+     * @return StrandBias with the stored slod
+     */
+    public double getStrandBias() {
+        assertNotNull();
+        if (this.mCurrentRecord.getInfoValues().containsKey("SB"))
+            return Double.valueOf(this.mCurrentRecord.getInfoValues().get("SB"));
         return 0.0;
     }
 
