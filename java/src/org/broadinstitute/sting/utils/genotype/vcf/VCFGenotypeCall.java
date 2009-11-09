@@ -50,7 +50,7 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
     public VCFGenotypeCall(char ref, GenomeLoc loc, String genotype, double negLog10PError, String sample) {
         mRefBase = ref;
         mLocation = loc;
-        mBestGenotype = DiploidGenotype.valueOf(genotype);
+        mBestGenotype = DiploidGenotype.unorderedValueOf(genotype);
         mRefGenotype = DiploidGenotype.createHomGenotype(ref);
         mSampleName = sample;
 

@@ -8,6 +8,8 @@ import java.io.*;
  */
 public class VCFWriter {
 
+    public static final String VERSION = "VCRv3.2";
+
     // the VCF header we're storing
     private VCFHeader mHeader;
 

@@ -59,7 +59,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         Map<String, String> hInfo = new HashMap<String, String>();
 
         // setup the header fields
-        hInfo.put("format", "VCRv3.2");
+        hInfo.put("format", VCFWriter.VERSION);
         hInfo.put("source", mSource);
         hInfo.put("reference", mReferenceName);
 
@@ -144,7 +144,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         for (String name : mHeader.getGenotypeSamples()) {
             if (genotypeMap.containsKey(name)) {
                 Genotype gtype = genotypeMap.get(name);
-                VCFGenotypeRecord record = createVCFGenotypeRecord(params, (VCFGenotypeCall)gtype);
+                VCFGenotypeRecord record = VCFUtils.createVCFGenotypeRecord(params, (VCFGenotypeCall)gtype);
                 totalReadDepth += ((VCFGenotypeCall)gtype).getReadCount();
                 params.addGenotypeRecord(record);
                 genotypeMap.remove(name);
@@ -190,7 +190,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      *
      * @return a mapping of info field to value
      */
-    private Map<String, String> getInfoFields(VCFGenotypeLocusData locusdata, VCFParameters params) {
+    private static Map<String, String> getInfoFields(VCFGenotypeLocusData locusdata, VCFParameters params) {
         Map<String, String> infoFields = new HashMap<String, String>();
         if ( locusdata != null ) {
             infoFields.put("SB", String.format("%.2f", locusdata.getSLOD()));
@@ -198,37 +198,6 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         }
         infoFields.put("NS", String.valueOf(params.getGenotypesRecords().size()));
         return infoFields;
-    }
-
-    /**
-     * create the VCF genotype record
-     *
-     * @param params the VCF parameters object
-     * @param gtype  the genotype
-     *
-     * @return a VCFGenotypeRecord
-     */
-    private VCFGenotypeRecord createVCFGenotypeRecord(VCFParameters params, VCFGenotypeCall gtype) {
-        Map<String, String> map = new HashMap<String, String>();
-
-        // calculate the RMS mapping qualities and the read depth
-        int readDepth = gtype.getReadCount();
-        map.put("RD", String.valueOf(readDepth));
-        params.addFormatItem("RD");
-        double qual = gtype.getNegLog10PError();
-        map.put("GQ", String.format("%.2f", qual));
-        params.addFormatItem("GQ");
-
-        List<VCFGenotypeEncoding> alleles = createAlleleArray(gtype);
-        for (VCFGenotypeEncoding allele : alleles) {
-            params.addAlternateBase(allele);
-        }
-
-        VCFGenotypeRecord record = new VCFGenotypeRecord(gtype.getSampleName(),
-                                                         alleles,
-                                                         VCFGenotypeRecord.PHASE.UNPHASED,
-                                                         map);
-        return record;
     }
 
     /**
@@ -251,21 +220,6 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
                                                          VCFGenotypeRecord.PHASE.UNPHASED,
                                                          map);
         return record;
-    }
-
-    /**
-     * create the allele array?
-     *
-     * @param gtype the gentoype object
-     *
-     * @return a list of string representing the string array of alleles
-     */
-    private List<VCFGenotypeEncoding> createAlleleArray(Genotype gtype) {
-        List<VCFGenotypeEncoding> alleles = new ArrayList<VCFGenotypeEncoding>();
-        for (char allele : gtype.getBases().toCharArray()) {
-            alleles.add(new VCFGenotypeEncoding(String.valueOf(allele)));
-        }
-        return alleles;
     }
 
     /** @return true if we support multisample, false otherwise */
