@@ -34,9 +34,6 @@ import cern.jet.stat.Probability;
  * @author Kiran Garimella
  */
 public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Integer> {
-    @Argument(fullName="verbose", shortName="V", doc="Prints information for all loci, not just the suspected contaminating read groups", required=false)
-    private Boolean VERBOSE = false;
-
     @Argument(fullName="balance", shortName="bal", doc="The expected alternate allele balance for homozygous-variant sites", required=false)
     private Double BALANCE = 0.95;
 
@@ -157,7 +154,8 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
      * @param result  the number of suspicious sites we're inspecting (this argument is ignored)
      */
     public void onTraversalDone(Integer result) {
-        if (VERBOSE) { out.println("#readgroup\tpvalue\tbalances"); }
+        //out.println("readgroup\tpvalue\tstatus\tbalances");
+        out.printf("%-10s\t%-10s\t%-10s\t%-10s%n", "readgroup", "pvalue", "status", "balances");
 
         for (String rg : altTable.getRowNames()) {
             String balances = "";
@@ -199,11 +197,12 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
             // Compute pValue
             double pValue = Probability.studentT(dof, t);
 
-            if (pValue < LIMIT) {
-                out.printf("%s\t%e\t[%s]\n", rg, pValue, balances);
-            } else {
-                if (VERBOSE) { out.printf("#%s\t%e\t[%s]\n", rg, pValue, balances); }
-            }
+            //out.printf("%s\t%e\t%s\t[%s]\n", rg, pValue, (pValue < LIMIT ? "aberrant" : "nominal"), balances);
+            out.printf("%-10s\t%-10s\t%-10s\t[%-10s]\n",
+                       rg,
+                       String.format("%e", pValue),
+                       (pValue < LIMIT ? "aberrant" : "nominal"),
+                       balances);
         }
     }
 }
