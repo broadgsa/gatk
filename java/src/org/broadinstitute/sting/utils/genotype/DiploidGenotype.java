@@ -61,4 +61,17 @@ public enum DiploidGenotype {
     public static DiploidGenotype createHomGenotype(char hom) {
         return DiploidGenotype.valueOf((String.valueOf(hom) + String.valueOf(hom)).toUpperCase());     
     }
+
+    /**
+     * get the genotype, given a string of 2 chars which may not necessarily be ordered correctly
+     * @param genotype the string representation
+     * @return the diploid genotype
+     */
+    public static DiploidGenotype unorderedValueOf(String genotype) {
+        if ( genotype == null || genotype.length() != 2 )
+            throw new IllegalArgumentException("Diploid genotypes are represented by 2 characters");
+        if ( genotype.charAt(0) > genotype.charAt(1) )
+            genotype = String.format("%c%c", genotype.charAt(1), genotype.charAt(0));
+        return valueOf(genotype);
+    }
 }
