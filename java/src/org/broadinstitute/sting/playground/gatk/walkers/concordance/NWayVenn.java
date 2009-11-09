@@ -1,16 +1,9 @@
 package org.broadinstitute.sting.playground.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.RODRecordList;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeCall;
 
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.util.HashMap;
+import java.util.*;
 import java.util.Map.Entry;
 
 /**
@@ -21,86 +14,29 @@ import java.util.Map.Entry;
  */
 public class NWayVenn implements ConcordanceType {
 
-    // TODO -- change this to use Ryan's generic map object when it's ready
-    private HashMap<String, PrintWriter> writers = new HashMap<String, PrintWriter>();
-    private PrintWriter union_writer = null;
-
-    private String prefix;
-    private int N;
-
     public NWayVenn() {}
 
-    public void initialize(String prefix, HashMap<String,String> args) {
+    public void initialize(Map<String, String> args, Set<String> samples) { }
 
-        if ( args.get("N") == null )
-            throw new StingException("NWayVenn concordance module requires the 'N' argument");
-        N = Integer.valueOf(args.get("N"));
-        if ( N < 1 )
-            throw new StingException("NWayVenn concordance module requires that N be greater than 0");
+    public String computeConcordance(Map<String, VCFGenotypeCall> samplesToRecords, ReferenceContext ref) {
+        if ( samplesToRecords.size() == 0 )
+            return null;
 
-        this.prefix = prefix;
-
-        // create the list of file names
-        HashMap<String, String> files = new HashMap<String, String>();
-        files.put("", "");
-        for (int i = 1; i <= N; i++) {
-            // create 2 new list entries for each of the current file names:
-            // one with and one without this set appended to the end
-            HashMap<String, String> appendedFiles = new HashMap<String, String>();            
-            for ( Entry<String, String> file : files.entrySet() ) {
-                appendedFiles.put(file.getKey() + "0", file.getValue());
-                appendedFiles.put(file.getKey() + "1", file.getValue() + ".set" + i);
-            }
-            files = appendedFiles;
-        }
-        // remove the entry for no hits
-        files.remove(Utils.dupString('0', N));
-
-        try {
-            for ( Entry<String, String> file : files.entrySet() )
-                writers.put(file.getKey(), new PrintWriter(prefix + "." + N + "wayVenn" + file.getValue() + ".calls"));
-            union_writer = new PrintWriter(prefix + "." + N + "wayVenn.union.calls");
-        } catch (FileNotFoundException e) {
-            throw new StingException(String.format("Could not open file(s) for writing"));
-        }
-    }
-
-    public void computeConcordance(RefMetaDataTracker tracker, ReferenceContext ref) {
-        Variation[] calls = new Variation[N];
-        int goodRods = 0;
-        for (int i = 0; i < N; i++) {
-            RODRecordList<ReferenceOrderedDatum> callList = tracker.getTrackData("callset" + (i+1), null);
-            if ( callList != null ) {
-                calls[i] = (Variation)callList.getRecords().get(0);
-                goodRods++;
-            }
+        TreeSet<String> concordantSamples = new TreeSet<String>();
+        for ( Entry<String, VCFGenotypeCall> entry : samplesToRecords.entrySet() ) {
+            concordantSamples.add(entry.getKey());
         }
 
-        if ( goodRods == 0 )
-            return;
-
-        // union
-        printVariant(union_writer, calls);
-
-        // add to the correct set
-        StringBuilder hashString = new StringBuilder();
-        for (int i = 0; i < N; i++)
-            hashString.append(calls[i] != null ? "1" : "0");
-        printVariant(writers.get(hashString.toString()), calls);
-    }
-
-    private static void printVariant(PrintWriter writer, Variation[] variants) {
-        for ( Variation variant : variants ) {
-            if ( variant != null ) {
-                writer.println(variant.toString());
-                return;
-            }
+        StringBuffer tag = new StringBuffer();
+        Iterator<String> iter = concordantSamples.iterator();
+        while ( iter.hasNext() ) {
+            tag.append(iter.next());
+            if ( iter.hasNext() )
+                tag.append(".");
         }
+
+        return tag.toString();
     }
 
-    public void cleanup() {
-        union_writer.close();
-        for ( PrintWriter writer : writers.values() )
-            writer.close();
-    }
+    public String getInfoName() { return "NV"; }    
 }

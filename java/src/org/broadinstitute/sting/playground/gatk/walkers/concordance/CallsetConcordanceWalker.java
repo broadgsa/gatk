@@ -4,27 +4,37 @@ import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
+import java.io.File;
 import java.util.*;
 
 
 /**
- * CallsetConcordanceWalker finds the concordance between multiple callsets (different tests are available).
+ * CallsetConcordanceWalker finds the concordance between multiple VCF callsets (different tests are available).
  */
-@Requires(value={DataSource.REFERENCE},
-          referenceMetaData={@RMD(name="callset1",type=VariationRod.class),
-                             @RMD(name="callset2",type=VariationRod.class)})
+@Requires(value={DataSource.REFERENCE})
 @Reference(window=@Window(start=-20,stop=20))
-public class CallsetConcordanceWalker extends RefWalker<Integer, Integer> {
-    @Argument(fullName="concordance_output_path", shortName="O", doc="File path to which split sets should be written", required=true)
-    private String OUTPUT_PATH = null;
+public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
+    @Argument(fullName="concordance_output", shortName="CO", doc="VCF file to which output should be written", required=true)
+    private File OUTPUT = null;
     @Argument(fullName="concordanceType", shortName="CT", doc="Concordance subset types to apply to given callsets.   Syntax: 'type[:key1=arg1,key2=arg2,...]'", required=false)
     private String[] TYPES = null;
     @Argument(fullName="list", shortName="ls", doc="List the available concordance types and exit", required=false)
     private Boolean LIST_ONLY = false;
 
+
+    // the concordance tests to run
     private ArrayList<ConcordanceType> requestedTypes;
+
+    // VCF writer for the output of the concordance tests
+    private VCFWriter vcfWriter;
+
+    // a map of rod name to uniquified sample name
+    HashMap<Pair<String, String>, String> rodNamesToSampleNames = new HashMap<Pair<String, String>, String>();
+
 
     /**
      * Prepare the output file and the list of available features.
@@ -35,7 +45,7 @@ public class CallsetConcordanceWalker extends RefWalker<Integer, Integer> {
         List<Class<? extends ConcordanceType>> classes = PackageUtils.getClassesImplementingInterface(ConcordanceType.class);
 
         // print and exit if that's what was requested
-        if (LIST_ONLY) {
+        if ( LIST_ONLY ) {
             out.println("\nAvailable concordance types:");
             for (int i = 0; i < classes.size(); i++)
                 out.println("\t" + classes.get(i).getSimpleName());
@@ -43,9 +53,26 @@ public class CallsetConcordanceWalker extends RefWalker<Integer, Integer> {
             System.exit(0);
         }
 
-        requestedTypes = new ArrayList<ConcordanceType>();
+        // get the list of all sample names from the various input rods (the need to be uniquified in case there's overlap)
+        HashSet<String> samples = new HashSet<String>();
+        VCFUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, rodNamesToSampleNames);
+
+        for ( java.util.Map.Entry<Pair<String, String>, String> entry : rodNamesToSampleNames.entrySet() ) {
+            logger.debug("Uniquified sample mapping: " + entry.getKey().first + "/" + entry.getKey().second + " -> " + entry.getValue());
+        }
+
+        // set up the header fields
+        Map<String, String> hInfo = new HashMap<String, String>();
+        hInfo.put("format", VCFWriter.VERSION);
+        hInfo.put("source", "CallsetConcordance");
+        hInfo.put("reference", getToolkit().getArguments().referenceFile.getName());
+        hInfo.put("explanation", "This file represents a concordance test of various call sets - NOT the output from a multi-sample caller");
+        VCFHeader header = new VCFHeader(hInfo, samples);
+
+        vcfWriter = new VCFWriter(header, OUTPUT);
 
         // initialize requested concordance types
+        requestedTypes = new ArrayList<ConcordanceType>();
         if (TYPES != null) {
             for ( String requestedTypeString : TYPES ) {
                 String[] requestedPieces = requestedTypeString.split(":");
@@ -68,7 +95,7 @@ public class CallsetConcordanceWalker extends RefWalker<Integer, Integer> {
                                 }
                             }
 
-                            concordance.initialize(OUTPUT_PATH, requestedArgs);
+                            concordance.initialize(requestedArgs, samples);
                             requestedTypes.add(concordance);
                             break;
                         } catch (InstantiationException e) {
@@ -83,25 +110,67 @@ public class CallsetConcordanceWalker extends RefWalker<Integer, Integer> {
                     throw new StingException("The requested concordance type (" + requestedType + ") isn't a valid concordance option");
             }
         }
-     }
+    }
 
-    public Integer reduceInit() { return 0; }
+    public Integer map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
+        if ( rodData == null ) // RodWalkers can make funky map calls
+            return 0;
 
-    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        for ( ConcordanceType type : requestedTypes )
-            type.computeConcordance(tracker, ref);
+        // get all of the vcf rods at this locus
+        ArrayList<RodVCF> vcfRods = new ArrayList<RodVCF>();        
+        Iterator<ReferenceOrderedDatum> rods = rodData.getAllRods().iterator();
+        while (rods.hasNext()) {
+            ReferenceOrderedDatum rod = rods.next();
+            if ( rod instanceof RodVCF )
+                vcfRods.add((RodVCF)rod);
+        }
+
+        if ( vcfRods.size() == 0 )
+            return 0;
+
+        // create a merged record from all input VCFs
+        VCFRecord record = VCFUtils.mergeRecords(vcfRods, rodNamesToSampleNames);
+
+        // pull out all of the individual calls from the rods and insert into a map based on the
+        // mapping from rod/sample to uniquified name
+        HashMap<String, VCFGenotypeCall> samplesToRecords = new HashMap<String, VCFGenotypeCall>();
+        for ( RodVCF rod : vcfRods ) {
+            List<Genotype> records = rod.getGenotypes();
+            for ( Genotype g : records ) {
+                if ( !(g instanceof VCFGenotypeCall) )
+                    throw new StingException("Expected VCF rod Genotypes to be of type VCFGenotypeCall");
+
+                VCFGenotypeCall vcfCall = (VCFGenotypeCall)g;
+                String uniquifiedSample = rodNamesToSampleNames.get(new Pair<String, String>(rod.getName(), vcfCall.getSampleName()));
+                if ( uniquifiedSample == null )
+                    throw new StingException("Unexpected sample encountered: " + vcfCall.getSampleName() + " in rod " + rod.getName());
+
+                samplesToRecords.put(uniquifiedSample, vcfCall);
+            }
+        }
+
+        // add in the info fields to the new record based on the results of each of the relevant concordance tests
+        for ( ConcordanceType type : requestedTypes ) {
+            String result = type.computeConcordance(samplesToRecords, ref);
+            if ( result != null ) {
+                record.addInfoField(type.getInfoName(), result);
+            }
+        }
+
+        // emit the new record
+        vcfWriter.addRecord(record);
 
         return 1;
     }
+
+    public Integer reduceInit() { return 0; }
 
     public Integer reduce(Integer value, Integer sum) {
         return sum + value;
     }
 
     public void onTraversalDone(Integer result) {
-        for ( ConcordanceType type : requestedTypes )
-            type.cleanup();
-
+        vcfWriter.close();
         out.printf("Processed %d loci.\n", result);
     }
 }

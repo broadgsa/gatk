@@ -1,14 +1,12 @@
 package org.broadinstitute.sting.playground.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeCall;
 
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * filter an indel callset based on given criteria
@@ -22,54 +20,59 @@ public class IndelSubsets implements ConcordanceType {
     private int homopolymerCutoff = 1;
     private int sizeCutoff = 2;
 
-    private PrintWriter[][][][] writers = new PrintWriter[2][2][2][2];
+    private String[][][][] tags = new String[2][2][2][2];
+    private String sample1, sample2;
 
     public IndelSubsets() {}
 
-    public void initialize(String prefix, HashMap<String,String> args) {        
+    public void initialize(Map<String, String> args, Set<String> samples) {
+        if ( samples.size() != 2 )
+            throw new StingException("IndelSubsets concordance test cannot handle anything other than 2 VCF records");
+
         if ( args.get("sizeCutoff") != null )
             sizeCutoff = Integer.valueOf(args.get("sizeCutoff"));
         if ( args.get("homopolymerCutoff") != null )
             homopolymerCutoff = Integer.valueOf(args.get("homopolymerCutoff"));
 
-        try {
-            for (int i = 0; i < 2; i++) {
-                String name1 = i == 0 ? "set1" : "noSet1";
-                for (int j = 0; j < 2; j++) {
-                    String name2 = j == 0 ? "set2" : "noSet2";
-                    for (int k = 0; k < 2; k++) {
-                        String name3 = "size" + (k == 0 ? Integer.toString(sizeCutoff)+"AndUnder" : "GreaterThan"+Integer.toString(sizeCutoff));
-                        for (int m = 0; m < 2; m++) {
-                            String name4 = "homopolymer" + (m == 0 ? Integer.toString(homopolymerCutoff)+"AndUnder" : "GreaterThan"+Integer.toString(homopolymerCutoff));
-                            writers[i][j][k][m] = new PrintWriter(prefix + "." + name1 + "." + name2 + "." + name3 + "." + name4 + ".calls");
-                        }
+        Iterator<String> iter = samples.iterator();
+        sample1 = iter.next();
+        sample2 = iter.next();
+
+        for (int i = 0; i < 2; i++) {
+            String name1 = i == 0 ? sample1 : "no_" + sample1;
+            for (int j = 0; j < 2; j++) {
+                String name2 = j == 0 ? sample2 : "no_" + sample2;
+                for (int k = 0; k < 2; k++) {
+                    String name3 = "size" + (k == 0 ? Integer.toString(sizeCutoff)+"AndUnder" : "GreaterThan"+Integer.toString(sizeCutoff));
+                    for (int m = 0; m < 2; m++) {
+                        String name4 = "homopolymer" + (m == 0 ? Integer.toString(homopolymerCutoff)+"AndUnder" : "GreaterThan"+Integer.toString(homopolymerCutoff));
+                        tags[i][j][k][m] = name1 + "." + name2 + "." + name3 + "." + name4;
                     }
                 }
             }
-        } catch (FileNotFoundException e) {
-            throw new StingException(String.format("Could not open file(s) for writing"));
         }
     }
 
-    public void computeConcordance(RefMetaDataTracker tracker, ReferenceContext ref) {
-        Variation indel1 = (Variation)tracker.lookup("callset1", null);
-        Variation indel2 = (Variation)tracker.lookup("callset2", null);
+    public String computeConcordance(Map<String, VCFGenotypeCall> samplesToRecords, ReferenceContext ref) {
 
-        int set1 = ( indel1 != null && indel1.isIndel() ? 0 : 1 );
-        int set2 = ( indel2 != null && indel2.isIndel() ? 0 : 1 );
+        VCFGenotypeCall indel1 = samplesToRecords.get(sample1);
+        VCFGenotypeCall indel2 = samplesToRecords.get(sample2);
+
+        int set1 = ( indel1 != null && !indel1.isPointGenotype() ? 0 : 1 );
+        int set2 = ( indel2 != null && !indel2.isPointGenotype() ? 0 : 1 );
 
         // skip this locus if they're both not valid indels
         if ( set1 == 1 && set2 == 1 )
-            return;
+            return null;
 
         // only deal with a valid indel
-        Variation indel = ( indel1 != null ? indel1 : indel2 );
+        Variation indel = ( indel1 != null ? indel1.toVariation() : indel2.toVariation() );
 
         // we only deal with the first allele
         int size = ( indel.getAlternateAlleleList().get(0).length() <= sizeCutoff ? 0 : 1 );
         int homopol = ( homopolymerRunSize(ref, indel) <= homopolymerCutoff ? 0 : 1 );
 
-        writers[set1][set2][size][homopol].println(indel.toString());
+        return tags[set1][set2][size][homopol];
     }
 
     private int homopolymerRunSize(ReferenceContext ref, Variation indel) {
@@ -98,11 +101,5 @@ public class IndelSubsets implements ConcordanceType {
         return Math.max(leftRun, rightRun);
     }
 
-    public void cleanup() {
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < 2; j++)
-                for (int k = 0; k < 2; k++)
-                    for (int m = 0; m < 2; m++)
-                        writers[i][j][k][m].close();
-    }
+    public String getInfoName() { return "IS"; }    
 }
