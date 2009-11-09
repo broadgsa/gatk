@@ -309,7 +309,8 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
                 qual = refQual;
             else if (lst.get(0).getFields().containsKey("GQ"))
                 qual = Double.valueOf(lst.get(0).getFields().get("GQ")) / 10.0;
-            return new VCFGenotypeCall(this.getReference().charAt(0), this.getLocation(), Utils.join("", lst.get(0).getAlleles()), qual, lst.get(0).getSampleName());
+            int coverage = (lst.get(0).getFields().containsKey("RD") ? Integer.valueOf(lst.get(0).getFields().get("RD")) : 0);
+            return new VCFGenotypeCall(this.getReference().charAt(0), this.getLocation(), Utils.join("", lst.get(0).getAlleles()), qual, coverage, lst.get(0).getSampleName());
         }
         return null;
     }
@@ -333,7 +334,8 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
                 qual = refQual;
             else if (rec.getFields().containsKey("GQ"))
                 qual = Double.valueOf(rec.getFields().get("GQ")) / 10.0;
-            genotypes.add(new VCFGenotypeCall(this.getReference().charAt(0), this.getLocation(), Utils.join("", rec.getAlleles()), qual, rec.getSampleName()));
+            int coverage = (rec.getFields().containsKey("RD") ? Integer.valueOf(rec.getFields().get("RD")) : 0);
+            genotypes.add(new VCFGenotypeCall(this.getReference().charAt(0), this.getLocation(), Utils.join("", rec.getAlleles()), qual, coverage, rec.getSampleName()));
         }
         return genotypes;
     }
@@ -353,7 +355,8 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
                     qual = this.getNegLog10PError();
                 else if (record.getFields().containsKey("GQ"))
                     qual = Double.valueOf(record.getFields().get("GQ")) / 10.0;
-                return new VCFGenotypeCall(this.getReference().charAt(0), this.getLocation(), Utils.join("", record.getAlleles()), qual, record.getSampleName());
+                int coverage = (record.getFields().containsKey("RD") ? Integer.valueOf(record.getFields().get("RD")) : 0);
+                return new VCFGenotypeCall(this.getReference().charAt(0), this.getLocation(), Utils.join("", record.getAlleles()), qual, coverage, record.getSampleName());
             }
         }
         return null;

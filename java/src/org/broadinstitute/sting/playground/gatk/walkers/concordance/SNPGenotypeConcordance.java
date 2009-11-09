@@ -2,8 +2,6 @@ package org.broadinstitute.sting.playground.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
-import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeCall;
 
 import java.util.*;
@@ -13,7 +11,7 @@ import java.util.*;
  */
 public class SNPGenotypeConcordance implements ConcordanceType {
 
-    private double LOD = 5.0;
+    private double Qscore = 30.0;
 
     private String sample1, sample2;
 
@@ -23,8 +21,8 @@ public class SNPGenotypeConcordance implements ConcordanceType {
         if ( samples.size() != 2 )
             throw new StingException("SNPGenotype concordance test cannot handle anything other than 2 VCF records");
 
-        if ( args.get("lod") != null )
-            LOD = Double.valueOf(args.get("lod"));
+        if ( args.get("qscore") != null )
+            Qscore = Double.valueOf(args.get("qscore"));
 
         Iterator<String> iter = samples.iterator();
         sample1 = iter.next();
@@ -33,32 +31,28 @@ public class SNPGenotypeConcordance implements ConcordanceType {
 
     public String computeConcordance(Map<String, VCFGenotypeCall> samplesToRecords, ReferenceContext ref) {
 
-        VCFGenotypeCall vcfCall1 = samplesToRecords.get(sample1);
-        VCFGenotypeCall vcfCall2 = samplesToRecords.get(sample2);
-        Variation call1 = (vcfCall1 == null ? null : vcfCall1.toVariation());
-        Variation call2 = (vcfCall2 == null ? null : vcfCall2.toVariation());
+        VCFGenotypeCall call1 = samplesToRecords.get(sample1);
+        VCFGenotypeCall call2 = samplesToRecords.get(sample2);
 
         // the only reason they would be null is a lack of coverage
         if ( call1 == null || call2 == null ) {
-            if ( call1 != null && call1.isSNP() && call1.getNegLog10PError() >= LOD )
+            if ( call1 != null && call1.isPointGenotype() && (10.0 * call1.getNegLog10PError()) >= Qscore )
                 return "set1ConfidentVariantSet2NoCoverage";
-            else if ( call2 != null && call2.isSNP() && call2.getNegLog10PError() >= LOD )
+            else if ( call2 != null && call2.isPointGenotype() && (10.0 * call2.getNegLog10PError()) >= Qscore )
                 return "set1NoCoverageSet2ConfidentVariant";
             return null;
         }
-        if (!(call1 instanceof VariantBackedByGenotype) || !(call2 instanceof VariantBackedByGenotype))
-                    throw new StingException("Both ROD tracks must be backed by genotype data. Ensure that your rod(s) contain genotyping information");
 
-        double bestVsRef1 = call1.getNegLog10PError();
-        double bestVsRef2 = call2.getNegLog10PError();
-        String genotype1 = ((VariantBackedByGenotype)call1).getCalledGenotype().getBases();
-        String genotype2 = ((VariantBackedByGenotype)call2).getCalledGenotype().getBases();
+        double confidence1 = 10.0 * call1.getNegLog10PError();
+        double confidence2 = 10.0 * call2.getNegLog10PError();
+        String genotype1 = call1.getBases();
+        String genotype2 = call2.getBases();
 
         // are they both variant SNPs?
-        if ( call1.isSNP() && call2.isSNP() ) {
+        if ( call1.isPointGenotype() && call2.isPointGenotype() ) {
 
             // are they both confident calls?
-            if ( bestVsRef1 >= LOD && bestVsRef2 >= LOD ) {
+            if ( confidence1 >= Qscore && confidence2 >= Qscore ) {
                 // same genotype
                 if ( genotype1.equals(genotype2) )
                     return "sameConfidentVariant";
@@ -73,20 +67,20 @@ public class SNPGenotypeConcordance implements ConcordanceType {
             }
 
             // confident only when combined
-            else if ( bestVsRef1 < LOD && bestVsRef2 < LOD && bestVsRef1 + bestVsRef2 >= LOD ) {
+            else if ( confidence1 < Qscore && confidence2 < Qscore && confidence1 + confidence2 >= Qscore ) {
                 return "confidentVariantWhenCombined";
             }
 
             // only one is confident variant
-            else if ( (bestVsRef1 < LOD && bestVsRef2 >= LOD) || (bestVsRef1 >= LOD && bestVsRef2 < LOD) ) {
+            else if ( (confidence1 < Qscore && confidence2 >= Qscore) || (confidence1 >= Qscore && confidence2 < Qscore) ) {
                 return "bothVariantOnlyOneIsConfident";
             }
         }
 
         // one is variant and the other is ref
-        else if ( call1.isSNP() && call2.isReference() && bestVsRef1 >= LOD )
+        else if ( call1.isPointGenotype() && call2.isVariant() && confidence1 >= Qscore )
              return "set1VariantSet2Ref";
-        else if ( call2.isSNP() && call1.isReference() && bestVsRef2 >= LOD )
+        else if ( call2.isPointGenotype() && call1.isVariant() && confidence2 >= Qscore )
             return "set1RefSet2Variant";
 
         return null;

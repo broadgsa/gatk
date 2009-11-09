@@ -21,6 +21,7 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
     private final GenomeLoc mLocation;
 
     private List<SAMRecord> mReads;
+    private int mCoverage = 0;
     private double[] mPosteriors;
 
 
@@ -32,10 +33,7 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
     // the sample name, used to propulate the SampleBacked interface
     private String mSampleName;
 
-    /**
-     * Generate a single sample genotype object
-     *
-     */
+
     public VCFGenotypeCall(char ref, GenomeLoc loc) {
         mRefBase = ref;
         mLocation = loc;
@@ -47,12 +45,13 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
         mReads = new ArrayList<SAMRecord>();
     }
 
-    public VCFGenotypeCall(char ref, GenomeLoc loc, String genotype, double negLog10PError, String sample) {
+    public VCFGenotypeCall(char ref, GenomeLoc loc, String genotype, double negLog10PError, int coverage, String sample) {
         mRefBase = ref;
         mLocation = loc;
         mBestGenotype = DiploidGenotype.unorderedValueOf(genotype);
         mRefGenotype = DiploidGenotype.createHomGenotype(ref);
         mSampleName = sample;
+        mCoverage = coverage;
 
         // set general posteriors to min double value
         mPosteriors = new double[10];
@@ -245,7 +244,7 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
      * @return the number of reads we're backed by
      */
     public int getReadCount() {
-        return mReads.size();
+       return (mCoverage > 0 ? mCoverage : mReads.size());
     }
 
     /**

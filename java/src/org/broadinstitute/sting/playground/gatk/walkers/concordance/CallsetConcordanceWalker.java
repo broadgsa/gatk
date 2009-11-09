@@ -128,9 +128,6 @@ public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
         if ( vcfRods.size() == 0 )
             return 0;
 
-        // create a merged record from all input VCFs
-        VCFRecord record = VCFUtils.mergeRecords(vcfRods, rodNamesToSampleNames);
-
         // pull out all of the individual calls from the rods and insert into a map based on the
         // mapping from rod/sample to uniquified name
         HashMap<String, VCFGenotypeCall> samplesToRecords = new HashMap<String, VCFGenotypeCall>();
@@ -148,6 +145,9 @@ public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
                 samplesToRecords.put(uniquifiedSample, vcfCall);
             }
         }
+
+        // create a merged record from all input VCFs
+        VCFRecord record = VCFUtils.mergeRecords(vcfRods, rodNamesToSampleNames);
 
         // add in the info fields to the new record based on the results of each of the relevant concordance tests
         for ( ConcordanceType type : requestedTypes ) {
