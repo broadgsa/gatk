@@ -155,7 +155,7 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
      */
     public void onTraversalDone(Integer result) {
         //out.println("readgroup\tpvalue\tstatus\tbalances");
-        out.printf("%-10s\t%-10s\t%-10s\t%-10s%n", "readgroup", "pvalue", "status", "balances");
+        out.printf("%-10s\t%-13s\t%-10s\t%-10s%n", "readgroup", "pvalue", "status", "balances");
 
         for (String rg : altTable.getRowNames()) {
             String balances = "";
@@ -198,7 +198,7 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
             double pValue = Probability.studentT(dof, t);
 
             //out.printf("%s\t%e\t%s\t[%s]\n", rg, pValue, (pValue < LIMIT ? "aberrant" : "nominal"), balances);
-            out.printf("%-10s\t%-10s\t%-10s\t[%-10s]\n",
+            out.printf("%-10s\t%-13s\t%-10s\t[%-10s]\n",
                        rg,
                        String.format("%e", pValue),
                        (pValue < LIMIT ? "aberrant" : "nominal"),
