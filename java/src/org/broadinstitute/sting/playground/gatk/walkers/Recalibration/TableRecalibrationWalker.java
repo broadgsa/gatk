@@ -13,6 +13,31 @@ import java.util.regex.Pattern;
 import java.io.File;
 import java.io.FileNotFoundException;
 
+/*
+ * Copyright (c) 2009 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
@@ -56,14 +81,14 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         int lineNumber = 0;
         boolean foundAllCovariates = false;
-        dataManager = new RecalDataManager();
+        int estimatedCapacity = 1;
 
         // Read in the covariates that were used from the input file
         requestedCovariates = new ArrayList<Covariate>();
 
 
         // Read in the data from the csv file and populate the map
-        out.print( "Reading in the data from input file..." );
+        logger.info( "Reading in the data from input file..." );
 
         try {
             for ( String line : new xReadLines(new File( RECAL_FILE )) ) {
@@ -80,6 +105,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                                 try {
                                     Covariate covariate = (Covariate)covClass.newInstance();
                                     requestedCovariates.add( covariate );
+                                    estimatedCapacity *= covariate.estimatedNumberOfBins();
+                                    
                                 } catch ( InstantiationException e ) {
                                     throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
                                 } catch ( IllegalAccessException e ) {
@@ -100,6 +127,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                         foundAllCovariates = true;
                         logger.info( "The covariates being used here: " );
                         logger.info( requestedCovariates );
+                        dataManager = new RecalDataManager( estimatedCapacity );
+
                     }
                     addCSVData(line);
                 }
@@ -110,12 +139,12 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         } catch ( NumberFormatException e ) {
             throw new RuntimeException("Error parsing recalibration data at line " + lineNumber, e);
         }
-        out.println( "...done!" );
+        logger.info( "...done!" );
 
         if( MODE == RecalibrationMode.SEQUENTIAL ) {
-            out.print( "Creating collapsed tables for use in sequential calculation..." );
+        	logger.info( "Creating collapsed tables for use in sequential calculation..." );
             dataManager.createCollapsedTables( requestedCovariates.size() );
-            out.println( "...done!" );
+            logger.info( "...done!" );
         }
         
         //System.out.println(dataManager.getCollapsedTable(1));
@@ -123,7 +152,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
     private void addCSVData(String line) {
         String[] vals = line.split(",");
-        ArrayList<Comparable<?>> key = new ArrayList<Comparable<?>>();
+        ArrayList<Comparable> key = new ArrayList<Comparable>();
         Covariate cov; // preallocated for use in for loop below
         int iii;
         for( iii = 0; iii < requestedCovariates.size(); iii++ ) {
@@ -149,53 +178,44 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         byte[] recalQuals = originalQuals.clone();
 
         // For each base in the read
-        Comparable<?> keyElement; // preallocate for use in for loops below
         for( int iii = 1; iii < read.getReadLength() - 1; iii++ ) { // skip first and last base because there is no dinuc
-            ArrayList<Comparable<?>> key = new ArrayList<Comparable<?>>();
-            boolean badKey = false;
+            List<Comparable> key = new ArrayList<Comparable>();
             for( Covariate covariate : requestedCovariates ) {
-                keyElement = covariate.getValue( read, iii, refBases );
-                if ( keyElement != null ) {
-                    key.add( keyElement );
-                } else {
-                    badKey = true;
-                }
+                key.add( covariate.getValue( read, iii, refBases ) );
             }
 
-            if( !badKey ) {
-                if( MODE == RecalibrationMode.COMBINATORIAL ) {
-                    RecalDatum datum = dataManager.data.get( key );
-                    if( datum != null ) { // if we have data for this combination of covariates then recalibrate the quality score otherwise do nothing
-                        recalQuals[iii] = datum.empiricalQualByte( SMOOTHING );
-                    }
-                } else if( MODE == RecalibrationMode.SEQUENTIAL ) {
-                    recalQuals[iii] = performSequentialQualityCalculation( key );
-                } else {
-                    throw new StingException( "Specified RecalibrationMode is not supported: " + MODE );
+            if( MODE == RecalibrationMode.COMBINATORIAL ) {
+                RecalDatum datum = dataManager.data.get( key );
+                if( datum != null ) { // if we have data for this combination of covariates then recalibrate the quality score otherwise do nothing
+                    recalQuals[iii] = datum.empiricalQualByte( SMOOTHING );
                 }
+            } else if( MODE == RecalibrationMode.SEQUENTIAL ) {
+                recalQuals[iii] = performSequentialQualityCalculation( key );
+            } else {
+                throw new StingException( "Specified RecalibrationMode is not supported: " + MODE );
+            }
 
-                // Do some error checking on the new quality score
-                if ( recalQuals[iii]  <= 0 || recalQuals[iii]  > QualityUtils.MAX_REASONABLE_Q_SCORE ) {
-                    throw new StingException( "Assigning bad quality score " + key + " => " +  recalQuals[iii] );
-                }
+            // Do some error checking on the new quality score
+            if ( recalQuals[iii]  <= 0 || recalQuals[iii]  > QualityUtils.MAX_REASONABLE_Q_SCORE ) {
+                throw new StingException( "Assigning bad quality score " + key + " => " +  recalQuals[iii] );
             }
         }
 
         preserveQScores( originalQuals, recalQuals ); // overwrite the work done if original quality score is too low
         read.setBaseQualities(recalQuals); // overwrite old qualities with new recalibrated qualities
-        if ( read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG) == null ) { // save the old qualities if there is room in the read
+        if ( read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG) == null ) { // save the old qualities if the tag isn't already taken in the read
             read.setAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG, QualityUtils.phredToFastq(originalQuals));
         }
 
         return read;
     }
 
-    private byte performSequentialQualityCalculation( ArrayList<? extends Comparable<?>> key ) {
+    private byte performSequentialQualityCalculation( List<? extends Comparable> key ) {
 
         byte qualFromRead = Byte.parseByte(key.get(1).toString());
-        ArrayList<Comparable<?>> newKey;
+        ArrayList<Comparable> newKey;
         
-        newKey = new ArrayList<Comparable<?>>();
+        newKey = new ArrayList<Comparable>();
         newKey.add( key.get(0) ); // read group
         RecalDatum globalDeltaQDatum = dataManager.getCollapsedTable(0).get( newKey );
         double globalDeltaQ = 0.0;
@@ -206,7 +226,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
         
        
-        newKey = new ArrayList<Comparable<?>>();
+        newKey = new ArrayList<Comparable>();
         newKey.add( key.get(0) ); // read group
         newKey.add( key.get(1) ); // quality score
         RecalDatum deltaQReportedDatum = dataManager.getCollapsedTable(1).get( newKey );
@@ -219,7 +239,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         double deltaQCovariates = 0.0;
         RecalDatum deltaQCovariateDatum;
         for( int iii = 2; iii < key.size(); iii++ ) {
-            newKey = new ArrayList<Comparable<?>>();
+            newKey = new ArrayList<Comparable>();
             newKey.add( key.get(0) ); // read group
             newKey.add( key.get(1) ); // quality score
             newKey.add( key.get(iii) ); // given covariate
@@ -236,6 +256,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             throw new StingException( "Illegal base quality score calculated: " + key +
                         String.format( " => %d + %.2f + %.2f + %.2f = %d", qualFromRead, globalDeltaQ, deltaQReported, deltaQCovariates, newQualityByte ) );
         }
+        
+        //System.out.println("returning: " + newQualityByte);
         return newQualityByte;
     }
 
