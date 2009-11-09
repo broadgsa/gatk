@@ -1,3 +1,7 @@
+import itertools
+
+VCF_KEYS = "CHROM  POS     ID        REF   ALT    QUAL  FILTER  INFO".split()
+
 TRANSITIONS = dict()
 for p in ["AG", "CT"]:
     TRANSITIONS[p] = True
@@ -19,10 +23,11 @@ def convertToType(d):
     
 class VCFRecord:
     """Simple support for accessing a VCF record"""
-    def __init__(self, basicBindings, header=None):
+    def __init__(self, basicBindings, header=None, rest=[]):
         self.header = header
         self.info = convertToType(parseInfo(basicBindings["INFO"]))
         self.bindings = convertToType(basicBindings)
+        self.rest = rest
     
     def hasHeader(self): return self.header <> None
     def getHeader(self): return self.header
@@ -102,6 +107,9 @@ class VCFRecord:
     def __str__(self):
         #return str(self.bindings) + " INFO: " + str(self.info) 
         return ' '.join(['%s=%s' % (x,y) for x,y in self.bindings.iteritems()])
+        
+    def format(self):
+        return '\t'.join([str(self.getField(key)) for key in VCF_KEYS] + self.rest)
 
 def parseInfo(s):
     def handleBoolean(key_val):
@@ -116,21 +124,41 @@ def parseInfo(s):
 def string2VCF(line, header=None):
     if line[0] != "#":
         s = line.split()
-        keys = "CHROM  POS     ID        REF   ALT    QUAL  FILTER  INFO".split()
-        bindings = dict(zip(keys, s[0:8]))
-        return VCFRecord(bindings, header)
+        bindings = dict(zip(VCF_KEYS, s[0:8]))
+        return VCFRecord(bindings, header, rest=s[8:])
     else:
         return None
 
-def lines2VCF(lines):
-    header = None
+def readVCFHeader(lines):
+    header = []
+    columnNames = None
+    for line in lines:
+        if line[0] == "#":
+            header.append(line.strip())
+        else:
+            if header <> []:
+                columnNames = header[-1]
+            return header, columnNames, itertools.chain([line], lines)
+    
+
+def lines2VCF(lines, extendedOutput = False):
+    header, columnNames, lines = readVCFHeader(lines)
     counter = 0
+    
     for line in lines:
         if line[0] != "#":
             counter += 1
-            vcf = string2VCF(line, header=header)
+            vcf = string2VCF(line, header=columnNames)
             if vcf <> None:
-                yield vcf, counter
-        else:
-            header = line[1:].split()
+                if extendedOutput:
+                    yield header, vcf, counter
+                else:
+                    yield vcf
     raise StopIteration()
+
+
+def formatVCF(header, records):
+    #print records
+    print records[0]
+    return itertools.chain(header, map(VCFRecord.format, records)) 
+ 
