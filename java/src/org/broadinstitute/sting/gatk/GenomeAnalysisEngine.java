@@ -40,6 +40,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.bed.BedParser;
@@ -98,6 +99,11 @@ public class GenomeAnalysisEngine {
     private final WalkerManager walkerManager;
 
     /**
+     * Manage lists of filters.
+     */
+    private final FilterManager filterManager;
+
+    /**
      * our constructor, where all the work is done
      * <p/>
      * legacy traversal types are sent to legacyTraversal function; as we move more of the traversals to the
@@ -107,6 +113,7 @@ public class GenomeAnalysisEngine {
         // make sure our instance variable points to this analysis engine
         instance = this;
         walkerManager = new WalkerManager();
+        filterManager = new FilterManager();
     }
 
     /**
@@ -184,7 +191,16 @@ public class GenomeAnalysisEngine {
      * @return An instance of the walker.
      */
     public Walker<?, ?> getWalkerByName(String walkerName) {
-        return walkerManager.createWalkerByName(walkerName);
+        return walkerManager.createByName(walkerName);
+    }
+
+    /**
+     * Gets the name of a given walker type.
+     * @param walkerType Type of walker.
+     * @return Name of the walker.
+     */
+    public String getWalkerName(Class<Walker> walkerType) {
+        return walkerManager.getName(walkerType);
     }
 
     private void initializeDataSources(Walker my_walker, GATKArgumentCollection argCollection) {
@@ -240,7 +256,7 @@ public class GenomeAnalysisEngine {
                 Utils.scareUser(String.format("Read-based traversals require a reference file but none was given"));
             microScheduler = MicroScheduler.create(my_walker, readsDataSource, referenceDataSource, rodDataSources, argCollection.numberOfThreads);
         } else {
-            Utils.scareUser(String.format("Unable to create the appropriate TraversalEngine for analysis type %s", WalkerManager.getWalkerName(my_walker.getClass())));
+            Utils.scareUser(String.format("Unable to create the appropriate TraversalEngine for analysis type %s", walkerManager.getName(my_walker.getClass())));
         }
 
         return microScheduler;
@@ -377,9 +393,11 @@ public class GenomeAnalysisEngine {
     private Reads extractSourceInfo(Walker walker, GATKArgumentCollection argCollection) {
         List<SamRecordFilter> filters = new ArrayList<SamRecordFilter>();
 
-        filters.addAll(WalkerManager.getReadFilters(walker));
+        filters.addAll(WalkerManager.getReadFilters(walker,filterManager));
         if (argCollection.filterZeroMappingQualityReads != null && argCollection.filterZeroMappingQualityReads)
             filters.add(new ZeroMappingQualityReadFilter());
+        for(String filterName: argCollection.readFilters)
+            filters.add(filterManager.createByName(filterName));
 
         return new Reads(argCollection.samFiles,
                 argCollection.strictnessLevel,

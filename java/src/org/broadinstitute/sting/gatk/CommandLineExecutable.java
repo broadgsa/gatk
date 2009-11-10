@@ -123,7 +123,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
 
     @Override
     protected String getArgumentSourceName( Class argumentSource ) {
-        return WalkerManager.getWalkerName((Class<Walker>) argumentSource);
+        return GATKEngine.getWalkerName((Class<Walker>)argumentSource);
     }    
 
     /**

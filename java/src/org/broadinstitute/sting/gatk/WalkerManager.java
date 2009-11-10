@@ -30,8 +30,9 @@ import java.util.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.PackageUtils;
+import org.broadinstitute.sting.utils.PluginManager;
 import org.apache.log4j.Logger;
 import net.sf.picard.filter.SamRecordFilter;
 
@@ -42,49 +43,15 @@ import net.sf.picard.filter.SamRecordFilter;
  * Time: 3:14:28 PM
  * To change this template use File | Settings | File Templates.
  */
-public class WalkerManager {
+public class WalkerManager extends PluginManager<Walker> {
 
     /**
      * our log, which we want to capture anything from this class
      */
     private static Logger logger = Logger.getLogger(WalkerManager.class);
 
-    private Map<String, Class<? extends Walker>> walkersByName;
-
     public WalkerManager() {
-        List<Class<? extends Walker>> walkers = PackageUtils.getClassesImplementingInterface(Walker.class);
-        walkersByName = createWalkerDatabase(walkers);
-    }
-
-    /**
-     * Does a walker with the given name exist?
-     *
-     * @param walkerName Name of the walker for which to search.
-     * @return True if the walker exists, false otherwise.
-     */
-    public boolean doesWalkerExist(String walkerName) {
-        return walkersByName.containsKey(walkerName);
-    }
-
-    /**
-     * Gets a walker with the given name, or null if no walker exists.
-     *
-     * @param walkerName Name of the walker to retrieve.
-     * @return The walker object if found; null otherwise.
-     */
-    public Walker createWalkerByName(String walkerName) {
-        try {
-            Class<? extends Walker> walker = walkersByName.get(walkerName);
-            if( walker == null )
-                throw new StingException(String.format("Could not find walker with name: %s", walkerName));
-            return walker.newInstance();
-        }
-        catch( InstantiationException ex ) {
-            throw new StingException("Unable to instantiate walker " + walkerName, ex);            
-        }
-        catch( IllegalAccessException ex ) {
-            throw new StingException("Unable to access walker " + walkerName, ex);
-        }
+        super(Walker.class,"walker","Walker");
     }
 
     /**
@@ -92,7 +59,7 @@ public class WalkerManager {
      * @return Names of currently available walkers.
      */
     public Set<String> getWalkerNames() {
-        return Collections.unmodifiableSet( walkersByName.keySet() );
+        return Collections.unmodifiableSet( pluginsByName.keySet() );
     }
 
     /**
@@ -101,7 +68,7 @@ public class WalkerManager {
      * @return Class representing the walker.
      */
     public Class getWalkerClassByName(String walkerName) {
-        return walkersByName.get(walkerName);
+        return pluginsByName.get(walkerName);
     }
 
     /**
@@ -185,42 +152,14 @@ public class WalkerManager {
     /**
      * Extracts filters that the walker has requested be run on the dataset.
      * @param walker Walker to inspect for filtering requests.
+     * @param filterManager Manages the creation of filters.
      * @return A non-empty list of filters to apply to the reads.
      */
-    public static List<SamRecordFilter> getReadFilters(Walker walker) {
-        Class<? extends SamRecordFilter>[] filterTypes = getReadFilterTypes(walker);
+    public static List<SamRecordFilter> getReadFilters(Walker walker, FilterManager filterManager) {
         List<SamRecordFilter> filters = new ArrayList<SamRecordFilter>();
-
-        for( Class<? extends SamRecordFilter> filterType: filterTypes ) {
-            try {
-                filters.add(filterType.newInstance());
-            }
-            catch( InstantiationException ex ) {
-                throw new StingException("Unable to instantiate filter: " + filterType, ex);
-            }
-            catch( IllegalAccessException ex ) {
-                throw new StingException("Unable to access filter: " + filterType, ex);                
-            }
-        }
-
+        for(Class<? extends SamRecordFilter> filterType: getReadFilterTypes(walker))
+            filters.add(filterManager.createFilterByType(filterType));
         return filters;
-    }
-
-    /**
-     * Instantiate the list of walker classes.  Add them to the walker hashmap.
-     *
-     * @param walkerClasses Classes to instantiate.
-     * @return map of walker name to walker.
-     */
-    private Map<String, Class<? extends Walker>> createWalkerDatabase(List<Class<? extends Walker>> walkerClasses) {
-        Map<String, Class<? extends Walker>> walkers = new HashMap<String, Class<? extends Walker>>();
-
-        for (Class<? extends Walker> walkerClass : walkerClasses) {
-            String walkerName = getWalkerName(walkerClass);
-            walkers.put(walkerName, walkerClass);
-        }
-
-        return walkers;
     }
 
     /**
@@ -229,17 +168,14 @@ public class WalkerManager {
      * @param walkerType The type of walker.
      * @return A name for this type of walker.
      */
-    public static String getWalkerName(Class<? extends Walker> walkerType) {
+    @Override
+    public String getName(Class<? extends Walker> walkerType) {
         String walkerName = "";
 
         if (walkerType.getAnnotation(WalkerName.class) != null)
             walkerName = walkerType.getAnnotation(WalkerName.class).value().trim();
-
-        if (walkerName.length() == 0) {
-            walkerName = walkerType.getSimpleName();
-            if (walkerName.endsWith("Walker"))
-                walkerName = walkerName.substring(0, walkerName.lastIndexOf("Walker"));
-        }
+        else
+            walkerName = super.getName(walkerType);
 
         return walkerName;
     }

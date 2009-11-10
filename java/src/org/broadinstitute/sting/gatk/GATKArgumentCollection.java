@@ -57,6 +57,10 @@ public class GATKArgumentCollection {
     public List<File> samFiles = new ArrayList<File>();
 
     @ElementList(required = false)
+    @Argument(fullName = "read_filters", shortName = "rf", doc = "Specify filtration criteria on the each read.", required=false)
+    public List<String> readFilters = new ArrayList<String>();
+
+    @ElementList(required = false)
     @Argument(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.", required = false)
     public List<String> intervals = null;
 
