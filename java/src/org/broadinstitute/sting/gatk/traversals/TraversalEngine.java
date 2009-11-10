@@ -68,38 +68,17 @@ public abstract class TraversalEngine {
         if (mustPrint || nRecords == 1 || nRecords % N_RECORDS_TO_PRINT == 0 || maxElapsedIntervalForPrinting(curTime)) {
             this.lastProgressPrintTime = curTime;
             final double secsPer1MReads = (elapsed * 1000000.0) / nRecords;
+            String typeString = "loci";
             switch (type) {
-                case LOCUS:
-                    logger.info(String.format("[PROGRESS] Traversed to %s, processing %,d loci in %.2f secs (%.2f secs per 1M loci)",
-                                loc,
-                                nRecords,
-                                elapsed,
-                                secsPer1MReads));break;
-                case READ:
-                    logger.info(String.format("[PROGRESS] Traversed %,d reads in %.2f secs %s(%.2f secs per 1M reads)",
-                                nRecords,
-                                elapsed,
-                                (loc != null) ? String.format("at location %s ",loc) : "",
-                                secsPer1MReads));break;
-                case DUPLICATE:
-                    logger.info(String.format("[PROGRESS] Traversed %,d dups in %.2f secs %s(%.2f secs per 1M dups)",
-                                nRecords,
-                                elapsed,
-                                (loc != null) ? String.format("at location %s ",loc) : "",
-                                secsPer1MReads));break;
-                case LOCUS_WINDOW:
-                    logger.info(String.format("[PROGRESS] Traversed %,d intervals in %.2f secs over interval %s (%.2f secs per 1M intervals)",
-                                nRecords,
-                                elapsed,
-                                loc,
-                                secsPer1MReads));break;
-                default:
-                    logger.info(String.format("[PROGRESS] Traversed %,d records in %.2f secs (%.2f secs per 1M intervals)%s",
-                                nRecords,
-                                elapsed,
-                                secsPer1MReads,
-                                (loc != null) ? String.format(", last location seen was %s",loc) : ""));
+                case LOCUS: typeString = "loci"; break;
+                case READ: typeString = "reads"; break;
+                case DUPLICATE: typeString = "dups"; break;
+                case LOCUS_WINDOW: typeString = "interval"; break;
             }
+            if (loc != null)
+                logger.info(String.format("[PROGRESS] Traversed to %s, processing %,d %s in %.2f secs (%.2f secs per 1M %s)", loc, nRecords, typeString, elapsed, secsPer1MReads, typeString));
+            else
+                logger.info(String.format("[PROGRESS] Traversed %,d %s in %.2f secs (%.2f secs per 1M %s)", nRecords, typeString, elapsed, secsPer1MReads, typeString));
         }   
     }
 
