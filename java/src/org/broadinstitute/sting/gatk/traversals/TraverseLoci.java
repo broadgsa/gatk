@@ -86,7 +86,7 @@ public class TraverseLoci extends TraversalEngine {
                     break;
                 }
 
-                printProgress(UNIT_STRING, locus.getLocation());
+                printProgress(TRAVERSAL_TYPE.LOCUS, locus.getLocation());
             }
         }
 
@@ -113,7 +113,7 @@ public class TraverseLoci extends TraversalEngine {
      * @param <T> Type of the result.
      */
     public <T> void printOnTraversalDone( T sum ) {
-        printOnTraversalDone( UNIT_STRING, sum );
+        printOnTraversalDone( TRAVERSAL_TYPE.LOCUS, sum );
     }
 
     /**

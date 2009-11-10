@@ -58,7 +58,7 @@ public class TraverseLocusWindows extends TraversalEngine {
             sum = locusWindowWalker.reduce(x, sum);
         }
 
-        printProgress("intervals", locus.getLocation());
+        printProgress(TRAVERSAL_TYPE.LOCUS_WINDOW, locus.getLocation());
 
         return sum;
     }
@@ -98,7 +98,7 @@ public class TraverseLocusWindows extends TraversalEngine {
      * @param <T> Type of the result.
      */
     public <T> void printOnTraversalDone( T sum ) {
-        printOnTraversalDone( "intervals", sum );
+        printOnTraversalDone( TRAVERSAL_TYPE.LOCUS_WINDOW, sum );
     }
 
 }

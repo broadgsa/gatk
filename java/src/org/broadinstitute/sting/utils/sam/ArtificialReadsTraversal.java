@@ -118,7 +118,7 @@ public class ArtificialReadsTraversal extends TraversalEngine {
                 sum = readWalker.reduce(x, sum);
             }
 
-            if (alignment != null) { printProgress("loci", alignment.getLocation()); }
+            if (alignment != null) { printProgress(TRAVERSAL_TYPE.READ, alignment.getLocation()); }
         }
         return sum;
     }
@@ -131,7 +131,7 @@ public class ArtificialReadsTraversal extends TraversalEngine {
      * @param <T> Type of the result.
      */
     public <T> void printOnTraversalDone( T sum ) {
-        printOnTraversalDone("reads", sum);
+        printOnTraversalDone(TRAVERSAL_TYPE.READ, sum);
     }
 
 

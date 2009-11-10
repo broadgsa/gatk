@@ -203,7 +203,7 @@ public class TraverseDuplicates extends TraversalEngine {
             if (duplicateReads.size() > 0)
                 sum = mapOne(dupWalker, uniqueReads, duplicateReads, site, refBases, locus, sum);
 
-            printProgress("dups", site);
+            printProgress(TRAVERSAL_TYPE.DUPLICATE, site);
 
             if (this.maximumIterations > 0 && TraversalStatistics.nRecords > this.maximumIterations) {
                 logger.warn(String.format(("Maximum number of duplicate sets encountered, terminating traversal " + TraversalStatistics.nRecords)));
@@ -309,6 +309,6 @@ public class TraverseDuplicates extends TraversalEngine {
      * @param <T> Type of the result.
      */
     public <T> void printOnTraversalDone(T sum) {
-        printOnTraversalDone("reads", sum);
+        printOnTraversalDone(TRAVERSAL_TYPE.DUPLICATE, sum);
     }
 }

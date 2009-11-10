@@ -121,7 +121,10 @@ public class TraverseReads extends TraversalEngine {
                 sum = readWalker.reduce(x, sum);
             }
 
-            printProgress("reads", null);
+            printProgress(TRAVERSAL_TYPE.READ,
+                          (read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) ?
+                                  null :
+                                  GenomeLocParser.createGenomeLoc(read.getReferenceIndex(),read.getAlignmentStart()));
         }
         return sum;
     }
@@ -133,6 +136,6 @@ public class TraverseReads extends TraversalEngine {
      * @param <T> Type of the result.
      */
     public <T> void printOnTraversalDone( T sum ) {
-        printOnTraversalDone( "reads", sum );
+        printOnTraversalDone(TRAVERSAL_TYPE.READ, sum );
     }
 }

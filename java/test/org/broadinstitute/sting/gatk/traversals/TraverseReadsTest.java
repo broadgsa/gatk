@@ -139,7 +139,7 @@ public class TraverseReadsTest extends BaseTest {
 
         }
 
-        traversalEngine.printOnTraversalDone("loci", accumulator);
+        traversalEngine.printOnTraversalDone(TraversalEngine.TRAVERSAL_TYPE.READ, accumulator);
         countReadWalker.onTraversalDone(accumulator);
 
         if (!(accumulator instanceof Integer)) {
@@ -185,7 +185,7 @@ public class TraverseReadsTest extends BaseTest {
             dataProvider.close();
         }
 
-        traversalEngine.printOnTraversalDone("loci", accumulator);
+        traversalEngine.printOnTraversalDone(TraversalEngine.TRAVERSAL_TYPE.READ, accumulator);
         countReadWalker.onTraversalDone(accumulator);
 
         if (!(accumulator instanceof Integer)) {
