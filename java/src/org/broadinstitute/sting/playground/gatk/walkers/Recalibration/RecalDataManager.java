@@ -50,12 +50,12 @@ public class RecalDataManager {
         collapsedTablesCreated = false;
     }
 
-    // BUGBUG: A lot going on in this method, doing a lot of pre-calculations for use in the sequential mode calculation later
+    // BUGBUG: A lot going on in this method, doing a lot of pre-calculations for use in the sequential mode calculation later in TableRecalibrationWalker
     public void createCollapsedTables( int numCovariates ) {
         dataCollapsedReadGroup = new NHashMap<RecalDatum>();
         dataCollapsedQualityScore = new NHashMap<RecalDatum>();
         dataCollapsedByCovariate = new ArrayList<NHashMap<RecalDatum>>();
-        for( int iii = 0; iii < numCovariates - 2; iii++ ) { // readGroup and QualityScore aren't counted
+        for( int iii = 0; iii < numCovariates - 2; iii++ ) { // readGroup and QualityScore aren't counted here, their tables are separate
             dataCollapsedByCovariate.add( new NHashMap<RecalDatum>() );
         }
         dataSumExpectedErrors = new NHashMap<Double>();
@@ -78,7 +78,6 @@ public class RecalDataManager {
             collapsedDatum = dataCollapsedReadGroup.get( newKey );
             if( collapsedDatum == null ) {
                 dataCollapsedReadGroup.put( newKey, new RecalDatum( thisDatum ) );
-                //System.out.println("Added key: " + newKey + " to the dataCollapsedReadGroup");
             } else {
                 collapsedDatum.increment( thisDatum );
             }
@@ -89,7 +88,6 @@ public class RecalDataManager {
             if( sumExpectedErrors == null ) {
                 dataSumExpectedErrors.put( newKey, 0.0 );
             } else {
-                //System.out.println("updated += " + QualityUtils.qualToErrorProb(Byte.parseByte(key.get(1).toString())) * thisDatum.getNumObservations());
                 dataSumExpectedErrors.remove( newKey );
                 sumExpectedErrors += QualityUtils.qualToErrorProb(Byte.parseByte(key.get(1).toString())) * thisDatum.getNumObservations();
                 dataSumExpectedErrors.put( newKey, sumExpectedErrors );
@@ -101,8 +99,7 @@ public class RecalDataManager {
             newKey.add( key.get(1) ); //                                    and quality score
             collapsedDatum = dataCollapsedQualityScore.get( newKey );
             if( collapsedDatum == null ) {
-            	//System.out.println("Added: " + newKey + "   " + newKey.hashCode());
-                dataCollapsedQualityScore.put( newKey, new RecalDatum( thisDatum ) );
+            	dataCollapsedQualityScore.put( newKey, new RecalDatum( thisDatum ) );
             } else {
                 collapsedDatum.increment( thisDatum );
             }
@@ -127,7 +124,7 @@ public class RecalDataManager {
 
     public NHashMap<RecalDatum> getCollapsedTable( int covariate ) {
         if( !collapsedTablesCreated ) {
-            throw new StingException("Trying to get collapsed tables before they have been populated.");
+            throw new StingException("Trying to get collapsed tables before they have been populated. Null pointers abound.");
         }
 
         if( covariate == 0) {

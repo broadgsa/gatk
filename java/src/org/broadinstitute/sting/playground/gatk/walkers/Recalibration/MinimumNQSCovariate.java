@@ -32,6 +32,10 @@ import org.broadinstitute.sting.utils.QualityUtils;
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Nov 4, 2009
+ *
+ * The Minimum Neighborhood Quality Score covariate, originally described by Chris Hartl.
+ * This covariate is the minimum base quality score along the length of the read.
+ * BUGBUG: I don't think this is what was intended by Chris. Covariate interface must change to implement the real covariate. 
  */
 
 public class MinimumNQSCovariate implements Covariate {
@@ -58,6 +62,7 @@ public class MinimumNQSCovariate implements Covariate {
             }
         }
 
+        // Loop over the list of qualities and find the minimum
         Integer minQual = (int)(quals[0]);
         for ( int qual : quals ) {
             if( qual < minQual ) {

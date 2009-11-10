@@ -32,6 +32,8 @@ import org.broadinstitute.sting.utils.QualityUtils;
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Nov 3, 2009
+ *
+ * The Reported Quality Score covariate.
  */
 
 public class QualityScoreCovariate implements Covariate {

@@ -69,25 +69,23 @@ public class RecalDatum {
     //---------------------------------------------------------------------------------------------------------------
 
 
-    public RecalDatum increment( long incObservations, long incMismatches ) {
+    public void increment( long incObservations, long incMismatches ) {
         numObservations += incObservations;
         numMismatches += incMismatches;
-        return this;
     }
 
-    public RecalDatum increment( RecalDatum other ) {
-        return increment( other.numObservations, other.numMismatches );
+    public void increment( RecalDatum other ) {
+        increment( other.numObservations, other.numMismatches );
     }
 
-    public RecalDatum increment( List<RecalDatum> data ) {
+    public void increment( List<RecalDatum> data ) {
         for ( RecalDatum other : data ) {
             this.increment( other );
         }
-        return this;
     }
 
-    public RecalDatum increment( char curBase, char ref ) {
-        return increment( 1, BaseUtils.simpleBaseToBaseIndex(curBase) == BaseUtils.simpleBaseToBaseIndex(ref) ? 0 : 1 ); // inc takes num observations, then num mismatches
+    public void increment( char curBase, char ref ) {
+        increment( 1, BaseUtils.simpleBaseToBaseIndex(curBase) == BaseUtils.simpleBaseToBaseIndex(ref) ? 0 : 1 ); // increment takes num observations, then num mismatches
     }
 
     //---------------------------------------------------------------------------------------------------------------

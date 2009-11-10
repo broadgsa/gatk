@@ -31,6 +31,8 @@ import net.sf.samtools.SAMRecord;
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Nov 4, 2009
+ *
+ * The Mapping Quality covariate.
  */
 
 public class MappingQualityCovariate implements Covariate {

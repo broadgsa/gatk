@@ -31,6 +31,8 @@ import net.sf.samtools.SAMRecord;
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Oct 30, 2009
+ *
+ * The Read Group covariate.
  */
 
 public class ReadGroupCovariate implements Covariate{

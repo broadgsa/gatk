@@ -1,5 +1,8 @@
 package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 
+import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.StingException;
+
 import java.util.*;
 
 /*
@@ -40,21 +43,26 @@ public class NHashMap<T> extends HashMap<List<? extends Comparable>, T> {
 
     public NHashMap() {
         super();
-        keyLists = new ArrayList<ArrayList<Comparable>>();
+        keyLists = null;
     }
 
     public NHashMap( int initialCapacity, float loadingFactor ) {
         super( initialCapacity, loadingFactor );
-        keyLists = new ArrayList<ArrayList<Comparable>>();
+        keyLists = null;
     }
 
-    /*
 
     // This method is here only to help facilitate direct comparison of old and refactored recalibrator.
-    // The old recalibrator prints out it's mappings in a sorted order but the refactored recalibrator doesn't need to.
-    // Comment out this overriding method to improve performance
-    public T put(List<? extends Comparable> key, T value) {
+    // The old recalibrator prints out its mappings in a sorted order but the refactored recalibrator doesn't need to.
+    public T myPut(List<? extends Comparable> key, T value) {
 
+        if( keyLists == null ) {
+            keyLists = new ArrayList<ArrayList<Comparable>>();
+            for( Comparable comp : key ) {
+                keyLists.add( new ArrayList<Comparable>() ); 
+            }
+        }
+        
         ArrayList<Comparable> thisList;
         for( int iii = 0; iii < key.size(); iii++ ) {
             thisList = keyLists.get( iii );
@@ -68,27 +76,46 @@ public class NHashMap<T> extends HashMap<List<? extends Comparable>, T> {
         return super.put( key, value );
     }
 
-    // This method is here only to help facilitate direct comparison of old and refactored recalibrator.
-    // The old recalibrator prints out it's mappings in a sorted order but the refactored recalibrator doesn't need to.
-    // Comment out this overriding method to improve performance
-    public Set<Map.Entry<List<? extends Comparable>, T>> entrySet() {
-        
+    // This method is very ugly but is here only to help facilitate direct comparison of old and refactored recalibrator.
+    // The old recalibrator prints out its mappings in a sorted order but the refactored recalibrator doesn't need to.
+    @SuppressWarnings(value = "unchecked")
+    public ArrayList<Pair<List<? extends Comparable>, T>> entrySetSorted4() {
+
+        ArrayList<Pair<List<? extends Comparable>, T>> theSet = new ArrayList<Pair<List<? extends Comparable>, T>>();
+
         for( ArrayList<Comparable> list : keyLists ) {
             Collections.sort(list);
         }
 
-        for( ArrayList<Comparable> list : keyLists ) {
-            for( Comparable comp : list ) {
-                // BUGBUG: unfinished
+        if( keyLists.size() != 4 ) {
+            throw new StingException("Are you sure you want to be calling this ugly method? NHashMap.entrySetSorted4()");
+        }
+
+        ArrayList<Comparable> newKey = null;
+        for( Comparable c0 : keyLists.get(0) ) {
+            for( Comparable c1 : keyLists.get(1) ) {
+                for( Comparable c2 : keyLists.get(2) ) {
+                    for( Comparable c3 : keyLists.get(3) ) {
+                        newKey = new ArrayList<Comparable>();
+                        newKey.add(c0);
+                        newKey.add(c1);
+                        newKey.add(c2);
+                        newKey.add(c3);
+                        T value = this.get( newKey );
+                        if( value!= null ) {
+                            theSet.add(new Pair<List<? extends Comparable>,T>( newKey, value ) );
+                        }
+                    }
+                }
             }
         }
-        
-        return null;
+    
+        return theSet;
     }
 
-    */
 
-	public static <T extends Comparable> List<T> makeList(T... args) {
+
+	public List<T> makeList(T... args) {
         List<T> list = new ArrayList<T>();
         for (T arg : args)
         {

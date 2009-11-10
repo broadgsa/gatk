@@ -31,6 +31,14 @@ import net.sf.samtools.SAMRecord;
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Oct 30, 2009
+ *
+ * The Cycle covariate.
+ *  For Solexa the cycle is simply the position in the read (counting backwards if it is a negative strand read)
+ *  Yet to be implemented:
+ *  - For 454 the cycle is the number of discontinuous nucleotides seen during the length of the read
+ *     For example, for the read: AAACCCCGAAATTTTTTT
+ *             the cycle would be 111222234445555555
+ *  - For SOLiD the cycle is a more complicated mixture of ligation cycle and primer round 
  */
 
 public class CycleCovariate implements Covariate {

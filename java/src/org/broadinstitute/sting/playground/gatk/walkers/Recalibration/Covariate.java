@@ -32,11 +32,11 @@ import net.sf.samtools.SAMRecord;
  * User: rpoplin
  * Date: Oct 30, 2009
  *
- * The Covariate interface. A Covariate is a feature used in the recalibration that can be picked out of the read and corresponding reference bases 
+ * The Covariate interface. A Covariate is a feature used in the recalibration that can be picked out of the read, offset, and corresponding reference bases
  */
 
 public interface Covariate {
-	public Comparable getValue(SAMRecord read, int offset, char[] refBases); // used to pick out the value from the read and reference bases
+	public Comparable getValue(SAMRecord read, int offset, char[] refBases); // used to pick out the value from the read, offset, and reference bases
 	public Comparable getValue(String str); // used to get value from input file
-    public int estimatedNumberOfBins(); // used to estimate the amount space required in the hashmap
+    public int estimatedNumberOfBins(); // used to estimate the amount space required in the HashMap
 }

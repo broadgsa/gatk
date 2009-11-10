@@ -9,6 +9,7 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.PackageUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Pair;
 
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
@@ -72,9 +73,15 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     public boolean USE_ORIGINAL_QUALS = false;
     @Argument(fullName="recal_file", shortName="rf", required=false, doc="Filename for the outputted covariates table recalibration file")
     public String RECAL_FILE = "output.recal_data.csv";
+    @Argument(fullName="validateOldRecalibrator", shortName="valor", required=false, doc="If yes will reorder the output to match the old recalibrator exactly but makes the file useless to the refactored TableRecalibrationWalker")
+    public boolean validateOldRecalibrator = false;
 
     protected static RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
     protected static ArrayList<Covariate> requestedCovariates; // A list to hold the covariate objects that were requested
+
+    private long countedSites = 0; // used for reporting at the end
+    private long countedBases = 0; // used for reporting at the end
+    private long skippedSites = 0; // used for reporting at the end
 
     /**
      * Parse the -cov arguments and create a list of covariates to be used here
@@ -99,25 +106,30 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
         // Initialize the requested covariates by parsing the -cov argument
         requestedCovariates = new ArrayList<Covariate>();
-        requestedCovariates.add( new ReadGroupCovariate() );    // Read Group Covariate is a required covariate for the recalibration calculation
-        requestedCovariates.add( new QualityScoreCovariate() ); // Quality Score Covariate is a required covariate for the recalibration calculation
-        if( COVARIATES != null ) {
+        if( validateOldRecalibrator ) {
+            requestedCovariates.add( new ReadGroupCovariate() );
+            requestedCovariates.add( new CycleCovariate() ); // unfortunately the ordering here is different to match the output of the old recalibrator
+            requestedCovariates.add( new QualityScoreCovariate() );
+            requestedCovariates.add( new DinucCovariate() );
+            estimatedCapacity = 300 * 200 * 40 * 16;
+        } else if( COVARIATES != null ) {
+            int covNumber = 1;
             for( String requestedCovariateString : COVARIATES ) {
-
                 boolean foundClass = false;
                 for( Class<?> covClass : classes ) {
-
                     if( requestedCovariateString.equalsIgnoreCase( covClass.getSimpleName() ) ) { // -cov argument matches the class name for an implementing class
                         foundClass = true;
+                        // Read Group Covariate and Quality Score Covariate are required covariates for the recalibration calculation and must begin the list
+                        if( (covNumber == 1 && !requestedCovariateString.equalsIgnoreCase( "ReadGroupCovariate" )) ||
+                            (covNumber == 2 && !requestedCovariateString.equalsIgnoreCase( "QualityScoreCovariate" )) ) {
+                            throw new StingException("ReadGroupCovariate and QualityScoreCovariate are required covariates for the recalibration calculation and must begin the list" );
+                        }
+                        covNumber++;
                         try {
+                            // Now that we've found a matching class, try to instantiate it
                             Covariate covariate = (Covariate)covClass.newInstance();
                             requestedCovariates.add( covariate );
                             estimatedCapacity *= covariate.estimatedNumberOfBins(); // update the estimated initial capacity
-                            
-                            if (covariate instanceof ReadGroupCovariate || covariate instanceof QualityScoreCovariate) {
-                                throw new StingException( "ReadGroupCovariate and QualityScoreCovariate are required covariates and are therefore added for you. Please remove them from the -cov list" );
-                            }
-
                         } catch ( InstantiationException e ) {
                             throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
                         } catch ( IllegalAccessException e ) {
@@ -130,6 +142,13 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                     throw new StingException( "The requested covariate type (" + requestedCovariateString + ") isn't a valid covariate option. Use --list to see possible covariates." );
                 }
             }
+        } else { // Not validating old recalibrator and no covariates were specified by the user so add the default ones
+            logger.info( "Note: Using default set of covariates because none were specified." );
+            requestedCovariates.add( new ReadGroupCovariate() );
+            requestedCovariates.add( new QualityScoreCovariate() );
+            requestedCovariates.add( new CycleCovariate() );
+            requestedCovariates.add( new DinucCovariate() );
+            estimatedCapacity = 300 * 40 * 200 * 16;
         }
 
         logger.info( "The covariates being used here: " );
@@ -172,7 +191,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
                 // Only use data from reads with mapping quality above specified quality value and base quality greater than zero
                 byte[] quals = read.getBaseQualities();
-                if( read.getMappingQuality() >= MIN_MAPPING_QUALITY && quals[offset] > 0)
+                if( read.getMappingQuality() >= MIN_MAPPING_QUALITY && quals[offset] > 0 )
                 {
                     // Skip first and last bases because they don't have a dinuc count
                     if( offset > 0 && offset < (read.getReadLength() - 1) ) {
@@ -181,10 +200,13 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 }
 
             }
+            countedSites++;
 
+        } else { // We skipped over the dbSNP site
+            skippedSites++;
         }
         
-        return 1;
+        return 1; // This value isn't actually used anywhere
     }
 
     /**
@@ -208,7 +230,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             if( keyElement != null ) {
                 key.add( keyElement );
             } else {
-                badKey = true; // covariate returned bad value, for example dinuc returns null because base = 'N'
+                badKey = true; // Covariate returned bad value, for example dinuc returns null because base = 'N'
             }
         }
 
@@ -218,7 +240,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             datum = dataManager.data.get( key );
             if( datum == null ) { // key doesn't exist yet in the map so make a new bucket and add it
                 datum = new RecalDatum(); // initialized with zeros, will be incremented at end of method
-                dataManager.data.put( key, datum );
+                if( validateOldRecalibrator ) {
+                    dataManager.data.myPut( key, datum );
+                } else {
+                    dataManager.data.put( key, datum );
+                }
             }
         }
 
@@ -236,6 +262,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         if( datum != null ) {
             // Add one to the number of observations and potentially one to the number of mismatches
             datum.increment( base, refBase );
+            countedBases++;
+        } else {
+            if( validateOldRecalibrator ) {
+                countedBases++; // This line here to replicate behavior in the old recalibrator
+                                // (reads with bad covariates [prev_base = 'N', for example] were properly tossed out but this count was still incremented)
+            }
         }
     }
 
@@ -274,9 +306,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     public void onTraversalDone( PrintStream recalTableStream ) {
         out.print( "Writing raw recalibration data..." );
-        for( Covariate cov : requestedCovariates ) {
-            recalTableStream.println( "@!" + cov.getClass().getSimpleName() ); // The "@!" is a code for TableRecalibrationWalker to recognize this line as a Covariate class name
-        }
         outputToCSV( recalTableStream );
         out.println( "...done!" );
     
@@ -288,15 +317,45 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @param recalTableStream the PrintStream to write out to
      */
     private void outputToCSV( PrintStream recalTableStream ) {
-        // For each entry in the data hashmap
-        for( Map.Entry<List<? extends Comparable>, RecalDatum> entry : dataManager.data.entrySet() ) {
-            // For each Covariate in the key
-            for( Comparable comp : entry.getKey() ) {
-                // Output the Covariate's value
-        		recalTableStream.print( comp + "," );
-        	}
-            // Output the RecalDatum entry
-            recalTableStream.println( entry.getValue().outputToCSV() );
+
+        if( validateOldRecalibrator ) {
+            boolean collapsePos = false;
+            boolean collapseDinuc = false;
+            recalTableStream.printf("# collapsed_pos    %b%n", collapsePos);
+            recalTableStream.printf("# collapsed_dinuc  %b%n", collapseDinuc);
+            recalTableStream.printf("# counted_sites    %d%n", countedSites);
+            recalTableStream.printf("# counted_bases    %d%n", countedBases);
+            recalTableStream.printf("# skipped_sites    %d%n", skippedSites);
+            recalTableStream.printf("# fraction_skipped 1 / %.0f bp%n", (double)countedSites / skippedSites);
+            recalTableStream.println("rg,pos,Qrep,dn,nBases,nMismatches,Qemp");
+            for(Pair<List<? extends Comparable>, RecalDatum> entry : dataManager.data.entrySetSorted4() ) {
+                // For each Covariate in the key
+                for( Comparable comp : entry.getFirst() ) {
+                    // Output the Covariate's value
+                    recalTableStream.print( comp + "," );
+                }
+                // Output the RecalDatum entry
+                recalTableStream.println( entry.getSecond().outputToCSV() );
+            }
+        } else {
+            recalTableStream.printf("# Counted Sites    %d%n", countedSites);
+            recalTableStream.printf("# Counted Bases    %d%n", countedBases);
+            recalTableStream.printf("# Skipped Sites    %d%n", skippedSites);
+            recalTableStream.printf("# Fraction Skipped 1 / %.0f bp%n", (double)countedSites / skippedSites);
+            for( Covariate cov : requestedCovariates ) {
+                // The "@!" is a code for TableRecalibrationWalker to recognize this line as a Covariate class name
+                recalTableStream.println( "@!" + cov.getClass().getSimpleName() );
+            }
+            // For each entry in the data hashmap
+            for( Map.Entry<List<? extends Comparable>, RecalDatum> entry : dataManager.data.entrySet() ) {
+                // For each Covariate in the key
+                for( Comparable comp : entry.getKey() ) {
+                    // Output the Covariate's value
+                    recalTableStream.print( comp + "," );
+                }
+                // Output the RecalDatum entry
+                recalTableStream.println( entry.getValue().outputToCSV() );
+            }
         }
     }
 
