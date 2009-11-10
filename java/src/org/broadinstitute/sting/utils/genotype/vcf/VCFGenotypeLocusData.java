@@ -10,7 +10,7 @@ import org.broadinstitute.sting.utils.genotype.*;
  *         <p/>
  *         represents the meta data for a genotype object.
  */
-public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked, SLODBacked, AlleleFrequencyBacked {
+public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked, SLODBacked, AlleleFrequencyBacked, AlleleBalanceBacked {
 
     // the discovery lod score
     private double mConfidence = 0.0;
@@ -26,6 +26,10 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
 
     // the ref base
     private char mRefBase;
+
+    // the various allele ratios
+    private double mRefRatio = 0.0;
+    private double mOnOffRatio = 0.0;
 
     /**
      * create a basic genotype meta data pbject, given the following fields
@@ -105,4 +109,40 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
     public void setAlleleFrequency(double frequency) {
         mAlleleFrequency = frequency;
     }
+
+    /**
+     * @return returns true if the ref/(ref+alt) ratio for this genotype has been set
+     */
+    public boolean hasRefRatio() {
+        return mRefRatio > 0.0;
+    }
+
+    /**
+     * @return returns the ref/(ref+alt) ratio for this genotype
+     */
+    public double getRefRatio() {
+        return mRefRatio;
+    }
+
+    public void setRefRatio(double ratio) {
+        mRefRatio = ratio;
+    }
+
+    /**
+     * @return returns true if the (ref+alt)/total ratio for this genotype has been set
+     */
+    public boolean hasOnOffRatio() {
+        return mOnOffRatio > 0.0;
+    }
+
+    /**
+     * @return returns the (ref+alt)/total ratio for this genotype
+     */
+    public double getOnOffRatio() {
+        return mOnOffRatio;
+    }
+
+    public void setOnOffRatio(double ratio) {
+        mOnOffRatio = ratio;
+    }    
 }

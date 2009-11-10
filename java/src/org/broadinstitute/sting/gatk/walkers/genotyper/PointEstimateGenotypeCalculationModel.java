@@ -90,6 +90,27 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                 if ( locusdata instanceof ConfidenceBacked ) {
                     ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
                 }
+                if ( locusdata instanceof AlleleBalanceBacked ) {
+
+                    DiploidGenotype bestGenotype = DiploidGenotype.values()[bestIndex];
+                    // we care only about het calls
+                    if ( bestGenotype.isHetRef(ref) ) {
+
+                        char altBase = bestGenotype.base1 != ref ? bestGenotype.base1 : bestGenotype.base2;
+
+                        // get the base counts at this pileup (minus deletions)
+                        int[] counts = discoveryGL.first.getBasePileupAsCounts();
+                        int refCount = counts[BaseUtils.simpleBaseToBaseIndex(ref)];
+                        int altCount = counts[BaseUtils.simpleBaseToBaseIndex(altBase)];
+                        int totalCount = 0;
+                        for (int i = 0; i < counts.length; i++)
+                            totalCount += counts[i];
+
+                        // set the ratios
+                        ((AlleleBalanceBacked)locusdata).setRefRatio((double)refCount / (double)(refCount + altCount));
+                        ((AlleleBalanceBacked)locusdata).setOnOffRatio((double)(refCount + altCount) / (double)totalCount);
+                    }
+                }
             }
 
             return new Pair<List<Genotype>, GenotypeLocusData>(Arrays.asList(call), locusdata);

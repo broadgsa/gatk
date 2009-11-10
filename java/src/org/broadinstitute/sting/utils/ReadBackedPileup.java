@@ -80,24 +80,28 @@ public class ReadBackedPileup extends BasicPileup {
         return secondaryQualPileupAsString(reads, offsets);
     }
 
-    public String getBasePileupAsCountsString() {
-        String bases = basePileupAsString(reads, offsets, includeDeletions);
+    public int[] getBasePileupAsCounts() {
+        int[] counts = new int[4];
+        for (int i = 0; i < reads.size(); i++) {
+            // skip deletion sites
+            if ( offsets.get(i) == -1 )
+                continue;
+            char base = Character.toUpperCase((char)(reads.get(i).getReadBases()[offsets.get(i)]));
+            if (BaseUtils.simpleBaseToBaseIndex(base) == -1)
+                continue;
+            counts[BaseUtils.simpleBaseToBaseIndex(base)]++;
+        }
 
-	int[] counts = new int[4];
-	for (int i = 0; i < reads.size(); i++)
-	    {
-		// skip deletion sites
-		if ( offsets.get(i) == -1 )
-		    continue;
-		char base = Character.toUpperCase((char)(reads.get(i).getReadBases()[offsets.get(i)]));
-		if (BaseUtils.simpleBaseToBaseIndex(base) == -1) { continue; }
-		counts[BaseUtils.simpleBaseToBaseIndex(base)]++; 
-	    }
-	return String.format("A[%d] C[%d] G[%d] T[%d]",
-			     counts[0],
-			     counts[1],
-			     counts[2],
-			     counts[3]);
+        return counts;
+    }
+
+    public String getBasePileupAsCountsString() {
+        int[] counts = getBasePileupAsCounts();
+        return String.format("A[%d] C[%d] G[%d] T[%d]",
+                     counts[0],
+                     counts[1],
+                     counts[2],
+                     counts[3]);
     }
 
     public String getProbDistPileup() {

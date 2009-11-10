@@ -33,7 +33,6 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
     // the sample name, used to propulate the SampleBacked interface
     private String mSampleName;
 
-
     public VCFGenotypeCall(char ref, GenomeLoc loc) {
         mRefBase = ref;
         mLocation = loc;

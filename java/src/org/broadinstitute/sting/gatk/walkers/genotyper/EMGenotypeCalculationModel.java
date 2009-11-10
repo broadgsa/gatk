@@ -66,6 +66,8 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
                 logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
                 double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
                 logger.debug(String.format("SLOD=%f", strandScore));
+                // rescale by a factor of 10
+                strandScore *= 10.0;
 
                 ((SLODBacked)locusdata).setSLOD(strandScore);
             }

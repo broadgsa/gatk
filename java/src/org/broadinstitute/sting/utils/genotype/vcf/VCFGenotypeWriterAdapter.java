@@ -164,8 +164,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         infoFields.put("DP", String.format("%d", totalReadDepth));
 
         double qual = (locusdata == null) ? 0 : ((VCFGenotypeLocusData)locusdata).getConfidence();
-        // maintain 0-99 based Q-scores
-        qual = Math.min(qual, 99);
+        // min Q-score is zero
         qual = Math.max(qual, 0);
 
         VCFRecord vcfRecord = new VCFRecord(params.getReferenceBase(),
@@ -195,6 +194,10 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         if ( locusdata != null ) {
             infoFields.put("SB", String.format("%.2f", locusdata.getSLOD()));
             infoFields.put("AF", String.format("%.2f", locusdata.getAlleleFrequency()));
+            if ( locusdata.hasRefRatio() )
+                infoFields.put("AB", String.format("%.2f", locusdata.getRefRatio()));
+            if ( locusdata.hasOnOffRatio() )
+                infoFields.put("OO", String.format("%.2f", locusdata.getOnOffRatio()));
         }
         infoFields.put("NS", String.valueOf(params.getGenotypesRecords().size()));
         return infoFields;

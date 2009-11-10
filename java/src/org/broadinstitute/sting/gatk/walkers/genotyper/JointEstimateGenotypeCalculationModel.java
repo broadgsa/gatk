@@ -333,6 +333,61 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
             if ( locusdata instanceof AlleleFrequencyBacked ) {
                 ((AlleleFrequencyBacked)locusdata).setAlleleFrequency(bestAFguess);
             }
+            if ( locusdata instanceof AlleleBalanceBacked ) {
+                ArrayList<Double> refBalances = new ArrayList<Double>();
+                ArrayList<Double> onOffBalances = new ArrayList<Double>();
+                ArrayList<Double> weights = new ArrayList<Double>();
+
+                // accumulate ratios and weights
+                for ( java.util.Map.Entry<String, GenotypeLikelihoods> entry : GLs.entrySet() ) {
+                    // determine the best genotype
+                    Integer sorted[] = Utils.SortPermutation(entry.getValue().getPosteriors());
+                    DiploidGenotype bestGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 1]];
+
+                    // we care only about het calls
+                    if ( bestGenotype.isHetRef(ref) ) {
+
+                        // make sure the alt base is our target alt
+                        char altBase = bestGenotype.base1 != ref ? bestGenotype.base1 : bestGenotype.base2;
+                        if ( altBase != baseOfMax )
+                            continue;
+
+                        // get the base counts at this pileup (minus deletions)
+                        ReadBackedPileup pileup = new ReadBackedPileup(ref, contexts.get(entry.getKey()).getContext(StratifiedContext.OVERALL));
+                        int[] counts = pileup.getBasePileupAsCounts();
+                        int refCount = counts[BaseUtils.simpleBaseToBaseIndex(ref)];
+                        int altCount = counts[BaseUtils.simpleBaseToBaseIndex(altBase)];
+                        int totalCount = 0;
+                        for (int i = 0; i < counts.length; i++)
+                            totalCount += counts[i];
+
+                        // add the entries
+                        weights.add(entry.getValue().getNormalizedPosteriors()[bestGenotype.ordinal()]);
+                        refBalances.add((double)refCount / (double)(refCount + altCount));
+                        onOffBalances.add((double)(refCount + altCount) / (double)totalCount);
+                    }
+                }
+
+                if ( weights.size() > 0 ) {
+                    // normalize the weights
+                    double sum = 0.0;
+                    for (int i = 0; i < weights.size(); i++)
+                        sum += weights.get(i);
+                    for (int i = 0; i < weights.size(); i++)
+                        weights.set(i, weights.get(i) / sum);
+
+                    // calculate total weighted ratios
+                    double normalizedRefRatio = 0.0;
+                    double normalizedOnOffRatio = 0.0;
+                    for (int i = 0; i < weights.size(); i++) {
+                        normalizedRefRatio += weights.get(i) * refBalances.get(i);
+                        normalizedOnOffRatio += weights.get(i) * onOffBalances.get(i);
+                    }
+
+                    ((AlleleBalanceBacked)locusdata).setRefRatio(normalizedRefRatio);
+                    ((AlleleBalanceBacked)locusdata).setOnOffRatio(normalizedOnOffRatio);
+                }
+            }
             if ( locusdata instanceof SLODBacked ) {
                 // the overall lod
                 double overallLog10PofNull = Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
@@ -354,7 +409,11 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
                 double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofNull;
                 double reverseLod = reverseLog10PofF + forwardLog10PofNull - overallLog10PofNull;
                 //logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
+
+                // strand score is max bias between forward and reverse strands
                 double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
+                // rescale by a factor of 10
+                strandScore *= 10.0;
                 //logger.debug(String.format("SLOD=%f", strandScore));
 
                 ((SLODBacked)locusdata).setSLOD(strandScore);
