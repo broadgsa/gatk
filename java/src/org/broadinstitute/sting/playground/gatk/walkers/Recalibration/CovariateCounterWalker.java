@@ -56,7 +56,7 @@ import net.sf.samtools.SAMRecord;
  * The output file is a CSV list of (several covariate values, num observations, num mismatches, empirical quality score)
  * The first lines of the output file give the name of the covariate classes that were used for this calculation.
  *
- * Note: ReadGroupCovariate and QualityScoreCovariate are required covariates and are automatically added first.
+ * Note: ReadGroupCovariate and QualityScoreCovariate are required covariates and must be at the start of the list.
  * Note: This walker is designed to be used in conjunction with TableRecalibrationWalker.
  */
 
@@ -82,6 +82,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long countedSites = 0; // used for reporting at the end
     private long countedBases = 0; // used for reporting at the end
     private long skippedSites = 0; // used for reporting at the end
+
+    //---------------------------------------------------------------------------------------------------------------
+    //
+    // initialize
+    //
+    //---------------------------------------------------------------------------------------------------------------
 
     /**
      * Parse the -cov arguments and create a list of covariates to be used here
@@ -167,10 +173,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     /**
      * For each read at this locus get the various covariate values and increment that location in the map based on
      *   whether or not the base matches the reference at this particular location
-     * @param tracker the reference metadata tracker
-     * @param ref the reference context
-     * @param context the alignment context
-     * @return returns 1, but this value isn't used in the reduce step
+     * @param tracker The reference metadata tracker
+     * @param ref The reference context
+     * @param context The alignment context
+     * @return Returns 1, but this value isn't used in the reduce step
      */
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
 
@@ -214,9 +220,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * Loop through the list of requested covariates and pick out the value from the read, offset, and reference
      * Using the list of covariate values as a key, pick out the RecalDatum and increment,
      *   adding one to the number of observations and potentially one to the number of mismatches
-     * @param read the read
-     * @param offset the offset in the read for this locus
-     * @param ref the reference context
+     * @param read The read
+     * @param offset The offset in the read for this locus
+     * @param ref The reference context
      */
     private void updateDataFromRead(SAMRecord read, int offset, ReferenceContext ref) {
 
@@ -227,7 +233,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         // Loop through the list of requested covariates and pick out the value from the read, offset, and reference
         for( Covariate covariate : requestedCovariates ) {
             keyElement = covariate.getValue( read, offset, ref.getBases() );
-            if( keyElement != null ) {
+            if( keyElement != Covariate.COVARIATE_ERROR && keyElement != Covariate.COVARIATE_NULL) {
                 key.add( keyElement );
             } else {
                 badKey = true; // Covariate returned bad value, for example dinuc returns null because base = 'N'
@@ -280,7 +286,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
     /**
      * Initialize the reudce step by creating a PrintStream from the filename specified as an argument to the walker.
-     * @return returns a PrintStream created from the -rf filename
+     * @return returns A PrintStream created from the -rf filename
      */
     public PrintStream reduceInit() {
         try {
@@ -292,9 +298,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
     /**
      * The Reduce method doesn't do anything for this walker.
-     * @param value result of the map.
-     * @param recalTableStream the PrintStream
-     * @return returns the PrintStream used to output the CSV data
+     * @param value Result of the map. This value is immediately ignored.
+     * @param recalTableStream The PrintStream used to output the CSV data
+     * @return returns The PrintStream used to output the CSV data
      */
     public PrintStream reduce( Integer value, PrintStream recalTableStream ) {
         return recalTableStream; // nothing to do here
@@ -302,7 +308,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
     /**
      * Write out the full data hashmap to disk in CSV format
-     * @param recalTableStream the PrintStream to write out to
+     * @param recalTableStream The PrintStream to write out to
      */
     public void onTraversalDone( PrintStream recalTableStream ) {
         out.print( "Writing raw recalibration data..." );
@@ -314,7 +320,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
     /**
      * For each entry (key-value pair) in the data hashmap output the Covariate's values as well as the RecalDatum's data in CSV format
-     * @param recalTableStream the PrintStream to write out to
+     * @param recalTableStream The PrintStream to write out to
      */
     private void outputToCSV( PrintStream recalTableStream ) {
 

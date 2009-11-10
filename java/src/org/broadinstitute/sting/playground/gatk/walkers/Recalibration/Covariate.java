@@ -36,6 +36,8 @@ import net.sf.samtools.SAMRecord;
  */
 
 public interface Covariate {
+    public static final String COVARIATE_ERROR = "COVARIATE_ERROR";
+    public static final String COVARIATE_NULL = "COVARITATE_NULL";
 	public Comparable getValue(SAMRecord read, int offset, char[] refBases); // used to pick out the value from the read, offset, and reference bases
 	public Comparable getValue(String str); // used to get value from input file
     public int estimatedNumberOfBins(); // used to estimate the amount space required in the HashMap

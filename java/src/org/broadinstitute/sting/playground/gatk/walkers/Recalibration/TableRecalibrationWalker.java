@@ -42,6 +42,15 @@ import java.io.FileNotFoundException;
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Nov 3, 2009
+ *
+ * This walker is designed to work as the second pass in a two-pass processing step, doing a by-read traversal.
+
+ * For each base in each read this walker calculates various user-specified covariates (such as read group, reported quality score, cycle, and dinuc)
+ * Using these values as a key in a large hashmap the walker calculates an empirical base quality score and overwrites the quality score currently in the read.
+ * This walker then outputs a new bam file with these updated (recalibrated) reads.
+ * 
+ * Note: This walker expects as input the recalibration table file generated previously by CovariateCounterWalker.
+ * Note: This walker is designed to be used in conjunction with CovariateCounterWalker.
  */
 
 @WalkerName("TableRecalibrationRefactored")
@@ -64,9 +73,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         ERROR
     }
 
-    @Argument(fullName="RecalibrationMode", shortName="mode", doc="which type of calculation to use when recalibrating, default is SEQUENTIAL", required=false)
-    public String MODE_STRING = RecalibrationMode.SEQUENTIAL.toString();
-    public RecalibrationMode MODE = RecalibrationMode.SEQUENTIAL; //BUGBUG: need some code here to set this properly
+    //@Argument(fullName="RecalibrationMode", shortName="mode", doc="which type of calculation to use when recalibrating, default is SEQUENTIAL", required=false)
+    //public String MODE_STRING = RecalibrationMode.SEQUENTIAL.toString();
+    public RecalibrationMode MODE = RecalibrationMode.SEQUENTIAL; //BUGBUG: do we need to support the other modes?
 
     protected RecalDataManager dataManager;
     protected ArrayList<Covariate> requestedCovariates;
@@ -75,6 +84,17 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static Pattern COVARIATE_PATTERN = Pattern.compile("^@!.*");
     public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ";
 
+    //---------------------------------------------------------------------------------------------------------------
+    //
+    // initialize
+    //
+    //---------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Read in the recalibration table input file.
+     * Parse the list of covariate classes used during CovariateCounterWalker.
+     * Parse the CSV data and populate the hashmap.
+     */
     public void initialize() {
 
         // Get a list of all available covariates
@@ -133,7 +153,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                         dataManager = new RecalDataManager( estimatedCapacity );
 
                     }
-                    addCSVData(line);
+                    addCSVData(line); // parse the line and add the data to the HashMap
                 }
             }
 
@@ -144,6 +164,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
         logger.info( "...done!" );
 
+        // Create the collapsed tables that are used in the sequential calculation
         if( MODE == RecalibrationMode.SEQUENTIAL ) {
         	logger.info( "Creating collapsed tables for use in sequential calculation..." );
             dataManager.createCollapsedTables( requestedCovariates.size() );
@@ -151,6 +172,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
     }
 
+    /**
+     * For each covariate read in a value and parse it. Associate those values with the data itself (num observation and num mismatches)
+     * @param line A line of CSV data read from the recalibration table data file
+     */
     private void addCSVData(String line) {
         String[] vals = line.split(",");
         ArrayList<Comparable> key = new ArrayList<Comparable>();
@@ -164,6 +189,18 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         dataManager.data.put( key, datum );
     }
 
+    //---------------------------------------------------------------------------------------------------------------
+    //
+    // map
+    //
+    //---------------------------------------------------------------------------------------------------------------
+
+    /**
+     * For each base in the read calculate a new recalibrated quality score and replace the quality scores in the read
+     * @param refBases References bases over the length of the read
+     * @param read The read to be recalibrated
+     * @return The read with quality scores replaced
+     */
     public SAMRecord map( char[] refBases, SAMRecord read ) {
 
         byte[] originalQuals = read.getBaseQualities();
@@ -179,26 +216,35 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         byte[] recalQuals = originalQuals.clone();
 
         // For each base in the read
-        for( int iii = 1; iii < read.getReadLength() - 1; iii++ ) { // skip first and last base because there is no dinuc
+        for( int iii = 0; iii < read.getReadLength(); iii++ ) {
             List<Comparable> key = new ArrayList<Comparable>();
+            boolean badKey = false;
+            Comparable keyElement;
             for( Covariate covariate : requestedCovariates ) {
-                key.add( covariate.getValue( read, iii, refBases ) ); // BUGBUG offset should be 1 based but old recalibrator is 0 based?
-            }
-
-            if( MODE == RecalibrationMode.COMBINATORIAL ) {
-                RecalDatum datum = dataManager.data.get( key );
-                if( datum != null ) { // if we have data for this combination of covariates then recalibrate the quality score otherwise do nothing
-                    recalQuals[iii] = datum.empiricalQualByte( SMOOTHING );
+                keyElement = covariate.getValue( read, iii, refBases );
+                if( keyElement != Covariate.COVARIATE_ERROR ) { // COVARIATE_NULL is okay because the sequential calculation will do the best it can with the valid data it has
+                    key.add( keyElement );                      // technically COVARIATE_ERROR is fine too, but this won't match the behavior of the old recalibrator
+                } else {
+                    badKey = true;
                 }
-            } else if( MODE == RecalibrationMode.SEQUENTIAL ) {
-                recalQuals[iii] = performSequentialQualityCalculation( key );
-            } else {
-                throw new StingException( "Specified RecalibrationMode is not supported: " + MODE );
             }
 
-            // Do some error checking on the new quality score
-            if ( recalQuals[iii]  <= 0 || recalQuals[iii]  > QualityUtils.MAX_REASONABLE_Q_SCORE ) {
-                throw new StingException( "Assigning bad quality score " + key + " => " +  recalQuals[iii] );
+            if( !badKey ) {
+                if( MODE == RecalibrationMode.COMBINATORIAL ) {
+                    RecalDatum datum = dataManager.data.get( key );
+                    if( datum != null ) { // if we have data for this combination of covariates then recalibrate the quality score otherwise do nothing
+                        recalQuals[iii] = datum.empiricalQualByte( SMOOTHING );
+                    }
+                } else if( MODE == RecalibrationMode.SEQUENTIAL ) {
+                    recalQuals[iii] = performSequentialQualityCalculation( key );
+                } else {
+                    throw new StingException( "Specified RecalibrationMode is not supported: " + MODE );
+                }
+
+                // Do some error checking on the new quality score
+                if ( recalQuals[iii]  <= 0 || recalQuals[iii]  > QualityUtils.MAX_REASONABLE_Q_SCORE ) {
+                    throw new StingException( "Assigning bad quality score " + key + " => " +  recalQuals[iii] );
+                }
             }
         }
 
@@ -211,6 +257,21 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         return read;
     }
 
+    /**
+     * Implements a serial recalibration of the reads using the combinational table.  First,
+     * we perform a positional recalibration, and then a subsequent dinuc correction.
+     *
+     * Given the full recalibration table, we perform the following preprocessing steps:
+     *
+     *   - calculate the global quality score shift across all data [DeltaQ]
+     *   - calculate for each of cycle and dinuc the shift of the quality scores relative to the global shift
+     *      -- i.e., DeltaQ(dinuc) = Sum(pos) Sum(Qual) Qempirical(pos, qual, dinuc) - Qreported(pos, qual, dinuc) / Npos * Nqual
+     *   - The final shift equation is:
+     *
+     *      Qrecal = Qreported + DeltaQ + DeltaQ(pos) + DeltaQ(dinuc) + DeltaQ( ... any other covariate ... ) 
+     * @param key The list of Comparables that were calculated from the covariates
+     * @return A recalibrated quality score as a byte
+     */
     private byte performSequentialQualityCalculation( List<? extends Comparable> key ) {
 
         byte qualFromRead = Byte.parseByte(key.get(1).toString());
@@ -252,7 +313,18 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         double newQuality = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;
         byte newQualityByte = QualityUtils.boundQual( (int)Math.round(newQuality), QualityUtils.MAX_REASONABLE_Q_SCORE );
-        
+
+
+        // Verbose printouts used to validate with old recalibrator
+        //if(key.contains(null)) {
+        //    System.out.println( key  + String.format(" => %d + %.2f + %.2f + %.2f + %.2f = %d",
+        //                 qualFromRead, globalDeltaQ, deltaQReported, deltaQPos, deltaQDinuc, newQualityByte));
+        //}
+        //else {
+        //    System.out.println( String.format("%s %s %s %s => %d + %.2f + %.2f + %.2f + %.2f = %d",
+        //                 key.get(0).toString(), key.get(3).toString(), key.get(2).toString(), key.get(1).toString(), qualFromRead, globalDeltaQ, deltaQReported, deltaQPos, deltaQDinuc, newQualityByte) );
+        //}
+
         if( newQualityByte <= 0 && newQualityByte >= QualityUtils.MAX_REASONABLE_Q_SCORE ) {
             throw new StingException( "Illegal base quality score calculated: " + key +
                         String.format( " => %d + %.2f + %.2f + %.2f = %d", qualFromRead, globalDeltaQ, deltaQReported, deltaQCovariates, newQualityByte ) );
@@ -261,6 +333,11 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         return newQualityByte;
     }
 
+    /**
+     * Loop of the list of qualities and overwrite the newly recalibrated score to be the original score if it was less than some threshold
+     * @param originalQuals The list of original base quality scores
+     * @param recalQuals A list of the new recalibrated quality scores
+     */
     private void preserveQScores( byte[] originalQuals, byte[] recalQuals ) {
         for( int iii = 0; iii < recalQuals.length; iii++ ) {
             if ( originalQuals[iii] < PRESERVE_QSCORES_LESS_THAN ) {
@@ -269,10 +346,26 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
     }
 
+    //---------------------------------------------------------------------------------------------------------------
+    //
+    // reduce
+    //
+    //---------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Nothing start the reduce with a new handle to the output bam file
+     * @return A FileWriter pointing to a new bam file
+     */
     public SAMFileWriter reduceInit() {
         return OUTPUT_BAM;
     }
 
+    /**
+     * Output each read to disk
+     * @param read The read to output
+     * @param output The FileWriter to write the read to
+     * @return The FileWriter
+     */
     public SAMFileWriter reduce( SAMRecord read, SAMFileWriter output ) {
         if ( output != null ) {
             output.addAlignment(read);

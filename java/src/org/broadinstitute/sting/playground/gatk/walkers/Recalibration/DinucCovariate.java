@@ -46,18 +46,19 @@ public class DinucCovariate implements Covariate {
     public Comparable getValue(SAMRecord read, int offset, char[] refBases) {
         byte[] bases = read.getReadBases();
         char base = (char)bases[offset];
-        char prevBase; // set below
+        char prevBase; // value set below
+        // If it is a negative strand read then we need to get the complement base and reverse the direction for our previous base
         if( read.getReadNegativeStrandFlag() ) {
             base = BaseUtils.simpleComplement(base);
-            if ( offset + 1 > bases.length - 1 ) { return null; } // no prevBase because at the beginning of the read
+            if ( offset + 1 > bases.length - 1 ) { return Covariate.COVARIATE_ERROR; } // no prevBase because at the beginning of the read
             prevBase = BaseUtils.simpleComplement( (char)bases[offset + 1] );
         } else {
-            if ( offset - 1 < 0 ) { return null; } // no prevBase because at the beginning of the read
+            if ( offset - 1 < 0 ) { return Covariate.COVARIATE_ERROR; } // no prevBase because at the beginning of the read
             prevBase = (char)bases[offset - 1];
         }
         // Check if bad base, probably an 'N'
         if( ( BaseUtils.simpleBaseToBaseIndex(prevBase) == -1 ) || ( BaseUtils.simpleBaseToBaseIndex(base) == -1 ) ) {
-            return null; // CovariateCounterWalker will recognize that null means skip this particular location in the read
+            return Covariate.COVARIATE_NULL; // CovariateCounterWalker will recognize that null means skip this particular location in the read
         } else {
             return String.format("%c%c", prevBase, base);
         }
