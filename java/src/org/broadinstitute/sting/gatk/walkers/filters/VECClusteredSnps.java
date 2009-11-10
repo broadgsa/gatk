@@ -60,5 +60,9 @@ public class VECClusteredSnps implements VariantExclusionCriterion {
         return "ClusteredSnp";
     }
 
+    public String getScoreString() {
+        return String.format("%d", distance);
+    }
+
     public boolean useZeroQualityReads() { return false; }
 }

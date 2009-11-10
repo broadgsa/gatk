@@ -51,6 +51,10 @@ public class VECFisherStrand implements VariantExclusionCriterion {
         return "strand";
     }
 
+    public String getScoreString() {
+        return String.format("%.4f",pValue);
+    }
+
     public boolean useZeroQualityReads() { return false; }
 
     public boolean strandTest(char ref, AlignmentContext context, int allele1, int allele2, double threshold, StringBuffer out) {

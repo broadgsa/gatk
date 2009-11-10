@@ -24,6 +24,10 @@ public class VECNull implements VariantExclusionCriterion {
         return "";
     }
 
+    public String getScoreString() {
+        return "";
+    }
+
     public boolean useZeroQualityReads() {
         return false;
     }

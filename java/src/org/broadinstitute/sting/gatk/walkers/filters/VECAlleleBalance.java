@@ -80,4 +80,7 @@ public class VECAlleleBalance extends RatioFilter {
         return "AlleleBalance";
     }
 
+    public String getScoreString() {
+        return String.format("%.2f", ratio);
+    }
 }

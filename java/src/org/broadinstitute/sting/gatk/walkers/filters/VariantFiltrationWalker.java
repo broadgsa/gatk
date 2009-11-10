@@ -21,6 +21,7 @@ import java.io.*;
  * variant outright.  At the moment, the variants are expected to be in gelitext format.
  */
 @Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type= RodGeliText.class))
+//@Allows(value={DataSource.READS, DataSource.REFERENCE}, referenceMetaData={@RMD(name="variant",type= RodGeliText.class), @RMD(name="variantvcf",type= RodVCF.class), @RMD(name="dbsnp",type=rodDbSNP.class), @RMD(name="interval",type= IntervalRod.class)})
 public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="vcfOutput", shortName="vcf", doc="VCF file to which all variants should be written with annotations", required=true) public File VCF_OUT;
     @Argument(fullName="sampleName", shortName="sample", doc="Temporary hack to get VCF to work: the sample (NA-ID) corresponding to the variants", required=true) public String sampleName;
@@ -31,6 +32,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
     @Argument(fullName="inclusion_threshold", shortName="IT", doc="The product of the probability to include variants based on these filters must be greater than the value specified here in order to be included", required=false) public Double INCLUSION_THRESHOLD = 0.9;
     @Argument(fullName="verbose", shortName="V", doc="Show how the variant likelihoods are changing with the application of each feature") public Boolean VERBOSE = false;
     @Argument(fullName="list", shortName="ls", doc="List the available features and exclusion criteria and exit") public Boolean LIST = false;
+    @Argument(fullName="onlyAnnotate", shortName="oa", doc="If provided, do not write output into the FILTER field, but only annotate the VCF") public boolean onlyAnnotate = false;
 
     private List<Class<? extends IndependentVariantFeature>> featureClasses;
     private List<Class<? extends VariantExclusionCriterion>> exclusionClasses;
@@ -220,7 +222,8 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         if ( variant == null || BaseUtils.simpleBaseToBaseIndex(ref.getBase()) == -1 )
             return 0;
 
-        VariantContext varContext = new VariantContext(tracker, ref, context, variant);
+        RodVCF variantVCF = (RodVCF) tracker.lookup("variantVCF", null);
+        VariantContext varContext = new VariantContext(tracker, ref, context, variant, variantVCF);
 
         // if we're still initializing the context, do so
         if ( windowInitializer != null ) {
@@ -242,22 +245,20 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         VariantContext context = variantContextWindow.getContext();
         if ( context == null )
             return;
-        RodGeliText variant = context.getVariant();
 
         HashMap<String, Double> exclusionResults = new HashMap<String, Double>();
+        RodGeliText variant = context.getVariant();
+        GenomeLoc loc = context.getAlignmentContext(true).getLocation();
 
         if (VERBOSE) { out.println("Original:\n" + variant); }
 
-        GenomeLoc loc = context.getAlignmentContext(true).getLocation();
         if ( annotatedWriter != null )
             annotatedWriter.print(loc.getContig() + "\t" + loc.getStart() + "\t");
 
         // Apply features that modify the likelihoods and LOD scores
         for ( IndependentVariantFeature ivf : requestedFeatures ) {
             ivf.compute(variantContextWindow);
-
             double[] weights = ivf.getLikelihoods();
-
             variant.adjustLikelihoods(weights);
 
             if (VERBOSE) { out.println(rationalizeClassName(ivf.getClass()) + ":\n  " + variant); }
@@ -273,6 +274,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
 
         // Use the filters to score the variant
         String filterFailureString = "";
+        HashMap<String,String> filterINFOString = new HashMap<String,String>();
         double jointInclusionProbability = 1.0;
         for ( VariantExclusionCriterion vec : requestedExclusions ) {
             vec.compute(variantContextWindow);
@@ -286,6 +288,7 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             if (inclusionProbability < INCLUSION_THRESHOLD) {
                 filterFailureString += vec.getVCFFilterString() + ";";
             }
+            filterINFOString.put(vec.getVCFFilterString(), vec.getScoreString());
 
             if (VERBOSE) {
                 out.print(exclusionClassName + "=" + inclusionProbability + ";");
@@ -298,14 +301,11 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
         // Decide whether we should keep the call or not
         if (jointInclusionProbability >= INCLUSION_THRESHOLD) {
             includedWriter.println(variant);
-
-            if (VERBOSE) { out.println("] JointInclusionProbability:" + jointInclusionProbability + " State:included\n"); }
-        } else {
-            if (VERBOSE) { out.println("] JointInclusionProbability:" + jointInclusionProbability + " State:excluded\n"); }
         }
+        if (VERBOSE) { out.println("] JointInclusionProbability:" + jointInclusionProbability + " State:included\n"); }
 
-        rodDbSNP dbsnp = (rodDbSNP) context.getTracker().lookup("dbSNP", null);
         if ( annotatedWriter != null ) {
+            rodDbSNP dbsnp = (rodDbSNP) context.getTracker().lookup("dbSNP", null);
             if ( dbsnp == null )
                 annotatedWriter.print("false\tfalse\t");
             else
@@ -313,13 +313,28 @@ public class VariantFiltrationWalker extends LocusWalker<Integer, Integer> {
             annotatedWriter.println(GenotypeUtils.isHet(variant));
         }
 
-        List<VCFGenotypeRecord> gt = new ArrayList<VCFGenotypeRecord>();
-        Map<VCFHeader.HEADER_FIELDS,String> map = new HashMap<VCFHeader.HEADER_FIELDS,String>();
-        VCFRecord rec = VariantsToVCF.generateVCFRecord(context.getTracker(), context.getReferenceContext(), context.getAlignmentContext(true), vcfHeader, gt, map, sampleNames, out, false, false);
-        if ( rec != null) {
-            if ( !filterFailureString.equals("") )
-                rec.setFilterString(filterFailureString);           
+        writeVCF(context, filterFailureString, filterINFOString);
+    }
+
+
+    private void writeVCF(VariantContext context, final String filterFailureString, HashMap<String,String> filterINFOString) {
+        VCFRecord rec = getVCFRecord(context);
+        if ( rec != null ) {
+            rec.addInfoFields(filterINFOString);
+            if ( ! onlyAnnotate && !filterFailureString.equals("") )
+                rec.setFilterString(filterFailureString);
             vcfWriter.addRecord(rec);
+        }
+    }
+
+
+    private VCFRecord getVCFRecord(VariantContext context) {
+        if ( context.getVariantVCF() != null ) {
+            return context.getVariantVCF().mCurrentRecord;
+        } else {
+            List<VCFGenotypeRecord> gt = new ArrayList<VCFGenotypeRecord>();
+            Map<VCFHeader.HEADER_FIELDS,String> map = new HashMap<VCFHeader.HEADER_FIELDS,String>();
+            return VariantsToVCF.generateVCFRecord(context.getTracker(), context.getReferenceContext(), context.getAlignmentContext(true), vcfHeader, gt, map, sampleNames, out, false, false);
         }
     }
 

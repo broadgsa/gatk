@@ -50,5 +50,10 @@ public class VECDepthOfCoverage implements VariantExclusionCriterion {
         return "DoC";
     }
 
+    public String getScoreString() {
+        return String.format("%d", depth);
+    }
+
+
     public boolean useZeroQualityReads() { return false; }
 }

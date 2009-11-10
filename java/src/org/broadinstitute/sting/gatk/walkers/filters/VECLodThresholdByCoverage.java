@@ -37,6 +37,10 @@ public class VECLodThresholdByCoverage implements VariantExclusionCriterion {
         return "LODbyDoC";
     }
 
+    public String getScoreString() {
+        return exclude ? "1" : "0";
+    }
+
     public boolean useZeroQualityReads() {
         return false;
     }

@@ -12,6 +12,7 @@ public interface VariantExclusionCriterion {
     public String getStudyHeader();
     public String getStudyInfo();
     public String getVCFFilterString();
+    public String getScoreString();
 
     public boolean useZeroQualityReads();
 }
