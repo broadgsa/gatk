@@ -11,10 +11,9 @@ import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescripto
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Arrays;
+import java.util.*;
+
+import net.sf.picard.filter.SamRecordFilter;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -77,16 +76,19 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
 
     protected Object executeGATK() {
         Walker<?,?> mWalker = GATKEngine.getWalkerByName(getAnalysisName());
+        Collection<SamRecordFilter> filters = GATKEngine.getFiltersForWalker(getArgumentCollection(),mWalker);
 
-        // load the arguments into the walkers
+        // load the arguments into the walker / filters.
         loadArgumentsIntoObject(mWalker);
+        for(SamRecordFilter filter: filters)
+            loadArgumentsIntoObject(filter);
 
         // process any arguments that need a second pass
         GATKArgumentCollection arguments = getArgumentCollection();
         processArguments(arguments);
 
         // set the analysis name in the argument collection
-        return GATKEngine.execute(arguments, mWalker);
+        return GATKEngine.execute(arguments, mWalker, filters);
     }
 
     /**
@@ -118,7 +120,18 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     protected Class[] getArgumentSources() {
         // No walker info?  No plugins.
         if (getAnalysisName() == null) return new Class[] {};
-        return new Class[] { GATKEngine.getWalkerByName(getAnalysisName()).getClass() };
+
+        Collection<Class> argumentSources = new ArrayList<Class>();
+
+        Walker walker = GATKEngine.getWalkerByName(getAnalysisName());
+        argumentSources.add(walker.getClass());
+
+        Collection<SamRecordFilter> filters = GATKEngine.getFiltersForWalker(getArgumentCollection(),walker);
+        for(SamRecordFilter filter: filters)
+            argumentSources.add(filter.getClass());
+
+        Class[] argumentSourcesAsArray = new Class[argumentSources.size()];
+        return argumentSources.toArray(argumentSourcesAsArray);
     }
 
     @Override

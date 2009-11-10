@@ -6,6 +6,7 @@ import net.sf.samtools.SAMFileReader;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collection;
 /**
  * User: hanna
  * Date: May 14, 2009
@@ -29,7 +30,7 @@ public class Reads {
     private Double downsamplingFraction = null;
     private Integer downsampleToCoverage = null;
     private Boolean beSafe = null;
-    private List<SamRecordFilter> supplementalFilters = null;
+    private Collection<SamRecordFilter> supplementalFilters = null;
     private int maximumReadsAtLocus = Integer.MAX_VALUE; // this should always be set, so we'll default it MAX_INT
     private boolean includeReadsWithDeletionAtLoci = false;
 
@@ -91,7 +92,7 @@ public class Reads {
         return beSafe;
     }
 
-    public List<SamRecordFilter> getSupplementalFilters() {
+    public Collection<SamRecordFilter> getSupplementalFilters() {
         return supplementalFilters;
     }
 
@@ -120,7 +121,7 @@ public class Reads {
            Double downsampleFraction,
            Integer downsampleCoverage,
            Boolean beSafe,
-           List<SamRecordFilter> supplementalFilters,
+           Collection<SamRecordFilter> supplementalFilters,
            int maximumReadsAtLocus,
            boolean includeReadsWithDeletionAtLoci) {
         this.readsFiles = samFiles;

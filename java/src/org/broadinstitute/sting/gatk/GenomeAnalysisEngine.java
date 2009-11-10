@@ -123,7 +123,7 @@ public class GenomeAnalysisEngine {
      * @param my_walker Walker to run over the dataset.  Must not be null.
      * @return the value of this traversal.
      */
-    public Object execute(GATKArgumentCollection args, Walker<?, ?> my_walker) {
+    public Object execute(GATKArgumentCollection args, Walker<?, ?> my_walker, Collection<SamRecordFilter> filters) {
         // validate our parameters
         if (args == null) {
             throw new StingException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
@@ -137,7 +137,7 @@ public class GenomeAnalysisEngine {
         this.argCollection = args;
 
         // Prepare the data for traversal.
-        initializeDataSources(my_walker, argCollection);
+        initializeDataSources(my_walker, filters, argCollection);
 
         // our microscheduler, which is in charge of running everything
         MicroScheduler microScheduler = createMicroscheduler(my_walker);
@@ -203,10 +203,26 @@ public class GenomeAnalysisEngine {
         return walkerManager.getName(walkerType);
     }
 
-    private void initializeDataSources(Walker my_walker, GATKArgumentCollection argCollection) {
+    /**
+     * Gets a list of the filters to associate with the given walker.  Will NOT initialize the engine with this filters;
+     * the caller must handle that directly.
+     * @param walker Walker to use when determining which filters to apply.
+     * @return A collection of available filters.
+     */
+    public Collection<SamRecordFilter> getFiltersForWalker(GATKArgumentCollection args, Walker walker) {
+        Set<SamRecordFilter> filters = new HashSet<SamRecordFilter>();        
+        filters.addAll(WalkerManager.getReadFilters(walker,filterManager));
+        if (args.filterZeroMappingQualityReads != null && args.filterZeroMappingQualityReads)
+            filters.add(new ZeroMappingQualityReadFilter());
+        for(String filterName: args.readFilters)
+            filters.add(filterManager.createByName(filterName));
+        return Collections.unmodifiableSet(filters);
+    }
+
+    private void initializeDataSources(Walker my_walker, Collection<SamRecordFilter> filters, GATKArgumentCollection argCollection) {
         validateSuppliedReadsAgainstWalker(my_walker, argCollection);
         logger.info("Strictness is " + argCollection.strictnessLevel);
-        readsDataSource = createReadsDataSource(extractSourceInfo(my_walker, argCollection));
+        readsDataSource = createReadsDataSource(extractSourceInfo(my_walker, filters, argCollection));
 
         validateSuppliedReferenceAgainstWalker(my_walker, argCollection);
         referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
@@ -390,15 +406,7 @@ public class GenomeAnalysisEngine {
      * @param argCollection The collection of arguments passed to the engine.
      * @return The reads object providing reads source info.
      */
-    private Reads extractSourceInfo(Walker walker, GATKArgumentCollection argCollection) {
-        List<SamRecordFilter> filters = new ArrayList<SamRecordFilter>();
-
-        filters.addAll(WalkerManager.getReadFilters(walker,filterManager));
-        if (argCollection.filterZeroMappingQualityReads != null && argCollection.filterZeroMappingQualityReads)
-            filters.add(new ZeroMappingQualityReadFilter());
-        for(String filterName: argCollection.readFilters)
-            filters.add(filterManager.createByName(filterName));
-
+    private Reads extractSourceInfo(Walker walker, Collection<SamRecordFilter> filters, GATKArgumentCollection argCollection) {
         return new Reads(argCollection.samFiles,
                 argCollection.strictnessLevel,
                 argCollection.downsampleFraction,

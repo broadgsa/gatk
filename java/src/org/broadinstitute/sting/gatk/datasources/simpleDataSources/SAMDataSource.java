@@ -19,6 +19,7 @@ import org.broadinstitute.sting.utils.sam.SAMReadViolationHistogram;
 
 import java.io.File;
 import java.util.List;
+import java.util.Collection;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -419,7 +420,7 @@ public class SAMDataSource implements SimpleDataSource {
                                                       StingSAMIterator wrappedIterator,
                                                       Double downsamplingFraction,
                                                       Boolean beSafeP,
-                                                      List<SamRecordFilter> supplementalFilters) {
+                                                      Collection<SamRecordFilter> supplementalFilters) {
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away
         if (downsamplingFraction != null)
