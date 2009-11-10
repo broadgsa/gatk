@@ -9,6 +9,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 
 import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * A set of static utility methods for common operations on VCF files/records.
@@ -32,7 +33,7 @@ public class VCFUtils {
      */
     public static void getUniquifiedSamplesFromRods(GenomeAnalysisEngine toolkit, Set<String> samples, Map<Pair<String, String>, String> rodNamesToSampleNames) {
 
-        // keep a map of sample name to next available uniquified index
+        // keep a map of sample name to occurrences encountered
         HashMap<String, Integer> sampleOverlapMap = new HashMap<String, Integer>();
 
         // iterate to get all of the sample names
@@ -51,39 +52,47 @@ public class VCFUtils {
 
     private static void addUniqueSample(Set<String> samples, Map<String, Integer> sampleOverlapMap, Map<Pair<String, String>, String> rodNamesToSampleNames, String newSample, String rodName) {
 
-        // if it's already a non-unique sample name, give it a unique suffix and increment the value
-        Integer uniqueIndex = sampleOverlapMap.get(newSample);
-        if ( uniqueIndex != null ) {
-            String uniqueName = newSample + "." + uniqueIndex;
+        // how many occurrences have we seen so far?
+        Integer occurrences = sampleOverlapMap.get(newSample);
+
+        // if this is the first one, just add it to the list of samples
+        if ( occurrences == null ) {
+            samples.add(newSample);
+            rodNamesToSampleNames.put(new Pair<String, String>(rodName, newSample), newSample);
+            sampleOverlapMap.put(newSample, 1);
+        }
+
+        // if it's already been seen multiple times, give it a unique suffix and increment the value
+        else if ( occurrences >= 2 ) {
+            String uniqueName = newSample + "." + rodName;
             samples.add(uniqueName);
             rodNamesToSampleNames.put(new Pair<String, String>(rodName, newSample), uniqueName);
-            sampleOverlapMap.put(newSample, uniqueIndex + 1);
+            sampleOverlapMap.put(newSample, occurrences + 1);
         }
 
         // if this is the second occurrence of the sample name, uniquify both of them
-        else if ( samples.contains(newSample) ) {
+        else { // occurrences == 2
+
+            // remove the 1st occurrence, uniquify it, and add it back
             samples.remove(newSample);
-            String uniqueName1 = newSample + "." + 1;
-            samples.add(uniqueName1);
-            for ( java.util.Map.Entry<Pair<String, String>, String> entry : rodNamesToSampleNames.entrySet() ) {
+            String uniqueName1 = null;
+            for ( Entry<Pair<String, String>, String> entry : rodNamesToSampleNames.entrySet() ) {
                 if ( entry.getValue().equals(newSample) ) {
+                    uniqueName1 = newSample + "." + entry.getKey().first;
                     entry.setValue(uniqueName1);
                     break;
                 }
             }
+            samples.add(uniqueName1);
 
-            String uniqueName2 = newSample + "." + 2;
+            // add the second one
+            String uniqueName2 = newSample + "." + rodName;
             samples.add(uniqueName2);
             rodNamesToSampleNames.put(new Pair<String, String>(rodName, newSample), uniqueName2);
 
-            sampleOverlapMap.put(newSample, 3);
+            sampleOverlapMap.put(newSample, 2);
         }
 
-        // otherwise, just add it to the list of samples
-        else {
-            samples.add(newSample);
-            rodNamesToSampleNames.put(new Pair<String, String>(rodName, newSample), newSample);
-        }
     }
 
     /**
