@@ -220,15 +220,19 @@ public class VCFRecord {
     }
 
     public boolean isFiltered() {
-	String[] codes = getFilteringCodes();
-	if ( codes.length > 1 ) return true;
-	else if ( codes[0].equals(".") || codes[0].equals("0") ) return false;
-	else return true;
+        String[] codes = getFilteringCodes();
+        if ( codes.length > 1 ) return true;
+        else if ( codes[0].equals(".") || codes[0].equals("0") ) return false;
+        else return true;
     }
 
     public boolean hasFilteringCodes() {
-	// todo --- currently always returns true
+        // todo --- currently always returns true
         return getFilteringCodes() != null;
+    }
+
+    public String getFilterString() {
+        return mFilterString;
     }
 
     /**
@@ -331,6 +335,17 @@ public class VCFRecord {
      */
     public void addInfoField(String key, String value) {
         this.mInfoFields.put(key, value);
+    }
+
+
+    /**
+     * add an info field to the record
+     *
+     * @param m A map from info keys to info values
+     */
+    public void addInfoFields(Map<String,String> m) {
+        for ( Map.Entry<String, String> e : m.entrySet() )
+            addInfoField(e.getKey(), e.getValue());
     }
 
     /**
