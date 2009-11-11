@@ -235,7 +235,7 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         final SAMRecord record = iterator.next();
         addIfNotEmpty(iterator);
 
-        if (this.samHeaderMerger.hasGroupIdDuplicates()) {
+        if (this.samHeaderMerger.hasReadGroupCollisions()) {
             final String id = (String) record.getAttribute(ReservedTagConstants.READ_GROUP_ID);
             final String newId = this.samHeaderMerger.getReadGroupId(iterator.getReader(), id);
             record.setAttribute(ReservedTagConstants.READ_GROUP_ID, newId);
