@@ -76,6 +76,14 @@ void BWA::load_default_options()
   options.trim_qual = 0;
 }
 
+void BWA::set_max_edit_distance(int edit_distance) { options.max_diff = edit_distance; }
+void BWA::set_max_gap_opens(int max_gap_opens) { options.max_gapo = max_gap_opens; }
+void BWA::set_max_gap_extensions(int max_gap_extensions) { options.max_gape = max_gap_extensions; }
+void BWA::set_disallow_indel_within_range(int indel_range) { options.indel_end_skip = indel_range; printf("set indel end skip to %d\n", options.indel_end_skip);}
+void BWA::set_mismatch_penalty(int penalty) { options.s_mm = penalty; }
+void BWA::set_gap_open_penalty(int penalty) { options.s_gapo = penalty; }
+void BWA::set_gap_extension_penalty(int penalty) { options.s_gape = penalty; }
+
 /**
  * Create a sequence with a set of reasonable initial defaults.  
  * Will leave seq and rseq empty.

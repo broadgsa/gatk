@@ -31,13 +31,8 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
      */    
     @Override
     public void initialize() {
-        aligner = new BWACAligner(prefix + ".ann",
-                                  prefix + ".amb",
-                                  prefix + ".pac",
-                                  prefix + ".bwt",
-                                  prefix + ".sa",
-                                  prefix + ".rbwt",
-                                  prefix + ".rsa");
+        BWACConfiguration configuration = new BWACConfiguration(prefix);
+        aligner = new BWACAligner(configuration);        
     }
 
     /**

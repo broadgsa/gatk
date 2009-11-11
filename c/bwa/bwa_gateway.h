@@ -30,6 +30,17 @@ class BWA {
       const char* reverse_bwt_filename, 
       const char* reverse_sa_filename);
   ~BWA();
+
+  // Parameterize the aligner.
+  void set_max_edit_distance(int edit_distance);
+  void set_max_gap_opens(int max_gap_opens);
+  void set_max_gap_extensions(int max_gap_extensions);
+  void set_disallow_indel_within_range(int indel_range);
+  void set_mismatch_penalty(int penalty);
+  void set_gap_open_penalty(int penalty);
+  void set_gap_extension_penalty(int penalty);
+
+  // Perform the alignment
   void align(const char* bases, const unsigned read_length, Alignment*& alignments, unsigned& num_alignments);
 };
 

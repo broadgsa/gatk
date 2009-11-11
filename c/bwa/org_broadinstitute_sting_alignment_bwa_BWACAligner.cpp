@@ -12,23 +12,28 @@ static jclass java_alignment_array_class = NULL;
 static jclass java_alignment_class = NULL;
 static jmethodID java_alignment_constructor = NULL;
 
-JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_create(JNIEnv* env, 
-										     jobject instance,
-										     jstring java_ann,
-										     jstring java_amb,
-										     jstring java_pac,
-										     jstring java_forward_bwt, 
-										     jstring java_forward_sa,
-										     jstring java_reverse_bwt,
-										     jstring java_reverse_sa) 
+typedef void (BWA::*int_setter)(int value);
+
+static jstring get_configuration_string(JNIEnv* env, jobject configuration, const char* field_name);
+static void set_int_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, int_setter setter);
+
+JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_create(JNIEnv* env, jobject instance, jobject configuration)
 {
-  const char* ann_filename = env->GetStringUTFChars(java_ann, JNI_FALSE);
-  const char* amb_filename = env->GetStringUTFChars(java_amb, JNI_FALSE);
-  const char* pac_filename = env->GetStringUTFChars(java_pac, JNI_FALSE);
-  const char* forward_bwt_filename = env->GetStringUTFChars(java_forward_bwt, JNI_FALSE);
-  const char* forward_sa_filename = env->GetStringUTFChars(java_forward_sa, JNI_FALSE);
-  const char* reverse_bwt_filename = env->GetStringUTFChars(java_reverse_bwt, JNI_FALSE);
-  const char* reverse_sa_filename = env->GetStringUTFChars(java_reverse_sa, JNI_FALSE);
+  jstring java_ann = get_configuration_string(env,configuration,"annFileName");
+  jstring java_amb = get_configuration_string(env,configuration,"ambFileName");
+  jstring java_pac = get_configuration_string(env,configuration,"pacFileName");
+  jstring java_forward_bwt = get_configuration_string(env,configuration,"forwardBWTFileName");
+  jstring java_forward_sa = get_configuration_string(env,configuration,"forwardSAFileName");
+  jstring java_reverse_bwt = get_configuration_string(env,configuration,"reverseBWTFileName");
+  jstring java_reverse_sa = get_configuration_string(env,configuration,"reverseSAFileName");
+
+  const char* ann_filename = env->GetStringUTFChars(java_ann,JNI_FALSE);
+  const char* amb_filename = env->GetStringUTFChars(java_amb,JNI_FALSE);
+  const char* pac_filename = env->GetStringUTFChars(java_pac,JNI_FALSE);
+  const char* forward_bwt_filename = env->GetStringUTFChars(java_forward_bwt,JNI_FALSE);
+  const char* forward_sa_filename = env->GetStringUTFChars(java_forward_sa,JNI_FALSE);
+  const char* reverse_bwt_filename = env->GetStringUTFChars(java_reverse_bwt,JNI_FALSE);
+  const char* reverse_sa_filename = env->GetStringUTFChars(java_reverse_sa,JNI_FALSE);
 
   BWA* bwa = new BWA(ann_filename,
 		     amb_filename,
@@ -37,6 +42,15 @@ JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_
 		     forward_sa_filename,
 		     reverse_bwt_filename,
 		     reverse_sa_filename);
+
+  //set_int_configuration_param(env, configuration, "maximumEditDistance", bwa, &BWA::set_max_edit_distance);
+  set_int_configuration_param(env, configuration, "maximumGapOpens", bwa, &BWA::set_max_gap_opens);
+  set_int_configuration_param(env, configuration, "maximumGapExtensions", bwa, &BWA::set_max_gap_extensions);
+  set_int_configuration_param(env, configuration, "disallowIndelWithinRange", bwa, &BWA::set_disallow_indel_within_range);
+  set_int_configuration_param(env, configuration, "mismatchPenalty", bwa, &BWA::set_mismatch_penalty);
+  set_int_configuration_param(env, configuration, "gapOpenPenalty", bwa, &BWA::set_gap_open_penalty);
+  set_int_configuration_param(env, configuration, "gapExtensionPenalty", bwa, &BWA::set_gap_extension_penalty);
+  
 
   env->ReleaseStringUTFChars(java_ann,ann_filename);
   env->ReleaseStringUTFChars(java_amb,amb_filename);
@@ -119,4 +133,22 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACA
   env->ReleaseByteArrayElements(java_bases,read_bases,0);
 
   return java_alignments;
+}
+
+static jstring get_configuration_string(JNIEnv* env, jobject configuration, const char* field_name) {
+  jclass configuration_class = env->GetObjectClass(configuration);
+  jfieldID configuration_field = env->GetFieldID(configuration_class, field_name, "Ljava/lang/String;");
+  return (jstring)env->GetObjectField(configuration,configuration_field);
+}
+
+static void set_int_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, int_setter setter) {
+  jclass configuration_class = env->GetObjectClass(configuration);
+  jfieldID configuration_field = env->GetFieldID(configuration_class, field_name, "Ljava/lang/Integer;");
+  jobject boxed_value = env->GetObjectField(configuration,configuration_field);
+  if(boxed_value != NULL) {
+    jclass int_box_class = env->FindClass("java/lang/Integer");
+    jmethodID int_extractor = env->GetMethodID(int_box_class,"intValue", "()I");
+    jint value = env->CallIntMethod(boxed_value,int_extractor);
+    (bwa->*setter)(value);
+  }
 }

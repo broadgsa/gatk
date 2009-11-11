@@ -27,22 +27,10 @@ public class BWACAligner {
 
     /**
      * Create a pointer to the BWA/C thunk.
-     * @param annFileName Name of the ann file?
-     * @param ambFileName Name of the amb file?
-     * @param pacFileName Packed representation of the forward reference.
-     * @param forwardBWTFileName Name of the file where the forward BWT is stored.
-     * @param forwardSAFileName Name of te file where the forward suffix array is stored.
-     * @param reverseBWTFileName Name of the file where the reverse BWT is stored.
-     * @param reverseSAFileName Name of the file where the reverse SA is stored.
+     * @param configuration Configuration of the aligner.
      * @return Pointer to the BWA/C thunk.
      */
-    protected native long create(String annFileName,
-                                 String ambFileName,
-                                 String pacFileName,
-                                 String forwardBWTFileName,
-                                 String forwardSAFileName,
-                                 String reverseBWTFileName,
-                                 String reverseSAFileName);
+    protected native long create(BWACConfiguration configuration);
 
     /**
      * Destroy the 
@@ -50,22 +38,10 @@ public class BWACAligner {
      */
     protected native void destroy(long thunkPointer);
 
-    public BWACAligner(String annFileName,
-                     String ambFileName,
-                     String pacFileName,
-                     String forwardBWTFileName,
-                     String forwardSAFileName,
-                     String reverseBWTFileName,
-                     String reverseSAFileName) {
+    public BWACAligner(BWACConfiguration configuration) {
         if(thunkPointer != 0)
             throw new StingException("BWA/C attempting to reinitialize.");
-        thunkPointer = create(annFileName,
-                              ambFileName,
-                              pacFileName,
-                              forwardBWTFileName,
-                              forwardSAFileName,
-                              reverseBWTFileName,
-                              reverseSAFileName);
+        thunkPointer = create(configuration);
     }
 
     /**

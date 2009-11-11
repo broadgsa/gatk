@@ -40,13 +40,8 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
      */
     @Override
     public void initialize() {
-        aligner = new BWACAligner(prefix + ".ann",
-                                  prefix + ".amb",
-                                  prefix + ".pac",
-                                  prefix + ".bwt",
-                                  prefix + ".sa",
-                                  prefix + ".rbwt",
-                                  prefix + ".rsa");        
+        BWACConfiguration configuration = new BWACConfiguration(prefix);
+        aligner = new BWACAligner(configuration);        
     }
 
     /** Must return true for reads that need to be processed. Reads, for which this method return false will
