@@ -136,7 +136,7 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
 
                 numSNPs++;
                 snpQual += av.getNegLog10PError();
-            } else {
+            } else if (BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1) {
                 Map<String, String> str = new HashMap<String, String>();
                 List<VCFGenotypeEncoding> alleles = new ArrayList<VCFGenotypeEncoding>();
                 alleles.add(new VCFGenotypeEncoding(String.valueOf(ref.getBase())));
