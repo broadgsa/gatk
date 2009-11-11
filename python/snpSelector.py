@@ -5,6 +5,8 @@ from vcfReader import *
 #import pylab
 from itertools import *
 import math
+import random
+    
 
 class CallCovariate:
     def __init__(self, feature, left, right, FPRate = None, cumulative = False):
@@ -61,7 +63,7 @@ class RecalibratedCall:
     def __str__(self):
         return '[%s: %s => Q%d]' % (str(self.call), self.featureStringList(), phredScale(self.jointFPErrorRate()))
 
-def readVariants( file ):
+def readVariants( file, maxRecords = None, decodeAll = True ):
     counter = OPTIONS.skip
     f = open(file)
     header, ignore, lines = readVCFHeader(f)
@@ -73,7 +75,7 @@ def readVariants( file ):
         else:
             return None
 
-    return header, filter(None, map(parseVariant, lines2VCF(lines, extendedOutput = True)))
+    return header, filter(None, map(parseVariant, islice(lines2VCF(lines, extendedOutput = True, decodeAll = decodeAll), maxRecords)))
 
 def selectVariants( variants, selector = None ):
     if selector <> None:
@@ -174,7 +176,7 @@ def frange6(*args):
         yield v
         v += step
 
-def calculateBins(variants, field, minValue, maxValue, rangeValue, partitions):
+def calculateBins(variants, field, minValue, maxValue, partitions):
     sortedVariants = sorted(variants, key = lambda x: x.getField(field))
     sortedValues = map(lambda x: x.getField(field), sortedVariants)
     
@@ -198,20 +200,20 @@ def calculateBins(variants, field, minValue, maxValue, rangeValue, partitions):
 
     return bins
 
-
-def calculateBinsLinear(variants, minValue, maxValue, rangeValue, partitions):
-    breaks = list(frange6(minValue, maxValue, rangeValue / partitions))
-    if breaks[len(breaks)-1] <> maxValue:
-        breaks = breaks + ['*']
-    return zip(breaks, map( lambda x: x - 0.001, breaks[1:]))
+# 
+# def calculateBinsLinear(variants, minValue, maxValue, rangeValue, partitions):
+#     breaks = list(frange6(minValue, maxValue, rangeValue / partitions))
+#     if breaks[len(breaks)-1] <> maxValue:
+#         breaks = breaks + ['*']
+#     return zip(breaks, map( lambda x: x - 0.001, breaks[1:]))
 
 def fieldRange(variants, field):
     values = map(lambda v: v.getField(field), variants)
     minValue = min(values)
     maxValue = max(values)
-    rangeValue = maxValue - minValue
-    bins = calculateBins(variants, field, minValue, maxValue, rangeValue, OPTIONS.partitions)
-    return minValue, maxValue, rangeValue, bins
+    #rangeValue = maxValue - minValue
+    bins = calculateBins(variants, field, minValue, maxValue, OPTIONS.partitions)
+    return minValue, maxValue, bins
 
 def printFieldQual( left, right, variants, titv, FPRate, nErrors ):
     print '  %s nVariants=%8d titv=%.2f FPRate=%.2e Q%d' % (binString(left, right), len(variants), titv, FPRate, phredScale(FPRate))
@@ -273,11 +275,11 @@ def all( p, l ):
     return True
 
 def variantBinsForField(variants, field):
-    if not all( lambda x: x.hasField(field), variants):
-        raise Exception('Unknown field ' + field)
+    #if not all( lambda x: x.hasField(field), variants):
+    #    raise Exception('Unknown field ' + field)
     
-    minValue, maxValue, range, bins = fieldRange(variants, field)
-    print 'Field range', minValue, maxValue, range
+    minValue, maxValue, bins = fieldRange(variants, field)
+    print 'Field range', minValue, maxValue
     print 'Partitions', bins
     return bins
 
@@ -317,40 +319,52 @@ class CallCmp:
     
     def FPRate(self):
         return (1.0*self.nFP) / max(self.nTP + self.nFP, 1)
+
+    def FNRate(self):
+        return (1.0*self.nFN) / max(self.nTP + self.nFN, 1)
     
     def __str__(self):
-        return 'TP=%6d FP=%6d FPRate=%.2f FN=%6d' % (self.nTP, self.nFP, self.FPRate(), self.nFN)
+        return 'TP=%6d FP=%6d FPRate=%.2f FN=%6d FNRate=%.2f' % (self.nTP, self.nFP, self.FPRate(), self.nFN, self.FNRate())
 
 def variantInTruth(variant, truth):
-    return variant.getLoc() in truth
+    if variant.getLoc() in truth:
+        return truth[variant.getLoc()]
+    else:
+        return False
 
 def sensitivitySpecificity(variants, truth):
     nTP, nFP = 0, 0    
+    FPs = []
     for variant in variants:
-        if variantInTruth(variant, truth):
+        t = variantInTruth(variant, truth)
+        if t:
+            t.setField("FOUND", 1)
             nTP += 1
         else:
             if OPTIONS.printFP: print 'FP:', variant
             nFP += 1
+            #if variant.getPos() == 1520727:
+            #    print "Variant is missing", variant
+            FPs.append(variant)
     nFN = len(truth) - nTP
-    return CallCmp(nTP, nFP, nFN)
+    return CallCmp(nTP, nFP, nFN), FPs
 
 
 def compareCalls(calls, truthCalls):
     def compare1(cumulative):
         for left, right, selectedVariants in mapVariantBins(calls, 'QUAL', cumulative = cumulative):
-            callComparison = sensitivitySpecificity(selectedVariants, truthCalls)
+            callComparison, theseFPs = sensitivitySpecificity(selectedVariants, truthCalls)
+            for fp in theseFPs: fp.setField("FP", 1)
+            #FPsVariants.append(theseFPs)
             print binString(left, right), 'titv=%.2f' % titv(selectedVariants)[0], callComparison
     
-    print 'PER BIN'
+    print 'PER BIN nCalls=', len(calls)
     compare1(False)
 
-    print 'CUMULATIVE'
+    print 'CUMULATIVE nCalls=', len(calls)
     compare1(True)
     
 def randomSplit(l, pLeft):
-    import random
-    
     def keep(elt, p):
         if p < pLeft:
             return elt, None
@@ -361,7 +375,7 @@ def randomSplit(l, pLeft):
     return get(0), get(1)
 
 def main():
-    global OPTIONS
+    global OPTIONS, header
     usage = "usage: %prog files.list [options]"
     parser = OptionParser(usage=usage)
     parser.add_option("-f", "--f", dest="fields",
@@ -370,6 +384,9 @@ def main():
     parser.add_option("-t", "--truth", dest="truth",
                         type='string', default=None,
                         help="VCF formated truth file")
+    parser.add_option("", "--unFilteredTruth", dest="unFilteredTruth",
+                        action='store_true', default=False,
+                        help="If provided, the unfiltered truth calls will be used in comparisons")
     parser.add_option("-p", "--partitions", dest="partitions",
                         type='int', default=25,
                         help="Number of partitions to examine")
@@ -379,10 +396,16 @@ def main():
     parser.add_option("-m", "--minVariantsPerBin", dest="minVariantsPerBin",
                        type='int', default=10,
                         help="")
+    parser.add_option("-M", "--maxRecords", dest="maxRecords",
+                       type='int', default=None,
+                        help="")
     parser.add_option("-q", "--qMax", dest="maxQScore",
                         type='int', default=30,
                         help="")
     parser.add_option("-o", "--outputVCF", dest="outputVCF",
+                        type='string', default=None,
+                        help="If provided, VCF file will be written out to this file")
+    parser.add_option("", "--FNoutputVCF", dest="FNoutputVCF",
                         type='string', default=None,
                         help="If provided, VCF file will be written out to this file")
     parser.add_option("", "--titv", dest="titvTarget",
@@ -394,15 +417,16 @@ def main():
     parser.add_option("-b", "--bootstrap", dest="bootStrap",
                        type='float', default=0.0,
                        help="If provided, the % of the calls used to generate the recalibration tables.")
-         
+    
+   
     (OPTIONS, args) = parser.parse_args()
     if len(args) > 2:
         parser.error("incorrect number of arguments")
 
     fields = OPTIONS.fields.split(',')
-    header, allCalls = readVariants(args[0])
+    header, allCalls = readVariants(args[0], OPTIONS.maxRecords)
     print 'Read', len(allCalls), 'calls'
-    print 'header is', header
+    #print 'header is', header
     
     if OPTIONS.titvTarget == None:
         OPTIONS.titvTarget = titv(calls, VCFRecord.isKnown)
@@ -422,10 +446,16 @@ def main():
         recalEvalCalls = recalibrateCalls(callsToEval, fields, covariates)
         printCallQuals(recalEvalCalls, OPTIONS.titvTarget, 'BOOTSTRAP EVAL CALLS')
 
+    truth = None
     if len(args) > 1:
         truthFile = args[1]
         print 'Reading truth file', truthFile
-        truth = dict( [[v.getLoc(), v] for v in readVariants(truthFile)[1]])
+        rawTruth = readVariants(truthFile, maxRecords = None, decodeAll = False)[1]
+        def keepVariant(t): 
+            #print t.getPos(), t.getLoc()
+            return OPTIONS.unFilteredTruth or t.passesFilters()
+        truth = dict( [[v.getLoc(), v] for v in filter(keepVariant, rawTruth)])
+        print len(rawTruth), len(truth)
         
         print '--------------------------------------------------------------------------------'
         print 'Comparing calls to truth', truthFile
@@ -439,10 +469,27 @@ def main():
 
     if OPTIONS.outputVCF:
         f = open(OPTIONS.outputVCF, 'w')
-        print 'HEADER', header
+        #print 'HEADER', header
         for line in formatVCF(header, allCalls):
             print >> f, line
         f.close()
 
+    if truth <> None and OPTIONS.FNoutputVCF:
+        f = open(OPTIONS.FNoutputVCF, 'w')
+        #print 'HEADER', header
+        for line in formatVCF(header, filter( lambda x: not x.hasField("FOUND"), truth.itervalues())):
+            print >> f, line
+        f.close()
+
+PROFILE = False
 if __name__ == "__main__":
-    main()
+    if PROFILE:
+        import cProfile
+        cProfile.run('main()', 'fooprof')
+        import pstats
+        p = pstats.Stats('fooprof')
+        p.sort_stats('cumulative').print_stats(10)
+        p.sort_stats('time').print_stats(10)
+        p.sort_stats('time', 'cum').print_stats(.5, 'init')
+    else:
+        main()
