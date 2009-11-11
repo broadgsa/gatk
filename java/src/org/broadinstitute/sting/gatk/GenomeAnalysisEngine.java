@@ -384,7 +384,7 @@ public class GenomeAnalysisEngine {
             rg_sets.add(groups);
 
             for (SAMReadGroupRecord g : r.getFileHeader().getReadGroups()) {
-                if (hm.hasReadGroupCollisions()) { // Check if there were read group clashes with hasGroupIdCollisions and if so:
+                if (hm.hasGroupIdDuplicates()) { // Check if there were read group clashes with hasGroupIdDuplicates and if so:
                     // use HeaderMerger to translate original read group id from the reader into the read group id in the
                     // merged stream, and save that remapped read group id to associate it with specific reader
                     groups.add(hm.getReadGroupId(r, g.getReadGroupId()));

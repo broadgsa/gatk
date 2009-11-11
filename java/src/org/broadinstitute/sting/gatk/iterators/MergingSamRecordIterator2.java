@@ -235,22 +235,15 @@ public class MergingSamRecordIterator2 implements CloseableIterator<SAMRecord>, 
         final SAMRecord record = iterator.next();
         addIfNotEmpty(iterator);
 
-        // Fix the read group if needs be
-        if (this.samHeaderMerger.hasReadGroupCollisions()) {
-            final String oldGroupId = (String) record.getAttribute(ReservedTagConstants.READ_GROUP_ID);
-            if (oldGroupId != null ) {
-                final String newGroupId = this.samHeaderMerger.getReadGroupId(iterator.getReader(), oldGroupId);
-                record.setAttribute(ReservedTagConstants.READ_GROUP_ID, newGroupId);
-                }
+        if (this.samHeaderMerger.hasGroupIdDuplicates()) {
+            final String id = (String) record.getAttribute(ReservedTagConstants.READ_GROUP_ID);
+            final String newId = this.samHeaderMerger.getReadGroupId(iterator.getReader(), id);
+            record.setAttribute(ReservedTagConstants.READ_GROUP_ID, newId);
         }
-
-        // Fix the program group if needs be
-        if (this.samHeaderMerger.hasProgramGroupCollisions()) {
-            final String oldGroupId = (String) record.getAttribute(ReservedTagConstants.PROGRAM_GROUP_ID);
-            if (oldGroupId != null ) {
-                final String newGroupId = this.samHeaderMerger.getProgramGroupId(iterator.getReader(), oldGroupId);
-                record.setAttribute(ReservedTagConstants.PROGRAM_GROUP_ID, newGroupId);
-            }
+        final String oldProgramGroupId = (String) record.getAttribute(SAMTag.PG.toString());
+        if (oldProgramGroupId != null) {
+            final String newProgramGroupId = this.samHeaderMerger.getProgramGroupId(iterator.getReader(), oldProgramGroupId);
+            record.setAttribute(SAMTag.PG.toString(), newProgramGroupId);
         }
 
         // if we don't have a read group, set one correctly
