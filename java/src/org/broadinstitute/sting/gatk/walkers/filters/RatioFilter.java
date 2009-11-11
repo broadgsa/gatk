@@ -71,9 +71,9 @@ public abstract class RatioFilter implements VariantExclusionCriterion {
         //
         int n = counts.first + counts.second;
         double value = counts.first / (1.0 * counts.first + counts.second);
-        logger.info(String.format("%s: counts1=%d (%.2f), counts2=%d (%.2f), n=%d, value=%f, exclude=%b, location=%s, bases=%s",
-                name, counts.first, counts.first / (0.01 * n), counts.second, counts.second / (0.01 * n), n,
-                value, exclude, variant.getLocation(), pileup.getBases()));
+        //logger.info(String.format("%s: counts1=%d (%.2f), counts2=%d (%.2f), n=%d, value=%f, exclude=%b, location=%s, bases=%s",
+        //        name, counts.first, counts.first / (0.01 * n), counts.second, counts.second / (0.01 * n), n,
+        //        value, exclude, variant.getLocation(), pileup.getBases()));
     }
 
     // TODO - this calculation needs to be parameterized correctly

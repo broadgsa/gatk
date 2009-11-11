@@ -334,7 +334,14 @@ public class VCFRecord {
      * @param value it's value as a string
      */
     public void addInfoField(String key, String value) {
+        //System.out.printf("Adding info field %s=%s%n", key, value);
         this.mInfoFields.put(key, value);
+    }
+
+    public void printInfoFields() {
+        for ( Map.Entry<String, String> e : this.mInfoFields.entrySet() ) {
+            System.out.printf("  Current info field %s=%s this=%s%n", e.getKey(), e.getValue(), this);
+        }
     }
 
 
