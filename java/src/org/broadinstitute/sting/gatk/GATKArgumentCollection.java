@@ -57,7 +57,7 @@ public class GATKArgumentCollection {
     public List<File> samFiles = new ArrayList<File>();
 
     @ElementList(required = false)
-    @Argument(fullName = "read_filters", shortName = "rf", doc = "Specify filtration criteria on the each read.", required=false)
+    @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually.", required=false)
     public List<String> readFilters = new ArrayList<String>();
 
     @ElementList(required = false)
