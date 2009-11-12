@@ -15,12 +15,14 @@ import java.util.ArrayList;
 
 /**
  * Created by IntelliJ IDEA.
- * User: ebanks
+ * User: amckenna
  * Date: Apr 23, 2009
  * Time: 10:26:03 AM
  * To change this template use File | Settings | File Templates.
  */
 public class TraverseLocusWindows extends TraversalEngine {
+    /** descriptor of the type */
+    private static final String LOCUS_WINDOW_STRING = "intervals";
 
     public <M,T> T traverse( Walker<M,T> walker,
                              Shard shard,
@@ -58,7 +60,7 @@ public class TraverseLocusWindows extends TraversalEngine {
             sum = locusWindowWalker.reduce(x, sum);
         }
 
-        printProgress(TRAVERSAL_TYPE.LOCUS_WINDOW, locus.getLocation());
+        printProgress(LOCUS_WINDOW_STRING, locus.getLocation());
 
         return sum;
     }
@@ -98,7 +100,7 @@ public class TraverseLocusWindows extends TraversalEngine {
      * @param <T> Type of the result.
      */
     public <T> void printOnTraversalDone( T sum ) {
-        printOnTraversalDone( TRAVERSAL_TYPE.LOCUS_WINDOW, sum );
+        printOnTraversalDone(LOCUS_WINDOW_STRING, sum );
     }
 
 }

@@ -66,6 +66,9 @@ public class TraverseDuplicates extends TraversalEngine {
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraverseDuplicates.class);
 
+    /** descriptor of the type */
+    private static final String DUPS_STRING = "dups";
+
     private final boolean DEBUG = false;
 
     private List<SAMRecord> readsAtLoc(final SAMRecord read, PushbackIterator<SAMRecord> iter) {
@@ -203,7 +206,7 @@ public class TraverseDuplicates extends TraversalEngine {
             if (duplicateReads.size() > 0)
                 sum = mapOne(dupWalker, uniqueReads, duplicateReads, site, refBases, locus, sum);
 
-            printProgress(TRAVERSAL_TYPE.DUPLICATE, site);
+            printProgress(DUPS_STRING, site);
 
             if (this.maximumIterations > 0 && TraversalStatistics.nRecords > this.maximumIterations) {
                 logger.warn(String.format(("Maximum number of duplicate sets encountered, terminating traversal " + TraversalStatistics.nRecords)));
@@ -309,6 +312,6 @@ public class TraverseDuplicates extends TraversalEngine {
      * @param <T> Type of the result.
      */
     public <T> void printOnTraversalDone(T sum) {
-        printOnTraversalDone(TRAVERSAL_TYPE.DUPLICATE, sum);
+        printOnTraversalDone(DUPS_STRING, sum);
     }
 }

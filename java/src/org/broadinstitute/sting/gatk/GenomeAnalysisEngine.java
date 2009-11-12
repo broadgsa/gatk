@@ -309,7 +309,8 @@ public class GenomeAnalysisEngine {
      * Returns sets of samples present in the (merged) input SAM stream, grouped by readers (i.e. underlying
      * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
      * returned by this method will contain 3 elements (one for each reader), with each element being a set of sample names
-     * found in the corresponding bam file.
+     * found in the corresponding bam file.  The sample names returned will be in order of the files passed in the input
+     * parameter list of the GATK.
      *
      * @return
      */

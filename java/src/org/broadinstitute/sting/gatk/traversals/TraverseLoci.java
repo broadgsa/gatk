@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.WalkerManager;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.*;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
@@ -10,7 +10,6 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 
@@ -20,7 +19,7 @@ import java.util.ArrayList;
  * A simple solution to iterating over all reference positions over a series of genomic locations.
  */
 public class TraverseLoci extends TraversalEngine {
-    final private static String UNIT_STRING = "sites";
+    final private static String LOCI_STRING = "sites";
     final private static boolean ENABLE_ROD_TRAVERSAL = false;
 
 
@@ -86,7 +85,7 @@ public class TraverseLoci extends TraversalEngine {
                     break;
                 }
 
-                printProgress(TRAVERSAL_TYPE.LOCUS, locus.getLocation());
+                printProgress(LOCI_STRING, locus.getLocation());
             }
         }
 
@@ -113,7 +112,7 @@ public class TraverseLoci extends TraversalEngine {
      * @param <T> Type of the result.
      */
     public <T> void printOnTraversalDone( T sum ) {
-        printOnTraversalDone( TRAVERSAL_TYPE.LOCUS, sum );
+        printOnTraversalDone(LOCI_STRING, sum );
     }
 
     /**

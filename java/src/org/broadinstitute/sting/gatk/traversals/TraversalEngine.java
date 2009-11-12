@@ -21,9 +21,6 @@ public abstract class TraversalEngine {
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
 
-    /** what kind of traversal we're undertaking.  This allows us to format output correctly */
-    public enum TRAVERSAL_TYPE { READ, LOCUS, LOCUS_WINDOW, DUPLICATE };
-
     /**
      * set the max number of iterations
      * @param maximumIterations the number of iterations
@@ -47,7 +44,7 @@ public abstract class TraversalEngine {
      * @param type the TRAVERSAL_TYPE of the traversal
      * @param loc  the location
      */
-    public void printProgress(final TRAVERSAL_TYPE type, GenomeLoc loc) {
+    public void printProgress(final String type, GenomeLoc loc) {
         printProgress(false, type, loc);
     }
 
@@ -59,7 +56,7 @@ public abstract class TraversalEngine {
      * @param type      String to print out describing our atomic traversal type ("read", "locus", etc)
      * @param loc       Current location
      */
-    private void printProgress(boolean mustPrint, final TRAVERSAL_TYPE type, GenomeLoc loc) {
+    private void printProgress(boolean mustPrint, final String type, GenomeLoc loc) {
         final long nRecords = TraversalStatistics.nRecords;
         final long curTime = System.currentTimeMillis();
         final double elapsed = (curTime - startTime) / 1000.0;
@@ -68,17 +65,10 @@ public abstract class TraversalEngine {
         if (mustPrint || nRecords == 1 || nRecords % N_RECORDS_TO_PRINT == 0 || maxElapsedIntervalForPrinting(curTime)) {
             this.lastProgressPrintTime = curTime;
             final double secsPer1MReads = (elapsed * 1000000.0) / nRecords;
-            String typeString = "loci";
-            switch (type) {
-                case LOCUS: typeString = "loci"; break;
-                case READ: typeString = "reads"; break;
-                case DUPLICATE: typeString = "dups"; break;
-                case LOCUS_WINDOW: typeString = "interval"; break;
-            }
             if (loc != null)
-                logger.info(String.format("[PROGRESS] Traversed to %s, processing %,d %s in %.2f secs (%.2f secs per 1M %s)", loc, nRecords, typeString, elapsed, secsPer1MReads, typeString));
+                logger.info(String.format("[PROGRESS] Traversed to %s, processing %,d %s in %.2f secs (%.2f secs per 1M %s)", loc, nRecords, type, elapsed, secsPer1MReads, type));
             else
-                logger.info(String.format("[PROGRESS] Traversed %,d %s in %.2f secs (%.2f secs per 1M %s)", nRecords, typeString, elapsed, secsPer1MReads, typeString));
+                logger.info(String.format("[PROGRESS] Traversed %,d %s in %.2f secs (%.2f secs per 1M %s)", nRecords, type, elapsed, secsPer1MReads, type));
         }   
     }
 
@@ -93,11 +83,11 @@ public abstract class TraversalEngine {
     /**
      * Called after a traversal to print out information about the traversal process
      *
-     * @param type TRAVERSAL_TYPE describing this type of traversal
+     * @param type describing this type of traversal
      * @param sum  The reduce result of the traversal
      * @param <T>  ReduceType of the traversal
      */
-    protected <T> void printOnTraversalDone(final TRAVERSAL_TYPE type, T sum) {
+    protected <T> void printOnTraversalDone(final String type, T sum) {
         printProgress(true, type, null);
         logger.info("Traversal reduce result is " + sum);
         final long curTime = System.currentTimeMillis();

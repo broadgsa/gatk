@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.traversals;
 
+import net.sf.picard.reference.ReferenceSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.Reads;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
@@ -22,8 +23,6 @@ import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-
-import net.sf.picard.reference.ReferenceSequenceFile;
 
 /**
  *
@@ -139,7 +138,7 @@ public class TraverseReadsTest extends BaseTest {
 
         }
 
-        traversalEngine.printOnTraversalDone(TraversalEngine.TRAVERSAL_TYPE.READ, accumulator);
+        traversalEngine.printOnTraversalDone("reads", accumulator);
         countReadWalker.onTraversalDone(accumulator);
 
         if (!(accumulator instanceof Integer)) {
@@ -185,7 +184,7 @@ public class TraverseReadsTest extends BaseTest {
             dataProvider.close();
         }
 
-        traversalEngine.printOnTraversalDone(TraversalEngine.TRAVERSAL_TYPE.READ, accumulator);
+        traversalEngine.printOnTraversalDone("reads", accumulator);
         countReadWalker.onTraversalDone(accumulator);
 
         if (!(accumulator instanceof Integer)) {

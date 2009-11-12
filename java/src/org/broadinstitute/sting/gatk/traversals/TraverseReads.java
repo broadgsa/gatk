@@ -56,6 +56,9 @@ public class TraverseReads extends TraversalEngine {
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraverseReads.class);
 
+    /** descriptor of the type */
+    private static final String READS_STRING = "reads";
+
     /**
      * Traverse by reads, given the data and the walker
      *
@@ -121,7 +124,7 @@ public class TraverseReads extends TraversalEngine {
                 sum = readWalker.reduce(x, sum);
             }
 
-            printProgress(TRAVERSAL_TYPE.READ,
+            printProgress(READS_STRING,
                           (read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) ?
                                   null :
                                   GenomeLocParser.createGenomeLoc(read.getReferenceIndex(),read.getAlignmentStart()));
@@ -136,6 +139,6 @@ public class TraverseReads extends TraversalEngine {
      * @param <T> Type of the result.
      */
     public <T> void printOnTraversalDone( T sum ) {
-        printOnTraversalDone(TRAVERSAL_TYPE.READ, sum );
+        printOnTraversalDone(READS_STRING, sum );
     }
 }
