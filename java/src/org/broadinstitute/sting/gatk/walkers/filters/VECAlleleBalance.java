@@ -41,11 +41,14 @@ public class VECAlleleBalance extends RatioFilter {
      */
     protected Pair<Integer, Integer> getRatioCounts(char ref, ReadBackedPileup pileup, RodGeliText variant) {
         final String genotype = variant.getBestGenotype();
-        final String bases = pileup.getBases();
-
         if ( genotype.length() > 2 )
             throw new IllegalArgumentException(String.format("Can only handle diploid genotypes: %s", genotype));
 
+        final String bases = pileup.getBases();
+        if ( bases.length() == 0 ) {
+            ratio = 0.0;
+            return new Pair<Integer, Integer>(0, 0);
+        }
 
         char a = genotype.toUpperCase().charAt(0);
         char b = genotype.toUpperCase().charAt(1);

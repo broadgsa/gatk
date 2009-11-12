@@ -36,13 +36,16 @@ public class VECOnOffGenotypeRatio extends RatioFilter {
     */
     protected Pair<Integer, Integer> getRatioCounts(char ref, ReadBackedPileup pileup, RodGeliText variant) {
         final String genotype = variant.getBestGenotype().toUpperCase();
-        final String bases = pileup.getBases();
-
         if ( genotype.length() > 2 )
             throw new IllegalArgumentException(String.format("Can only handle diploid genotypes: %s", genotype));
 
-        int on = 0, off = 0;
+        final String bases = pileup.getBases();
+        if ( bases.length() == 0 ) {
+            ratio = 0.0;
+            return new Pair<Integer, Integer>(0, 0);
+        }
 
+        int on = 0, off = 0;
         for ( char base : BaseUtils.BASES ) {
             int count = BasicPileup.countBase(base, bases);
             if ( Utils.countOccurrences(base, genotype) > 0 )
