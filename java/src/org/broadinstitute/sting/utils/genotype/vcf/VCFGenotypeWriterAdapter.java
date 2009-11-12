@@ -148,17 +148,24 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
             throw new IllegalArgumentException("Genotype array passed to VCFGenotypeWriterAdapter contained Genotypes not in the VCF header");
         }
 
+        // info fields
         Map<String, String> infoFields = getInfoFields((VCFGenotypeLocusData)locusdata, params);
         infoFields.put("DP", String.format("%d", totalReadDepth));
 
+        // q-score
         double qual = (locusdata == null) ? 0 : ((VCFGenotypeLocusData)locusdata).getConfidence();
         // min Q-score is zero
         qual = Math.max(qual, 0);
 
+        // dbsnp id
+        String dbSnpID = null;
+        if ( locusdata != null )
+            dbSnpID = ((VCFGenotypeLocusData)locusdata).getID();
+
         VCFRecord vcfRecord = new VCFRecord(params.getReferenceBase(),
                                             params.getContig(),
                                             params.getPosition(),
-                                            ".",
+                                            (dbSnpID == null ? "." : dbSnpID),
                                             params.getAlternateBases(),
                                             qual,
                                             "0",
@@ -182,10 +189,10 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         if ( locusdata != null ) {
             infoFields.put("SB", String.format("%.2f", locusdata.getSLOD()));
             infoFields.put("AF", String.format("%.2f", locusdata.getAlleleFrequency()));
-            if ( locusdata.hasRefRatio() )
-                infoFields.put("AB", String.format("%.2f", locusdata.getRefRatio()));
-            if ( locusdata.hasOnOffRatio() )
-                infoFields.put("OO", String.format("%.2f", locusdata.getOnOffRatio()));
+            Map<String, String> otherFields = locusdata.getFields();
+            if ( otherFields != null ) {
+                infoFields.putAll(otherFields);
+            }
         }
         infoFields.put("NS", String.valueOf(params.getGenotypesRecords().size()));
         return infoFields;

@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.*;
 
@@ -90,7 +91,12 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                 if ( locusdata instanceof ConfidenceBacked ) {
                     ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
                 }
-                if ( locusdata instanceof AlleleBalanceBacked ) {
+                if ( locusdata instanceof IDBacked ) {
+                    rodDbSNP dbsnp = getDbSNP(tracker);
+                    if ( dbsnp != null )
+                        ((IDBacked)locusdata).setID(dbsnp.getRS_ID());
+                }
+                if ( locusdata instanceof ArbitraryFieldsBacked) {
 
                     DiploidGenotype bestGenotype = DiploidGenotype.values()[bestIndex];
                     // we care only about het calls
@@ -107,8 +113,10 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                             totalCount += counts[i];
 
                         // set the ratios
-                        ((AlleleBalanceBacked)locusdata).setRefRatio((double)refCount / (double)(refCount + altCount));
-                        ((AlleleBalanceBacked)locusdata).setOnOffRatio((double)(refCount + altCount) / (double)totalCount);
+                        HashMap<String, String> fields = new HashMap<String, String>();
+                        fields.put("AB", String.format("%.2f", (double)refCount / (double)(refCount + altCount)));
+                        fields.put("OO", String.format("%.2f",(double)(refCount + altCount) / (double)totalCount));
+                        ((ArbitraryFieldsBacked)locusdata).setFields(fields);
                     }
                 }
             }

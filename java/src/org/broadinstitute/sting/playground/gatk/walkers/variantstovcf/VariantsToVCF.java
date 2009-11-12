@@ -182,7 +182,7 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
         return new VCFRecord(ref.getBase(),
                              context.getContig(),
                              (int) context.getPosition(),
-                             (dbsnp == null) ? "." : dbsnp.name,
+                             (dbsnp == null) ? "." : dbsnp.getRS_ID(),
                              alts,
                              snpQual > 99 ? 99 : (int) snpQual,
                              "0",

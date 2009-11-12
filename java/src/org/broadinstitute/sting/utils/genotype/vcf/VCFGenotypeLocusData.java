@@ -3,6 +3,9 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @author ebanks
  *         <p/>
@@ -10,7 +13,7 @@ import org.broadinstitute.sting.utils.genotype.*;
  *         <p/>
  *         represents the meta data for a genotype object.
  */
-public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked, SLODBacked, AlleleFrequencyBacked, AlleleBalanceBacked {
+public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked, SLODBacked, IDBacked, AlleleFrequencyBacked, ArbitraryFieldsBacked {
 
     // the discovery lod score
     private double mConfidence = 0.0;
@@ -27,9 +30,11 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
     // the ref base
     private char mRefBase;
 
-    // the various allele ratios
-    private double mRefRatio = 0.0;
-    private double mOnOffRatio = 0.0;
+    // the id
+    private String mID;
+
+    // the various info field values
+    private Map<String, String> mInfoFields;
 
     /**
      * create a basic genotype meta data pbject, given the following fields
@@ -111,38 +116,24 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
     }
 
     /**
-     * @return returns true if the ref/(ref+alt) ratio for this genotype has been set
+     * @return returns the dbsnp id for this genotype
      */
-    public boolean hasRefRatio() {
-        return mRefRatio > 0.0;
+    public String getID() {
+        return mID;
+    }
+
+    public void setID(String id) {
+        mID = id;
     }
 
     /**
-     * @return returns the ref/(ref+alt) ratio for this genotype
+     * @return returns te arbitrary info fields
      */
-    public double getRefRatio() {
-        return mRefRatio;
+    public Map<String, String> getFields() {
+        return mInfoFields;
     }
 
-    public void setRefRatio(double ratio) {
-        mRefRatio = ratio;
-    }
-
-    /**
-     * @return returns true if the (ref+alt)/total ratio for this genotype has been set
-     */
-    public boolean hasOnOffRatio() {
-        return mOnOffRatio > 0.0;
-    }
-
-    /**
-     * @return returns the (ref+alt)/total ratio for this genotype
-     */
-    public double getOnOffRatio() {
-        return mOnOffRatio;
-    }
-
-    public void setOnOffRatio(double ratio) {
-        mOnOffRatio = ratio;
+    public void setFields(Map<String, String> fields) {
+        mInfoFields = new HashMap<String, String>(fields);
     }    
 }

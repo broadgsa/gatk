@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
@@ -99,6 +100,25 @@ public abstract class GenotypeCalculationModel implements Cloneable {
                                                                              AlignmentContext context,
                                                                              DiploidGenotypePriors priors);
 
+    /**
+     * @param tracker   rod data
+     *
+     * @return the dbsnp rod if there is one at this position
+     */
+    public static rodDbSNP getDbSNP(RefMetaDataTracker tracker) {
+        return rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
+    }
+
+    /**
+     * Determine whether we're at a Hapmap site
+     *
+     * @param tracker the meta data tracker
+     *
+     * @return true if we're at a Hapmap site, false if otherwise
+     */
+    private static boolean isHapmapSite(RefMetaDataTracker tracker) {
+        return tracker.getTrackData("hapmap", null) != null;
+    }
 
     /**
      * Create the mapping from sample to alignment contexts.

@@ -27,7 +27,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
     // Reference sequence chromosome or scaffold
     // Start and stop positions in chrom
 
-    public String name;        // Reference SNP identifier or Affy SNP name
+    public String RS_ID;        // Reference SNP identifier or Affy SNP name
     public String strand;      // Which DNA strand contains the observed alleles
 
     public String refBases;        // the reference base according to NCBI, in the dbSNP file
@@ -206,19 +206,22 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
     // formatting
     //
     // ----------------------------------------------------------------------
+
+    public String getRS_ID() { return RS_ID; }    
+
     public String toString() {
         return String.format("%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\t%d",
                              getLocation().getContig(), getLocation().getStart(), getLocation().getStop() + 1,
-                             name, strand, refBases, observed, molType,
+                             RS_ID, strand, refBases, observed, molType,
                              varType, validationStatus, avHet, avHetSE, func, locType, weight);
     }
 
     public String toSimpleString() {
-        return String.format("%s:%s:%s", name, observed, strand);
+        return String.format("%s:%s:%s", RS_ID, observed, strand);
     }
 
     public String toMediumString() {
-        String s = String.format("%s:%s:%s", getLocation().toString(), name, Utils.join("",this.getAlleleList()));
+        String s = String.format("%s:%s:%s", getLocation().toString(), RS_ID, Utils.join("",this.getAlleleList()));
         if (isSNP()) s += ":SNP";
         if (isIndel()) s += ":Indel";
         if (isHapmap()) s += ":Hapmap";
@@ -229,7 +232,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
     public String repl() {
         return String.format("%d\t%s\t%d\t%d\t%s\t0\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%f\t%f\t%s\t%s\t%d",
                              585, getLocation().getContig(), getLocation().getStart() - 1, getLocation().getStop(),
-                             name, strand, refBases, refBases, observed, molType,
+                             RS_ID, strand, refBases, refBases, observed, molType,
                              varType, validationStatus, avHet, avHetSE, func, locType, weight);
     }
 
@@ -240,7 +243,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
             long stop = Long.parseLong(parts[3]) + 1;  // The final is 0 based
             loc = GenomeLocParser.parseGenomeLoc(contig, start, Math.max(start, stop - 1));
 
-            name = parts[4];
+            RS_ID = parts[4];
             strand = parts[6];
             refBases = parts[7];
             if (strand == "-")

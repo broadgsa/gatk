@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.*;
 
@@ -51,6 +52,11 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         if ( locusdata != null ) {
             if ( locusdata instanceof ConfidenceBacked ) {
                 ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
+            }
+            if ( locusdata instanceof IDBacked ) {
+                rodDbSNP dbsnp = getDbSNP(tracker);
+                if ( dbsnp != null )
+                    ((IDBacked)locusdata).setID(dbsnp.getRS_ID());
             }
             if ( locusdata instanceof SLODBacked ) {
 

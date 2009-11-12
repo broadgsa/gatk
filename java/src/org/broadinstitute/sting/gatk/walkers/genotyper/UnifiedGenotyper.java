@@ -32,7 +32,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -193,28 +192,6 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
         }
 
         return new AlignmentContext(context.getLocation(), newReads, newOffsets);                
-    }
-
-    /**
-     * Determine whether we're at a Hapmap site
-     *
-     * @param tracker the meta data tracker
-     *
-     * @return true if we're at a Hapmap site, false if otherwise
-     */
-    private static boolean isHapmapSite(RefMetaDataTracker tracker) {
-        return tracker.getTrackData("hapmap", null) != null;
-    }
-
-    /**
-     * Determine whether we're at a dbSNP site
-     *
-     * @param tracker the meta data tracker
-     *
-     * @return true if we're at a dbSNP site, false if otherwise
-     */
-    private static boolean isDbSNPSite(RefMetaDataTracker tracker) {
-        return rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null)) != null;
     }
 
     public Integer reduceInit() { return 0; }

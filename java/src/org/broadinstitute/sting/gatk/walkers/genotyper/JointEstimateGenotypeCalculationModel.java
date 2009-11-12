@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 import java.util.*;
@@ -49,7 +50,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         // run joint estimation for the full GL contexts
         initializeGenotypeLikelihoods(ref, contexts, StratifiedContext.OVERALL);
         calculateAlleleFrequencyPosteriors(ref, context.getLocation());
-        return createCalls(ref, contexts, context.getLocation());
+        return createCalls(tracker, ref, contexts, context.getLocation());
     }
 
     private void initializeAlleleFrequencies(int numSamples) {
@@ -275,7 +276,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         verboseWriter.println();
     }
 
-    private Pair<List<Genotype>, GenotypeLocusData> createCalls(char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {
+    private Pair<List<Genotype>, GenotypeLocusData> createCalls(RefMetaDataTracker tracker, char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {
         // first, find the alt allele with maximum confidence
         int indexOfMax = 0;
         char baseOfMax = ref;
@@ -333,7 +334,12 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
             if ( locusdata instanceof AlleleFrequencyBacked ) {
                 ((AlleleFrequencyBacked)locusdata).setAlleleFrequency(bestAFguess);
             }
-            if ( locusdata instanceof AlleleBalanceBacked ) {
+            if ( locusdata instanceof IDBacked ) {
+                rodDbSNP dbsnp = getDbSNP(tracker);
+                if ( dbsnp != null )
+                    ((IDBacked)locusdata).setID(dbsnp.getRS_ID());
+            }
+            if ( locusdata instanceof ArbitraryFieldsBacked) {
                 ArrayList<Double> refBalances = new ArrayList<Double>();
                 ArrayList<Double> onOffBalances = new ArrayList<Double>();
                 ArrayList<Double> weights = new ArrayList<Double>();
@@ -384,8 +390,10 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
                         normalizedOnOffRatio += weights.get(i) * onOffBalances.get(i);
                     }
 
-                    ((AlleleBalanceBacked)locusdata).setRefRatio(normalizedRefRatio);
-                    ((AlleleBalanceBacked)locusdata).setOnOffRatio(normalizedOnOffRatio);
+                    HashMap<String, String> fields = new HashMap<String, String>();
+                    fields.put("AB", String.format("%.2f", normalizedRefRatio));
+                    fields.put("OO", String.format("%.2f", normalizedOnOffRatio));
+                    ((ArbitraryFieldsBacked)locusdata).setFields(fields);
                 }
             }
             if ( locusdata instanceof SLODBacked ) {
