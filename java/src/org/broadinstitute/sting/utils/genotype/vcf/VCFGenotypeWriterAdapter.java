@@ -21,10 +21,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     private VCFHeader mHeader = null;
     private String mSource;
     private String mReferenceName;
-    private boolean mInitialized = false;
     private final Set<String> mSampleNames = new HashSet<String>();
-    private final File mFile;
-    private final OutputStream mStream;
 
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(VCFGenotypeWriterAdapter.class);
@@ -33,29 +30,29 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     public VCFGenotypeWriterAdapter(String source, String referenceName, File writeTo, Set<String> sampleNames) {
         mReferenceName = referenceName;
         mSource = source;
-        mFile = writeTo;
-        if (mFile == null) throw new RuntimeException("VCF output file must not be null");
-        mStream = null;
         mSampleNames.addAll(sampleNames);
+
+        initializeHeader();
+
+        if (writeTo == null) throw new RuntimeException("VCF output file must not be null");
+        mWriter = new VCFWriter(mHeader, writeTo);
     }
 
     public VCFGenotypeWriterAdapter(String source, String referenceName, OutputStream writeTo, Set<String> sampleNames) {
         mReferenceName = referenceName;
         mSource = source;
-        mFile = null;
-        mStream = writeTo;
-        if (mStream == null) throw new RuntimeException("VCF output stream must not be null");
         mSampleNames.addAll(sampleNames);
 
+        initializeHeader();
+
+        if (writeTo == null) throw new RuntimeException("VCF output stream must not be null");
+        mWriter = new VCFWriter(mHeader, writeTo);
     }
 
     /**
-     * initialize this VCF writer
-     *
-     * @param file      the file location to write to
-     * @param stream    the output stream
+     * initialize this VCF header
      */
-    private void lazyInitialize(File file, OutputStream stream) {
+    private void initializeHeader() {
         Map<String, String> hInfo = new HashMap<String, String>();
 
         // setup the header fields
@@ -65,11 +62,6 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
 
         // setup the sample names
         mHeader = new VCFHeader(hInfo, mSampleNames);
-        if (mFile == null)
-            mWriter = new VCFWriter(mHeader, stream);
-        else
-            mWriter = new VCFWriter(mHeader, file);
-        mInitialized = true;
     }
 
     /**
@@ -109,8 +101,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
 
     /** finish writing, closing any open files. */
     public void close() {
-        if (mInitialized)
-            mWriter.close();
+        mWriter.close();
     }
 
     /**
@@ -119,9 +110,6 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      * @param genotypes the list of genotypes
      */
     public void addMultiSampleCall(List<Genotype> genotypes, GenotypeLocusData locusdata) {
-        if (!mInitialized)
-            lazyInitialize(mFile, mStream);
-
         if ( locusdata != null && !(locusdata instanceof VCFGenotypeLocusData) )
             throw new IllegalArgumentException("Only VCFGenotypeLocusData objects should be passed in to the VCF writers");
 
