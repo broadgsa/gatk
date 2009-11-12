@@ -309,8 +309,7 @@ public class GenomeAnalysisEngine {
      * Returns sets of samples present in the (merged) input SAM stream, grouped by readers (i.e. underlying
      * individual bam files). For instance: if GATK is run with three input bam files (three -I arguments), then the list
      * returned by this method will contain 3 elements (one for each reader), with each element being a set of sample names
-     * found in the corresponding bam file.  The sample names returned will be in order of the files passed in the input
-     * parameter list of the GATK.
+     * found in the corresponding bam file.
      *
      * @return
      */
@@ -385,7 +384,7 @@ public class GenomeAnalysisEngine {
             rg_sets.add(groups);
 
             for (SAMReadGroupRecord g : r.getFileHeader().getReadGroups()) {
-                if (hm.hasGroupIdDuplicates()) { // Check if there were read group clashes with hasGroupIdDuplicates and if so:
+                if (hm.hasReadGroupCollisions()) { // Check if there were read group clashes with hasGroupIdDuplicates and if so:
                     // use HeaderMerger to translate original read group id from the reader into the read group id in the
                     // merged stream, and save that remapped read group id to associate it with specific reader
                     groups.add(hm.getReadGroupId(r, g.getReadGroupId()));

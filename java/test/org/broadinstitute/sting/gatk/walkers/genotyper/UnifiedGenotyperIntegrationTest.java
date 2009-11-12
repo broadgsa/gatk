@@ -43,7 +43,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,023,400-10,024,000 -bm empirical -gm EM_POINT_ESTIMATE -confidence 50", 1,
-                Arrays.asList("8f14c1efea00b32984ec52db7a800d1b"));
+                Arrays.asList("b7e12c4011d0043024e0dd2dd5764752"));
         executeTest("testMultiSamplePilot1", spec);
     }
 
@@ -205,7 +205,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void empirical1MbTestBinaryGeli() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseTestString() + " -L 1:10,000,000-11,000,000 -bm empirical --variant_output_format GELI_BINARY -confidence 50", 1,
-                Arrays.asList("915abf82a04fcd1842f6865501bae67c"));
+                Arrays.asList("18f175c7ccaeca57b8d412e9f4ebbe50"));
         executeTest("empirical1MbTestBinaryGeli", spec);
     }
 }
