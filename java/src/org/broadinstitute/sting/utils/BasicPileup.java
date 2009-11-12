@@ -145,24 +145,43 @@ abstract public class BasicPileup implements Pileup {
 
     public static ArrayList<Byte> secondaryBasePileup( List<SAMRecord> reads, List<Integer> offsets ) {
         ArrayList<Byte> bases2 = new ArrayList<Byte>(reads.size());
-        boolean hasAtLeastOneSQField = false;
+        boolean hasAtLeastOneSQorE2Field = false;
 
         for ( int i = 0; i < reads.size(); i++ ) {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
 
-            byte[] compressedQuals = (byte[]) read.getAttribute("SQ");
-            byte base2;
+            if (read.getAttribute("SQ") != null) {
+                byte[] compressedQuals = (byte[]) read.getAttribute("SQ");
+                byte base2;
             
-            if (offset != -1 && compressedQuals != null && compressedQuals.length == read.getReadLength()) {
-                base2 = (byte) BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(compressedQuals[offset]));
-                hasAtLeastOneSQField = true;
-            } else {
-                base2 = (byte) '.';
+                if (offset != -1 && compressedQuals != null && compressedQuals.length == read.getReadLength()) {
+                    base2 = (byte) BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(compressedQuals[offset]));
+                    hasAtLeastOneSQorE2Field = true;
+                }
+                else {
+                    base2 = (byte) '.';
+                }
+                bases2.add((byte) base2);
             }
-            bases2.add(base2);
+            else if (read.getAttribute("E2") != null) {
+                String secondaries = (String) read.getAttribute("E2");
+                char base2;
+                if (offset != -1 && secondaries != null && secondaries.length() == read.getReadLength()) {
+                    base2 = secondaries.charAt(offset);
+                    hasAtLeastOneSQorE2Field = true;
+                }
+                else {
+                    base2 = '.';
+                }
+                bases2.add((byte) base2);
+            }
+            else {
+                byte base2 = 'N';
+                bases2.add(base2);
+            }
         }
-        return (hasAtLeastOneSQField ? bases2 : null);
+        return (hasAtLeastOneSQorE2Field ? bases2 : null);
     }
 
     public static String secondaryBasePileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
