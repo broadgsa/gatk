@@ -110,6 +110,10 @@
             </manifest>
         </jar>
 
+	<jar jarfile="${dist}/Aligner.jar">
+	  <fileset dir="build" includes="**/alignment/**/*.class" />
+	</jar>
+
         <jar jarfile="${dist}/FourBaseRecaller.jar" whenmanifestonly="skip">
           <fileset dir="build">
             <include name="**/secondarybase/**/*.class" />
