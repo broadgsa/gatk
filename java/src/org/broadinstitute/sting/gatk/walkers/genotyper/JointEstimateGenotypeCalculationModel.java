@@ -212,7 +212,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         return HWvalues;
     }
 
-    private void normalizeFromLog10(double[] array) {
+    private static void normalizeFromLog10(double[] array) {
         // for precision purposes, we need to add (or really subtract, since they're
         // all negative) the largest value; also, we need to convert to normal-space.
         double maxValue = findMaxEntry(array).first;
@@ -298,7 +298,6 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         if ( !ALL_BASE_MODE && phredScaledConfidence < CONFIDENCE_THRESHOLD )
             return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
 
-        double bestAFguess = findMaxEntry(alleleFrequencyPosteriors[indexOfMax]).second / (double)(frequencyEstimationPoints-1);
         ArrayList<Genotype> calls = new ArrayList<Genotype>();
 
         // first, populate the sample-specific data
@@ -332,7 +331,10 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
                 ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
             }
             if ( locusdata instanceof AlleleFrequencyBacked ) {
-                ((AlleleFrequencyBacked)locusdata).setAlleleFrequency(bestAFguess);
+                int bestAFguess = findMaxEntry(alleleFrequencyPosteriors[indexOfMax]).second;
+                ((AlleleFrequencyBacked)locusdata).setAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
+                AlleleFrequencyBacked.AlleleFrequencyRange range = computeAFrange(alleleFrequencyPosteriors[indexOfMax], frequencyEstimationPoints-1, bestAFguess, ALLELE_FREQUENCY_RANGE);
+                ((AlleleFrequencyBacked)locusdata).setAlleleFrequencyRange(range);
             }
             if ( locusdata instanceof IDBacked ) {
                 rodDbSNP dbsnp = getDbSNP(tracker);
@@ -404,13 +406,13 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
 
                 // the forward lod
                 initializeGenotypeLikelihoods(ref, contexts, StratifiedContext.FORWARD);
-                calculateAlleleFrequencyPosteriors(ref, loc);
+                calculateAlleleFrequencyPosteriors(ref, null);
                 double forwardLog10PofNull = Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
                 double forwardLog10PofF = Math.log10(PofFs[indexOfMax]);
 
                 // the reverse lod
                 initializeGenotypeLikelihoods(ref, contexts, StratifiedContext.REVERSE);
-                calculateAlleleFrequencyPosteriors(ref, loc);
+                calculateAlleleFrequencyPosteriors(ref, null);
                 double reverseLog10PofNull = Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
                 double reverseLog10PofF = Math.log10(PofFs[indexOfMax]);
 
@@ -429,5 +431,24 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         }
 
         return new Pair<List<Genotype>, GenotypeLocusData>(calls, locusdata);
+    }
+
+    // computes the range of allele frequencies making up the given fraction of the total probability
+    private static AlleleFrequencyBacked.AlleleFrequencyRange computeAFrange(double[] alleleFrequencyProbs, int N, int bestAFguess, double fraction) {
+        double totalProb = alleleFrequencyProbs[bestAFguess];
+        int lowIndex = bestAFguess;
+        int highIndex = bestAFguess;
+        while ( totalProb < fraction ) {
+            if ( lowIndex > 1 ) {
+                lowIndex--;
+                totalProb += alleleFrequencyProbs[lowIndex];
+            }
+            if ( highIndex < N ) {
+                highIndex++;
+                totalProb += alleleFrequencyProbs[highIndex];
+            }
+        }
+
+        return new AlleleFrequencyBacked.AlleleFrequencyRange((double)lowIndex / (double)N, (double)highIndex / (double)N, fraction);
     }
 }
