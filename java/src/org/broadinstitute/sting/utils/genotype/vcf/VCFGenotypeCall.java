@@ -207,7 +207,7 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
      * @return true if we're a variant
      */
     public boolean isVariant(char ref) {
-        return !Utils.dupString(this.getReference(), 2).equals(getBestGenotype().toString());
+        return !Utils.dupString(ref, 2).equals(getBestGenotype().toString());
     }
 
     /**
@@ -223,9 +223,9 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
      *
      * @return return this genotype as a variant
      */
-    public Variation toVariation() {
+    public Variation toVariation(char ref) {
         double bestRef = Math.abs(mPosteriors[getBestGenotype().ordinal()] - mPosteriors[getRefGenotype().ordinal()]);
-        return new BasicVariation(this.getBases(), String.valueOf(this.getReference()), 0, this.mLocation, bestRef);
+        return new BasicVariation(this.getBases(), String.valueOf(ref), 0, this.mLocation, bestRef);
     }
 
     /**

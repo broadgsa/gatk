@@ -42,8 +42,8 @@ public class SimpleVenn implements ConcordanceType {
             return sample2 + "_only";
 
         // at this point we know that neither is null, so now we need to test for alternate allele concordance
-        Variation callV1 = call1.toVariation();
-        Variation callV2 = call2.toVariation();
+        Variation callV1 = call1.toVariation(ref.getBase());
+        Variation callV2 = call2.toVariation(ref.getBase());
 
         // we can't really deal with multi-allelic variants
         if ( callV1.isBiallelic() && callV2.isBiallelic() ) {

@@ -66,7 +66,7 @@ public class IndelSubsets implements ConcordanceType {
             return null;
 
         // only deal with a valid indel
-        Variation indel = ( indel1 != null ? indel1.toVariation() : indel2.toVariation() );
+        Variation indel = ( indel1 != null ? indel1.toVariation(ref.getBase()) : indel2.toVariation(ref.getBase()) );
 
         // we only deal with the first allele
         int size = ( indel.getAlternateAlleleList().get(0).length() <= sizeCutoff ? 0 : 1 );

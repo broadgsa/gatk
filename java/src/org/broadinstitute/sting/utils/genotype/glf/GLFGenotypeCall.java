@@ -120,7 +120,7 @@ public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked 
      *
      * @return return this genotype as a variant
      */
-    public Variation toVariation() {
+    public Variation toVariation(char ref) {
         throw new UnsupportedOperationException("GLF call doesn't support conversion to Variation");
     }
 
@@ -152,15 +152,6 @@ public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked 
      */
     public boolean isVariant(char ref) {
         return !Utils.dupString(mRefBase, 2).equals(mGenotype);
-    }
-
-    /**
-     * are we a variant? (non-ref)
-     *
-     * @return true if we're a variant
-     */
-    public boolean isVariant() {
-        return isVariant(mRefBase);
     }
 
     /**

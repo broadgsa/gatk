@@ -77,8 +77,9 @@ public interface Genotype {
     /**
      * return this genotype as a variant
      *
+     * @param ref the reference base
      * @return the variant
      */
-    public Variation toVariation();
+    public Variation toVariation(char ref);
 
 }
