@@ -155,6 +155,14 @@ def readVCFHeader(lines):
     # we reach this point for empty files    
     return header, columnNames, []
 
+def quickCountRecords(lines):
+    counter = 0
+    for line in lines:
+        if line[0] != "#":
+            counter += 1
+    return counter
+
+
 def lines2VCF(lines, extendedOutput = False, decodeAll = True):
     header, columnNames, lines = readVCFHeader(lines)
     counter = 0
@@ -174,5 +182,5 @@ def lines2VCF(lines, extendedOutput = False, decodeAll = True):
 def formatVCF(header, records):
     #print records
     #print records[0]
-    return itertools.chain(header, map(VCFRecord.format, records)) 
+    return itertools.chain(header, itertools.imap(VCFRecord.format, records)) 
  
