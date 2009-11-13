@@ -38,12 +38,17 @@ import java.util.*;
 
 public class RecalDataManager {
     public NHashMap<RecalDatum> data; // the full dataset
-    public NHashMap<RecalDatum> dataCollapsedReadGroup; // table where everything except read group has been collapsed
-    public NHashMap<RecalDatum> dataCollapsedQualityScore; // table where everything except read group and quality score has been collapsed
-    public ArrayList<NHashMap<RecalDatum>> dataCollapsedByCovariate; // tables where everything except read group, quality score, and given covariate has been collapsed
-    public boolean collapsedTablesCreated;
+    private NHashMap<RecalDatum> dataCollapsedReadGroup; // table where everything except read group has been collapsed
+    private NHashMap<RecalDatum> dataCollapsedQualityScore; // table where everything except read group and quality score has been collapsed
+    private ArrayList<NHashMap<RecalDatum>> dataCollapsedByCovariate; // tables where everything except read group, quality score, and given covariate has been collapsed
+    private boolean collapsedTablesCreated;
     public NHashMap<Double> dataSumExpectedErrors;
 
+    RecalDataManager() {
+    	data = new NHashMap<RecalDatum>();
+    	collapsedTablesCreated = false;
+    }
+    
     RecalDataManager( int estimatedCapacity ) {
         data = new NHashMap<RecalDatum>( estimatedCapacity, 0.95f ); // second arg is the 'loading factor',
                                                                      //   a number to monkey around with when optimizing performace of the HashMap
@@ -51,7 +56,7 @@ public class RecalDataManager {
     }
 
     // BUGBUG: A lot going on in this method, doing a lot of pre-calculations for use in the sequential mode calculation later in TableRecalibrationWalker
-    public void createCollapsedTables( int numCovariates ) {
+    public final void createCollapsedTables( final int numCovariates ) {
         dataCollapsedReadGroup = new NHashMap<RecalDatum>();
         dataCollapsedQualityScore = new NHashMap<RecalDatum>();
         dataCollapsedByCovariate = new ArrayList<NHashMap<RecalDatum>>();
@@ -122,7 +127,7 @@ public class RecalDataManager {
         collapsedTablesCreated = true;
     }
 
-    public NHashMap<RecalDatum> getCollapsedTable( int covariate ) {
+    public final NHashMap<RecalDatum> getCollapsedTable( final int covariate ) {
         if( !collapsedTablesCreated ) {
             throw new StingException("Trying to get collapsed tables before they have been populated. Null pointers abound.");
         }

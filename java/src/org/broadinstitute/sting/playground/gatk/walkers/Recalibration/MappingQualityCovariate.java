@@ -40,15 +40,17 @@ public class MappingQualityCovariate implements Covariate {
     public MappingQualityCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }
 
-    public Comparable getValue(SAMRecord read, int offset, char[] refBases) {
-        return (Integer)(read.getMappingQuality()); // cast to Object Integer is required so that return values from the two getValue methods hash to the same code
+    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, 
+			 final byte[] quals, final char[] bases, final char refBase) {
+    	
+    	return (Integer)(read.getMappingQuality()); // cast to Object Integer is required so that return values from the two getValue methods hash to the same code
     }
     
-    public Comparable getValue(String str) {
+    public final Comparable getValue(final String str) {
         return Integer.parseInt( str );
     }
 
-    public int estimatedNumberOfBins() {
+    public final int estimatedNumberOfBins() {
         return 100;
     }
     

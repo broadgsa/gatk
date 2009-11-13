@@ -38,7 +38,7 @@ import java.util.*;
 
 public class NHashMap<T> extends HashMap<List<? extends Comparable>, T> {
 
-	private static final long serialVersionUID = 1L; //BUGBUG: what should I do here?
+	private static final long serialVersionUID = 1L; //BUGBUG: what should I do here?, added by Eclipse
     private ArrayList<ArrayList<Comparable>> keyLists;
 
     public NHashMap() {

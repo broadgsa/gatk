@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 
+import org.broadinstitute.sting.utils.StingException;
+
 import net.sf.samtools.SAMRecord;
 
 /*
@@ -43,30 +45,39 @@ import net.sf.samtools.SAMRecord;
 
 public class CycleCovariate implements Covariate {
 
-    public String platform;
+	private String platform;
 
     public CycleCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
-        platform = null;
+        platform = "SLX";
     }
 
-    public CycleCovariate(String _platform) {
-        platform = _platform;
+    public CycleCovariate(final String _platform) {
+    	platform = _platform;
     }
 
-    public Comparable getValue(SAMRecord read, int offset, char[] refBases) {
-        //BUGBUG: assumes Solexa platform
-        Integer cycle = offset;
-        if( read.getReadNegativeStrandFlag() ) {
-            cycle = read.getReadLength() - (offset + 1);
+    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, 
+    								 final byte[] quals, final char[] bases, final char refBase) {
+        if( platform.equalsIgnoreCase( "SLX" ) ) {
+	        int cycle = offset;
+	        if( read.getReadNegativeStrandFlag() ) {
+	            cycle = bases.length - (offset + 1);
+	        }
+	        return cycle;
+        } else if( platform.equalsIgnoreCase( "454" ) ) {
+        	return 0; //BUGBUG: not yet implemented
+        } else if( platform.equalsIgnoreCase( "SOLID" ) ) {
+        	return 0; //BUGBUG: not yet implemented
+        } else {
+        	throw new StingException( "Requested platform (" + platform + ") not supported in CycleCovariate." );
         }
-        return cycle;
+                                                        
     }
     
-    public Comparable getValue(String str) {
-        return Integer.parseInt( str );
+    public final Comparable getValue(final String str) {
+        return (int)Integer.parseInt( str );
     }
 
-    public int estimatedNumberOfBins() {
+    public final int estimatedNumberOfBins() {
         return 100;
     }
 

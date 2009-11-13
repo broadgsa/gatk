@@ -41,26 +41,28 @@ import org.broadinstitute.sting.utils.QualityUtils;
 public class MinimumNQSCovariate implements Covariate {
 
     public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ";
-    protected boolean USE_ORIGINAL_QUALS;
+    private boolean USE_ORIGINAL_QUALS;
 
     public MinimumNQSCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
         USE_ORIGINAL_QUALS = false;
     }
 
-    public MinimumNQSCovariate(boolean originalQuals) {
+    public MinimumNQSCovariate(final boolean originalQuals) {
         USE_ORIGINAL_QUALS = originalQuals;
     }
 
-    public Comparable getValue(SAMRecord read, int offset, char[] refBases) {
-        byte[] quals = read.getBaseQualities();
-        if ( USE_ORIGINAL_QUALS && read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
-            Object obj = read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG);
-            if ( obj instanceof String )
-                quals = QualityUtils.fastqToPhred((String)obj);
-            else {
-                throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
-            }
-        }
+    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, 
+			 final byte[] quals, final char[] bases, final char refBase) {
+    	
+    	//BUGBUG: Original qualities
+        //if ( USE_ORIGINAL_QUALS && read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
+        //    Object obj = read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG);
+        //    if ( obj instanceof String )
+        //        quals = QualityUtils.fastqToPhred((String)obj);
+        //    else {
+        //        throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
+        //    }
+        //}
 
         // Loop over the list of qualities and find the minimum
         Integer minQual = (int)(quals[0]);
@@ -72,11 +74,11 @@ public class MinimumNQSCovariate implements Covariate {
         return minQual;
     }
     
-    public Comparable getValue(String str) {
+    public final Comparable getValue(final String str) {
         return Integer.parseInt( str );
     }
 
-    public int estimatedNumberOfBins() {
+    public final int estimatedNumberOfBins() {
         return 40;
     }
 

@@ -2,6 +2,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Pair;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -40,35 +41,31 @@ import org.broadinstitute.sting.utils.BaseUtils;
 
 public class DinucCovariate implements Covariate {
 
+	private String returnString;
+	
     public DinucCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }
     
-    public Comparable getValue(SAMRecord read, int offset, char[] refBases) {
-        byte[] bases = read.getReadBases();
-        char base = (char)bases[offset];
-        char prevBase; // value set below
-        // If it is a negative strand read then we need to get the complement base and reverse the direction for our previous base
+    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, 
+			 final byte[] quals, final char[] bases, final char refBase) {
+    	
+        char base = bases[offset];
+        char prevBase = bases[offset - 1]; 
+        // If it is a negative strand read then we need to reverse the direction for our previous base
         if( read.getReadNegativeStrandFlag() ) {
-            base = BaseUtils.simpleComplement(base);
-            if ( offset + 1 > bases.length - 1 ) { return Covariate.COVARIATE_ERROR; } // no prevBase because at the beginning of the read
-            prevBase = BaseUtils.simpleComplement( (char)bases[offset + 1] );
-        } else {
-            if ( offset - 1 < 0 ) { return Covariate.COVARIATE_ERROR; } // no prevBase because at the beginning of the read
-            prevBase = (char)bases[offset - 1];
-        }
-        // Check if bad base, probably an 'N'
-        if( ( BaseUtils.simpleBaseToBaseIndex(prevBase) == -1 ) || ( BaseUtils.simpleBaseToBaseIndex(base) == -1 ) ) {
-            return Covariate.COVARIATE_NULL; // CovariateCounterWalker will recognize that null means skip this particular location in the read
-        } else {
-            return String.format("%c%c", prevBase, base);
-        }
+            prevBase = bases[offset + 1];
+        } 
+        final char[] charArray = {prevBase, base};
+        returnString = String.valueOf(charArray);
+        return returnString;
+        //return String.format("%c%c", prevBase, base); // This return statement is too slow
     }
     
-    public Comparable getValue(String str) {
+    public final Comparable getValue(final String str) {
     	return str;
     }
 
-    public int estimatedNumberOfBins() {
+    public final int estimatedNumberOfBins() {
         return 16;
     }
 

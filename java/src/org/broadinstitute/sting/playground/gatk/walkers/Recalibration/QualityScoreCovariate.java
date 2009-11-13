@@ -45,29 +45,32 @@ public class QualityScoreCovariate implements Covariate {
         USE_ORIGINAL_QUALS = false;
     }
 
-    public QualityScoreCovariate(boolean originalQuals) {
+    public QualityScoreCovariate(final boolean originalQuals) {
         USE_ORIGINAL_QUALS = originalQuals;
     }
 
-    public Comparable getValue(SAMRecord read, int offset, char[] refBases) {
-        byte[] quals = read.getBaseQualities();
-        if ( USE_ORIGINAL_QUALS && read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
-            Object obj = read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG);
-            if ( obj instanceof String )
-                quals = QualityUtils.fastqToPhred((String)obj);
-            else {
-                throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
-            }
-        }
-
-        return ((Integer)((int)quals[offset])); // cast to Object Integer is required so that return values from the two getValue methods hash to the same code
+    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, 
+			 final byte[] quals, final char[] bases, final char refBase) {
+    	
+    	//BUGBUG: original qualities
+        //if ( USE_ORIGINAL_QUALS && read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
+        //    Object obj = read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG);
+        //    if ( obj instanceof String )
+        //        quals = QualityUtils.fastqToPhred((String)obj);
+        //    else {
+        //        throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
+        //    }
+        //}
+    	
+        //Integer returnQual = (int)quals[offset];
+        return (int)quals[offset]; // returning an Integer Object (as opposed to primitive int) is required so that return values from the two getValue methods hash to the same code
     }
     
-    public Comparable getValue(String str) {
-        return Integer.parseInt( str );
+    public final Comparable getValue(final String str) {
+        return (int)Integer.parseInt( str );
     }
 
-    public int estimatedNumberOfBins() {
+    public final int estimatedNumberOfBins() {
         return 40;
     }
     

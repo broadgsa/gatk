@@ -67,15 +67,15 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     @Argument(fullName="smoothing", shortName="sm", required = false, doc="Number of imaginary counts to add to each bin in order to smooth out bins with few data points")
     public int SMOOTHING = 1;
 
-    public enum RecalibrationMode {
-        COMBINATORIAL,
-        SEQUENTIAL,
-        ERROR
-    }
+    //public enum RecalibrationMode {
+    //    COMBINATORIAL,
+    //    SEQUENTIAL,
+    //    ERROR
+    //}
 
-    //@Argument(fullName="RecalibrationMode", shortName="mode", doc="which type of calculation to use when recalibrating, default is SEQUENTIAL", required=false)
-    //public String MODE_STRING = RecalibrationMode.SEQUENTIAL.toString();
-    public RecalibrationMode MODE = RecalibrationMode.SEQUENTIAL; //BUGBUG: do we need to support the other modes?
+    @Argument(fullName="recalibrationMode", shortName="mode", doc="Which calculation to use when recalibrating, default is SEQUENTIAL", required=false)
+    public String MODE_STRING = "SEQUENTIAL";
+    //public RecalibrationMode MODE = RecalibrationMode.SEQUENTIAL; //BUGBUG: do we need to support the other modes?
 
     protected RecalDataManager dataManager;
     protected ArrayList<Covariate> requestedCovariates;
@@ -165,7 +165,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         logger.info( "...done!" );
 
         // Create the collapsed tables that are used in the sequential calculation
-        if( MODE == RecalibrationMode.SEQUENTIAL ) {
+        if( MODE_STRING.equalsIgnoreCase("SEQUENTIAL") ) {
         	logger.info( "Creating collapsed tables for use in sequential calculation..." );
             dataManager.createCollapsedTables( requestedCovariates.size() );
             logger.info( "...done!" );
@@ -203,6 +203,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      */
     public SAMRecord map( char[] refBases, SAMRecord read ) {
 
+        if( refBases == null ) {
+            return read; // early return here, unmapped reads should be left alone
+        }
+
         byte[] originalQuals = read.getBaseQualities();
         // Check if we need to use the original quality scores instead
         if ( USE_ORIGINAL_QUALS && read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
@@ -215,36 +219,37 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
         byte[] recalQuals = originalQuals.clone();
 
+        // These calls are expensive so only do them once for each read
+        String readGroup = read.getReadGroup().getReadGroupId();
+        char[] bases = read.getReadString().toCharArray();
+        String myRefBases = new String(refBases);
+        if( read.getReadNegativeStrandFlag() ) {
+            bases = BaseUtils.simpleComplement( read.getReadString() ).toCharArray();
+            myRefBases = BaseUtils.simpleComplement( myRefBases );
+        }
+
+
         // For each base in the read
-        for( int iii = 0; iii < read.getReadLength(); iii++ ) {
+        for( int iii = 1; iii < read.getReadLength() - 1; iii++ ) { // skip first and last bases because there is no dinuc
             List<Comparable> key = new ArrayList<Comparable>();
-            boolean badKey = false;
-            Comparable keyElement;
             for( Covariate covariate : requestedCovariates ) {
-                keyElement = covariate.getValue( read, iii, refBases );
-                if( keyElement != Covariate.COVARIATE_ERROR ) { // COVARIATE_NULL is okay because the sequential calculation will do the best it can with the valid data it has
-                    key.add( keyElement );                      // technically COVARIATE_ERROR is fine too, but this won't match the behavior of the old recalibrator
-                } else {
-                    badKey = true;
-                }
+                key.add( covariate.getValue( read, iii, readGroup, originalQuals, bases, myRefBases.charAt(iii) ) ); // offset is zero based so passing iii is correct here                      // technically COVARIATE_ERROR is fine too, but this won't match the behavior of the old recalibrator
             }
 
-            if( !badKey ) {
-                if( MODE == RecalibrationMode.COMBINATORIAL ) {
-                    RecalDatum datum = dataManager.data.get( key );
-                    if( datum != null ) { // if we have data for this combination of covariates then recalibrate the quality score otherwise do nothing
-                        recalQuals[iii] = datum.empiricalQualByte( SMOOTHING );
-                    }
-                } else if( MODE == RecalibrationMode.SEQUENTIAL ) {
-                    recalQuals[iii] = performSequentialQualityCalculation( key );
-                } else {
-                    throw new StingException( "Specified RecalibrationMode is not supported: " + MODE );
+            if( MODE_STRING.equalsIgnoreCase("COMBINATORIAL") ) {
+                RecalDatum datum = dataManager.data.get( key );
+                if( datum != null ) { // if we have data for this combination of covariates then recalibrate the quality score otherwise do nothing
+                    recalQuals[iii] = datum.empiricalQualByte( SMOOTHING );
                 }
+            } else if( MODE_STRING.equalsIgnoreCase("SEQUENTIAL") ) {
+                recalQuals[iii] = performSequentialQualityCalculation( key );
+            } else {
+                throw new StingException( "Specified RecalibrationMode is not supported: " + MODE_STRING );
+            }
 
-                // Do some error checking on the new quality score
-                if ( recalQuals[iii]  <= 0 || recalQuals[iii]  > QualityUtils.MAX_REASONABLE_Q_SCORE ) {
-                    throw new StingException( "Assigning bad quality score " + key + " => " +  recalQuals[iii] );
-                }
+            // Do some error checking on the new quality score
+            if ( recalQuals[iii]  <= 0 || recalQuals[iii]  > QualityUtils.MAX_REASONABLE_Q_SCORE ) {
+                throw new StingException( "Assigning bad quality score " + key + " => " +  recalQuals[iii] );
             }
         }
 
@@ -253,6 +258,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         if ( read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG) == null ) { // save the old qualities if the tag isn't already taken in the read
             read.setAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG, QualityUtils.phredToFastq(originalQuals));
         }
+
 
         return read;
     }

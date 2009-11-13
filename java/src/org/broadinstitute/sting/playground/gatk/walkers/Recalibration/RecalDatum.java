@@ -38,8 +38,8 @@ import java.util.*;
 
 public class RecalDatum {
 
-    long numObservations; // number of bases seen in total
-    long numMismatches; // number of bases seen that didn't match the reference
+    private long numObservations; // number of bases seen in total
+    private long numMismatches; // number of bases seen that didn't match the reference
 
 
     //---------------------------------------------------------------------------------------------------------------
@@ -52,12 +52,12 @@ public class RecalDatum {
         numMismatches = 0L;
     }
 
-    public RecalDatum( long _numObservations, long _numMismatches ) {
+    public RecalDatum( final long _numObservations, final long _numMismatches ) {
         numObservations = _numObservations;
         numMismatches = _numMismatches;
     }
 
-    public RecalDatum( RecalDatum copy ) {
+    public RecalDatum( final RecalDatum copy ) {
         this.numObservations = copy.numObservations;
         this.numMismatches = copy.numMismatches;
     }
@@ -69,22 +69,22 @@ public class RecalDatum {
     //---------------------------------------------------------------------------------------------------------------
 
 
-    public void increment( long incObservations, long incMismatches ) {
+    public final void increment( final long incObservations, final long incMismatches ) {
         numObservations += incObservations;
         numMismatches += incMismatches;
     }
 
-    public void increment( RecalDatum other ) {
+    public final void increment( final RecalDatum other ) {
         increment( other.numObservations, other.numMismatches );
     }
 
-    public void increment( List<RecalDatum> data ) {
+    public final void increment( final List<RecalDatum> data ) {
         for ( RecalDatum other : data ) {
             this.increment( other );
         }
     }
 
-    public void increment( char curBase, char ref ) {
+    public final void increment( final char curBase, final char ref ) {
         increment( 1, BaseUtils.simpleBaseToBaseIndex(curBase) == BaseUtils.simpleBaseToBaseIndex(ref) ? 0 : 1 ); // increment takes num observations, then num mismatches
     }
 
@@ -94,22 +94,22 @@ public class RecalDatum {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public double empiricalQualDouble( int smoothing ) {
+    public final double empiricalQualDouble( final int smoothing ) {
         double doubleMismatches = (double) ( numMismatches + smoothing );
         double doubleObservations = (double) ( numObservations + smoothing );
         double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
         if (empiricalQual > QualityUtils.MAX_REASONABLE_Q_SCORE) empiricalQual = QualityUtils.MAX_REASONABLE_Q_SCORE;
         return empiricalQual;
     }
-    public double empiricalQualDouble() { return empiricalQualDouble( 0 ); } // 'default' behavior is to use smoothing value of zero
+    public final double empiricalQualDouble() { return empiricalQualDouble( 0 ); } // 'default' behavior is to use smoothing value of zero
 
 
-    public byte empiricalQualByte( int smoothing ) {
+    public final byte empiricalQualByte( final int smoothing ) {
         double doubleMismatches = (double) ( numMismatches + smoothing );
         double doubleObservations = (double) ( numObservations + smoothing );
         return QualityUtils.probToQual( 1.0 - doubleMismatches / doubleObservations );
     }
-    public byte empiricalQualByte() { return empiricalQualByte( 0 ); } // 'default' behavior is to use smoothing value of zero
+    public final byte empiricalQualByte() { return empiricalQualByte( 0 ); } // 'default' behavior is to use smoothing value of zero
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -117,14 +117,14 @@ public class RecalDatum {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public String outputToCSV( ) {
+    public final String outputToCSV( ) {
         return String.format( "%d,%d,%d", numObservations, numMismatches, (int)empiricalQualByte() );
     }
-    public String outputToCSV( int smoothing ) {
+    public final String outputToCSV( final int smoothing ) {
         return String.format( "%d,%d,%d", numObservations, numMismatches, (int)empiricalQualByte( smoothing ) );
     }
 
-    public Long getNumObservations() {
+    public final Long getNumObservations() {
         return numObservations;
     }
     
