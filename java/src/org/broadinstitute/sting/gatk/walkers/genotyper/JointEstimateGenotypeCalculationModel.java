@@ -293,9 +293,10 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         }
 
         double phredScaledConfidence = -10.0 * Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
+        int bestAFguess = findMaxEntry(alleleFrequencyPosteriors[indexOfMax]).second;
 
-        // return a null call if we don't pass the confidence cutoff
-        if ( !ALL_BASE_MODE && phredScaledConfidence < CONFIDENCE_THRESHOLD )
+        // return a null call if we don't pass the confidence cutoff or the most likely allele frequency is zero
+        if ( !ALL_BASE_MODE && (bestAFguess == 0 || phredScaledConfidence < CONFIDENCE_THRESHOLD) )
             return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
 
         ArrayList<Genotype> calls = new ArrayList<Genotype>();
@@ -331,7 +332,6 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
                 ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
             }
             if ( locusdata instanceof AlleleFrequencyBacked ) {
-                int bestAFguess = findMaxEntry(alleleFrequencyPosteriors[indexOfMax]).second;
                 ((AlleleFrequencyBacked)locusdata).setAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
                 AlleleFrequencyBacked.AlleleFrequencyRange range = computeAFrange(alleleFrequencyPosteriors[indexOfMax], frequencyEstimationPoints-1, bestAFguess, ALLELE_FREQUENCY_RANGE);
                 ((AlleleFrequencyBacked)locusdata).setAlleleFrequencyRange(range);
