@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 
+import org.broadinstitute.sting.utils.StingException;
+
 import net.sf.samtools.SAMRecord;
 
 /*
@@ -30,31 +32,48 @@ import net.sf.samtools.SAMRecord;
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
- * Date: Nov 4, 2009
+ * Date: Nov 13, 2009
  *
- * The Mapping Quality covariate.
+ * The Primer Round covariate.
+ *  For Solexa and 454 this is the same value of the length of the read.
+ *  For SOLiD this is different for each position according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf  
  */
 
-public class MappingQualityCovariate implements Covariate {
+public class PrimerRoundCovariate implements Covariate {
 
-    public MappingQualityCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
+	private String platform;
+
+    public PrimerRoundCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
+        platform = "SLX";
     }
 
-    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, 
-			 final byte[] quals, final char[] bases, final char refBase) {
-    	
-    	return read.getMappingQuality();
+    public PrimerRoundCovariate(final String _platform) {
+    	platform = _platform;
     }
-    
+
+    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup,
+    								 final byte[] quals, final char[] bases, final char refBase) {
+        if( platform.equalsIgnoreCase( "SLX" ) ) {
+	        return 1; // nothing to do here because it is always the same
+        } else if( platform.equalsIgnoreCase( "454" ) ) {
+            return 1; // nothing to do here because it is always the same
+        } else if( platform.equalsIgnoreCase( "SOLID" ) ) {
+        	return offset % 5; // the primer round according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
+        } else {
+        	throw new StingException( "Requested platform (" + platform + ") not supported in PrimerRoundCovariate." );
+        }
+
+    }
+
     public final Comparable getValue(final String str) {
         return (int)Integer.parseInt( str ); // cast to primitive int (as opposed to Integer Object) is required so that the return value from the two getValue methods hash to same thing
     }
 
     public final int estimatedNumberOfBins() {
-        return 100;
+        return 5;
     }
-    
+
     public String toString() {
-        return "Mapping Quality Score";
+        return "Primer Round";
     }
 }

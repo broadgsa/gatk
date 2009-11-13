@@ -34,48 +34,38 @@ import org.broadinstitute.sting.utils.QualityUtils;
  * Date: Nov 4, 2009
  *
  * The Minimum Neighborhood Quality Score covariate, originally described by Chris Hartl.
- * This covariate is the minimum base quality score along the length of the read.
- * BUGBUG: I don't think this is what was intended by Chris. Covariate interface must change to implement the real covariate. 
+ * This covariate is the minimum base quality score in the read in a small window around the current base.
  */
 
 public class MinimumNQSCovariate implements Covariate {
 
-    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ";
-    private boolean USE_ORIGINAL_QUALS;
+    private int windowReach; // how far in each direction from the current base to look
 
     public MinimumNQSCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
-        USE_ORIGINAL_QUALS = false;
+        windowReach = 1; // window size = 3 was the best covariate according to Chris's analysis
     }
 
-    public MinimumNQSCovariate(final boolean originalQuals) {
-        USE_ORIGINAL_QUALS = originalQuals;
+    public MinimumNQSCovariate(final int windowSize) {
+        windowReach = windowSize / 2; // integer division
     }
 
     public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, 
 			 final byte[] quals, final char[] bases, final char refBase) {
     	
-    	//BUGBUG: Original qualities
-        //if ( USE_ORIGINAL_QUALS && read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
-        //    Object obj = read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG);
-        //    if ( obj instanceof String )
-        //        quals = QualityUtils.fastqToPhred((String)obj);
-        //    else {
-        //        throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
-        //    }
-        //}
-
-        // Loop over the list of qualities and find the minimum
-        Integer minQual = (int)(quals[0]);
-        for ( int qual : quals ) {
-            if( qual < minQual ) {
-                minQual = qual;
+    	// Loop over the list of base quality scores in the window and find the minimum
+        int minQual = quals[offset];
+        int minIndex = Math.max(offset - windowReach, 0);
+        int maxIndex = Math.min(offset + windowReach, quals.length - 1);
+        for ( int iii = minIndex; iii < maxIndex; iii++ ) {
+            if( quals[iii] < minQual ) {
+                minQual = quals[iii];
             }
         }
         return minQual;
     }
     
     public final Comparable getValue(final String str) {
-        return Integer.parseInt( str );
+        return (int)Integer.parseInt( str ); // cast to primitive int (as opposed to Integer Object) is required so that the return value from the two getValue methods hash to same thing
     }
 
     public final int estimatedNumberOfBins() {

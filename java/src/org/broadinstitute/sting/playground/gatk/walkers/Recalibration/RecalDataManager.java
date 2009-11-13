@@ -44,6 +44,8 @@ public class RecalDataManager {
     private boolean collapsedTablesCreated;
     public NHashMap<Double> dataSumExpectedErrors;
 
+    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ";
+
     RecalDataManager() {
     	data = new NHashMap<RecalDatum>();
     	collapsedTablesCreated = false;

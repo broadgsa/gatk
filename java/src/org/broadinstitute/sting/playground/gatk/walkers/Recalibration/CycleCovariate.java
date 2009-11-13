@@ -36,11 +36,10 @@ import net.sf.samtools.SAMRecord;
  *
  * The Cycle covariate.
  *  For Solexa the cycle is simply the position in the read (counting backwards if it is a negative strand read)
- *  Yet to be implemented:
- *  - For 454 the cycle is the number of discontinuous nucleotides seen during the length of the read
+ *  For 454 the cycle is the number of discontinuous nucleotides seen during the length of the read
  *     For example, for the read: AAACCCCGAAATTTTTTT
  *             the cycle would be 111222234445555555
- *  - For SOLiD the cycle is a more complicated mixture of ligation cycle and primer round 
+ *  For SOLiD the cycle is a more complicated mixture of ligation cycle and primer round
  */
 
 public class CycleCovariate implements Covariate {
@@ -64,9 +63,18 @@ public class CycleCovariate implements Covariate {
 	        }
 	        return cycle;
         } else if( platform.equalsIgnoreCase( "454" ) ) {
-        	return 0; //BUGBUG: not yet implemented
+            int cycle = 1;
+            char prevBase = bases[0];
+            for( int iii = 1; iii <= offset; iii++ ) {
+                if(bases[iii] != prevBase) { // this base doesn't match the previous one so it is a new cycle
+                    cycle++;
+                    prevBase = bases[iii];
+                }
+            }
+            return cycle;
         } else if( platform.equalsIgnoreCase( "SOLID" ) ) {
-        	return 0; //BUGBUG: not yet implemented
+            // the ligation cycle according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
+        	return (offset / 5) + 1; // integer division
         } else {
         	throw new StingException( "Requested platform (" + platform + ") not supported in CycleCovariate." );
         }
@@ -74,7 +82,7 @@ public class CycleCovariate implements Covariate {
     }
     
     public final Comparable getValue(final String str) {
-        return (int)Integer.parseInt( str );
+        return (int)Integer.parseInt( str ); // cast to primitive int (as opposed to Integer Object) is required so that the return value from the two getValue methods hash to same thing
     }
 
     public final int estimatedNumberOfBins() {

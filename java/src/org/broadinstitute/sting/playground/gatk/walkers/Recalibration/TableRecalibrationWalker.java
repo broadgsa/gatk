@@ -63,7 +63,11 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     @Argument(fullName="preserve_qscores_less_than", shortName="pQ", doc="If provided, bases with quality scores less than this threshold won't be recalibrated.  In general its unsafe to change qualities scores below < 5, since base callers use these values to indicate random or bad bases", required=false)
     public int PRESERVE_QSCORES_LESS_THAN = 5;
     @Argument(fullName = "use_original_quals", shortName="OQ", doc="If provided, we will use use the quals from the original qualities OQ attribute field instead of the quals in the regular QUALS field", required=false)
-    public boolean USE_ORIGINAL_QUALS = false;
+    private boolean USE_ORIGINAL_QUALS = false;
+    @Argument(fullName = "platform", shortName="pl", doc="Which sequencing technology was used? This is important for the cycle covariate. Options are SLX, 454, and SOLID.", required=false)
+    private String PLATFORM = "SLX";
+    @Argument(fullName = "windowSizeNQS", shortName="nqs", doc="How big of a window should the MinimumNQSCovariate use for its calculation", required=false)
+    private int WINDOW_SIZE = 1;
     @Argument(fullName="smoothing", shortName="sm", required = false, doc="Number of imaginary counts to add to each bin in order to smooth out bins with few data points")
     public int SMOOTHING = 1;
 
@@ -82,8 +86,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
     private static Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static Pattern COVARIATE_PATTERN = Pattern.compile("^@!.*");
-    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ";
-
+    
     //---------------------------------------------------------------------------------------------------------------
     //
     // initialize
@@ -102,7 +105,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         int lineNumber = 0;
         boolean foundAllCovariates = false;
-        int estimatedCapacity = 1;
+        //int estimatedCapacity = 1;
 
         // Read in the covariates that were used from the input file
         requestedCovariates = new ArrayList<Covariate>();
@@ -128,8 +131,12 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                                 foundClass = true;
                                 try {
                                     Covariate covariate = (Covariate)covClass.newInstance();
+                                    // some covariates need parameters (user supplied command line arguments) passed to them
+                                    if( covariate instanceof CycleCovariate ) { covariate = new CycleCovariate( PLATFORM ); }
+                                    else if( covariate instanceof PrimerRoundCovariate ) { covariate = new PrimerRoundCovariate( PLATFORM ); }
+                                    else if( covariate instanceof MinimumNQSCovariate ) { covariate = new MinimumNQSCovariate( WINDOW_SIZE ); }
                                     requestedCovariates.add( covariate );
-                                    estimatedCapacity *= covariate.estimatedNumberOfBins();
+                                    //estimatedCapacity *= covariate.estimatedNumberOfBins();
                                     
                                 } catch ( InstantiationException e ) {
                                     throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
@@ -150,7 +157,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                         foundAllCovariates = true;
                         logger.info( "The covariates being used here: " );
                         logger.info( requestedCovariates );
-                        dataManager = new RecalDataManager( estimatedCapacity );
+                        //dataManager = new RecalDataManager( estimatedCapacity );
+                        dataManager = new RecalDataManager();
 
                     }
                     addCSVData(line); // parse the line and add the data to the HashMap
@@ -209,12 +217,12 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         byte[] originalQuals = read.getBaseQualities();
         // Check if we need to use the original quality scores instead
-        if ( USE_ORIGINAL_QUALS && read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
-            Object obj = read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG);
+        if ( USE_ORIGINAL_QUALS && read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
+            Object obj = read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG);
             if ( obj instanceof String )
                 originalQuals = QualityUtils.fastqToPhred((String)obj);
             else {
-                throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
+                throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
             }
         }
         byte[] recalQuals = originalQuals.clone();
@@ -255,8 +263,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         preserveQScores( originalQuals, recalQuals ); // overwrite the work done if original quality score is too low
         read.setBaseQualities(recalQuals); // overwrite old qualities with new recalibrated qualities
-        if ( read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG) == null ) { // save the old qualities if the tag isn't already taken in the read
-            read.setAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG, QualityUtils.phredToFastq(originalQuals));
+        if ( read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) == null ) { // save the old qualities if the tag isn't already taken in the read
+            read.setAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, QualityUtils.phredToFastq(originalQuals));
         }
 
 

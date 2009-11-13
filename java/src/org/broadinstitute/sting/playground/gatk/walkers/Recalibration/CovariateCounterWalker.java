@@ -6,10 +6,7 @@ import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.PackageUtils;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.*;
 
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
@@ -70,9 +67,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     @Argument(fullName="min_mapping_quality", shortName="minmap", required=false, doc="Only use reads with at least this mapping quality score")
     private int MIN_MAPPING_QUALITY = 1;
     @Argument(fullName = "use_original_quals", shortName="OQ", doc="If provided, we will use use the quals from the original qualities OQ attribute field instead of the quals in the regular QUALS field", required=false)
-    private boolean USE_ORIGINAL_QUALS = false; // BUGBUG need to pass this value to the proper covariates
+    private boolean USE_ORIGINAL_QUALS = false;
     @Argument(fullName = "platform", shortName="pl", doc="Which sequencing technology was used? This is important for the cycle covariate. Options are SLX, 454, and SOLID.", required=false)
     private String PLATFORM = "SLX";
+    @Argument(fullName = "windowSizeNQS", shortName="nqs", doc="How big of a window should the MinimumNQSCovariate use for its calculation", required=false)
+    private int WINDOW_SIZE = 1;
     @Argument(fullName="recal_file", shortName="rf", required=false, doc="Filename for the outputted covariates table recalibration file")
     private String RECAL_FILE = "output.recal_data.csv";
     @Argument(fullName="noPrintHeader", shortName="noHeader", required=false, doc="Don't print the usual header on the table recalibration file")
@@ -83,7 +82,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
     private ArrayList<Covariate> requestedCovariates; // A list to hold the covariate objects that were requested
     //private HashMap<SAMRecord, String> readGroupHashMap; // A hash map that hashes the read object itself into the read group name
-                                                                  // This is done for optimization purposes because pulling the read group out of the SAMRecord is expensive
+                                                           // This is done for optimization purposes because pulling the read group out of the SAMRecord is expensive
     private long countedSites = 0; // Number of loci used in the calculations, used for reporting in the output file
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
@@ -119,7 +118,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         requestedCovariates = new ArrayList<Covariate>();
         if( validateOldRecalibrator ) {
             requestedCovariates.add( new ReadGroupCovariate() );
-            requestedCovariates.add( new CycleCovariate() ); // unfortunately the ordering here is different to match the output of the old recalibrator
+            requestedCovariates.add( new CycleCovariate( PLATFORM ) ); // unfortunately the ordering here is different to match the output of the old recalibrator
             requestedCovariates.add( new QualityScoreCovariate() );
             requestedCovariates.add( new DinucCovariate() );
             //estimatedCapacity = 300 * 200 * 40 * 16;
@@ -139,6 +138,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                         try {
                             // Now that we've found a matching class, try to instantiate it
                             Covariate covariate = (Covariate)covClass.newInstance();
+                            // some covariates need parameters (user supplied command line arguments) passed to them
+                            if( covariate instanceof CycleCovariate ) { covariate = new CycleCovariate( PLATFORM ); }
+                            else if( covariate instanceof PrimerRoundCovariate ) { covariate = new PrimerRoundCovariate( PLATFORM ); }
+                            else if( covariate instanceof MinimumNQSCovariate ) { covariate = new MinimumNQSCovariate( WINDOW_SIZE ); }
                             requestedCovariates.add( covariate );
                             //estimatedCapacity *= covariate.estimatedNumberOfBins(); // update the estimated initial capacity
                         } catch ( InstantiationException e ) {
@@ -157,7 +160,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             logger.info( "Note: Using default set of covariates because none were specified." );
             requestedCovariates.add( new ReadGroupCovariate() );
             requestedCovariates.add( new QualityScoreCovariate() );
-            requestedCovariates.add( new CycleCovariate() );
+            requestedCovariates.add( new CycleCovariate( PLATFORM ) );
             requestedCovariates.add( new DinucCovariate() );
             //estimatedCapacity = 300 * 40 * 200 * 16;
         }
@@ -222,6 +225,16 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 	if( offset > 0 && offset < read.getReadLength() - 1) {
 	                	
                 		quals = read.getBaseQualities();
+                        // Check if we need to use the original quality scores instead
+                        if ( USE_ORIGINAL_QUALS && read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
+                            Object obj = read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG);
+                            if ( obj instanceof String )
+                                quals = QualityUtils.fastqToPhred((String)obj);
+                            else {
+                                throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
+                            }
+                        }
+
                 		// skip if base quality is zero
                 		if( quals[offset] > 0 ) {
                 		    bases = read.getReadString().toCharArray();
