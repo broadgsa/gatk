@@ -97,6 +97,12 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
      */
     @Override
     public Integer map(char[] ref, SAMRecord read) {
+//        boolean DEBUG = false;
+//        if ( read.getReadName().equals("42NY6AAXX091009:6:73:327:916#0") ) {
+//            System.out.println(read.toString());
+//            System.out.println(getUniquifiedReadName(read)) ;
+//            DEBUG=true;
+//        }
 
         // first emit reads from the cleaned set if appropriate
         int cleanedReadCount = 0;
@@ -110,11 +116,20 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
             firstCleanedRead = cleanedReads.peek();
         }
 
-        // update the hashes if necessary
-        cleanedReadsIterator.readNextContig(read.getReferenceIndex());
+        // update the hashes if necessary; NOTE: cleanedReadsIterator was intitialized with the
+        // contig where the first available cleaned read sits (so it can be any contig, e.g. 22);
+        // the 'read' below comes from a different file (original, uncleaned reads, so it may also
+        // be anywhere - including lower contig, say 1. cleanedReadIterator can not scroll back,
+        // so the statement below will take care of skipping reads on lower contigs until we reach
+        // the contig of the first cleaned read.
+        if ( read.getReferenceIndex() > cleanedReadsIterator.getCurrentContig() ) {
+            cleanedReadsIterator.readNextContig(read.getReferenceIndex());
+        }
 
-        if ( !cleanedReadHash.contains(getUniquifiedReadName(read)) )
+        if ( !cleanedReadHash.contains(getUniquifiedReadName(read)) )  {
+//            if ( DEBUG ) System.out.println("Not found in hash. Hash size:"+cleanedReadHash.size());
             outputBAM.addAlignment(read);
+        }
         return cleanedReadCount;
     }
 
@@ -194,11 +209,17 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
                 readNextContig(nextRead.getReferenceIndex());
         }
 
+        int getCurrentContig() { return contig; }
+
         public void readNextContig(int newContig) {
+            if ( newContig < contig )
+                throw new StingException("Requested shift to contig "+newContig+" which is before the current contig "+contig);
+
             // don't do anything if we're in the right contig or have no reads
             if ( newContig == contig || nextRead == null )
                 return;
 
+            System.out.println("Loading contig "+newContig+"; old contig was "+contig);
             contig = newContig;
             cleanedReadHash.clear();
             cleanedReads.clear();
@@ -214,6 +235,10 @@ public class CleanedReadInjector extends ReadWalker<Integer,Integer> {
                     nextRead.getReferenceIndex() == contig ) {
                 cleanedReads.add(nextRead);
                 cleanedReadHash.add(getUniquifiedReadName(nextRead));
+//                if ( nextRead.getReadName().equals("42NY6AAXX091009:6:73:327:916#0") ) {
+//                    System.out.println("In hash: "+getUniquifiedReadName(nextRead));
+//                    System.out.println("In hash: "+nextRead.toString());
+//                }
                 nextRead = (iterator.hasNext() ? iterator.next() : null);
             }
         }
