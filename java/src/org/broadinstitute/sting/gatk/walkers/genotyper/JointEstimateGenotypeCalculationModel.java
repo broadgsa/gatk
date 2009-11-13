@@ -45,6 +45,18 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         if ( contexts == null )
             return null;
 
+        // todo -- eric, can you refactor this into a superclass the manages the i over 2n calculation?
+        //
+        // The only thing that's different from pools and msg should be the calls to
+        // initializeGenotypeLikelihoods and calculateAlleleFrequencyPosteriors
+        // There's a lot of functionality here that can be separated into a superclass that requires
+        // a few methods be overridden and it'll magically work for all data types, etc.
+        //
+        // Here are some examples:
+        // getNumberSamples() ->
+        // likelihoodsOfDGivenF() -> for MSG, pools, etc -- see below
+        //
+
         initializeAlleleFrequencies(contexts.size());
 
         // run joint estimation for the full GL contexts
@@ -123,7 +135,14 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
             log10PofDgivenAFi[baseIndex] = new double[frequencyEstimationPoints];
         }
         DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
-        
+
+        //
+        // todo -- if you invert this loop
+        // foreach frequnecy
+        //   foreach altAllele
+        //
+        // then the pooled vs. msg calculation is just a function call difference
+
         // for each minor allele frequency
         for (int i = 0; i < frequencyEstimationPoints; i++) {
             double f = (double)i / (double)(frequencyEstimationPoints-1);
@@ -162,6 +181,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
             }
         }
 
+        // todo -- shouldn't this be in a function for clarity?
         // for each alternate allele
         for ( char altAllele : BaseUtils.BASES ) {
             if ( altAllele == ref )
