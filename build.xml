@@ -315,6 +315,32 @@
         <ant antfile="${dist}/packages/Build${executable}.xml" />
     </target>
 
+    <!-- Build a subset of picard with only those classes we need by completely abusing the packaging system -->
+    <!-- TODO: Reuse as much as possible of the 'stage' and 'package' targets -->
+    <target name="build-picard-private" depends="resolve">
+      <!-- Build out a classpath -->
+      <pathconvert property="required.picard.jars" pathsep=":">
+        <fileset dir="${basedir}">
+	  <include name="staging" />
+	  <include name="lib/picard-*.*.*.jar" />
+	  <include name="lib/sam-*.jar" />
+	</fileset>
+      </pathconvert>
+      <echo message="required.picard.jars=${required.picard.jars}" />
+
+      <!-- Stage picard-private -->
+      <delete dir="staging" />
+      <mkdir dir="staging" />
+      <unjar src="${picard.dist.dir}/picard-private.jar" dest="staging" overwrite="true" />
+
+      <!-- Use the packaging system to extract parts of picard-private we need -->
+      <mkdir dir="${dist}/packages" />
+      <xslt in="packages/PicardPrivate.xml" out="${dist}/packages/BuildPicardPrivate.xml" style="packages/CreatePackager.xsl" />
+      <ant antfile="${dist}/packages/BuildPicardPrivate.xml">
+	<property name="additional.jars" value="${required.picard.jars}" />
+      </ant>
+    </target>
+
     <target name="clean" description="clean up">
         <delete dir="out"/>
         <delete dir="build"/>

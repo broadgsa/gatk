@@ -8,7 +8,7 @@
   <dependencies defaultconf="default">
     <dependency org="net.sf" name="sam" rev="latest.integration" conf="default"/>
     <dependency org="net.sf" name="picard" rev="latest.integration" conf="default"/>
-    <dependency org="edu.mit.broad" name="picard-private" rev="latest.integration" conf="default"/>
+    <dependency org="edu.mit.broad" name="picard-private-parts" rev="latest.integration" conf="default"/>
     <dependency org="junit" name="junit" rev="4.4" conf="default"/>
     <dependency org="log4j" name="log4j" rev="1.2.15" conf="default"/>
     <dependency org="colt" name="colt" rev="1.2.0" conf="default"/>

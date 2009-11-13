@@ -3,6 +3,7 @@
 
   <xsl:variable name="ant.basedir" select="'${basedir}'" />
   <xsl:variable name="sting.dir" select="'${sting.dir}/'" />
+  <xsl:variable name="classpath" select="'${sting.dir}/staging:${additional.jars}'" />
   <xsl:variable name="dist.dir" select="'${sting.dir}/dist'" />
   <xsl:variable name="staging.dir" select="'${sting.dir}/staging'" />
   <xsl:variable name="package.dir" select="'${package.dir}/'" />
@@ -13,14 +14,14 @@
 
   <xsl:variable name="project.name" select="name" />
 
-  <project name="{$project.name}" default="package" basedir="..">
+  <project name="{$project.name}" default="package">
     <property name="sting.dir" value="{$ant.basedir}" />
     <property name="package.dir" value="{concat($dist.dir,'/packages/',$project.name)}" />
 
     <target name="package">
       <!-- Verify that all classes specified are present -->
       <xsl:for-each select="dependencies/class">
-	<available property="is.{current()}.present" classpath="{$staging.dir}" classname="{current()}"/>
+	<available property="is.{current()}.present" classpath="{$classpath}" classname="{current()}"/>
 	<fail message="Class {current()} not found" unless="is.{current()}.present" />
       </xsl:for-each>
 
