@@ -13,9 +13,12 @@ static jclass java_alignment_class = NULL;
 static jmethodID java_alignment_constructor = NULL;
 
 typedef void (BWA::*int_setter)(int value);
+typedef void (BWA::*float_setter)(float value);
 
 static jstring get_configuration_string(JNIEnv* env, jobject configuration, const char* field_name);
+
 static void set_int_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, int_setter setter);
+static void set_float_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, float_setter setter);
 
 JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_create(JNIEnv* env, jobject instance, jobject configuration)
 {
@@ -43,14 +46,13 @@ JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_
 		     reverse_bwt_filename,
 		     reverse_sa_filename);
 
-  //set_int_configuration_param(env, configuration, "maximumEditDistance", bwa, &BWA::set_max_edit_distance);
+  set_float_configuration_param(env, configuration, "maximumEditDistance", bwa, &BWA::set_max_edit_distance);
   set_int_configuration_param(env, configuration, "maximumGapOpens", bwa, &BWA::set_max_gap_opens);
   set_int_configuration_param(env, configuration, "maximumGapExtensions", bwa, &BWA::set_max_gap_extensions);
   set_int_configuration_param(env, configuration, "disallowIndelWithinRange", bwa, &BWA::set_disallow_indel_within_range);
   set_int_configuration_param(env, configuration, "mismatchPenalty", bwa, &BWA::set_mismatch_penalty);
   set_int_configuration_param(env, configuration, "gapOpenPenalty", bwa, &BWA::set_gap_open_penalty);
   set_int_configuration_param(env, configuration, "gapExtensionPenalty", bwa, &BWA::set_gap_extension_penalty);
-  
 
   env->ReleaseStringUTFChars(java_ann,ann_filename);
   env->ReleaseStringUTFChars(java_amb,amb_filename);
@@ -149,6 +151,18 @@ static void set_int_configuration_param(JNIEnv* env, jobject configuration, cons
     jclass int_box_class = env->FindClass("java/lang/Integer");
     jmethodID int_extractor = env->GetMethodID(int_box_class,"intValue", "()I");
     jint value = env->CallIntMethod(boxed_value,int_extractor);
+    (bwa->*setter)(value);
+  }
+}
+
+static void set_float_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, float_setter setter) {
+  jclass configuration_class = env->GetObjectClass(configuration);
+  jfieldID configuration_field = env->GetFieldID(configuration_class, field_name, "Ljava/lang/Float;");
+  jobject boxed_value = env->GetObjectField(configuration,configuration_field);
+  if(boxed_value != NULL) {
+    jclass float_box_class = env->FindClass("java/lang/Float");
+    jmethodID float_extractor = env->GetMethodID(float_box_class,"floatValue", "()F");
+    jfloat value = env->CallFloatMethod(boxed_value,float_extractor);
     (bwa->*setter)(value);
   }
 }

@@ -32,7 +32,7 @@ class BWA {
   ~BWA();
 
   // Parameterize the aligner.
-  void set_max_edit_distance(int edit_distance);
+  void set_max_edit_distance(float edit_distance);
   void set_max_gap_opens(int max_gap_opens);
   void set_max_gap_extensions(int max_gap_extensions);
   void set_disallow_indel_within_range(int indel_range);
