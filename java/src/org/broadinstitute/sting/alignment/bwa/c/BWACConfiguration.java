@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.alignment.bwa;
+package org.broadinstitute.sting.alignment.bwa.c;
 
 import org.broadinstitute.sting.utils.StingException;
 

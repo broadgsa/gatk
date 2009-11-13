@@ -1,6 +1,9 @@
-package org.broadinstitute.sting.alignment.bwa;
+package org.broadinstitute.sting.alignment.bwa.java;
 
 import org.broadinstitute.sting.alignment.Alignment;
+import org.broadinstitute.sting.alignment.bwa.java.BWAAligner;
+import org.broadinstitute.sting.alignment.bwa.java.AlignmentMatchSequence;
+import org.broadinstitute.sting.alignment.bwa.java.AlignmentState;
 import org.broadinstitute.sting.utils.StingException;
 import net.sf.samtools.Cigar;
 

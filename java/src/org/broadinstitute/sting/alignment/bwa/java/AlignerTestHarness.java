@@ -1,7 +1,10 @@
-package org.broadinstitute.sting.alignment.bwa;
+package org.broadinstitute.sting.alignment.bwa.java;
 
 import org.broadinstitute.sting.alignment.Aligner;
 import org.broadinstitute.sting.alignment.Alignment;
+import org.broadinstitute.sting.alignment.bwa.java.BWAAligner;
+import org.broadinstitute.sting.alignment.bwa.java.BWAAlignment;
+import org.broadinstitute.sting.alignment.bwa.java.AlignmentState;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;

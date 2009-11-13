@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.alignment.bwa;
+package org.broadinstitute.sting.alignment.bwa.java;
 
 /**
  * The state of a given base in the alignment.

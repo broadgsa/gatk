@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.alignment.bwa.packing;
+package org.broadinstitute.sting.alignment.reference.packing;
 
 import java.io.*;
 import java.nio.ByteBuffer;

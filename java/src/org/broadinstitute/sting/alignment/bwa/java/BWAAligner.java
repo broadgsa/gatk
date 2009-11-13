@@ -1,6 +1,9 @@
-package org.broadinstitute.sting.alignment.bwa;
+package org.broadinstitute.sting.alignment.bwa.java;
 
-import org.broadinstitute.sting.alignment.bwa.bwt.*;
+import org.broadinstitute.sting.alignment.reference.bwt.*;
+import org.broadinstitute.sting.alignment.bwa.java.LowerBound;
+import org.broadinstitute.sting.alignment.bwa.java.BWAAlignment;
+import org.broadinstitute.sting.alignment.bwa.java.AlignmentState;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.alignment.Aligner;
 import org.broadinstitute.sting.utils.BaseUtils;

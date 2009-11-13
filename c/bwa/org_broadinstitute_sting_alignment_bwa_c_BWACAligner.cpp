@@ -6,7 +6,7 @@
 #include "bwt.h"
 #include "bwtaln.h"
 #include "bwa_gateway.h"
-#include "org_broadinstitute_sting_alignment_bwa_BWACAligner.h"
+#include "org_broadinstitute_sting_alignment_bwa_c_BWACAligner.h"
 
 static jclass java_alignment_array_class = NULL;
 static jclass java_alignment_class = NULL;
@@ -20,7 +20,7 @@ static jstring get_configuration_string(JNIEnv* env, jobject configuration, cons
 static void set_int_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, int_setter setter);
 static void set_float_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, float_setter setter);
 
-JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_create(JNIEnv* env, jobject instance, jobject configuration)
+JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_create(JNIEnv* env, jobject instance, jobject configuration)
 {
   jstring java_ann = get_configuration_string(env,configuration,"annFileName");
   jstring java_amb = get_configuration_string(env,configuration,"ambFileName");
@@ -70,13 +70,13 @@ JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_
   return (jlong)bwa;
 }
 
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_destroy(JNIEnv* env, jobject instance, jlong java_bwa) 
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_destroy(JNIEnv* env, jobject instance, jlong java_bwa) 
 {
   BWA* bwa = (BWA*)java_bwa;
   delete bwa;
 }
 
-JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_BWACAligner_getAlignments(JNIEnv* env, jobject object, jlong java_bwa, jbyteArray java_bases) {
+JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_getAlignments(JNIEnv* env, jobject object, jlong java_bwa, jbyteArray java_bases) {
   BWA* bwa = (BWA*)java_bwa;
 
   const jsize read_length = env->GetArrayLength(java_bases);

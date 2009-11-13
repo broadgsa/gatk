@@ -1,8 +1,8 @@
-package org.broadinstitute.sting.alignment.bwa.bwt;
+package org.broadinstitute.sting.alignment.reference.bwt;
 
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.alignment.bwa.packing.UnsignedIntPackedOutputStream;
-import org.broadinstitute.sting.alignment.bwa.packing.BasePackedOutputStream;
+import org.broadinstitute.sting.alignment.reference.packing.UnsignedIntPackedOutputStream;
+import org.broadinstitute.sting.alignment.reference.packing.BasePackedOutputStream;
 
 import java.io.*;
 import java.nio.ByteOrder;

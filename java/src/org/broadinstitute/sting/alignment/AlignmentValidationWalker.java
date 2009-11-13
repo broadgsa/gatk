@@ -1,10 +1,12 @@
-package org.broadinstitute.sting.alignment.bwa;
+package org.broadinstitute.sting.alignment;
 
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.alignment.Alignment;
+import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
+import org.broadinstitute.sting.alignment.bwa.c.BWACConfiguration;
 import net.sf.samtools.SAMRecord;
 
 /**
@@ -41,7 +43,7 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
     @Override
     public void initialize() {
         BWACConfiguration configuration = new BWACConfiguration(prefix);
-        aligner = new BWACAligner(configuration);        
+        aligner = new BWACAligner(configuration);
     }
 
     /** Must return true for reads that need to be processed. Reads, for which this method return false will

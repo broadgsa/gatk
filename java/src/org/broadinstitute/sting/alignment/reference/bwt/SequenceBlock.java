@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.alignment.bwa.bwt;
+package org.broadinstitute.sting.alignment.reference.bwt;
 
 /**
  * Models a block of bases within the BWT.

@@ -1,7 +1,9 @@
-package org.broadinstitute.sting.alignment.bwa;
+package org.broadinstitute.sting.alignment;
 
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
+import org.broadinstitute.sting.alignment.bwa.c.BWACConfiguration;
 import net.sf.samtools.SAMRecord;
 
 import java.util.Random;
@@ -32,7 +34,7 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
     @Override
     public void initialize() {
         BWACConfiguration configuration = new BWACConfiguration(prefix);
-        aligner = new BWACAligner(configuration);        
+        aligner = new BWACAligner(configuration);
     }
 
     /**
