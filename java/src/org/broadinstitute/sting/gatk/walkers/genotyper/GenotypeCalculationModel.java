@@ -134,7 +134,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
 
         HashMap<String, AlignmentContextBySample> contexts = new HashMap<String, AlignmentContextBySample>();
 
-        int deletionsInPile = 0;
+        int deletionsInPileup = 0;
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
 
@@ -169,7 +169,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
             // check for deletions
             if ( offset == -1 ) {
                 // are there too many deletions in the pileup?
-                if ( ++deletionsInPile > maxDeletionsInPileup )
+                if ( ++deletionsInPileup > maxDeletionsInPileup && maxDeletionsInPileup >= 0 )
                     return null;
             }
 

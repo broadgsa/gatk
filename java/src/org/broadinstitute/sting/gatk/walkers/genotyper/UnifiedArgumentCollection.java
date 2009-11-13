@@ -77,7 +77,7 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "min_confidence_threshold", shortName = "confidence", doc = "The phred-scaled confidence threshold by which variants should be filtered", required = false)
     public double CONFIDENCE_THRESHOLD = 0.0;
 
-    @Argument(fullName = "max_deletions", shortName = "deletions", doc = "Maximum reads with deletions spanning this locus for it to be callable [default:1]", required = false)
+    @Argument(fullName = "max_deletions", shortName = "deletions", doc = "Maximum reads with deletions spanning this locus for it to be callable [to disable, set to < 0; default:1]", required = false)
     public Integer MAX_DELETIONS = 1;
 
     @Argument(fullName = "max_coverage", shortName = "coverage", doc = "Maximum reads at this locus for it to be callable; to disable, provide value < 1 [default:10,000]", required = false)
