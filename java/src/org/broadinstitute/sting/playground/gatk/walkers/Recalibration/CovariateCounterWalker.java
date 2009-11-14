@@ -72,7 +72,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private String PLATFORM = "SLX";
     @Argument(fullName = "windowSizeNQS", shortName="nqs", doc="How big of a window should the MinimumNQSCovariate use for its calculation", required=false)
     private int WINDOW_SIZE = 3;
-    @Argument(fullName="recal_file", shortName="rf", required=false, doc="Filename for the outputted covariates table recalibration file")
+    @Argument(fullName="recal_file", shortName="recalFile", required=false, doc="Filename for the outputted covariates table recalibration file")
     private String RECAL_FILE = "output.recal_data.csv";
     @Argument(fullName="noPrintHeader", shortName="noHeader", required=false, doc="Don't print the usual header on the table recalibration file")
     private boolean NO_PRINT_HEADER = false;
