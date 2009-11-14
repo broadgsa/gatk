@@ -242,14 +242,14 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 		                    prevBase = bases[offset-1];
 		                    // Get the complement base strand if we are a negative strand read
 		                    if( read.getReadNegativeStrandFlag() ) {
-		                    	bases = BaseUtils.simpleComplement( read.getReadString() ).toCharArray();
+		                    	bases = BaseUtils.simpleComplement( read.getReadString() ).toCharArray(); // this is an expensive call
 		                        refBase = BaseUtils.simpleComplement( refBase );
 		                        prevBase = bases[offset+1];
 		                    }
 		                    
 		                    // skip if this base or the previous one was an 'N' or etc.
 		                    if( BaseUtils.isRegularBase(prevBase) && BaseUtils.isRegularBase(bases[offset]) ) {
-		                    	readGroup = read.getReadGroup().getReadGroupId();
+		                    	readGroup = read.getReadGroup().getReadGroupId(); // this is an expensive call
 		                    	updateDataFromRead( read, offset, readGroup, quals, bases, refBase );
 		                    }
                 		}

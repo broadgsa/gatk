@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.Pair;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -34,9 +32,9 @@ import org.broadinstitute.sting.utils.Pair;
  * User: rpoplin
  * Date: Nov 3, 2009
  *
- * The Dinucleotide covariate. This base and the one that came before it in the read, remembering to swap directions on cardinality if negative strand read.
- * This covariate will return null if there are bases that don't belong such as 'N' or 'X'.
- * This covariate will also return null if attempting to get previous base at the start of the read.
+ * The Dinucleotide covariate. This base and the one that came before it in the read, remembering to swap directions if negative strand read.
+ * This covariate assumes that the bases have been swapped to their complement base counterpart if this is a negative strand read.
+ * This assumption is made to speed up the code.
  */
 
 public class DinucCovariate implements Covariate {

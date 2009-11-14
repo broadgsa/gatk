@@ -47,7 +47,7 @@ public class CycleCovariate implements Covariate {
 	private String platform;
 
     public CycleCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
-        platform = "SLX";
+        platform = "SLX"; // Solexa is the default
     }
 
     public CycleCovariate(final String _platform) {
