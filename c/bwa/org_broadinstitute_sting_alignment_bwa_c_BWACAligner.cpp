@@ -8,35 +8,45 @@
 #include "bwa_gateway.h"
 #include "org_broadinstitute_sting_alignment_bwa_c_BWACAligner.h"
 
-static jclass java_alignment_array_class = NULL;
-static jclass java_alignment_class = NULL;
-static jmethodID java_alignment_constructor = NULL;
-
 typedef void (BWA::*int_setter)(int value);
 typedef void (BWA::*float_setter)(float value);
 
 static jstring get_configuration_string(JNIEnv* env, jobject configuration, const char* field_name);
-
 static void set_int_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, int_setter setter);
 static void set_float_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, float_setter setter);
+static void throw_config_value_exception(JNIEnv* env, const char* field_name, const char* message);
 
 JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_create(JNIEnv* env, jobject instance, jobject configuration)
 {
   jstring java_ann = get_configuration_string(env,configuration,"annFileName");
+  if(env->ExceptionCheck()) return 0L;
   jstring java_amb = get_configuration_string(env,configuration,"ambFileName");
+  if(env->ExceptionCheck()) return 0L;
   jstring java_pac = get_configuration_string(env,configuration,"pacFileName");
+  if(env->ExceptionCheck()) return 0L;
   jstring java_forward_bwt = get_configuration_string(env,configuration,"forwardBWTFileName");
+  if(env->ExceptionCheck()) return 0L;
   jstring java_forward_sa = get_configuration_string(env,configuration,"forwardSAFileName");
+  if(env->ExceptionCheck()) return 0L;
   jstring java_reverse_bwt = get_configuration_string(env,configuration,"reverseBWTFileName");
+  if(env->ExceptionCheck()) return 0L;
   jstring java_reverse_sa = get_configuration_string(env,configuration,"reverseSAFileName");
+  if(env->ExceptionCheck()) return 0L;
 
   const char* ann_filename = env->GetStringUTFChars(java_ann,JNI_FALSE);
+  if(env->ExceptionCheck()) return 0L;
   const char* amb_filename = env->GetStringUTFChars(java_amb,JNI_FALSE);
+  if(env->ExceptionCheck()) return 0L;
   const char* pac_filename = env->GetStringUTFChars(java_pac,JNI_FALSE);
+  if(env->ExceptionCheck()) return 0L;
   const char* forward_bwt_filename = env->GetStringUTFChars(java_forward_bwt,JNI_FALSE);
+  if(env->ExceptionCheck()) return 0L;
   const char* forward_sa_filename = env->GetStringUTFChars(java_forward_sa,JNI_FALSE);
+  if(env->ExceptionCheck()) return 0L; 
   const char* reverse_bwt_filename = env->GetStringUTFChars(java_reverse_bwt,JNI_FALSE);
+  if(env->ExceptionCheck()) return 0L; 
   const char* reverse_sa_filename = env->GetStringUTFChars(java_reverse_sa,JNI_FALSE);
+  if(env->ExceptionCheck()) return 0L; 
 
   BWA* bwa = new BWA(ann_filename,
 		     amb_filename,
@@ -47,25 +57,34 @@ JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligne
 		     reverse_sa_filename);
 
   set_float_configuration_param(env, configuration, "maximumEditDistance", bwa, &BWA::set_max_edit_distance);
+  if(env->ExceptionCheck()) return 0L; 
   set_int_configuration_param(env, configuration, "maximumGapOpens", bwa, &BWA::set_max_gap_opens);
+  if(env->ExceptionCheck()) return 0L; 
   set_int_configuration_param(env, configuration, "maximumGapExtensions", bwa, &BWA::set_max_gap_extensions);
+  if(env->ExceptionCheck()) return 0L; 
   set_int_configuration_param(env, configuration, "disallowIndelWithinRange", bwa, &BWA::set_disallow_indel_within_range);
+  if(env->ExceptionCheck()) return 0L; 
   set_int_configuration_param(env, configuration, "mismatchPenalty", bwa, &BWA::set_mismatch_penalty);
+  if(env->ExceptionCheck()) return 0L; 
   set_int_configuration_param(env, configuration, "gapOpenPenalty", bwa, &BWA::set_gap_open_penalty);
+  if(env->ExceptionCheck()) return 0L; 
   set_int_configuration_param(env, configuration, "gapExtensionPenalty", bwa, &BWA::set_gap_extension_penalty);
+  if(env->ExceptionCheck()) return 0L; 
 
   env->ReleaseStringUTFChars(java_ann,ann_filename);
+  if(env->ExceptionCheck()) return 0L; 
   env->ReleaseStringUTFChars(java_amb,amb_filename);
+  if(env->ExceptionCheck()) return 0L; 
   env->ReleaseStringUTFChars(java_pac,pac_filename);
+  if(env->ExceptionCheck()) return 0L; 
   env->ReleaseStringUTFChars(java_forward_bwt,forward_bwt_filename);
+  if(env->ExceptionCheck()) return 0L; 
   env->ReleaseStringUTFChars(java_forward_sa,forward_sa_filename);
+  if(env->ExceptionCheck()) return 0L; 
   env->ReleaseStringUTFChars(java_reverse_bwt,reverse_bwt_filename);
+  if(env->ExceptionCheck()) return 0L; 
   env->ReleaseStringUTFChars(java_reverse_sa,reverse_sa_filename);
-
-  // Cache the class object for an array of alignments.
-  java_alignment_array_class = env->FindClass("[Lorg/broadinstitute/sting/alignment/Alignment;");
-  java_alignment_class = env->FindClass("org/broadinstitute/sting/alignment/Alignment");
-  java_alignment_constructor = env->GetMethodID(java_alignment_class, "<init>", "(IIZI[C[I)V");
+  if(env->ExceptionCheck()) return 0L; 
 
   return (jlong)bwa;
 }
@@ -76,17 +95,23 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner
   delete bwa;
 }
 
-JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_getAlignments(JNIEnv* env, jobject object, jlong java_bwa, jbyteArray java_bases) {
+JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_getAlignments(JNIEnv* env, jobject object, jlong java_bwa, jbyteArray java_bases) 
+{
   BWA* bwa = (BWA*)java_bwa;
 
   const jsize read_length = env->GetArrayLength(java_bases);
+  if(env->ExceptionCheck()) return NULL;
+
   jbyte *read_bases = env->GetByteArrayElements(java_bases,JNI_FALSE); 
+  if(read_bases == NULL) return NULL;
 
   Alignment* alignments = NULL;
   unsigned num_alignments = 0;
+
   bwa->align((const char*)read_bases,read_length,alignments,num_alignments);
 
   jobjectArray java_alignments = env->NewObjectArray(num_alignments, env->FindClass("org/broadinstitute/sting/alignment/Alignment"), NULL);  
+  if(java_alignments == NULL) return NULL;
 
   for(unsigned alignment_idx = 0; alignment_idx < (unsigned)num_alignments; alignment_idx++) {
     Alignment& alignment = *(alignments + alignment_idx);
@@ -97,26 +122,37 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWA
     else cigar_length = alignment.n_cigar;
 
     jcharArray java_cigar_operators = env->NewCharArray(cigar_length);
+    if(java_cigar_operators == NULL) return NULL;
     jintArray java_cigar_lengths = env->NewIntArray(cigar_length);
+    if(java_cigar_lengths == NULL) return NULL;
 
     if(alignment.cigar) {
       for(unsigned cigar_idx = 0; cigar_idx < (unsigned)alignment.n_cigar; ++cigar_idx) {
 	jchar cigar_operator = "MIDS"[alignment.cigar[cigar_idx]>>14];
 	jint  cigar_length = alignment.cigar[cigar_idx]&0x3fff;
+
 	env->SetCharArrayRegion(java_cigar_operators,cigar_idx,1,&cigar_operator);
+	if(env->ExceptionCheck()) return NULL;
 	env->SetIntArrayRegion(java_cigar_lengths,cigar_idx,1,&cigar_length);
+	if(env->ExceptionCheck()) return NULL;
       }
     }
     else {
       if(alignment.type != BWA_TYPE_NO_MATCH) {
 	jchar cigar_operator = 'M';
 	env->SetCharArrayRegion(java_cigar_operators,0,1,&cigar_operator);
+	if(env->ExceptionCheck()) return NULL;
 	env->SetIntArrayRegion(java_cigar_lengths,0,1,&read_length);
+	if(env->ExceptionCheck()) return NULL;
       }
     }
 
     jclass java_alignment_class = env->FindClass("org/broadinstitute/sting/alignment/Alignment");
+    if(java_alignment_class == NULL) return NULL;
+
     jmethodID java_alignment_constructor = env->GetMethodID(java_alignment_class, "<init>", "(IIZI[C[I)V");
+    if(java_alignment_constructor == NULL) return NULL;
+
     jobject java_alignment = env->NewObject(java_alignment_class,
 					    java_alignment_constructor,
 					    alignment.contig,
@@ -125,44 +161,111 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWA
 					    alignment.mapQ,
 					    java_cigar_operators,
 					    java_cigar_lengths);
-    env->SetObjectArrayElement(java_alignments,alignment_idx,java_alignment);
+    if(java_alignment == NULL) return NULL;      
 
     delete[] alignment.cigar;
+
+    env->SetObjectArrayElement(java_alignments,alignment_idx,java_alignment);
+    if(env->ExceptionCheck()) return NULL;
+
+    env->DeleteLocalRef(java_alignment_class);
+    if(env->ExceptionCheck()) return NULL;
   }
 
   delete[] alignments;
 
-  env->ReleaseByteArrayElements(java_bases,read_bases,0);
+  env->ReleaseByteArrayElements(java_bases,read_bases,JNI_FALSE); 
 
-  return java_alignments;
+  return env->ExceptionCheck() ? NULL : java_alignments;
 }
 
 static jstring get_configuration_string(JNIEnv* env, jobject configuration, const char* field_name) {
   jclass configuration_class = env->GetObjectClass(configuration);
+  if(configuration_class == NULL) return NULL;
+
   jfieldID configuration_field = env->GetFieldID(configuration_class, field_name, "Ljava/lang/String;");
-  return (jstring)env->GetObjectField(configuration,configuration_field);
+  if(configuration_field == NULL) return NULL;
+
+  jstring result = (jstring)env->GetObjectField(configuration,configuration_field); 
+  env->DeleteLocalRef(configuration_class);    
+  return result;
 }
 
 static void set_int_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, int_setter setter) {
   jclass configuration_class = env->GetObjectClass(configuration);
+  if(configuration_class == NULL) return;
+
   jfieldID configuration_field = env->GetFieldID(configuration_class, field_name, "Ljava/lang/Integer;");
+  if(configuration_field == NULL) return;
+
   jobject boxed_value = env->GetObjectField(configuration,configuration_field);
+  if(env->ExceptionCheck()) return;
+
   if(boxed_value != NULL) {
     jclass int_box_class = env->FindClass("java/lang/Integer");
+    if(int_box_class == NULL) return;
+
     jmethodID int_extractor = env->GetMethodID(int_box_class,"intValue", "()I");
+    if(int_extractor == NULL) return;
+
     jint value = env->CallIntMethod(boxed_value,int_extractor);
+    if(env->ExceptionCheck()) return;
+
+    if(value < 0) 
+    {
+      throw_config_value_exception(env,field_name,"cannot be set to a negative value");
+      return;
+    }
+
     (bwa->*setter)(value);
+
+    env->DeleteLocalRef(int_box_class);
   }
+
+  env->DeleteLocalRef(boxed_value);
+  env->DeleteLocalRef(configuration_class);
 }
 
-static void set_float_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, float_setter setter) {
+static void set_float_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, float_setter setter) 
+{
   jclass configuration_class = env->GetObjectClass(configuration);
+  if(configuration_class == NULL) return;
+
   jfieldID configuration_field = env->GetFieldID(configuration_class, field_name, "Ljava/lang/Float;");
+  if(configuration_field == NULL) return;
+
   jobject boxed_value = env->GetObjectField(configuration,configuration_field);
   if(boxed_value != NULL) {
     jclass float_box_class = env->FindClass("java/lang/Float");
+    if(float_box_class == NULL) return;
+
     jmethodID float_extractor = env->GetMethodID(float_box_class,"floatValue", "()F");
+    if(float_extractor == NULL) return;
+
     jfloat value = env->CallFloatMethod(boxed_value,float_extractor);
+    if(env->ExceptionCheck()) return;
+
+    if(value < 0) 
+    {
+      throw_config_value_exception(env,field_name,"cannot be set to a negative value");
+      return;
+    }
+
     (bwa->*setter)(value);
+
+    env->DeleteLocalRef(float_box_class);
   }
+
+  env->DeleteLocalRef(boxed_value);
+  env->DeleteLocalRef(configuration_class);
+}
+
+static void throw_config_value_exception(JNIEnv* env, const char* field_name, const char* message) 
+{
+  char* buffer = new char[strlen(field_name)+1+strlen(message)+1];
+  sprintf(buffer,"%s %s",field_name,message);
+  jclass sting_exception_class = env->FindClass("org/broadinstitute/sting/utils/StingException");
+  if(sting_exception_class == NULL) return;
+  env->ThrowNew(sting_exception_class, buffer);
+  delete[] buffer;
 }
