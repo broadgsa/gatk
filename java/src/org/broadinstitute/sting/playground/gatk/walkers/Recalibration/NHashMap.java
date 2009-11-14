@@ -34,6 +34,9 @@ import java.util.*;
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Oct 30, 2009
+ *
+ * A HashMap that maps a list of comparables to any object <T>.
+ * There is functionality for the mappings to be given back to you in sorted order.
  */
 
 public class NHashMap<T> extends HashMap<List<? extends Comparable>, T> {
@@ -113,9 +116,7 @@ public class NHashMap<T> extends HashMap<List<? extends Comparable>, T> {
         return theSet;
     }
 
-
-
-	public List<T> makeList(T... args) {
+	public static <T> List<T> makeList(T... args) {
         List<T> list = new ArrayList<T>();
         for (T arg : args)
         {

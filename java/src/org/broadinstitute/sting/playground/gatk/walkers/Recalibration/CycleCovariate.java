@@ -63,7 +63,7 @@ public class CycleCovariate implements Covariate {
 	        }
 	        return cycle;
         } else if( platform.equalsIgnoreCase( "454" ) ) {
-            int cycle = 1;
+            int cycle = 0;
             char prevBase = bases[0];
             for( int iii = 1; iii <= offset; iii++ ) {
                 if(bases[iii] != prevBase) { // this base doesn't match the previous one so it is a new cycle
@@ -74,7 +74,7 @@ public class CycleCovariate implements Covariate {
             return cycle;
         } else if( platform.equalsIgnoreCase( "SOLID" ) ) {
             // the ligation cycle according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
-        	return (offset / 5) + 1; // integer division
+        	return offset / 5; // integer division
         } else {
         	throw new StingException( "Requested platform (" + platform + ") not supported in CycleCovariate." );
         }

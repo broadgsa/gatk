@@ -230,6 +230,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // These calls are expensive so only do them once for each read
         String readGroup = read.getReadGroup().getReadGroupId();
         char[] bases = read.getReadString().toCharArray();
+        if( refBases.length != bases.length ) {
+            return read; // something is wrong with the mapping of the read so leave it alone
+        }
         String myRefBases = new String(refBases);
         if( read.getReadNegativeStrandFlag() ) {
             bases = BaseUtils.simpleComplement( read.getReadString() ).toCharArray();

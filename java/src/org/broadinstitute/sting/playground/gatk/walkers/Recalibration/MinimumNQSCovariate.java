@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.QualityUtils;
 
 /*
  * Copyright (c) 2009 The Broad Institute

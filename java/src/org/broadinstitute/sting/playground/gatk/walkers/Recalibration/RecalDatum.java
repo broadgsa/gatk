@@ -34,6 +34,8 @@ import java.util.*;
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Nov 3, 2009
+ *
+ * An individual piece of recalibration data. Each bin counts up the number of observations and the number of reference mismatches seen for that combination of covariates. 
  */
 
 public class RecalDatum {

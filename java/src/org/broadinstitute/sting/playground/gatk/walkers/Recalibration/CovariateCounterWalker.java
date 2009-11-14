@@ -390,6 +390,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 // For each Covariate in the key
                 for( Comparable comp : entry.getKey() ) {
                     // Output the Covariate's value
+                    if( NO_PRINT_HEADER && comp instanceof String ) { continue; } // BUGBUG
                     recalTableStream.print( comp + "," );
                 }
                 // Output the RecalDatum entry

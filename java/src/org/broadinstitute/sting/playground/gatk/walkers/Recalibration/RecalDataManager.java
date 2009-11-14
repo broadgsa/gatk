@@ -34,6 +34,8 @@ import java.util.*;
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Nov 6, 2009
+ *
+ * This helper class holds the data HashMap as well as submaps that represent the marginal distributions collapsed over all needed dimensions.
  */
 
 public class RecalDataManager {
@@ -42,9 +44,9 @@ public class RecalDataManager {
     private NHashMap<RecalDatum> dataCollapsedQualityScore; // table where everything except read group and quality score has been collapsed
     private ArrayList<NHashMap<RecalDatum>> dataCollapsedByCovariate; // tables where everything except read group, quality score, and given covariate has been collapsed
     private boolean collapsedTablesCreated;
-    public NHashMap<Double> dataSumExpectedErrors;
+    public NHashMap<Double> dataSumExpectedErrors; // table used to calculate the overall aggregate quality score in which everything except read group is collapsed
 
-    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ";
+    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // the tag in a BAM file that holds the original quality scores
 
     RecalDataManager() {
     	data = new NHashMap<RecalDatum>();
@@ -58,6 +60,10 @@ public class RecalDataManager {
     }
 
     // BUGBUG: A lot going on in this method, doing a lot of pre-calculations for use in the sequential mode calculation later in TableRecalibrationWalker
+    /**
+     * Create all the collapsed tables that will be used in the sequential calculation in TableRecalibrationWalker
+     * @param numCovariates The number of covariates you have determines the number of tables to create
+     */
     public final void createCollapsedTables( final int numCovariates ) {
         dataCollapsedReadGroup = new NHashMap<RecalDatum>();
         dataCollapsedQualityScore = new NHashMap<RecalDatum>();
@@ -88,7 +94,8 @@ public class RecalDataManager {
             } else {
                 collapsedDatum.increment( thisDatum );
             }
-            
+
+            // create dataSumExpectedErrors, the table used to calculate the overall aggregate quality score in which everything except read group is collapsed
             newKey = new ArrayList<Comparable>();
             newKey.add( key.get(0) ); // make a new key with just the read group
             sumExpectedErrors = dataSumExpectedErrors.get( newKey );
@@ -129,6 +136,11 @@ public class RecalDataManager {
         collapsedTablesCreated = true;
     }
 
+    /**
+     * Get the appropriate collapsed table out of the set of all the tables held by this Object
+     * @param covariate Which covariate indexes the desired collapsed HashMap
+     * @return The desired collapsed HashMap
+     */
     public final NHashMap<RecalDatum> getCollapsedTable( final int covariate ) {
         if( !collapsedTablesCreated ) {
             throw new StingException("Trying to get collapsed tables before they have been populated. Null pointers abound.");
