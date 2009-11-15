@@ -369,6 +369,10 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         return null;
     }
 
+    public VCFHeader getHeader() {
+        return mReader.getHeader();
+    }
+
     /**
      * do we have the specified genotype?  not all backedByGenotypes
      * have all the genotype data.
