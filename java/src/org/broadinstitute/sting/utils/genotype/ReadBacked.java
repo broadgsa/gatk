@@ -1,11 +1,9 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import net.sf.samtools.SAMRecord;
-
-import java.util.List;
+import org.broadinstitute.sting.utils.ReadBackedPileup;
 
 /**
- * @author aaron
+ * @author ebanks
  *
  * Interface ReadBacked
  *
@@ -13,16 +11,16 @@ import java.util.List;
  */
 public interface ReadBacked {
     /**
-     * get the SAM records that back this genotype call
-     * @return a list of SAM records
+     * get the pileup that backs this genotype call
+     * @return a pileup
      */
-    public List<SAMRecord> getReads();
+    public ReadBackedPileup getPileup();
 
     /**
      *
-     * @param   reads    the reads for this genotype
+     * @param   pileup    the pileup for this genotype
      */
-    public void setReads(List<SAMRecord> reads);
+    public void setPileup(ReadBackedPileup pileup);
 
     /**
      * get the count of reads

@@ -1,11 +1,8 @@
 package org.broadinstitute.sting.utils.genotype.geli;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.*;
 
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Arrays;
 
 
@@ -20,7 +17,7 @@ public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked 
     private final char mRefBase;
     private final GenomeLoc mLocation;
 
-    private List<SAMRecord> mReads;
+    private ReadBackedPileup mPileup = null;
     private double[] mPosteriors;
 
 
@@ -32,6 +29,8 @@ public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked 
     /**
      * Generate a single sample genotype object
      *
+     * @param ref  the ref character
+     * @param loc  the genome loc
      */
     public GeliGenotypeCall(char ref, GenomeLoc loc) {
         mRefBase = ref;
@@ -40,7 +39,6 @@ public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked 
         // fill in empty data
         mPosteriors = new double[10];
         Arrays.fill(mPosteriors, Double.MIN_VALUE);
-        mReads = new ArrayList<SAMRecord>();
     }
 
     public GeliGenotypeCall(char ref, GenomeLoc loc, String genotype, double negLog10PError) {
@@ -66,12 +64,10 @@ public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked 
         else
             mNextGenotype = mRefGenotype;
         mPosteriors[mNextGenotype.ordinal()] = -1.0 * negLog10PError;
-
-        mReads = new ArrayList<SAMRecord>();
     }
 
-    public void setReads(List<SAMRecord> reads) {
-        mReads = new ArrayList<SAMRecord>(reads);
+    public void setPileup(ReadBackedPileup pileup) {
+        mPileup = pileup;
     }
 
     public void setPosteriors(double[] posteriors) {
@@ -98,7 +94,7 @@ public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked 
     public String toString() {
         lazyEval();
         return String.format("%s best=%s cmp=%s ref=%s depth=%d negLog10PError=%.2f",
-                             getLocation(), mBestGenotype, mRefGenotype, mRefBase, mReads.size(), getNegLog10PError());
+                             getLocation(), mBestGenotype, mRefGenotype, mRefBase, getReadCount(), getNegLog10PError());
     }
 
     private void lazyEval() {
@@ -223,12 +219,12 @@ public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked 
     }
 
     /**
-     * get the SAM records that back this genotype call
+     * get the pileup that backs this genotype call
      *
-     * @return a list of SAM records
+     * @return a pileup
      */
-    public List<SAMRecord> getReads() {
-        return mReads;
+    public ReadBackedPileup getPileup() {
+        return mPileup;
     }
 
     /**
@@ -237,7 +233,7 @@ public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked 
      * @return the number of reads we're backed by
      */
     public int getReadCount() {
-        return mReads.size();
+        return (mPileup != null ? mPileup.getReads().size() : 0);
     }
 
     /**

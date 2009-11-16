@@ -31,8 +31,8 @@ public class VCFRecord {
     private double mQual;
     // our filter string
     private String mFilterString;
-    // our info fields
-    private final Map<String, String> mInfoFields = new HashMap<String, String>();
+    // our info fields -- use a TreeMap to ensure they can be pulled out in order (so it passes integration tests)
+    private final Map<String, String> mInfoFields = new TreeMap<String, String>();
 
     private final String mGenotypeFormatString;
 
@@ -336,6 +336,10 @@ public class VCFRecord {
     public void addInfoField(String key, String value) {
         //System.out.printf("Adding info field %s=%s%n", key, value);
         this.mInfoFields.put(key, value);
+
+        // remove the empty token if it's present
+        if ( mInfoFields.containsKey(".") )
+            mInfoFields.remove(".");
     }
 
     public void printInfoFields() {

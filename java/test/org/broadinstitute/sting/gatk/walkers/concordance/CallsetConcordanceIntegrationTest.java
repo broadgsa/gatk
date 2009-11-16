@@ -14,7 +14,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testSimpleVenn() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example1.vcf -B set2,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example2.vcf -CT SimpleVenn", 1,
-                Arrays.asList("1b8e26cd30e993da9318abd6475f38d0"));
+                Arrays.asList("2fc12b6f02f4cb589f2fd134e765d6b7"));
         executeTest("testSimpleVenn", spec);
     }
 
@@ -22,7 +22,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testSNPConcordance() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example1.vcf -B set2,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example2.vcf -CT SNPGenotypeConcordance:qscore=5", 1,
-                Arrays.asList("5a89b8edcdf2e3f469ac354cb1524033"));
+                Arrays.asList("142bcfcc6bb404cd4bd1a4624fa9a15e"));
         executeTest("testSNPConcordance", spec);
     }
 
@@ -30,7 +30,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testNWayVenn() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example1.vcf -B set2,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example2.vcf -B set3,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/CEU.sample.vcf -CT NWayVenn", 1,
-                Arrays.asList("1dec083580b75a9c59fcb61426117134"));
+                Arrays.asList("e067aace9080bafdf3312632de60b4fc"));
         executeTest("testNWayVenn", spec);
     }
 }

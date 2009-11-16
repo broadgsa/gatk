@@ -30,27 +30,23 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.ReadFilters;
+import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotator;
+import org.broadinstitute.sting.gatk.walkers.Reference;
+import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriter;
-import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.GenotypeLocusData;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.io.File;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.*;
 
 
-@ReadFilters({ZeroMappingQualityReadFilter.class})
+@Reference(window=@Window(start=-20,stop=20))
 public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeLocusData>, Integer> {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
@@ -72,8 +68,6 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
     // keep track of some metrics about our calls
     private CallMetrics callsMetrics;
 
-    // are we being called by another walker (which gets around the traversal-level filtering)?
-    private boolean calledByAnotherWalker = true;
 
     /** Enable deletions in the pileup **/
     public boolean includeReadsWithDeletionAtLoci() { return true; }
@@ -134,7 +128,6 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
             return;
 
         // if we got here, then we were instantiated by the GATK engine
-        calledByAnotherWalker = false;
 
         // create the output writer stream
         if ( VARIANTS_FILE != null )
@@ -143,7 +136,8 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
                                                   this.getToolkit().getArguments().referenceFile.getName(),
                                                   samples);
         else
-            writer = GenotypeWriterFactory.create(UAC.VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out, "UnifiedGenotyper",
+            writer = GenotypeWriterFactory.create(UAC.VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out,
+                                                  "UnifiedGenotyper",
                                                   this.getToolkit().getArguments().referenceFile.getName(),
                                                   samples);
         callsMetrics = new CallMetrics();
@@ -154,28 +148,33 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
      *
      * @param tracker the meta data tracker
      * @param refContext the reference base
-     * @param context contextual information around the locus
+     * @param fullContext contextual information around the locus
      */
-    public Pair<List<Genotype>, GenotypeLocusData> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
+    public Pair<List<Genotype>, GenotypeLocusData> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext fullContext) {
         char ref = Character.toUpperCase(refContext.getBase());
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
 
-        // because other walkers externally call this map method with their own contexts,
-        // we need to make sure that the reads are appropriately filtered
-        if ( calledByAnotherWalker )
-            context = filterAlignmentContext(context);
+        // remove mapping quality zero reads
+        AlignmentContext MQ0freeContext = filterAlignmentContext(fullContext);
 
         // an optimization to speed things up when there is no coverage or when overly covered
-        if ( context.getReads().size() == 0 ||
-             (UAC.MAX_READS_IN_PILEUP > 0 && context.getReads().size() > UAC.MAX_READS_IN_PILEUP) )
+        if ( MQ0freeContext.getReads().size() == 0 ||
+             (UAC.MAX_READS_IN_PILEUP > 0 && MQ0freeContext.getReads().size() > UAC.MAX_READS_IN_PILEUP) )
             return null;
 
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
-        return gcm.calculateGenotype(tracker, ref, context, priors);
+        Pair<List<Genotype>, GenotypeLocusData> call = gcm.calculateGenotype(tracker, ref, MQ0freeContext, priors);
+
+        // annotate the call, if possible
+        if ( call != null && call.second != null && call.second instanceof ArbitraryFieldsBacked) {
+            Map<String, String> annotations = VariantAnnotator.getAnnotations(refContext, fullContext, call.first);
+            ((ArbitraryFieldsBacked)call.second).setFields(annotations);
+        }
+
+        return call;
     }
 
-    // filter the given alignment context
     private AlignmentContext filterAlignmentContext(AlignmentContext context) {
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
@@ -185,7 +184,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
 
         for (int i = 0; i < reads.size(); i++) {
             SAMRecord read = reads.get(i);
-            if ( read.getMappingQuality() != 0 && read.getReadGroup() != null ) {
+            if ( read.getMappingQuality() != 0 ) {
                 newReads.add(read);
                 newOffsets.add(offsets.get(i));
             }

@@ -97,7 +97,8 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
             Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation());
 
             if ( call instanceof ReadBacked ) {
-                ((ReadBacked)call).setReads(context.getReads());
+                ReadBackedPileup pileup = new ReadBackedPileup(ref, contexts.get(sample).getContext(StratifiedContext.OVERALL));
+                ((ReadBacked)call).setPileup(pileup);
             }
             if ( call instanceof SampleBacked ) {
                 ((SampleBacked)call).setSampleName(sample);

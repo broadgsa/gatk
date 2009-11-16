@@ -74,7 +74,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation());
 
             if ( call instanceof ReadBacked ) {
-                ((ReadBacked)call).setReads(discoveryGL.first.getReads());
+                ((ReadBacked)call).setPileup(discoveryGL.first);
             }
             if ( call instanceof SampleBacked ) {
                 ((SampleBacked)call).setSampleName(sample);
@@ -95,29 +95,6 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                     rodDbSNP dbsnp = getDbSNP(tracker);
                     if ( dbsnp != null )
                         ((IDBacked)locusdata).setID(dbsnp.getRS_ID());
-                }
-                if ( locusdata instanceof ArbitraryFieldsBacked) {
-
-                    DiploidGenotype bestGenotype = DiploidGenotype.values()[bestIndex];
-                    // we care only about het calls
-                    if ( bestGenotype.isHetRef(ref) ) {
-
-                        char altBase = bestGenotype.base1 != ref ? bestGenotype.base1 : bestGenotype.base2;
-
-                        // get the base counts at this pileup (minus deletions)
-                        int[] counts = discoveryGL.first.getBasePileupAsCounts();
-                        int refCount = counts[BaseUtils.simpleBaseToBaseIndex(ref)];
-                        int altCount = counts[BaseUtils.simpleBaseToBaseIndex(altBase)];
-                        int totalCount = 0;
-                        for (int i = 0; i < counts.length; i++)
-                            totalCount += counts[i];
-
-                        // set the ratios
-                        HashMap<String, String> fields = new HashMap<String, String>();
-                        fields.put("AB", String.format("%.2f", (double)refCount / (double)(refCount + altCount)));
-                        fields.put("OO", String.format("%.2f",(double)(refCount + altCount) / (double)totalCount));
-                        ((ArbitraryFieldsBacked)locusdata).setFields(fields);
-                    }
                 }
             }
 

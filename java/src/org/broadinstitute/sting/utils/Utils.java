@@ -486,6 +486,31 @@ public class Utils {
     }
 
 
+    // returns the maximum value in the array
+    public static double findMaxEntry(double[] array) {
+        return findIndexAndMaxEntry(array).first;
+    }
+
+    // returns the index of the maximum value in the array
+    public static int findIndexOfMaxEntry(double[] array) {
+        return findIndexAndMaxEntry(array).second;
+    }
+
+    // returns the the maximum value and its index in the array
+    private static Pair<Double, Integer> findIndexAndMaxEntry(double[] array) {
+        if ( array.length == 0 )
+            return new Pair<Double, Integer>(0.0, -1);
+        int index = 0;
+        double max = array[0];
+        for (int i = 1; i < array.length; i++) {
+            if ( array[i] > max ) {
+                max = array[i];
+                index = i;
+            }
+        }
+        return new Pair<Double, Integer>(max, index);
+    }
+
     /** Returns indices of all occurrences of the specified symbol in the string */
     public static int[] indexOfAll(String s, int ch) {
         int[] pos = new int[64];

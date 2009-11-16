@@ -262,5 +262,26 @@ public class MathUtils {
         return Math.sqrt(rms);
     }
 
+    /**
+     * normalizes the log10-based array
+     * @param array  the array to be normalized
+    */
+    public static double[] normalizeFromLog10(double[] array) {
+        double[] normalized = new double[array.length];
 
+        // for precision purposes, we need to add (or really subtract, since they're
+        // all negative) the largest value; also, we need to convert to normal-space.
+        double maxValue = Utils.findMaxEntry(array);
+        for (int i = 0; i < array.length; i++)
+            normalized[i] = Math.pow(10, array[i] - maxValue);
+
+        // normalize
+        double sum = 0.0;
+        for (int i = 0; i < array.length; i++)
+            sum += normalized[i];
+        for (int i = 0; i < array.length; i++)
+            normalized[i] /= sum;
+
+        return normalized;
+    }
 }

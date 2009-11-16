@@ -109,11 +109,13 @@ public class GeliAdapter implements GenotypeWriter {
         GeliGenotypeCall gCall = (GeliGenotypeCall)call;
 
         char ref = gCall.getReference();
-        List<SAMRecord> recs = gCall.getReads();
-        int readCount = recs.size();
+        int readCount = gCall.getReadCount();
         double maxMappingQual = 0;
-        for (SAMRecord rec : recs) {
-            if (maxMappingQual < rec.getMappingQuality()) maxMappingQual = rec.getMappingQuality();
+        if ( gCall.getPileup() != null ) {
+            List<SAMRecord> recs = gCall.getPileup().getReads();
+            for (SAMRecord rec : recs) {
+                if (maxMappingQual < rec.getMappingQuality()) maxMappingQual = rec.getMappingQuality();
+            }
         }
 
         double[] posteriors = gCall.getPosteriors();

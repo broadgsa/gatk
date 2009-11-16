@@ -166,7 +166,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
                     DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(altAllele);
 
                     double[] allelePosteriors = new double[] { refPosterior, posteriors[hetGenotype.ordinal()], posteriors[homGenotype.ordinal()] };
-                    normalizeFromLog10(allelePosteriors);
+                    allelePosteriors = MathUtils.normalizeFromLog10(allelePosteriors);
                     //logger.debug("Normalized posteriors for " + altAllele + ": " + allelePosteriors[0] + " " + allelePosteriors[1] + " " + allelePosteriors[2]);
 
                     // calculate the posterior weighted frequencies
@@ -191,7 +191,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
             // multiply by null allele frequency priors to get AF posteriors, then normalize
             for (int i = 0; i < frequencyEstimationPoints; i++)
                 alleleFrequencyPosteriors[baseIndex][i] = log10AlleleFrequencyPriors[i] + log10PofDgivenAFi[baseIndex][i];
-            normalizeFromLog10(alleleFrequencyPosteriors[baseIndex]);
+            alleleFrequencyPosteriors[baseIndex] = MathUtils.normalizeFromLog10(alleleFrequencyPosteriors[baseIndex]);
 
             // calculate p(f>0)
             double sum = 0.0;
@@ -229,34 +229,6 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         }
 
         return HWvalues;
-    }
-
-    private static void normalizeFromLog10(double[] array) {
-        // for precision purposes, we need to add (or really subtract, since they're
-        // all negative) the largest value; also, we need to convert to normal-space.
-        double maxValue = findMaxEntry(array).first;
-        for (int i = 0; i < array.length; i++)
-            array[i] = Math.pow(10, array[i] - maxValue);
-
-        // normalize
-        double sum = 0.0;
-        for (int i = 0; i < array.length; i++)
-            sum += array[i];
-        for (int i = 0; i < array.length; i++)
-            array[i] /= sum;
-    }
-
-    // returns the maximum value in the array and its index
-    private static Pair<Double, Integer> findMaxEntry(double[] array) {
-        int index = 0;
-        double max = array[0];
-        for (int i = 1; i < array.length; i++) {
-            if ( array[i] > max ) {
-                max = array[i];
-                index = i;
-            }
-        }
-        return new Pair<Double, Integer>(max, index);
     }
 
     private void printAlleleFrequencyData(char ref, GenomeLoc loc) {
@@ -312,7 +284,7 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
         }
 
         double phredScaledConfidence = -10.0 * Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
-        int bestAFguess = findMaxEntry(alleleFrequencyPosteriors[indexOfMax]).second;
+        int bestAFguess = Utils.findIndexOfMaxEntry(alleleFrequencyPosteriors[indexOfMax]);
 
         // return a null call if we don't pass the confidence cutoff or the most likely allele frequency is zero
         if ( !ALL_BASE_MODE && (bestAFguess == 0 || phredScaledConfidence < CONFIDENCE_THRESHOLD) )
@@ -328,7 +300,8 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
             Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation());
 
             if ( call instanceof ReadBacked ) {
-                ((ReadBacked)call).setReads(context.getReads());
+                ReadBackedPileup pileup = new ReadBackedPileup(ref, contexts.get(sample).getContext(StratifiedContext.OVERALL));               
+                ((ReadBacked)call).setPileup(pileup);
             }
             if ( call instanceof SampleBacked ) {
                 ((SampleBacked)call).setSampleName(sample);
@@ -359,63 +332,6 @@ public class JointEstimateGenotypeCalculationModel extends GenotypeCalculationMo
                 rodDbSNP dbsnp = getDbSNP(tracker);
                 if ( dbsnp != null )
                     ((IDBacked)locusdata).setID(dbsnp.getRS_ID());
-            }
-            if ( locusdata instanceof ArbitraryFieldsBacked) {
-                ArrayList<Double> refBalances = new ArrayList<Double>();
-                ArrayList<Double> onOffBalances = new ArrayList<Double>();
-                ArrayList<Double> weights = new ArrayList<Double>();
-
-                // accumulate ratios and weights
-                for ( java.util.Map.Entry<String, GenotypeLikelihoods> entry : GLs.entrySet() ) {
-                    // determine the best genotype
-                    Integer sorted[] = Utils.SortPermutation(entry.getValue().getPosteriors());
-                    DiploidGenotype bestGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 1]];
-
-                    // we care only about het calls
-                    if ( bestGenotype.isHetRef(ref) ) {
-
-                        // make sure the alt base is our target alt
-                        char altBase = bestGenotype.base1 != ref ? bestGenotype.base1 : bestGenotype.base2;
-                        if ( altBase != baseOfMax )
-                            continue;
-
-                        // get the base counts at this pileup (minus deletions)
-                        ReadBackedPileup pileup = new ReadBackedPileup(ref, contexts.get(entry.getKey()).getContext(StratifiedContext.OVERALL));
-                        int[] counts = pileup.getBasePileupAsCounts();
-                        int refCount = counts[BaseUtils.simpleBaseToBaseIndex(ref)];
-                        int altCount = counts[BaseUtils.simpleBaseToBaseIndex(altBase)];
-                        int totalCount = 0;
-                        for (int i = 0; i < counts.length; i++)
-                            totalCount += counts[i];
-
-                        // add the entries
-                        weights.add(entry.getValue().getNormalizedPosteriors()[bestGenotype.ordinal()]);
-                        refBalances.add((double)refCount / (double)(refCount + altCount));
-                        onOffBalances.add((double)(refCount + altCount) / (double)totalCount);
-                    }
-                }
-
-                if ( weights.size() > 0 ) {
-                    // normalize the weights
-                    double sum = 0.0;
-                    for (int i = 0; i < weights.size(); i++)
-                        sum += weights.get(i);
-                    for (int i = 0; i < weights.size(); i++)
-                        weights.set(i, weights.get(i) / sum);
-
-                    // calculate total weighted ratios
-                    double normalizedRefRatio = 0.0;
-                    double normalizedOnOffRatio = 0.0;
-                    for (int i = 0; i < weights.size(); i++) {
-                        normalizedRefRatio += weights.get(i) * refBalances.get(i);
-                        normalizedOnOffRatio += weights.get(i) * onOffBalances.get(i);
-                    }
-
-                    HashMap<String, String> fields = new HashMap<String, String>();
-                    fields.put("AB", String.format("%.2f", normalizedRefRatio));
-                    fields.put("OO", String.format("%.2f", normalizedOnOffRatio));
-                    ((ArbitraryFieldsBacked)locusdata).setFields(fields);
-                }
             }
             if ( locusdata instanceof SLODBacked ) {
                 // the overall lod

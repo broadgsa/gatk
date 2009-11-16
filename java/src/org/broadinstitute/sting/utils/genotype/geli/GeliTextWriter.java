@@ -67,7 +67,7 @@ public class GeliTextWriter implements GenotypeWriter {
             nextVrsRef = lks[9] - posteriors[DiploidGenotype.createHomGenotype(ref).ordinal()];
 
         double maxMappingQual = 0;
-        List<SAMRecord> recs = gCall.getReads();
+        List<SAMRecord> recs = gCall.getPileup().getReads();
         int readDepth = recs.size();
         for (SAMRecord rec : recs) {
             if (maxMappingQual < rec.getMappingQuality()) maxMappingQual = rec.getMappingQuality();

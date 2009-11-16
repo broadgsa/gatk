@@ -33,7 +33,7 @@ public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
     private VCFWriter vcfWriter;
 
     // a map of rod name to uniquified sample name
-    HashMap<Pair<String, String>, String> rodNamesToSampleNames = new HashMap<Pair<String, String>, String>();
+    private HashMap<Pair<String, String>, String> rodNamesToSampleNames = new HashMap<Pair<String, String>, String>();
 
 
     /**
@@ -53,7 +53,7 @@ public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
             System.exit(0);
         }
 
-        // get the list of all sample names from the various input rods (the need to be uniquified in case there's overlap)
+        // get the list of all sample names from the various input rods (they need to be uniquified in case there's overlap)
         HashSet<String> samples = new HashSet<String>();
         VCFUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, rodNamesToSampleNames);
 

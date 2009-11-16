@@ -1,12 +1,9 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.List;
 
 
 /**
@@ -20,7 +17,7 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
     private final char mRefBase;
     private final GenomeLoc mLocation;
 
-    private List<SAMRecord> mReads;
+    private ReadBackedPileup mPileup = null;
     private int mCoverage = 0;
     private double[] mPosteriors;
 
@@ -41,7 +38,6 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
         mPosteriors = new double[10];
         Arrays.fill(mPosteriors, Double.MIN_VALUE);
         mSampleName = "";
-        mReads = new ArrayList<SAMRecord>();
     }
 
     public VCFGenotypeCall(char ref, GenomeLoc loc, String genotype, double negLog10PError, int coverage, String sample) {
@@ -68,12 +64,10 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
         else
             mNextGenotype = mRefGenotype;
         mPosteriors[mNextGenotype.ordinal()] = -1.0 * negLog10PError;
-
-        mReads = new ArrayList<SAMRecord>();
     }
 
-    public void setReads(List<SAMRecord> reads) {
-        mReads = new ArrayList<SAMRecord>(reads);
+    public void setPileup(ReadBackedPileup pileup) {
+        mPileup = pileup;
     }
 
     public void setPosteriors(double[] posteriors) {
@@ -104,7 +98,7 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
     public String toString() {
         lazyEval();
         return String.format("%s best=%s cmp=%s ref=%s depth=%d negLog10PError=%.2f",
-                             getLocation(), mBestGenotype, mRefGenotype, mRefBase, mReads.size(), getNegLog10PError());
+                             getLocation(), mBestGenotype, mRefGenotype, mRefBase, getReadCount(), getNegLog10PError());
     }
 
     private void lazyEval() {
@@ -229,12 +223,12 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
     }
 
     /**
-     * get the SAM records that back this genotype call
+     * get the pileup that backs this genotype call
      *
-     * @return a list of SAM records
+     * @return a pileup
      */
-    public List<SAMRecord> getReads() {
-        return mReads;
+    public ReadBackedPileup getPileup() {
+        return mPileup;
     }
 
     /**
@@ -243,7 +237,7 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
      * @return the number of reads we're backed by
      */
     public int getReadCount() {
-       return (mCoverage > 0 ? mCoverage : mReads.size());
+       return (mCoverage > 0 ? mCoverage : (mPileup != null ? mPileup.getReads().size() : 0));
     }
 
     /**

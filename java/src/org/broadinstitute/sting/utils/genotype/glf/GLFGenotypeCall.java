@@ -1,17 +1,13 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
-import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.*;
 
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Arrays;
 
 
 /**
- * @author aaron
+ * @author ebanks
  *         <p/>
  *         Class GLFGenotypeCall
  *         <p/>
@@ -21,7 +17,7 @@ public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked 
     private final char mRefBase;
     private final GenomeLoc mLocation;
 
-    private List<SAMRecord> mReads;
+    private ReadBackedPileup mPileup;
     private double[] mLikelihoods;
 
     private double mNegLog10PError;
@@ -30,6 +26,8 @@ public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked 
     /**
      * Generate a single sample genotype object, containing everything we need to represent calls out of a genotyper object
      *
+     * @param ref  the ref character
+     * @param loc  the genome loc
      */
     public GLFGenotypeCall(char ref, GenomeLoc loc) {
         mRefBase = ref;
@@ -39,12 +37,12 @@ public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked 
         mLocation = loc;
         mLikelihoods = new double[10];
         Arrays.fill(mLikelihoods, Double.MIN_VALUE);
-        mReads = new ArrayList<SAMRecord>();
+        mPileup = null;
         mNegLog10PError = Double.MIN_VALUE;
     }
 
-    public void setReads(List<SAMRecord> reads) {
-        mReads = new ArrayList<SAMRecord>(reads);
+    public void setPileup(ReadBackedPileup pileup) {
+        mPileup = pileup;
     }
 
     public void setLikelihoods(double[] likelihoods) {
@@ -68,7 +66,7 @@ public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked 
 
     public String toString() {
         return String.format("%s ref=%s depth=%d negLog10PError=%.2f",
-                             getLocation(), mRefBase, mReads.size(), getNegLog10PError());
+                             getLocation(), mRefBase, getReadCount(), getNegLog10PError());
     }
 
     /**
@@ -155,12 +153,12 @@ public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked 
     }
 
     /**
-     * get the SAM records that back this genotype call
+     * get the pileup that backs this genotype call
      *
-     * @return a list of SAM records
+     * @return a pileup
      */
-    public List<SAMRecord> getReads() {
-        return mReads;
+    public ReadBackedPileup getPileup() {
+        return mPileup;
     }
 
     /**
@@ -169,7 +167,7 @@ public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked 
      * @return the number of reads we're backed by
      */
     public int getReadCount() {
-        return mReads.size();
+        return (mPileup != null ? mPileup.getReads().size() : 0);
     }
 
     /**

@@ -133,7 +133,9 @@ public class GLFWriter implements GenotypeWriter {
         obj.setLikelihoodType(LikelihoodObject.LIKELIHOOD_TYPE.NEGATIVE_LOG);  // transform! ... to negitive log likelihoods
 
         // calculate the RMS mapping qualities and the read depth
-        double rms = calculateRMS(gCall.getReads());
+        double rms = 0.0;
+        if ( gCall.getPileup() != null )
+            rms = calculateRMS(gCall.getPileup().getReads());
         int readCount = gCall.getReadCount();
         this.addGenotypeCall(GenomeLocParser.getContigInfo(gCall.getLocation().getContig()),(int)gCall.getLocation().getStart(),(float)rms,ref,readCount,obj);
     }
