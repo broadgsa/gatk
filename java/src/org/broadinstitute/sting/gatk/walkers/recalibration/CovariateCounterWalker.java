@@ -76,6 +76,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             readGroups.add(readGroup.getReadGroupId());
         }
 
+        // Warn the user if no dbSNP file was specified
+        if( this.getToolkit().getArguments().DBSNPFile == null ) {
+            Utils.warnUser("This calculation is critically dependent on being able to skip over known variant sites. Are you sure you want to be running without a dbSNP rod specified?");
+        }
+
         covariateCounter = new CovariateCounter(readGroups, collapsePos, collapseDinuc, assumeFaultyHeader);
         logger.info(String.format("Created recalibration data collectors for %d read group(s)", covariateCounter.getNReadGroups()));
     }
