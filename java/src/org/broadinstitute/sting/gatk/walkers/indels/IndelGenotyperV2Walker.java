@@ -143,6 +143,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 	@Override
 	public Integer map(char[] ref, SAMRecord read) {
 
+    //        if ( read.getReadName().equals("428EFAAXX090610:2:36:1384:639#0") ) System.out.println("GOT READ");
+
             if ( DEBUG ) {
                 //            System.out.println("DEBUG>> read at "+ read.getAlignmentStart()+"-"+read.getAlignmentEnd()+
                 //                    "("+read.getCigarString()+")");
@@ -287,7 +289,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             if ( DEBUG ) System.out.println("DEBUG>> indel observations present within "+NQS_WIDTH+" bases ahead. Resetting shift to "+request);
             attempts++;
             if ( attempts == 4 ) {
-                System.out.println("DEBUG>> attempts to preserve full NQS window failed; now trying to find any suitable position.") ;
+                if ( DEBUG ) System.out.println("DEBUG>> attempts to preserve full NQS window failed; now trying to find any suitable position.") ;
                 failure = true;
                 break;
             }
