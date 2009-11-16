@@ -114,6 +114,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             System.exit( 0 ); // early exit here because user requested it
         }
 
+        // Warn the user if no dbSNP file was specified
+        if( this.getToolkit().getArguments().DBSNPFile == null ) {
+            Utils.warnUser("This calculation is critically dependent on being able to skip over known variant sites. Are you sure you want to be running without a dbSNP rod specified?");
+        }
+
         // Initialize the requested covariates by parsing the -cov argument
         requestedCovariates = new ArrayList<Covariate>();
         if( validateOldRecalibrator ) {
