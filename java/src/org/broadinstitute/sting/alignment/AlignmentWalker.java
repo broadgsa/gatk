@@ -7,6 +7,7 @@ import org.broadinstitute.sting.alignment.bwa.c.BWACConfiguration;
 import net.sf.samtools.SAMRecord;
 
 import java.util.Random;
+import java.util.Iterator;
 
 /**
  * Align reads to the reference specified by BWTPrefix.
@@ -45,10 +46,17 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
      */
     @Override
     public Integer map(char[] ref, SAMRecord read) {
-        SAMRecord[] alignedReads = aligner.align(read);
-        SAMRecord selectedRead = alignedReads[random.nextInt(alignedReads.length)];
-        out.println(selectedRead.format());
-        return alignedReads.length;
+        Iterator<SAMRecord[]> alignedReads = aligner.align(read);
+        if(alignedReads.hasNext()) {
+            SAMRecord[] bestAlignments = alignedReads.next();
+            SAMRecord selectedRead = bestAlignments[random.nextInt(bestAlignments.length)];
+            out.println(selectedRead.format());
+            return bestAlignments.length;
+        }
+        else {
+            out.println(read.format());
+            return 0;
+        }
     }
 
     /**

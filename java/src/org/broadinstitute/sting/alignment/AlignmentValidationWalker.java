@@ -4,10 +4,11 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
 import org.broadinstitute.sting.alignment.bwa.c.BWACConfiguration;
 import net.sf.samtools.SAMRecord;
+
+import java.util.Iterator;
 
 /**
  * Validates alignments against existing reads.
@@ -31,11 +32,6 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
      * Number of reads processed.
      */
     private int count = 0;
-
-    /**
-     * Max delta in mapping quality.
-     */
-    private int maxMapQDelta = 0;
 
     /**
      * Create an aligner object.  The aligner object will load and hold the BWT until close() is called.
@@ -69,18 +65,18 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
         if(read.getReadNegativeStrandFlag()) bases = BaseUtils.simpleReverseComplement(bases);
 
         boolean matches = true;
-        Alignment[] alignments = aligner.getAlignments(bases);
+        Iterator<Alignment[]> alignments = aligner.getAlignments(bases);
 
-        if(alignments.length == 0 && !read.getReadUnmappedFlag())
-            matches = false;
+        if(!alignments.hasNext()) {
+            matches = read.getReadUnmappedFlag();
+        }
         else {
-            for(Alignment alignment: alignments) {
+            Alignment[] alignmentsOfBestQuality = alignments.next();
+            for(Alignment alignment: alignmentsOfBestQuality) {
                 matches = (alignment.getContigIndex() == read.getReferenceIndex());
                 matches &= (alignment.getAlignmentStart() == read.getAlignmentStart());
                 matches &= (alignment.isNegativeStrand() == read.getReadNegativeStrandFlag());
                 matches &= (alignment.getCigar().equals(read.getCigar()));
-                int mapQDelta = Math.abs(alignment.getMappingQuality()-read.getMappingQuality());
-                maxMapQDelta = Math.max(mapQDelta,maxMapQDelta);
                 matches &= (alignment.getMappingQuality() == read.getMappingQuality());
                 if(matches) break;
             }
@@ -94,13 +90,14 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
             logger.error(String.format("    Negative strand: %b", read.getReadNegativeStrandFlag()));
             logger.error(String.format("    Cigar: %s%n", read.getCigarString()));
             logger.error(String.format("    Mapping quality: %s%n", read.getMappingQuality()));
-            for(int i = 0; i < alignments.length; i++) {
+            Alignment[] allAlignments = aligner.getAllAlignments(bases);
+            for(int i = 0; i < allAlignments.length; i++) {
                 logger.error(String.format("Alignment %d:",i));
-                logger.error(String.format("    Contig index: %d",alignments[i].getContigIndex()));
-                logger.error(String.format("    Alignment start: %d", alignments[i].getAlignmentStart()));
-                logger.error(String.format("    Negative strand: %b", alignments[i].isNegativeStrand()));
-                logger.error(String.format("    Cigar: %s", alignments[i].getCigarString()));
-                logger.error(String.format("    Mapping quality: %s%n", alignments[i].getMappingQuality()));
+                logger.error(String.format("    Contig index: %d",allAlignments[i].getContigIndex()));
+                logger.error(String.format("    Alignment start: %d", allAlignments[i].getAlignmentStart()));
+                logger.error(String.format("    Negative strand: %b", allAlignments[i].isNegativeStrand()));
+                logger.error(String.format("    Cigar: %s", allAlignments[i].getCigarString()));
+                logger.error(String.format("    Mapping quality: %s%n", allAlignments[i].getMappingQuality()));
             }
             throw new StingException(String.format("Read %s mismatches!", read.getReadName()));
         }
@@ -137,7 +134,6 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
     @Override
     public void onTraversalDone(Integer result) {
         aligner.close();
-        out.printf("Max mapping quality delta: %s%n", maxMapQDelta);
         super.onTraversalDone(result);
     }
 
