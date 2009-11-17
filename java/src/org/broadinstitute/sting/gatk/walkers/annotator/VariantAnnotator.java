@@ -155,7 +155,10 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         VariationRod variant = (VariationRod)rods.getRecords().get(0);
 
         // if the reference base is not ambiguous, the variant is a SNP, and it's the appropriate type, we can annotate
-        if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 && variant.isSNP() && variant instanceof VariantBackedByGenotype ) {
+        if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 &&
+                variant.isBiallelic() &&
+                variant.isSNP() &&
+                variant instanceof VariantBackedByGenotype ) {
             final List<org.broadinstitute.sting.utils.genotype.Genotype> genotypes = ((VariantBackedByGenotype)variant).getGenotypes();
             if ( genotypes != null )
                 annotations = getAnnotations(ref, context, genotypes, requestedAnnotations);
