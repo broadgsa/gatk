@@ -24,9 +24,12 @@
 
 package org.broadinstitute.sting.utils;
 
-import org.junit.Test;
-import org.broadinstitute.sting.BaseTest;
 import junit.framework.Assert;
+import org.broadinstitute.sting.BaseTest;
+import org.junit.Test;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Testing framework for general purpose utilities class.
@@ -55,6 +58,28 @@ public class UtilsTest extends BaseTest {
         String duped = Utils.dupString('c',5);
         Assert.assertEquals("dupString did not produce five character string", 5, duped.length());
         Assert.assertEquals("dupString string was incorrect", "ccccc", duped);
+    }
+
+    @Test
+    public void testJoinMap() {
+        Map<String,Integer> map = new LinkedHashMap<String,Integer>();
+        map.put("one",1);
+        map.put("two",2);
+        String joined = Utils.joinMap("-",";",map);
+        Assert.assertTrue("one-1;two-2".equals(joined));
+    }
+
+    @Test
+    public void testJoinMapLargerSet() {
+        Map<String,Integer> map = new LinkedHashMap<String,Integer>();
+        map.put("one",1);
+        map.put("two",2);
+        map.put("three",1);
+        map.put("four",2);
+        map.put("five",1);
+        map.put("six",2);
+        String joined = Utils.joinMap("-",";",map);
+        Assert.assertTrue("one-1;two-2;three-1;four-2;five-1;six-2".equals(joined));
     }
 
 }

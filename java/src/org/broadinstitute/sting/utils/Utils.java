@@ -237,6 +237,36 @@ public class Utils {
         return flags;
     }
 
+    /**
+     * join the key value pairs of a map into one string, i.e. myMap = [A->1,B->2,C->3] with a call of:
+     * joinMap("-","*",myMap) -> returns A-1*B-2*C-3
+     *
+     * Be forewarned, if you're not using a map that is aware of the ordering (i.e. HashMap instead of LinkedHashMap)
+     * the ordering of the string you get back might not be what you expect! (i.e. C-3*A-1*B-2 vrs A-1*B-2*C-3)
+     *
+     * @param keyValueSeperator the string to seperate the key-value pairs
+     * @param recordSeperator the string to use to seperate each key-value pair from other key-value pairs
+     * @param map the map to draw from
+     * @param <L> the map's key type
+     * @param <R> the map's value type
+     * @return a string representing the joined map
+     */
+    public static <L,R> String joinMap(String keyValueSeperator, String recordSeperator, Map<L,R> map) {
+        if (map.size() < 1) { return null; }
+        String joinedKeyValues[] = new String[map.size()];
+        int index = 0;
+        for (L key : map.keySet()) {
+           joinedKeyValues[index++] = String.format("%s%s%s",key.toString(),keyValueSeperator,map.get(key).toString());
+        }
+        return join(recordSeperator,joinedKeyValues);
+    }
+
+    /**
+     * join an array of strings given a seperator
+     * @param separator the string to insert between each array element
+     * @param strings the array of strings
+     * @return a string, which is the joining of all array values with the separator
+     */
     public static String join(String separator, String[] strings) {
         return join(separator, strings, 0, strings.length);
     }
