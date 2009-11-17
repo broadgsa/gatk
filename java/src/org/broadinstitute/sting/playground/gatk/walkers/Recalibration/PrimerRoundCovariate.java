@@ -52,7 +52,7 @@ public class PrimerRoundCovariate implements Covariate {
     }
 
     public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup,
-    								 final byte[] quals, final char[] bases, final char refBase) {
+    								 final byte[] quals, final byte[] bases) {
         if( platform.equalsIgnoreCase( "SLX" ) ) {
 	        return 1; // nothing to do here because it is always the same
         } else if( platform.equalsIgnoreCase( "454" ) ) {

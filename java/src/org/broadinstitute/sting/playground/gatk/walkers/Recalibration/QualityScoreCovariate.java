@@ -41,7 +41,7 @@ public class QualityScoreCovariate implements Covariate {
     }
 
     public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup,
-			 final byte[] quals, final char[] bases, final char refBase) {
+			 final byte[] quals, final byte[] bases) {
     	
     	return (int)quals[offset];
     }

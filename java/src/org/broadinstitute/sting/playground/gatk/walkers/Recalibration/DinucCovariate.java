@@ -2,6 +2,10 @@ package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 
 import net.sf.samtools.SAMRecord;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -39,28 +43,37 @@ import net.sf.samtools.SAMRecord;
 
 public class DinucCovariate implements Covariate {
 
-	private String returnString;
-	
+    HashMap<Integer, Dinuc> dinucHashMap;
+
     public DinucCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
+
+        final byte[] BASES = { (byte)'A', (byte)'C', (byte)'G', (byte)'T' };
+        dinucHashMap = new HashMap<Integer, Dinuc>();
+        for(byte byte1 : BASES) {
+            for(byte byte2: BASES) {
+                dinucHashMap.put( Dinuc.hashBytes(byte1, byte2), new Dinuc(byte1, byte2) );
+            }
+        }
     }
     
     public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, 
-			 final byte[] quals, final char[] bases, final char refBase) {
+			 final byte[] quals, final byte[] bases) {
     	
-        char base = bases[offset];
-        char prevBase = bases[offset - 1]; 
-        // If it is a negative strand read then we need to reverse the direction for our previous base
+        byte base = bases[offset];
+        byte prevBase = bases[offset - 1];
+        // If this is a negative strand read then we need to reverse the direction for our previous base
         if( read.getReadNegativeStrandFlag() ) {
             prevBase = bases[offset + 1];
-        } 
-        final char[] charArray = {prevBase, base};
-        returnString = String.valueOf(charArray);
-        return returnString;
+        }
+        //char[] charArray = {(char)prevBase, (char)base};
+        //return new String( charArray ); // This is an expensive call
+        return dinucHashMap.get( Dinuc.hashBytes( prevBase, base ) );
         //return String.format("%c%c", prevBase, base); // This return statement is too slow
     }
     
     public final Comparable getValue(final String str) {
-    	return str;
+        //return str;
+        return dinucHashMap.get( Dinuc.hashBytes( (byte)str.charAt(0), (byte)str.charAt(1) ) );
     }
 
     public final int estimatedNumberOfBins() {

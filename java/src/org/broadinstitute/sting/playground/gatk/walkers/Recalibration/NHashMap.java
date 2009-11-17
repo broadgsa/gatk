@@ -1,8 +1,5 @@
 package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.StingException;
-
 import java.util.*;
 
 /*
@@ -36,84 +33,18 @@ import java.util.*;
  * Date: Oct 30, 2009
  *
  * A HashMap that maps a list of comparables to any object <T>.
- * There is functionality for the mappings to be given back to you in sorted order.
  */
 
 public class NHashMap<T> extends HashMap<List<? extends Comparable>, T> {
 
 	private static final long serialVersionUID = 1L; //BUGBUG: what should I do here?, added by Eclipse
-    private ArrayList<ArrayList<Comparable>> keyLists;
 
     public NHashMap() {
         super();
-        keyLists = null;
     }
 
     public NHashMap( int initialCapacity, float loadingFactor ) {
         super( initialCapacity, loadingFactor );
-        keyLists = null;
-    }
-
-
-    // This method is here only to help facilitate direct comparison of old and refactored recalibrator.
-    // The old recalibrator prints out its mappings in a sorted order but the refactored recalibrator doesn't need to.
-    public T myPut(List<? extends Comparable> key, T value) {
-
-        if( keyLists == null ) {
-            keyLists = new ArrayList<ArrayList<Comparable>>();
-            for( Comparable comp : key ) {
-                keyLists.add( new ArrayList<Comparable>() ); 
-            }
-        }
-        
-        ArrayList<Comparable> thisList;
-        for( int iii = 0; iii < key.size(); iii++ ) {
-            thisList = keyLists.get( iii );
-            if( thisList == null ) {
-                thisList = new ArrayList<Comparable>();
-            }
-            if( !thisList.contains( key.get( iii ) ) ) {
-                thisList.add( key.get(iii ) );
-            }
-        }
-        return super.put( key, value );
-    }
-
-    // This method is very ugly but is here only to help facilitate direct comparison of old and refactored recalibrator.
-    // The old recalibrator prints out its mappings in a sorted order but the refactored recalibrator doesn't need to.
-    @SuppressWarnings(value = "unchecked")
-    public ArrayList<Pair<List<? extends Comparable>, T>> entrySetSorted4() {
-
-        ArrayList<Pair<List<? extends Comparable>, T>> theSet = new ArrayList<Pair<List<? extends Comparable>, T>>();
-
-        for( ArrayList<Comparable> list : keyLists ) {
-            Collections.sort(list);
-        }
-
-        if( keyLists.size() != 4 ) {
-            throw new StingException("Are you sure you want to be calling this ugly method? NHashMap.entrySetSorted4()");
-        }
-
-        ArrayList<Comparable> newKey = null;
-        for( Comparable c0 : keyLists.get(0) ) {
-            for( Comparable c1 : keyLists.get(1) ) {
-                for( Comparable c2 : keyLists.get(2) ) {
-                    for( Comparable c3 : keyLists.get(3) ) {
-                        newKey = new ArrayList<Comparable>();
-                        newKey.add(c0);
-                        newKey.add(c1);
-                        newKey.add(c2);
-                        newKey.add(c3);
-                        T value = this.get( newKey );
-                        if( value!= null ) {
-                            theSet.add(new Pair<List<? extends Comparable>,T>( newKey, value ) );
-                        }
-                    }
-                }
-            }
-        }
-    
-        return theSet;
     }
 
 	public static <T> List<T> makeList(T... args) {

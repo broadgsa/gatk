@@ -49,7 +49,7 @@ public class MinimumNQSCovariate implements Covariate {
     }
 
     public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, 
-			 final byte[] quals, final char[] bases, final char refBase) {
+			 final byte[] quals, final byte[] bases) {
     	
     	// Loop over the list of base quality scores in the window and find the minimum
         int minQual = quals[offset];

@@ -46,7 +46,8 @@ public class RecalDataManager {
     private boolean collapsedTablesCreated;
     public NHashMap<Double> dataSumExpectedErrors; // table used to calculate the overall aggregate quality score in which everything except read group is collapsed
 
-    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // the tag in a BAM file that holds the original quality scores
+    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // the tag that holds the original quality scores
+    public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ"; // the tag that holds the color space quality scores for SOLID bams
 
     RecalDataManager() {
     	data = new NHashMap<RecalDatum>();
@@ -54,8 +55,8 @@ public class RecalDataManager {
     }
     
     RecalDataManager( int estimatedCapacity ) {
-        data = new NHashMap<RecalDatum>( estimatedCapacity, 0.95f ); // second arg is the 'loading factor',
-                                                                     //   a number to monkey around with when optimizing performace of the HashMap
+        data = new NHashMap<RecalDatum>( estimatedCapacity, 0.8f ); // second arg is the 'loading factor',
+                                                                    //   a number to monkey around with when optimizing performace of the HashMap
         collapsedTablesCreated = false;
     }
 

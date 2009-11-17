@@ -55,7 +55,7 @@ public class CycleCovariate implements Covariate {
     }
 
     public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, 
-    								 final byte[] quals, final char[] bases, final char refBase) {
+    								 final byte[] quals, final byte[] bases) {
         if( platform.equalsIgnoreCase( "SLX" ) ) {
 	        int cycle = offset;
 	        if( read.getReadNegativeStrandFlag() ) {
@@ -64,7 +64,7 @@ public class CycleCovariate implements Covariate {
 	        return cycle;
         } else if( platform.equalsIgnoreCase( "454" ) ) {
             int cycle = 0;
-            char prevBase = bases[0];
+            byte prevBase = bases[0];
             for( int iii = 1; iii <= offset; iii++ ) {
                 if(bases[iii] != prevBase) { // this base doesn't match the previous one so it is a new cycle
                     cycle++;
