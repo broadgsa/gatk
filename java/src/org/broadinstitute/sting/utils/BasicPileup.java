@@ -190,7 +190,7 @@ abstract public class BasicPileup implements Pileup {
 
         if (sbases == null) { return null; }
 
-        ArrayList<Byte> pbases = basePileup(reads, offsets);
+        ArrayList<Byte> pbases = basePileup(reads, offsets,true);
 
         Random generator = new Random();
         
