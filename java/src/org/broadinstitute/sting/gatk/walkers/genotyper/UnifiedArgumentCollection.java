@@ -77,7 +77,7 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "max_deletions", shortName = "deletions", doc = "Maximum reads with deletions spanning this locus for it to be callable [to disable, set to < 0; default:1]", required = false)
     public Integer MAX_DELETIONS = 1;
 
-    @Argument(fullName = "max_coverage", shortName = "coverage", doc = "Maximum reads at this locus for it to be callable; to disable, provide value < 1 [default:10,000]", required = false)
+    @Argument(fullName = "max_coverage", shortName = "mc", doc = "Maximum reads at this locus for it to be callable; to disable, provide value < 1 [default:10,000]", required = false)
     public Integer MAX_READS_IN_PILEUP = 10000;
 
     @Argument(fullName = "min_allele_frequency", shortName = "min_freq", doc = "The minimum possible allele frequency in a population (advanced)", required = false)

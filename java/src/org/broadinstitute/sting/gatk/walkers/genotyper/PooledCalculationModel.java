@@ -10,9 +10,13 @@ import net.sf.samtools.SAMRecord;
 
 public class PooledCalculationModel extends JointEstimateGenotypeCalculationModel {
 
-    protected PooledCalculationModel() {}
+    protected PooledCalculationModel() {
+    }
 
-
+    protected int getNSamples(HashMap<String, AlignmentContextBySample> contexts) {
+        return POOL_SIZE;
+    }
+    
     protected HashMap<String, AlignmentContextBySample> createContexts(AlignmentContext context) {
         // for testing purposes, we may want to throw multi-samples at pooled mode,
         // so we can't use the standard splitContextBySample() method here
@@ -48,10 +52,10 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
     }
     
     protected double computeLog10PofDgivenAFi(DiploidGenotype refGenotype, DiploidGenotype hetGenotype, DiploidGenotype homGenotype, double f) {
-
+        System.out.printf("%s %.2f%n", hetGenotype, f);
         // TODO -- IMPLEMENT ME
 
-        return 0.0;
+        return -100.0;
     }
 
     protected List<Genotype> makeGenotypeCalls(char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {

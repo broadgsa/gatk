@@ -18,6 +18,10 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         return splitContextBySample(context);
     }
 
+    protected int getNSamples(HashMap<String, AlignmentContextBySample> contexts) {
+        return contexts.size();
+    }
+
     protected void initializeLikelihoods(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
         GLs.clear();
 

@@ -36,7 +36,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     protected abstract void initializeLikelihoods(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType);
     protected abstract double computeLog10PofDgivenAFi(DiploidGenotype refGenotype, DiploidGenotype hetGenotype, DiploidGenotype homGenotype, double f);
     protected abstract List<Genotype> makeGenotypeCalls(char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc);
-
+    protected abstract int getNSamples(HashMap<String, AlignmentContextBySample> contexts);
 
     public Pair<List<Genotype>, GenotypeLocusData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
@@ -45,7 +45,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         if ( contexts == null )
             return null;
 
-        int numSamples = contexts.size();
+        int numSamples = getNSamples(contexts);
         int frequencyEstimationPoints = (2 * numSamples) + 1;  // (add 1 for allele frequency of zero)
 
         initializeAlleleFrequencies(frequencyEstimationPoints);
