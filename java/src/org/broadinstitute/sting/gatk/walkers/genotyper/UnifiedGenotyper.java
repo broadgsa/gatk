@@ -94,8 +94,8 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
     public void initialize() {
 
         // deal with input errors
-        if ( UAC.POOLED && UAC.genotypeModel == GenotypeCalculationModel.Model.EM_POINT_ESTIMATE ) {
-            throw new StingException("This was an attempt to use an EM Point Estimate model with pooled genotype calculations. This model does not work with pooled data.");
+        if ( UAC.POOLSIZE > 0 && UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
+            throw new StingException("Attempting to use a model other than POOLED with pooled data. Please set the model to POOLED.");
         }
         if ( UAC.LOD_THRESHOLD > Double.MIN_VALUE ) {
             StringBuilder sb = new StringBuilder();

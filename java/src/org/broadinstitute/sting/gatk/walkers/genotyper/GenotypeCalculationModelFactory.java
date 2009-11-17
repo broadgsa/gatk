@@ -59,7 +59,10 @@ public class GenotypeCalculationModelFactory {
                 gcm = new PointEstimateGenotypeCalculationModel();
                 break;
             case JOINT_ESTIMATE:
-                gcm = new JointEstimateGenotypeCalculationModel();
+                gcm = new DiploidGenotypeCalculationModel();
+                break;
+            case POOLED:
+                gcm = new PooledCalculationModel();
                 break;
             default: throw new RuntimeException("Unexpected GenotypeCalculationModel " + UAC.genotypeModel);
         }

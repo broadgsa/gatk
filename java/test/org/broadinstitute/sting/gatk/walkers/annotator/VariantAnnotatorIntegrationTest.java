@@ -7,7 +7,7 @@ import java.util.Arrays;
 
 public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public static String baseTestString() {
-        return "-T VariantAnnotator -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 20:10,000,000-10,010,000 -vcf %s";
+        return "-T VariantAnnotator -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,010,000 -vcf %s";
     }
 
     @Test

@@ -23,7 +23,8 @@ public abstract class GenotypeCalculationModel implements Cloneable {
 
     public enum Model {
         EM_POINT_ESTIMATE,
-        JOINT_ESTIMATE
+        JOINT_ESTIMATE,
+        POOLED
     }
 
     protected BaseMismatchModel baseModel;
@@ -34,7 +35,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected GenotypeWriterFactory.GENOTYPE_FORMAT OUTPUT_FORMAT;
     protected boolean ALL_BASE_MODE;
     protected boolean GENOTYPE_MODE;
-    protected boolean POOLED_INPUT;
     protected int POOL_SIZE;
     protected double CONFIDENCE_THRESHOLD;
     protected double MINIMUM_ALLELE_FREQUENCY;
@@ -67,7 +67,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         OUTPUT_FORMAT = UAC.VAR_FORMAT;
         ALL_BASE_MODE = UAC.ALL_BASES;
         GENOTYPE_MODE = UAC.GENOTYPE;
-        POOLED_INPUT = UAC.POOLED;
         POOL_SIZE = UAC.POOLSIZE;
         CONFIDENCE_THRESHOLD = UAC.CONFIDENCE_THRESHOLD;
         MINIMUM_ALLELE_FREQUENCY = UAC.MINIMUM_ALLELE_FREQUENCY;
@@ -144,19 +143,15 @@ public abstract class GenotypeCalculationModel implements Cloneable {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
 
-            // find the sample; special case for pools
+            // find the sample
             String sample;
-            if ( POOLED_INPUT ) {
-                sample = "POOL";
+            SAMReadGroupRecord readGroup = read.getReadGroup();
+            if ( readGroup == null ) {
+                if ( assumedSingleSample == null )
+                    throw new StingException("Missing read group for read " + read.getReadName());
+                sample = assumedSingleSample;
             } else {
-                SAMReadGroupRecord readGroup = read.getReadGroup();
-                if ( readGroup == null ) {
-                    if ( assumedSingleSample == null )
-                        throw new StingException("Missing read group for read " + read.getReadName());
-                    sample = assumedSingleSample;
-                } else {
-                    sample = readGroup.getSample();
-                }
+                sample = readGroup.getSample();
             }
 
             // create a new context object if this is the first time we're seeing a read for this sample

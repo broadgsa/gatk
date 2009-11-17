@@ -31,7 +31,7 @@ public class FisherStrand implements VariantAnnotation {
         if ( pvalue == null )
             return null;
 
-        return new Pair<String, String>("FisherStrand", String.format("%.4f", pvalue));
+        return new Pair<String, String>("FisherStrand", String.format("%.1f", -10.0 * Math.log10(pvalue)));
     }
 
     public boolean useZeroQualityReads() { return false; }

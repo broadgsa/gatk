@@ -32,7 +32,7 @@ import org.broadinstitute.sting.utils.genotype.GenotypeWriterFactory;
 public class UnifiedArgumentCollection {
 
     // control the various models to be used
-    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- EM_POINT_ESTIMATE is currently the default, while JOINT_ESTIMATE is under development.  An exception will be thrown if an attempt is made to use EM_POINT_ESTIMATE with pooled data.", required = false)
+    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- EM_POINT_ESTIMATE is currently the default, while JOINT_ESTIMATE and POOLED are under development.", required = false)
     public GenotypeCalculationModel.Model genotypeModel = GenotypeCalculationModel.Model.EM_POINT_ESTIMATE;
 
     @Argument(fullName = "base_model", shortName = "bm", doc = "Base substitution model to employ -- EMPIRICAL is the recommended default, but it's possible to select the ONE_STATE and THREE_STATE models for comparison purposes", required = false)
@@ -41,10 +41,7 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
     public Double heterozygosity = DiploidGenotypePriors.HUMAN_HETEROZYGOSITY;
 
-    @Argument(fullName = "pooled", shortName = "pooled", doc = "Does the input bam represent pooled data (so that genotypes can't be called)?", required = false)
-    public boolean POOLED = false;
-
-    @Argument(fullName = "poolSize", shortName = "ps", doc = "Number of individuals in the pool", required = false)
+    @Argument(fullName = "poolSize", shortName = "ps", doc = "Number of individuals in the pool (for POOLED model only)", required = false)
     public int POOLSIZE = 0;
 
 
