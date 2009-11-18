@@ -201,8 +201,10 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
         for ( VariantAnnotation annotator : annotations) {
             Pair<String, String> annot = annotator.annotate(ref, (annotator.useZeroQualityReads() ? fullPileup : MQ0freePileup), genotypes);
-            if ( annot != null )
+            if ( annot != null ) {
+                // System.out.println("Annotating: First="+annot.getFirst()+" Second="+annot.getSecond());
                 results.put(annot.first, annot.second);
+            }
         }
 
         return results;
