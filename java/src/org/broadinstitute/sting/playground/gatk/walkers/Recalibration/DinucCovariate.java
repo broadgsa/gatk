@@ -51,7 +51,7 @@ public class DinucCovariate implements Covariate {
         dinucHashMap = new HashMap<Integer, Dinuc>();
         for(byte byte1 : BASES) {
             for(byte byte2: BASES) {
-                dinucHashMap.put( Dinuc.hashBytes(byte1, byte2), new Dinuc(byte1, byte2) );
+                dinucHashMap.put( Dinuc.hashBytes(byte1, byte2), new Dinuc(byte1, byte2) ); // This might seem silly, but Strings are too slow
             }
         }
     }

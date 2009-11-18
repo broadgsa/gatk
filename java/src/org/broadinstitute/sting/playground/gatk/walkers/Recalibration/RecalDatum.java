@@ -86,8 +86,8 @@ public class RecalDatum {
         }
     }
 
-    public final void increment( final char curBase, final char ref ) {
-        increment( 1, BaseUtils.simpleBaseToBaseIndex(curBase) == BaseUtils.simpleBaseToBaseIndex(ref) ? 0 : 1 ); // increment takes num observations, then num mismatches
+    public final void increment( final char curBase, final char refBase ) {
+        increment( 1, BaseUtils.simpleBaseToBaseIndex(curBase) == BaseUtils.simpleBaseToBaseIndex(refBase) ? 0 : 1 ); // increment takes num observations, then num mismatches
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -100,7 +100,7 @@ public class RecalDatum {
         double doubleMismatches = (double) ( numMismatches + smoothing );
         double doubleObservations = (double) ( numObservations + smoothing );
         double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
-        if (empiricalQual > QualityUtils.MAX_REASONABLE_Q_SCORE) empiricalQual = QualityUtils.MAX_REASONABLE_Q_SCORE;
+        if (empiricalQual > QualityUtils.MAX_REASONABLE_Q_SCORE) { empiricalQual = QualityUtils.MAX_REASONABLE_Q_SCORE; }
         return empiricalQual;
     }
     public final double empiricalQualDouble() { return empiricalQualDouble( 0 ); } // 'default' behavior is to use smoothing value of zero

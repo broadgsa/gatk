@@ -74,7 +74,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     @Argument(fullName = "window_size_nqs", shortName="nqs", doc="How big of a window should the MinimumNQSCovariate use for its calculation", required=false)
     private int WINDOW_SIZE = 3;
     @Argument(fullName="smoothing", shortName="sm", required = false, doc="Number of imaginary counts to add to each bin in order to smooth out bins with few data points")
-    public int SMOOTHING = 1;
+    private int SMOOTHING = 1;
 
     //public enum RecalibrationMode {
     //    COMBINATORIAL,
@@ -83,11 +83,11 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     //}
 
     //@Argument(fullName="recalibrationMode", shortName="mode", doc="Which calculation to use when recalibrating, default is SEQUENTIAL", required=false)
-    public String MODE_STRING = "SEQUENTIAL";
+    private String MODE_STRING = "SEQUENTIAL";
     //public RecalibrationMode MODE = RecalibrationMode.SEQUENTIAL; //BUGBUG: do we need to support the other modes?
 
-    protected RecalDataManager dataManager;
-    protected ArrayList<Covariate> requestedCovariates;
+    private RecalDataManager dataManager;
+    private ArrayList<Covariate> requestedCovariates;
 
     private static Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static Pattern COVARIATE_PATTERN = Pattern.compile("^@!.*");
@@ -162,10 +162,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                 } else { // found some data
                     if( !foundAllCovariates ) {
                         foundAllCovariates = true;
-                        logger.info( "The covariates being used here: " );
-                        logger.info( requestedCovariates );
                         if(estimatedCapacity > 300 * 40 * 200 * 16) { estimatedCapacity = 300 * 40 * 200 * 16; } // Don't want to crash with out of heap space exception
-                        dataManager = new RecalDataManager( estimatedCapacity );
+                        final boolean createCollapsedTables = true;
+                        // Initialize the data hashMaps
+                        dataManager = new RecalDataManager( estimatedCapacity, createCollapsedTables, requestedCovariates.size() );
 
                     }
                     addCSVData(line); // parse the line and add the data to the HashMap
@@ -179,10 +179,13 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         }
         logger.info( "...done!" );
 
+        logger.info( "The covariates being used here: " );
+        logger.info( requestedCovariates );
+
         // Create the collapsed tables that are used in the sequential calculation
         if( MODE_STRING.equalsIgnoreCase("SEQUENTIAL") ) {
-        	logger.info( "Creating collapsed tables for use in sequential calculation..." );
-            dataManager.createCollapsedTables( requestedCovariates.size() );
+        	logger.info( "Generating tables of empirical qualities for use in sequential calculation..." );
+            dataManager.generateEmpiricalQualities( requestedCovariates.size(), SMOOTHING );
             logger.info( "...done!" );
         }
     }
@@ -201,7 +204,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             key.add( cov.getValue( vals[iii] ) );
         }
         RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ) );
-        dataManager.data.put( key, datum );
+        dataManager.addToAllTables( key, datum );
+        
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -218,12 +222,12 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      */
     public SAMRecord map( char[] refBases, SAMRecord read ) {
 
-        // WARNING: refBases is always null because this walker doesn't have @REQUIRES({DataSource.REFERENCE_BASES})
+        // WARNING: refBases is always null because this walker doesn't have @Requires({DataSource.REFERENCE_BASES})
         // This is done in order to speed up the code
         
-//        if( read.getMappingQuality() <= 0 ) {
-//            return read; // early return here, unmapped reads and mapping quality zero reads should be left alone
-//        }
+        if( read.getMappingQuality() <= 0 ) {
+            return read; // early return here, unmapped reads and mapping quality zero reads should be left alone
+        }
 
         byte[] originalQuals = read.getBaseQualities();
         // Check if we need to use the original quality scores instead
@@ -253,21 +257,19 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                 key.add( covariate.getValue( read, iii, readGroup, originalQuals, bases ) ); // offset is zero based so passing iii is correct here                     
             }
 
-            if( MODE_STRING.equalsIgnoreCase("COMBINATORIAL") ) {
-                RecalDatum datum = dataManager.data.get( key );
-                if( datum != null ) { // if we have data for this combination of covariates then recalibrate the quality score otherwise do nothing
-                    recalQuals[iii] = datum.empiricalQualByte( SMOOTHING );
-                }
-            } else if( MODE_STRING.equalsIgnoreCase("SEQUENTIAL") ) {
-                recalQuals[iii] = performSequentialQualityCalculation( key );
-            } else {
-                throw new StingException( "Specified RecalibrationMode is not supported: " + MODE_STRING );
-            }
+            recalQuals[iii] = performSequentialQualityCalculation( key );
 
-            // Do some error checking on the new quality score
-            if ( recalQuals[iii]  <= 0 || recalQuals[iii]  > QualityUtils.MAX_REASONABLE_Q_SCORE ) {
-                throw new StingException( "Assigning bad quality score " + key + " => " +  recalQuals[iii] );
-            }
+            //if( MODE_STRING.equalsIgnoreCase("COMBINATORIAL") ) { // BUGBUG: This isn't supported. No need to keep the full data hashmap around so it was removed for major speed up
+            //    //RecalDatum datum = dataManager.data.get( key );
+            //    //if( datum != null ) { // if we have data for this combination of covariates then recalibrate the quality score otherwise do nothing
+            //    //    recalQuals[iii] = datum.empiricalQualByte( SMOOTHING );
+            //    //}
+            //   throw new StingException("The Combinatorial mode isn't supported.");
+            //} else if( MODE_STRING.equalsIgnoreCase("SEQUENTIAL") ) {
+            //
+            //} else {
+            //    throw new StingException( "Specified RecalibrationMode is not supported: " + MODE_STRING );
+            //}
         }
 
         preserveQScores( originalQuals, recalQuals ); // overwrite the work done if original quality score is too low
@@ -303,42 +305,40 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      */
     private byte performSequentialQualityCalculation( List<? extends Comparable> key ) {
 
-        byte qualFromRead = Byte.parseByte(key.get(1).toString());
-        ArrayList<Comparable> newKey;
+        String readGroupKeyElement = key.get(0).toString();
+        int qualityScoreKeyElement = Integer.parseInt(key.get(1).toString());
+        byte qualFromRead = (byte)qualityScoreKeyElement;
+        ArrayList<Comparable> newKey = new ArrayList<Comparable>();
 
         // The global quality shift (over the read group only)
-        newKey = new ArrayList<Comparable>();
-        newKey.add( key.get(0) ); // read group
+        newKey.add( readGroupKeyElement );
         RecalDatum globalDeltaQDatum = dataManager.getCollapsedTable(0).get( newKey );
+        Double globalDeltaQEmpirical = dataManager.getCollapsedDoubleTable(0).get( newKey );
         double globalDeltaQ = 0.0;
         double aggregrateQreported = 0.0;
         if( globalDeltaQDatum != null ) {
-        	aggregrateQreported = QualityUtils.phredScaleErrorRate( dataManager.dataSumExpectedErrors.get( newKey ) / ((double) globalDeltaQDatum.getNumObservations()) );
-           globalDeltaQ = globalDeltaQDatum.empiricalQualDouble( SMOOTHING ) - aggregrateQreported;
+            aggregrateQreported = QualityUtils.phredScaleErrorRate( dataManager.dataSumExpectedErrors.get( newKey ) / ((double) globalDeltaQDatum.getNumObservations()) );
+            globalDeltaQ = globalDeltaQEmpirical - aggregrateQreported;
         }
-        
+
         // The shift in quality between reported and empirical
-        newKey = new ArrayList<Comparable>();
-        newKey.add( key.get(0) ); // read group
-        newKey.add( key.get(1) ); // quality score
-        RecalDatum deltaQReportedDatum = dataManager.getCollapsedTable(1).get( newKey );
+        newKey.add( qualityScoreKeyElement );
+        Double deltaQReportedEmpirical = dataManager.getCollapsedDoubleTable(1).get( newKey );
         double deltaQReported = 0.0;
-        if( deltaQReportedDatum != null ) {
-            deltaQReported = deltaQReportedDatum.empiricalQualDouble( SMOOTHING ) - qualFromRead - globalDeltaQ;
+        if( deltaQReportedEmpirical != null ) {
+            deltaQReported = deltaQReportedEmpirical - qualFromRead - globalDeltaQ;
         }
         
         // The shift in quality due to each covariate by itself in turn
         double deltaQCovariates = 0.0;
-        RecalDatum deltaQCovariateDatum;
+        Double deltaQCovariateEmpirical;
         for( int iii = 2; iii < key.size(); iii++ ) {
-            newKey = new ArrayList<Comparable>();
-            newKey.add( key.get(0) ); // read group
-            newKey.add( key.get(1) ); // quality score
-            newKey.add( key.get(iii) ); // given covariate
-            deltaQCovariateDatum = dataManager.getCollapsedTable(iii).get( newKey );
-            if( deltaQCovariateDatum != null ) {
-                deltaQCovariates += ( deltaQCovariateDatum.empiricalQualDouble( SMOOTHING ) - qualFromRead - (globalDeltaQ + deltaQReported) );
+            newKey.add( key.get(iii) ); // the given covariate
+            deltaQCovariateEmpirical = dataManager.getCollapsedDoubleTable(iii).get( newKey );
+            if( deltaQCovariateEmpirical != null ) {
+                deltaQCovariates += ( deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported) );
             }
+            newKey.remove( 2 ); // this new covariate is always added in at position 2 in the newKey list
         }
 
         double newQuality = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;
