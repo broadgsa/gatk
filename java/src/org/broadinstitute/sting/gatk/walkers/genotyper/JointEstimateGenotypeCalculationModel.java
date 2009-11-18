@@ -7,7 +7,6 @@ import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 import java.util.*;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 
 public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalculationModel {
@@ -217,7 +216,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         verboseWriter.println();
     }
 
-    protected List<Genotype> makeGenotypeCalls(char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {
+    protected List<Genotype> makeGenotypeCalls(char ref, char alt, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {
         // by default, we return no genotypes
         return new ArrayList<Genotype>();
     }
@@ -246,7 +245,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
 
         // populate the sample-specific data
-        List<Genotype> calls = makeGenotypeCalls(ref, contexts, loc);
+        List<Genotype> calls = makeGenotypeCalls(ref, baseOfMax, contexts, loc);
 
         // next, the general locus data
         // note that calculating strand bias involves overwriting data structures, so we do that last
@@ -257,8 +256,11 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             }
             if ( locusdata instanceof AlleleFrequencyBacked ) {
                 ((AlleleFrequencyBacked)locusdata).setAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
-                AlleleFrequencyBacked.AlleleFrequencyRange range = computeAFrange(alleleFrequencyPosteriors[indexOfMax], frequencyEstimationPoints-1, bestAFguess, ALLELE_FREQUENCY_RANGE);
-                ((AlleleFrequencyBacked)locusdata).setAlleleFrequencyRange(range);
+                // frequenc range doesn't make sense for single samples
+                if ( getNSamples(contexts) > 1 ) {
+                    AlleleFrequencyBacked.AlleleFrequencyRange range = computeAFrange(alleleFrequencyPosteriors[indexOfMax], frequencyEstimationPoints-1, bestAFguess, ALLELE_FREQUENCY_RANGE);
+                    ((AlleleFrequencyBacked)locusdata).setAlleleFrequencyRange(range);
+                }
             }
             if ( locusdata instanceof IDBacked ) {
                 rodDbSNP dbsnp = getDbSNP(tracker);

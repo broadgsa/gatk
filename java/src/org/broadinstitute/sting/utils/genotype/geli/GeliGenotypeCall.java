@@ -13,7 +13,7 @@ import java.util.Arrays;
  *         <p/>
  *         The implementation of the genotype interface, specific to Geli
  */
-public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked {
+public class GeliGenotypeCall extends AlleleConstrainedGenotype implements ReadBacked, PosteriorsBacked {
     private final char mRefBase;
     private final GenomeLoc mLocation;
 
@@ -33,6 +33,7 @@ public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked 
      * @param loc  the genome loc
      */
     public GeliGenotypeCall(char ref, GenomeLoc loc) {
+        super(ref);
         mRefBase = ref;
         mLocation = loc;
 
@@ -42,6 +43,7 @@ public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked 
     }
 
     public GeliGenotypeCall(char ref, GenomeLoc loc, String genotype, double negLog10PError) {
+        super(ref);
         mRefBase = ref;
         mLocation = loc;
         mBestGenotype = DiploidGenotype.valueOf(genotype);
@@ -99,10 +101,30 @@ public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked 
 
     private void lazyEval() {
         if (mBestGenotype == null) {
-            Integer sorted[] = Utils.SortPermutation(mPosteriors);
-            mBestGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 1]];
-            mNextGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 2]];
-            mRefGenotype = DiploidGenotype.createHomGenotype(this.getReference());
+            char ref = this.getReference();
+            char alt = this.getAlternateAllele();
+
+            mRefGenotype = DiploidGenotype.createHomGenotype(ref);
+
+            // if we are constrained to a single alternate allele, use only that one
+            if ( alt != AlleleConstrainedGenotype.NO_CONSTRAINT ) {
+                DiploidGenotype hetGenotype = ref < alt ? DiploidGenotype.valueOf(String.valueOf(ref) + String.valueOf(alt)) : DiploidGenotype.valueOf(String.valueOf(alt) + String.valueOf(ref));
+                DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
+                boolean hetOverHom = mPosteriors[hetGenotype.ordinal()] > mPosteriors[homGenotype.ordinal()];
+                boolean hetOverRef = mPosteriors[hetGenotype.ordinal()] > mPosteriors[mRefGenotype.ordinal()];
+                boolean homOverRef = mPosteriors[homGenotype.ordinal()] > mPosteriors[mRefGenotype.ordinal()];
+                if ( hetOverHom ) {
+                    mBestGenotype = (hetOverRef ? hetGenotype : mRefGenotype);
+                    mNextGenotype = (!hetOverRef ? hetGenotype : (homOverRef ? homGenotype : mRefGenotype));
+                } else {
+                    mBestGenotype = (homOverRef ? homGenotype : mRefGenotype);
+                    mNextGenotype = (!homOverRef ? homGenotype : (hetOverRef ? hetGenotype : mRefGenotype));
+                }
+            } else {
+                Integer sorted[] = Utils.SortPermutation(mPosteriors);
+                mBestGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 1]];
+                mNextGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 2]];
+            }
         }
     }
 
@@ -117,7 +139,7 @@ public class GeliGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked 
     }
 
     // get the best genotype
-    private DiploidGenotype getBestGenotype() {
+    protected DiploidGenotype getBestGenotype() {
         lazyEval();
         return mBestGenotype;
     }

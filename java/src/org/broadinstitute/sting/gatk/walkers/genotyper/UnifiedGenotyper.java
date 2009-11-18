@@ -37,7 +37,6 @@ import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
 import org.broadinstitute.sting.utils.genotype.*;
@@ -95,14 +94,17 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
 
         // deal with input errors
         if ( UAC.POOLSIZE > 0 && UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
-            throw new StingException("Attempting to use a model other than POOLED with pooled data. Please set the model to POOLED.");
+            throw new IllegalArgumentException("Attempting to use a model other than POOLED with pooled data. Please set the model to POOLED.");
+        }
+        if ( UAC.POOLSIZE < 1 && UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ) {
+            throw new IllegalArgumentException("Attempting to use the POOLED model with a pool size less than 1. Please set the pool size to an appropriate value.");
         }
         if ( UAC.LOD_THRESHOLD > Double.MIN_VALUE ) {
             StringBuilder sb = new StringBuilder();
             sb.append("\n***\tThe --lod_threshold argument is no longer supported; instead, please use --min_confidence_threshold.");
             sb.append("\n***\tThere is approximately a 10-to-1 mapping from confidence to LOD.");
             sb.append("\n***\tUse Q" + (10.0 * UAC.LOD_THRESHOLD) + " as an approximate equivalent to your LOD " + UAC.LOD_THRESHOLD + " cutoff");
-            throw new StingException(sb.toString());
+            throw new IllegalArgumentException(sb.toString());
         }
 
         // get all of the unique sample names

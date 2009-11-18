@@ -68,7 +68,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         return PofDgivenAFi;
     }
 
-    protected List<Genotype> makeGenotypeCalls(char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {
+    protected List<Genotype> makeGenotypeCalls(char ref, char alt, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {
         ArrayList<Genotype> calls = new ArrayList<Genotype>();
 
         for ( String sample : GLs.keySet() ) {
@@ -88,6 +88,9 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             }
             if ( call instanceof PosteriorsBacked ) {
                 ((PosteriorsBacked)call).setPosteriors(GLs.get(sample).getPosteriors());
+            }
+            if ( call instanceof AlleleConstrainedGenotype ) {
+                ((AlleleConstrainedGenotype)call).setAlternateAllele(alt);
             }
 
             calls.add(call);

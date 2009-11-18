@@ -13,7 +13,7 @@ import java.util.Arrays;
  *         <p/>
  *         The implementation of the genotype interface, specific to VCF
  */
-public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, SampleBacked {
+public class VCFGenotypeCall extends AlleleConstrainedGenotype implements ReadBacked, SampleBacked {
     private final char mRefBase;
     private final GenomeLoc mLocation;
 
@@ -31,6 +31,7 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
     private String mSampleName;
 
     public VCFGenotypeCall(char ref, GenomeLoc loc) {
+        super(ref);
         mRefBase = ref;
         mLocation = loc;
 
@@ -41,6 +42,7 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
     }
 
     public VCFGenotypeCall(char ref, GenomeLoc loc, String genotype, double negLog10PError, int coverage, String sample) {
+        super(ref);
         mRefBase = ref;
         mLocation = loc;
         mBestGenotype = DiploidGenotype.unorderedValueOf(genotype);
@@ -103,13 +105,32 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
 
     private void lazyEval() {
         if (mBestGenotype == null) {
-            Integer sorted[] = Utils.SortPermutation(mPosteriors);
-            mBestGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 1]];
-            mNextGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 2]];
-            mRefGenotype = DiploidGenotype.createHomGenotype(this.getReference());
+            char ref = this.getReference();
+            char alt = this.getAlternateAllele();
+
+            mRefGenotype = DiploidGenotype.createHomGenotype(ref);
+
+            // if we are constrained to a single alternate allele, use only that one
+            if ( alt != AlleleConstrainedGenotype.NO_CONSTRAINT ) {
+                DiploidGenotype hetGenotype = ref < alt ? DiploidGenotype.valueOf(String.valueOf(ref) + String.valueOf(alt)) : DiploidGenotype.valueOf(String.valueOf(alt) + String.valueOf(ref));
+                DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
+                boolean hetOverHom = mPosteriors[hetGenotype.ordinal()] > mPosteriors[homGenotype.ordinal()];
+                boolean hetOverRef = mPosteriors[hetGenotype.ordinal()] > mPosteriors[mRefGenotype.ordinal()];
+                boolean homOverRef = mPosteriors[homGenotype.ordinal()] > mPosteriors[mRefGenotype.ordinal()];
+                if ( hetOverHom ) {
+                    mBestGenotype = (hetOverRef ? hetGenotype : mRefGenotype);
+                    mNextGenotype = (!hetOverRef ? hetGenotype : (homOverRef ? homGenotype : mRefGenotype));
+                } else {
+                    mBestGenotype = (homOverRef ? homGenotype : mRefGenotype);
+                    mNextGenotype = (!homOverRef ? homGenotype : (hetOverRef ? hetGenotype : mRefGenotype));
+                }
+            } else {
+                Integer sorted[] = Utils.SortPermutation(mPosteriors);
+                mBestGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 1]];
+                mNextGenotype = DiploidGenotype.values()[sorted[DiploidGenotype.values().length - 2]];
+            }
         }
     }
-
 
     /**
      * get the confidence we have
@@ -121,7 +142,7 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
     }
 
     // get the best genotype
-    private DiploidGenotype getBestGenotype() {
+    protected DiploidGenotype getBestGenotype() {
         lazyEval();
         return mBestGenotype;
     }
@@ -136,15 +157,6 @@ public class VCFGenotypeCall implements Genotype, ReadBacked, PosteriorsBacked, 
     private DiploidGenotype getRefGenotype() {
         lazyEval();
         return mRefGenotype;
-    }
-
-    /**
-     * get the bases that represent this
-     *
-     * @return the bases, as a string
-     */
-    public String getBases() {
-        return getBestGenotype().toString();
     }
 
     /**
