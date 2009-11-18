@@ -19,10 +19,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public static String secondBaseTestFile( int testNo ) {
         switch ( testNo ) {
             case 1: return "NA12891";
-            case 2: return "NA12842";
-            case 3: return "NA18510";
-            case 4: return "NA18960";
-            case 5: return "NA20762";
+            case 2: return "NA20762";
             default: throw new StingException("Impossible test has been run: secondbasetest number "+ testNo);
         }
     }
@@ -30,10 +27,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public static String secondBaseTestInterval ( int testNo ) {
         switch ( testNo ) {
             case 1: return "-L chr1:14,000,000-18,000,000";
-            case 2: return "-L chr2:10,000,000-18,000,000";
-            case 3: return "-L chr1:10,000,000-20,000,000";
-            case 4: return "-L chr1:10,000,000-15,000,000 -L chr2:5,000,000-12,000,000 -L chr3:4,000,000-14,000,000";
-            case 5: return "-L chr20 -L chr21 -L chr22";
+            case 2: return "-L chr22:20660081-20660083 -L chr22:29198100-29198104 -L chr22:29821330-29821334";
             default: throw new StingException("Impossible test has been run: secondbasetest number "+testNo);
         }
     }
@@ -41,10 +35,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public static String secondBaseTestmd5( int testNo ) {
         switch ( testNo ) {
             case 1: return "48adec9c7fa6d3f5f5647b8eababd4e3";
-            case 2: return "2b62ad3444bd16a9809ed2df5d6c66ca";
-            case 3: return "90a24b6103c3d7b40ab41204be33005d";
-            case 4: return "cc62790f15fb070a59b04cdb94fdd0e9";
-            case 5: return "10cffb288bcd0bc992a2603ff0a0e02e";
+            case 2: return "3a53d945b38e1fc87a801f23115222fe";
             default: throw new StingException("Impossible test has been run: secondbasetest number "+testNo);
         }
     }
