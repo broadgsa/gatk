@@ -92,7 +92,7 @@ public class LocusIteratorByState extends LocusIterator {
         public int getGenomePosition() { return read.getAlignmentStart() + getGenomeOffset(); }
 
         public GenomeLoc getLocation() {
-            return GenomeLocParser.createGenomeLoc(read.getReferenceIndex(), getGenomePosition());
+            return GenomeLocParser.createGenomeLoc(read.getReferenceName(), getGenomePosition());
         }
 
         //private CigarElement getCurElement() { return curElement; }
