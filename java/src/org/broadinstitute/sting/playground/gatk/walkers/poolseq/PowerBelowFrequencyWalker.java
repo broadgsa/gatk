@@ -50,10 +50,16 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
     @Argument(fullName="ignoreReverseReads",doc="Ignore the reverse reads at a site. Defaults to false.", required = false)
     boolean ignoreReverseReads = false;
 
+    private boolean calledByAnotherWalker = false;
+
     public void initialize() {
         if ( alleleFreq < 1 ) {
             String err = "Allele frequency (-af) must be greater than or equal to one.";
             throw new StingException(err);
+        }
+
+        if ( numIndividuals == 0 ) {
+            calledByAnotherWalker = true;
         }
     }
 
@@ -105,7 +111,7 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
     }
 
     public double calculatePowerAtFrequency( AlignmentContext context, int alleles ) {
-        return theoreticalPower( context.numReads(), getMeanQ(context), alleles );
+        return theoreticalPower( context.numReads(), getMeanQ(context), alleles, lodThresh );
     }
 
     public byte getMeanQ( AlignmentContext context ) {
@@ -139,7 +145,7 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
         return String.format("%s%n", header);
     }
 
-    public double theoreticalPower( int depth, byte q, int alleles ) {
+    public double theoreticalPower( int depth, byte q, int alleles, double lodThreshold ) {
         double power;
         if( depth <= 0 ) {
             power = 0.0;
@@ -151,7 +157,7 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
             double dkterm_num = Math.log10( snpProp * (p_error/3) + (1 - snpProp) * (1 - p_error) );
             double dkterm_denom = Math.log10( 1 - p_error);
 
-            int kaccept = (int) Math.ceil( ( lodThresh - ( (double) depth ) * ( dkterm_num - dkterm_denom ) ) /
+            int kaccept = (int) Math.ceil( ( lodThreshold - ( (double) depth ) * ( dkterm_num - dkterm_denom ) ) /
                     ( kterm_num - kterm_denom- dkterm_num + dkterm_denom ) );
 
             // we will reject the null hypothesis if we see kaccept or more SNPs, the power is the probability that this occurs
@@ -171,5 +177,11 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
         return ((double)alleles)/(2*numIndividuals);
     }
 
-
+    public void setPoolSize(int poolSize) {
+        if ( calledByAnotherWalker ) {
+            numIndividuals = poolSize;
+        } else {
+            throw new StingException("This method should only be accessible by calling it from another walker.");
+        }
+    }
 }

@@ -30,7 +30,7 @@ public class PooledConcordance extends ChipConcordance implements PoolAnalysis {
     protected ConcordanceTruthTable[] createTruthTableMappings(List<String> rodNames, Map<String, Integer> sampleToArrayIndex) {
         // there is only one truth table - the pool-wide one
         ConcordanceTruthTable[] tables = new ConcordanceTruthTable[1];
-        tables[0] = new ConcordanceTruthTable();
+        tables[0] = new ConcordanceTruthTable(rodNames.size());
 
         for ( String name : rodNames ) {
             sampleToArrayIndex.put(name, 0);

@@ -130,15 +130,16 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         //
         analyses.add(new ValidationDataAnalysis());
 
-	// todo -- chris remove?
-        //analyses.add(new PooledGenotypeConcordance(samplesFile));
         analyses.add(new VariantCounter());
         analyses.add(new VariantDBCoverage(knownSNPDBName));
         //analyses.add(new PooledFrequencyAnalysis(numPeopleInPool,knownSNPDBName));
         if ( samplesFile == null )
             analyses.add(new GenotypeConcordance(genotypeChipName, false));
-        else
-            analyses.add(new GenotypeConcordance(samplesFile, true));        
+        else if ( numPeopleInPool < 1)
+            analyses.add(new GenotypeConcordance(samplesFile, true));
+        else {
+            analyses.add(new PooledConcordance(samplesFile,true));
+        }
         analyses.add(new TransitionTranversionAnalysis());
         analyses.add(new NeighborDistanceAnalysis());
         analyses.add(new HardyWeinbergEquilibrium(badHWEThreshold));
