@@ -40,7 +40,7 @@ public class QualityScoreCovariate implements Covariate {
     public QualityScoreCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }
 
-    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup,
+    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, final String platform,
 			 final byte[] quals, final byte[] bases) {
     	
     	return (int)quals[offset];

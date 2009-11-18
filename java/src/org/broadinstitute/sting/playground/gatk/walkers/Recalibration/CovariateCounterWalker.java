@@ -3,11 +3,15 @@ package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.RODRecordList;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
@@ -70,8 +74,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private String[] COVARIATES = null;
     @Argument(fullName = "use_original_quals", shortName="OQ", doc="If provided, we will use use the quals from the original qualities OQ attribute field instead of the quals in the regular QUALS field", required=false)
     private boolean USE_ORIGINAL_QUALS = false;
-    @Argument(fullName = "platform", shortName="pl", doc="Which sequencing technology was used? This is important for the cycle covariate. Options are SLX, 454, and SOLID.", required=false)
-    private String PLATFORM = "SLX";
     @Argument(fullName = "window_size_nqs", shortName="nqs", doc="How big of a window should the MinimumNQSCovariate use for its calculation", required=false)
     private int WINDOW_SIZE = 3;
     @Argument(fullName="recal_file", shortName="recalFile", required=false, doc="Filename for the outputted covariates table recalibration file")
@@ -114,9 +116,16 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
 
         // Warn the user if no dbSNP file was specified
-        if( this.getToolkit().getArguments().DBSNPFile == null ) {
+        boolean foundDBSNP = false;
+        for( ReferenceOrderedDataSource rod : this.getToolkit().getRodDataSources() ) {
+            if( rod.getName().equalsIgnoreCase( "dbsnp" ) ) {
+                foundDBSNP = true;
+            }
+        }
+        if( !foundDBSNP ) {
             Utils.warnUser("This calculation is critically dependent on being able to skip over known variant sites. Are you sure you want to be running without a dbSNP rod specified?");
         }
+
 
         // Initialize the requested covariates by parsing the -cov argument
         requestedCovariates = new ArrayList<Covariate>();
@@ -130,9 +139,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                         Covariate covariate = (Covariate)covClass.newInstance();
                         estimatedCapacity *= covariate.estimatedNumberOfBins();
                         // Some covariates need parameters (user supplied command line arguments) passed to them
-                        if( covariate instanceof CycleCovariate ) { covariate = new CycleCovariate( PLATFORM ); }
-                        else if( covariate instanceof PrimerRoundCovariate ) { covariate = new PrimerRoundCovariate( PLATFORM ); }
-                        else if( covariate instanceof MinimumNQSCovariate ) { covariate = new MinimumNQSCovariate( WINDOW_SIZE ); }
+                        if( covariate instanceof MinimumNQSCovariate ) { covariate = new MinimumNQSCovariate( WINDOW_SIZE ); }
                         if( !( covariate instanceof ReadGroupCovariate || covariate instanceof QualityScoreCovariate ) ) { // these were already added so don't add them again
                             requestedCovariates.add( covariate );
                         }
@@ -160,9 +167,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                                 Covariate covariate = (Covariate)covClass.newInstance();
                                 estimatedCapacity *= covariate.estimatedNumberOfBins();
                                 // Some covariates need parameters (user supplied command line arguments) passed to them
-                                if( covariate instanceof CycleCovariate ) { covariate = new CycleCovariate( PLATFORM ); }
-                                else if( covariate instanceof PrimerRoundCovariate ) { covariate = new PrimerRoundCovariate( PLATFORM ); }
-                                else if( covariate instanceof MinimumNQSCovariate ) { covariate = new MinimumNQSCovariate( WINDOW_SIZE ); }
+                                if( covariate instanceof MinimumNQSCovariate ) { covariate = new MinimumNQSCovariate( WINDOW_SIZE ); }
                                 requestedCovariates.add( covariate );
                             } catch ( InstantiationException e ) {
                                 throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
@@ -209,11 +214,21 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
 
-        final rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP( tracker.getTrackData("dbsnp", null) );
+        // pull out anything passed by -B name,type,file that has the name "dbsnp"
+        final RODRecordList<ReferenceOrderedDatum> dbsnpRODs = tracker.getTrackData( "dbsnp", null );
+        boolean isSNP = false;
+        if (dbsnpRODs != null) {
+            for( ReferenceOrderedDatum rod : dbsnpRODs ) {
+                if( ((Variation)rod).isSNP() ) {
+                    isSNP = true; // at least one of the rods says this is a snp site
+                    break;
+                }
+            }
+        }
 
         // Only use data from non-dbsnp sites
         // Assume every mismatch at a non-dbsnp site is indicitive of poor quality
-        if( dbsnp == null ) {
+        if( !isSNP ) {
             final List<SAMRecord> reads = context.getReads();
             final List<Integer> offsets = context.getOffsets();
             SAMRecord read;
@@ -223,6 +238,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             byte[] bases;
             byte refBase;
             byte prevBase;
+            String platform;
+            byte[] colorSpaceQuals;
             
             final int numReads = reads.size();
             // For each read at this locus
@@ -251,30 +268,33 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                         }
                     }
 
-                    // SOLID bams insert the reference base into the read if the color space quality is zero, so skip over them
-                    byte[] colorSpaceQuals = null;
-                    if( PLATFORM.equalsIgnoreCase("SOLID") ) {
-                        colorSpaceQuals = (byte[])read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG);
-                    }
-                    if( colorSpaceQuals == null || colorSpaceQuals[offset] > 0 ) //BUGBUG: This isn't exactly correct yet
-                    {
-                        // skip if base quality is zero
-                        if( quals[offset] > 0 ) {
-                            bases = read.getReadBases(); // BUGBUG: DinucCovariate is relying on this method returning the same byte for bases 'a' and 'A'
-                            refBase = (byte)ref.getBase();
-                            prevBase = bases[offset-1];
+                    // skip if base quality is zero
+                    if( quals[offset] > 0 ) {
+                        bases = read.getReadBases(); // BUGBUG: DinucCovariate is relying on this method returning the same byte for bases 'a' and 'A'
+                        refBase = (byte)ref.getBase();
+                        prevBase = bases[offset-1];
 
-                            // Get the complement base strand if we are a negative strand read
-                            if( read.getReadNegativeStrandFlag() ) {
-                                bases = BaseUtils.simpleComplement( bases ); // this is an expensive call
-                                refBase = (byte)BaseUtils.simpleComplement( ref.getBase() );
-                                prevBase = bases[offset+1];
+                        // Get the complement base strand if we are a negative strand read
+                        if( read.getReadNegativeStrandFlag() ) {
+                            bases = BaseUtils.simpleComplement( bases ); // this is an expensive call
+                            refBase = (byte)BaseUtils.simpleComplement( ref.getBase() );
+                            prevBase = bases[offset+1];
+                        }
+
+                        // skip if this base or the previous one was an 'N' or etc.
+                        if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)bases[offset] ) ) {
+
+                            readGroup = read.getReadGroup().getReadGroupId(); // this is an expensive call
+                            platform = read.getReadGroup().getPlatform(); // this is an expensive call
+
+                            // SOLID bams insert the reference base into the read if the color space quality is zero, so skip over them
+                            colorSpaceQuals = null;
+                            if( platform.equalsIgnoreCase("SOLID") ) {
+                                colorSpaceQuals = QualityUtils.fastqToPhred((String)read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG));
                             }
-
-                            // skip if this base or the previous one was an 'N' or etc.
-                            if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)bases[offset] ) ) {
-                                readGroup = read.getReadGroup().getReadGroupId(); // this is an expensive call
-                                updateDataFromRead( read, offset, readGroup, quals, bases, refBase );
+                            if( colorSpaceQuals == null || colorSpaceQuals[offset] > 0 ) //BUGBUG: This isn't exactly correct yet
+                            {
+                                updateDataFromRead( read, offset, readGroup, platform, quals, bases, refBase );
                             }
                         }
                     }
@@ -303,13 +323,14 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @param bases The bases which make up the read
      * @param refBase The reference base at this locus
      */
-    private void updateDataFromRead(final SAMRecord read, final int offset, final String readGroup, final byte[] quals, final byte[] bases, final byte refBase) {
+    private void updateDataFromRead(final SAMRecord read, final int offset, final String readGroup, final String platform, 
+                                    final byte[] quals, final byte[] bases, final byte refBase) {
 
         List<Comparable> key = new ArrayList<Comparable>();
         
         // Loop through the list of requested covariates and pick out the value from the read, offset, and reference
         for( Covariate covariate : requestedCovariates ) {
-        	key.add( covariate.getValue( read, offset, readGroup, quals, bases ) );
+        	key.add( covariate.getValue( read, offset, readGroup, platform, quals, bases ) );
         }
 
     	// Using the list of covariate values as a key, pick out the RecalDatum from the data HashMap

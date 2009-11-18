@@ -41,26 +41,15 @@ import net.sf.samtools.SAMRecord;
 
 public class PrimerRoundCovariate implements Covariate {
 
-	private String platform;
-
-    public PrimerRoundCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
-        platform = "SLX";
+	public PrimerRoundCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }
 
-    public PrimerRoundCovariate(final String _platform) {
-    	platform = _platform;
-    }
-
-    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup,
+    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, final String platform,
     								 final byte[] quals, final byte[] bases) {
-        if( platform.equalsIgnoreCase( "SLX" ) ) {
-	        return 1; // nothing to do here because it is always the same
-        } else if( platform.equalsIgnoreCase( "454" ) ) {
-            return 1; // nothing to do here because it is always the same
-        } else if( platform.equalsIgnoreCase( "SOLID" ) ) {
-        	return offset % 5; // the primer round according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
+        if( platform.equalsIgnoreCase( "SOLID" ) ) {
+	        return offset % 5; // the primer round according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
         } else {
-        	throw new StingException( "Requested platform (" + platform + ") not supported in PrimerRoundCovariate." );
+            return 1; // nothing to do here because it is always the same
         }
 
     }

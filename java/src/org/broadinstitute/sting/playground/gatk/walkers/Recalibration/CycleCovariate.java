@@ -44,25 +44,18 @@ import net.sf.samtools.SAMRecord;
 
 public class CycleCovariate implements Covariate {
 
-	private String platform;
-
     public CycleCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
-        platform = "SLX"; // Solexa is the default
     }
 
-    public CycleCovariate(final String _platform) {
-    	platform = _platform;
-    }
-
-    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, 
+    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, final String platform,
     								 final byte[] quals, final byte[] bases) {
-        if( platform.equalsIgnoreCase( "SLX" ) ) {
-	        int cycle = offset;
+        if( platform.equalsIgnoreCase( "ILLUMINA" ) ) {
+            int cycle = offset;
 	        if( read.getReadNegativeStrandFlag() ) {
 	            cycle = bases.length - (offset + 1);
 	        }
 	        return cycle;
-        } else if( platform.equalsIgnoreCase( "454" ) ) {
+        } else if( platform.contains( "454" ) ) { // some bams have "LS454" and others have just "454"
             int cycle = 0;
             byte prevBase = bases[0];
             for( int iii = 1; iii <= offset; iii++ ) {
@@ -76,7 +69,7 @@ public class CycleCovariate implements Covariate {
             // the ligation cycle according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
         	return offset / 5; // integer division
         } else {
-        	throw new StingException( "Requested platform (" + platform + ") not supported in CycleCovariate." );
+        	throw new StingException( "Platform in read (" + platform + ") is not supported in CycleCovariate. Read = " + read );
         }
                                                         
     }

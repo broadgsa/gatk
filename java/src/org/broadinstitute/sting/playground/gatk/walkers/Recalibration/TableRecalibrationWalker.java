@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
 
@@ -69,8 +70,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private int PRESERVE_QSCORES_LESS_THAN = 5;
     @Argument(fullName = "use_original_quals", shortName="OQ", doc="If provided, we will use use the quals from the original qualities OQ attribute field instead of the quals in the regular QUALS field", required=false)
     private boolean USE_ORIGINAL_QUALS = false;
-    @Argument(fullName = "platform", shortName="pl", doc="Which sequencing technology was used? This is important for the cycle covariate. Options are SLX, 454, and SOLID.", required=false)
-    private String PLATFORM = "SLX";
     @Argument(fullName = "window_size_nqs", shortName="nqs", doc="How big of a window should the MinimumNQSCovariate use for its calculation", required=false)
     private int WINDOW_SIZE = 3;
     @Argument(fullName="smoothing", shortName="sm", required = false, doc="Number of imaginary counts to add to each bin in order to smooth out bins with few data points")
@@ -114,9 +113,19 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         boolean foundAllCovariates = false;
         int estimatedCapacity = 1; // capacity is multiplicitive so this starts at one
 
+        // Warn the user if a dbSNP file was specified since it isn't being used here
+        boolean foundDBSNP = false;
+        for( ReferenceOrderedDataSource rod : this.getToolkit().getRodDataSources() ) {
+            if( rod.getName().equalsIgnoreCase( "dbsnp" ) ) {
+                foundDBSNP = true;
+            }
+        }
+        if( foundDBSNP ) {
+            Utils.warnUser("A dbSNP rod file was specified but this walker doesn't make use of it.");
+        }
+
         // Read in the covariates that were used from the input file
         requestedCovariates = new ArrayList<Covariate>();
-
 
         // Read in the data from the csv file and populate the map
         logger.info( "Reading in the data from input file..." );
@@ -139,9 +148,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                                 try {
                                     Covariate covariate = (Covariate)covClass.newInstance();
                                     // some covariates need parameters (user supplied command line arguments) passed to them
-                                    if( covariate instanceof CycleCovariate ) { covariate = new CycleCovariate( PLATFORM ); }
-                                    else if( covariate instanceof PrimerRoundCovariate ) { covariate = new PrimerRoundCovariate( PLATFORM ); }
-                                    else if( covariate instanceof MinimumNQSCovariate ) { covariate = new MinimumNQSCovariate( WINDOW_SIZE ); }
+                                    if( covariate instanceof MinimumNQSCovariate ) { covariate = new MinimumNQSCovariate( WINDOW_SIZE ); }
                                     requestedCovariates.add( covariate );
                                     estimatedCapacity *= covariate.estimatedNumberOfBins();
                                     
@@ -243,6 +250,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         // These calls are expensive so only do them once for each read
         String readGroup = read.getReadGroup().getReadGroupId();
+        String platform = read.getReadGroup().getPlatform();
         byte[] bases = read.getReadBases();
 
         if( read.getReadNegativeStrandFlag() ) {
@@ -254,7 +262,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         for( int iii = 1; iii < read.getReadLength() - 1; iii++ ) { // skip first and last bases because there is no dinuc
             List<Comparable> key = new ArrayList<Comparable>();
             for( Covariate covariate : requestedCovariates ) {
-                key.add( covariate.getValue( read, iii, readGroup, originalQuals, bases ) ); // offset is zero based so passing iii is correct here                     
+                key.add( covariate.getValue( read, iii, readGroup, platform, originalQuals, bases ) ); // offset is zero based so passing iii is correct here
             }
 
             recalQuals[iii] = performSequentialQualityCalculation( key );
@@ -275,8 +283,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         preserveQScores( originalQuals, recalQuals ); // overwrite the work done if original quality score is too low
 
         // SOLID bams insert the reference base into the read if the color space quality is zero, so don't change their base quality scores
-        if( PLATFORM.equalsIgnoreCase("SOLID") ) {
-            byte[] colorSpaceQuals = (byte[])read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG);
+        if( platform.equalsIgnoreCase("SOLID") ) {
+            byte[] colorSpaceQuals = QualityUtils.fastqToPhred((String)read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG));
             if(colorSpaceQuals != null) { preserveBadColorSpaceQualities_SOLID( originalQuals, recalQuals, colorSpaceQuals ); }
         }
 

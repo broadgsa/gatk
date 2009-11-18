@@ -56,7 +56,7 @@ public class DinucCovariate implements Covariate {
         }
     }
     
-    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, 
+    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, final String platform,
 			 final byte[] quals, final byte[] bases) {
     	
         byte base = bases[offset];

@@ -48,7 +48,7 @@ public class MinimumNQSCovariate implements Covariate {
         windowReach = windowSize / 2; // integer division
     }
 
-    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, 
+    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, final String platform,
 			 final byte[] quals, final byte[] bases) {
     	
     	// Loop over the list of base quality scores in the window and find the minimum

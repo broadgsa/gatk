@@ -30,22 +30,26 @@ import net.sf.samtools.SAMRecord;
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
- * Date: Nov 4, 2009
+ * Date: Nov 18, 2009
  *
- * The Mapping Quality covariate.
+ * The Position covariate. It is a lot like the Cycle covariate except it always returns the offset regardless of which platform the read came from.
+ * This is the Solexa definition of machine cycle and the covariate that was always being used in the original version of the recalibrator.
  */
 
-public class MappingQualityCovariate implements Covariate {
+public class PositionCovariate implements Covariate {
 
-    public MappingQualityCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
+    public PositionCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }
 
     public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, final String platform,
-			 final byte[] quals, final byte[] bases) {
-    	
-    	return read.getMappingQuality();
+    								 final byte[] quals, final byte[] bases) {
+        int cycle = offset;
+        if( read.getReadNegativeStrandFlag() ) {
+            cycle = bases.length - (offset + 1);
+        }
+        return cycle;
     }
-    
+
     public final Comparable getValue(final String str) {
         return (int)Integer.parseInt( str ); // cast to primitive int (as opposed to Integer Object) is required so that the return value from the two getValue methods hash to same thing
     }
@@ -53,8 +57,8 @@ public class MappingQualityCovariate implements Covariate {
     public final int estimatedNumberOfBins() {
         return 100;
     }
-    
+
     public String toString() {
-        return "Mapping Quality Score";
+        return "Position in Read";
     }
 }
