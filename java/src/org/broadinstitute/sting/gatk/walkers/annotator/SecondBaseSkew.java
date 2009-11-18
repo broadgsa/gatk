@@ -92,6 +92,6 @@ public class SecondBaseSkew implements VariantAnnotation{
             }
         }
 
-        throw new StingException("List of genotypes did not contain a variant.");
+        throw new IllegalStateException("List of genotypes did not contain a variant.");
     }
 }
