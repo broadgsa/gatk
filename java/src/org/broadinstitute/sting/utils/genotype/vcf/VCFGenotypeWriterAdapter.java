@@ -116,13 +116,18 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         VCFParameters params = new VCFParameters();
         params.addFormatItem("GT");
 
-        // mapping of our sample names to genotypes
-        if (genotypes.size() < 1) {
-            throw new IllegalArgumentException("Unable to parse out the current location: genotype array must contain at least one entry");
-        }
-
         // get the location and reference
-        params.setLocations(genotypes.get(0).getLocation(), genotypes.get(0).getReference());
+        if ( genotypes.size() == 0 ) {
+            if ( locusdata == null )
+                throw new IllegalArgumentException("Unable to parse out the current location: genotype array must contain at least one entry or have locusdata");
+
+            params.setLocations(locusdata.getLocation(), locusdata.getReference());
+
+            // if there is no genotype data, we'll also need to set an alternate allele
+            params.addAlternateBase(new VCFGenotypeEncoding(String.valueOf(((VCFGenotypeLocusData)locusdata).getAlternateAllele())));
+        } else {
+            params.setLocations(genotypes.get(0).getLocation(), genotypes.get(0).getReference());
+        }
 
         Map<String, VCFGenotypeCall> genotypeMap = genotypeListToSampleNameMap(genotypes);
 

@@ -33,7 +33,7 @@ class VCFParameters {
         } else {
             if (!contig.equals(this.contig))
                 throw new IllegalArgumentException("The contig name has to be the same at a single locus");
-            if (position != this.position)
+            if (location.getStart() != this.position)
                 throw new IllegalArgumentException("The position has to be the same at a single locus");
             if (refBase != this.referenceBase)
                 throw new IllegalArgumentException("The reference base name has to be the same at a single locus");

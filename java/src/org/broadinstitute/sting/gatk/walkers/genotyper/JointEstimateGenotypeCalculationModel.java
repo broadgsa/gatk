@@ -254,6 +254,9 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             if ( locusdata instanceof ConfidenceBacked ) {
                 ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
             }
+            if ( locusdata instanceof AlternateAlleleBacked ) {
+                ((AlternateAlleleBacked)locusdata).setAlternateAllele(baseOfMax);
+            }
             if ( locusdata instanceof AlleleFrequencyBacked ) {
                 ((AlleleFrequencyBacked)locusdata).setAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
                 // frequenc range doesn't make sense for single samples

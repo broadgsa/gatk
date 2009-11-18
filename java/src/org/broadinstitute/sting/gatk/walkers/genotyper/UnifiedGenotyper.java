@@ -119,8 +119,8 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
         }
 
         // print them out for debugging (need separate loop to ensure uniqueness)
-        for ( String sample : samples )
-            logger.debug("SAMPLE: " + sample);
+        // for ( String sample : samples )
+        //     logger.debug("SAMPLE: " + sample);
 
         gcm = GenotypeCalculationModelFactory.makeGenotypeCalculation(samples, logger, UAC);
 
@@ -129,7 +129,12 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
         if ( VARIANTS_FILE == null && out == null )
             return;
 
-        // if we got here, then we were instantiated by the GATK engine
+        // *** If we got here, then we were instantiated by the GATK engine ***
+
+        // if we're in POOLED mode, we no longer want the sample names
+        // (although they're still stored in the gcm if needed)
+        if ( UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED )
+            samples.clear();
 
         // create the output writer stream
         if ( VARIANTS_FILE != null )
@@ -205,7 +210,8 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
         callsMetrics.nCalledBases++;
 
         // can't make a confident variant call here
-        if ( value.first == null || value.first.size() == 0 ) {
+        if ( value.first == null ||
+                (UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED && value.first.size() == 0) ) {
             callsMetrics.nNonConfidentCalls++;
             return sum;
         }
@@ -213,7 +219,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
         callsMetrics.nConfidentCalls++;
 
         // if we have a single-sample call (single sample from PointEstimate model returns no genotype locus data)
-        if ( value.second == null || (!writer.supportsMultiSample() && samples.size() == 1) ) {
+        if ( value.second == null || (!writer.supportsMultiSample() && samples.size() <= 1) ) {
             writer.addGenotypeCall(value.first.get(0));
         }
 

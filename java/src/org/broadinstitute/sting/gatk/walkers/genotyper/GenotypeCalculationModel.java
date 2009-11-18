@@ -60,7 +60,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected void initialize(Set<String> samples,
                               Logger logger,
                               UnifiedArgumentCollection UAC) {
-        this.samples = samples;
+        this.samples = new TreeSet<String>(samples);
         this.logger = logger;
         baseModel = UAC.baseModel;
         heterozygosity = UAC.heterozygosity;

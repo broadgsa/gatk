@@ -3,7 +3,6 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.util.*;
@@ -89,9 +88,10 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
             }
         }
 
-        verboseWriter.printf("POOL_DEBUG %s %c %c %d %d %d %.2f %.2f %.2f %f%n",
-                context.getContext(StratifiedContext.OVERALL).getLocation(),
-                refArg, altArg, nChromosomes, nAltAlleles, nRefAlleles, f, log10POfRef, log10POfAlt, log10L);
+        if ( verboseWriter != null )
+            verboseWriter.printf("POOL_DEBUG %s %c %c %d %d %d %.2f %.2f %.2f %f%n",
+                    context.getContext(StratifiedContext.OVERALL).getLocation(),
+                    refArg, altArg, nChromosomes, nAltAlleles, nRefAlleles, f, log10POfRef, log10POfAlt, log10L);
 
         return log10L;
     }

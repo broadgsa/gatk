@@ -13,7 +13,7 @@ import java.util.Map;
  *         <p/>
  *         represents the meta data for a genotype object.
  */
-public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked, SLODBacked, IDBacked, AlleleFrequencyBacked, ArbitraryFieldsBacked {
+public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked, SLODBacked, IDBacked, AlternateAlleleBacked, AlleleFrequencyBacked, ArbitraryFieldsBacked {
 
     // the discovery lod score
     private double mConfidence = 0.0;
@@ -28,8 +28,9 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
     // the location
     private GenomeLoc mLoc;
 
-    // the ref base
+    // the ref base and alt bases
     private char mRefBase;
+    private char mAltBase = 'N';
 
     // the id
     private String mID;
@@ -63,6 +64,22 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
      */
     public GenomeLoc getLocation() {
         return mLoc;
+    }
+
+    /**
+     *
+     * @return returns the alternate allele for this genotype
+     */
+    public char getAlternateAllele() {
+        return mAltBase;
+    }
+
+    /**
+     *
+     * @param   alt    the alternate allele base for this genotype
+     */
+    public void setAlternateAllele(char alt) {
+        mAltBase = alt;
     }
 
     /**
