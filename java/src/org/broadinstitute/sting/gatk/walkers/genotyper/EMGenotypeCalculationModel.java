@@ -58,7 +58,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
                 if ( dbsnp != null )
                     ((IDBacked)locusdata).setID(dbsnp.getRS_ID());
             }
-            if ( locusdata instanceof SLODBacked ) {
+            if ( locusdata instanceof SLODBacked && REPORT_SLOD ) {
 
                 // calculate strand score
 

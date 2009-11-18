@@ -44,9 +44,6 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "poolSize", shortName = "ps", doc = "Number of individuals in the pool (for POOLED model only)", required = false)
     public int POOLSIZE = 0;
 
-    @Argument(fullName = "noSLOD", shortName = "nsl", doc = "If provided, we will not calculate the SLOD", required = false)
-    public boolean NO_SLOD = false;
-
     // control the output
     @Argument(fullName = "variant_output_format", shortName = "vf", doc = "Format to be used to represent variants; default is VCF", required = false)
     public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
@@ -59,6 +56,9 @@ public class UnifiedArgumentCollection {
 
     @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
     public String VERBOSE = null;
+
+    @Argument(fullName = "noSLOD", shortName = "nsl", doc = "If provided, we will not calculate the SLOD", required = false)
+    public boolean NO_SLOD = false;
 
 
     // control the error modes
