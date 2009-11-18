@@ -16,7 +16,7 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
 
     @Test
     public void secondBaseSkewTest() {
-        for ( int test = 1; test <= 5; test ++ ) {
+        for ( int test = 1; test <= 1; test ++ ) {
             String bamFilePath = VariantAnnotatorIntegrationTest.validationDataPath()+VariantAnnotatorIntegrationTest.secondBaseTestFile(test)+".a2b.recal.annotation_subset.bam";
             String callFile = VariantAnnotatorIntegrationTest.validationDataPath()+VariantAnnotatorIntegrationTest.secondBaseTestFile(test)+".a2b.ssg1b.geli.calls";
             String args = VariantAnnotatorIntegrationTest.secondBaseTestString()+" -I "+bamFilePath+" -B variant,Variants,"+callFile+" "+VariantAnnotatorIntegrationTest.secondBaseTestInterval(test)+" -sample variant";

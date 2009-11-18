@@ -39,6 +39,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected double CONFIDENCE_THRESHOLD;
     protected double MINIMUM_ALLELE_FREQUENCY;
     protected double ALLELE_FREQUENCY_RANGE;
+    protected boolean REPORT_SLOD;
     protected int maxDeletionsInPileup;
     protected String assumedSingleSample;
     protected PrintWriter verboseWriter;
@@ -78,11 +79,15 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         if ( UAC.VERBOSE != null ) {
             try {
                 verboseWriter = new PrintWriter(UAC.VERBOSE);
+                initializeVerboseWriter(verboseWriter);
             } catch (FileNotFoundException e) {
                 throw new StingException("Could not open file " + UAC.VERBOSE + " for writing");
             }
         }
+        REPORT_SLOD = ! UAC.NO_SLOD;
     }
+
+    protected void initializeVerboseWriter(PrintWriter writer) { };
 
     public void close() {
         if ( verboseWriter != null )

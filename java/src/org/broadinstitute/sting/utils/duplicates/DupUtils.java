@@ -178,8 +178,8 @@ public class DupUtils {
 
     private static Pair<Byte, Byte> combineBaseProbs(List<SAMRecord> duplicates, int readOffset, int maxQScore) {
         List<Integer> offsets = BasicPileup.constantOffset(duplicates, readOffset);
-        ArrayList<Byte> bases = BasicPileup.basePileup(duplicates, offsets);
-        ArrayList<Byte> quals = BasicPileup.qualPileup(duplicates, offsets);
+        ArrayList<Byte> bases = BasicPileup.getBasesAsArrayList(duplicates, offsets);
+        ArrayList<Byte> quals = BasicPileup.getQualsAsArrayList(duplicates, offsets);
         final boolean debug = false;
 
         // calculate base probs
@@ -204,60 +204,5 @@ public class DupUtils {
                     BasicPileup.qualPileupAsString(duplicates, offsets),
                     (char)(byte)combined.getFirst(), combined.getSecond());
         return combined;
-    }
-
-
-    private static Pair<Byte, Byte> combineDupBasesAtI(List<SAMRecord> duplicates, int readOffset) {
-        //System.out.printf("combineDupBasesAtI() dups=%s, readOffset=%d%n", duplicates.size(), readOffset);
-        List<Integer> offsets = BasicPileup.constantOffset(duplicates, readOffset);
-        ArrayList<Byte> bases = BasicPileup.basePileup(duplicates, offsets);
-        ArrayList<Byte> quals = BasicPileup.qualPileup(duplicates, offsets);
-
-        // start the recursion
-        byte combinedBase = bases.get(0);
-        int combinedQual  = quals.get(0);
-        for ( int i = 1; i < bases.size(); i++ ) {
-            // recursively combine evidence
-            byte nextBase = bases.get(i);
-            byte nextQual = quals.get(i);
-            Pair<Byte, Integer> combinedI = combine2BasesAndQuals(combinedBase, nextBase, combinedQual, nextQual);
-
-            if ( false )
-                System.out.printf("Combining at %d: %s (Q%2d) with %s (Q%2d) -> %s (Q%2d)%s%n",
-                        i,
-                        (char)combinedBase, combinedQual,
-                        (char)nextBase, nextQual,
-                        (char)((byte)combinedI.getFirst()), combinedI.getSecond(),
-                        combinedBase == nextBase ? "" : " [MISMATCH]");
-            combinedBase = combinedI.getFirst();
-            combinedQual = combinedI.getSecond();
-        }
-
-        if ( false )
-            System.out.printf("%s %s => %c Q%s => Q%d%n",
-                    BasicPileup.basePileupAsString(duplicates, offsets),
-                    BasicPileup.qualPileupAsString(duplicates, offsets),
-                    (char)combinedBase, combinedQual, QualityUtils.boundQual(combinedQual));
-        return new Pair<Byte, Byte>(combinedBase, QualityUtils.boundQual(combinedQual));
-    }
-
-    private static Pair<Byte, Byte> combineBasesByConsensus(List<SAMRecord> duplicates, int readOffset) {
-        //System.out.printf("combineDupBasesAtI() dups=%s, readOffset=%d%n", duplicates.size(), readOffset);
-        List<Integer> offsets = BasicPileup.constantOffset(duplicates, readOffset);
-        String bases = BasicPileup.basePileupAsString(duplicates, offsets);
-        ArrayList<Byte> quals = BasicPileup.qualPileup(duplicates, offsets);
-        byte combinedBase  = BasicPileup.consensusBase(bases);
-        int baseMatches = Utils.countOccurrences((char)combinedBase, bases);
-        double maxP = QualityUtils.qualToProb(Utils.listMaxByte(quals));
-        double mismatchRate = (double)baseMatches / bases.length();
-        byte combinedQual = QualityUtils.probToQual(Math.min(maxP, mismatchRate), 0.0);
-
-        if ( false )
-            System.out.printf("%s %s => %c Q%s => Q%d%n",
-                    BasicPileup.basePileupAsString(duplicates, offsets),
-                    BasicPileup.qualPileupAsString(duplicates, offsets),
-                    (char)combinedBase, combinedQual, QualityUtils.boundQual(combinedQual));
-        
-        return new Pair<Byte, Byte>(combinedBase, QualityUtils.boundQual(combinedQual));
     }
 }

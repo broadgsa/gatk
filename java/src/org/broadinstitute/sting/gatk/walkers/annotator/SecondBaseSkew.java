@@ -58,7 +58,7 @@ public class SecondBaseSkew implements VariantAnnotation{
         }
         int variantDepth = 0;
         int variantsWithRefSecondBase = 0;
-        char[] primaryPileup = p.getBases().toCharArray();
+        byte[] primaryPileup = p.getBases();
         String secondBasePileup = p.getSecondaryBasePileup();
 
         if ( secondBasePileup == null ) {

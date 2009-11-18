@@ -70,7 +70,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(), context);
-        String bases = pileup.getBases();
+        String bases = pileup.getBasesAsString();
         
         if ( bases.equals("") && !IGNORE_UNCOVERED_BASES ) {
             bases = "***UNCOVERED_SITE***";
@@ -119,7 +119,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
         if( secondBasePileup != null )
             return " " + secondBasePileup;
         else
-            return " " + Utils.dupString('N', pileup.getBases().length());
+            return " " + Utils.dupString('N', pileup.getBasesAsString().length());
     }
 
     /**

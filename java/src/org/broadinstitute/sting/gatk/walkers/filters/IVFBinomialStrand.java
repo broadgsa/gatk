@@ -24,7 +24,7 @@ public class IVFBinomialStrand implements IndependentVariantFeature {
         
         ReadBackedPileup pileup = new ReadBackedPileup(context.getReferenceContext().getBase(), context.getAlignmentContext(useZeroQualityReads()));
         List<SAMRecord> reads = context.getAlignmentContext(useZeroQualityReads()).getReads();
-        String bases = pileup.getBases();
+        String bases = pileup.getBasesAsString();
 
         for (int genotypeIndex = 0; genotypeIndex < Genotype.values().length; genotypeIndex++) {
             Genotype genotype = Genotype.values()[genotypeIndex];

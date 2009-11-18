@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils;
 
+import java.util.ArrayList;
+
 /**
  * Created by IntelliJ IDEA.
  * User: depristo
@@ -10,8 +12,16 @@ package org.broadinstitute.sting.utils;
 public interface Pileup {
     GenomeLoc getLocation();
     char getRef();
-    String getBases();
-    String getQuals();
+
+    // byte array
+    byte[] getBases();
+    byte[] getQuals();
+
+    ArrayList<Byte> getBasesAsArrayList();
+    ArrayList<Byte> getQualsAsArrayList();
+
+    String getBasesAsString();
+    String getQualsAsString();
     String getPileupString();
     int size();
 }

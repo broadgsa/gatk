@@ -4,6 +4,8 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Created by IntelliJ IDEA.
@@ -33,7 +35,32 @@ public class ReadBackedPileup extends BasicPileup {
         this.offsets = offsets;
     }
 
+    public ReadBackedPileup getPileupWithoutDeletions() {
+        if ( getNumberOfDeletions() > 0 ) {
+            List<SAMRecord> newReads = new ArrayList<SAMRecord>();
+            List<Integer> newOffsets = new ArrayList<Integer>();
 
+            for ( int i = 0; i < size(); i++ ) {
+                if ( getOffsets().get(i) != -1 ) {
+                    newReads.add(getReads().get(i));
+                    newOffsets.add(getOffsets().get(i));
+                }
+            }
+            return new ReadBackedPileup(loc, ref, newReads, newOffsets);
+        } else {
+            return this;
+        }
+    }
+
+    public int getNumberOfDeletions() {
+        int n = 0;
+
+        for ( int i = 0; i < size(); i++ ) {
+            if ( getOffsets().get(i) != -1 ) { n++; }
+        }
+
+        return n;
+    }
 
     public int size()                 { return reads.size(); }
     public List<SAMRecord> getReads() { return reads; }
@@ -47,7 +74,16 @@ public class ReadBackedPileup extends BasicPileup {
         return ref;
     }
 
-    public String getBases() {
+    public byte[] getBases() {
+        return getBases(reads, offsets, includeDeletions);
+    }
+
+    public byte[] getQuals() {
+        return getQuals(reads, offsets, includeDeletions);
+    }
+
+
+    public String getBasesAsString() {
         return basePileupAsString(reads, offsets, includeDeletions);
     }
 
@@ -55,13 +91,21 @@ public class ReadBackedPileup extends BasicPileup {
         return baseWithStrandPileupAsString(reads, offsets, includeDeletions);
     }
 
-    public String getQuals() {
+    public ArrayList<Byte> getBasesAsArrayList() {
+        return getBasesAsArrayList(reads, offsets, includeDeletions);
+    }
+
+    public ArrayList<Byte> getQualsAsArrayList() {
+        return getQualsAsArrayList(reads, offsets, includeDeletions);
+    }
+
+    public String getQualsAsString() {
         return qualPileupAsString(reads, offsets);
     }
 
     public String getQualsAsInts() {
         //System.out.printf("getQualsAsInts");        
-        return Utils.join(",", qualPileup(reads, offsets));
+        return Utils.join(",", getQualsAsArrayList(reads, offsets));
     }
 
     public String getMappingQualsAsInts() {
@@ -73,7 +117,7 @@ public class ReadBackedPileup extends BasicPileup {
     }
 
     public String getSecondaryBasePileup() {
-        return secondaryBasePileupAsString(reads, offsets);
+        return getSecondaryBasePileupAsString(reads, offsets);
     }
 
     public String getSecondaryQualPileup() {
@@ -121,8 +165,8 @@ public class ReadBackedPileup extends BasicPileup {
         return String.format("%s %s %s %s %s %s",
                 getLocation().getContig(), getLocation().getStart(),    // chromosome name and coordinate
                 getRef(),                                               // reference base
-                getBases(),
-                qualsAsInts ? getQualsAsInts() : getQuals(),
+                getBasesAsString(),
+                qualsAsInts ? getQualsAsInts() : getQualsAsString(),
                 qualsAsInts ? getMappingQualsAsInts() : getMappingQuals() );
     }
 
@@ -131,7 +175,7 @@ public class ReadBackedPileup extends BasicPileup {
                 getLocation().getContig(), getLocation().getStart(),    // chromosome name and coordinate
                 getRef(),                                               // reference base
                 getBasesWithStrand(),
-                qualsAsInts ? getQualsAsInts() : getQuals(),
+                qualsAsInts ? getQualsAsInts() : getQualsAsString(),
                 qualsAsInts ? getMappingQualsAsInts() : getMappingQuals() );
     }
 }

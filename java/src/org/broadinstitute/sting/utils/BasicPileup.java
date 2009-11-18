@@ -26,7 +26,7 @@ abstract public class BasicPileup implements Pileup {
 
     public String getPileupString()
     {
-        return String.format("%s: %s %s %s", getLocation(), getRef(), getBases(), getQuals());
+        return String.format("%s: %s %s %s", getLocation(), getRef(), getBasesAsString(), getQualsAsString());
     }
 
     public static List<Integer> constantOffset( List<SAMRecord> reads, int i ) {
@@ -43,7 +43,7 @@ abstract public class BasicPileup implements Pileup {
 
     public static String basePileupAsString( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
         StringBuilder bases = new StringBuilder();
-        for ( byte base : basePileup(reads, offsets, includeDeletions)) {
+        for ( byte base : getBasesAsArrayList(reads, offsets, includeDeletions)) {
             bases.append((char)base);
         }
         return bases.toString();
@@ -81,11 +81,33 @@ abstract public class BasicPileup implements Pileup {
         return bases.toString();
     }
 
-    public static ArrayList<Byte> basePileup( List<SAMRecord> reads, List<Integer> offsets ) {
-        return basePileup( reads, offsets, false );
+    //
+    // byte[] methods
+    //
+    public static byte[] getBases( List<SAMRecord> reads, List<Integer> offsets ) {
+        return ArrayList2byte(getBasesAsArrayList( reads, offsets ));
     }
 
-    public static ArrayList<Byte> basePileup( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
+    public static byte[] getBases( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
+        return ArrayList2byte(getBasesAsArrayList( reads, offsets, includeDeletions ));
+    }
+
+    public static byte[] getQuals( List<SAMRecord> reads, List<Integer> offsets ) {
+        return ArrayList2byte(getQualsAsArrayList( reads, offsets ));
+    }
+
+    public static byte[] getQuals( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
+        return ArrayList2byte(getQualsAsArrayList( reads, offsets, includeDeletions ));
+    }
+
+    //
+    // ArrayList<Byte> methods
+    //
+    public static ArrayList<Byte> getBasesAsArrayList( List<SAMRecord> reads, List<Integer> offsets ) {
+        return getBasesAsArrayList( reads, offsets, false );
+    }
+
+    public static ArrayList<Byte> getBasesAsArrayList( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
         ArrayList<Byte> bases = new ArrayList<Byte>(reads.size());
         for ( int i = 0; i < reads.size(); i++ ) {
             SAMRecord read = reads.get(i);
@@ -100,16 +122,24 @@ abstract public class BasicPileup implements Pileup {
         return bases;
      }
 
-    public static ArrayList<Byte> qualPileup( List<SAMRecord> reads, List<Integer> offsets ) {
+    public static ArrayList<Byte> getQualsAsArrayList( List<SAMRecord> reads, List<Integer> offsets ) {
+        return getQualsAsArrayList( reads, offsets, false );
+    }
+
+    public static ArrayList<Byte> getQualsAsArrayList( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
         ArrayList<Byte> quals = new ArrayList<Byte>(reads.size());
         for ( int i = 0; i < reads.size(); i++ ) {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
+
             // skip deletion sites
-            if ( offset == -1 )
-                continue;
-            byte qual = (byte)read.getBaseQualities()[offset];
-            quals.add(qual);
+            if ( offset == -1 ) {
+                if ( includeDeletions )  // we need the qual vector to be the same length as base vector!
+                    quals.add((byte)0);
+            } else {
+                byte qual = read.getBaseQualities()[offset];
+                quals.add(qual);
+            }
         }
         return quals;
     }
@@ -128,6 +158,14 @@ abstract public class BasicPileup implements Pileup {
         return quals2String(mappingQualPileup(reads));
     }
 
+    private static byte[] ArrayList2byte(ArrayList<Byte> ab) {
+        byte[] ret = new byte[ab.size()];
+        int i = 0;
+        for (byte e : ab)
+            ret[i++] = e;
+        return ret;
+    }
+
     public static String quals2String( List<Byte> quals ) {
         StringBuilder qualStr = new StringBuilder();
         for ( int qual : quals ) {
@@ -140,10 +178,11 @@ abstract public class BasicPileup implements Pileup {
     }
 
     public static String qualPileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
-        return quals2String(qualPileup(reads, offsets));
+        return quals2String(getQualsAsArrayList(reads, offsets));
     }
 
-    public static ArrayList<Byte> secondaryBasePileup( List<SAMRecord> reads, List<Integer> offsets ) {
+    // todo -- there are probably bugs in here due to includeDeletion flags
+    public static ArrayList<Byte> getSecondaryBasesAsArrayList( List<SAMRecord> reads, List<Integer> offsets ) {
         ArrayList<Byte> bases2 = new ArrayList<Byte>(reads.size());
         boolean hasAtLeastOneSQorE2Field = false;
 
@@ -184,13 +223,13 @@ abstract public class BasicPileup implements Pileup {
         return (hasAtLeastOneSQorE2Field ? bases2 : null);
     }
 
-    public static String secondaryBasePileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
+    public static String getSecondaryBasePileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
         StringBuilder bases2 = new StringBuilder();
-        ArrayList<Byte> sbases = secondaryBasePileup(reads, offsets);
+        ArrayList<Byte> sbases = getSecondaryBasesAsArrayList(reads, offsets);
 
         if (sbases == null) { return null; }
 
-        ArrayList<Byte> pbases = basePileup(reads, offsets,true);
+        ArrayList<Byte> pbases = getBasesAsArrayList(reads, offsets,true);
 
         Random generator = new Random();
         
@@ -391,13 +430,13 @@ abstract public class BasicPileup implements Pileup {
         if ( a.getLocation().compareTo(b.getLocation()) != 0 )
             return "Locations not equal";
 
-        String aBases = maybeSorted(a.getBases(), ! orderDependent );
-        String bBases = maybeSorted(b.getBases(), ! orderDependent );
+        String aBases = maybeSorted(a.getBasesAsString(), ! orderDependent );
+        String bBases = maybeSorted(b.getBasesAsString(), ! orderDependent );
         if ( ! aBases.toUpperCase().equals(bBases.toUpperCase()) )
             return "Bases not equal";
 
-        String aQuals = maybeSorted(a.getQuals(), ! orderDependent );
-        String bQuals = maybeSorted(b.getQuals(), ! orderDependent );
+        String aQuals = maybeSorted(a.getQualsAsString(), ! orderDependent );
+        String bQuals = maybeSorted(b.getQualsAsString(), ! orderDependent );
         if ( ! aQuals.equals(bQuals) )
             return "Quals not equal";
 

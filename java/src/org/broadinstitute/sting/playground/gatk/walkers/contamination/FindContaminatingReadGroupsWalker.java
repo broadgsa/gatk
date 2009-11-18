@@ -72,7 +72,7 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
         ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(), context);
         int refIndex = BaseUtils.simpleBaseToBaseIndex(ref.getBase());
 
-        for (byte base : pileup.getBases().getBytes()) {
+        for (byte base : pileup.getBases() ) {
             int baseIndex = BaseUtils.simpleBaseToBaseIndex((char) base);
 
             if (baseIndex != refIndex) {

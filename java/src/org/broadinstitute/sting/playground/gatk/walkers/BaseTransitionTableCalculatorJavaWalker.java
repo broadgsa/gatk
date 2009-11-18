@@ -334,13 +334,13 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
         int refM = 0;
 
         switch (Character.toUpperCase(p.getRef())) {
-            case 'A': refM = BasicPileup.countBases(p.getBases()).a;
+            case 'A': refM = BasicPileup.countBases(p.getBasesAsString()).a;
                 break;
-            case 'C': refM = BasicPileup.countBases(p.getBases()).c;
+            case 'C': refM = BasicPileup.countBases(p.getBasesAsString()).c;
                 break;
-            case 'G': refM = BasicPileup.countBases(p.getBases()).g;
+            case 'G': refM = BasicPileup.countBases(p.getBasesAsString()).g;
                 break;
-            case 'T': refM = BasicPileup.countBases(p.getBases()).t;
+            case 'T': refM = BasicPileup.countBases(p.getBasesAsString()).t;
                 break;
             default:
                 throw new StingException("Exception in countMismatches - this has been called for a non-reference base. Base character from pileup was " + p.getRef() );
@@ -362,7 +362,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     }
 
     public boolean pileupContainsNoNs(ReadBackedPileup pileup) {
-        for ( char c : pileup.getBases().toCharArray() ) {
+        for ( byte c : pileup.getBases() ) {
             if ( c == 'N' ) {
                 return false;
             }

@@ -7,6 +7,8 @@ import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 import java.util.*;
+import java.io.PrintStream;
+import java.io.PrintWriter;
 
 public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalculationModel {
 
@@ -60,6 +62,17 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         return createCalls(tracker, ref, contexts, context.getLocation(), frequencyEstimationPoints);
    }
+
+    protected void initializeVerboseWriter(PrintWriter verboseWriter) {
+        // by default, no initialization is done
+        StringBuilder header = new StringBuilder("AFINFO\tLOC\tMAF\tF\tNullAFpriors\t");
+        for ( char altAllele : BaseUtils.BASES ) {
+            char base = Character.toLowerCase(altAllele);
+            header.append("POfDGivenAFFor" + base + "\t");
+            header.append("PosteriorAFFor" + base + "\t");
+        }
+        verboseWriter.println(header);
+    }
 
     protected void initialize(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
         // by default, no initialization is done
@@ -175,24 +188,18 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     }
 
     protected void printAlleleFrequencyData(char ref, GenomeLoc loc, int frequencyEstimationPoints) {
-
-        verboseWriter.println("Location=" + loc + ", ref=" + ref);
-        StringBuilder header = new StringBuilder("MAF\tNullAFpriors\t");
-        for ( char altAllele : BaseUtils.BASES ) {
-            if ( altAllele != ref ) {
-                char base = Character.toLowerCase(altAllele);
-                header.append("P(D|AF)_" + base + "\t");
-                header.append("PosteriorAF_" + base + "\t");
-            }
-        }
-        verboseWriter.println(header);
-
         for (int i = 0; i < frequencyEstimationPoints; i++) {
-            StringBuilder AFline = new StringBuilder(i + "/" + (frequencyEstimationPoints-1) + "\t" + String.format("%.8f", log10AlleleFrequencyPriors[i]) + "\t");
+            StringBuilder AFline = new StringBuilder("AFINFO\t");
+            AFline.append(loc).append("\t");
+            AFline.append(i + "/" + (frequencyEstimationPoints-1) + "\t");
+            AFline.append(String.format("%.2f\t", ((float)i)/ (frequencyEstimationPoints-1)));
+            AFline.append(String.format("%.8f", log10AlleleFrequencyPriors[i]) + "\t");
             for ( char altAllele : BaseUtils.BASES ) {
                 if ( altAllele != ref ) {
                     int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
                     AFline.append(String.format("%.8f\t%.8f\t", log10PofDgivenAFi[baseIndex][i], alleleFrequencyPosteriors[baseIndex][i]));
+                } else {
+                    AFline.append(String.format("%.8f\t%.8f\t", -1.0, -1.0));
                 }
             }
             verboseWriter.println(AFline);
@@ -258,7 +265,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
                 if ( dbsnp != null )
                     ((IDBacked)locusdata).setID(dbsnp.getRS_ID());
             }
-            if ( locusdata instanceof SLODBacked ) {
+            if ( locusdata instanceof SLODBacked && REPORT_SLOD ) {
                 // the overall lod
                 double overallLog10PofNull = Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
                 double overallLog10PofF = Math.log10(PofFs[indexOfMax]);

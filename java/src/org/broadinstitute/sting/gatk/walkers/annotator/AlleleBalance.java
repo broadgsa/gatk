@@ -11,30 +11,31 @@ import java.util.ArrayList;
 public class AlleleBalance implements VariantAnnotation {
 
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, List<Genotype> genotypes) {
+        double ratio = -1;
 
-        double ratio;
+        if ( genotypes.size() > 0 ) {
+            Genotype g = genotypes.get(0);
+            if ( g instanceof ReadBacked && g instanceof PosteriorsBacked ) {
+                Pair<Double, Integer> weightedBalance = computeWeightedBalance(ref.getBase(), genotypes, pileup);
+                if ( weightedBalance.second == 0 )
+                    return null;
+                ratio = weightedBalance.first;
+            } else {
+                // this test doesn't make sense for homs
+                Genotype genotype = VariantAnnotator.getFirstHetVariant(genotypes);
+                if ( genotype == null )
+                    return null;
 
-        Genotype g = genotypes.get(0);
-        if ( g instanceof ReadBacked && g instanceof PosteriorsBacked ) {
-            Pair<Double, Integer> weightedBalance = computeWeightedBalance(ref.getBase(), genotypes, pileup);
-            if ( weightedBalance.second == 0 )
-                return null;
-            ratio = weightedBalance.first;
-        } else {
-            // this test doesn't make sense for homs
-            Genotype genotype = VariantAnnotator.getFirstHetVariant(genotypes);
-            if ( genotype == null )
-                return null;
+                final String genotypeStr = genotype.getBases().toUpperCase();
+                if ( genotypeStr.length() != 2 )
+                    return null;
 
-            final String genotypeStr = genotype.getBases().toUpperCase();
-            if ( genotypeStr.length() != 2 )
-                return null;
+                final String bases = pileup.getBasesAsString().toUpperCase();
+                if ( bases.length() == 0 )
+                    return null;
 
-            final String bases = pileup.getBases().toUpperCase();
-            if ( bases.length() == 0 )
-                return null;
-
-            ratio = computeSingleBalance(ref.getBase(), genotypeStr, bases);
+                ratio = computeSingleBalance(ref.getBase(), genotypeStr, bases);
+            }
         }
 
         return new Pair<String, String>("AlleleBalance", String.format("%.2f", ratio));

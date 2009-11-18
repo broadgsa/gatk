@@ -37,7 +37,7 @@ public class IVFPrimaryBases implements IndependentVariantFeature {
         likelihoods = new double[10];
 
         ReadBackedPileup pileup = new ReadBackedPileup(context.getReferenceContext().getBase(), context.getAlignmentContext(useZeroQualityReads()));
-        String primaryBases = pileup.getBases();
+        String primaryBases = pileup.getBasesAsString();
 
         for (int genotypeIndex = 0; genotypeIndex < Genotype.values().length; genotypeIndex++) {
             char firstAllele = Genotype.values()[genotypeIndex].toString().charAt(0);

@@ -64,7 +64,7 @@ public class IVFSecondaryBases implements IndependentVariantFeature {
         likelihoods = new double[10];
 
         ReadBackedPileup pileup = new ReadBackedPileup(context.getReferenceContext().getBase(), context.getAlignmentContext(useZeroQualityReads()));
-        String primaryBases = pileup.getBases();
+        String primaryBases = pileup.getBasesAsString();
         String secondaryBases = pileup.getSecondaryBasePileup();
 
         for (int genotypeIndex = 0; genotypeIndex < Genotype.values().length; genotypeIndex++) {

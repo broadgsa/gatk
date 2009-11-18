@@ -379,7 +379,7 @@ class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
 
     
     public GenomeLoc getLocation()  { return loc; }
-    public String getQuals()        { return pileupQuals; }
+    public String getQualsAsString()        { return pileupQuals; }
     
     /** Returns reference base for point genotypes or '*' for indel genotypes, as a char.
      * 
@@ -390,16 +390,20 @@ class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
     /** Returns pile of observed bases over the current genomic location.
      *  
      */
-    public String getBases()        { return pileupBases; }
+    public String getBasesAsString()        { return pileupBases; }
 
     /** Returns formatted pileup string for the current genomic location as
      * "location: reference_base observed_base_pile observed_qual_pile"
      */
     public String getPileupString()
     {
-        return String.format("%s: %s %s %s", getLocation(), getRef(), getBases(), getQuals());
+        return String.format("%s: %s %s %s", getLocation(), getRef(), getBasesAsString(), getQualsAsString());
     }
 
+    public ArrayList<Byte> getBasesAsArrayList()        { throw new StingException("Not implemented"); }
+    public ArrayList<Byte> getQualsAsArrayList()        { throw new StingException("Not implemented"); }
+    public byte[] getBases()        { throw new StingException("Not implemented"); }
+    public byte[] getQuals()        { throw new StingException("Not implemented"); }
 
     /** Returns bases in the reference allele as a String. For point genotypes, the string consists of a single
      * character (reference base). For indel genotypes, the string is empty for insertions into

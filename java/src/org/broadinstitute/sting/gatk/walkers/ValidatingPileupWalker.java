@@ -31,7 +31,7 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
             out.printf("No truth pileup data available at %s%n", pileup.getPileupString());
             if ( ! CONTINUE_AFTER_AN_ERROR ) {
                 Utils.scareUser(String.format("No pileup data available at %s given GATK's output of %s -- this walker requires samtools pileup data over all bases",
-                                context.getLocation(), pileup.getBases()));
+                                context.getLocation(), pileup.getBasesAsString()));
             }
         } else {
             String pileupDiff = BasicPileup.pileupDiff(pileup, truePileup);

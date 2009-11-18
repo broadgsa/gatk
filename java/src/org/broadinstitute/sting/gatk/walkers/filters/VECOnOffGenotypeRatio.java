@@ -39,7 +39,7 @@ public class VECOnOffGenotypeRatio extends RatioFilter {
         if ( genotype.length() > 2 )
             throw new IllegalArgumentException(String.format("Can only handle diploid genotypes: %s", genotype));
 
-        final String bases = pileup.getBases();
+        final String bases = pileup.getBasesAsString();
         if ( bases.length() == 0 ) {
             ratio = 0.0;
             return new Pair<Integer, Integer>(0, 0);
