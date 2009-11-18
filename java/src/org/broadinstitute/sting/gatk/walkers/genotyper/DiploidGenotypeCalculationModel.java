@@ -13,6 +13,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
     // the GenotypeLikelihoods map
     private HashMap<String, GenotypeLikelihoods> GLs = new HashMap<String, GenotypeLikelihoods>();
 
+    private enum GenotypeType { REF, HET, HOM }
 
     protected HashMap<String, AlignmentContextBySample> createContexts(AlignmentContext context) {
         return splitContextBySample(context);
@@ -22,7 +23,8 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         return contexts.size();
     }
 
-    protected void initializeLikelihoods(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
+    protected void initialize(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
+        // initialize the GenotypeLikelihoods
         GLs.clear();
 
         // use flat priors for GLs
@@ -39,7 +41,11 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         }
     }
 
-    protected double computeLog10PofDgivenAFi(DiploidGenotype refGenotype, DiploidGenotype hetGenotype, DiploidGenotype homGenotype, double f) {
+    protected double computeLog10PofDgivenAFi(char ref, char alt, double f, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
+        DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
+        DiploidGenotype hetGenotype = ref < alt ? DiploidGenotype.valueOf(String.valueOf(ref) + String.valueOf(alt)) : DiploidGenotype.valueOf(String.valueOf(alt) + String.valueOf(ref));
+        DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
+
         double PofDgivenAFi = 0.0;
 
         // for each sample

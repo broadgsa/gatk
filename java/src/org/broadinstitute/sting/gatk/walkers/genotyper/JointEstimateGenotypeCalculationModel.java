@@ -10,8 +10,6 @@ import java.util.*;
 
 public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalculationModel {
 
-    protected JointEstimateGenotypeCalculationModel() {}
-
     // because the null allele frequencies are constant for a given N,
     // we cache the results to avoid having to recompute everything
     private HashMap<Integer, double[]> nullAlleleFrequencyCache = new HashMap<Integer, double[]>();
@@ -19,8 +17,6 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     // because the Hardy-Weinberg values for a given frequency are constant,
     // we cache the results to avoid having to recompute everything
     private HashMap<Double, double[]> hardyWeinbergValueCache = new HashMap<Double, double[]>();
-
-    protected enum GenotypeType { REF, HET, HOM }
 
     // the allele frequency priors
     protected double[] log10AlleleFrequencyPriors;
@@ -30,13 +26,17 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     protected double[][] log10PofDgivenAFi = new double[BaseUtils.BASES.length][];
     protected double[] PofFs = new double[BaseUtils.BASES.length];
 
-    
-    // these need to be implemented
-    protected abstract HashMap<String, AlignmentContextBySample> createContexts(AlignmentContext context);
-    protected abstract void initializeLikelihoods(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType);
-    protected abstract double computeLog10PofDgivenAFi(DiploidGenotype refGenotype, DiploidGenotype hetGenotype, DiploidGenotype homGenotype, double f);
-    protected abstract List<Genotype> makeGenotypeCalls(char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc);
+
+    // The abstract methods which need to be implemented:
+    // 1. How many samples are being evaluated?
     protected abstract int getNSamples(HashMap<String, AlignmentContextBySample> contexts);
+    // 2. Create stratified contexts from the original alignment context
+    protected abstract HashMap<String, AlignmentContextBySample> createContexts(AlignmentContext context);
+    // 3. The likelihoods calculation underlying this whole model
+    protected abstract double computeLog10PofDgivenAFi(char ref, char alt, double f, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType);
+
+
+    protected JointEstimateGenotypeCalculationModel() {}
 
     public Pair<List<Genotype>, GenotypeLocusData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
@@ -50,8 +50,8 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         initializeAlleleFrequencies(frequencyEstimationPoints);
 
-        initializeLikelihoods(ref, contexts, StratifiedContext.OVERALL);
-        calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints);
+        initialize(ref, contexts, StratifiedContext.OVERALL);
+        calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedContext.OVERALL);
         calculatePofFs(ref, frequencyEstimationPoints);
 
         // print out stats if we have a writer
@@ -61,7 +61,12 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         return createCalls(tracker, ref, contexts, context.getLocation(), frequencyEstimationPoints);
    }
 
-    private void initializeAlleleFrequencies(int frequencyEstimationPoints) {
+    protected void initialize(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
+        // by default, no initialization is done
+        return;
+    }
+
+    protected void initializeAlleleFrequencies(int frequencyEstimationPoints) {
         // set up the allele frequency priors
         log10AlleleFrequencyPriors = getNullAlleleFrequencyPriors(frequencyEstimationPoints);
     }
@@ -98,7 +103,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         return AFs;
     }
 
-    protected void calculateAlleleFrequencyPosteriors(char ref, int frequencyEstimationPoints) {
+    protected void calculateAlleleFrequencyPosteriors(char ref, int frequencyEstimationPoints, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
 
         // initialization
         for ( char altAllele : BaseUtils.BASES ) {
@@ -106,8 +111,6 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             alleleFrequencyPosteriors[baseIndex] = new double[frequencyEstimationPoints];
             log10PofDgivenAFi[baseIndex] = new double[frequencyEstimationPoints];
         }
-        DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
-        String refStr = String.valueOf(ref);
 
         // for each alternate allele
         for ( char altAllele : BaseUtils.BASES ) {
@@ -116,13 +119,10 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
             int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
 
-            DiploidGenotype hetGenotype = ref < altAllele ? DiploidGenotype.valueOf(refStr + String.valueOf(altAllele)) : DiploidGenotype.valueOf(String.valueOf(altAllele) + refStr);
-            DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(altAllele);
-
             // for each minor allele frequency
             for (int i = 0; i < frequencyEstimationPoints; i++) {
                 double f = (double)i / (double)(frequencyEstimationPoints-1);
-                log10PofDgivenAFi[baseIndex][i] += computeLog10PofDgivenAFi(refGenotype, hetGenotype, homGenotype, f);
+                log10PofDgivenAFi[baseIndex][i] += computeLog10PofDgivenAFi(ref, altAllele, f, contexts, contextType);
             }
         }
     }
@@ -210,6 +210,11 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         verboseWriter.println();
     }
 
+    protected List<Genotype> makeGenotypeCalls(char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {
+        // by default, we return no genotypes
+        return new ArrayList<Genotype>();
+    }
+
     protected Pair<List<Genotype>, GenotypeLocusData> createCalls(RefMetaDataTracker tracker, char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc, int frequencyEstimationPoints) {
         // first, find the alt allele with maximum confidence
         int indexOfMax = 0;
@@ -260,15 +265,15 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
                 double lod = overallLog10PofF - overallLog10PofNull;
 
                 // the forward lod
-                initializeLikelihoods(ref, contexts, StratifiedContext.FORWARD);
-                calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints);
+                initialize(ref, contexts, StratifiedContext.FORWARD);
+                calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedContext.FORWARD);
                 calculatePofFs(ref, frequencyEstimationPoints);
                 double forwardLog10PofNull = Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
                 double forwardLog10PofF = Math.log10(PofFs[indexOfMax]);
 
                 // the reverse lod
-                initializeLikelihoods(ref, contexts, StratifiedContext.REVERSE);
-                calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints);
+                initialize(ref, contexts, StratifiedContext.REVERSE);
+                calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedContext.REVERSE);
                 calculatePofFs(ref, frequencyEstimationPoints);
                 double reverseLog10PofNull = Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
                 double reverseLog10PofF = Math.log10(PofFs[indexOfMax]);

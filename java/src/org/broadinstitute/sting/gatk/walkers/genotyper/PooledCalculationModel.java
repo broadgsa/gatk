@@ -1,8 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.utils.ReadBackedPileup;
 
 import java.util.*;
 
@@ -10,8 +9,9 @@ import net.sf.samtools.SAMRecord;
 
 public class PooledCalculationModel extends JointEstimateGenotypeCalculationModel {
 
-    protected PooledCalculationModel() {
-    }
+    private static final String POOL_SAMPLE_NAME = "POOL";
+
+    protected PooledCalculationModel() {}
 
     protected int getNSamples(HashMap<String, AlignmentContextBySample> contexts) {
         return POOL_SIZE;
@@ -43,23 +43,17 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
         }
 
         HashMap<String, AlignmentContextBySample> contexts = new HashMap<String, AlignmentContextBySample>();
-        contexts.put("POOL", pooledContext);
+        contexts.put(POOL_SAMPLE_NAME, pooledContext);
         return contexts;
     }
-
-    protected void initializeLikelihoods(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
-        return;
-    }
     
-    protected double computeLog10PofDgivenAFi(DiploidGenotype refGenotype, DiploidGenotype hetGenotype, DiploidGenotype homGenotype, double f) {
-        System.out.printf("%s %.2f%n", hetGenotype, f);
+    protected double computeLog10PofDgivenAFi(char ref, char alt, double f, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
+        AlignmentContextBySample context = contexts.get(POOL_SAMPLE_NAME);
+        ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getContext(contextType));
+
+        System.out.printf("%s %.2f %d%n", alt, f, pileup.getBases().length());
         // TODO -- IMPLEMENT ME
 
         return -100.0;
-    }
-
-    protected List<Genotype> makeGenotypeCalls(char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {
-        // no genotypes in pooled mode
-        return new ArrayList<Genotype>();
     }
 }
