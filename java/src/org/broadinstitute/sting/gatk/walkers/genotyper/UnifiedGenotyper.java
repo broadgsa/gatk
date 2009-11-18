@@ -167,7 +167,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
         Pair<List<Genotype>, GenotypeLocusData> call = gcm.calculateGenotype(tracker, ref, MQ0freeContext, priors);
 
         // annotate the call, if possible
-        if ( call != null && call.second != null && call.second instanceof ArbitraryFieldsBacked) {
+        if ( call != null && call.second != null && call.second instanceof ArbitraryFieldsBacked && ! (VARIANTS_FILE == null && out == null) ) {
             Map<String, String> annotations = VariantAnnotator.getAnnotations(refContext, fullContext, call.first);
             ((ArbitraryFieldsBacked)call.second).setFields(annotations);
         }
