@@ -14,30 +14,30 @@ public class OnOffGenotype implements VariantAnnotation {
 
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, List<Genotype> genotypes) {
 
-        double ratio = -1;
+        if ( genotypes.size() == 0 )
+            return null;
 
-        if ( genotypes.size() > 0 ) {
-            Genotype g = genotypes.get(0);
-            if ( g instanceof ReadBacked && g instanceof PosteriorsBacked) {
-                Pair<Double, Integer> weightedBalance = computeWeightedBalance(ref.getBase(), genotypes, pileup);
-                if ( weightedBalance.second == 0 )
-                    return null;
-                ratio = weightedBalance.first;
-            } else {
-                Genotype genotype = VariantAnnotator.getFirstVariant(ref.getBase(), genotypes);
-                if ( genotype == null )
-                    return null;
+        double ratio;
+        Genotype g = genotypes.get(0);
+        if ( g instanceof ReadBacked && g instanceof PosteriorsBacked) {
+            Pair<Double, Integer> weightedBalance = computeWeightedBalance(ref.getBase(), genotypes, pileup);
+            if ( weightedBalance.second == 0 )
+                return null;
+            ratio = weightedBalance.first;
+        } else {
+            Genotype genotype = VariantAnnotator.getFirstVariant(ref.getBase(), genotypes);
+            if ( genotype == null )
+                return null;
 
-                final String genotypeStr = genotype.getBases().toUpperCase();
-                if ( genotypeStr.length() != 2 )
-                    return null;
+            final String genotypeStr = genotype.getBases().toUpperCase();
+            if ( genotypeStr.length() != 2 )
+                return null;
 
-                final String bases = pileup.getBasesAsString().toUpperCase();
-                if ( bases.length() == 0 )
-                    return null;
+            final String bases = pileup.getBasesAsString().toUpperCase();
+            if ( bases.length() == 0 )
+                return null;
 
-                ratio = computeSingleBalance(genotypeStr, bases);
-            }
+            ratio = computeSingleBalance(genotypeStr, bases);
         }
 
         return new Pair<String, String>("OnOffGenotype", String.format("%.2f", ratio));

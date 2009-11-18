@@ -238,6 +238,8 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         }
 
         double phredScaledConfidence = -10.0 * Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
+        if ( Double.isInfinite(phredScaledConfidence) )
+            phredScaledConfidence = -10.0 * log10PofDgivenAFi[indexOfMax][0];
         int bestAFguess = Utils.findIndexOfMaxEntry(alleleFrequencyPosteriors[indexOfMax]);
 
         // return a null call if we don't pass the confidence cutoff or the most likely allele frequency is zero
