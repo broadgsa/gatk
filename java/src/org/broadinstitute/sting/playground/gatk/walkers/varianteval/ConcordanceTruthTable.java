@@ -104,7 +104,7 @@ public class ConcordanceTruthTable {
         } else { // if we cannot associate tables with individuals, then we are working in a pooled context
             // first we need to expand our tables to include frequency information
 
-            Pair<Genotype,Integer> poolVariant = getPooledAlleleFrequency(chipEvals, ref);
+            Pair<Genotype, Pair<Integer,Integer> > poolVariant = getPooledAlleleFrequency(chipEvals, ref);
 
             int truthType = getGenotype(poolVariant.getFirst(),ref); // convenience method; now to interpret
 
@@ -114,7 +114,7 @@ public class ConcordanceTruthTable {
 
             int callType = getCallIndex(eval,ref);
 
-            addFrequencyEntry( truthType,callType,poolVariant.getSecond() );
+            addFrequencyEntry( truthType,callType,poolVariant.getSecond().getFirst() );
 
         }
 
@@ -124,16 +124,18 @@ public class ConcordanceTruthTable {
         // TODO -- Indexes like TRUE_POSITIVE are defined above for you
     }
 
-    public Pair<Genotype,Integer> getPooledAlleleFrequency( List<Pair<Genotype,Genotype>> chips, char ref) {
+    public Pair< Genotype , Pair<Integer,Integer> > getPooledAlleleFrequency( List<Pair<Genotype,Genotype>> chips, char ref) {
         // TODO -- this is actually just a note that I wanted to appear in blue. This method explicitly uses
         // TODO --- the assumption that tri-allelic sites do not really exist, and that if they do the
         // TODO --- site will be marked as such by an 'N' in the reference, so we will not get to this point.
         Genotype variant = null;
         int frequency = 0;
+        int nChips = 0;
         if ( chips != null ) {
             for ( Pair<Genotype,Genotype> chip : chips ) {
                 Genotype c = chip.getFirst();
-                if ( c != null ) {
+                if ( c != null ) {                    
+                    nChips ++;
                     if ( c.isVariant(ref) ) {
                         if ( c.isHet() ) {
                             frequency ++;
@@ -146,7 +148,7 @@ public class ConcordanceTruthTable {
             }
         }
 
-        return new Pair<Genotype, Integer>(variant, frequency);
+        return new Pair< Genotype, Pair<Integer,Integer> >(variant, new Pair<Integer,Integer>(frequency,nChips));
 
     }
 

@@ -55,7 +55,7 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
         } catch (FileNotFoundException e) {
             throw new StingException("File "+outputFileString+" could not be opened.", e);
         }
-        output.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s%n","Chrom","Pos","Ref","Var","Num_Alleles","Depth","Power","Support","Called");
+        output.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s%n","Chrom","Pos","Ref","Var","Num_Alleles","Num_Chips","Depth","Power","Support","Called");
         //System.out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s%n","Chrom","Pos","Ref","Var","Num_Alleles","Depth","Power","Support","Called");
         return output;
     }
@@ -66,7 +66,7 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
         long pos = loc.getStart();
         char refBase = Character.toUpperCase(ref.getBase());
         List<Pair<Genotype, Genotype>> chips = getChips(sampleNames, tracker);
-        Pair<Genotype,Integer> alleleFreqInfo = ctt.getPooledAlleleFrequency(chips,refBase);
+        Pair<Genotype,Pair<Integer,Integer>> alleleFreqInfo = ctt.getPooledAlleleFrequency(chips,refBase);
         char alternate;
         if ( alleleFreqInfo.getFirst() != null && alleleFreqInfo.getFirst().isVariant(refBase)) {
             //System.out.println(refBase + " " + alleleFreqInfo.getFirst().getBases());
@@ -75,7 +75,8 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
         } else {
             return null; // early return
         }
-        int numVariantAllele = alleleFreqInfo.getSecond();
+        int numVariantAllele = alleleFreqInfo.getSecond().getFirst();
+        int numChipsObserved = alleleFreqInfo.getSecond().getSecond();
         int depth = context.numReads();
         double power = powerWalker.calculatePowerAtFrequency(context,numVariantAllele);
         int called;
@@ -98,7 +99,7 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
             }
         }
 
-        return String.format("%s\t%d\t%c\t%c\t%d\t%d\t%f\t%d\t%d",chrom,pos,refBase,alternate,numVariantAllele,depth,power,support,called);
+        return String.format("%s\t%d\t%c\t%c\t%d\t%d\t%d\t%f\t%d\t%d",chrom,pos,refBase,alternate,numVariantAllele,numChipsObserved,depth,power,support,called);
 
     }
 

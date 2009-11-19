@@ -36,6 +36,7 @@ public class ConcordanceTruthTableTest extends BaseTest {
 
         List<Pair<Genotype,Genotype>> oneHom = new ArrayList<Pair<Genotype,Genotype>>(4);
         oneHom.add(new Pair<Genotype,Genotype>(ref1,null));
+        oneHom.add(new Pair<Genotype,Genotype>(null,null));
         oneHom.add(new Pair<Genotype,Genotype>(ref2,null));
         oneHom.add(new Pair<Genotype,Genotype>(ref3,null));
         oneHom.add(new Pair<Genotype,Genotype>(hom2,null));
@@ -44,6 +45,7 @@ public class ConcordanceTruthTableTest extends BaseTest {
         oneHet.add(new Pair<Genotype,Genotype>(ref1,null));
         oneHet.add(new Pair<Genotype,Genotype>(ref2,null));
         oneHet.add(new Pair<Genotype,Genotype>(ref3,null));
+        oneHet.add(new Pair<Genotype,Genotype>(null,null));
         oneHet.add(new Pair<Genotype,Genotype>(het1,null));
 
         List<Pair<Genotype,Genotype>> twoHetOneHom = new ArrayList<Pair<Genotype,Genotype>>(5);
@@ -57,6 +59,7 @@ public class ConcordanceTruthTableTest extends BaseTest {
         List<Pair<Genotype,Genotype>> twoHetTwoHom = new ArrayList<Pair<Genotype,Genotype>>(7);
         twoHetTwoHom.add(new Pair<Genotype,Genotype>(ref1,null));
         twoHetTwoHom.add(new Pair<Genotype,Genotype>(ref2,null));
+        twoHetTwoHom.add(new Pair<Genotype,Genotype>(null,null));
         twoHetTwoHom.add(new Pair<Genotype,Genotype>(ref3,null));
         twoHetTwoHom.add(new Pair<Genotype,Genotype>(het1,null));
         twoHetTwoHom.add(new Pair<Genotype,Genotype>(het2,null));
@@ -70,25 +73,32 @@ public class ConcordanceTruthTableTest extends BaseTest {
         List<Pair<Genotype,Genotype>> homNoRef = new ArrayList<Pair<Genotype,Genotype>>(1);
         homNoRef.add(new Pair<Genotype,Genotype>(hom1,null));
 
-        Pair<Genotype,Integer> countShouldBeOne = ctt.getPooledAlleleFrequency(oneHet,'G');
-        Pair<Genotype,Integer> countShouldBeTwo = ctt.getPooledAlleleFrequency(oneHom,'G');
-        Pair<Genotype,Integer> countShouldBeFour = ctt.getPooledAlleleFrequency(twoHetOneHom,'G');
-        Pair<Genotype,Integer> countShouldBeSix = ctt.getPooledAlleleFrequency(twoHetTwoHom,'G');
-        Pair<Genotype,Integer> countShouldBeThree = ctt.getPooledAlleleFrequency(hetHomNoRef,'G');
-        Pair<Genotype,Integer> countShouldBeTwoHereToo = ctt.getPooledAlleleFrequency(homNoRef, 'G');
+        Pair<Genotype,Pair<Integer,Integer>> countShouldBeOne = ctt.getPooledAlleleFrequency(oneHet,'G');
+        Pair<Genotype,Pair<Integer,Integer>>  countShouldBeTwo = ctt.getPooledAlleleFrequency(oneHom,'G');
+        Pair<Genotype,Pair<Integer,Integer>>  countShouldBeFour = ctt.getPooledAlleleFrequency(twoHetOneHom,'G');
+        Pair<Genotype,Pair<Integer,Integer>>  countShouldBeSix = ctt.getPooledAlleleFrequency(twoHetTwoHom,'G');
+        Pair<Genotype,Pair<Integer,Integer>>  countShouldBeThree = ctt.getPooledAlleleFrequency(hetHomNoRef,'G');
+        Pair<Genotype,Pair<Integer,Integer>>  countShouldBeTwoHereToo = ctt.getPooledAlleleFrequency(homNoRef, 'G');
+
+        int expecChips = 4+4+6+7+2+1;
+        int numChips = countShouldBeOne.getSecond().getSecond() + countShouldBeTwo.getSecond().getSecond() +
+                       countShouldBeFour.getSecond().getSecond() + countShouldBeSix.getSecond().getSecond() +
+                       countShouldBeThree.getSecond().getSecond() + countShouldBeTwoHereToo.getSecond().getSecond();
 
 
         logger.warn("Testing single het");
-        Assert.assertTrue(countShouldBeOne.getSecond() == 1);
+        Assert.assertTrue(countShouldBeOne.getSecond().getFirst() == 1);
         logger.warn("Testing single hom");
-        Assert.assertTrue(countShouldBeTwo.getSecond() == 2);
+        Assert.assertTrue(countShouldBeTwo.getSecond().getFirst() == 2);
         logger.warn("Testing two hets + hom");
-        Assert.assertTrue(countShouldBeFour.getSecond() == 4);
+        Assert.assertTrue(countShouldBeFour.getSecond().getFirst() == 4);
         logger.warn("Testing two hets + two homs");
-        Assert.assertTrue(countShouldBeSix.getSecond() == 6);
+        Assert.assertTrue(countShouldBeSix.getSecond().getFirst() == 6);
         logger.warn("Testing het + hom without ref");
-        Assert.assertTrue(countShouldBeThree.getSecond() == 3);
+        Assert.assertTrue(countShouldBeThree.getSecond().getFirst() == 3);
         logger.warn("Testing hom without ref");
-        Assert.assertTrue(countShouldBeTwoHereToo.getSecond() == 2);
+        Assert.assertTrue(countShouldBeTwoHereToo.getSecond().getFirst() == 2);
+        logger.warn("Testing chip count sum");
+        Assert.assertTrue( expecChips == numChips);
     }
 }
