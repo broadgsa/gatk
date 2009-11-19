@@ -66,7 +66,7 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
         // check the read group
         if  ( readGroup != null ) {
             SAMReadGroupRecord myReadGroup = read.getReadGroup();
-            if ( myReadGroup == null || !readGroup.equals(myReadGroup) )
+            if ( myReadGroup == null || !readGroup.equals(myReadGroup.getReadGroupId()) )
                 return false;
         }
 
