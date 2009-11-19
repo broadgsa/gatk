@@ -2,7 +2,6 @@ package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.RODRecordList;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -18,6 +17,7 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMReadGroupRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -233,7 +233,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             final List<Integer> offsets = context.getOffsets();
             SAMRecord read;
             int offset;
-            String readGroup;
+            String readGroupId;
             byte[] quals;
             byte[] bases;
             byte refBase;
@@ -246,10 +246,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             for( int iii = 0; iii < numReads; iii++ ) {
                 read = reads.get(iii);
 
-                //readGroup = readGroupHashMap.get( read );
-                //if( readGroup == null ) { // read is not in the hashmap so add it
-                //    readGroup = read.getReadGroup().getReadGroupId();
-                //    readGroupHashMap.put( read, readGroup );
+                //readGroupId = readGroupHashMap.get( read );
+                //if( readGroupId == null ) { // read is not in the hashmap so add it
+                //    readGroupId = read.getReadGroup().getReadGroupId();
+                //    readGroupHashMap.put( read, readGroupId );
                 //}
 
                 offset = offsets.get(iii); // offset is zero based so quals[offset] and bases[offset] is correct
@@ -284,8 +284,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                         // skip if this base or the previous one was an 'N' or etc.
                         if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)bases[offset] ) ) {
 
-                            readGroup = read.getReadGroup().getReadGroupId(); // this is an expensive call
-                            platform = read.getReadGroup().getPlatform(); // this is an expensive call
+                            final SAMReadGroupRecord readGroup = read.getReadGroup();
+                            readGroupId = readGroup.getReadGroupId(); // this is an expensive call
+                            platform = readGroup.getPlatform(); // this is an expensive call
 
                             // SOLID bams insert the reference base into the read if the color space quality is zero, so skip over them
                             colorSpaceQuals = null;
@@ -294,7 +295,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                             }
                             if( colorSpaceQuals == null || colorSpaceQuals[offset] > 0 ) //BUGBUG: This isn't exactly correct yet
                             {
-                                updateDataFromRead( read, offset, readGroup, platform, quals, bases, refBase );
+                                updateDataFromRead( read, offset, readGroupId, platform, quals, bases, refBase );
                             }
                         }
                     }
