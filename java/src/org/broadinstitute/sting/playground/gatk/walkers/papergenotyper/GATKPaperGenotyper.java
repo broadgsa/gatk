@@ -26,9 +26,6 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, SimpleCallList> 
     // the possible diploid genotype strings
     private static enum GENOTYPE { AA, AC, AG, AT, CC, CG, CT, GG, GT, TT }
 
-    // the epsilon value we're using to model our error rate
-    private static double EPSILON = 1e-4;
-
     @Argument(fullName = "call_location", shortName = "cl", doc = "File to which calls should be written", required = true)
     private File LOCATION = new File("genotyping.output");
 
@@ -46,22 +43,20 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, SimpleCallList> 
 
         ReadBackedPileup pileup = new ReadBackedPileup(context.getLocation(), ref.getBase(), context.getReads(), context.getOffsets());
         double likelihoods[] = DiploidGenotypePriors.getReferencePolarizedPriors(ref.getBase(),
-                DiploidGenotypePriors.HUMAN_HETEROZYGOSITY,
-                DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
+                                                                                 DiploidGenotypePriors.HUMAN_HETEROZYGOSITY,
+                                                                                 DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
 
         for (GENOTYPE genotype : GENOTYPE.values())
-            for (byte pileupBase : pileup.getBases()) {
-                // todo -- epsilon isn't a constant variable, it's the de-phred error probabilities of the base
-                // you need to grab the qual score associated with this base and calcluate
-                // epsilon = pow(10, qual / -10.0)
-                // Also, only do the calculations below for bases with qual > 0
-                for (char genotypeBase : genotype.toString().toCharArray())
-                    // todo -- all of these calculations should be in log10 space (like the priors are)
-                    if (genotypeBase == pileupBase)
-                        // todo -- potential int flow problems there.  Needs parens
-                        likelihoods[genotype.ordinal()] += 1 / 2 * (1 - EPSILON) + EPSILON / 3;
-                    else
-                        likelihoods[genotype.ordinal()] += EPSILON / 3;
+            for (int index = 0; index < pileup.getBases().length; index++) {
+                if (pileup.getQuals()[index] > 0) {
+                    double epsilon = Math.pow(10, pileup.getQuals()[index] / -10.0);
+                    byte pileupBase = pileup.getBases()[index];
+                    for (char genotypeBase : genotype.toString().toCharArray())
+                        if (genotypeBase == pileupBase)
+                            likelihoods[genotype.ordinal()] += Math.log10(0.5 * ((1 - epsilon) + epsilon / 3));
+                        else
+                            likelihoods[genotype.ordinal()] += Math.log10(epsilon / 3);
+                }
             }
 
         Integer sortedList[] = Utils.SortPermutation(likelihoods);
@@ -72,8 +67,8 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, SimpleCallList> 
         // create call using the best genotype (GENOTYPE.values()[sortedList[9]].toString())
         // and calculate the LOD score from best - ref (likelihoods[sortedList[9]] - likelihoods[sortedList[8])
         return new SimpleCall(context.getLocation(),
-                GENOTYPE.values()[sortedList[9]].toString(),
-                likelihoods[sortedList[9]] - likelihoods[GENOTYPE.valueOf(refGenotype).ordinal()]);
+                              GENOTYPE.values()[sortedList[9]].toString(),
+                              likelihoods[sortedList[9]] - likelihoods[GENOTYPE.valueOf(refGenotype).ordinal()]);
     }
 
     /**
@@ -111,7 +106,7 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, SimpleCallList> 
 
     /**
      * when we finish traversing, close the result list
-     * @param result the final reduce result 
+     * @param result the final reduce result
      */
     public void onTraversalDone(SimpleCallList result) {
         result.close();

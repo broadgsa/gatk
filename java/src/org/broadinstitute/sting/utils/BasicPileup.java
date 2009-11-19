@@ -85,19 +85,19 @@ abstract public class BasicPileup implements Pileup {
     // byte[] methods
     //
     public static byte[] getBases( List<SAMRecord> reads, List<Integer> offsets ) {
-        return ArrayList2byte(getBasesAsArrayList( reads, offsets ));
+        return getBasesAsArray(reads,offsets,false);
     }
 
     public static byte[] getBases( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
-        return ArrayList2byte(getBasesAsArrayList( reads, offsets, includeDeletions ));
+        return getBasesAsArray(reads,offsets,includeDeletions);
     }
 
     public static byte[] getQuals( List<SAMRecord> reads, List<Integer> offsets ) {
-        return ArrayList2byte(getQualsAsArrayList( reads, offsets ));
+        return getQualsAsArray( reads, offsets,false);
     }
 
     public static byte[] getQuals( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
-        return ArrayList2byte(getQualsAsArrayList( reads, offsets, includeDeletions ));
+        return getQualsAsArray( reads, offsets, includeDeletions);
     }
 
     //
@@ -107,18 +107,27 @@ abstract public class BasicPileup implements Pileup {
         return getBasesAsArrayList( reads, offsets, false );
     }
 
-    public static ArrayList<Byte> getBasesAsArrayList( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
-        ArrayList<Byte> bases = new ArrayList<Byte>(reads.size());
+    public static byte[] getBasesAsArray( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
+        byte array[] = new byte[reads.size()];
+        int index = 0;
         for ( int i = 0; i < reads.size(); i++ ) {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
             if ( offset == -1 ) {
                 if ( includeDeletions )
-                    bases.add((byte)DELETION_CHAR);
+                    array[index++] = ((byte)DELETION_CHAR);
             } else {
-                bases.add(read.getReadBases()[offset]);
+                array[index++] = read.getReadBases()[offset];
             }
         }
+        return array;
+     }
+
+
+    public static ArrayList<Byte> getBasesAsArrayList( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
+        ArrayList<Byte> bases = new ArrayList<Byte>(reads.size());
+        for (byte value : getBasesAsArray(reads, offsets, includeDeletions))
+            bases.add(value);
         return bases;
      }
 
@@ -128,6 +137,14 @@ abstract public class BasicPileup implements Pileup {
 
     public static ArrayList<Byte> getQualsAsArrayList( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
         ArrayList<Byte> quals = new ArrayList<Byte>(reads.size());
+        for (byte value : getQualsAsArray(reads, offsets, includeDeletions))
+            quals.add(value);
+        return quals;
+    }
+
+    public static byte[] getQualsAsArray( List<SAMRecord> reads, List<Integer> offsets, boolean includeDeletions ) {
+        byte array[] = new byte[reads.size()];
+        int index = 0;
         for ( int i = 0; i < reads.size(); i++ ) {
             SAMRecord read = reads.get(i);
             int offset = offsets.get(i);
@@ -135,13 +152,12 @@ abstract public class BasicPileup implements Pileup {
             // skip deletion sites
             if ( offset == -1 ) {
                 if ( includeDeletions )  // we need the qual vector to be the same length as base vector!
-                    quals.add((byte)0);
+                    array[index++] = ((byte)0);
             } else {
-                byte qual = read.getBaseQualities()[offset];
-                quals.add(qual);
+                array[index++] = read.getBaseQualities()[offset];
             }
         }
-        return quals;
+        return array;
     }
 
     public static ArrayList<Byte> mappingQualPileup( List<SAMRecord> reads) {
