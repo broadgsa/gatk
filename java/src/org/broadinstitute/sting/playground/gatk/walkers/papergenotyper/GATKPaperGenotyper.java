@@ -51,8 +51,14 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, SimpleCallList> 
 
         for (GENOTYPE genotype : GENOTYPE.values())
             for (byte pileupBase : pileup.getBases()) {
+                // todo -- epsilon isn't a constant variable, it's the de-phred error probabilities of the base
+                // you need to grab the qual score associated with this base and calcluate
+                // epsilon = pow(10, qual / -10.0)
+                // Also, only do the calculations below for bases with qual > 0
                 for (char genotypeBase : genotype.toString().toCharArray())
+                    // todo -- all of these calculations should be in log10 space (like the priors are)
                     if (genotypeBase == pileupBase)
+                        // todo -- potential int flow problems there.  Needs parens
                         likelihoods[genotype.ordinal()] += 1 / 2 * (1 - EPSILON) + EPSILON / 3;
                     else
                         likelihoods[genotype.ordinal()] += EPSILON / 3;
