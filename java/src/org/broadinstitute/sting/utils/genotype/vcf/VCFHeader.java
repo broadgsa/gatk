@@ -23,7 +23,7 @@ public class VCFHeader {
     private final Map<String, String> mMetaData = new HashMap<String, String>();
 
     // the list of auxillary tags
-    private final Set<String> mGenotypeSampleNames = new HashSet<String>();
+    private final Set<String> mGenotypeSampleNames = new LinkedHashSet<String>();
 
     // the character string that indicates meta data
     public static final String METADATA_INDICATOR = "##";

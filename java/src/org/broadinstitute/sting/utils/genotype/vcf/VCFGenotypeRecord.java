@@ -86,7 +86,7 @@ public class VCFGenotypeRecord {
         return mFields;
     }
 
-    public String toGenotypeString(List<VCFGenotypeEncoding> altAlleles) {
+    private String toGenotypeString(List<VCFGenotypeEncoding> altAlleles) {
         String str = "";
         boolean first = true;
         for (VCFGenotypeEncoding allele : mGenotypeAlleles) {
@@ -132,5 +132,25 @@ public class VCFGenotypeRecord {
             return true;
         }
         return false;
+    }
+
+    /**
+     * output a string representation of the VCFGenotypeRecord, given the alternate alleles
+     *
+     * @param altAlleles the alternate alleles, needed for toGenotypeString()
+     *
+     * @return a string
+     */
+    public String toStringEncoding(List<VCFGenotypeEncoding> altAlleles) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(toGenotypeString(altAlleles));
+        boolean first = true;
+        for (String field : mFields.keySet()) {
+            if (mFields.get(field).equals("")) continue;
+            builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);
+            builder.append(mFields.get(field));
+
+        }
+        return builder.toString();
     }
 }

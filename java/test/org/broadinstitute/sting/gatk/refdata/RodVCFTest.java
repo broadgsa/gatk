@@ -99,13 +99,13 @@ public class RodVCFTest extends BaseTest {
         while (iter.hasNext()) {
             VCFRecord rec1 = reader.next();
             VCFRecord rec2 = iter.next().mCurrentRecord;
-            if (!rec1.toStringRepresentation(mHeader).equals(rec2.toStringRepresentation(mHeader))) {
-                fail("VCF record rec1.toString() != rec2.toString()");
+            if (!rec1.toStringEncoding(mHeader).equals(rec2.toStringEncoding(mHeader))) {
+                fail("VCF record rec1.toStringEncoding() != rec2.toStringEncoding()");
             }
             // verify the first line too
             if (first) {
-                if (!firstLine.equals(rec1.toStringRepresentation(mHeader) + "\n")) {
-                    fail("VCF record rec1.toString() != expected string :\n" + rec1.toStringRepresentation(mHeader) + firstLine);
+                if (!firstLine.equals(rec1.toStringEncoding(mHeader) + "\n")) {
+                    fail("VCF record rec1.toStringEncoding() != expected string :\n" + rec1.toStringEncoding(mHeader) + firstLine);
                 }
                 first = false;
             }

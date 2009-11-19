@@ -74,7 +74,7 @@ public class VCFWriter {
      * @param record the record to output
      */
     public void addRecord(VCFRecord record) {
-        String vcfString = record.toStringRepresentation(mHeader);
+        String vcfString = record.toStringEncoding(mHeader);
         try {
             mWriter.write(vcfString + "\n");
         } catch (IOException e) {

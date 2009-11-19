@@ -365,7 +365,7 @@ public class VCFRecord {
      * @param header the VCF header for this VCF Record
      * @return a string
      */
-    public String toStringRepresentation(VCFHeader header) {
+    public String toStringEncoding(VCFHeader header) {
         StringBuilder builder = new StringBuilder();
 
         // CHROM \t POS \t ID \t REF \t ALT \t QUAL \t FILTER \t INFO
@@ -425,13 +425,7 @@ public class VCFRecord {
             builder.append(FIELD_SEPERATOR);
             if (gMap.containsKey(genotype)) {
                 VCFGenotypeRecord rec = gMap.get(genotype);
-                if (!rec.toGenotypeString(this.mAlts).equals(""))
-                    builder.append(rec.toGenotypeString(this.mAlts));
-                for (String s : rec.getFields().keySet()) {
-                    if (rec.getFields().get(s).equals("")) continue;
-                    builder.append(GENOTYPE_FIELD_SEPERATOR);
-                    builder.append(rec.getFields().get(s));
-                }
+                builder.append(rec.toStringEncoding(this.mAlts));
                 gMap.remove(genotype);
             } else {
                 builder.append(VCFGenotypeRecord.EMPTY_GENOTYPE);

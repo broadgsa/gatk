@@ -30,7 +30,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testNWayVenn() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example1.vcf -B set2,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example2.vcf -B set3,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/CEU.sample.vcf -CT NWayVenn", 1,
-                Arrays.asList("e067aace9080bafdf3312632de60b4fc"));
+                Arrays.asList("9a5910137b6b9745f6e0c3ee711a6bfa"));
         executeTest("testNWayVenn", spec);
     }
 }

@@ -21,7 +21,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     private VCFHeader mHeader = null;
     private String mSource;
     private String mReferenceName;
-    private final Set<String> mSampleNames = new HashSet<String>();
+    private final Set<String> mSampleNames = new LinkedHashSet<String>();
 
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(VCFGenotypeWriterAdapter.class);

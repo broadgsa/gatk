@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.playground.gatk.walkers.vcftools;
 
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
@@ -9,7 +8,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
 import java.io.File;
@@ -64,7 +62,7 @@ public class VCFSubsetWalker extends RefWalker<ArrayList<VCFRecord>, VCFWriter> 
                     initializeWriter();
                 }
 
-                //out.println(record.toStringRepresentation(vcfrod.getHeader())); 
+                //out.println(record.toStringEncoding(vcfrod.getHeader()));
 
                 records.add(record);
             }
@@ -117,7 +115,7 @@ public class VCFSubsetWalker extends RefWalker<ArrayList<VCFRecord>, VCFWriter> 
                 if (writer != null) {
                     writer.addRecord(subset);
                 } else {
-                    out.println(subset.toStringRepresentation(vheader));
+                    out.println(subset.toStringEncoding(vheader));
                 }
             }
         }

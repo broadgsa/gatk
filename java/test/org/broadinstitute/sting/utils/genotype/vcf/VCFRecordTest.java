@@ -142,10 +142,10 @@ public class VCFRecordTest extends BaseTest {
         VCFRecord rec = makeFakeVCFRecord(infoFields);
         Map<String, String> metaData = new HashMap<String, String>();
         List<String> additionalColumns = new ArrayList<String>();
-        String rep = rec.toStringRepresentation(createFakeHeader());
+        String rep = rec.toStringEncoding(createFakeHeader());
         Assert.assertTrue(stringRep.equals(rep));
         rec.addInfoField("AB", "CD");
-        String rep2 = rec.toStringRepresentation(createFakeHeader());
+        String rep2 = rec.toStringEncoding(createFakeHeader());
         Assert.assertTrue(stringRep2.equals(rep2));
         //rec.addGenotypeField(createGenotype("sample3","A","D12"));
     }
