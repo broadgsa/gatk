@@ -38,8 +38,7 @@ BWA::~BWA() {
 
 void BWA::find_paths(const char* bases, const unsigned read_length, bwt_aln1_t*& paths, unsigned& num_paths, unsigned& best_path_count, unsigned& second_best_path_count) 
 {
-  bwa_seq_t* sequence = create_sequence();
-  copy_bases_into_sequence(sequence, bases, read_length);
+  bwa_seq_t* sequence = create_sequence(bases, read_length);
 
   // Calculate the suffix array interval for each sequence, storing the result in sequence->aln (and sequence->n_aln).
   // This method will destroy the contents of seq and rseq.
@@ -57,6 +56,26 @@ void BWA::find_paths(const char* bases, const unsigned read_length, bwt_aln1_t*&
   bwa_free_read_seq(1,sequence);
 }
 
+Alignment BWA::generate_single_alignment(const char* bases, const unsigned read_length) {
+  bwa_seq_t* sequence = create_sequence(bases,read_length);
+
+  // Calculate paths.
+  bwa_cal_sa_reg_gap(0,bwts,1,sequence,&options);
+
+  // bwa_cal_sa_reg_gap destroys the bases / read length.  Copy them back in.
+  copy_bases_into_sequence(sequence,bases,read_length);
+
+  // Pick best alignment and propagate its information into the sequence.
+  bwa_aln2seq(sequence->n_aln,sequence->aln,sequence);
+
+  // Generate the best alignment from the sequence.
+  Alignment alignment = generate_final_alignment_from_sequence(sequence);
+
+  bwa_free_read_seq(1,sequence);
+
+  return alignment;
+}
+
 void BWA::generate_alignments_from_paths(const char* bases, 
                                          const unsigned read_length, 
                                          bwt_aln1_t* paths, 
@@ -66,8 +85,7 @@ void BWA::generate_alignments_from_paths(const char* bases,
                                          Alignment*& alignments, 
                                          unsigned& num_alignments) 
 {
-  bwa_seq_t* sequence = create_sequence();
-  copy_bases_into_sequence(sequence, bases, read_length);
+  bwa_seq_t* sequence = create_sequence(bases,read_length);
 
   sequence->aln = paths;
   sequence->n_aln = num_paths;
@@ -108,35 +126,8 @@ void BWA::generate_alignments_from_paths(const char* bases,
       if(alignment_idx > 0)
         seq_reverse(sequence->len, sequence->seq, 0);
 
-      // Calculate the local coordinate and local alignment.
-      bwa_cal_pac_pos_core(bwts[0],bwts[1],sequence,options.max_diff,options.fnr);
-      bwa_refine_gapped(bns, 1, sequence, reference, NULL);
-
       // Copy the local alignment data into the alignment object.
-      Alignment& alignment = *(alignments + alignment_idx);
-
-      // Populate basic path info
-      alignment.num_mismatches = sequence->n_mm;
-      alignment.num_gap_opens = sequence->n_gapo;
-      alignment.num_gap_extensions = sequence->n_gape;
-      alignment.num_best = sequence->c1;
-      alignment.num_second_best = sequence->c2;
-
-      alignment.type = sequence->type;
-      bns_coor_pac2real(bns, sequence->pos, pos_end(sequence) - sequence->pos, &alignment.contig);
-      alignment.pos = sequence->pos - bns->anns[alignment.contig].offset + 1;
-      alignment.negative_strand = sequence->strand;
-      alignment.mapping_quality = sequence->mapQ;
-
-      alignment.cigar = NULL;
-      if(sequence->cigar) {
-        alignment.cigar = new uint16_t[sequence->n_cigar];
-        memcpy(alignment.cigar,sequence->cigar,sequence->n_cigar*sizeof(uint16_t));
-      }
-      alignment.n_cigar = sequence->n_cigar;
-
-      delete[] sequence->md;
-      sequence->md = NULL;
+      *(alignments + alignment_idx) = generate_final_alignment_from_sequence(sequence);
 
       alignment_idx++;
     }
@@ -146,6 +137,42 @@ void BWA::generate_alignments_from_paths(const char* bases,
   sequence->n_aln = 0;
 
   bwa_free_read_seq(1,sequence);
+}
+
+Alignment BWA::generate_final_alignment_from_sequence(bwa_seq_t* sequence) {
+  // Calculate the local coordinate and local alignment.
+  bwa_cal_pac_pos_core(bwts[0],bwts[1],sequence,options.max_diff,options.fnr);
+  bwa_refine_gapped(bns, 1, sequence, reference, NULL);
+
+  // Copy the local alignment data into the alignment object.
+  Alignment alignment;
+
+  // Populate basic path info
+  alignment.num_mismatches = sequence->n_mm;
+  alignment.num_gap_opens = sequence->n_gapo;
+  alignment.num_gap_extensions = sequence->n_gape;
+  alignment.num_best = sequence->c1;
+  alignment.num_second_best = sequence->c2;
+  
+  // Final alignment position.
+  alignment.type = sequence->type;
+  bns_coor_pac2real(bns, sequence->pos, pos_end(sequence) - sequence->pos, &alignment.contig);
+  alignment.pos = sequence->pos - bns->anns[alignment.contig].offset + 1;
+  alignment.negative_strand = sequence->strand;
+  alignment.mapping_quality = sequence->mapQ;
+  
+  // Cigar step.
+  alignment.cigar = NULL;
+  if(sequence->cigar) {
+    alignment.cigar = new uint16_t[sequence->n_cigar];
+    memcpy(alignment.cigar,sequence->cigar,sequence->n_cigar*sizeof(uint16_t));
+  }
+  alignment.n_cigar = sequence->n_cigar;
+  
+  delete[] sequence->md;
+  sequence->md = NULL;
+
+  return alignment;
 }
 
 void BWA::load_default_options() 
@@ -190,7 +217,7 @@ void BWA::set_gap_extension_penalty(int penalty) { options.s_gape = penalty; }
  * Create a sequence with a set of reasonable initial defaults.  
  * Will leave seq and rseq empty.
  */
-bwa_seq_t* BWA::create_sequence() 
+bwa_seq_t* BWA::create_sequence(const char* bases, const unsigned read_length) 
 {
   bwa_seq_t* sequence = new bwa_seq_t;
 
@@ -198,8 +225,8 @@ bwa_seq_t* BWA::create_sequence()
 
   sequence->name = 0;
 
-  sequence->seq = NULL;
-  sequence->rseq = NULL;
+  copy_bases_into_sequence(sequence, bases, read_length);
+
   sequence->qual = 0;
   sequence->aln = 0;
   sequence->md = 0;

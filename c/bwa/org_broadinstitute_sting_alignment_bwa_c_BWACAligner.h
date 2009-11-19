@@ -39,6 +39,14 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWA
 JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_convertPathsToAlignments
   (JNIEnv *, jobject, jlong, jbyteArray, jobjectArray);
 
+/*
+ * Class:     org_broadinstitute_sting_alignment_bwa_c_BWACAligner
+ * Method:    getBestAlignment
+ * Signature: (J[B)Lorg/broadinstitute/sting/alignment/Alignment;
+ */
+JNIEXPORT jobject JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_getBestAlignment
+  (JNIEnv *, jobject, jlong, jbyteArray);
+
 #ifdef __cplusplus
 }
 #endif

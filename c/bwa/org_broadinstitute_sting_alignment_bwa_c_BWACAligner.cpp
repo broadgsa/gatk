@@ -11,6 +11,7 @@
 typedef void (BWA::*int_setter)(int value);
 typedef void (BWA::*float_setter)(float value);
 
+static jobject convert_to_java_alignment(JNIEnv* env, const jbyte* read_bases, const jsize read_length, const Alignment& alignment);
 static jstring get_configuration_string(JNIEnv* env, jobject configuration, const char* field_name);
 static void set_int_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, int_setter setter);
 static void set_float_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, float_setter setter);
@@ -228,65 +229,9 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWA
 
   for(unsigned alignment_idx = 0; alignment_idx < (unsigned)num_alignments; alignment_idx++) {
     Alignment& alignment = *(alignments + alignment_idx);
-
-    unsigned cigar_length;
-    if(alignment.type == BWA_TYPE_NO_MATCH) cigar_length = 0;
-    else if(!alignment.cigar) cigar_length = 1;
-    else cigar_length = alignment.n_cigar;
-
-    jcharArray java_cigar_operators = env->NewCharArray(cigar_length);
-    if(java_cigar_operators == NULL) return NULL;
-    jintArray java_cigar_lengths = env->NewIntArray(cigar_length);
-    if(java_cigar_lengths == NULL) return NULL;
-
-    if(alignment.cigar) {
-      for(unsigned cigar_idx = 0; cigar_idx < (unsigned)alignment.n_cigar; ++cigar_idx) {
-        jchar cigar_operator = "MIDS"[alignment.cigar[cigar_idx]>>14];
-        jint  cigar_length = alignment.cigar[cigar_idx]&0x3fff;
-        
-        env->SetCharArrayRegion(java_cigar_operators,cigar_idx,1,&cigar_operator);
-        if(env->ExceptionCheck()) return NULL;
-        env->SetIntArrayRegion(java_cigar_lengths,cigar_idx,1,&cigar_length);
-        if(env->ExceptionCheck()) return NULL;
-      }
-    }
-    else {
-      if(alignment.type != BWA_TYPE_NO_MATCH) {
-        jchar cigar_operator = 'M';
-        env->SetCharArrayRegion(java_cigar_operators,0,1,&cigar_operator);
-        if(env->ExceptionCheck()) return NULL;
-        env->SetIntArrayRegion(java_cigar_lengths,0,1,&read_length);
-        if(env->ExceptionCheck()) return NULL;
-      }
-    }
-    
-    jclass java_alignment_class = env->FindClass("org/broadinstitute/sting/alignment/Alignment");
-    if(java_alignment_class == NULL) return NULL;
-
-    jmethodID java_alignment_constructor = env->GetMethodID(java_alignment_class, "<init>", "(IIZI[C[IIIIII)V");
-    if(java_alignment_constructor == NULL) return NULL;
-
-    jobject java_alignment = env->NewObject(java_alignment_class,
-                                            java_alignment_constructor,
-                                            alignment.contig,
-                                            alignment.pos,
-                                            alignment.negative_strand,
-                                            alignment.mapping_quality,
-                                            java_cigar_operators,
-                                            java_cigar_lengths,
-                                            alignment.num_mismatches,
-                                            alignment.num_gap_opens,
-                                            alignment.num_gap_extensions,
-                                            alignment.num_best,
-                                            alignment.num_second_best);
-    if(java_alignment == NULL) return NULL;      
-
-    delete[] alignment.cigar;
-
+    jobject java_alignment = convert_to_java_alignment(env,read_bases,read_length,alignment);
+    if(java_alignment == NULL) return NULL;
     env->SetObjectArrayElement(java_alignments,alignment_idx,java_alignment);
-    if(env->ExceptionCheck()) return NULL;
-
-    env->DeleteLocalRef(java_alignment_class);
     if(env->ExceptionCheck()) return NULL;
   }
 
@@ -296,6 +241,84 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWA
   env->ReleaseByteArrayElements(java_bases,read_bases,JNI_FALSE); 
 
   return env->ExceptionCheck() ? NULL : java_alignments;
+}
+
+JNIEXPORT jobject JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_getBestAlignment(JNIEnv *env, jobject instance, jlong java_bwa, jbyteArray java_bases) {
+  BWA* bwa = (BWA*)java_bwa;
+
+  const jsize read_length = env->GetArrayLength(java_bases);
+  if(env->ExceptionCheck()) return NULL;
+
+  jbyte *read_bases = env->GetByteArrayElements(java_bases,JNI_FALSE); 
+  if(read_bases == NULL) return NULL;
+
+  Alignment best_alignment = bwa->generate_single_alignment((const char*)read_bases,read_length);
+  jobject java_best_alignment = convert_to_java_alignment(env,read_bases,read_length,best_alignment);
+
+  env->ReleaseByteArrayElements(java_bases,read_bases,JNI_FALSE); 
+
+  return java_best_alignment;
+}
+
+static jobject convert_to_java_alignment(JNIEnv *env, const jbyte* read_bases, const jsize read_length, const Alignment& alignment) {
+  unsigned cigar_length;
+  if(alignment.type == BWA_TYPE_NO_MATCH) cigar_length = 0;
+  else if(!alignment.cigar) cigar_length = 1;
+  else cigar_length = alignment.n_cigar;
+  
+  jcharArray java_cigar_operators = env->NewCharArray(cigar_length);
+  if(java_cigar_operators == NULL) return NULL;
+  jintArray java_cigar_lengths = env->NewIntArray(cigar_length);
+  if(java_cigar_lengths == NULL) return NULL;
+  
+  if(alignment.cigar) {
+    for(unsigned cigar_idx = 0; cigar_idx < (unsigned)alignment.n_cigar; ++cigar_idx) {
+      jchar cigar_operator = "MIDS"[alignment.cigar[cigar_idx]>>14];
+      jint  cigar_length = alignment.cigar[cigar_idx]&0x3fff;
+      
+      env->SetCharArrayRegion(java_cigar_operators,cigar_idx,1,&cigar_operator);
+      if(env->ExceptionCheck()) return NULL;
+      env->SetIntArrayRegion(java_cigar_lengths,cigar_idx,1,&cigar_length);
+      if(env->ExceptionCheck()) return NULL;
+    }
+  }
+  else {
+    if(alignment.type != BWA_TYPE_NO_MATCH) {
+      jchar cigar_operator = 'M';
+      env->SetCharArrayRegion(java_cigar_operators,0,1,&cigar_operator);
+      if(env->ExceptionCheck()) return NULL;
+      env->SetIntArrayRegion(java_cigar_lengths,0,1,&read_length);
+      if(env->ExceptionCheck()) return NULL;
+    }
+  }
+    
+  jclass java_alignment_class = env->FindClass("org/broadinstitute/sting/alignment/Alignment");
+  if(java_alignment_class == NULL) return NULL;
+  
+  jmethodID java_alignment_constructor = env->GetMethodID(java_alignment_class, "<init>", "(IIZI[C[IIIIII)V");
+  if(java_alignment_constructor == NULL) return NULL;
+  
+  jobject java_alignment = env->NewObject(java_alignment_class,
+                                          java_alignment_constructor,
+                                          alignment.contig,
+                                          alignment.pos,
+                                          alignment.negative_strand,
+                                          alignment.mapping_quality,
+                                          java_cigar_operators,
+                                          java_cigar_lengths,
+                                          alignment.num_mismatches,
+                                          alignment.num_gap_opens,
+                                          alignment.num_gap_extensions,
+                                          alignment.num_best,
+                                          alignment.num_second_best);
+  if(java_alignment == NULL) return NULL;      
+  
+  delete[] alignment.cigar;
+  
+  env->DeleteLocalRef(java_alignment_class);
+  if(env->ExceptionCheck()) return NULL;
+
+  return java_alignment;
 }
 
 static jstring get_configuration_string(JNIEnv* env, jobject configuration, const char* field_name) {

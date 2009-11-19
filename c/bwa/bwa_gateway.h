@@ -7,7 +7,23 @@
 #include "bwt.h"
 #include "bwtaln.h"
 
-class Alignment;
+class Alignment {
+ public:
+  uint32_t type;
+  int contig;
+  bwtint_t pos;
+  bool negative_strand;
+  uint32_t mapping_quality;
+
+  uint16_t *cigar;
+  int n_cigar;
+
+  uint8_t num_mismatches;
+  uint8_t num_gap_opens;
+  uint8_t num_gap_extensions;
+  uint32_t num_best;
+  uint32_t num_second_best;
+};
 
 class BWA {
  private:
@@ -17,8 +33,9 @@ class BWA {
   gap_opt_t options;
 
   void load_default_options();
-  bwa_seq_t* create_sequence();
+  bwa_seq_t* create_sequence(const char* bases, const unsigned read_length);
   void copy_bases_into_sequence(bwa_seq_t* sequence, const char* bases, const unsigned read_length);
+  Alignment generate_final_alignment_from_sequence(bwa_seq_t* sequence);
 
  public:
   BWA(const char* ann_filename,
@@ -40,6 +57,8 @@ class BWA {
   void set_gap_extension_penalty(int penalty);
 
   // Perform the alignment
+  Alignment generate_single_alignment(const char* bases, 
+                                      const unsigned read_length);
   void find_paths(const char* bases, 
                   const unsigned read_length, 
                   bwt_aln1_t*& paths, 
@@ -54,24 +73,6 @@ class BWA {
                                       const unsigned second_best_count,
                                       Alignment*& alignments, 
                                       unsigned& num_alignments);
-};
-
-class Alignment {
- public:
-  uint32_t type;
-  int contig;
-  bwtint_t pos;
-  bool negative_strand;
-  uint32_t mapping_quality;
-
-  uint16_t *cigar;
-  int n_cigar;
-
-  uint8_t num_mismatches;
-  uint8_t num_gap_opens;
-  uint8_t num_gap_extensions;
-  uint32_t num_best;
-  uint32_t num_second_best;
 };
 
 #endif // BWA_GATEWAY
