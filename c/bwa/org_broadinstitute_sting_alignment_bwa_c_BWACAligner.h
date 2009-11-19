@@ -25,11 +25,19 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner
 
 /*
  * Class:     org_broadinstitute_sting_alignment_bwa_c_BWACAligner
- * Method:    getAlignments
- * Signature: (J[B)[Lorg/broadinstitute/sting/alignment/Alignment;
+ * Method:    getPaths
+ * Signature: (J[B)[Lorg/broadinstitute/sting/alignment/bwa/c/BWAPath;
  */
-JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_getAlignments
+JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_getPaths
   (JNIEnv *, jobject, jlong, jbyteArray);
+
+/*
+ * Class:     org_broadinstitute_sting_alignment_bwa_c_BWACAligner
+ * Method:    convertPathsToAlignments
+ * Signature: (J[B[Lorg/broadinstitute/sting/alignment/bwa/c/BWAPath;)[Lorg/broadinstitute/sting/alignment/Alignment;
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_convertPathsToAlignments
+  (JNIEnv *, jobject, jlong, jbyteArray, jobjectArray);
 
 #ifdef __cplusplus
 }

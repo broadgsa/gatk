@@ -95,7 +95,63 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner
   delete bwa;
 }
 
-JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_getAlignments(JNIEnv* env, jobject object, jlong java_bwa, jbyteArray java_bases) 
+JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_getPaths(JNIEnv *env, jobject instance, jlong java_bwa, jbyteArray java_bases) 
+{
+ BWA* bwa = (BWA*)java_bwa;
+
+  const jsize read_length = env->GetArrayLength(java_bases);
+  if(env->ExceptionCheck()) return NULL;
+
+  jbyte *read_bases = env->GetByteArrayElements(java_bases,JNI_FALSE); 
+  if(read_bases == NULL) return NULL;
+
+  bwt_aln1_t* paths = NULL;
+  unsigned num_paths = 0;
+
+  unsigned best_path_count, second_best_path_count;
+  bwa->find_paths((const char*)read_bases,read_length,paths,num_paths,best_path_count,second_best_path_count);
+
+  jobjectArray java_paths = env->NewObjectArray(num_paths, env->FindClass("org/broadinstitute/sting/alignment/bwa/c/BWAPath"), NULL);  
+  if(java_paths == NULL) return NULL;
+
+  for(unsigned path_idx = 0; path_idx < (unsigned)num_paths; path_idx++) {
+    bwt_aln1_t& path = *(paths + path_idx);
+
+    jclass java_path_class = env->FindClass("org/broadinstitute/sting/alignment/bwa/c/BWAPath");
+    if(java_path_class == NULL) return NULL;
+
+    jmethodID java_path_constructor = env->GetMethodID(java_path_class, "<init>", "(IIIZJJIII)V");
+    if(java_path_constructor == NULL) return NULL;
+
+    // Note that k/l are being cast to long.  Bad things will happen if JNI assumes that they're ints.
+    jobject java_path = env->NewObject(java_path_class,
+                                       java_path_constructor,
+                                       path.n_mm,
+                                       path.n_gapo,
+                                       path.n_gape,
+                                       path.a,
+                                       (jlong)path.k,
+                                       (jlong)path.l,
+                                       path.score,
+                                       best_path_count,
+                                       second_best_path_count);
+    if(java_path == NULL) return NULL;      
+
+    env->SetObjectArrayElement(java_paths,path_idx,java_path);
+    if(env->ExceptionCheck()) return NULL;
+
+    env->DeleteLocalRef(java_path_class);
+    if(env->ExceptionCheck()) return NULL;
+  }
+
+  delete[] paths;
+
+  env->ReleaseByteArrayElements(java_bases,read_bases,JNI_FALSE); 
+
+  return env->ExceptionCheck() ? NULL : java_paths;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_convertPathsToAlignments(JNIEnv *env, jobject instance, jlong java_bwa, jbyteArray java_bases, jobjectArray java_paths) 
 {
   BWA* bwa = (BWA*)java_bwa;
 
@@ -105,10 +161,67 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWA
   jbyte *read_bases = env->GetByteArrayElements(java_bases,JNI_FALSE); 
   if(read_bases == NULL) return NULL;
 
+  const jsize num_paths = env->GetArrayLength(java_paths);
+  bwt_aln1_t* paths = new bwt_aln1_t[num_paths];
+  unsigned best_count = 0, second_best_count = 0;
+
+  for(unsigned path_idx = 0; path_idx < (unsigned)num_paths; path_idx++) {
+    jobject java_path = env->GetObjectArrayElement(java_paths,path_idx);
+    jclass java_path_class = env->GetObjectClass(java_path);
+    if(java_path_class == NULL) return NULL;
+
+    bwt_aln1_t& path = *(paths + path_idx);
+
+    jfieldID mismatches_field = env->GetFieldID(java_path_class, "numMismatches", "I");
+    if(mismatches_field == NULL) return NULL;
+    path.n_mm = env->GetIntField(java_path,mismatches_field);
+    if(env->ExceptionCheck()) return NULL;
+
+    jfieldID gap_opens_field = env->GetFieldID(java_path_class, "numGapOpens", "I");
+    if(gap_opens_field == NULL) return NULL;
+    path.n_gapo = env->GetIntField(java_path,gap_opens_field);
+    if(env->ExceptionCheck()) return NULL;
+
+    jfieldID gap_extensions_field = env->GetFieldID(java_path_class, "numGapExtensions", "I");
+    if(gap_extensions_field == NULL) return NULL;
+    path.n_gape = env->GetIntField(java_path,gap_extensions_field);
+    if(env->ExceptionCheck()) return NULL;
+
+    jfieldID negative_strand_field = env->GetFieldID(java_path_class, "negativeStrand", "Z");
+    if(negative_strand_field == NULL) return NULL;
+    path.a = env->GetBooleanField(java_path,negative_strand_field);
+    if(env->ExceptionCheck()) return NULL;
+
+    jfieldID k_field = env->GetFieldID(java_path_class, "k", "J");
+    if(k_field == NULL) return NULL;
+    path.k = env->GetLongField(java_path,k_field);
+    if(env->ExceptionCheck()) return NULL;
+
+    jfieldID l_field = env->GetFieldID(java_path_class, "l", "J");
+    if(l_field == NULL) return NULL;
+    path.l = env->GetLongField(java_path,l_field);
+    if(env->ExceptionCheck()) return NULL;
+
+    jfieldID score_field = env->GetFieldID(java_path_class, "score", "I");
+    if(score_field == NULL) return NULL;
+    path.score = env->GetIntField(java_path,score_field);
+    if(env->ExceptionCheck()) return NULL;
+
+    jfieldID best_count_field = env->GetFieldID(java_path_class, "bestCount", "I");
+    if(best_count_field == NULL) return NULL;
+    best_count = env->GetIntField(java_path,best_count_field);
+    if(env->ExceptionCheck()) return NULL;
+
+    jfieldID second_best_count_field = env->GetFieldID(java_path_class, "secondBestCount", "I");
+    if(second_best_count_field == NULL) return NULL;
+    second_best_count = env->GetIntField(java_path,second_best_count_field);
+    if(env->ExceptionCheck()) return NULL;
+  }
+
   Alignment* alignments = NULL;
   unsigned num_alignments = 0;
-
-  bwa->align((const char*)read_bases,read_length,alignments,num_alignments);
+  bwa->generate_alignments_from_paths((const char*)read_bases,read_length,paths,num_paths,best_count,second_best_count,alignments,num_alignments);
+  num_alignments = 0;
 
   jobjectArray java_alignments = env->NewObjectArray(num_alignments, env->FindClass("org/broadinstitute/sting/alignment/Alignment"), NULL);  
   if(java_alignments == NULL) return NULL;
@@ -128,39 +241,44 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWA
 
     if(alignment.cigar) {
       for(unsigned cigar_idx = 0; cigar_idx < (unsigned)alignment.n_cigar; ++cigar_idx) {
-	jchar cigar_operator = "MIDS"[alignment.cigar[cigar_idx]>>14];
-	jint  cigar_length = alignment.cigar[cigar_idx]&0x3fff;
-
-	env->SetCharArrayRegion(java_cigar_operators,cigar_idx,1,&cigar_operator);
-	if(env->ExceptionCheck()) return NULL;
-	env->SetIntArrayRegion(java_cigar_lengths,cigar_idx,1,&cigar_length);
-	if(env->ExceptionCheck()) return NULL;
+        jchar cigar_operator = "MIDS"[alignment.cigar[cigar_idx]>>14];
+        jint  cigar_length = alignment.cigar[cigar_idx]&0x3fff;
+        
+        env->SetCharArrayRegion(java_cigar_operators,cigar_idx,1,&cigar_operator);
+        if(env->ExceptionCheck()) return NULL;
+        env->SetIntArrayRegion(java_cigar_lengths,cigar_idx,1,&cigar_length);
+        if(env->ExceptionCheck()) return NULL;
       }
     }
     else {
       if(alignment.type != BWA_TYPE_NO_MATCH) {
-	jchar cigar_operator = 'M';
-	env->SetCharArrayRegion(java_cigar_operators,0,1,&cigar_operator);
-	if(env->ExceptionCheck()) return NULL;
-	env->SetIntArrayRegion(java_cigar_lengths,0,1,&read_length);
-	if(env->ExceptionCheck()) return NULL;
+        jchar cigar_operator = 'M';
+        env->SetCharArrayRegion(java_cigar_operators,0,1,&cigar_operator);
+        if(env->ExceptionCheck()) return NULL;
+        env->SetIntArrayRegion(java_cigar_lengths,0,1,&read_length);
+        if(env->ExceptionCheck()) return NULL;
       }
     }
-
+    
     jclass java_alignment_class = env->FindClass("org/broadinstitute/sting/alignment/Alignment");
     if(java_alignment_class == NULL) return NULL;
 
-    jmethodID java_alignment_constructor = env->GetMethodID(java_alignment_class, "<init>", "(IIZI[C[I)V");
+    jmethodID java_alignment_constructor = env->GetMethodID(java_alignment_class, "<init>", "(IIZI[C[IIIIII)V");
     if(java_alignment_constructor == NULL) return NULL;
 
     jobject java_alignment = env->NewObject(java_alignment_class,
-					    java_alignment_constructor,
-					    alignment.contig,
-					    alignment.pos,
-					    alignment.negative_strand,
-					    alignment.mapQ,
-					    java_cigar_operators,
-					    java_cigar_lengths);
+                                            java_alignment_constructor,
+                                            alignment.contig,
+                                            alignment.pos,
+                                            alignment.negative_strand,
+                                            alignment.mapping_quality,
+                                            java_cigar_operators,
+                                            java_cigar_lengths,
+                                            alignment.num_mismatches,
+                                            alignment.num_gap_opens,
+                                            alignment.num_gap_extensions,
+                                            alignment.num_best,
+                                            alignment.num_second_best);
     if(java_alignment == NULL) return NULL;      
 
     delete[] alignment.cigar;
@@ -173,6 +291,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWA
   }
 
   delete[] alignments;
+  delete[] paths;
 
   env->ReleaseByteArrayElements(java_bases,read_bases,JNI_FALSE); 
 

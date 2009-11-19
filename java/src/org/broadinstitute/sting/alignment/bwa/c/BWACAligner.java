@@ -4,11 +4,8 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.alignment.bwa.c.BWACConfiguration;
 
-import java.util.Comparator;
-import java.util.Arrays;
-import java.util.Iterator;
+import java.util.*;
 
 /**
  * An aligner using the BWA/C implementation.
@@ -34,7 +31,7 @@ public class BWACAligner {
     protected native long create(BWACConfiguration configuration);
 
     /**
-     * Destroy the 
+     * Destroy the BWA/C thunk.
      * @param thunkPointer Pointer to the allocated thunk.
      */
     protected native void destroy(long thunkPointer);
@@ -59,8 +56,8 @@ public class BWACAligner {
      * @param bases List of bases.
      * @return Iterator to alignments.
      */
-    public Iterator<Alignment[]> getAlignments(byte[] bases) {
-        final Alignment[] alignments = getAllAlignments(bases);
+    public Iterator<Alignment[]> getAlignments(final byte[] bases) {
+        final BWAPath[] paths = getPaths(bases);
         return new Iterator<Alignment[]>() {
             /**
              * The last position accessed.
@@ -71,19 +68,19 @@ public class BWACAligner {
              * Whether all alignments have been seen based on the current position.
              * @return True if any more alignments are pending.  False otherwise.
              */
-            public boolean hasNext() { return position < alignments.length; }
+            public boolean hasNext() { return position < paths.length; }
 
             /**
              * Return the next cross-section of alignments, based on mapping quality.
              * @return Array of the next set of alignments of a given mapping quality.
              */
             public Alignment[] next() {
-                if(position >= alignments.length)
+                if(position >= paths.length)
                     throw new UnsupportedOperationException("Out of alignments to return.");
-                int mapQ = alignments[position].getMappingQuality();
+                int score = paths[position].score;
                 int startingPosition = position;
-                while(position < alignments.length && alignments[position].getMappingQuality() == mapQ) position++;
-                return Arrays.copyOfRange(alignments,startingPosition,position);
+                while(position < paths.length && paths[position].score == score) position++;
+                return convertPathsToAlignments(bases,Arrays.copyOfRange(paths,startingPosition,position));
             }
 
             /**
@@ -91,19 +88,6 @@ public class BWACAligner {
              */
             public void remove() { throw new UnsupportedOperationException("Cannot remove from an alignment iterator"); }
         };
-    }
-
-    /**
-     * Align the given base array to the BWT.  The base array should be in ASCII format.
-     * @param bases ASCII representation of byte array.
-     * @return an array of indices into the bwa.
-     */
-    public Alignment[] getAllAlignments(byte[] bases) {
-        if(thunkPointer == 0)
-            throw new StingException("BWA/C align attempted, but BWA/C was never properly initialized.");
-        Alignment[] alignments = getAlignments(thunkPointer,bases);
-        Arrays.sort(alignments,new AlignmentMapQComparator());
-        return alignments;
     }
 
     /**
@@ -182,28 +166,56 @@ public class BWACAligner {
     }
 
     /**
-     * Caller to the .  The base array should be in
-     * ASCII format.
-     * @param thunkPointer pointer to the C++ object managing BWA/C.
+     * Align the given base array to the BWT.  The base array should be in ASCII format.
      * @param bases ASCII representation of byte array.
+     * @return an array of indices into the bwa.
      */
-    protected native Alignment[] getAlignments(long thunkPointer, byte[] bases);
+    public Alignment[] getAllAlignments(byte[] bases) {
+        if(thunkPointer == 0)
+            throw new StingException("BWA/C align attempted, but BWA/C is not properly initialized.");
+        BWAPath[] paths = getPaths(bases);
+        return convertPathsToAlignments(thunkPointer,bases,paths);
+    }
 
     /**
-     * Compares two alignments based on their mapping quality.  The one with the highest mapping quality comes FIRST.
+     * Get the paths associated with the given base string.
+     * @param bases List of bases.
+     * @return A set of paths through the BWA.
      */
-    private class AlignmentMapQComparator implements Comparator<Alignment> {
-        /**
-         * Compares two alignments based on their score.  If lhs has a higher mapping quality than
-         * rhs, the score will be negative.
-         * @param lhs Left-hand side for comparison.
-         * @param rhs Right-hand side for comparison.
-         * @return Negative value if lhs' score is highe
-         */
-        public int compare(Alignment lhs, Alignment rhs) {
-            // NOTE: this strategy works because Integer.MAX_VALUE, Integer.MIN_VALUE >> than valid range of mapping
-            //       qualities.
-            return rhs.getMappingQuality() - lhs.getMappingQuality();
-        }
+    public BWAPath[] getPaths(byte[] bases) {
+        if(thunkPointer == 0)
+            throw new StingException("BWA/C getPaths attempted, but BWA/C is not properly initialized.");
+        BWAPath[] paths = getPaths(thunkPointer,bases);
+        return paths;
     }
+
+    /**
+     * Do the extra steps involved in converting a local alignment to a global alignment.
+     * @param bases ASCII representation of byte array.
+     * @param paths Paths through the current BWT.
+     * @return A list of alignments.
+     */
+    protected Alignment[] convertPathsToAlignments(byte[] bases, BWAPath[] paths) {
+        if(thunkPointer == 0)
+            throw new StingException("BWA/C convertPathsToAlignments attempted, but BWA/C is not properly initialized.");
+        return convertPathsToAlignments(thunkPointer,bases,paths);
+    }
+
+    /**
+     * Caller to the path generation functionality within BWA/C.  Call this method's getPaths() wrapper (above) instead.
+     * @param thunkPointer pointer to the C++ object managing BWA/C.
+     * @param bases ASCII representation of byte array.
+     * @return A list of paths through the specified BWT.
+     */
+    protected native BWAPath[] getPaths(long thunkPointer, byte[] bases);
+
+    /**
+     * Do the extra steps involved in converting a local alignment to a global alignment.
+     * Call this method's convertPathsToAlignments() wrapper (above) instead.
+     * @param thunkPointer pointer to the C++ object managing BWA/C.
+     * @param bases ASCII representation of byte array.
+     * @param paths Paths through the current BWT.
+     * @return A list of alignments.
+     */
+    protected native Alignment[] convertPathsToAlignments(long thunkPointer, byte[] bases, BWAPath[] paths);
 }

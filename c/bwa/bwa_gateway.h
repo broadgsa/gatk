@@ -19,7 +19,6 @@ class BWA {
   void load_default_options();
   bwa_seq_t* create_sequence();
   void copy_bases_into_sequence(bwa_seq_t* sequence, const char* bases, const unsigned read_length);
-  void create_alignments(bwa_seq_t* sequence, Alignment*& alignments, unsigned& num_alignments);
 
  public:
   BWA(const char* ann_filename,
@@ -41,7 +40,20 @@ class BWA {
   void set_gap_extension_penalty(int penalty);
 
   // Perform the alignment
-  void align(const char* bases, const unsigned read_length, Alignment*& alignments, unsigned& num_alignments);
+  void find_paths(const char* bases, 
+                  const unsigned read_length, 
+                  bwt_aln1_t*& paths, 
+                  unsigned& num_paths, 
+                  unsigned& best_path_count, 
+                  unsigned& second_best_path_count);
+  void generate_alignments_from_paths(const char* bases, 
+                                      const unsigned read_length, 
+                                      bwt_aln1_t* paths, 
+                                      const unsigned num_paths, 
+                                      const unsigned best_count,
+                                      const unsigned second_best_count,
+                                      Alignment*& alignments, 
+                                      unsigned& num_alignments);
 };
 
 class Alignment {
@@ -50,11 +62,16 @@ class Alignment {
   int contig;
   bwtint_t pos;
   bool negative_strand;
+  uint32_t mapping_quality;
 
   uint16_t *cigar;
   int n_cigar;
 
-  uint32_t mapQ;
+  uint8_t num_mismatches;
+  uint8_t num_gap_opens;
+  uint8_t num_gap_extensions;
+  uint32_t num_best;
+  uint32_t num_second_best;
 };
 
 #endif // BWA_GATEWAY

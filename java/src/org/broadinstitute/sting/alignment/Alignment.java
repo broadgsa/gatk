@@ -16,8 +16,14 @@ public class Alignment {
     protected boolean negativeStrand;
     protected int mappingQuality;
 
-    private char[] cigarOperators;
-    private int[] cigarLengths;
+    protected char[] cigarOperators;
+    protected int[] cigarLengths;
+
+    protected int numMismatches;
+    protected int numGapOpens;
+    protected int numGapExtensions;
+    protected int bestCount;
+    protected int secondBestCount;
 
     /**
      * Gets the index of the given contig.
@@ -42,6 +48,36 @@ public class Alignment {
      * @return The score.
      */
     public int getMappingQuality() { return mappingQuality; }
+
+    /**
+     * Gets the number of mismatches in the read.
+     * @return Number of mismatches.
+     */
+    public int getNumMismatches() { return numMismatches; }
+
+    /**
+     * Get the number of gap opens.
+     * @return Number of gap opens.
+     */
+    public int getNumGapOpens() { return numGapOpens; }
+
+    /**
+     * Get the number of gap extensions.
+     * @return Number of gap extensions.
+     */
+    public int getNumGapExtensions() { return numGapExtensions; }
+
+    /**
+     * Get the number of best alignments.
+     * @return Number of top scoring alignments.
+     */
+    public int getBestCount() { return bestCount; }
+
+    /**
+     * Get the number of second best alignments.
+     * @return Number of second best scoring alignments.
+     */
+    public int getSecondBestCount() { return secondBestCount; }
 
     /**
      * Gets the cigar for this alignment.
@@ -87,13 +123,27 @@ public class Alignment {
      * @param cigarOperators The ordered operators in the cigar string.
      * @param cigarLengths The lengths to which each operator applies.
      */
-    public Alignment(int contigIndex, int alignmentStart, boolean negativeStrand, int mappingQuality,
-                     char[] cigarOperators, int[] cigarLengths) {
+    public Alignment(int contigIndex,
+                     int alignmentStart,
+                     boolean negativeStrand,
+                     int mappingQuality,
+                     char[] cigarOperators,
+                     int[] cigarLengths,
+                     int numMismatches,
+                     int numGapOpens,
+                     int numGapExtensions,
+                     int bestCount,
+                     int secondBestCount) {
         this.contigIndex = contigIndex;
         this.alignmentStart = alignmentStart;
         this.negativeStrand = negativeStrand;
         this.mappingQuality = mappingQuality;
         this.cigarOperators = cigarOperators;
         this.cigarLengths = cigarLengths;
+        this.numMismatches = numMismatches;
+        this.numGapOpens = numGapOpens;
+        this.numGapExtensions = numGapExtensions;
+        this.bestCount = bestCount;
+        this.secondBestCount = secondBestCount;
     }
 }

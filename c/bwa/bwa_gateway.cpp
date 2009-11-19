@@ -36,22 +36,114 @@ BWA::~BWA() {
   bwt_destroy(bwts[1]);
 }
 
-void BWA::align(const char* bases, const unsigned read_length, Alignment*& alignments, unsigned& num_alignments) 
+void BWA::find_paths(const char* bases, const unsigned read_length, bwt_aln1_t*& paths, unsigned& num_paths, unsigned& best_path_count, unsigned& second_best_path_count) 
 {
   bwa_seq_t* sequence = create_sequence();
   copy_bases_into_sequence(sequence, bases, read_length);
 
-  // Calculate the suffix array interval for each sequence, storing the result in sequence.aln (and sequence.n_aln).
+  // Calculate the suffix array interval for each sequence, storing the result in sequence->aln (and sequence->n_aln).
   // This method will destroy the contents of seq and rseq.
   bwa_cal_sa_reg_gap(0,bwts,1,sequence,&options);
 
-  // Translate suffix array indices into exactly how many alignments have been found.
+  paths = new bwt_aln1_t[sequence->n_aln];
+  memcpy(paths,sequence->aln,sequence->n_aln*sizeof(bwt_aln1_t));
+  num_paths = sequence->n_aln;
+
+  // Call aln2seq to initialize the type of match present.
+  bwa_aln2seq(sequence->n_aln,sequence->aln,sequence);
+  best_path_count = sequence->c1;
+  second_best_path_count = sequence->c2;
+
+  bwa_free_read_seq(1,sequence);
+}
+
+void BWA::generate_alignments_from_paths(const char* bases, 
+                                         const unsigned read_length, 
+                                         bwt_aln1_t* paths, 
+                                         const unsigned num_paths, 
+                                         const unsigned best_count,
+                                         const unsigned second_best_count,
+                                         Alignment*& alignments, 
+                                         unsigned& num_alignments) 
+{
+  bwa_seq_t* sequence = create_sequence();
+  copy_bases_into_sequence(sequence, bases, read_length);
+
+  sequence->aln = paths;
+  sequence->n_aln = num_paths;
+
+  // (Ab)use bwa_aln2seq to propagate values stored in the path out into the sequence itself.
   bwa_aln2seq(sequence->n_aln,sequence->aln,sequence);
 
-  // Calculate and refine the position for each alignment.  This position may be inaccurate 
-  // if the read contains indels, etc.  Refinement requires the original sequences in the proper order.
-  copy_bases_into_sequence(sequence, bases, read_length);
-  create_alignments(sequence, alignments, num_alignments);
+  // But overwrite key parts of the sequence in case the user passed back only a smaller subset
+  // of the paths.
+  sequence->c1 = best_count;
+  sequence->c2 = second_best_count;
+  sequence->type = sequence->c1 > 1 ? BWA_TYPE_REPEAT : BWA_TYPE_UNIQUE;
+
+  num_alignments = 0;
+  for(unsigned i = 0; i < (unsigned)sequence->n_aln; i++)
+    num_alignments += (sequence->aln + i)->l - (sequence->aln + i)->k + 1;
+
+  alignments = new Alignment[num_alignments];
+  unsigned alignment_idx = 0;
+
+  for(unsigned path_idx = 0; path_idx < (unsigned)num_paths; path_idx++) {
+    // Stub in a 'working' path, so that only the desired alignment is local-aligned.
+    const bwt_aln1_t* path = paths + path_idx;
+    bwt_aln1_t working_path = *path;
+
+    // Loop through all alignments, aligning each one individually.
+    for(unsigned sa_idx = path->k; sa_idx <= path->l; sa_idx++) {
+      working_path.k = working_path.l = sa_idx;
+      sequence->aln = &working_path;
+      sequence->n_aln = 1;
+
+      sequence->sa = sa_idx;
+      sequence->strand = path->a;
+      sequence->score = path->score;
+
+      // Each time through bwa_refine_gapped, seq gets reversed.  Revert the reverse.
+      // TODO: Fix the interface to bwa_refine_gapped so its easier to work with.
+      if(alignment_idx > 0)
+        seq_reverse(sequence->len, sequence->seq, 0);
+
+      // Calculate the local coordinate and local alignment.
+      bwa_cal_pac_pos_core(bwts[0],bwts[1],sequence,options.max_diff,options.fnr);
+      bwa_refine_gapped(bns, 1, sequence, reference, NULL);
+
+      // Copy the local alignment data into the alignment object.
+      Alignment& alignment = *(alignments + alignment_idx);
+
+      // Populate basic path info
+      alignment.num_mismatches = sequence->n_mm;
+      alignment.num_gap_opens = sequence->n_gapo;
+      alignment.num_gap_extensions = sequence->n_gape;
+      alignment.num_best = sequence->c1;
+      alignment.num_second_best = sequence->c2;
+
+      alignment.type = sequence->type;
+      bns_coor_pac2real(bns, sequence->pos, pos_end(sequence) - sequence->pos, &alignment.contig);
+      alignment.pos = sequence->pos - bns->anns[alignment.contig].offset + 1;
+      alignment.negative_strand = sequence->strand;
+      alignment.mapping_quality = sequence->mapQ;
+
+      alignment.cigar = NULL;
+      if(sequence->cigar) {
+        alignment.cigar = new uint16_t[sequence->n_cigar];
+        memcpy(alignment.cigar,sequence->cigar,sequence->n_cigar*sizeof(uint16_t));
+      }
+      alignment.n_cigar = sequence->n_cigar;
+
+      delete[] sequence->md;
+      sequence->md = NULL;
+
+      alignment_idx++;
+    }
+  }
+
+  sequence->aln = NULL;
+  sequence->n_aln = 0;
 
   bwa_free_read_seq(1,sequence);
 }
@@ -131,64 +223,4 @@ void BWA::copy_bases_into_sequence(bwa_seq_t* sequence, const char* bases, const
   seq_reverse(read_length,sequence->rseq,1);
 
   sequence->full_len = sequence->len = read_length;
-}
-
-void BWA::create_alignments(bwa_seq_t* sequence, Alignment*& alignments, unsigned& num_alignments) {
-  num_alignments = 0;
-  for(unsigned i = 0; i < (unsigned)sequence->n_aln; i++)
-    num_alignments += (sequence->aln + i)->l - (sequence->aln + i)->k + 1;
-
-  alignments = new Alignment[num_alignments];
-  unsigned alignment_idx = 0;
-
-  // backup existing alignment blocks.
-  bwt_aln1_t* alignment_blocks = sequence->aln;
-  int num_alignment_blocks = sequence->n_aln;
-
-  for(unsigned alignment_block_idx = 0; alignment_block_idx < (unsigned)num_alignment_blocks; alignment_block_idx++) {
-    // Stub in a 'working' alignment block, so that only the desired alignment is local-aligned.
-    const bwt_aln1_t* alignment_block = alignment_blocks + alignment_block_idx;
-    bwt_aln1_t working_alignment_block = *alignment_block;
-
-    // Loop through all alignments, aligning each one individually.
-    for(unsigned sa_idx = alignment_block->k; sa_idx <= alignment_block->l; sa_idx++) {
-      working_alignment_block.k = working_alignment_block.l = sa_idx;
-      sequence->aln = &working_alignment_block;
-      sequence->n_aln = 1;
-
-      sequence->sa = sa_idx;
-      sequence->strand = alignment_block->a;
-      sequence->score = alignment_block->score;
-
-      // Each time through bwa_refine_gapped, seq gets reversed.  Revert the reverse.
-      // TODO: Fix the interface to bwa_refine_gapped so its easier to work with.
-      if(alignment_idx > 0)
-	seq_reverse(sequence->len, sequence->seq, 0);
-
-      // Calculate the local coordinate and local alignment.
-      bwa_cal_pac_pos_core(bwts[0],bwts[1],sequence,options.max_diff,options.fnr);
-      bwa_refine_gapped(bns, 1, sequence, reference, NULL);
-
-      // Copy the local alignment data into the alignment object.
-      Alignment& alignment = *(alignments + alignment_idx);
-      alignment.type = sequence->type;
-      bns_coor_pac2real(bns, sequence->pos, pos_end(sequence) - sequence->pos, &alignment.contig);
-      alignment.pos = sequence->pos - bns->anns[alignment.contig].offset + 1;
-      alignment.negative_strand = sequence->strand;
-      alignment.mapQ = sequence->mapQ;
-
-      alignment.cigar = NULL;
-      if(sequence->cigar) {
-	alignment.cigar = new uint16_t[sequence->n_cigar];
-	memcpy(alignment.cigar,sequence->cigar,sequence->n_cigar*sizeof(uint16_t));
-      }
-      alignment.n_cigar = sequence->n_cigar;
-
-      alignment_idx++;
-    }
-  }
-
-  // Restore original alignment blocks.
-  sequence->aln = alignment_blocks;
-  sequence->n_aln = num_alignment_blocks;
 }
