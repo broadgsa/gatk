@@ -53,6 +53,7 @@ public class RecalDataTest extends BaseTest {
         starDatum.B = starDatum.N = 1;
     }
 
+
     @Test
     public void testBasic() {
         logger.warn("Executing testIsBetween");
@@ -178,4 +179,5 @@ public class RecalDataTest extends BaseTest {
         }
         Assert.assertEquals(indices.size(), 17);
     }
+    
 }

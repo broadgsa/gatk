@@ -514,6 +514,9 @@ class SerialRecalMapping implements RecalMapping {
             double newQual = qual + globalDeltaQ + deltaQual + deltaQPos + deltaQDinuc;
             newQualByte = QualityUtils.boundQual((int)Math.round(newQual), QualityUtils.MAX_REASONABLE_Q_SCORE);
 
+            //System.out.println(String.format("%s %c%c %d %d => %d + %.2f + %.2f + %.2f + %.2f = %d",
+            //            readGroup, prevBase, base, cycle, qual, qual, globalDeltaQ, deltaQual, deltaQPos, deltaQDinuc, newQualByte));
+
             if ( newQualByte <= 0 && newQualByte >= QualityUtils.MAX_REASONABLE_Q_SCORE )
                 throw new RuntimeException(String.format("Illegal base quality score calculated: %s %c%c %d %d => %d + %.2f + %.2f + %.2f = %d",
                         readGroup, prevBase, base, cycle, qual, qual, globalDeltaQ, deltaQPos, deltaQDinuc, newQualByte));

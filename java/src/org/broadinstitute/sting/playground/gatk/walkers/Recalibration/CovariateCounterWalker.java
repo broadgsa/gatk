@@ -64,7 +64,7 @@ import net.sf.samtools.SAMReadGroupRecord;
 
 @By( DataSource.READS ) // Only look at covered loci, not every loci of the reference file
 @WalkerName( "CountCovariatesRefactored" )
-@ReadFilters( {ZeroMappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
+//@ReadFilters( {ZeroMappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality // BUGBUG taken out to match old integration tests
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
 public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
@@ -80,6 +80,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private String RECAL_FILE = "output.recal_data.csv";
     @Argument(fullName="no_print_header", shortName="noHeader", required=false, doc="Don't print the usual header on the table recalibration file. For debugging purposes only.")
     private boolean NO_PRINT_HEADER = false;
+    @Argument(fullName="validate_old_recalibrator", shortName="validateOldRecalibrator", required=false, doc="Match the output of the old recalibrator exactly. For debugging purposes only.")
+    private boolean VALIDATE_OLD_RECALIBRATOR = false;
+    @Argument(fullName="use_slx_platform", shortName="useSLXPlatform", required=false, doc="Force the platform to be Illumina regardless of what it actually says. For debugging purposes only.")
+    private boolean USE_SLX_PLATFORM = false;
+
 
     private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
     private ArrayList<Covariate> requestedCovariates; // A list to hold the covariate objects that were requested
@@ -130,7 +135,12 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         // Initialize the requested covariates by parsing the -cov argument
         requestedCovariates = new ArrayList<Covariate>();
         int estimatedCapacity = 1; // capacity is multiplicitive so this starts at one
-        if( COVARIATES != null ) {
+        if( VALIDATE_OLD_RECALIBRATOR ) {
+            requestedCovariates.add( new ReadGroupCovariate() );
+            requestedCovariates.add( new CycleCovariate() ); // unfortunately order is different here in order to match the old recalibrator exactly
+            requestedCovariates.add( new QualityScoreCovariate() );
+            requestedCovariates.add( new DinucCovariate() );
+        } else if( COVARIATES != null ) {
             if(COVARIATES[0].equalsIgnoreCase("ALL")) { // the user wants ALL covariates to be used
                 requestedCovariates.add( new ReadGroupCovariate() ); // first add the required covariates then add the rest by looping over all implementing classes that were found
                 requestedCovariates.add( new QualityScoreCovariate() );
@@ -251,51 +261,61 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 //    readGroupId = read.getReadGroup().getReadGroupId();
                 //    readGroupHashMap.put( read, readGroupId );
                 //}
+                
+                if( read.getMappingQuality() > 0 ) { // BUGBUG: turn this into a read filter after passing the old integration tests
 
-                offset = offsets.get(iii); // offset is zero based so quals[offset] and bases[offset] is correct
+                    offset = offsets.get(iii); // offset is zero based so quals[offset] and bases[offset] is correct
 
-                // skip first and last base because there is no dinuc, this is mainly done for speed so we don't have to check cases
-                if( offset > 0 && offset < read.getReadLength() - 1 ) {
+                    // skip first and last base because there is no dinuc, this is mainly done for speed so we don't have to check cases
+                    if( offset > 0 && offset < read.getReadLength() - 1 ) {
 
-                    quals = read.getBaseQualities();
-                    // Check if we need to use the original quality scores instead
-                    if ( USE_ORIGINAL_QUALS && read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
-                        Object obj = read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG);
-                        if ( obj instanceof String )
-                            quals = QualityUtils.fastqToPhred((String)obj);
-                        else {
-                            throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
-                        }
-                    }
-
-                    // skip if base quality is zero
-                    if( quals[offset] > 0 ) {
-                        bases = read.getReadBases(); // BUGBUG: DinucCovariate is relying on this method returning the same byte for bases 'a' and 'A'
-                        refBase = (byte)ref.getBase();
-                        prevBase = bases[offset-1];
-
-                        // Get the complement base strand if we are a negative strand read
-                        if( read.getReadNegativeStrandFlag() ) {
-                            bases = BaseUtils.simpleComplement( bases ); // this is an expensive call
-                            refBase = (byte)BaseUtils.simpleComplement( ref.getBase() );
-                            prevBase = bases[offset+1];
-                        }
-
-                        // skip if this base or the previous one was an 'N' or etc.
-                        if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)bases[offset] ) ) {
-
-                            final SAMReadGroupRecord readGroup = read.getReadGroup();
-                            readGroupId = readGroup.getReadGroupId(); // this is an expensive call
-                            platform = readGroup.getPlatform(); // this is an expensive call
-
-                            // SOLID bams insert the reference base into the read if the color space quality is zero, so skip over them
-                            colorSpaceQuals = null;
-                            if( platform.equalsIgnoreCase("SOLID") ) {
-                                colorSpaceQuals = QualityUtils.fastqToPhred((String)read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG));
+                        quals = read.getBaseQualities();
+                        // Check if we need to use the original quality scores instead
+                        if ( USE_ORIGINAL_QUALS && read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
+                            Object obj = read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG);
+                            if ( obj instanceof String )
+                                quals = QualityUtils.fastqToPhred((String)obj);
+                            else {
+                                throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
                             }
-                            if( colorSpaceQuals == null || colorSpaceQuals[offset] > 0 ) //BUGBUG: This isn't exactly correct yet
-                            {
-                                updateDataFromRead( read, offset, readGroupId, platform, quals, bases, refBase );
+                        }
+
+                        // skip if base quality is zero
+                        if( quals[offset] > 0 ) {
+                            bases = read.getReadBases(); // BUGBUG: DinucCovariate is relying on this method returning the same byte for bases 'a' and 'A'
+                            refBase = (byte)ref.getBase();
+                            prevBase = bases[offset-1];
+
+                            // Get the complement base strand if we are a negative strand read
+                            if( read.getReadNegativeStrandFlag() ) {
+                                bases = BaseUtils.simpleComplement( bases ); // this is an expensive call
+                                refBase = (byte)BaseUtils.simpleComplement( ref.getBase() );
+                                prevBase = bases[offset+1];
+                            }
+
+                            // skip if this base or the previous one was an 'N' or etc.
+                            if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)bases[offset] ) ) {
+
+                                final SAMReadGroupRecord readGroup = read.getReadGroup();
+                                readGroupId = readGroup.getReadGroupId();
+                                platform = readGroup.getPlatform();
+                                if( USE_SLX_PLATFORM ) {
+                                    platform = "ILLUMINA";
+                                }
+
+                                // SOLID bams insert the reference base into the read if the color space quality is zero, so skip over them
+                                colorSpaceQuals = null;
+                                if( platform.equalsIgnoreCase("SOLID") ) {
+                                    colorSpaceQuals = QualityUtils.fastqToPhred((String)read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG));
+                                }
+                                if( colorSpaceQuals == null || colorSpaceQuals[offset] > 0 ) //BUGBUG: This isn't exactly correct yet
+                                {
+                                    updateDataFromRead( read, offset, readGroupId, platform, quals, bases, refBase );
+                                }
+                            } else {
+                                if( VALIDATE_OLD_RECALIBRATOR ) {
+                                    countedBases++; // replicating a small bug in the old recalibrator
+                                }
                             }
                         }
                     }
@@ -320,6 +340,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @param read The read
      * @param offset The offset in the read for this locus
      * @param readGroup The read group the read is in
+     * @param platform The String that has the platform this read came from: Illumina, 454, or solid
      * @param quals List of base quality scores
      * @param bases The bases which make up the read
      * @param refBase The reference base at this locus
@@ -338,7 +359,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         RecalDatum datum = dataManager.data.get( key );
         if( datum == null ) { // key doesn't exist yet in the map so make a new bucket and add it
             datum = new RecalDatum(); // initialized with zeros, will be incremented at end of method
-            dataManager.data.put( key, datum );
+            if( VALIDATE_OLD_RECALIBRATOR ) {
+                dataManager.data.myPut( key, datum );
+            } else {
+                dataManager.data.put( key, datum );
+            }
         }
         
         // Need the bases to determine whether or not we have a mismatch
@@ -396,26 +421,46 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     private void outputToCSV( final PrintStream recalTableStream ) {
 
-        if( !NO_PRINT_HEADER ) {
-            recalTableStream.printf("# Counted Sites    %d%n", countedSites);
-            recalTableStream.printf("# Counted Bases    %d%n", countedBases);
-            recalTableStream.printf("# Skipped Sites    %d%n", skippedSites);
-            recalTableStream.printf("# Fraction Skipped 1 / %.0f bp%n", (double)countedSites / skippedSites);
-            for( Covariate cov : requestedCovariates ) {
-                // The "@!" is a code for TableRecalibrationWalker to recognize this line as a Covariate class name
-                recalTableStream.println( "@!" + cov.getClass().getSimpleName() );
+        if( VALIDATE_OLD_RECALIBRATOR ) {
+            recalTableStream.printf("# collapsed_pos    false%n");
+            recalTableStream.printf("# collapsed_dinuc  false%n");
+            recalTableStream.printf("# counted_sites    %d%n", countedSites);
+            recalTableStream.printf("# counted_bases    %d%n", countedBases);
+            recalTableStream.printf("# skipped_sites    %d%n", skippedSites);
+            recalTableStream.printf("# fraction_skipped 1 / %.0f bp%n", (double)countedSites / skippedSites);
+            recalTableStream.printf("rg,pos,Qrep,dn,nBases,nMismatches,Qemp%n");
+            // For each entry in the data hashmap
+            for( Pair<List<? extends Comparable>,RecalDatum> entry : dataManager.data.entrySetSorted4() ) {
+                // For each Covariate in the key
+                for( Comparable comp : entry.first ) {
+                    // Output the Covariate's value
+                    recalTableStream.print( comp + "," );
+                }
+                // Output the RecalDatum entry
+                recalTableStream.println( entry.second.outputToCSV() );
             }
-        }
-        // For each entry in the data hashmap
-        for( Map.Entry<List<? extends Comparable>, RecalDatum> entry : dataManager.data.entrySet() ) {
-            // For each Covariate in the key
-            for( Comparable comp : entry.getKey() ) {
-                // Output the Covariate's value
-                if( NO_PRINT_HEADER && comp instanceof String ) { continue; } // BUGBUG
-                recalTableStream.print( comp + "," );
+        } else {
+            if( !NO_PRINT_HEADER ) {
+                recalTableStream.printf("# Counted Sites    %d%n", countedSites);
+                recalTableStream.printf("# Counted Bases    %d%n", countedBases);
+                recalTableStream.printf("# Skipped Sites    %d%n", skippedSites);
+                recalTableStream.printf("# Fraction Skipped 1 / %.0f bp%n", (double)countedSites / skippedSites);
+                for( Covariate cov : requestedCovariates ) {
+                    // The "@!" is a code for TableRecalibrationWalker to recognize this line as a Covariate class name
+                    recalTableStream.println( "@!" + cov.getClass().getSimpleName() );
+                }
             }
-            // Output the RecalDatum entry
-            recalTableStream.println( entry.getValue().outputToCSV() );
+            // For each entry in the data hashmap
+            for( Map.Entry<List<? extends Comparable>, RecalDatum> entry : dataManager.data.entrySet() ) {
+                // For each Covariate in the key
+                for( Comparable comp : entry.getKey() ) {
+                    // Output the Covariate's value
+                    if( NO_PRINT_HEADER && comp instanceof String ) { continue; } // BUGBUG
+                    recalTableStream.print( comp + "," );
+                }
+                // Output the RecalDatum entry
+                recalTableStream.println( entry.getValue().outputToCSV() );
+            }
         }
     }
 }

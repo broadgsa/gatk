@@ -2,8 +2,6 @@ package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 
 import net.sf.samtools.SAMRecord;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 
 /*
@@ -60,10 +58,12 @@ public class DinucCovariate implements Covariate {
 			 final byte[] quals, final byte[] bases) {
     	
         byte base = bases[offset];
-        byte prevBase = bases[offset - 1];
+        byte prevBase;
         // If this is a negative strand read then we need to reverse the direction for our previous base
         if( read.getReadNegativeStrandFlag() ) {
             prevBase = bases[offset + 1];
+        } else {
+            prevBase = bases[offset - 1];
         }
         //char[] charArray = {(char)prevBase, (char)base};
         //return new String( charArray ); // This is an expensive call

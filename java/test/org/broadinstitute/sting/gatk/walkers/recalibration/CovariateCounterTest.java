@@ -82,6 +82,7 @@ public class CovariateCounterTest extends BaseTest {
         read3 = ArtificialSAMUtils.createArtificialRead(header,"read3",1,1, bases1, quals3);
     }
 
+
     @Test
     public void testCovariateCounterSetup() {
         Assert.assertEquals("Number of read groups is wrong", c.getNReadGroups(), 2);
@@ -179,4 +180,5 @@ public class CovariateCounterTest extends BaseTest {
 
         c.updateDataFromRead(readGroup1, read, 0, (char)bases[0], false);
     }
+    
 }
