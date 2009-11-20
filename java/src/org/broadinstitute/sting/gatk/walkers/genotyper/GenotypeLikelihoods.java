@@ -114,10 +114,10 @@ public class GenotypeLikelihoods implements Cloneable {
 
     private void initialize(BaseMismatchModel m, EmpiricalSubstitutionProbabilities.SequencerPlatform pl) {
         fourBaseLikelihoods = FourBaseProbabilitiesFactory.makeFourBaseLikelihoods(m, pl);
-        initialize();
+        setToZero();
     }
 
-    private void initialize() {
+    private void setToZero() {
         log10Likelihoods = zeros.clone();                 // likelihoods are all zeros
         log10Posteriors = priors.getPriors().clone();     // posteriors are all the priors
     }
@@ -372,7 +372,7 @@ public class GenotypeLikelihoods implements Cloneable {
     }
 
     private GenotypeLikelihoods calculateGenotypeLikelihoods(char observedBase, byte qualityScore, SAMRecord read, int offset) {
-        FourBaseProbabilities fbl = fourBaseLikelihoods.computeLikelihoods(observedBase, qualityScore, read, offset);
+        FourBaseProbabilities fbl = fourBaseLikelihoods.computeLog10Likelihoods(observedBase, qualityScore, read, offset);
         if ( fbl == null )
             return null;
 
@@ -380,7 +380,7 @@ public class GenotypeLikelihoods implements Cloneable {
         try {
 
             GenotypeLikelihoods gl = (GenotypeLikelihoods)this.clone();
-            gl.initialize();
+            gl.setToZero();
 
             // we need to adjust for ploidy.  We take the raw p(obs | chrom) / ploidy, which is -log10(ploidy) in log space
             double ploidyAdjustment = log10(FIXED_PLOIDY);

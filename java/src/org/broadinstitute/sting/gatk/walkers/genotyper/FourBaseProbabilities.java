@@ -94,7 +94,10 @@ public abstract class FourBaseProbabilities implements Cloneable {
      * @return log10 likelihood as a double
      */
     public double getLog10Likelihood(char base) {
-        int baseIndex = BaseUtils.simpleBaseToBaseIndex(base);
+        return getLog10Likelihood(BaseUtils.simpleBaseToBaseIndex(base));
+    }
+
+    public double getLog10Likelihood(int baseIndex) {
         return (baseIndex < 0 ? 0.0 : getLog10Likelihoods()[baseIndex]);
     }
 
@@ -115,9 +118,13 @@ public abstract class FourBaseProbabilities implements Cloneable {
      * @return likelihoods as a double
      */
     public double getLikelihood(char base) {
-        int baseIndex = BaseUtils.simpleBaseToBaseIndex(base);
+        return getLikelihood(BaseUtils.simpleBaseToBaseIndex(base));
+    }
+
+    public double getLikelihood(int baseIndex) {
         return (baseIndex < 0 ? 0.0 : Math.pow(10, log10Likelihoods[baseIndex]));
     }
+
 
     // -----------------------------------------------------------------------------------------------------------------
     //
@@ -138,7 +145,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
      * @return 1 if the base was considered good enough to add to the likelihoods (not Q0 or 'N', for example)
      */
     public int add(char observedBase, byte qualityScore, SAMRecord read, int offset) {
-        FourBaseProbabilities fbl = computeLikelihoods(observedBase, qualityScore, read, offset);
+        FourBaseProbabilities fbl = computeLog10Likelihoods(observedBase, qualityScore, read, offset);
         if ( fbl == null )
             return 0;
 
@@ -167,7 +174,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
      * @param offset       offset on read
      * @return likelihoods for this observation or null if the base was not considered good enough to add to the likelihoods (Q0 or 'N', for example)
      */
-    public FourBaseProbabilities computeLikelihoods(char observedBase, byte qualityScore, SAMRecord read, int offset) {
+    public FourBaseProbabilities computeLog10Likelihoods(char observedBase, byte qualityScore, SAMRecord read, int offset) {
         if ( badBase(observedBase) ) {
             return null;
         }
