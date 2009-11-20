@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.alignment;
 
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarOperator;
-import net.sf.samtools.CigarElement;
+import net.sf.samtools.*;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 /**
  * Represents an alignment of a read to a site in the reference genome.
@@ -138,6 +138,13 @@ public class Alignment {
      * @param mappingQuality How good does BWA think this mapping is?
      * @param cigarOperators The ordered operators in the cigar string.
      * @param cigarLengths The lengths to which each operator applies.
+     * @param editDistance The edit distance (cumulative) of the read.
+     * @param mismatchingPositions String representation of which bases in the read mismatch.
+     * @param numMismatches Number of total mismatches in the read.
+     * @param numGapOpens Number of gap opens in the read.
+     * @param numGapExtensions Number of gap extensions in the read.
+     * @param bestCount Number of best alignments in the read.
+     * @param secondBestCount Number of second best alignments in the read.
      */
     public Alignment(int contigIndex,
                      int alignmentStart,
@@ -166,4 +173,42 @@ public class Alignment {
         this.bestCount = bestCount;
         this.secondBestCount = secondBestCount;
     }
+
+    /**
+     * Creates a read directly from an alignment.
+     * @param alignment The alignment to convert to a read.
+     * @param unmappedRead Source of the unmapped read.  Should have bases, quality scores, and flags.
+     * @param newSAMHeader The new SAM header to use in creating this read.  Can be null, but if so, the sequence
+     *                     dictionary in the
+     * @return A mapped alignment.
+     */
+    public static SAMRecord convertToRead(Alignment alignment, SAMRecord unmappedRead, SAMFileHeader newSAMHeader) {
+        SAMRecord read;
+        try {
+            read = (SAMRecord)unmappedRead.clone();
+        }
+        catch(CloneNotSupportedException ex) {
+            throw new StingException("Unable to create aligned read from template.");
+        }
+
+        if(newSAMHeader != null)
+            read.setHeader(newSAMHeader);
+
+        if(alignment != null) {
+            read.setReadUmappedFlag(false);
+            read.setReferenceIndex(alignment.getContigIndex());
+            read.setAlignmentStart((int)alignment.getAlignmentStart());
+            read.setReadNegativeStrandFlag(alignment.isNegativeStrand());
+            read.setMappingQuality(alignment.getMappingQuality());
+            read.setCigar(alignment.getCigar());
+            if(alignment.isNegativeStrand()) {
+                read.setReadBases(BaseUtils.reverse(read.getReadBases()));
+                read.setBaseQualities(BaseUtils.reverse(read.getBaseQualities()));
+            }
+            read.setAttribute("NM",alignment.getEditDistance());
+            read.setAttribute("MD",alignment.getMismatchingPositions());
+        }
+
+        return read;
+    }    
 }

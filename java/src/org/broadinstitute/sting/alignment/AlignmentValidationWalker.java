@@ -5,15 +5,11 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
-import org.broadinstitute.sting.alignment.bwa.c.BWACConfiguration;
-import org.broadinstitute.sting.alignment.bwa.c.BWAPath;
+import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
+import org.broadinstitute.sting.alignment.bwa.BWTFiles;
 import net.sf.samtools.SAMRecord;
 
 import java.util.Iterator;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.io.PrintWriter;
-import java.io.FileNotFoundException;
 
 /**
  * Validates alignments against existing reads.
@@ -43,8 +39,9 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
      */
     @Override
     public void initialize() {
-        BWACConfiguration configuration = new BWACConfiguration(prefix);
-        aligner = new BWACAligner(configuration);
+        BWTFiles bwtFiles = new BWTFiles(prefix);
+        BWAConfiguration configuration = new BWAConfiguration();
+        aligner = new BWACAligner(bwtFiles,configuration);
     }
 
     /** Must return true for reads that need to be processed. Reads, for which this method return false will

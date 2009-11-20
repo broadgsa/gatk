@@ -10,10 +10,18 @@ extern "C" {
 /*
  * Class:     org_broadinstitute_sting_alignment_bwa_c_BWACAligner
  * Method:    create
- * Signature: (Lorg/broadinstitute/sting/alignment/bwa/c/BWACConfiguration;)J
+ * Signature: (Lorg/broadinstitute/sting/alignment/bwa/BWTFiles;Lorg/broadinstitute/sting/alignment/bwa/BWAConfiguration;)J
  */
 JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_create
-  (JNIEnv *, jobject, jobject);
+  (JNIEnv *, jobject, jobject, jobject);
+
+/*
+ * Class:     org_broadinstitute_sting_alignment_bwa_c_BWACAligner
+ * Method:    updateConfiguration
+ * Signature: (JLorg/broadinstitute/sting/alignment/bwa/BWAConfiguration;)V
+ */
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_updateConfiguration
+  (JNIEnv *, jobject, jlong, jobject);
 
 /*
  * Class:     org_broadinstitute_sting_alignment_bwa_c_BWACAligner

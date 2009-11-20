@@ -1,9 +1,13 @@
 package org.broadinstitute.sting.alignment.bwa.c;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.alignment.Alignment;
+import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
+import org.broadinstitute.sting.alignment.bwa.BWTFiles;
+import org.broadinstitute.sting.alignment.bwa.BWAAligner;
 
 import java.util.*;
 import java.io.File;
@@ -14,7 +18,7 @@ import java.io.File;
  * @author mhanna
  * @version 0.1
  */
-public class BWACAligner {
+public class BWACAligner extends BWAAligner {
     static {
         System.loadLibrary("bwa");
     }
@@ -24,25 +28,37 @@ public class BWACAligner {
      */
     private long thunkPointer = 0;
 
-    public BWACAligner(BWACConfiguration configuration) {
+    public BWACAligner(BWTFiles bwtFiles, BWAConfiguration configuration) {
+        super(bwtFiles,configuration);
         if(thunkPointer != 0)
             throw new StingException("BWA/C attempting to reinitialize.");
 
-        if(!new File(configuration.annFileName).exists()) throw new StingException("ANN file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!new File(configuration.ambFileName).exists()) throw new StingException("AMB file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!new File(configuration.pacFileName).exists()) throw new StingException("PAC file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!new File(configuration.forwardBWTFileName).exists()) throw new StingException("Forward BWT file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!new File(configuration.forwardSAFileName).exists()) throw new StingException("Forward SA file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!new File(configuration.reverseBWTFileName).exists()) throw new StingException("Reverse BWT file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!new File(configuration.reverseSAFileName).exists()) throw new StingException("Reverse SA file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!new File(bwtFiles.annFileName).exists()) throw new StingException("ANN file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!new File(bwtFiles.ambFileName).exists()) throw new StingException("AMB file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!new File(bwtFiles.pacFileName).exists()) throw new StingException("PAC file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!new File(bwtFiles.forwardBWTFileName).exists()) throw new StingException("Forward BWT file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!new File(bwtFiles.forwardSAFileName).exists()) throw new StingException("Forward SA file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!new File(bwtFiles.reverseBWTFileName).exists()) throw new StingException("Reverse BWT file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!new File(bwtFiles.reverseSAFileName).exists()) throw new StingException("Reverse SA file is missing; please rerun 'bwa aln' to regenerate it.");
 
-        thunkPointer = create(configuration);
+        thunkPointer = create(bwtFiles,configuration);
     }
 
+    /**
+     * Update the configuration passed to the BWA aligner.
+     * @param configuration New configuration to set.
+     */
+    @Override
+    public void updateConfiguration(BWAConfiguration configuration) {
+        if(thunkPointer != 0)
+            throw new StingException("BWA/C: attempting to update configuration of uninitialized aligner.");
+        updateConfiguration(thunkPointer,configuration);
+    }
 
     /**
      * Close this instance of the BWA pointer and delete its resources.
      */
+    @Override
     public void close() {
         if(thunkPointer == 0)
             throw new StingException("BWA/C close attempted, but BWA/C is not properly initialized.");
@@ -54,6 +70,7 @@ public class BWACAligner {
      * @param bases Bases to align.
      * @return An align
      */
+    @Override
     public Alignment getBestAlignment(final byte[] bases) {
         if(thunkPointer == 0)
             throw new StingException("BWA/C getBestAlignment attempted, but BWA/C is not properly initialized.");
@@ -63,10 +80,12 @@ public class BWACAligner {
     /**
      * Get the best aligned read, chosen randomly from the pile of best alignments.
      * @param read Read to align.
+     * @param newHeader New header to apply to this SAM file.  Can be null, but if so, read header must be valid.
      * @return Read with injected alignment data.
      */
-    public SAMRecord align(final SAMRecord read) {
-        return convertAlignmentToRead(read,getBestAlignment(read.getReadBases()));   
+    @Override
+    public SAMRecord align(final SAMRecord read, final SAMFileHeader newHeader) {
+        return Alignment.convertToRead(getBestAlignment(read.getReadBases()),read,newHeader);   
     }
 
     /**
@@ -74,6 +93,7 @@ public class BWACAligner {
      * @param bases List of bases.
      * @return Iterator to alignments.
      */
+    @Override
     public Iterator<Alignment[]> getAllAlignments(final byte[] bases) {
         final BWAPath[] paths = getPaths(bases);
         return new Iterator<Alignment[]>() {
@@ -111,9 +131,11 @@ public class BWACAligner {
     /**
      * Get a iterator of aligned reads, batched by mapping quality.
      * @param read Read to align.
+     * @param newHeader Optional new header to use when aligning the read.  If present, it must be null.
      * @return Iterator to alignments.
      */
-    public Iterator<SAMRecord[]> alignAll(final SAMRecord read) {
+    @Override
+    public Iterator<SAMRecord[]> alignAll(final SAMRecord read, final SAMFileHeader newHeader) {
         final Iterator<Alignment[]> alignments = getAllAlignments(read.getReadBases());
         return new Iterator<SAMRecord[]>() {
             /**
@@ -130,7 +152,7 @@ public class BWACAligner {
                 Alignment[] alignmentsOfQuality = alignments.next();
                 SAMRecord[] reads = new SAMRecord[alignmentsOfQuality.length];
                 for(int i = 0; i < alignmentsOfQuality.length; i++) {
-                    reads[i] = convertAlignmentToRead(read,alignmentsOfQuality[i]);    
+                    reads[i] = Alignment.convertToRead(alignmentsOfQuality[i],read,newHeader);
                 }
                 return reads;
             }
@@ -143,37 +165,6 @@ public class BWACAligner {
     }
 
     /**
-     * Creates a read directly from an alignment.
-     * @param unmappedRead Source of the unmapped read.  Should have bases, quality scores, and flags.
-     * @param alignment The target alignment for this read.  If alignment is null, assume the read is unmappe.d
-     * @return A mapped alignment.
-     */
-    public SAMRecord convertAlignmentToRead(SAMRecord unmappedRead, Alignment alignment) {
-        SAMRecord read = null;
-        try {
-            read = (SAMRecord)unmappedRead.clone();
-            if(alignment != null) {
-                read.setReadUmappedFlag(false);
-                read.setReferenceIndex(alignment.getContigIndex());
-                read.setAlignmentStart((int)alignment.getAlignmentStart());
-                read.setReadNegativeStrandFlag(alignment.isNegativeStrand());
-                read.setMappingQuality(alignment.getMappingQuality());
-                read.setCigar(alignment.getCigar());
-                if(alignment.isNegativeStrand()) {
-                    read.setReadBases(BaseUtils.reverse(read.getReadBases()));
-                    read.setBaseQualities(BaseUtils.reverse(read.getBaseQualities()));
-                }
-                read.setAttribute("NM",alignment.getEditDistance());
-                read.setAttribute("MD",alignment.getMismatchingPositions());
-            }
-        }
-        catch(CloneNotSupportedException ex) {
-            throw new StingException("Unable to create aligned read from template.");
-        }
-        return read;
-    }
-
-    /**
      * Get the paths associated with the given base string.
      * @param bases List of bases.
      * @return A set of paths through the BWA.
@@ -181,16 +172,23 @@ public class BWACAligner {
     public BWAPath[] getPaths(byte[] bases) {
         if(thunkPointer == 0)
             throw new StingException("BWA/C getPaths attempted, but BWA/C is not properly initialized.");
-        BWAPath[] paths = getPaths(thunkPointer,bases);
-        return paths;
+        return getPaths(thunkPointer,bases);
     }
 
     /**
      * Create a pointer to the BWA/C thunk.
+     * @param files BWT source files.
      * @param configuration Configuration of the aligner.
      * @return Pointer to the BWA/C thunk.
      */
-    protected native long create(BWACConfiguration configuration);
+    protected native long create(BWTFiles files, BWAConfiguration configuration);
+
+    /**
+     * Update the configuration passed to the BWA aligner.  For internal use only.
+     * @param thunkPointer pointer to BWA object.
+     * @param configuration New configuration to set.
+     */
+    protected native void updateConfiguration(long thunkPointer, BWAConfiguration configuration);
 
     /**
      * Destroy the BWA/C thunk.

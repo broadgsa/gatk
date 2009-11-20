@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.alignment.bwa.java;
 
 import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.alignment.bwa.java.BWAAligner;
+import org.broadinstitute.sting.alignment.bwa.java.BWAJavaAligner;
 import org.broadinstitute.sting.alignment.bwa.java.AlignmentMatchSequence;
 import org.broadinstitute.sting.alignment.bwa.java.AlignmentState;
 import org.broadinstitute.sting.utils.StingException;
@@ -28,7 +28,7 @@ public class BWAAlignment extends Alignment implements Cloneable {
     /**
      * The aligner performing the alignments.
      */
-    protected BWAAligner aligner;
+    protected BWAJavaAligner aligner;
 
     /**
      * The sequence of matches/mismatches/insertions/deletions.
@@ -136,7 +136,7 @@ public class BWAAlignment extends Alignment implements Cloneable {
      * Create a new alignment with the given parent aligner.
      * @param aligner Aligner being used.
      */
-    public BWAAlignment( BWAAligner aligner ) {
+    public BWAAlignment( BWAJavaAligner aligner ) {
         this.aligner = aligner;
         this.creationNumber = numCreated++;
     }

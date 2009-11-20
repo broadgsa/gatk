@@ -12,6 +12,7 @@ import java.io.File;
 import java.util.*;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMFileHeader;
 
 /**
  * Create imperfect alignments from the read to the genome represented by the given BWT / suffix array. 
@@ -19,7 +20,7 @@ import net.sf.samtools.SAMRecord;
  * @author mhanna
  * @version 0.1
  */
-public class BWAAligner implements Aligner {
+public class BWAJavaAligner implements Aligner {
     /**
      * BWT in the forward direction.
      */
@@ -75,12 +76,48 @@ public class BWAAligner implements Aligner {
      */
     public final int INDEL_END_SKIP = 5;
 
-    public BWAAligner( File forwardBWTFile, File reverseBWTFile, File forwardSuffixArrayFile, File reverseSuffixArrayFile ) {
+    public BWAJavaAligner( File forwardBWTFile, File reverseBWTFile, File forwardSuffixArrayFile, File reverseSuffixArrayFile ) {
         forwardBWT = new BWTReader(forwardBWTFile).read();
         reverseBWT = new BWTReader(reverseBWTFile).read();
         forwardSuffixArray = new SuffixArrayReader(forwardSuffixArrayFile,forwardBWT).read();
         reverseSuffixArray = new SuffixArrayReader(reverseSuffixArrayFile,reverseBWT).read();
     }
+
+    /**
+     * Close this instance of the BWA pointer and delete its resources.
+     */
+    public void close()  { throw new UnsupportedOperationException("BWAJavaAligner does not yet support the standard Aligner interface."); }   
+
+    /**
+     * Allow the aligner to choose one alignment randomly from the pile of best alignments.
+     * @param bases Bases to align.
+     * @return An align
+     */
+    public Alignment getBestAlignment(final byte[] bases) { throw new UnsupportedOperationException("BWAJavaAligner does not yet support the standard Aligner interface."); }
+
+    /**
+     * Align the read to the reference.
+     * @param read Read to align.
+     * @param header Optional header to drop in place.
+     * @return A list of the alignments.
+     */
+    public SAMRecord align(final SAMRecord read, final SAMFileHeader header) { throw new UnsupportedOperationException("BWAJavaAligner does not yet support the standard Aligner interface."); }
+
+    /**
+     * Get a iterator of alignments, batched by mapping quality.
+     * @param bases List of bases.
+     * @return Iterator to alignments.
+     */
+    public Iterator<Alignment[]> getAllAlignments(final byte[] bases) { throw new UnsupportedOperationException("BWAJavaAligner does not yet support the standard Aligner interface."); }
+
+    /**
+     * Get a iterator of aligned reads, batched by mapping quality.
+     * @param read Read to align.
+     * @param newHeader Optional new header to use when aligning the read.  If present, it must be null.
+     * @return Iterator to alignments.
+     */
+    public Iterator<SAMRecord[]> alignAll(final SAMRecord read, final SAMFileHeader newHeader) { throw new UnsupportedOperationException("BWAJavaAligner does not yet support the standard Aligner interface."); }
+
 
     public List<Alignment> align( SAMRecord read ) {
         List<Alignment> successfulMatches = new ArrayList<Alignment>();

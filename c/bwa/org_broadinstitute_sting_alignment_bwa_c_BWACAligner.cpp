@@ -17,21 +17,21 @@ static void set_int_configuration_param(JNIEnv* env, jobject configuration, cons
 static void set_float_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, float_setter setter);
 static void throw_config_value_exception(JNIEnv* env, const char* field_name, const char* message);
 
-JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_create(JNIEnv* env, jobject instance, jobject configuration)
+JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_create(JNIEnv* env, jobject instance, jobject bwtFiles, jobject configuration)
 {
-  jstring java_ann = get_configuration_string(env,configuration,"annFileName");
+  jstring java_ann = get_configuration_string(env,bwtFiles,"annFileName");
   if(env->ExceptionCheck()) return 0L;
-  jstring java_amb = get_configuration_string(env,configuration,"ambFileName");
+  jstring java_amb = get_configuration_string(env,bwtFiles,"ambFileName");
   if(env->ExceptionCheck()) return 0L;
-  jstring java_pac = get_configuration_string(env,configuration,"pacFileName");
+  jstring java_pac = get_configuration_string(env,bwtFiles,"pacFileName");
   if(env->ExceptionCheck()) return 0L;
-  jstring java_forward_bwt = get_configuration_string(env,configuration,"forwardBWTFileName");
+  jstring java_forward_bwt = get_configuration_string(env,bwtFiles,"forwardBWTFileName");
   if(env->ExceptionCheck()) return 0L;
-  jstring java_forward_sa = get_configuration_string(env,configuration,"forwardSAFileName");
+  jstring java_forward_sa = get_configuration_string(env,bwtFiles,"forwardSAFileName");
   if(env->ExceptionCheck()) return 0L;
-  jstring java_reverse_bwt = get_configuration_string(env,configuration,"reverseBWTFileName");
+  jstring java_reverse_bwt = get_configuration_string(env,bwtFiles,"reverseBWTFileName");
   if(env->ExceptionCheck()) return 0L;
-  jstring java_reverse_sa = get_configuration_string(env,configuration,"reverseSAFileName");
+  jstring java_reverse_sa = get_configuration_string(env,bwtFiles,"reverseSAFileName");
   if(env->ExceptionCheck()) return 0L;
 
   const char* ann_filename = env->GetStringUTFChars(java_ann,JNI_FALSE);
@@ -57,20 +57,8 @@ JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligne
 		     reverse_bwt_filename,
 		     reverse_sa_filename);
 
-  set_float_configuration_param(env, configuration, "maximumEditDistance", bwa, &BWA::set_max_edit_distance);
-  if(env->ExceptionCheck()) return 0L; 
-  set_int_configuration_param(env, configuration, "maximumGapOpens", bwa, &BWA::set_max_gap_opens);
-  if(env->ExceptionCheck()) return 0L; 
-  set_int_configuration_param(env, configuration, "maximumGapExtensions", bwa, &BWA::set_max_gap_extensions);
-  if(env->ExceptionCheck()) return 0L; 
-  set_int_configuration_param(env, configuration, "disallowIndelWithinRange", bwa, &BWA::set_disallow_indel_within_range);
-  if(env->ExceptionCheck()) return 0L; 
-  set_int_configuration_param(env, configuration, "mismatchPenalty", bwa, &BWA::set_mismatch_penalty);
-  if(env->ExceptionCheck()) return 0L; 
-  set_int_configuration_param(env, configuration, "gapOpenPenalty", bwa, &BWA::set_gap_open_penalty);
-  if(env->ExceptionCheck()) return 0L; 
-  set_int_configuration_param(env, configuration, "gapExtensionPenalty", bwa, &BWA::set_gap_extension_penalty);
-  if(env->ExceptionCheck()) return 0L; 
+  Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_updateConfiguration(env,instance,(jlong)bwa,configuration); 
+  if(env->ExceptionCheck()) return 0L;
 
   env->ReleaseStringUTFChars(java_ann,ann_filename);
   if(env->ExceptionCheck()) return 0L; 
@@ -94,6 +82,24 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner
 {
   BWA* bwa = (BWA*)java_bwa;
   delete bwa;
+}
+
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_updateConfiguration(JNIEnv *env, jobject instance, jlong java_bwa, jobject configuration) {
+  BWA* bwa = (BWA*)java_bwa;
+  set_float_configuration_param(env, configuration, "maximumEditDistance", bwa, &BWA::set_max_edit_distance);
+  if(env->ExceptionCheck()) return; 
+  set_int_configuration_param(env, configuration, "maximumGapOpens", bwa, &BWA::set_max_gap_opens);
+  if(env->ExceptionCheck()) return; 
+  set_int_configuration_param(env, configuration, "maximumGapExtensions", bwa, &BWA::set_max_gap_extensions);
+  if(env->ExceptionCheck()) return; 
+  set_int_configuration_param(env, configuration, "disallowIndelWithinRange", bwa, &BWA::set_disallow_indel_within_range);
+  if(env->ExceptionCheck()) return; 
+  set_int_configuration_param(env, configuration, "mismatchPenalty", bwa, &BWA::set_mismatch_penalty);
+  if(env->ExceptionCheck()) return; 
+  set_int_configuration_param(env, configuration, "gapOpenPenalty", bwa, &BWA::set_gap_open_penalty);
+  if(env->ExceptionCheck()) return; 
+  set_int_configuration_param(env, configuration, "gapExtensionPenalty", bwa, &BWA::set_gap_extension_penalty);
+  if(env->ExceptionCheck()) return;
 }
 
 JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_getPaths(JNIEnv *env, jobject instance, jlong java_bwa, jbyteArray java_bases) 
