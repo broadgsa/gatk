@@ -38,7 +38,7 @@ public interface Aligner {
      * @param bases List of bases.
      * @return Iterator to alignments.
      */
-    public Iterator<Alignment[]> getAllAlignments(final byte[] bases);
+    public Iterable<Alignment[]> getAllAlignments(final byte[] bases);
 
     /**
      * Get a iterator of aligned reads, batched by mapping quality.
@@ -46,7 +46,7 @@ public interface Aligner {
      * @param newHeader Optional new header to use when aligning the read.  If present, it must be null.
      * @return Iterator to alignments.
      */
-    public Iterator<SAMRecord[]> alignAll(final SAMRecord read, final SAMFileHeader newHeader);
+    public Iterable<SAMRecord[]> alignAll(final SAMRecord read, final SAMFileHeader newHeader);
 }
 
 

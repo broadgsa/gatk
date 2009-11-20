@@ -66,13 +66,14 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
         if(read.getReadNegativeStrandFlag()) bases = BaseUtils.simpleReverseComplement(bases);
 
         boolean matches = true;
-        Iterator<Alignment[]> alignments = aligner.getAllAlignments(bases);
+        Iterable<Alignment[]> alignments = aligner.getAllAlignments(bases);
+        Iterator<Alignment[]> alignmentIterator = alignments.iterator();
 
-        if(!alignments.hasNext()) {
+        if(!alignmentIterator.hasNext()) {
             matches = read.getReadUnmappedFlag();
         }
         else {
-            Alignment[] alignmentsOfBestQuality = alignments.next();
+            Alignment[] alignmentsOfBestQuality = alignmentIterator.next();
             for(Alignment alignment: alignmentsOfBestQuality) {
                 matches = (alignment.getContigIndex() == read.getReferenceIndex());
                 matches &= (alignment.getAlignmentStart() == read.getAlignmentStart());
@@ -91,9 +92,7 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
             logger.error(String.format("    Negative strand: %b", read.getReadNegativeStrandFlag()));
             logger.error(String.format("    Cigar: %s%n", read.getCigarString()));
             logger.error(String.format("    Mapping quality: %s%n", read.getMappingQuality()));
-            Iterator<Alignment[]> alignmentIterator = aligner.getAllAlignments(bases);
-            while(alignmentIterator.hasNext()) {
-                Alignment[] alignmentsByScore = alignmentIterator.next();
+            for(Alignment[] alignmentsByScore: alignments) {
                 for(int i = 0; i < alignmentsByScore.length; i++) {
                     logger.error(String.format("Alignment %d:",i));
                     logger.error(String.format("    Contig index: %d",alignmentsByScore[i].getContigIndex()));

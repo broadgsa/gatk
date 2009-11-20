@@ -108,7 +108,7 @@ public class BWAJavaAligner implements Aligner {
      * @param bases List of bases.
      * @return Iterator to alignments.
      */
-    public Iterator<Alignment[]> getAllAlignments(final byte[] bases) { throw new UnsupportedOperationException("BWAJavaAligner does not yet support the standard Aligner interface."); }
+    public Iterable<Alignment[]> getAllAlignments(final byte[] bases) { throw new UnsupportedOperationException("BWAJavaAligner does not yet support the standard Aligner interface."); }
 
     /**
      * Get a iterator of aligned reads, batched by mapping quality.
@@ -116,7 +116,7 @@ public class BWAJavaAligner implements Aligner {
      * @param newHeader Optional new header to use when aligning the read.  If present, it must be null.
      * @return Iterator to alignments.
      */
-    public Iterator<SAMRecord[]> alignAll(final SAMRecord read, final SAMFileHeader newHeader) { throw new UnsupportedOperationException("BWAJavaAligner does not yet support the standard Aligner interface."); }
+    public Iterable<SAMRecord[]> alignAll(final SAMRecord read, final SAMFileHeader newHeader) { throw new UnsupportedOperationException("BWAJavaAligner does not yet support the standard Aligner interface."); }
 
 
     public List<Alignment> align( SAMRecord read ) {

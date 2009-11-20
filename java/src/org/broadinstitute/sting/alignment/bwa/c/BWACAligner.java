@@ -94,37 +94,41 @@ public class BWACAligner extends BWAAligner {
      * @return Iterator to alignments.
      */
     @Override
-    public Iterator<Alignment[]> getAllAlignments(final byte[] bases) {
+    public Iterable<Alignment[]> getAllAlignments(final byte[] bases) {
         final BWAPath[] paths = getPaths(bases);
-        return new Iterator<Alignment[]>() {
-            /**
-             * The last position accessed.
-             */
-            private int position = 0;
+        return new Iterable<Alignment[]>() {
+            public Iterator<Alignment[]> iterator() {
+                return new Iterator<Alignment[]>() {
+                    /**
+                     * The last position accessed.
+                     */
+                    private int position = 0;
 
-            /**
-             * Whether all alignments have been seen based on the current position.
-             * @return True if any more alignments are pending.  False otherwise.
-             */
-            public boolean hasNext() { return position < paths.length; }
+                    /**
+                     * Whether all alignments have been seen based on the current position.
+                     * @return True if any more alignments are pending.  False otherwise.
+                     */
+                    public boolean hasNext() { return position < paths.length; }
 
-            /**
-             * Return the next cross-section of alignments, based on mapping quality.
-             * @return Array of the next set of alignments of a given mapping quality.
-             */
-            public Alignment[] next() {
-                if(position >= paths.length)
-                    throw new UnsupportedOperationException("Out of alignments to return.");
-                int score = paths[position].score;
-                int startingPosition = position;
-                while(position < paths.length && paths[position].score == score) position++;
-                return convertPathsToAlignments(bases,Arrays.copyOfRange(paths,startingPosition,position));
+                    /**
+                     * Return the next cross-section of alignments, based on mapping quality.
+                     * @return Array of the next set of alignments of a given mapping quality.
+                     */
+                    public Alignment[] next() {
+                        if(position >= paths.length)
+                            throw new UnsupportedOperationException("Out of alignments to return.");
+                        int score = paths[position].score;
+                        int startingPosition = position;
+                        while(position < paths.length && paths[position].score == score) position++;
+                        return convertPathsToAlignments(bases,Arrays.copyOfRange(paths,startingPosition,position));
+                    }
+
+                    /**
+                     * Unsupported.
+                     */
+                    public void remove() { throw new UnsupportedOperationException("Cannot remove from an alignment iterator"); }
+                };
             }
-
-            /**
-             * Unsupported.
-             */
-            public void remove() { throw new UnsupportedOperationException("Cannot remove from an alignment iterator"); }
         };
     }
 
@@ -135,32 +139,37 @@ public class BWACAligner extends BWAAligner {
      * @return Iterator to alignments.
      */
     @Override
-    public Iterator<SAMRecord[]> alignAll(final SAMRecord read, final SAMFileHeader newHeader) {
-        final Iterator<Alignment[]> alignments = getAllAlignments(read.getReadBases());
-        return new Iterator<SAMRecord[]>() {
-            /**
-             * Whether all alignments have been seen based on the current position.
-             * @return True if any more alignments are pending.  False otherwise.
-             */
-            public boolean hasNext() { return alignments.hasNext(); }
+    public Iterable<SAMRecord[]> alignAll(final SAMRecord read, final SAMFileHeader newHeader) {
+        final Iterable<Alignment[]> alignments = getAllAlignments(read.getReadBases());
+        return new Iterable<SAMRecord[]>() {
+            public Iterator<SAMRecord[]> iterator() {
+                final Iterator<Alignment[]> alignmentIterator = alignments.iterator();
+                return new Iterator<SAMRecord[]>() {
+                    /**
+                     * Whether all alignments have been seen based on the current position.
+                     * @return True if any more alignments are pending.  False otherwise.
+                     */
+                    public boolean hasNext() { return alignmentIterator.hasNext(); }
 
-            /**
-             * Return the next cross-section of alignments, based on mapping quality.
-             * @return Array of the next set of alignments of a given mapping quality.
-             */
-            public SAMRecord[] next() {
-                Alignment[] alignmentsOfQuality = alignments.next();
-                SAMRecord[] reads = new SAMRecord[alignmentsOfQuality.length];
-                for(int i = 0; i < alignmentsOfQuality.length; i++) {
-                    reads[i] = Alignment.convertToRead(alignmentsOfQuality[i],read,newHeader);
-                }
-                return reads;
+                    /**
+                     * Return the next cross-section of alignments, based on mapping quality.
+                     * @return Array of the next set of alignments of a given mapping quality.
+                     */
+                    public SAMRecord[] next() {
+                        Alignment[] alignmentsOfQuality = alignmentIterator.next();
+                        SAMRecord[] reads = new SAMRecord[alignmentsOfQuality.length];
+                        for(int i = 0; i < alignmentsOfQuality.length; i++) {
+                            reads[i] = Alignment.convertToRead(alignmentsOfQuality[i],read,newHeader);
+                        }
+                        return reads;
+                    }
+
+                    /**
+                     * Unsupported.
+                     */
+                    public void remove() { throw new UnsupportedOperationException("Cannot remove from an alignment iterator"); }
+                };
             }
-
-            /**
-             * Unsupported.
-             */
-            public void remove() { throw new UnsupportedOperationException("Cannot remove from an alignment iterator"); }
         };
     }
 

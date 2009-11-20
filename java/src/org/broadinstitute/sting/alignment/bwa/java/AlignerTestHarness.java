@@ -2,16 +2,12 @@ package org.broadinstitute.sting.alignment.bwa.java;
 
 import org.broadinstitute.sting.alignment.Aligner;
 import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.alignment.bwa.java.BWAJavaAligner;
-import org.broadinstitute.sting.alignment.bwa.java.BWAAlignment;
-import org.broadinstitute.sting.alignment.bwa.java.AlignmentState;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Iterator;
 
 import net.sf.samtools.*;
 
@@ -79,16 +75,15 @@ public class AlignerTestHarness {
             // Clear everything except flags pertaining to pairing and set 'unmapped' status to true.
             alignmentCleaned.setFlags(alignmentCleaned.getFlags() & 0x00A1 | 0x000C);
 
-            Iterator<Alignment[]> alignments = aligner.getAllAlignments(alignmentCleaned.getReadBases());
-            if(!alignments.hasNext() ) {
+            Iterable<Alignment[]> alignments = aligner.getAllAlignments(alignmentCleaned.getReadBases());
+            if(!alignments.iterator().hasNext() ) {
                 //throw new StingException(String.format("Unable to align read %s to reference; count = %d",read.getReadName(),count));
                 System.out.printf("Unable to align read %s to reference; count = %d%n",read.getReadName(),count);
                 failures++;
             }
 
             Alignment foundAlignment = null;
-            while(alignments.hasNext()) {
-                Alignment[] alignmentsOfQuality = alignments.next();
+            for(Alignment[] alignmentsOfQuality: alignments) {
                 for(Alignment alignment: alignmentsOfQuality) {
                     if( read.getReadNegativeStrandFlag() != alignment.isNegativeStrand() )
                         continue;
@@ -116,9 +111,7 @@ public class AlignerTestHarness {
                 String expectedRef = new String(reference.getSubsequenceAt(reference.getSequenceDictionary().getSequences().get(0).getSequenceName(),read.getAlignmentStart(),read.getAlignmentStart()+read.getReadLength()+numDeletions-1).getBases());
                 System.out.printf("expected ref  = %s%n", formatBasesBasedOnCigar(expectedRef,read.getCigar(),CigarOperator.INSERTION));
 
-                Iterator<Alignment[]> alignmentsToOutput = aligner.getAllAlignments(alignmentCleaned.getReadBases());
-                while(alignmentsToOutput.hasNext()) {
-                    Alignment[] alignmentsOfQuality = alignments.next();
+                for(Alignment[] alignmentsOfQuality: alignments) {
                     for(Alignment alignment: alignmentsOfQuality) {
                         System.out.println();
 
