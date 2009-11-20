@@ -23,6 +23,10 @@
     <!-- Dependencies for the graph aligner -->  
       <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3" conf="default"/>
      
+    <!-- Dependencies for VariantFiltration -->  
+      <dependency org="commons-jexl" name="commons-jexl" rev="1.1" conf="default"/>
+      <dependency org="commons-logging" name="commons-logging" rev="1.1.1" conf="default"/>
+     
     <!-- Scala dependancies -->
     <dependency org="org.scala-lang" name="scala-compiler" rev="2.7.7" conf="scala->default"/>
     <dependency org="org.scala-lang" name="scala-library" rev="2.7.7" conf="scala->default"/>
