@@ -215,6 +215,12 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         VCFRecord rec = getVCFRecord(tracker, ref, context, variant);
         if ( rec != null ) {
             rec.addInfoFields(annotations);
+            // also, annotate dbsnp id if available and not already there
+            if ( rec.getID() == null || rec.getID().equals(".") ) {
+                rodDbSNP dbsnp = rodDbSNP.getFirstRealSNP(tracker.getTrackData("dbsnp", null));
+                if ( dbsnp != null )
+                    rec.setID(dbsnp.getRS_ID());
+            }
             vcfWriter.addRecord(rec);
         }
     }
