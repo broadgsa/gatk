@@ -6,9 +6,8 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
 import org.broadinstitute.sting.alignment.bwa.c.BWACConfiguration;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.*;
+import net.sf.picard.reference.ReferenceSequenceFileFactory;
 
 /**
  * Align reads to the reference specified by BWTPrefix.
@@ -37,6 +36,14 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
      */
     private SAMFileWriter outputBam = null;
 
+    /** Must return true for reads that need to be processed. Reads, for which this method return false will
+     * be skipped by the engine and never passed to the walker.
+     */
+    @Override
+    public boolean filter(char[] ref, SAMRecord read) {
+        return true;
+    }
+
     /**
      * Create an aligner object.  The aligner object will load and hold the BWT until close() is called.
      */    
@@ -45,8 +52,17 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
         BWACConfiguration configuration = new BWACConfiguration(prefix);
         aligner = new BWACAligner(configuration);
 
+        // HACK: If the sequence dictionary in the existing header is null, stuff the contents of the current reference
+        //       into it, so that the sequence has something to which to back-align.
+        SAMFileHeader header = getToolkit().getSAMFileHeader();
+        if(header.getSequenceDictionary().isEmpty()) {
+            SAMSequenceDictionary referenceDictionary =
+                    ReferenceSequenceFileFactory.getReferenceSequenceFile(getToolkit().getArguments().referenceFile).getSequenceDictionary();
+            header.setSequenceDictionary(referenceDictionary);            
+        }
+
         if ( outputBamFile != null ) {
-            SAMFileHeader header = this.getToolkit().getSAMFileHeader();
+            // Stuff the header from the fasta into that of the sequence dictionary.
             outputBam = Utils.createSAMFileWriterWithCompression(header, false, outputBamFile, bamCompression);
         }
     }

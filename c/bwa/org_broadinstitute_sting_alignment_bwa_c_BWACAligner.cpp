@@ -252,8 +252,9 @@ JNIEXPORT jobject JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAlig
   jbyte *read_bases = env->GetByteArrayElements(java_bases,JNI_FALSE); 
   if(read_bases == NULL) return NULL;
 
-  Alignment best_alignment = bwa->generate_single_alignment((const char*)read_bases,read_length);
-  jobject java_best_alignment = convert_to_java_alignment(env,read_bases,read_length,best_alignment);
+  Alignment* best_alignment = bwa->generate_single_alignment((const char*)read_bases,read_length);
+  jobject java_best_alignment = (best_alignment != NULL) ? convert_to_java_alignment(env,read_bases,read_length,*best_alignment) : NULL;
+  delete best_alignment;
 
   env->ReleaseByteArrayElements(java_bases,read_bases,JNI_FALSE); 
 
@@ -291,12 +292,17 @@ static jobject convert_to_java_alignment(JNIEnv *env, const jbyte* read_bases, c
       if(env->ExceptionCheck()) return NULL;
     }
   }
+  delete[] alignment.cigar;
     
   jclass java_alignment_class = env->FindClass("org/broadinstitute/sting/alignment/Alignment");
   if(java_alignment_class == NULL) return NULL;
   
-  jmethodID java_alignment_constructor = env->GetMethodID(java_alignment_class, "<init>", "(IIZI[C[IIIIII)V");
+  jmethodID java_alignment_constructor = env->GetMethodID(java_alignment_class, "<init>", "(IIZI[C[IILjava/lang/String;IIIII)V");
   if(java_alignment_constructor == NULL) return NULL;
+
+  jstring java_md = env->NewStringUTF(alignment.md);
+  if(java_md == NULL) return NULL;
+  delete[] alignment.md;
   
   jobject java_alignment = env->NewObject(java_alignment_class,
                                           java_alignment_constructor,
@@ -306,14 +312,14 @@ static jobject convert_to_java_alignment(JNIEnv *env, const jbyte* read_bases, c
                                           alignment.mapping_quality,
                                           java_cigar_operators,
                                           java_cigar_lengths,
+                                          alignment.edit_distance,
+                                          java_md,
                                           alignment.num_mismatches,
                                           alignment.num_gap_opens,
                                           alignment.num_gap_extensions,
                                           alignment.num_best,
                                           alignment.num_second_best);
   if(java_alignment == NULL) return NULL;      
-  
-  delete[] alignment.cigar;
   
   env->DeleteLocalRef(java_alignment_class);
   if(env->ExceptionCheck()) return NULL;

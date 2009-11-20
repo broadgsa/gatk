@@ -21,8 +21,12 @@ class Alignment {
   uint8_t num_mismatches;
   uint8_t num_gap_opens;
   uint8_t num_gap_extensions;
+  uint16_t edit_distance;
+
   uint32_t num_best;
   uint32_t num_second_best;
+
+  char* md;
 };
 
 class BWA {
@@ -57,8 +61,8 @@ class BWA {
   void set_gap_extension_penalty(int penalty);
 
   // Perform the alignment
-  Alignment generate_single_alignment(const char* bases, 
-                                      const unsigned read_length);
+  Alignment* generate_single_alignment(const char* bases, 
+                                       const unsigned read_length);
   void find_paths(const char* bases, 
                   const unsigned read_length, 
                   bwt_aln1_t*& paths, 

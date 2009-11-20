@@ -145,21 +145,26 @@ public class BWACAligner {
     /**
      * Creates a read directly from an alignment.
      * @param unmappedRead Source of the unmapped read.  Should have bases, quality scores, and flags.
-     * @param alignment The target alignment for this read.
+     * @param alignment The target alignment for this read.  If alignment is null, assume the read is unmappe.d
      * @return A mapped alignment.
      */
     public SAMRecord convertAlignmentToRead(SAMRecord unmappedRead, Alignment alignment) {
         SAMRecord read = null;
         try {
             read = (SAMRecord)unmappedRead.clone();
-            read.setReadUmappedFlag(false);
-            read.setAlignmentStart((int)alignment.getAlignmentStart());
-            read.setReadNegativeStrandFlag(alignment.isNegativeStrand());
-            read.setMappingQuality(alignment.getMappingQuality());
-            read.setCigar(alignment.getCigar());
-            if(alignment.isNegativeStrand()) {
-                read.setReadBases(BaseUtils.reverse(read.getReadBases()));
-                read.setBaseQualities(BaseUtils.reverse(read.getBaseQualities()));
+            if(alignment != null) {
+                read.setReadUmappedFlag(false);
+                read.setReferenceIndex(alignment.getContigIndex());
+                read.setAlignmentStart((int)alignment.getAlignmentStart());
+                read.setReadNegativeStrandFlag(alignment.isNegativeStrand());
+                read.setMappingQuality(alignment.getMappingQuality());
+                read.setCigar(alignment.getCigar());
+                if(alignment.isNegativeStrand()) {
+                    read.setReadBases(BaseUtils.reverse(read.getReadBases()));
+                    read.setBaseQualities(BaseUtils.reverse(read.getBaseQualities()));
+                }
+                read.setAttribute("NM",alignment.getEditDistance());
+                read.setAttribute("MD",alignment.getMismatchingPositions());
             }
         }
         catch(CloneNotSupportedException ex) {

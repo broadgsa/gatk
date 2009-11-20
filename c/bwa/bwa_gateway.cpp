@@ -56,11 +56,17 @@ void BWA::find_paths(const char* bases, const unsigned read_length, bwt_aln1_t*&
   bwa_free_read_seq(1,sequence);
 }
 
-Alignment BWA::generate_single_alignment(const char* bases, const unsigned read_length) {
+Alignment* BWA::generate_single_alignment(const char* bases, const unsigned read_length) {
   bwa_seq_t* sequence = create_sequence(bases,read_length);
 
   // Calculate paths.
   bwa_cal_sa_reg_gap(0,bwts,1,sequence,&options);
+
+  // Check for no alignments found and return null.
+  if(sequence->n_aln == 0) {
+    bwa_free_read_seq(1,sequence);
+    return NULL;
+  }
 
   // bwa_cal_sa_reg_gap destroys the bases / read length.  Copy them back in.
   copy_bases_into_sequence(sequence,bases,read_length);
@@ -69,7 +75,8 @@ Alignment BWA::generate_single_alignment(const char* bases, const unsigned read_
   bwa_aln2seq(sequence->n_aln,sequence->aln,sequence);
 
   // Generate the best alignment from the sequence.
-  Alignment alignment = generate_final_alignment_from_sequence(sequence);
+  Alignment* alignment = new Alignment;
+  *alignment = generate_final_alignment_from_sequence(sequence);
 
   bwa_free_read_seq(1,sequence);
 
@@ -148,6 +155,7 @@ Alignment BWA::generate_final_alignment_from_sequence(bwa_seq_t* sequence) {
   Alignment alignment;
 
   // Populate basic path info
+  alignment.edit_distance = sequence->nm;
   alignment.num_mismatches = sequence->n_mm;
   alignment.num_gap_opens = sequence->n_gapo;
   alignment.num_gap_extensions = sequence->n_gape;
@@ -168,7 +176,9 @@ Alignment BWA::generate_final_alignment_from_sequence(bwa_seq_t* sequence) {
     memcpy(alignment.cigar,sequence->cigar,sequence->n_cigar*sizeof(uint16_t));
   }
   alignment.n_cigar = sequence->n_cigar;
-  
+
+  // MD tag with a better breakdown of differences in the cigar
+  alignment.md = strdup(sequence->md);
   delete[] sequence->md;
   sequence->md = NULL;
 

@@ -19,6 +19,9 @@ public class Alignment {
     protected char[] cigarOperators;
     protected int[] cigarLengths;
 
+    protected int editDistance;
+    protected String mismatchingPositions;
+
     protected int numMismatches;
     protected int numGapOpens;
     protected int numGapExtensions;
@@ -49,6 +52,19 @@ public class Alignment {
      */
     public int getMappingQuality() { return mappingQuality; }
 
+    /**
+     * Gets the edit distance; will eventually end up in the NM SAM tag
+     * if this alignment makes it that far.
+     * @return The edit distance.
+     */
+    public int getEditDistance() { return editDistance; }
+
+    /**
+     * A string representation of which positions mismatch; contents of MD tag.
+     * @return String representation of mismatching positions.
+     */
+    public String getMismatchingPositions() { return mismatchingPositions; }
+    
     /**
      * Gets the number of mismatches in the read.
      * @return Number of mismatches.
@@ -129,6 +145,8 @@ public class Alignment {
                      int mappingQuality,
                      char[] cigarOperators,
                      int[] cigarLengths,
+                     int editDistance,
+                     String mismatchingPositions,
                      int numMismatches,
                      int numGapOpens,
                      int numGapExtensions,
@@ -140,6 +158,8 @@ public class Alignment {
         this.mappingQuality = mappingQuality;
         this.cigarOperators = cigarOperators;
         this.cigarLengths = cigarLengths;
+        this.editDistance = editDistance;
+        this.mismatchingPositions = mismatchingPositions;
         this.numMismatches = numMismatches;
         this.numGapOpens = numGapOpens;
         this.numGapExtensions = numGapExtensions;
