@@ -62,7 +62,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
     private GenotypeWriter writer;
 
     // samples in input
-    private HashSet<String> samples;
+    private TreeSet<String> samples;
 
     // keep track of some metrics about our calls
     private CallMetrics callsMetrics;
@@ -108,7 +108,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
         }
 
         // get all of the unique sample names
-        samples = new HashSet<String>();
+        samples = new TreeSet<String>();
         // if we're supposed to assume a single sample
         if ( UAC.ASSUME_SINGLE_SAMPLE != null ) {
             samples.add(UAC.ASSUME_SINGLE_SAMPLE);
