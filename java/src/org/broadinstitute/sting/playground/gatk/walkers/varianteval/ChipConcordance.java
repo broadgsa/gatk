@@ -125,8 +125,10 @@ public abstract class ChipConcordance extends BasicVariantAnalysis {
 
         // now we can finally update our truth tables with the truth vs. calls data
         for (int i = 0; i < truthTables.length; i++) {
-            ConcordanceTruthTable table = truthTables[i];
-            table.addEntry(chipEvals[i], eval, ref);
+            if ( chipEvals[i] != null ) {
+                ConcordanceTruthTable table = truthTables[i];
+                table.addEntry(chipEvals[i], eval, ref);
+            }
         }
     }
 
