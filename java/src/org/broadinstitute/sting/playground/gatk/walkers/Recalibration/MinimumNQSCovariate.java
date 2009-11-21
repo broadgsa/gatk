@@ -48,22 +48,21 @@ public class MinimumNQSCovariate implements Covariate {
         windowReach = windowSize / 2; // integer division
     }
 
-    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, final String platform,
-			 final byte[] quals, final byte[] bases) {
+    public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
     	
     	// Loop over the list of base quality scores in the window and find the minimum
-        int minQual = quals[offset];
+        int minQual = readDatum.quals[offset];
         int minIndex = Math.max(offset - windowReach, 0);
-        int maxIndex = Math.min(offset + windowReach, quals.length - 1);
+        int maxIndex = Math.min(offset + windowReach, readDatum.quals.length - 1);
         for ( int iii = minIndex; iii < maxIndex; iii++ ) {
-            if( quals[iii] < minQual ) {
-                minQual = quals[iii];
+            if( readDatum.quals[iii] < minQual ) {
+                minQual = readDatum.quals[iii];
             }
         }
         return minQual;
     }
     
-    public final Comparable getValue(final String str) {
+    public final Comparable getValue( final String str ) {
         return (int)Integer.parseInt( str ); // cast to primitive int (as opposed to Integer Object) is required so that the return value from the two getValue methods hash to same thing
     }
 

@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.Utils;
 
 import net.sf.samtools.SAMRecord;
 
@@ -44,37 +45,42 @@ import net.sf.samtools.SAMRecord;
 
 public class CycleCovariate implements Covariate {
 
+    private static boolean warnedUserNoPlatform = false;
+
     public CycleCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }
 
-    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, final String platform,
-    								 final byte[] quals, final byte[] bases) {
-        if( platform.equalsIgnoreCase( "ILLUMINA" ) ) {
+    public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
+        if( readDatum.platform.equalsIgnoreCase( "ILLUMINA" ) ) {
             int cycle = offset;
-	        if( read.getReadNegativeStrandFlag() ) {
-	            cycle = bases.length - (offset + 1);
+	        if( readDatum.isNegStrand ) {
+	            cycle = readDatum.bases.length - (offset + 1);
 	        }
 	        return cycle;
-        } else if( platform.contains( "454" ) ) { // some bams have "LS454" and others have just "454"
+        } else if( readDatum.platform.contains( "454" ) ) { // some bams have "LS454" and others have just "454"
             int cycle = 0;
-            byte prevBase = bases[0];
+            byte prevBase = readDatum.bases[0];
             for( int iii = 1; iii <= offset; iii++ ) {
-                if(bases[iii] != prevBase) { // this base doesn't match the previous one so it is a new cycle
+                if(readDatum.bases[iii] != prevBase) { // this base doesn't match the previous one so it is a new cycle
                     cycle++;
-                    prevBase = bases[iii];
+                    prevBase = readDatum.bases[iii];
                 }
             }
             return cycle;
-        } else if( platform.equalsIgnoreCase( "SOLID" ) ) {
+        } else if( readDatum.platform.equalsIgnoreCase( "SOLID" ) ) {
             // the ligation cycle according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
         	return offset / 5; // integer division
-        } else {
-        	throw new StingException( "Platform in read (" + platform + ") is not supported in CycleCovariate. Read = " + read );
+        } else { // platform is unrecognized so revert to Illumina definition of cycle but warn the user
+        	if( !warnedUserNoPlatform ) {
+                Utils.warnUser( "Platform (" + readDatum.platform + ") unrecognized. Reverting to Illumina definition of machine cycle." );
+                warnedUserNoPlatform = true;
+            }
+            return PositionCovariate.revertToPositionAsCycle( readDatum, offset );
         }
                                                         
     }
     
-    public final Comparable getValue(final String str) {
+    public final Comparable getValue( final String str ) {
         return (int)Integer.parseInt( str ); // cast to primitive int (as opposed to Integer Object) is required so that the return value from the two getValue methods hash to same thing
     }
 

@@ -44,9 +44,8 @@ public class PrimerRoundCovariate implements Covariate {
 	public PrimerRoundCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }
 
-    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, final String platform,
-    								 final byte[] quals, final byte[] bases) {
-        if( platform.equalsIgnoreCase( "SOLID" ) ) {
+    public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
+        if( readDatum.platform.equalsIgnoreCase( "SOLID" ) ) {
 	        return offset % 5; // the primer round according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
         } else {
             return 1; // nothing to do here because it is always the same
@@ -54,7 +53,7 @@ public class PrimerRoundCovariate implements Covariate {
 
     }
 
-    public final Comparable getValue(final String str) {
+    public final Comparable getValue( final String str ) {
         return (int)Integer.parseInt( str ); // cast to primitive int (as opposed to Integer Object) is required so that the return value from the two getValue methods hash to same thing
     }
 

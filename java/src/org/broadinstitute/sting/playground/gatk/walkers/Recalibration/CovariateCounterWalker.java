@@ -88,8 +88,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
     private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
     private ArrayList<Covariate> requestedCovariates; // A list to hold the covariate objects that were requested
-    //private HashMap<SAMRecord, String> readGroupHashMap; // A hash map that hashes the read object itself into the read group name
-                                                           // This is done for optimization purposes because pulling the read group out of the SAMRecord is expensive
+    private IdentityHashMap<SAMRecord, ReadHashDatum> readDatumHashMap; // A hash map that hashes the read object itself into properties commonly pulled out of the read. Done for optimization purposes.
+    private int sizeOfReadDatumHashMap = 0;
+
     private long countedSites = 0; // Number of loci used in the calculations, used for reporting in the output file
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
@@ -204,7 +205,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
         if(estimatedCapacity > 300 * 40 * 200 * 16) { estimatedCapacity = 300 * 40 * 200 * 16; }  // Don't want to crash with out of heap space exception
         dataManager = new RecalDataManager( estimatedCapacity );
-        //readGroupHashMap = new HashMap<SAMRecord, String>( 50000000, 0.97f );
+        readDatumHashMap = new IdentityHashMap<SAMRecord, ReadHashDatum>();
     }
 
 
@@ -250,73 +251,93 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             byte prevBase;
             String platform;
             byte[] colorSpaceQuals;
-            
+            ReadHashDatum readDatum;
+            boolean isNegStrand;
+            int mappingQuality;
+            int length;
+
             final int numReads = reads.size();
             // For each read at this locus
             for( int iii = 0; iii < numReads; iii++ ) {
                 read = reads.get(iii);
+                offset = offsets.get(iii); // offset is zero based so quals[offset] and bases[offset] is correct
 
-                //readGroupId = readGroupHashMap.get( read );
-                //if( readGroupId == null ) { // read is not in the hashmap so add it
-                //    readGroupId = read.getReadGroup().getReadGroupId();
-                //    readGroupHashMap.put( read, readGroupId );
-                //}
-                
-                if( read.getMappingQuality() > 0 ) { // BUGBUG: turn this into a read filter after passing the old integration tests
+                readDatum = readDatumHashMap.get( read );
+                if( readDatum == null ) {
 
-                    offset = offsets.get(iii); // offset is zero based so quals[offset] and bases[offset] is correct
+                    // If the HashMap of read objects has grown too large then throw out the (mostly stale) reads
+                    if( sizeOfReadDatumHashMap > 100000 ) { //BUGBUG: Can I make this number larger?
+                        readDatumHashMap.clear();
+                        sizeOfReadDatumHashMap = 0;
+                    }
 
-                    // skip first and last base because there is no dinuc, this is mainly done for speed so we don't have to check cases
-                    if( offset > 0 && offset < read.getReadLength() - 1 ) {
-
-                        quals = read.getBaseQualities();
-                        // Check if we need to use the original quality scores instead
-                        if ( USE_ORIGINAL_QUALS && read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
-                            Object obj = read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG);
-                            if ( obj instanceof String )
-                                quals = QualityUtils.fastqToPhred((String)obj);
-                            else {
-                                throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
-                            }
+                    // This read isn't in the hashMap yet so fill out the datum and add it to the map so that we never have to do the work again
+                    quals = read.getBaseQualities();
+                    // Check if we need to use the original quality scores instead
+                    if ( USE_ORIGINAL_QUALS && read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
+                        Object obj = read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG);
+                        if ( obj instanceof String )
+                            quals = QualityUtils.fastqToPhred((String)obj);
+                        else {
+                            throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
                         }
+                    }
+                    bases = read.getReadBases(); // BUGBUG: DinucCovariate is relying on this method returning the same byte for bases 'a' and 'A'. Is this true?
+                    isNegStrand = read.getReadNegativeStrandFlag();
+                    final SAMReadGroupRecord readGroup = read.getReadGroup();
+                    readGroupId = readGroup.getReadGroupId();
+                    platform = readGroup.getPlatform();
+                    mappingQuality = read.getMappingQuality();
+                    length = bases.length;
+                    if( USE_SLX_PLATFORM ) {
+                        platform = "ILLUMINA";
+                    }
 
-                        // skip if base quality is zero
-                        if( quals[offset] > 0 ) {
-                            bases = read.getReadBases(); // BUGBUG: DinucCovariate is relying on this method returning the same byte for bases 'a' and 'A'
-                            refBase = (byte)ref.getBase();
-                            prevBase = bases[offset-1];
+                    readDatum = new ReadHashDatum( readGroupId, platform, quals, bases, isNegStrand, mappingQuality, length );
+                    readDatumHashMap.put( read, readDatum );
+                    sizeOfReadDatumHashMap++;
+                }
 
-                            // Get the complement base strand if we are a negative strand read
-                            if( read.getReadNegativeStrandFlag() ) {
-                                bases = BaseUtils.simpleComplement( bases ); // this is an expensive call
-                                refBase = (byte)BaseUtils.simpleComplement( ref.getBase() );
-                                prevBase = bases[offset+1];
+
+                if( readDatum.mappingQuality > 0 ) { // BUGBUG: turn this into a read filter after passing the old integration tests
+
+                    // skip first and last base because there is no dinuc
+                    // BUGBUG: Technically we only have to skip the first base on forward reads and the last base on negative strand reads. Change after passing old integration tests. 
+                    if( offset > 0 ) {
+                        if( offset < readDatum.length - 1 ) {
+                            // skip if base quality is zero
+                            if( readDatum.quals[offset] > 0 ) {
+
+                                refBase = (byte)ref.getBase();
+                                prevBase = readDatum.bases[offset-1];
+
+                                // Get the complement base strand if we are a negative strand read
+                                if( readDatum.isNegStrand ) {
+                                    prevBase = readDatum.bases[offset+1];
+                                }
+
+                                // skip if this base or the previous one was an 'N' or etc.
+                                if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)(readDatum.bases[offset]) ) ) {
+
+                                    // SOLID bams insert the reference base into the read if the color space quality is zero, so skip over them
+                                    colorSpaceQuals = null;
+                                    if( readDatum.platform.equalsIgnoreCase("SOLID") ) {
+                                        colorSpaceQuals = QualityUtils.fastqToPhred((String)read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG));
+                                    }
+                                    if( colorSpaceQuals == null || colorSpaceQuals[offset] > 0 ) //BUGBUG: This isn't exactly correct yet
+                                    {
+                                        // This base finally passed all the checks, so add it to the big hashmap
+                                        updateDataFromRead( readDatum, offset, refBase );
+                                    }
+                                } else {
+                                    if( VALIDATE_OLD_RECALIBRATOR ) {
+                                        countedBases++; // replicating a small bug in the old recalibrator
+                                    }
+                                }
                             }
-
-                            // skip if this base or the previous one was an 'N' or etc.
-                            if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)bases[offset] ) ) {
-
-                                final SAMReadGroupRecord readGroup = read.getReadGroup();
-                                readGroupId = readGroup.getReadGroupId();
-                                platform = readGroup.getPlatform();
-                                if( USE_SLX_PLATFORM ) {
-                                    platform = "ILLUMINA";
-                                }
-
-                                // SOLID bams insert the reference base into the read if the color space quality is zero, so skip over them
-                                colorSpaceQuals = null;
-                                if( platform.equalsIgnoreCase("SOLID") ) {
-                                    colorSpaceQuals = QualityUtils.fastqToPhred((String)read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG));
-                                }
-                                if( colorSpaceQuals == null || colorSpaceQuals[offset] > 0 ) //BUGBUG: This isn't exactly correct yet
-                                {
-                                    updateDataFromRead( read, offset, readGroupId, platform, quals, bases, refBase );
-                                }
-                            } else {
-                                if( VALIDATE_OLD_RECALIBRATOR ) {
-                                    countedBases++; // replicating a small bug in the old recalibrator
-                                }
-                            }
+                        } else { // at the last base in the read so we can remove it from our IdentityHashMap
+                            readDatumHashMap.remove( read );
+                            sizeOfReadDatumHashMap--;
                         }
                     }
                 }
@@ -337,22 +358,17 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      *   adding one to the number of observations and potentially one to the number of mismatches
      * Lots of things are passed as parameters to this method as a strategy for optimizing the covariate.getValue calls
      *   because pulling things out of the SAMRecord is an expensive operation.
-     * @param read The read
+     * @param readDatum The ReadHashDatum holding all the important properties of this read
      * @param offset The offset in the read for this locus
-     * @param readGroup The read group the read is in
-     * @param platform The String that has the platform this read came from: Illumina, 454, or solid
-     * @param quals List of base quality scores
-     * @param bases The bases which make up the read
      * @param refBase The reference base at this locus
      */
-    private void updateDataFromRead(final SAMRecord read, final int offset, final String readGroup, final String platform, 
-                                    final byte[] quals, final byte[] bases, final byte refBase) {
+    private void updateDataFromRead(final ReadHashDatum readDatum, final int offset, final byte refBase) {
 
         List<Comparable> key = new ArrayList<Comparable>();
         
         // Loop through the list of requested covariates and pick out the value from the read, offset, and reference
         for( Covariate covariate : requestedCovariates ) {
-        	key.add( covariate.getValue( read, offset, readGroup, platform, quals, bases ) );
+        	key.add( covariate.getValue( readDatum, offset ) );
         }
 
     	// Using the list of covariate values as a key, pick out the RecalDatum from the data HashMap
@@ -367,7 +383,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
         
         // Need the bases to determine whether or not we have a mismatch
-        byte base = bases[offset];
+        byte base = readDatum.bases[offset];
         
         // Add one to the number of observations and potentially one to the number of mismatches
         datum.increment( (char)base, (char)refBase ); // dangerous: if you don't cast to char than the bytes default to the (long, long) version of the increment method which is really bad
@@ -408,9 +424,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @param recalTableStream The PrintStream to write out to
      */
     public void onTraversalDone( PrintStream recalTableStream ) {
-        out.print( "Writing raw recalibration data..." );
+        logger.info( "Writing raw recalibration data..." );
         outputToCSV( recalTableStream );
-        out.println( "...done!" );
+        logger.info( "...done!" );
     
         recalTableStream.close();
     }

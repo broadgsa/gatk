@@ -40,12 +40,11 @@ public class ReadGroupCovariate implements Covariate{
     public ReadGroupCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }
 
-    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, final String platform,
-			 final byte[] quals, final byte[] bases) {
-    	return readGroup;
+    public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
+    	return readDatum.readGroup;
     }
     
-    public final Comparable getValue(final String str) {
+    public final Comparable getValue( final String str ) {
     	return str;
     }
 

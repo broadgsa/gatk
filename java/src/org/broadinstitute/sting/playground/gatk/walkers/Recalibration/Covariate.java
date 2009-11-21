@@ -38,7 +38,7 @@ import net.sf.samtools.SAMRecord;
  */
 
 public interface Covariate {
-    public Comparable getValue(SAMRecord read, int offset, String readGroup, String platform, byte[] quals, byte[] bases); // used to pick out the value from attributes of the read
+    public Comparable getValue(ReadHashDatum readDatum, int offset); // used to pick out the value from attributes of the read
 	public Comparable getValue(String str); // used to get value from input file
     public int estimatedNumberOfBins(); // used to estimate the amount space required for the HashMap
 }

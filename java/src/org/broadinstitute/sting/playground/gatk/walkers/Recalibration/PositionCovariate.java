@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.Utils;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -41,16 +42,23 @@ public class PositionCovariate implements Covariate {
     public PositionCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }
 
-    public final Comparable getValue(final SAMRecord read, final int offset, final String readGroup, final String platform,
-    								 final byte[] quals, final byte[] bases) {
+    public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
         int cycle = offset;
-        if( read.getReadNegativeStrandFlag() ) {
-            cycle = bases.length - (offset + 1);
+        if( readDatum.isNegStrand ) {
+            cycle = readDatum.bases.length - (offset + 1);
         }
         return cycle;
     }
 
-    public final Comparable getValue(final String str) {
+    public static Comparable revertToPositionAsCycle( final ReadHashDatum readDatum, final int offset ) {  // called from CycleCovariate if platform was unrecognized
+        int cycle = offset;
+        if( readDatum.isNegStrand ) {
+            cycle = readDatum.bases.length - (offset + 1);
+        }
+        return cycle;
+    }
+
+    public final Comparable getValue( final String str ) {
         return (int)Integer.parseInt( str ); // cast to primitive int (as opposed to Integer Object) is required so that the return value from the two getValue methods hash to same thing
     }
 
