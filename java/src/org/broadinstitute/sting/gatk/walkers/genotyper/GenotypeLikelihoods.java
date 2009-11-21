@@ -420,7 +420,7 @@ public class GenotypeLikelihoods implements Cloneable {
     //
     // -----------------------------------------------------------------------------------------------------------------
 
-    protected int strandIndex(boolean fwdStrand) {
+    public static int strandIndex(boolean fwdStrand) {
         return fwdStrand ? 0 : 1;
     }
 

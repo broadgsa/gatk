@@ -12,10 +12,8 @@ import net.sf.samtools.SAMRecord;
 public class PooledCalculationModel extends JointEstimateGenotypeCalculationModel {
     private static final String POOL_SAMPLE_NAME = "POOL";
 
-    private FourBaseProbabilities fourBaseLikelihoods = null;
-
-    private double[] log10F = null;
-    private double[] log10OneMinusF = null;
+    private static FourBaseProbabilities fourBaseLikelihoods = null;
+    private static boolean USE_CACHE = true;
 
     /**
      *
@@ -31,21 +29,15 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
     protected void initialize(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
         super.initialize(ref, contexts, contextType);
 
-        // prepare the four base vector calculator
-        fourBaseLikelihoods = FourBaseProbabilitiesFactory.makeFourBaseLikelihoods(baseModel, defaultPlatform);
+        // todo -- move this code to a static initializer
 
-        // todo - can you add static initialize()
-        // prepare cached values of the log10 of f and (1-f)
-        if ( log10F == null ) {
-            int nChromosomes = 2 * getNSamples(contexts);
-            log10F = new double[nChromosomes+1];
-            log10OneMinusF = new double[nChromosomes+1];
-            for ( int i = 0; i < (nChromosomes+1); i++ ) {
-                double f = (1.0 * i) / nChromosomes;
-                log10F[i] = Math.log10(f);
-                log10OneMinusF[i] = Math.log10(1-f);
-            }
-        }   
+        // prepare the four base vector calculator
+        if ( fourBaseLikelihoods == null )
+            fourBaseLikelihoods = FourBaseProbabilitiesFactory.makeFourBaseLikelihoods(baseModel, defaultPlatform);
+
+        // setup the cache
+        if ( CACHE == null )
+            makeCache(POOL_SIZE);
     }
 
     protected int getNSamples(HashMap<String, AlignmentContextBySample> contexts) {
@@ -80,13 +72,103 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
         return contexts;
     }
 
-    //
-    // todo - create cache indexed by chromosome, tech, qual, observed base, and potential polymorphism (A/C) for all
-    // todo -- 16 pairs.  We can change the calculation at a locus to: for each read in pileup, calculate offset into
-    // todo -- this table given observed base, read, and qual.  Then, for each i -> 0, 2n and polymorphism, run over
-    // todo -- the table, summing values
-    //
     protected double computeLog10PofDgivenAFi(char refArg, char altArg, double f, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
+        AlignmentContextBySample context = contexts.get(POOL_SAMPLE_NAME);
+        ReadBackedPileup pileup = new ReadBackedPileup(refArg, context.getContext(contextType));
+
+        double log10L = 0.0;
+
+        int refIndex = BaseUtils.simpleBaseToBaseIndex(refArg);
+        int altIndex = BaseUtils.simpleBaseToBaseIndex(altArg);
+
+        int nChromosomes = 2 * getNSamples(contexts);
+        int nAltAlleles = (int)(f * nChromosomes);
+
+        for (int i = 0; i < pileup.getReads().size(); i++) {
+            int offset = pileup.getOffsets().get(i);
+
+            // ignore deletions
+            if ( offset == -1 )
+                continue;
+
+            SAMRecord read = pileup.getReads().get(i);
+            char base = (char)read.getReadBases()[offset];
+            int bIndex = BaseUtils.simpleBaseToBaseIndex(base);
+            byte qual = read.getBaseQualities()[offset];
+
+            if ( qual > 0 && bIndex != -1 ) {
+                log10L += calcPBGivenH(refIndex, altIndex, nAltAlleles, nChromosomes, base, qual, read, offset);
+            }
+        }
+
+        return log10L;
+    }
+
+    // cache = BMM x PL x REF x ALT x base x QUAL x strand x F as i
+    static double[][][][][][][][] CACHE = null;
+    static int N_CACHED = 0;
+    private static void makeCache(int pool_size) {
+        CACHE = new double[BaseMismatchModel.values().length][EmpiricalSubstitutionProbabilities.SequencerPlatform.values().length][BaseUtils.BASES.length][BaseUtils.BASES.length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE][2][2 * pool_size+1];
+    }
+
+    protected void setCache( int refIndex, int altIndex, int nAltAlleles, char base, byte qual, SAMRecord read, double val ) {
+        int m = FourBaseProbabilitiesFactory.getBaseMismatchModel(fourBaseLikelihoods).ordinal();
+        int a = fourBaseLikelihoods.getReadSequencerPlatformIndex(read);
+        int i = refIndex;
+        int j = altIndex;
+        int k = BaseUtils.simpleBaseToBaseIndex(base);
+        int l = qual;
+        int x = GenotypeLikelihoods.strandIndex(! read.getReadNegativeStrandFlag());
+        int f = nAltAlleles;
+
+        N_CACHED++;
+        System.out.printf("Setting cache value %d %d  %d %d  %d %d %d %d = %f [count = %d]%n", m, a, i, j, k, l, x, f, val, N_CACHED);
+        CACHE[m][a][i][j][k][l][x][f] = val;
+    }
+
+    protected double getCache( int refIndex, int altIndex, int nAltAlleles, char base, byte qual, SAMRecord read ) {
+        int m = FourBaseProbabilitiesFactory.getBaseMismatchModel(fourBaseLikelihoods).ordinal();
+        int a = fourBaseLikelihoods.getReadSequencerPlatformIndex(read);
+        int i = refIndex;
+        int j = altIndex;
+        int k = BaseUtils.simpleBaseToBaseIndex(base);
+        int l = qual;
+        int x = GenotypeLikelihoods.strandIndex(! read.getReadNegativeStrandFlag());
+        int f = nAltAlleles;
+        //System.out.printf("Getting cache value %d %d  %d %d  %d %d %d %d%n", m, a, i, j, k, l, x, f);
+
+        return CACHE[m][a][i][j][k][l][x][f];
+    }
+
+    private double calcPBGivenH(int refIndex, int altIndex, int nAltAlleles, int nChromosomes, char base, byte qual, SAMRecord read, int offset) {
+        double L = 0.0;
+
+        if ( USE_CACHE ) {
+            L = getCache(refIndex, altIndex, nAltAlleles, base, qual, read);
+            if ( L == 0.0 ) {
+                L = reallyCalcPBGivenH(refIndex, altIndex, nAltAlleles, nChromosomes, base, qual, read, offset);
+                setCache(refIndex, altIndex, nAltAlleles, base, qual, read, L);
+            }
+        } else {
+            L = reallyCalcPBGivenH(refIndex, altIndex, nAltAlleles, nChromosomes, base, qual, read, offset);
+        }
+
+        return L;
+    }
+
+    private double reallyCalcPBGivenH(int refIndex, int altIndex, int nAltAlleles, int nChromosomes, char base, byte qual, SAMRecord read, int offset) {
+        double f = (1.0 * nAltAlleles) / nChromosomes;
+        double POfRef = 1 - f;
+        double POfAlt = f;
+
+        FourBaseProbabilities fbl = fourBaseLikelihoods.computeLog10Likelihoods(base, qual, read, offset);
+        double POfBGivenRef = fbl.getLikelihood(refIndex);
+        double POfBGivenAlt = fbl.getLikelihood(altIndex);
+        double P = POfRef * POfBGivenRef + POfAlt * POfBGivenAlt;
+        return Math.log10(P);
+    }
+
+/*    protected double computeLog10PofDgivenAFi(char refArg, char altArg, double f, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
         AlignmentContextBySample context = contexts.get(POOL_SAMPLE_NAME);
         ReadBackedPileup pileup = new ReadBackedPileup(refArg, context.getContext(contextType));
 
@@ -131,7 +213,7 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
         //            refArg, altArg, nChromosomes, nAltAlleles, nRefAlleles, f, log10POfRef, log10POfAlt, log10L);
 
         return log10L;
-    }
+    }*/
 
 /*    protected double computeLog10PofDgivenAFi_V2(char refArg, char altArg, double f, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
         AlignmentContextBySample context = contexts.get(POOL_SAMPLE_NAME);
