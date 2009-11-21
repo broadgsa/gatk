@@ -7,7 +7,10 @@ for p in ["AG", "CT"]:
     TRANSITIONS[p] = True
     TRANSITIONS[''.join(reversed(p))] = True
 
-def convertToType(d, onlyKeys = None):
+def is_nan(x):
+    return type(x) is float and x != x
+
+def convertToType(chr, pos, d, onlyKeys = None):
     out = dict()
     types = [int, float, str]
     for key, value in d.items():
@@ -15,6 +18,9 @@ def convertToType(d, onlyKeys = None):
             for type in types:
                 try:
                     out[key] = type(value)
+                    if is_nan(out[key]): 
+                        print 'Warning, nan found at %s:%s, using NaN string' % (chr, pos)
+                        out[key] = 'NaN'
                     break
                 except:
                     pass
@@ -27,8 +33,9 @@ class VCFRecord:
     def __init__(self, basicBindings, header=None, rest=[], decodeAll = True):
         self.header = header
         self.info = parseInfo(basicBindings["INFO"])
-        if decodeAll: self.info = convertToType(self.info)
-        self.bindings = convertToType(basicBindings, onlyKeys = ['POS', 'QUAL'])
+        chr, pos = basicBindings['CHROM'], basicBindings['POS']
+        self.bindings = convertToType(chr, pos, basicBindings, onlyKeys = ['POS', 'QUAL'])
+        if decodeAll: self.info = convertToType(chr, pos, self.info)
         self.rest = rest
     
     def hasHeader(self): return self.header <> None
