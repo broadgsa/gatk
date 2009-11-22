@@ -85,7 +85,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     @Argument(fullName="use_slx_platform", shortName="useSLXPlatform", required=false, doc="Force the platform to be Illumina regardless of what it actually says. For debugging purposes only.")
     private boolean USE_SLX_PLATFORM = false;
 
-
     private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
     private ArrayList<Covariate> requestedCovariates; // A list to hold the covariate objects that were requested
     private IdentityHashMap<SAMRecord, ReadHashDatum> readDatumHashMap; // A hash map that hashes the read object itself into properties commonly pulled out of the read. Done for optimization purposes.
@@ -94,6 +93,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long countedSites = 0; // Number of loci used in the calculations, used for reporting in the output file
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
+
+    //private final String versionNumber = "2.0.0"; // major version, minor version, and build number
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -107,6 +108,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     public void initialize() {
 
+        //logger.info( "CovariateCounterWalker version: " + versionNumber );
         // Get a list of all available covariates
         final List<Class<? extends Covariate>> classes = PackageUtils.getClassesImplementingInterface(Covariate.class);
    
@@ -298,11 +300,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                     sizeOfReadDatumHashMap++;
                 }
 
-
                 if( readDatum.mappingQuality > 0 ) { // BUGBUG: turn this into a read filter after passing the old integration tests
 
                     // skip first and last base because there is no dinuc
-                    // BUGBUG: Technically we only have to skip the first base on forward reads and the last base on negative strand reads. Change after passing old integration tests. 
+                    // BUGBUG: Technically we only have to skip the first base on forward reads and the last base on negative strand reads. Change after passing old integration tests.
                     if( offset > 0 ) {
                         if( offset < readDatum.length - 1 ) {
                             // skip if base quality is zero
