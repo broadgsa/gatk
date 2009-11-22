@@ -122,7 +122,7 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
         int f = nAltAlleles;
 
         N_CACHED++;
-        System.out.printf("Setting cache value %d %d  %d %d  %d %d %d %d = %f [count = %d]%n", m, a, i, j, k, l, x, f, val, N_CACHED);
+        //System.out.printf("Setting cache value %d %d  %d %d  %d %d %d %d = %f [count = %d]%n", m, a, i, j, k, l, x, f, val, N_CACHED);
         CACHE[m][a][i][j][k][l][x][f] = val;
     }
 
