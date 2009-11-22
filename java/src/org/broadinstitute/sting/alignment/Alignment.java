@@ -202,7 +202,7 @@ public class Alignment {
             read.setMappingQuality(alignment.getMappingQuality());
             read.setCigar(alignment.getCigar());
             if(alignment.isNegativeStrand()) {
-                read.setReadBases(BaseUtils.reverse(read.getReadBases()));
+                read.setReadBases(BaseUtils.simpleReverseComplement(read.getReadBases()));
                 read.setBaseQualities(BaseUtils.reverse(read.getBaseQualities()));
             }
             read.setAttribute("NM",alignment.getEditDistance());

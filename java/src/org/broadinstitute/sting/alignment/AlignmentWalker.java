@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.alignment;
 
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
@@ -9,6 +8,8 @@ import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.bwa.BWTFiles;
 import net.sf.samtools.*;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
+
+import java.io.File;
 
 /**
  * Align reads to the reference specified by BWTPrefix.
@@ -25,7 +26,7 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
     String outputBamFile = null;
 
     @Argument(fullName = "bam_compression", shortName = "compress", doc = "Compression level to use for writing BAM files", required = false)
-    public Integer bamCompression = 5;        
+    Integer bamCompression = 5;
 
     /**
      * The actual aligner.
@@ -40,7 +41,7 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
     /**
      * New header to use, if desired.
      */
-    private SAMFileHeader header = null;
+    private SAMFileHeader header;
 
     /** Must return true for reads that need to be processed. Reads, for which this method return false will
      * be skipped by the engine and never passed to the walker.
@@ -59,21 +60,16 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
         BWAConfiguration configuration = new BWAConfiguration();
         aligner = new BWACAligner(bwtFiles,configuration);
 
-        // HACK: If the sequence dictionary in the existing header is null, stuff the contents of the current reference
-        //       into it, so that the sequence has something to which to back-align.
-        SAMFileHeader originalHeader = getToolkit().getSAMFileHeader();
-        if(originalHeader.getSequenceDictionary().isEmpty()) {
-            header = originalHeader.clone();
-            SAMSequenceDictionary referenceDictionary =
-                    ReferenceSequenceFileFactory.getReferenceSequenceFile(getToolkit().getArguments().referenceFile).getSequenceDictionary();
-            header.setSequenceDictionary(referenceDictionary);            
-        }
-        else
-            header = originalHeader;
+        // Take the header of the SAM file, tweak it by adding in the reference dictionary and specifying that the target file is unsorted.
+        header = getToolkit().getSAMFileHeader().clone();
+        SAMSequenceDictionary referenceDictionary =
+                ReferenceSequenceFileFactory.getReferenceSequenceFile(getToolkit().getArguments().referenceFile).getSequenceDictionary();
+        header.setSequenceDictionary(referenceDictionary);
+        header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
 
-        if ( outputBamFile != null ) {
-            // Stuff the header from the fasta into that of the sequence dictionary.
-            outputBam = Utils.createSAMFileWriterWithCompression(header, false, outputBamFile, bamCompression);
+        if (outputBamFile != null) {
+            SAMFileWriterFactory factory = new SAMFileWriterFactory();
+            outputBam = factory.makeBAMWriter(header, false, new File(outputBamFile), bamCompression);
         }
     }
 
@@ -119,6 +115,8 @@ public class AlignmentWalker extends ReadWalker<Integer,Integer> {
     @Override
     public void onTraversalDone(Integer result) {
         aligner.close();
+        if (outputBam != null)
+            outputBam.close();
         super.onTraversalDone(result);
     }
 

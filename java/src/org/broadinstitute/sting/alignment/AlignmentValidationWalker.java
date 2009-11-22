@@ -30,11 +30,6 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
     private BWACAligner aligner = null;
 
     /**
-     * Number of reads processed.
-     */
-    private int count = 0;
-
-    /**
      * Create an aligner object.  The aligner object will load and hold the BWT until close() is called.
      */
     @Override
@@ -103,10 +98,6 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
                 }
             }
             throw new StingException(String.format("Read %s mismatches!", read.getReadName()));
-        }
-
-        if(++count % 10000 == 0) {
-            logger.info(String.format("Processed %d reads", count));
         }
 
         return 1;

@@ -228,7 +228,6 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWA
   Alignment* alignments = NULL;
   unsigned num_alignments = 0;
   bwa->generate_alignments_from_paths((const char*)read_bases,read_length,paths,num_paths,best_count,second_best_count,alignments,num_alignments);
-  num_alignments = 0;
 
   jobjectArray java_alignments = env->NewObjectArray(num_alignments, env->FindClass("org/broadinstitute/sting/alignment/Alignment"), NULL);  
   if(java_alignments == NULL) return NULL;
