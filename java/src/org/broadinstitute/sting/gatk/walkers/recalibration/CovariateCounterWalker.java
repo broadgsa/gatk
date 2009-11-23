@@ -68,6 +68,9 @@ import net.sf.samtools.SAMReadGroupRecord;
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
 public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
+    /////////////////////
+    // Command Line Arguments
+    /////////////////////
     @Argument(fullName="list", shortName="ls", doc="List the available covariates and exit", required=false)
     private Boolean LIST_ONLY = false;
     @Argument(fullName="covariate", shortName="cov", doc="Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are already added for you.", required=false)
@@ -78,27 +81,33 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private int WINDOW_SIZE = 3;
     @Argument(fullName="recal_file", shortName="recalFile", required=false, doc="Filename for the outputted covariates table recalibration file")
     private String RECAL_FILE = "output.recal_data.csv";
+    @Argument(fullName="process_nth_locus", shortName="pN", required=false, doc="Only process every Nth covered locus we see.")
+    private int PROCESS_EVERY_NTH_LOCUS = 1;
+
+    /////////////////////
+    // Debugging-only Arguments
+    /////////////////////
     @Argument(fullName="no_print_header", shortName="noHeader", required=false, doc="Don't print the usual header on the table recalibration file. For debugging purposes only.")
     private boolean NO_PRINT_HEADER = false;
     @Argument(fullName="validate_old_recalibrator", shortName="validateOldRecalibrator", required=false, doc="Depricated. Match the output of the old recalibrator exactly. For debugging purposes only.")
     private boolean VALIDATE_OLD_RECALIBRATOR = false;
     // BUGBUG: This validate option no longer does exactly what it says because now using read filter to filter out zero mapping quality reads. The old recalibrator counted those reads in the counted_sites variable but the new one doesn't.
-
     @Argument(fullName="use_slx_platform", shortName="useSLXPlatform", required=false, doc="Force the platform to be Illumina regardless of what it actually says. For debugging purposes only.")
     private boolean USE_SLX_PLATFORM = false;
     @Argument(fullName="sorted_output", shortName="sortedOutput", required=false, doc="The outputted table recalibration file will be in sorted order at the cost of added overhead. For debugging purposes only. This option is required in order to pass the integration tests.")
     private boolean SORTED_OUTPUT = false;
 
+    /////////////////////
+    // Private Member Variables
+    /////////////////////
     private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
     private ArrayList<Covariate> requestedCovariates; // A list to hold the covariate objects that were requested
     private IdentityHashMap<SAMRecord, ReadHashDatum> readDatumHashMap; // A hash map that hashes the read object itself into properties commonly pulled out of the read. Done for optimization purposes.
     private int sizeOfReadDatumHashMap = 0;
-
     private long countedSites = 0; // Number of loci used in the calculations, used for reporting in the output file
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
-
-    private final String versionNumber = "2.0.1"; // major version, minor version, and build number
+    private final String versionNumber = "2.0.2"; // major version, minor version, and build number
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -246,7 +255,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
         // Only use data from non-dbsnp sites
         // Assume every mismatch at a non-dbsnp site is indicitive of poor quality
-        if( !isSNP ) {
+        if( !isSNP && ( (countedSites+skippedSites) % PROCESS_EVERY_NTH_LOCUS == 0) ) {
             final List<SAMRecord> reads = context.getReads();
             final List<Integer> offsets = context.getOffsets();
             SAMRecord read;
@@ -402,7 +411,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
     /**
      * Initialize the reudce step by creating a PrintStream from the filename specified as an argument to the walker.
-     * @return returns A PrintStream created from the -rf filename
+     * @return returns A PrintStream created from the -recalFile filename argument specified to the walker
      */
     public PrintStream reduceInit() {
         try {
@@ -461,7 +470,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 recalTableStream.printf("# Counted Sites    %d%n", countedSites);
                 recalTableStream.printf("# Counted Bases    %d%n", countedBases);
                 recalTableStream.printf("# Skipped Sites    %d%n", skippedSites);
-                recalTableStream.printf("# Fraction Skipped 1 / %.0f bp%n", (double)countedSites / skippedSites);
+                if( PROCESS_EVERY_NTH_LOCUS == 1 ) {
+                    recalTableStream.printf("# Fraction Skipped 1 / %.0f bp%n", (double)countedSites / skippedSites);
+                } else {
+                    recalTableStream.printf("# Percent Skipped  %.4f%n", 100.0 * (double)skippedSites / ((double)countedSites+skippedSites));
+                }
                 for( Covariate cov : requestedCovariates ) {
                     // The "@!" is a code for TableRecalibrationWalker to recognize this line as a Covariate class name
                     recalTableStream.println( "@!" + cov.getClass().getSimpleName() );
