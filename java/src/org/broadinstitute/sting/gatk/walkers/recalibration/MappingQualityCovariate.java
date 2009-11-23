@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
+package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
 

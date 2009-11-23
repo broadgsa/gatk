@@ -1,195 +1,204 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import org.broadinstitute.sting.utils.ExpandingArrayList;
 import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.util.*;
 
-import net.sf.samtools.SAMRecord;
+/*
+ * Copyright (c) 2009 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
 
 /**
  * Created by IntelliJ IDEA.
- * User: mdepristo
- * Date: Jun 16, 2009
- * Time: 9:55:10 PM
- * To change this template use File | Settings | File Templates.
+ * User: rpoplin
+ * Date: Nov 6, 2009
+ *
+ * This helper class holds the data HashMap as well as submaps that represent the marginal distributions collapsed over all needed dimensions.
  */
+
 public class RecalDataManager {
-    /** The original quality scores are stored in this attribute */
-    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ";
+    public NHashMap<RecalDatum> data; // the full dataset
+    private NHashMap<RecalDatum> dataCollapsedReadGroup; // table where everything except read group has been collapsed
+    private NHashMap<RecalDatum> dataCollapsedQualityScore; // table where everything except read group and quality score has been collapsed
+    private ArrayList<NHashMap<RecalDatum>> dataCollapsedByCovariate; // tables where everything except read group, quality score, and given covariate has been collapsed
+    public NHashMap<Double> dataSumExpectedErrors; // table used to calculate the overall aggregate quality score in which everything except read group is collapsed
 
-    ArrayList<RecalData> flattenData = new ArrayList<RecalData>();
-    boolean trackPos, trackDinuc;
-    String readGroup;
-    int nDinucs, maxReadLen;
+    private NHashMap<Double> dataCollapsedReadGroupDouble; // table of empirical qualities where everything except read group has been collapsed
+    private NHashMap<Double> dataCollapsedQualityScoreDouble; // table of empirical qualities where everything except read group and quality score has been collapsed
+    private ArrayList<NHashMap<Double>> dataCollapsedByCovariateDouble; // table of empirical qualities where everything except read group, quality score, and given covariate has been collapsed
 
-    //RecalData[][][] data = null;
-    ExpandingArrayList<ExpandingArrayList<ExpandingArrayList<RecalData>>> data = null;
 
-    public RecalDataManager(String readGroup,
-                            //int maxReadLen, int maxQual, int nDinucs,
-                            boolean trackPos, boolean trackDinuc) {
-        data = new ExpandingArrayList<ExpandingArrayList<ExpandingArrayList<RecalData>>>();
-        //data = new RecalData[maxReadLen+1][maxQual+1][nDinucs];
+    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // the tag that holds the original quality scores
+    public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ"; // the tag that holds the color space quality scores for SOLID bams
 
-        this.readGroup = readGroup;
-        this.trackPos = trackPos;
-        this.trackDinuc = trackDinuc;
-        //this.maxReadLen = maxReadLen;
-        //this.nDinucs = nDinucs;
+    RecalDataManager() {
+    	data = new NHashMap<RecalDatum>();
     }
 
-    public int getMaxReadLen() {
-        return data.size();
-    }
-
-    public int getPosIndex(int pos) {
-        return trackPos ? pos : 0;
-    }
-
-    public int canonicalPos(int cycle) {
-        return getPosIndex(cycle);
-    }
-
-
-    public int getDinucIndex(String dinuc) {
-        return trackDinuc ? RecalData.dinucIndex(dinuc) : 0;
-    }
-
-    public int getDinucIndex(byte prevBase, byte base) {
-        return trackDinuc ? RecalData.dinucIndex(prevBase, base) : 0;
-    }
-
-    public String canonicalDinuc(String dinuc) {
-        return trackDinuc ? dinuc : "**";
-    }
-
-    public void addDatum(RecalData datum) {
-        if ( ! datum.readGroup.equals(this.readGroup) ) {
-            throw new RuntimeException(String.format("BUG: adding incorrect read group datum %s to RecalDataManager for %s", datum.readGroup, this.readGroup));
-        }
-
-        RecalData prev = getRecalData(datum.pos, datum.qual, datum.dinuc);
-        if ( prev != null ) {
-            if ( trackDinuc && trackPos )
-                throw new RuntimeException(String.format("Duplicate entry discovered: %s vs. %s", getRecalData(datum.pos, datum.qual, datum.dinuc), datum));
-            prev.inc(datum);
+    RecalDataManager( final int estimatedCapacity, final boolean createCollapsedTables, final int numCovariates ) {
+    	if( createCollapsedTables ) { // initialize all the collapsed tables
+            dataCollapsedReadGroup = new NHashMap<RecalDatum>();
+            dataCollapsedQualityScore = new NHashMap<RecalDatum>();
+            dataCollapsedByCovariate = new ArrayList<NHashMap<RecalDatum>>();
+            for( int iii = 0; iii < numCovariates - 2; iii++ ) { // readGroup and QualityScore aren't counted here, their tables are separate
+                dataCollapsedByCovariate.add( new NHashMap<RecalDatum>() );
+            }
+            dataSumExpectedErrors = new NHashMap<Double>();
         } else {
-            int posIndex = getPosIndex(datum.pos);
-            int internalDinucIndex = getDinucIndex(datum.dinuc);
-            if ( internalDinucIndex == -1 ) return;
-
-            set(posIndex, datum.qual, internalDinucIndex, datum);
-            flattenData.add(datum);
-        }
+            data = new NHashMap<RecalDatum>( estimatedCapacity, 0.8f);
+        }            
     }
     
-    public RecalData getRecalData(int pos, int qual, String dinuc) {
-        return expandingGetRecalData(pos, qual, dinuc, false);
-    }
-
-    public RecalData expandingGetRecalData(int pos, int qual, String dinuc, boolean expandP) {
-        int posIndex = getPosIndex(pos);
-        int internalDinucIndex = getDinucIndex(dinuc);
-
-        if ( internalDinucIndex == -1 ) return null;
-
-        RecalData datum = get(posIndex, qual, internalDinucIndex);
-        if ( datum == null && expandP ) {
-            //System.out.printf("Allocating %s %d %d %d%n", readGroup, pos, qual, dinuc_index);
-            datum = new RecalData(posIndex, qual, readGroup, trackDinuc ? dinuc : "**");
-            set(posIndex, qual, internalDinucIndex, datum);
-            flattenData.add(datum);
-        }
-
-        return datum;
+    RecalDataManager( final int estimatedCapacity ) {
+        data = new NHashMap<RecalDatum>( estimatedCapacity, 0.8f ); // second arg is the 'loading factor',
+                                                                    //   a number to monkey around with when optimizing performace of the HashMap
     }
 
     /**
-     * Returns the RecalData associated with pos, qual, dinuc, or null if not is bound.
-     * Does not expand the system to corporate a new data point
-     * @param posIndex
-     * @param qual
-     * @param dinucIndex
-     * @return
+     * Add the given mapping to all of the collapsed hash tables
+     * @param key The list of comparables that is the key for this mapping
+     * @param fullDatum The RecalDatum which is the data for this mapping
      */
-    private RecalData get(int posIndex, int qual, int dinucIndex) {
-        ExpandingArrayList<ExpandingArrayList<RecalData>> d2 = data.get(posIndex);
-        if (d2 == null) return null;
-        ExpandingArrayList<RecalData> d3 = d2.get(qual);
-        return d3 == null ? null : d3.get(dinucIndex);
-    }
+    public final void addToAllTables( final List<? extends Comparable> key, final RecalDatum fullDatum ) {
 
-    private void set(int posIndex, int qual, int dinucIndex, RecalData datum) {
-        // grow data if necessary
-        ExpandingArrayList<ExpandingArrayList<RecalData>> d2 = data.get(posIndex);
-        if (d2 == null) {
-            d2 = new ExpandingArrayList<ExpandingArrayList<RecalData>>();
-            data.set(posIndex, d2);
+        // The full dataset isn't actually ever used for anything because of the sequential calculation so no need to keep the full data HashMap around
+        //data.put(key, thisDatum); // add the mapping to the main table
+
+        // create dataCollapsedReadGroup, the table where everything except read group has been collapsed
+        ArrayList<Comparable> newKey = new ArrayList<Comparable>();
+        newKey.add( key.get(0) ); // make a new key with just the read group
+        RecalDatum collapsedDatum = dataCollapsedReadGroup.get( newKey );
+        if( collapsedDatum == null ) {
+            dataCollapsedReadGroup.put( newKey, new RecalDatum(fullDatum) );
+        } else {
+            collapsedDatum.increment(fullDatum);
         }
 
-        // Expand d2 if necessary
-        ExpandingArrayList<RecalData> d3 = d2.get(qual);
-        if ( d3 == null ) {
-            d3 = new ExpandingArrayList<RecalData>();
-            d2.set(qual, d3);
+        // create dataSumExpectedErrors, the table used to calculate the overall aggregate quality score in which everything except read group is collapsed
+        newKey = new ArrayList<Comparable>();
+        newKey.add( key.get(0) ); // make a new key with just the read group
+        Double sumExpectedErrors = dataSumExpectedErrors.get( newKey );
+        if( sumExpectedErrors == null ) {
+            dataSumExpectedErrors.put( newKey, 0.0 );
+        } else {
+            dataSumExpectedErrors.remove( newKey );
+            sumExpectedErrors += QualityUtils.qualToErrorProb(Byte.parseByte(key.get(1).toString())) * fullDatum.getNumObservations();
+            dataSumExpectedErrors.put( newKey, sumExpectedErrors );
         }
 
-        // set d3 to datum
-        d3.set(dinucIndex, datum);
-    }
+        newKey = new ArrayList<Comparable>();
+        // create dataCollapsedQuality, the table where everything except read group and quality score has been collapsed
+        newKey.add( key.get(0) ); // make a new key with the read group ...
+        newKey.add( key.get(1) ); //                                    and quality score
+        collapsedDatum = dataCollapsedQualityScore.get( newKey );
+        if( collapsedDatum == null ) {
+            dataCollapsedQualityScore.put( newKey, new RecalDatum(fullDatum) );
+        } else {
+            collapsedDatum.increment(fullDatum);
+        }
 
-    private RecalData getMatchingDatum(List<RecalData> l, RecalData datum,
-                                       boolean combinePos, boolean combineQual, boolean combineDinuc) {
-        for ( RecalData find : l ) {
-            if ( (combineQual  || find.qual == datum.qual) &&
-                 (combinePos   || find.pos == datum.pos ) &&
-                 (combineDinuc || find.dinuc.equals(datum.dinuc)) ) {
-                //System.out.printf("Found %s for %s%n", find, datum);
-                return find;
+        // create dataCollapsedByCovariate's, the tables where everything except read group, quality score, and given covariate has been collapsed
+        for( int iii = 0; iii < dataCollapsedByCovariate.size(); iii++ ) { // readGroup and QualityScore aren't counted
+            newKey = new ArrayList<Comparable>();
+            newKey.add( key.get(0) ); // make a new key with the read group ...
+            newKey.add( key.get(1) ); //                                    and quality score ...
+            newKey.add( key.get(iii + 2) ); //                                                    and the given covariate
+            collapsedDatum = dataCollapsedByCovariate.get(iii).get( newKey );
+            if( collapsedDatum == null ) {
+                dataCollapsedByCovariate.get(iii).put( newKey, new RecalDatum(fullDatum) );
+            } else {
+                collapsedDatum.increment(fullDatum);
             }
         }
-        RecalData d = new RecalData(combinePos ? 0 : datum.pos, combineQual ? 0 : datum.qual, datum.readGroup, combineDinuc ? "**" : datum.dinuc );
-        //System.out.printf("Making new match %s%n", d);
-        l.add(d);
-        return d;
     }
 
-    public List<RecalData> combineDinucs() {
-        return combine(false, false, true);
-    }
+    /**
+     * Loop over all the collapsed tables and turn the recalDatums found there into an empricial quality score
+     *   that will be used in the sequential calculation in TableRecalibrationWalker
+     * @param numCovariates The number of covariates you have determines the number of tables to create
+     * @param smoothing The smoothing paramter that goes into empirical quality score calculation
+     */
+    public final void generateEmpiricalQualities( final int numCovariates, final int smoothing ) {
 
-    public List<RecalData> combineCycles() {
-        return combine(true, false, false);
-    }
-
-    public List<RecalData> combine(boolean ignorePos, boolean ignoreQual, boolean ignoreDinuc) {
-        List<RecalData> l = new ArrayList<RecalData>();
-        for ( RecalData datum : flattenData ) {
-            RecalData reduced = getMatchingDatum(l, datum, ignorePos, ignoreQual, ignoreDinuc);
-            //System.out.printf("Combining %s with %s%n", datum, reduced);
-            reduced.inc(datum);
+        dataCollapsedReadGroupDouble = new NHashMap<Double>();
+        dataCollapsedQualityScoreDouble = new NHashMap<Double>();
+        dataCollapsedByCovariateDouble = new ArrayList<NHashMap<Double>>();
+        for( int iii = 0; iii < numCovariates - 2; iii++ ) { // readGroup and QualityScore aren't counted here, their tables are separate
+            dataCollapsedByCovariateDouble.add( new NHashMap<Double>() );
         }
-        return l;
-    }
 
-    public List<RecalData> getAll() {
-        return flattenData;
-    }
-
-    // we can process the OQ field if requested
-    public static byte[] getQualsForRecalibration( SAMRecord read, boolean useOriginalQuals ) {
-        byte[] quals = read.getBaseQualities();
-        if ( useOriginalQuals && read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
-            Object obj = read.getAttribute(ORIGINAL_QUAL_ATTRIBUTE_TAG);
-            if ( obj instanceof String )
-                quals = QualityUtils.fastqToPhred((String)obj);
-            else {
-                throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
+        // Hash the empirical quality scores so we don't have to call Math.log at every base for every read
+        // Looping over the entrySet is really expensive but worth it
+        for( Map.Entry<List<? extends Comparable>,RecalDatum> entry : dataCollapsedReadGroup.entrySet() ) {
+            dataCollapsedReadGroupDouble.put( entry.getKey(), entry.getValue().empiricalQualDouble( smoothing ));
+        }
+        for( Map.Entry<List<? extends Comparable>,RecalDatum> entry : dataCollapsedQualityScore.entrySet() ) {
+            dataCollapsedQualityScoreDouble.put( entry.getKey(), entry.getValue().empiricalQualDouble( smoothing ));
+        }
+        for( int iii = 0; iii < numCovariates - 2; iii++ ) {
+            for( Map.Entry<List<? extends Comparable>,RecalDatum> entry : dataCollapsedByCovariate.get(iii).entrySet() ) {
+                dataCollapsedByCovariateDouble.get(iii).put( entry.getKey(), entry.getValue().empiricalQualDouble( smoothing ));
             }
         }
 
-        return quals;
+        dataCollapsedQualityScore.clear();
+        dataCollapsedByCovariate.clear();
+        dataCollapsedQualityScore = null; // will never need this again
+        dataCollapsedByCovariate = null; // will never need this again
+        if( data!=null ) {
+            data.clear();
+            data = null; // will never need this again
+        }
+    }
+
+    /**
+     * Get the appropriate collapsed table out of the set of all the tables held by this Object
+     * @param covariate Which covariate indexes the desired collapsed HashMap
+     * @return The desired collapsed HashMap
+     */
+    public final NHashMap<RecalDatum> getCollapsedTable( final int covariate ) {
+        if( covariate == 0) {
+            return dataCollapsedReadGroup; // table where everything except read group has been collapsed
+        } else if( covariate == 1 ) {
+            return dataCollapsedQualityScore; // table where everything except read group and quality score has been collapsed
+        } else {
+            return dataCollapsedByCovariate.get( covariate - 2 ); // table where everything except read group, quality score, and given covariate has been collapsed
+        }
+    }
+
+    /**
+     * Get the appropriate collapsed table of emprical quality out of the set of all the tables held by this Object
+     * @param covariate Which covariate indexes the desired collapsed NHashMap<Double>
+     * @return The desired collapsed NHashMap<Double>
+     */
+    public final NHashMap<Double> getCollapsedDoubleTable( final int covariate ) {
+        if( covariate == 0) {
+            return dataCollapsedReadGroupDouble; // table of empirical qualities where everything except read group has been collapsed
+        } else if( covariate == 1 ) {
+            return dataCollapsedQualityScoreDouble; // table of empirical qualities where everything except read group and quality score has been collapsed
+        } else {
+            return dataCollapsedByCovariateDouble.get( covariate - 2 ); // table of empirical qualities where everything except read group, quality score, and given covariate has been collapsed
+        }
     }
 }
-

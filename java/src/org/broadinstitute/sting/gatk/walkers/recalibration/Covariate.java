@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
+package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
 
@@ -32,29 +32,13 @@ import net.sf.samtools.SAMRecord;
  * User: rpoplin
  * Date: Oct 30, 2009
  *
- * The Read Group covariate.
+ * The Covariate interface. A Covariate is a feature used in the recalibration that can be picked out of the read, offset, and corresponding reference bases
+ * In general most error checking and adjustments to the data are done before the call to the covariates getValue methods in order to speed up the code.
+ * This unfortunately muddies the code, but most of these corrections can be done per read while the covariates get called per base, resulting in a big speed up.
  */
 
-public class ReadGroupCovariate implements Covariate{
-
-    public ReadGroupCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
-    }
-
-    public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
-    	return readDatum.readGroup;
-    }
-    
-    public final Comparable getValue( final String str ) {
-    	return str;
-    }
-
-    public final int estimatedNumberOfBins() {
-        return 300;
-    }
-
-    public String toString() {
-        return "Read Group";
-    }
+public interface Covariate {
+    public Comparable getValue(ReadHashDatum readDatum, int offset); // used to pick out the value from attributes of the read
+	public Comparable getValue(String str); // used to get value from input file
+    public int estimatedNumberOfBins(); // used to estimate the amount space required for the HashMap
 }
-
-

@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
+package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
 
@@ -30,19 +30,36 @@ import net.sf.samtools.SAMRecord;
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
- * Date: Nov 3, 2009
+ * Date: Nov 4, 2009
  *
- * The Reported Quality Score covariate.
+ * The Minimum Neighborhood Quality Score covariate, originally described by Chris Hartl.
+ * This covariate is the minimum base quality score in the read in a small window around the current base.
  */
 
-public class QualityScoreCovariate implements Covariate {
+public class MinimumNQSCovariate implements Covariate {
 
-    public QualityScoreCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
+    private int windowReach; // how far in each direction from the current base to look
+
+    public MinimumNQSCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
+        windowReach = 1; // window size = 3 was the best covariate according to Chris's analysis
+    }
+
+    public MinimumNQSCovariate(final int windowSize) {
+        windowReach = windowSize / 2; // integer division
     }
 
     public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
     	
-    	return (int)(readDatum.quals[offset]);
+    	// Loop over the list of base quality scores in the window and find the minimum
+        int minQual = readDatum.quals[offset];
+        int minIndex = Math.max(offset - windowReach, 0);
+        int maxIndex = Math.min(offset + windowReach, readDatum.quals.length - 1);
+        for ( int iii = minIndex; iii < maxIndex; iii++ ) {
+            if( readDatum.quals[iii] < minQual ) {
+                minQual = readDatum.quals[iii];
+            }
+        }
+        return minQual;
     }
     
     public final Comparable getValue( final String str ) {
@@ -52,8 +69,8 @@ public class QualityScoreCovariate implements Covariate {
     public final int estimatedNumberOfBins() {
         return 40;
     }
-    
+
     public String toString() {
-        return "Reported Quality Score";
+        return "Minimum Neighborhood Quality Score";
     }
 }

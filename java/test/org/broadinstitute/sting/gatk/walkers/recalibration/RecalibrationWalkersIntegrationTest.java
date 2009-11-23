@@ -29,7 +29,9 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -L 1:10,000,000-11,000,000" +
-                            " --params %s",
+                            " --validate_old_recalibrator" +
+                            " --use_slx_platform" +
+                            " -recalFile %s",
                     1, // just one output file
                     Arrays.asList(md5));
             List<File> result = executeTest("testCountCovariates1", spec).getFirst();
@@ -56,8 +58,10 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                                 " -T TableRecalibration" +
                                 " -I " + bam +
                                 " -L 1:10,000,000-20,000,000" +
-                                " --outputBam %s" +
-                                " --params " + paramsFile,
+                                " --validate_old_recalibrator" +
+                                " --use_slx_platform" +
+                                " -outputBam %s" +
+                                " -recalFile " + paramsFile,
                         1, // just one output file
                         Arrays.asList(md5));
                 executeTest("testTableRecalibrator1", spec);

@@ -1,8 +1,7 @@
-package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
-
-import org.broadinstitute.sting.utils.StingException;
+package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.Utils;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -32,25 +31,31 @@ import net.sf.samtools.SAMRecord;
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
- * Date: Nov 13, 2009
+ * Date: Nov 18, 2009
  *
- * The Primer Round covariate.
- *  For Solexa and 454 this is the same value of the length of the read.
- *  For SOLiD this is different for each position according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf  
+ * The Position covariate. It is a lot like the Cycle covariate except it always returns the offset regardless of which platform the read came from.
+ * This is the Solexa definition of machine cycle and the covariate that was always being used in the original version of the recalibrator.
  */
 
-public class PrimerRoundCovariate implements Covariate {
+public class PositionCovariate implements Covariate {
 
-	public PrimerRoundCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
+    public PositionCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }
 
     public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
-        if( readDatum.platform.equalsIgnoreCase( "SOLID" ) ) {
-	        return offset % 5; // the primer round according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
-        } else {
-            return 1; // nothing to do here because it is always the same
+        int cycle = offset;
+        if( readDatum.isNegStrand ) {
+            cycle = readDatum.bases.length - (offset + 1);
         }
+        return cycle;
+    }
 
+    public static Comparable revertToPositionAsCycle( final ReadHashDatum readDatum, final int offset ) {  // called from CycleCovariate if platform was unrecognized
+        int cycle = offset;
+        if( readDatum.isNegStrand ) {
+            cycle = readDatum.bases.length - (offset + 1);
+        }
+        return cycle;
     }
 
     public final Comparable getValue( final String str ) {
@@ -58,10 +63,10 @@ public class PrimerRoundCovariate implements Covariate {
     }
 
     public final int estimatedNumberOfBins() {
-        return 5;
+        return 100;
     }
 
     public String toString() {
-        return "Primer Round";
+        return "Position in Read";
     }
 }

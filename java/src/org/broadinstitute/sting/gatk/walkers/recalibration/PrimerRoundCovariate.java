@@ -1,4 +1,6 @@
-package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
+package org.broadinstitute.sting.gatk.walkers.recalibration;
+
+import org.broadinstitute.sting.utils.StingException;
 
 import net.sf.samtools.SAMRecord;
 
@@ -30,47 +32,36 @@ import net.sf.samtools.SAMRecord;
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
- * Date: Nov 4, 2009
+ * Date: Nov 13, 2009
  *
- * The Minimum Neighborhood Quality Score covariate, originally described by Chris Hartl.
- * This covariate is the minimum base quality score in the read in a small window around the current base.
+ * The Primer Round covariate.
+ *  For Solexa and 454 this is the same value of the length of the read.
+ *  For SOLiD this is different for each position according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf  
  */
 
-public class MinimumNQSCovariate implements Covariate {
+public class PrimerRoundCovariate implements Covariate {
 
-    private int windowReach; // how far in each direction from the current base to look
-
-    public MinimumNQSCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
-        windowReach = 1; // window size = 3 was the best covariate according to Chris's analysis
-    }
-
-    public MinimumNQSCovariate(final int windowSize) {
-        windowReach = windowSize / 2; // integer division
+	public PrimerRoundCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }
 
     public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
-    	
-    	// Loop over the list of base quality scores in the window and find the minimum
-        int minQual = readDatum.quals[offset];
-        int minIndex = Math.max(offset - windowReach, 0);
-        int maxIndex = Math.min(offset + windowReach, readDatum.quals.length - 1);
-        for ( int iii = minIndex; iii < maxIndex; iii++ ) {
-            if( readDatum.quals[iii] < minQual ) {
-                minQual = readDatum.quals[iii];
-            }
+        if( readDatum.platform.equalsIgnoreCase( "SOLID" ) ) {
+	        return offset % 5; // the primer round according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
+        } else {
+            return 1; // nothing to do here because it is always the same
         }
-        return minQual;
+
     }
-    
+
     public final Comparable getValue( final String str ) {
         return (int)Integer.parseInt( str ); // cast to primitive int (as opposed to Integer Object) is required so that the return value from the two getValue methods hash to same thing
     }
 
     public final int estimatedNumberOfBins() {
-        return 40;
+        return 5;
     }
 
     public String toString() {
-        return "Minimum Neighborhood Quality Score";
+        return "Primer Round";
     }
 }

@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.Recalibration;
+package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import net.sf.samtools.SAMRecord;
 
@@ -30,15 +30,30 @@ import net.sf.samtools.SAMRecord;
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
- * Date: Oct 30, 2009
+ * Date: Nov 3, 2009
  *
- * The Covariate interface. A Covariate is a feature used in the recalibration that can be picked out of the read, offset, and corresponding reference bases
- * In general most error checking and adjustments to the data are done before the call to the covariates getValue methods in order to speed up the code.
- * This unfortunately muddies the code, but most of these corrections can be done per read while the covariates get called per base, resulting in a big speed up.
+ * The Reported Quality Score covariate.
  */
 
-public interface Covariate {
-    public Comparable getValue(ReadHashDatum readDatum, int offset); // used to pick out the value from attributes of the read
-	public Comparable getValue(String str); // used to get value from input file
-    public int estimatedNumberOfBins(); // used to estimate the amount space required for the HashMap
+public class QualityScoreCovariate implements Covariate {
+
+    public QualityScoreCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
+    }
+
+    public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
+    	
+    	return (int)(readDatum.quals[offset]);
+    }
+    
+    public final Comparable getValue( final String str ) {
+        return (int)Integer.parseInt( str ); // cast to primitive int (as opposed to Integer Object) is required so that the return value from the two getValue methods hash to same thing
+    }
+
+    public final int estimatedNumberOfBins() {
+        return 40;
+    }
+    
+    public String toString() {
+        return "Reported Quality Score";
+    }
 }
