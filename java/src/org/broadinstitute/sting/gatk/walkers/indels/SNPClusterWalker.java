@@ -23,7 +23,7 @@ public class SNPClusterWalker extends RefWalker<GenomeLoc, GenomeLoc> {
 
     public GenomeLoc map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         Variation snp = (Variation)tracker.lookup("snps", null);
-        return (snp != null && snp.isSNP()) ? context.getLocation() : null;
+        return (snp != null && snp.isBiallelic() && snp.isSNP()) ? context.getLocation() : null;
     }
 
     public void onTraversalDone(GenomeLoc sum) {
