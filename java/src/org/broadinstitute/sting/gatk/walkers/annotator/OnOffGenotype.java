@@ -103,7 +103,13 @@ public class OnOffGenotype implements VariantAnnotation {
 
             double[] posteriors = ((PosteriorsBacked)g).getPosteriors();
             posteriors = MathUtils.normalizeFromLog10(posteriors);
-            weights.add(posteriors[bestGenotype.ordinal()]);
+            double weight = posteriors[bestGenotype.ordinal()];
+
+            // sanity check
+            if ( MathUtils.compareDoubles(weight, 0.0) == 0 )
+                continue;
+
+            weights.add(weight);
             onOffBalances.add((double)onCount / (double)totalCount);
         }
 

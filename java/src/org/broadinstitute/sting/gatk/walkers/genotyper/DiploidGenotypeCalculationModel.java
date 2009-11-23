@@ -12,6 +12,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
     // the GenotypeLikelihoods map
     private HashMap<String, GenotypeLikelihoods> GLs = new HashMap<String, GenotypeLikelihoods>();
+    private HashMap<Character, AlleleFrequencyMatrix> AFMatrixMap = new HashMap<Character, AlleleFrequencyMatrix>();
 
     private enum GenotypeType { REF, HET, HOM }
 
@@ -26,10 +27,18 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
     protected void initialize(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
         // initialize the GenotypeLikelihoods
         GLs.clear();
+        AFMatrixMap.clear();
+
+        // for each alternate allele, create a new matrix
+        for ( char alt : BaseUtils.BASES ) {
+            if ( alt != ref )
+                AFMatrixMap.put(alt, new AlleleFrequencyMatrix(contexts.size()));
+        }
 
         // use flat priors for GLs
         DiploidGenotypePriors priors = new DiploidGenotypePriors();
 
+        int index = 0;
         for ( String sample : contexts.keySet() ) {
             AlignmentContextBySample context = contexts.get(sample);
             ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getContext(contextType));
@@ -38,34 +47,33 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             GenotypeLikelihoods GL = new GenotypeLikelihoods(baseModel, priors, defaultPlatform);
             GL.add(pileup, true);
             GLs.put(sample, GL);
+
+            double[] posteriors = GL.getPosteriors();
+
+            // for each alternate allele, fill the matrix
+            for ( char alt : BaseUtils.BASES ) {
+                if ( alt != ref ) {
+                    DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
+                    DiploidGenotype hetGenotype = ref < alt ? DiploidGenotype.valueOf(String.valueOf(ref) + String.valueOf(alt)) : DiploidGenotype.valueOf(String.valueOf(alt) + String.valueOf(ref));
+                    DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
+                    AFMatrixMap.get(alt).setLikelihoods(posteriors[refGenotype.ordinal()], posteriors[hetGenotype.ordinal()], posteriors[homGenotype.ordinal()], index);
+                }
+            }
+            index++;
         }
     }
 
     protected double computeLog10PofDgivenAFi(char ref, char alt, double f, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
-        DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
-        DiploidGenotype hetGenotype = ref < alt ? DiploidGenotype.valueOf(String.valueOf(ref) + String.valueOf(alt)) : DiploidGenotype.valueOf(String.valueOf(alt) + String.valueOf(ref));
-        DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
 
-        double PofDgivenAFi = 0.0;
+        // *** note that this code assumes that allele frequencies are passed in IN ORDER from 0 to 2N
 
-        // for each sample
-        for ( GenotypeLikelihoods GL : GLs.values() ) {
+        AlleleFrequencyMatrix matrix = AFMatrixMap.get(alt);
 
-            double[] posteriors = GL.getPosteriors();
-
-            double[] allelePosteriors = new double[] { posteriors[refGenotype.ordinal()], posteriors[hetGenotype.ordinal()], posteriors[homGenotype.ordinal()] };
-            allelePosteriors = MathUtils.normalizeFromLog10(allelePosteriors);
-
-            // calculate the posterior weighted frequencies
-            double[] HWvalues = getHardyWeinbergValues(f);
-            double samplePofDgivenAFi = 0.0;
-            samplePofDgivenAFi += HWvalues[GenotypeType.REF.ordinal()] * allelePosteriors[GenotypeType.REF.ordinal()];
-            samplePofDgivenAFi += HWvalues[GenotypeType.HET.ordinal()] * allelePosteriors[GenotypeType.HET.ordinal()];
-            samplePofDgivenAFi += HWvalues[GenotypeType.HOM.ordinal()] * allelePosteriors[GenotypeType.HOM.ordinal()];
-            PofDgivenAFi += Math.log10(samplePofDgivenAFi);
-        }
-
-        return PofDgivenAFi;
+        // for any frequency other than zero, calculate the next greedy entry
+        if ( MathUtils.compareDoubles(f, 0.0) != 0 )
+            matrix.incrementFrequency();
+                
+        return matrix.getLikelihoodsOfFrequency();
     }
 
     protected List<Genotype> makeGenotypeCalls(char ref, char alt, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {
@@ -97,5 +105,83 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         }
 
         return calls;
+    }
+
+    protected class AlleleFrequencyMatrix {
+
+        private double[][] matrix;
+        private int[] indexes;
+        private int N;
+        private int frequency;
+
+        public AlleleFrequencyMatrix(int N) {
+            this.N = N;
+            frequency = 0;
+            matrix = new double[N][3];
+            indexes = new int[N];
+            for (int i = 0; i < N; i++)
+                indexes[i] = 0;
+        }
+
+        public void setLikelihoods(double AA, double AB, double BB, int index) {
+            matrix[index][GenotypeType.REF.ordinal()] = AA;
+            matrix[index][GenotypeType.HET.ordinal()] = AB;
+            matrix[index][GenotypeType.HOM.ordinal()] = BB;
+        }
+
+        public void incrementFrequency() {
+            if ( frequency == 2 * N )
+                throw new StingException("Frequency was incremented past N; how is this possible?");
+            frequency++;
+
+            double greedy = -1.0 * Double.MAX_VALUE;
+            int greedyIndex = -1;
+            for (int i = 0; i < N; i++) {
+
+                if ( indexes[i] == GenotypeType.HET.ordinal() ) {
+                    if ( matrix[i][GenotypeType.HOM.ordinal()] - matrix[i][GenotypeType.HET.ordinal()] > greedy ) {
+                        greedy = matrix[i][GenotypeType.HOM.ordinal()] - matrix[i][GenotypeType.HET.ordinal()];
+                        greedyIndex = i;
+                    }
+                }
+                else if ( indexes[i] == GenotypeType.REF.ordinal() ) {
+                    if ( matrix[i][GenotypeType.HET.ordinal()] - matrix[i][GenotypeType.REF.ordinal()] > greedy ) {
+                        greedy = matrix[i][GenotypeType.HET.ordinal()] - matrix[i][GenotypeType.REF.ordinal()];
+                        greedyIndex = i;
+                    }
+                    // note that we currently don't bother with breaking ties between samples
+                    // (which would be done by looking at the HOM_VAR value) because it's highly
+                    // unlikely that a collision will both occur and that the difference will
+                    // be significant at HOM_VAR...
+                }
+                // if this person is already hom var, he can't add another alternate allele
+                // so we can ignore that case
+            }
+            if ( greedyIndex == -1 )
+                throw new StingException("There is no best choice for a new alternate allele; how is this possible?");
+
+            if ( indexes[greedyIndex] == GenotypeType.HET.ordinal() )
+                indexes[greedyIndex] = GenotypeType.HOM.ordinal();
+            else
+                indexes[greedyIndex] = GenotypeType.HET.ordinal();
+        }
+
+        public double getLikelihoodsOfFrequency() {
+            double likelihoods = 0.0;
+            for (int i = 0; i < N; i++)
+                likelihoods += matrix[i][indexes[i]];
+
+            //verboseWriter.write(frequency + "\n");
+            //for (int i = 0; i < N; i++) {
+            //    for (int j=0; j < 3; j++) {
+            //        verboseWriter.write(String.valueOf(matrix[i][j]));
+            //        verboseWriter.write(indexes[i] == j ? "* " : " ");
+            //    }
+            //    verboseWriter.write("\n");
+            //}
+            //verboseWriter.write(likelihoods + "\n\n");
+
+            return likelihoods;
+        }
     }
 }
