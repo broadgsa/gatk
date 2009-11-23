@@ -60,8 +60,8 @@ public class VCFWriter {
             if (header.hasGenotypingData()) {
                 b.append("FORMAT" + FIELD_SEPERATOR);
                 for (String field : header.getGenotypeSamples()) b.append(field + FIELD_SEPERATOR);
-                mWriter.write(b.toString() + "\n");
             }
+            mWriter.write(b.toString() + "\n");
         }
         catch (IOException e) {
             throw new RuntimeException("IOException writing the VCF header", e);
