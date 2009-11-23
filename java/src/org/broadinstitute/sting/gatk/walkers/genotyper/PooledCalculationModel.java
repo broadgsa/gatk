@@ -72,17 +72,13 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
         return contexts;
     }
 
-    protected double computeLog10PofDgivenAFi(char refArg, char altArg, double f, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
+    protected void calculatelog10PofDgivenAFforAllF(char ref, char alt, int nChromosomes, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
+
         AlignmentContextBySample context = contexts.get(POOL_SAMPLE_NAME);
-        ReadBackedPileup pileup = new ReadBackedPileup(refArg, context.getContext(contextType));
+        ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getContext(contextType));
 
-        double log10L = 0.0;
-
-        int refIndex = BaseUtils.simpleBaseToBaseIndex(refArg);
-        int altIndex = BaseUtils.simpleBaseToBaseIndex(altArg);
-
-        int nChromosomes = 2 * getNSamples(contexts);
-        int nAltAlleles = (int)(f * nChromosomes);
+        int refIndex = BaseUtils.simpleBaseToBaseIndex(ref);
+        int altIndex = BaseUtils.simpleBaseToBaseIndex(alt);
 
         for (int i = 0; i < pileup.getReads().size(); i++) {
             int offset = pileup.getOffsets().get(i);
@@ -97,11 +93,12 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
             byte qual = read.getBaseQualities()[offset];
 
             if ( qual > 0 && bIndex != -1 ) {
-                log10L += calcPBGivenH(refIndex, altIndex, nAltAlleles, nChromosomes, base, qual, read, offset);
+
+                // for each minor allele frequency, calculate log10PofDgivenAFi
+                for (int frequency = 0; frequency <= nChromosomes; frequency++)
+                    log10PofDgivenAFi[altIndex][frequency] += calcPBGivenH(refIndex, altIndex, frequency, nChromosomes, base, qual, read, offset);
             }
         }
-
-        return log10L;
     }
 
     // cache = BMM x PL x REF x ALT x base x QUAL x strand x F as i

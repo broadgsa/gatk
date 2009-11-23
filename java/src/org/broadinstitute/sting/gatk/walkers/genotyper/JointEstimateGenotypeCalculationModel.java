@@ -28,15 +28,6 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     protected double[] PofFs = new double[BaseUtils.BASES.length];
 
 
-    // The abstract methods which need to be implemented:
-    // 1. How many samples are being evaluated?
-    protected abstract int getNSamples(HashMap<String, AlignmentContextBySample> contexts);
-    // 2. Create stratified contexts from the original alignment context
-    protected abstract HashMap<String, AlignmentContextBySample> createContexts(AlignmentContext context);
-    // 3. The likelihoods calculation underlying this whole model
-    protected abstract double computeLog10PofDgivenAFi(char ref, char alt, double f, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType);
-
-
     protected JointEstimateGenotypeCalculationModel() {}
 
     public Pair<List<Genotype>, GenotypeLocusData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
@@ -61,6 +52,14 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         return createCalls(tracker, ref, contexts, context.getLocation(), frequencyEstimationPoints);
    }
+
+    protected HashMap<String, AlignmentContextBySample> createContexts(AlignmentContext context) {
+        return splitContextBySample(context);
+    }
+
+    protected int getNSamples(HashMap<String, AlignmentContextBySample> contexts) {
+        return contexts.size();
+    }
 
     protected void initializeVerboseWriter(PrintWriter verboseWriter) {
         StringBuilder header = new StringBuilder("AFINFO\tLOC\tMAF\tF\tNullAFpriors\t");
@@ -128,16 +127,52 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             if ( altAllele == ref )
                 continue;
 
-            int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
-
-            // for each minor allele frequency
-            for (int i = 0; i < frequencyEstimationPoints; i++) {
-                double f = (double)i / (double)(frequencyEstimationPoints-1);
-                log10PofDgivenAFi[baseIndex][i] += computeLog10PofDgivenAFi(ref, altAllele, f, contexts, contextType);
-            }
+            calculatelog10PofDgivenAFforAllF(ref, altAllele, frequencyEstimationPoints-1, contexts, contextType);
         }
     }
 
+    /********************************************************************************/
+    /*** One or both of the following methods should be overloaded in subclasses  ***/
+    /***    so that the correct calculation is made for PofDgivenAFi              ***/
+    /********************************************************************************/
+
+    /**
+     * @param ref              the ref base
+     * @param alt              the alt base
+     * @param numFrequencies   total number of allele frequencies (2N)
+     * @param contexts         stratified alignment contexts
+     * @param contextType      which stratification to use
+     */
+    protected void calculatelog10PofDgivenAFforAllF(char ref, char alt, int numFrequencies, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
+        int baseIndex = BaseUtils.simpleBaseToBaseIndex(alt);
+
+        // for each minor allele frequency, calculate log10PofDgivenAFi
+        for (int i = 0; i <= numFrequencies; i++) {
+            double f = (double)i / (double)(numFrequencies);
+            log10PofDgivenAFi[baseIndex][i] += calculateLog10PofDgivenAFforF(ref, alt, f, contexts, contextType);
+        }
+    }
+
+    /**
+     * @param ref              the ref base
+     * @param alt              the alt base
+     * @param f                the allele frequency
+     * @param contexts         stratified alignment contexts
+     * @param contextType      which stratification to use
+     *
+     * @return value of PofDgivenAF for allele frequency f
+     */
+    protected double calculateLog10PofDgivenAFforF(char ref, char alt, double f, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
+        return 0.0;
+    }
+
+    /********************************************************************************/
+
+
+    /**
+     * @param ref                         the ref base
+     * @param frequencyEstimationPoints   number of allele frequencies
+     */
     protected void calculatePofFs(char ref, int frequencyEstimationPoints) {
         // for each alternate allele
         for ( char altAllele : BaseUtils.BASES ) {

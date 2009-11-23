@@ -61,30 +61,43 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     // --------------------------------------------------------------------------------------------------------------
     //
+    // testing pooled model
+    //
+    // --------------------------------------------------------------------------------------------------------------
+    @Test
+    public void testPooled1() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,023,000-10,024,000 -bm empirical -gm POOLED -ps 60 -confidence 30", 1,
+                Arrays.asList("80fcd214108b4f4145ae585e5f119460"));
+        executeTest("testPooled1", spec);
+    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
     // testing joint estimation model
     //
     // --------------------------------------------------------------------------------------------------------------
     @Test
     public void testMultiSamplePilot1Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,023,400-10,024,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("aa4a5c8ae775f8e3484d50424900370e"));
+                "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/low_coverage_CEU.chr1.10k-11k.bam -varout %s -L 1:10,022,000-10,025,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30", 1,
+                Arrays.asList("e1a206a49982f7db5c3f4b65aa910b3a"));
         executeTest("testMultiSamplePilot1 - Joint Estimate", spec);
     }
 
     @Test
     public void testMultiSamplePilot2Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/pilot2_daughters.chr20.10k-11k.bam -varout %s -L 20:10,000,000-10,010,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("c262ec6b341c854a24d082cee2c8e318"));
+                "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/pilot2_daughters.chr20.10k-11k.bam -varout %s -L 20:10,000,000-10,050,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30", 1,
+                Arrays.asList("cec6081d89ada9b2924fe38c7a021921"));
         executeTest("testMultiSamplePilot2 - Joint Estimate", spec);
     }
 
     @Test
     public void testSingleSamplePilot2Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,067,000-10,083,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30", 1,
-                Arrays.asList("368217e47a34bce2dac89a9786675104"));
+                "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,100,000 -bm empirical -gm JOINT_ESTIMATE -confidence 30", 1,
+                Arrays.asList("0cd57b2b6272202db0eca45376fdb01d"));
         executeTest("testSingleSamplePilot2 - Joint Estimate", spec);
     }
 

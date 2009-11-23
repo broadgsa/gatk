@@ -16,14 +16,6 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
     private enum GenotypeType { REF, HET, HOM }
 
-    protected HashMap<String, AlignmentContextBySample> createContexts(AlignmentContext context) {
-        return splitContextBySample(context);
-    }
-
-    protected int getNSamples(HashMap<String, AlignmentContextBySample> contexts) {
-        return contexts.size();
-    }
-
     protected void initialize(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
         // initialize the GenotypeLikelihoods
         GLs.clear();
@@ -63,17 +55,22 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         }
     }
 
-    protected double computeLog10PofDgivenAFi(char ref, char alt, double f, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
-
-        // *** note that this code assumes that allele frequencies are passed in IN ORDER from 0 to 2N
+    protected void calculatelog10PofDgivenAFforAllF(char ref, char alt, int numFrequencies, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
 
         AlleleFrequencyMatrix matrix = AFMatrixMap.get(alt);
+        int baseIndex = BaseUtils.simpleBaseToBaseIndex(alt);
 
-        // for any frequency other than zero, calculate the next greedy entry
-        if ( MathUtils.compareDoubles(f, 0.0) != 0 )
+        // first, calculate for AF=0 (no change to matrix)
+        log10PofDgivenAFi[baseIndex][0] = matrix.getLikelihoodsOfFrequency();
+
+        // for each minor allele frequency, calculate log10PofDgivenAFi
+        for (int i = 1; i <= numFrequencies; i++) {
+            // add one more alternatr allele
             matrix.incrementFrequency();
-                
-        return matrix.getLikelihoodsOfFrequency();
+
+            // calculate new likelihoods
+            log10PofDgivenAFi[baseIndex][i] = matrix.getLikelihoodsOfFrequency();
+        }
     }
 
     protected List<Genotype> makeGenotypeCalls(char ref, char alt, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {
