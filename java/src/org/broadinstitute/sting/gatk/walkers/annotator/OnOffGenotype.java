@@ -97,6 +97,10 @@ public class OnOffGenotype implements VariantAnnotation {
             for (int i = 0; i < counts.length; i++)
                 totalCount += counts[i];
 
+            // sanity check
+            if ( totalCount == 0 )
+                continue;
+
             double[] posteriors = ((PosteriorsBacked)g).getPosteriors();
             posteriors = MathUtils.normalizeFromLog10(posteriors);
             weights.add(posteriors[bestGenotype.ordinal()]);

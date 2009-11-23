@@ -93,6 +93,10 @@ public class AlleleBalance implements VariantAnnotation {
             int refCount = counts[BaseUtils.simpleBaseToBaseIndex(ref)];
             int altCount = counts[BaseUtils.simpleBaseToBaseIndex(altBase)];
 
+            // sanity check
+            if ( refCount + altCount == 0 )
+                continue;
+
             double[] posteriors = ((PosteriorsBacked)g).getPosteriors();
             posteriors = MathUtils.normalizeFromLog10(posteriors);
             weights.add(posteriors[bestGenotype.ordinal()]);
