@@ -89,6 +89,6 @@ public class CycleCovariate implements Covariate {
     }
 
     public String toString() {
-        return "Cycle";
+        return "Machine Cycle";
     }
 }
