@@ -84,7 +84,4 @@ public class UnifiedArgumentCollection {
 
     @Argument(fullName = "min_allele_frequency", shortName = "min_freq", doc = "The minimum possible allele frequency in a population (advanced)", required = false)
     public double MINIMUM_ALLELE_FREQUENCY = 1e-8;
-
-    @Argument(fullName = "allele_frequency_range", shortName = "freq_range", doc = "The range/fraction to emit of the total probability over all frequencies (in JOINT_ESTIMATION model only)", required = false)
-    public double ALLELE_FREQUENCY_RANGE = 0.95;
 }

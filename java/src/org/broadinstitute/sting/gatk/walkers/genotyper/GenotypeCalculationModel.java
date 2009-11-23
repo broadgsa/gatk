@@ -38,7 +38,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected int POOL_SIZE;
     protected double CONFIDENCE_THRESHOLD;
     protected double MINIMUM_ALLELE_FREQUENCY;
-    protected double ALLELE_FREQUENCY_RANGE;
     protected boolean REPORT_SLOD;
     protected int maxDeletionsInPileup;
     protected String assumedSingleSample;
@@ -71,9 +70,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         POOL_SIZE = UAC.POOLSIZE;
         CONFIDENCE_THRESHOLD = UAC.CONFIDENCE_THRESHOLD;
         MINIMUM_ALLELE_FREQUENCY = UAC.MINIMUM_ALLELE_FREQUENCY;
-        ALLELE_FREQUENCY_RANGE = UAC.ALLELE_FREQUENCY_RANGE;
-        if ( ALLELE_FREQUENCY_RANGE < 0.0 || ALLELE_FREQUENCY_RANGE > 1.0 )
-            throw new StingException("Allele frequency fraction must be a value between 0.0 and 1.0");
         maxDeletionsInPileup = UAC.MAX_DELETIONS;
         assumedSingleSample = UAC.ASSUME_SINGLE_SAMPLE;
         if ( UAC.VERBOSE != null ) {

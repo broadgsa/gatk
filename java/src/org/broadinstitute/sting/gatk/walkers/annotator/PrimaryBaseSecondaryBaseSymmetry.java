@@ -71,7 +71,11 @@ public class PrimaryBaseSecondaryBaseSymmetry implements VariantAnnotation{
             return null;
         }
 
-        char[] secondaryPileup = p.getSecondaryBasePileup().toCharArray();
+        String secondaryPileupStr = p.getSecondaryBasePileup();
+        if ( secondaryPileupStr == null )
+            return null;
+
+        char[] secondaryPileup = secondaryPileupStr.toCharArray();
         int depth = p.size();
 
         int support = 0;

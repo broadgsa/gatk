@@ -21,9 +21,8 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
     // the strand score lod
     private double mSLOD = 0.0;
 
-    // the allele frequency fields
+    // the allele frequency field
     private double mAlleleFrequency = 0.0;
-    private AlleleFrequencyRange mAFrange = null;
 
     // the location
     private GenomeLoc mLoc;
@@ -131,23 +130,6 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
      */
     public void setAlleleFrequency(double frequency) {
         mAlleleFrequency = frequency;
-    }
-
-    /**
-     * get the allele frequency range
-     *
-     * @return the allele frequency range
-     */
-    public AlleleFrequencyRange getAlleleFrequencyRange() {
-        return mAFrange;
-    }
-
-    /**
-     *
-     * @param   range    the allele frequency range for this genotype
-     */
-    public void setAlleleFrequencyRange(AlleleFrequencyRange range) {
-        mAFrange = range;
     }
 
     /**

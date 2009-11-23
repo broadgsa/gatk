@@ -261,11 +261,6 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             }
             if ( locusdata instanceof AlleleFrequencyBacked ) {
                 ((AlleleFrequencyBacked)locusdata).setAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
-                // frequenc range doesn't make sense for single samples
-                if ( getNSamples(contexts) > 1 ) {
-                    AlleleFrequencyBacked.AlleleFrequencyRange range = computeAFrange(alleleFrequencyPosteriors[indexOfMax], frequencyEstimationPoints-1, bestAFguess, ALLELE_FREQUENCY_RANGE);
-                    ((AlleleFrequencyBacked)locusdata).setAlleleFrequencyRange(range);
-                }
             }
             if ( locusdata instanceof IDBacked ) {
                 rodDbSNP dbsnp = getDbSNP(tracker);
@@ -307,34 +302,5 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         }
 
         return new Pair<List<Genotype>, GenotypeLocusData>(calls, locusdata);
-    }
-
-    // computes the range of allele frequencies making up the given fraction of the total probability
-    private static AlleleFrequencyBacked.AlleleFrequencyRange computeAFrange(double[] alleleFrequencyProbs, int N, int bestAFguess, double fraction) {
-        double totalProb = alleleFrequencyProbs[bestAFguess];
-        int lowIndex = bestAFguess;
-        int highIndex = bestAFguess;
-
-        // it's possible that AF=0 contains more probability than 1-fraction
-        if ( alleleFrequencyProbs[0] >= (1.0 - fraction) ) {
-            // in this case, the range is all possible AFs
-            lowIndex = 1;
-            highIndex = N;
-        }
-        // otherwise, find the range moving out from the best AF guess
-        else {
-            while ( totalProb < fraction ) {
-                if ( lowIndex > 1 ) {
-                    lowIndex--;
-                    totalProb += alleleFrequencyProbs[lowIndex];
-                }
-                if ( highIndex < N ) {
-                    highIndex++;
-                    totalProb += alleleFrequencyProbs[highIndex];
-                }
-            }
-        }
-
-        return new AlleleFrequencyBacked.AlleleFrequencyRange((double)lowIndex / (double)N, (double)highIndex / (double)N, fraction);
     }
 }
