@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import net.sf.samtools.SAMRecord;
-
 /*
  * Copyright (c) 2009 The Broad Institute
  *

@@ -1,9 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
-
-import net.sf.samtools.SAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
