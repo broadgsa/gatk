@@ -187,7 +187,8 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     private static Map<String, String> getInfoFields(VCFGenotypeLocusData locusdata, VCFParameters params) {
         Map<String, String> infoFields = new HashMap<String, String>();
         if ( locusdata != null ) {
-            infoFields.put("SB", String.format("%.2f", locusdata.getSLOD()));
+            if ( locusdata.getSLOD() != null )
+                infoFields.put("SB", String.format("%.2f", locusdata.getSLOD()));
             infoFields.put("AF", String.format("%.2f", locusdata.getAlleleFrequency()));
             Map<String, String> otherFields = locusdata.getFields();
             if ( otherFields != null ) {

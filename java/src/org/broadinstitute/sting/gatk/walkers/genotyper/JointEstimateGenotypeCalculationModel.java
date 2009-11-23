@@ -63,7 +63,6 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
    }
 
     protected void initializeVerboseWriter(PrintWriter verboseWriter) {
-        // by default, no initialization is done
         StringBuilder header = new StringBuilder("AFINFO\tLOC\tMAF\tF\tNullAFpriors\t");
         for ( char altAllele : BaseUtils.BASES ) {
             char base = Character.toLowerCase(altAllele);
@@ -229,7 +228,8 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         for ( char altAllele : BaseUtils.BASES ) {
             if ( altAllele != ref ) {
                 int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
-                if ( PofFs[baseIndex] > maxConfidence ) {
+                if ( PofFs[baseIndex] > maxConfidence ||
+                     (MathUtils.compareDoubles(PofFs[baseIndex], maxConfidence) == 0 && log10PofDgivenAFi[baseIndex][0] < log10PofDgivenAFi[indexOfMax][0]) ) {
                     indexOfMax = baseIndex;
                     baseOfMax = altAllele;
                     maxConfidence = PofFs[baseIndex];
@@ -273,31 +273,38 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
                 double overallLog10PofF = Math.log10(PofFs[indexOfMax]);
                 double lod = overallLog10PofF - overallLog10PofNull;
 
-                // the forward lod
-                initialize(ref, contexts, StratifiedContext.FORWARD);
-                calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedContext.FORWARD);
-                calculatePofFs(ref, frequencyEstimationPoints);
-                double forwardLog10PofNull = Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
-                double forwardLog10PofF = Math.log10(PofFs[indexOfMax]);
+                // I'm not sure what to do when the numbers are so small as to make the lod infinite.
+                // For now, we'll just not compute strand bias...
+                if ( !Double.isInfinite(lod) ) {
 
-                // the reverse lod
-                initialize(ref, contexts, StratifiedContext.REVERSE);
-                calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedContext.REVERSE);
-                calculatePofFs(ref, frequencyEstimationPoints);
-                double reverseLog10PofNull = Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
-                double reverseLog10PofF = Math.log10(PofFs[indexOfMax]);
+                    // the forward lod
+                    initialize(ref, contexts, StratifiedContext.FORWARD);
+                    calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedContext.FORWARD);
+                    calculatePofFs(ref, frequencyEstimationPoints);
+                    double forwardLog10PofNull = Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
+                    double forwardLog10PofF = Math.log10(PofFs[indexOfMax]);
+                    if ( Double.isInfinite(lod) )
+                        lod = -1.0 * log10PofDgivenAFi[indexOfMax][0];
 
-                double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofNull;
-                double reverseLod = reverseLog10PofF + forwardLog10PofNull - overallLog10PofNull;
-                //logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
+                    // the reverse lod
+                    initialize(ref, contexts, StratifiedContext.REVERSE);
+                    calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedContext.REVERSE);
+                    calculatePofFs(ref, frequencyEstimationPoints);
+                    double reverseLog10PofNull = Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
+                    double reverseLog10PofF = Math.log10(PofFs[indexOfMax]);
 
-                // strand score is max bias between forward and reverse strands
-                double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
-                // rescale by a factor of 10
-                strandScore *= 10.0;
-                //logger.debug(String.format("SLOD=%f", strandScore));
+                    double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofNull;
+                    double reverseLod = reverseLog10PofF + forwardLog10PofNull - overallLog10PofNull;
+                    //logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
 
-                ((SLODBacked)locusdata).setSLOD(strandScore);
+                    // strand score is max bias between forward and reverse strands
+                    double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
+                    // rescale by a factor of 10
+                    strandScore *= 10.0;
+                    //logger.debug(String.format("SLOD=%f", strandScore));
+
+                    ((SLODBacked)locusdata).setSLOD(strandScore);
+                }
             }
         }
 

@@ -11,9 +11,9 @@ public interface SLODBacked {
 
     /**
      *
-     * @return returns the strand lod for this genotype
+     * @return returns the strand lod for this genotype or null if not set
      */
-    public double getSLOD();
+    public Double getSLOD();
 
     /**
      *

@@ -19,7 +19,7 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
     private double mConfidence = 0.0;
 
     // the strand score lod
-    private double mSLOD = 0.0;
+    private Double mSLOD = null;
 
     // the allele frequency field
     private double mAlleleFrequency = 0.0;
@@ -103,7 +103,7 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
      *
      * @return the strand lod
      */
-    public double getSLOD() {
+    public Double getSLOD() {
         return mSLOD;
     }
 
