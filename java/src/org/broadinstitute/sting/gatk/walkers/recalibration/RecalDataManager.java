@@ -168,6 +168,9 @@ public class RecalDataManager {
         dataSumExpectedErrors.clear();
         dataCollapsedReadGroup.clear();
         dataCollapsedQualityScore.clear();
+        for( int iii = 0; iii < numCovariates - 2; iii++ ) {
+            dataCollapsedByCovariate.get(iii).clear();
+        }
         dataCollapsedByCovariate.clear();
         dataSumExpectedErrors = null; // Will never need this table again
         dataCollapsedReadGroup = null; // Will never need this table again

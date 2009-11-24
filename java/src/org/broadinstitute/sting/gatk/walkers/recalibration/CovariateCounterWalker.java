@@ -110,7 +110,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private final String versionNumber = "2.0.4"; // Major version, minor version, and build number
+    private final String versionString = "v2.0.4"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -130,7 +130,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      */
     public void initialize() {
 
-        logger.info( "CovariateCounterWalker version: " + versionNumber );
+        logger.info( "CovariateCounterWalker version: " + versionString );
 
         // Get a list of all available covariates
         final List<Class<? extends Covariate>> classes = PackageUtils.getClassesImplementingInterface( Covariate.class );
@@ -312,7 +312,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                             throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
                         }
                     }
-                    bases = read.getReadBases(); // BUGBUG: DinucCovariate is relying on this method returning the same byte for bases 'a' and 'A'. Is this true?
+                    bases = read.getReadBases(); // BUGBUG: DinucCovariate is relying on this method returning the same byte for bases 'a' and 'A'.
                     isNegStrand = read.getReadNegativeStrandFlag();
                     final SAMReadGroupRecord readGroup = read.getReadGroup();
                     if( readGroup == null ) {

@@ -66,6 +66,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                                 ( bam.equals( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
                                     ? " -L 1:10,800,000-10,810,000" : " -L 1:10,100,000-10,300,000" ) +
                                 " -outputBam %s" +
+                                " --no_pg_tag" +
                                 " -recalFile " + paramsFile,
                         1, // just one output file
                         Arrays.asList(md5));
