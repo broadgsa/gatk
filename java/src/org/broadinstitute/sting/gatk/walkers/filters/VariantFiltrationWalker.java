@@ -119,7 +119,8 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             addFilter(filterString, "SnpCluster");
 
         if ( filterExpression != null ) {
-            Map<String, String> infoMap = context.second.mCurrentRecord.getInfoValues();
+            Map<String, String> infoMap = new HashMap<String, String>(context.second.mCurrentRecord.getInfoValues());
+            infoMap.put("QUAL", String.valueOf(context.second.mCurrentRecord.getQual()));
 
             JexlContext jContext = JexlHelper.createContext();
             jContext.setVars(infoMap);
