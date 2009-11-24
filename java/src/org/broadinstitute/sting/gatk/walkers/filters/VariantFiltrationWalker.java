@@ -177,8 +177,6 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             filter();
         }
 
-        out.printf("Processed %d loci.\n", result);
-
         if ( writer != null )
             writer.close();
     }

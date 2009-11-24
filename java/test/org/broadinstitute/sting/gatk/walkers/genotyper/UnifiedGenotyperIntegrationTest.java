@@ -101,6 +101,14 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         executeTest("testSingleSamplePilot2 - Joint Estimate", spec);
     }
 
+    @Test
+    public void testGLF() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -varout %s -L 1:10,000,000-10,050,000 -bm empirical -gm JOINT_ESTIMATE -confidence 10", 1,
+                Arrays.asList("c552f3adcad91ee5f3ce42c204026a68"));
+        executeTest("testGLF", spec);
+    }
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // testing calls with SLX, 454, and SOLID data
