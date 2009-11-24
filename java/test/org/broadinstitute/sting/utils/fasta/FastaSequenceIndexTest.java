@@ -19,17 +19,25 @@ import java.util.Iterator;
  * To change this template use File | Settings | File Templates.
  */
 public class FastaSequenceIndexTest extends BaseTest {
+    // our basic human 18 fai
     private static String sequenceIndexName = null;
     private FastaSequenceIndex sequenceIndex = null;
+
+    // a custom index that tests the colon, and semi-colon, and other random characters
+    private static String sequenceIndexColonSemiColonTestName = null;
+    private FastaSequenceIndex sequenceIndexColonSemiColonTest = null;
+
 
     @BeforeClass
     public static void initialize() {
         sequenceIndexName = seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta.fai";
+        sequenceIndexColonSemiColonTestName = "/humgen/gsa-scr1/GATK_Data/Validation_Data/testing.fai";
     }
 
     @Before
     public void doForEachTest() throws FileNotFoundException {
         sequenceIndex = new FastaSequenceIndex( new File(sequenceIndexName) );
+        sequenceIndexColonSemiColonTest = new FastaSequenceIndex( new File(sequenceIndexColonSemiColonTestName) );
     }
 
     @Test
@@ -188,5 +196,59 @@ public class FastaSequenceIndexTest extends BaseTest {
         Assert.assertEquals("Contig chr22_random is not present", "chr22_random", sequenceIndexEntries.next().getContig());
         Assert.assertEquals("Contig chrX_random is not present", "chrX_random", sequenceIndexEntries.next().getContig());
         Assert.assertFalse("Iterator still has more entries", sequenceIndexEntries.hasNext());
+    }
+
+    @Test
+    public void testSpecialCharacters() {
+        /* file contents:
+        chrM	16571	6	50	51
+        chr1;boat	247249719	16915	50	51
+        chr2:money	242951149	252211635	50	51
+        chr3::;	199501827	500021813	50	51
+        ;;;;;;  1234            1234            1234    1234
+        file:gi|17981852|ref|NC_001807.4|    16571   2911876801      70      71
+        */
+        Iterator<FastaSequenceIndexEntry> sequenceIndexEntries = sequenceIndexColonSemiColonTest.iterator();
+        FastaSequenceIndexEntry ent = sequenceIndexEntries.next();
+        Assert.assertEquals("Contig chrM is not present","chrM",ent.getContig());
+        Assert.assertEquals("Contig chrM size is not correct",16571,ent.getSize());
+        Assert.assertEquals("Contig chrM location is not correct",6,ent.getLocation());
+        Assert.assertEquals("Contig chrM bases per line is not correct",50,ent.getBasesPerLine());
+        Assert.assertEquals("Contig chrM bytes per line is not correct",51,ent.getBytesPerLine());
+
+        ent = sequenceIndexEntries.next();
+        Assert.assertEquals("Contig chr1;boat is not present","chr1;boat",ent.getContig());
+        Assert.assertEquals("Contig chr1;boat size is not correct",247249719,ent.getSize());
+        Assert.assertEquals("Contig chr1;boat location is not correct",16915,ent.getLocation());
+        Assert.assertEquals("Contig chr1;boat bases per line is not correct",50,ent.getBasesPerLine());
+        Assert.assertEquals("Contig chr1;boat bytes per line is not correct",51,ent.getBytesPerLine());
+
+        ent = sequenceIndexEntries.next();
+        Assert.assertEquals("Contig chr2:money is not present","chr2:money",ent.getContig());
+        Assert.assertEquals("Contig chr2:money size is not correct",242951149,ent.getSize());
+        Assert.assertEquals("Contig chr2:money location is not correct",252211635,ent.getLocation());
+        Assert.assertEquals("Contig chr2:money bases per line is not correct",50,ent.getBasesPerLine());
+        Assert.assertEquals("Contig chr2:money bytes per line is not correct",51,ent.getBytesPerLine());
+
+        ent = sequenceIndexEntries.next();
+        Assert.assertEquals("Contig chr3::; is not present","chr3::;",ent.getContig());
+        Assert.assertEquals("Contig chr3::; size is not correct",199501827,ent.getSize());
+        Assert.assertEquals("Contig chrM location is not correct",500021813,ent.getLocation());
+        Assert.assertEquals("Contig chr3::; bases per line is not correct",50,ent.getBasesPerLine());
+        Assert.assertEquals("Contig chr3::; bytes per line is not correct",51,ent.getBytesPerLine());
+
+        ent = sequenceIndexEntries.next();
+        Assert.assertEquals("Contig ;;;;;;;; is not present",";;;;;;;;",ent.getContig());
+        Assert.assertEquals("Contig ;;;;;;;; size is not correct",123,ent.getSize());
+        Assert.assertEquals("Contig ;;;;;;;; location is not correct",234,ent.getLocation());
+        Assert.assertEquals("Contig ;;;;;;;; bases per line is not correct",456,ent.getBasesPerLine());
+        Assert.assertEquals("Contig ;;;;;;;; bytes per line is not correct",789,ent.getBytesPerLine());
+
+        ent = sequenceIndexEntries.next();
+        Assert.assertEquals("Contig file:gi|17981852|ref|NC_001807.4| is not present","file:gi|17981852|ref|NC_001807.4|",ent.getContig());
+        Assert.assertEquals("Contig file:gi|17981852|ref|NC_001807.4| size is not correct",16571,ent.getSize());
+        Assert.assertEquals("Contig file:gi|17981852|ref|NC_001807.4| location is not correct",2911876801L,ent.getLocation());
+        Assert.assertEquals("Contig file:gi|17981852|ref|NC_001807.4| bases per line is not correct",70,ent.getBasesPerLine());
+        Assert.assertEquals("Contig file:gi|17981852|ref|NC_001807.4| bytes per line is not correct",71,ent.getBytesPerLine());
     }
 }

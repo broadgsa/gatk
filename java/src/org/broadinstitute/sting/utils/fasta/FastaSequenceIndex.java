@@ -47,8 +47,8 @@ public class FastaSequenceIndex implements Iterable {
         Scanner scanner = new Scanner(indexFile);
 
         while( scanner.hasNext() ) {
-            // Tokenize and validate the index line.
-            String result = scanner.findInLine("([\\w\\s\\.]+)\\t+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)");
+            // Tokenize and validate the index line.                     
+            String result = scanner.findInLine("(.+)\\t+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)");
             if( result == null )
                 throw new PicardException("Found invalid line in index file:" + scanner.nextLine());
             MatchResult tokens = scanner.match();
