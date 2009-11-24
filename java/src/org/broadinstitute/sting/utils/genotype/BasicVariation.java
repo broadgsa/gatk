@@ -65,7 +65,7 @@ public class BasicVariation implements Variation {
      */
     @Override
     public VARIANT_TYPE getType() {
-        if (mLength != 0) return VARIANT_TYPE.INDEL;
+        if (mLength != 0) return VARIANT_TYPE.INSERTION;
         return (isSNP()) ? VARIANT_TYPE.SNP : VARIANT_TYPE.REFERENCE;
     }
 

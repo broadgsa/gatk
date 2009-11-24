@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.*;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 import java.util.*;
 

@@ -263,7 +263,8 @@ public class RodGLF implements VariationRod, Iterator<RodGLF> {
     @Override
     public VARIANT_TYPE getType() {
         if (this.isSNP()) return VARIANT_TYPE.SNP;
-        else if (this.isInsertion() || this.isDeletion()) return VARIANT_TYPE.INDEL;
+        else if (this.isInsertion()) return VARIANT_TYPE.INSERTION;
+        else if (this.isDeletion()) return VARIANT_TYPE.DELETION;
         else return VARIANT_TYPE.REFERENCE;
     }
 

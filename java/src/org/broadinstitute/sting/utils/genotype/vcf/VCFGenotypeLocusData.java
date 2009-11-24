@@ -3,8 +3,7 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author ebanks
@@ -13,7 +12,7 @@ import java.util.Map;
  *         <p/>
  *         represents the meta data for a genotype object.
  */
-public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked, SLODBacked, IDBacked, AlternateAlleleBacked, AlleleFrequencyBacked, ArbitraryFieldsBacked {
+public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked, SLODBacked, IDBacked, ArbitraryFieldsBacked {
 
     // the discovery lod score
     private double mConfidence = 0.0;
@@ -29,7 +28,10 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
 
     // the ref base and alt bases
     private char mRefBase;
-    private char mAltBase = 'N';
+    private List<String> mAltBases = new ArrayList<String>();
+
+    // the variant type
+    private VARIANT_TYPE mType = VARIANT_TYPE.SNP;
 
     // the id
     private String mID;
@@ -42,18 +44,20 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
      *
      * @param ref       the reference base
      * @param loc       the locus
+     * @param type      the variant type
      */
-    public VCFGenotypeLocusData(char ref, GenomeLoc loc) {
+    public VCFGenotypeLocusData(char ref, GenomeLoc loc, VARIANT_TYPE type) {
         mRefBase = ref;
         mLoc = loc;
+        mType = type;
     }
 
     /**
       * get the reference base.
       * @return a character, representing the reference base
       */
-    public char getReference() {
-        return mRefBase;
+    public String getReference() {
+        return String.valueOf(mRefBase);
     }
 
     /**
@@ -65,20 +69,68 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
         return mLoc;
     }
 
-    /**
-     *
-     * @return returns the alternate allele for this genotype
-     */
-    public char getAlternateAllele() {
-        return mAltBase;
+    public boolean isBiallelic() {
+        return mAltBases.size() == 1;
     }
 
-    /**
-     *
-     * @param   alt    the alternate allele base for this genotype
-     */
-    public void setAlternateAllele(char alt) {
-        mAltBase = alt;
+    public boolean isSNP() {
+        return mType == VARIANT_TYPE.SNP;
+    }
+
+    public boolean isInsertion() {
+        return mType == VARIANT_TYPE.INSERTION;
+    }
+
+    public boolean isIndel() {
+        return mType == VARIANT_TYPE.INSERTION || mType == VARIANT_TYPE.DELETION;
+    }
+
+    public boolean isDeletion() {
+        return mType == VARIANT_TYPE.DELETION;
+    }
+
+    public boolean isReference() {
+        return mType == VARIANT_TYPE.REFERENCE;
+    }
+
+    public VARIANT_TYPE getType() {
+        return mType;
+    }
+
+    public double getNonRefAlleleFrequency() {
+        return mAlleleFrequency;
+    }
+
+    public double getNegLog10PError() {
+        return mConfidence / 10.0;
+    }
+
+    public List<String> getAlternateAlleleList() {
+        return mAltBases;
+    }
+
+    public void addAlternateAllele(String alt) {
+        mAltBases.add(alt);
+    }
+
+    public List<String> getAlleleList() {
+        LinkedList<String> alleles = new LinkedList<String>(mAltBases);
+        alleles.addFirst(getReference());
+        return alleles;
+    }
+
+    public char getAlternativeBaseForSNP() {
+        if ( !isSNP() )
+            throw new IllegalStateException("This variant is not a SNP");
+        if ( mAltBases.size() == 0 )
+            throw new IllegalStateException("No alternate alleles have been set");
+        return mAltBases.get(0).charAt(0);
+    }
+
+    public char getReferenceForSNP() {
+        if ( !isSNP() )
+            throw new IllegalStateException("This variant is not a SNP");
+        return mRefBase;
     }
 
     /**
@@ -113,15 +165,6 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
      */
     public void setSLOD(double slod) {
         mSLOD = slod;
-    }
-
-    /**
-     * get the allele frequency
-     *
-     * @return the allele frequency
-     */
-    public double getAlleleFrequency() {
-        return mAlleleFrequency;
     }
 
     /**

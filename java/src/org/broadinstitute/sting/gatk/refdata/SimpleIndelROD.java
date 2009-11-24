@@ -61,7 +61,7 @@ public class SimpleIndelROD extends TabularROD implements Genotype, VariationRod
     /** @return the VARIANT_TYPE of the current variant */
     @Override
     public VARIANT_TYPE getType() {
-        return VARIANT_TYPE.INDEL;
+        return isInsertion() ? VARIANT_TYPE.INSERTION : VARIANT_TYPE.DELETION;
     }
 
     public boolean isSNP() { return false; }

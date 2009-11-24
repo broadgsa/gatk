@@ -121,10 +121,11 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
             if ( locusdata == null )
                 throw new IllegalArgumentException("Unable to parse out the current location: genotype array must contain at least one entry or have locusdata");
 
-            params.setLocations(locusdata.getLocation(), locusdata.getReference());
+            params.setLocations(locusdata.getLocation(), locusdata.getReference().charAt(0));
 
             // if there is no genotype data, we'll also need to set an alternate allele
-            params.addAlternateBase(new VCFGenotypeEncoding(String.valueOf(((VCFGenotypeLocusData)locusdata).getAlternateAllele())));
+            if ( locusdata.isSNP() && locusdata.isBiallelic() )
+                params.addAlternateBase(new VCFGenotypeEncoding(locusdata.getAlternateAlleleList().get(0)));
         } else {
             params.setLocations(genotypes.get(0).getLocation(), genotypes.get(0).getReference());
         }
@@ -189,7 +190,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         if ( locusdata != null ) {
             if ( locusdata.getSLOD() != null )
                 infoFields.put("SB", String.format("%.2f", locusdata.getSLOD()));
-            infoFields.put("AF", String.format("%.2f", locusdata.getAlleleFrequency()));
+            infoFields.put("AF", String.format("%.2f", locusdata.getNonRefAlleleFrequency()));
             Map<String, String> otherFields = locusdata.getFields();
             if ( otherFields != null ) {
                 infoFields.putAll(otherFields);

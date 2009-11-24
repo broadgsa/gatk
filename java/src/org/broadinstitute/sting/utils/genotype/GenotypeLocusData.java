@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-
 
 /**
  * @author ebanks
@@ -10,19 +8,18 @@ import org.broadinstitute.sting.utils.GenomeLoc;
  *         <p/>
  *         represents the locus specific data associated with a genotype object.
  */
-public interface GenotypeLocusData {
+public interface GenotypeLocusData extends Variation {
 
     /**
-      * get the reference base.
-      * @return a character, representing the reference base
-      */
-    public char getReference();
-
-    /**
-     * get the genotype's location
      *
-     * @return a GenomeLoc representing the location
+     * @param   alt    the alternate allele base for this genotype
      */
-    public GenomeLoc getLocation();    
+    public void addAlternateAllele(String alt);
+
+    /**
+     *
+     * @param   frequency    the allele frequency for this genotype
+     */
+    public void setAlleleFrequency(double frequency);
 
 }

@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.genotype.Variation.VARIANT_TYPE;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -314,16 +315,12 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         // next, the general locus data
         // note that calculating strand bias involves overwriting data structures, so we do that last
-        GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, loc);
+        GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, loc, VARIANT_TYPE.SNP);
         if ( locusdata != null ) {
+            locusdata.addAlternateAllele(bestAlternateAllele.toString());
+            locusdata.setAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
             if ( locusdata instanceof ConfidenceBacked ) {
                 ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
-            }
-            if ( locusdata instanceof AlternateAlleleBacked ) {
-                ((AlternateAlleleBacked)locusdata).setAlternateAllele(bestAlternateAllele);
-            }
-            if ( locusdata instanceof AlleleFrequencyBacked ) {
-                ((AlleleFrequencyBacked)locusdata).setAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
             }
             if ( locusdata instanceof IDBacked ) {
                 rodDbSNP dbsnp = getDbSNP(tracker);

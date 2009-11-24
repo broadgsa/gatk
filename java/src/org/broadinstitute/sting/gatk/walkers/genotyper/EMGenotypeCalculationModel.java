@@ -48,7 +48,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         }
 
         // generate the calls
-        GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, context.getLocation());
+        GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, context.getLocation(), Variation.VARIANT_TYPE.SNP);
         if ( locusdata != null ) {
             if ( locusdata instanceof ConfidenceBacked ) {
                 ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
@@ -77,9 +77,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
 
                 ((SLODBacked)locusdata).setSLOD(strandScore);
             }
-            if ( locusdata instanceof AlleleFrequencyBacked ) {
-                ((AlleleFrequencyBacked)locusdata).setAlleleFrequency(overall.getMAF());
-            }
+            locusdata.setAlleleFrequency(overall.getMAF());
         }
         return new Pair<List<Genotype>, GenotypeLocusData>(genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts), locusdata);
     }

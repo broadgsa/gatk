@@ -82,8 +82,9 @@ public class rodPicardDbSNP implements VariationRod {
             case SNP:
                 return VARIANT_TYPE.SNP;
             case insertion:
+                return VARIANT_TYPE.INSERTION;
             case deletion:
-                return VARIANT_TYPE.INDEL;
+                return VARIANT_TYPE.DELETION;
         }
         return null;
     }
@@ -131,7 +132,7 @@ public class rodPicardDbSNP implements VariationRod {
      * @return true if we're an insertion or deletion
      */
     public boolean isIndel() {
-        return getType() == VARIANT_TYPE.INDEL;
+        return getType() == VARIANT_TYPE.INSERTION || getType() == VARIANT_TYPE.DELETION;
     }
 
     public String getName() {

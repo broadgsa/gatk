@@ -99,12 +99,13 @@ public class GenotypeWriterFactory {
      * @param format the format
      * @param ref the reference base
      * @param loc the location
+     * @param type the variant type
      * @return an unpopulated genotype locus data object
      */
-    public static GenotypeLocusData createSupportedGenotypeLocusData(GENOTYPE_FORMAT format, char ref, GenomeLoc loc) {
+    public static GenotypeLocusData createSupportedGenotypeLocusData(GENOTYPE_FORMAT format, char ref, GenomeLoc loc, Variation.VARIANT_TYPE type) {
         switch (format) {
             case VCF:
-                return new VCFGenotypeLocusData(ref, loc);
+                return new VCFGenotypeLocusData(ref, loc, type);
             case GELI:
             case GELI_BINARY:
                 return null;

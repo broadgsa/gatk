@@ -86,7 +86,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                 ((PosteriorsBacked)call).setPosteriors(discoveryGL.second.getPosteriors());
             }
 
-            GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, context.getLocation());
+            GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, context.getLocation(), Variation.VARIANT_TYPE.SNP);
             if ( locusdata != null ) {
                 if ( locusdata instanceof ConfidenceBacked ) {
                     ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);

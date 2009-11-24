@@ -14,10 +14,12 @@ import java.util.List;
 public interface Variation {
     // the types of variants we currently allow
     public enum VARIANT_TYPE {
-        SNP, INDEL, REFERENCE // though reference is not really a variant, we need to represent it
+        SNP, INSERTION, DELETION, REFERENCE // though reference is not really a variant, we need to represent it
     }
 
-    /** are we bi-allelic? */
+    /**
+     * @return true if we are bi-allelic?
+     */
     public boolean isBiallelic();
 
     /**
@@ -39,7 +41,7 @@ public interface Variation {
     public VARIANT_TYPE getType();
 
     /**
-     * are we a SNP? If not we're a Indel/deletion or the reference.  This method must be call before you use
+     * are we a SNP? If not we're a Indel/deletion or the reference.  This method must be called  before you use
      * the convenience methods getAlternativeBaseForSNP or getReferenceForSNP, to ensure that you're working with a SNP
      *
      * @return true if we're a SNP
@@ -127,7 +129,7 @@ public interface Variation {
     /**
      * gets the reference base is the case of a SNP.  Throws an IllegalStateException if we're not a SNP
      *
-     * @return a char, representing the alternate base
+     * @return a char, representing the reference base
      */
     public char getReferenceForSNP();
 

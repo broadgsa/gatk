@@ -126,7 +126,8 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     @Override
     public VARIANT_TYPE getType() {
         if (this.isSNP()) return VARIANT_TYPE.SNP;
-        else if (this.isIndel()) return VARIANT_TYPE.INDEL;
+        else if (this.isInsertion()) return VARIANT_TYPE.INSERTION;
+        else if (this.isDeletion()) return VARIANT_TYPE.DELETION;
         return VARIANT_TYPE.REFERENCE;
     }
 
