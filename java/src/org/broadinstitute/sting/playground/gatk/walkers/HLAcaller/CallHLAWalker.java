@@ -341,7 +341,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             for (int i = 0; i < reads.size(); i++) {
                 read = reads.get(i);
                 offset = offsets.get(i);
-                base = read.getReadString().charAt(offset);
+                base = (char)read.getReadBases()[offset];
                 qual = read.getBaseQualities()[offset];
                 mapquality = read.getMappingQuality();
                 if (mapquality >= 5 && BaseUtils.simpleBaseToBaseIndex(base) != -1) {

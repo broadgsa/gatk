@@ -138,7 +138,7 @@ public class PopPriorWalker extends LocusWalker<Integer, Integer> {
             }
 
             int offset = offsets.get(i);
-            char base = read.getReadString().charAt(offset);
+            char base = (char)read.getReadBases()[offset];
             byte qual = read.getBaseQualities()[offset];
 
             if (qual == 0) { continue; }

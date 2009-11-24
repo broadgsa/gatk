@@ -163,7 +163,7 @@ public class FisherStrand extends StandardVariantAnnotation {
 	    if ( offset == -1 )
 		continue;
 
-            int readAllele = BaseUtils.simpleBaseToBaseIndex(read.getReadString().charAt(offset));
+            int readAllele = BaseUtils.simpleBaseToBaseIndex((char)read.getReadBases()[offset]);
             boolean isFW = !read.getReadNegativeStrandFlag();
 
             if (readAllele == allele1 || readAllele == allele2) {

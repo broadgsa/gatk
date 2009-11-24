@@ -41,7 +41,7 @@ public class AlignmentUtils {
                 case M:
                     for ( int l = 0 ; l < ce.getLength() ; l++, i_ref++, i_read++ ) {
                         char refChr = (char)ref[i_ref];
-                        char readChr = r.getReadString().charAt(i_read);
+                        char readChr = (char)r.getReadBases()[i_read];
                         if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
                              BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
                             continue; // do not count Ns/Xs/etc ?
@@ -77,8 +77,8 @@ public class AlignmentUtils {
             switch( ce.getOperator() ) {
                 case M:
                     for ( int l = 0 ; l < ce.getLength() ; l++, i_ref++, i_read++ ) {
-                        char refChr = (char)ref[i_ref];
-                        char readChr = r.getReadString().charAt(i_read);
+                        char refChr = ref[i_ref];
+                        char readChr = (char)r.getReadBases()[i_read];
                         if ( BaseUtils.simpleBaseToBaseIndex(readChr) == -1 ||
                              BaseUtils.simpleBaseToBaseIndex(refChr)  == -1 )
                             continue; // do not count Ns/Xs/etc ?

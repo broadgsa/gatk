@@ -281,7 +281,7 @@ public class GenotypeLikelihoods implements Cloneable {
                 continue;
 
             SAMRecord read = pileup.getReads().get(i);
-            char base = read.getReadString().charAt(offset);
+            char base = (char)read.getReadBases()[offset];
             byte qual = read.getBaseQualities()[offset];
             if ( ! ignoreBadBases || ! badBase(base) ) {
                 n += add(base, qual, read, offset);

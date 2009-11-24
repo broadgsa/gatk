@@ -193,7 +193,7 @@ public class LocusIteratorByState extends LocusIterator {
             logger.debug(String.format("printState():"));
             SAMRecord read = state.getRead();
             int offset = state.getReadOffset();
-            logger.debug(String.format("  read: %s(%d)=%s, cigar=%s", read.getReadName(), offset, read.getReadString().charAt(offset), read.getCigarString()));
+            logger.debug(String.format("  read: %s(%d)=%s, cigar=%s", read.getReadName(), offset, (char)read.getReadBases()[offset], read.getCigarString()));
         }
     }
 

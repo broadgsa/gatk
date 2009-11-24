@@ -126,7 +126,7 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
             for (int i = 0; i < reads.size(); i++) {
                 read = reads.get(i);
                 offset = offsets.get(i);
-                base = read.getReadString().charAt(offset);
+                base = (char)read.getReadBases()[offset];
                 qual = read.getBaseQualities()[offset];
                 //mapquality = read.getMappingQuality();
                 if (!ReadsToDiscard.contains(read.getReadName()) && BaseUtils.simpleBaseToBaseIndex(base) != -1) {

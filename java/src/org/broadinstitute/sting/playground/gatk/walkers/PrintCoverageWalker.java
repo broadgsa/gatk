@@ -44,7 +44,7 @@ public class PrintCoverageWalker extends LocusWalker<Integer, Integer> {
             }
 
             int offset = context.getOffsets().get(i);
-            char base = read.getReadString().charAt(offset);
+            char base = (char)read.getReadBases()[offset];
             if (base == 'a' || base == 'A') { aCount++; }
             if (base == 'c' || base == 'C') { cCount++; }
             if (base == 'g' || base == 'G') { gCount++; }
