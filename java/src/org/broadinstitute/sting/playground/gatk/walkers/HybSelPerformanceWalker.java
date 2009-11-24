@@ -5,13 +5,13 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-
+                                       
 import java.util.List;
 import java.util.Collection;
 import java.io.IOException;
@@ -40,6 +40,9 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
     @Argument(fullName="booster_distance", required=false, doc="distance up to which a booster can affect a target")
     public Integer BOOSTER_DISTANCE = 100; // how far away can a booster be to "hit" its target?
+
+    @Argument(fullName="bait_quantity", required=false, doc="interval list of baits with quantity/concentration (obtainied via sequencing, Nanostring)")
+    public File BAIT_QUANT_FILE;
 
     @Argument(fullName="refseq", shortName="refseq",
             doc="Name of RefSeq transcript annotation file. If specified, intervals will be specified with gene names", required=false)
@@ -111,12 +114,12 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
     public TargetInfo reduceInit() { return new TargetInfo(); }
 
-    public TargetInfo reduce(Integer value, TargetInfo sum) {
-        sum.counts += value;
-        if (value >= 2) { sum.hitTwice = true; sum.positionsOver2x++;}
-        if (value >= 10) { sum.positionsOver10x++; }
-        if (value >= 20) { sum.positionsOver20x++; }
-        if (value >= 30) { sum.positionsOver30x++; }
+    public TargetInfo reduce(Integer depth, TargetInfo sum) {
+        sum.counts += depth;
+        if (depth >= 2) { sum.hitTwice = true; sum.positionsOver2x++;}
+        if (depth >= 10) { sum.positionsOver10x++; }
+        if (depth >= 20) { sum.positionsOver20x++; }
+        if (depth >= 30) { sum.positionsOver30x++; }
         return sum;
     }
 
@@ -125,7 +128,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
     @Override
     public void onTraversalDone(List<Pair<GenomeLoc, TargetInfo>> results) {
-        out.println("location\tlength\tgc\tavg_coverage\tnormalized_coverage\thit_twice\tfreestanding\tboosted\tbases_over_2x\tbases_over_10x\tbases_over_20x\tbases_over_30x\tgene_name");
+        out.println("location\tlength\tgc\tavg_coverage\tnormalized_coverage\thit_twice\tfreestanding\tboosted\tbases_over_2x\tbases_over_10x\tbases_over_20x\tbases_over_30x\tgene_name\tbait_quantity\tadjacent_baits");
 
         // first zip through and build an overlap detector of all the intervals, so later
         // we can calculate if this interval is free-standing
@@ -143,8 +146,22 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
             booster.addAll(l, l);
         }
 
+        // Create a interval detector that will give us the bait quantity specified in
+        // an optional bait quantity file
+        OverlapDetector<Interval> bait_quant = new OverlapDetector<Interval>(0,0);
+        if (BAIT_QUANT_FILE != null) {
+            IntervalList il = IntervalList.fromFile(BAIT_QUANT_FILE);
+            List<Interval> l = il.getIntervals();
+            bait_quant.addAll(l, l);
+        }
 
-
+        // Create a detector of adjacent baits 
+        OverlapDetector<Interval> adjacent_bait_detector = new OverlapDetector<Interval>(-1,-1);
+        for(Pair<GenomeLoc, TargetInfo> pair : results) {
+            GenomeLoc target = pair.getFirst();
+            Interval interval = makeInterval(target);
+            adjacent_bait_detector.addLhs(interval, interval);
+        }
 
         // now zip through and calculate the total average coverage
         long totalCoverage = 0;
@@ -185,16 +202,21 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
             // look up the gene name info
             String geneName = getGeneName(target);
 
+            Collection<Interval> bait_quant_hits = bait_quant.getOverlaps(targetInterval);
+            String bait_quant_string = (bait_quant_hits.size() == 1) ? bait_quant_hits.iterator().next().getName() : "0";
+            if (bait_quant_hits.size() <= 1) { out.printf("Warning: multiple bait quantity intervals detected; perhaps bait quantity interval lengths don't match primary interval list specified with -L"); }
+            int adjacent_baits = adjacent_bait_detector.getOverlaps(targetInterval).size() - 1;
 
-
-            out.printf("%s:%d-%d\t%d\t%6.4f\t%6.4f\t%6.4f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n",
+            out.printf("%s:%d-%d\t%d\t%6.4f\t%6.4f\t%6.4f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\t%d\n",
                        target.getContig(), target.getStart(), target.getStop(), length, gc,
                         avgCoverage, normCoverage, ((ti.hitTwice)?1:0), ((freestanding)?1:0), ((boosted)?1:0),
                         ti.positionsOver2x,
                         ti.positionsOver10x,
                         ti.positionsOver20x,
                         ti.positionsOver30x,
-                        geneName
+                        geneName,
+                        bait_quant_string,
+                        adjacent_baits
                     );
 
 
