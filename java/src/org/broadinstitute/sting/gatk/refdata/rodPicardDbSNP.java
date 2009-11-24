@@ -252,9 +252,9 @@ public class rodPicardDbSNP implements VariationRod {
 
     private static class MyGenomeLoc extends GenomeLoc {
         private MyGenomeLoc(final KnownVariant knownVariant) {
-            // GenomeLoc is one-based half-open interval.
+            // GenomeLoc is one-based closed interval.
             super(knownVariant.getReferenceSequence(), knownVariant.getSequenceIndex(), knownVariant.getStartPos(),
-                    knownVariant.getEndPos() + 1);
+                    knownVariant.getEndPos());
         }
     }
 
