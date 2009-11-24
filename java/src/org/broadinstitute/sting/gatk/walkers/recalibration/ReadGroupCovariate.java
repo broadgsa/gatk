@@ -35,7 +35,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 public class ReadGroupCovariate implements Covariate{
 
-    public static final String collapsedReadGroup = "Read Group Collapsed";
+    public static final String collapsedReadGroupCode = "Read Group Collapsed";
 
     public ReadGroupCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }

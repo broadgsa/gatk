@@ -38,26 +38,26 @@ import java.util.*;
  */
 
 public class RecalDataManager {
-    public NHashMap<RecalDatum> data; // the full dataset
-    private NHashMap<RecalDatum> dataCollapsedReadGroup; // table where everything except read group has been collapsed
-    private NHashMap<RecalDatum> dataCollapsedQualityScore; // table where everything except read group and quality score has been collapsed
-    private ArrayList<NHashMap<RecalDatum>> dataCollapsedByCovariate; // tables where everything except read group, quality score, and given covariate has been collapsed
-    public NHashMap<Double> dataSumExpectedErrors; // table used to calculate the overall aggregate quality score in which everything except read group is collapsed
+    public NHashMap<RecalDatum> data; // The full dataset
+    private NHashMap<RecalDatum> dataCollapsedReadGroup; // Table where everything except read group has been collapsed
+    private NHashMap<RecalDatum> dataCollapsedQualityScore; // Table where everything except read group and quality score has been collapsed
+    private ArrayList<NHashMap<RecalDatum>> dataCollapsedByCovariate; // Tables where everything except read group, quality score, and given covariate has been collapsed
+    private NHashMap<Double> dataSumExpectedErrors; // Table used to calculate the overall aggregate reported quality score in which everything except read group is collapsed
 
-    private NHashMap<Double> dataCollapsedReadGroupDouble; // table of empirical qualities where everything except read group has been collapsed
-    private NHashMap<Double> dataCollapsedQualityScoreDouble; // table of empirical qualities where everything except read group and quality score has been collapsed
-    private ArrayList<NHashMap<Double>> dataCollapsedByCovariateDouble; // table of empirical qualities where everything except read group, quality score, and given covariate has been collapsed
+    private NHashMap<Double> dataCollapsedReadGroupDouble; // Table of empirical qualities where everything except read group has been collapsed
+    private NHashMap<Double> dataCollapsedQualityScoreDouble; // Table of empirical qualities where everything except read group and quality score has been collapsed
+    private ArrayList<NHashMap<Double>> dataCollapsedByCovariateDouble; // Table of empirical qualities where everything except read group, quality score, and given covariate has been collapsed
+    public NHashMap<Double> aggregateReportedQuality; // Table of the overall aggregate reported quality score in which everything except read group is collapsed
 
-
-    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // the tag that holds the original quality scores
-    public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ"; // the tag that holds the color space quality scores for SOLID bams
+    public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // The tag that holds the original quality scores
+    public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ"; // The tag that holds the color space quality scores for SOLID bams
 
     RecalDataManager() {
     	data = new NHashMap<RecalDatum>();
     }
 
     RecalDataManager( final int estimatedCapacity, final boolean createCollapsedTables, final int numCovariates ) {
-    	if( createCollapsedTables ) { // initialize all the collapsed tables
+    	if( createCollapsedTables ) { // Initialize all the collapsed tables, only used by TableRecalibrationWalker
             dataCollapsedReadGroup = new NHashMap<RecalDatum>();
             dataCollapsedQualityScore = new NHashMap<RecalDatum>();
             dataCollapsedByCovariate = new ArrayList<NHashMap<RecalDatum>>();
@@ -65,13 +65,14 @@ public class RecalDataManager {
                 dataCollapsedByCovariate.add( new NHashMap<RecalDatum>() );
             }
             dataSumExpectedErrors = new NHashMap<Double>();
+            aggregateReportedQuality = new NHashMap<Double>();
         } else {
             data = new NHashMap<RecalDatum>( estimatedCapacity, 0.8f);
         }            
     }
     
     RecalDataManager( final int estimatedCapacity ) {
-        data = new NHashMap<RecalDatum>( estimatedCapacity, 0.8f ); // second arg is the 'loading factor',
+        data = new NHashMap<RecalDatum>( estimatedCapacity, 0.8f ); // Second arg is the 'loading factor',
                                                                     //   a number to monkey around with when optimizing performace of the HashMap
     }
 
@@ -85,9 +86,9 @@ public class RecalDataManager {
         // The full dataset isn't actually ever used for anything because of the sequential calculation so no need to keep the full data HashMap around
         //data.put(key, thisDatum); // add the mapping to the main table
 
-        // create dataCollapsedReadGroup, the table where everything except read group has been collapsed
+        // Create dataCollapsedReadGroup, the table where everything except read group has been collapsed
         ArrayList<Comparable> newKey = new ArrayList<Comparable>();
-        newKey.add( key.get(0) ); // make a new key with just the read group
+        newKey.add( key.get(0) ); // Make a new key with just the read group
         RecalDatum collapsedDatum = dataCollapsedReadGroup.get( newKey );
         if( collapsedDatum == null ) {
             dataCollapsedReadGroup.put( newKey, new RecalDatum(fullDatum) );
@@ -95,9 +96,9 @@ public class RecalDataManager {
             collapsedDatum.increment(fullDatum);
         }
 
-        // create dataSumExpectedErrors, the table used to calculate the overall aggregate quality score in which everything except read group is collapsed
+        // Create dataSumExpectedErrors, the table used to calculate the overall aggregate quality score in which everything except read group is collapsed
         newKey = new ArrayList<Comparable>();
-        newKey.add( key.get(0) ); // make a new key with just the read group
+        newKey.add( key.get(0) ); // Make a new key with just the read group
         Double sumExpectedErrors = dataSumExpectedErrors.get( newKey );
         if( sumExpectedErrors == null ) {
             dataSumExpectedErrors.put( newKey, 0.0 );
@@ -108,8 +109,8 @@ public class RecalDataManager {
         }
 
         newKey = new ArrayList<Comparable>();
-        // create dataCollapsedQuality, the table where everything except read group and quality score has been collapsed
-        newKey.add( key.get(0) ); // make a new key with the read group ...
+        // Create dataCollapsedQuality, the table where everything except read group and quality score has been collapsed
+        newKey.add( key.get(0) ); // Make a new key with the read group ...
         newKey.add( key.get(1) ); //                                    and quality score
         collapsedDatum = dataCollapsedQualityScore.get( newKey );
         if( collapsedDatum == null ) {
@@ -118,10 +119,10 @@ public class RecalDataManager {
             collapsedDatum.increment(fullDatum);
         }
 
-        // create dataCollapsedByCovariate's, the tables where everything except read group, quality score, and given covariate has been collapsed
-        for( int iii = 0; iii < dataCollapsedByCovariate.size(); iii++ ) { // readGroup and QualityScore aren't counted
+        // Create dataCollapsedByCovariate's, the tables where everything except read group, quality score, and given covariate has been collapsed
+        for( int iii = 0; iii < dataCollapsedByCovariate.size(); iii++ ) {
             newKey = new ArrayList<Comparable>();
-            newKey.add( key.get(0) ); // make a new key with the read group ...
+            newKey.add( key.get(0) ); // Make a new key with the read group ...
             newKey.add( key.get(1) ); //                                    and quality score ...
             newKey.add( key.get(iii + 2) ); //                                                    and the given covariate
             collapsedDatum = dataCollapsedByCovariate.get(iii).get( newKey );
@@ -151,24 +152,30 @@ public class RecalDataManager {
         // Hash the empirical quality scores so we don't have to call Math.log at every base for every read
         // Looping over the entrySet is really expensive but worth it
         for( Map.Entry<List<? extends Comparable>,RecalDatum> entry : dataCollapsedReadGroup.entrySet() ) {
-            dataCollapsedReadGroupDouble.put( entry.getKey(), entry.getValue().empiricalQualDouble( smoothing ));
+            dataCollapsedReadGroupDouble.put( entry.getKey(), entry.getValue().empiricalQualDouble( smoothing ) );
+            aggregateReportedQuality.put( entry.getKey(), // sum of the expected errors divided by number of observations turned into a Q score
+                    QualityUtils.phredScaleErrorRate( dataSumExpectedErrors.get(entry.getKey()) / ((double)entry.getValue().getNumObservations()) ) );
         }
         for( Map.Entry<List<? extends Comparable>,RecalDatum> entry : dataCollapsedQualityScore.entrySet() ) {
-            dataCollapsedQualityScoreDouble.put( entry.getKey(), entry.getValue().empiricalQualDouble( smoothing ));
+            dataCollapsedQualityScoreDouble.put( entry.getKey(), entry.getValue().empiricalQualDouble( smoothing ) );
         }
         for( int iii = 0; iii < numCovariates - 2; iii++ ) {
             for( Map.Entry<List<? extends Comparable>,RecalDatum> entry : dataCollapsedByCovariate.get(iii).entrySet() ) {
-                dataCollapsedByCovariateDouble.get(iii).put( entry.getKey(), entry.getValue().empiricalQualDouble( smoothing ));
+                dataCollapsedByCovariateDouble.get(iii).put( entry.getKey(), entry.getValue().empiricalQualDouble( smoothing ) );
             }
         }
 
+        dataSumExpectedErrors.clear();
+        dataCollapsedReadGroup.clear();
         dataCollapsedQualityScore.clear();
         dataCollapsedByCovariate.clear();
-        dataCollapsedQualityScore = null; // will never need this again
-        dataCollapsedByCovariate = null; // will never need this again
-        if( data!=null ) {
+        dataSumExpectedErrors = null; // Will never need this table again
+        dataCollapsedReadGroup = null; // Will never need this table again
+        dataCollapsedQualityScore = null; // Will never need this table again
+        dataCollapsedByCovariate = null; // Will never need this table again
+        if( data != null ) {
             data.clear();
-            data = null; // will never need this again
+            data = null; // Will never need this table again
         }
     }
 
@@ -179,11 +186,11 @@ public class RecalDataManager {
      */
     public final NHashMap<RecalDatum> getCollapsedTable( final int covariate ) {
         if( covariate == 0) {
-            return dataCollapsedReadGroup; // table where everything except read group has been collapsed
+            return dataCollapsedReadGroup; // Table where everything except read group has been collapsed
         } else if( covariate == 1 ) {
-            return dataCollapsedQualityScore; // table where everything except read group and quality score has been collapsed
+            return dataCollapsedQualityScore; // Table where everything except read group and quality score has been collapsed
         } else {
-            return dataCollapsedByCovariate.get( covariate - 2 ); // table where everything except read group, quality score, and given covariate has been collapsed
+            return dataCollapsedByCovariate.get( covariate - 2 ); // Table where everything except read group, quality score, and given covariate has been collapsed
         }
     }
 
@@ -194,11 +201,11 @@ public class RecalDataManager {
      */
     public final NHashMap<Double> getCollapsedDoubleTable( final int covariate ) {
         if( covariate == 0) {
-            return dataCollapsedReadGroupDouble; // table of empirical qualities where everything except read group has been collapsed
+            return dataCollapsedReadGroupDouble; // Table of empirical qualities where everything except read group has been collapsed
         } else if( covariate == 1 ) {
-            return dataCollapsedQualityScoreDouble; // table of empirical qualities where everything except read group and quality score has been collapsed
+            return dataCollapsedQualityScoreDouble; // Table of empirical qualities where everything except read group and quality score has been collapsed
         } else {
-            return dataCollapsedByCovariateDouble.get( covariate - 2 ); // table of empirical qualities where everything except read group, quality score, and given covariate has been collapsed
+            return dataCollapsedByCovariateDouble.get( covariate - 2 ); // Table of empirical qualities where everything except read group, quality score, and given covariate has been collapsed
         }
     }
 }

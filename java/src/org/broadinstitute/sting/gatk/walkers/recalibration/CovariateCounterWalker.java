@@ -110,7 +110,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private final String versionNumber = "2.0.3"; // Major version, minor version, and build number
+    private final String versionNumber = "2.0.4"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -320,7 +320,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                             Utils.warnUser("The input .bam file contains reads with no read group. Defaulting to Illumina platform and empty read group name.");
                             warnUserNullReadGroup = true;
                         }
-                        readGroupId = ReadGroupCovariate.collapsedReadGroup;
+                        readGroupId = ReadGroupCovariate.collapsedReadGroupCode;
                         platform = "ILLUMINA";
                     } else {
                         readGroupId = readGroup.getReadGroupId();
@@ -332,7 +332,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                         platform = "ILLUMINA";
                     }
                     if( IGNORE_READGROUP ) {
-                        readGroupId = ReadGroupCovariate.collapsedReadGroup;
+                        readGroupId = ReadGroupCovariate.collapsedReadGroupCode;
                     }
 
                     readDatum = new ReadHashDatum( readGroupId, platform, quals, bases, isNegStrand, mappingQuality, length );
@@ -348,11 +348,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                         if( readDatum.quals[offset] > 0 ) {
 
                             refBase = (byte)ref.getBase();
-                            prevBase = readDatum.bases[offset-1];
+                            prevBase = readDatum.bases[offset - 1];
 
                             // Get the complement base strand if we are a negative strand read, DinucCovariate is responsible for getting the complement bases if needed
                             if( readDatum.isNegStrand ) {
-                                prevBase = readDatum.bases[offset+1];
+                                prevBase = readDatum.bases[offset + 1];
                             }
 
                             // Skip if this base or the previous one was an 'N' or etc.

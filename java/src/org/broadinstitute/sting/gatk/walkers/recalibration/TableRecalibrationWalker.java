@@ -1,9 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMProgramRecord;
+import net.sf.samtools.*;
+import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.gatk.walkers.Requires;
@@ -103,7 +101,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static Pattern COVARIATE_PATTERN = Pattern.compile("^@!.*");
-    private final String versionNumber = "2.0.1"; // Major version, minor version, and build number
+    private final String versionNumber = "2.0.2"; // Major version, minor version, and build number
     private boolean warnUserNullReadGroup = false; // Has the walker warned the user about null read groups yet?
 
     //---------------------------------------------------------------------------------------------------------------
@@ -217,6 +215,18 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         logger.info( "Generating tables of empirical qualities for use in sequential calculation..." );
         dataManager.generateEmpiricalQualities( requestedCovariates.size(), SMOOTHING );
         logger.info( "...done!" );
+
+        // Take the header of the SAM file, tweak it by adding in the reference dictionary and specifying that the target file is unsorted.
+        //SAMFileHeader header = getToolkit().getSAMFileHeader().clone();
+        //SAMSequenceDictionary referenceDictionary =
+        //        ReferenceSequenceFileFactory.getReferenceSequenceFile(getToolkit().getArguments().referenceFile).getSequenceDictionary();
+        //header.setSequenceDictionary(referenceDictionary);
+        //header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
+
+        //if( OUTPUT_BAM != null ) {
+        //    SAMFileWriterFactory factory = new SAMFileWriterFactory();
+        //    OUTPUT_BAM = factory.makeBAMWriter(header, false, new File(OUTPUT_BAM.toString()), 5); // Bam compression = 5
+        //}
     }
 
     /**
@@ -288,7 +298,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                 Utils.warnUser("The input .bam file contains reads with no read group. Defaulting to Illumina platform and empty read group name.");
                 warnUserNullReadGroup = true;
             }
-            readGroupId = ReadGroupCovariate.collapsedReadGroup;
+            readGroupId = ReadGroupCovariate.collapsedReadGroupCode;
             platform = "ILLUMINA";
         } else {
             readGroupId = readGroup.getReadGroupId();
@@ -307,7 +317,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             platform = "ILLUMINA";
         }
         if( IGNORE_READGROUP ) {
-            readGroupId = ReadGroupCovariate.collapsedReadGroup;
+            readGroupId = ReadGroupCovariate.collapsedReadGroupCode;
         }
 
         ReadHashDatum readDatum = new ReadHashDatum( readGroupId, platform, originalQuals, bases, isNegStrand, read.getMappingQuality(), bases.length );
@@ -363,18 +373,17 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         // The global quality shift (over the read group only)
         collapsedTableKey.add( readGroupKeyElement );
-        RecalDatum globalDeltaQDatum = dataManager.getCollapsedTable(0).get(collapsedTableKey);
-        Double globalDeltaQEmpirical = dataManager.getCollapsedDoubleTable(0).get(collapsedTableKey);
+        Double globalDeltaQEmpirical = dataManager.getCollapsedDoubleTable(0).get( collapsedTableKey );
+        Double aggregrateQreported = dataManager.aggregateReportedQuality.get( collapsedTableKey );
         double globalDeltaQ = 0.0;
-        double aggregrateQreported = 0.0;
-        if( globalDeltaQDatum != null ) {
-            aggregrateQreported = QualityUtils.phredScaleErrorRate( dataManager.dataSumExpectedErrors.get(collapsedTableKey) / ((double) globalDeltaQDatum.getNumObservations()) );
+        if( globalDeltaQEmpirical != null && aggregrateQreported != null ) {
+
             globalDeltaQ = globalDeltaQEmpirical - aggregrateQreported;
         }
 
         // The shift in quality between reported and empirical
         collapsedTableKey.add( qualityScoreKeyElement );
-        Double deltaQReportedEmpirical = dataManager.getCollapsedDoubleTable(1).get(collapsedTableKey);
+        Double deltaQReportedEmpirical = dataManager.getCollapsedDoubleTable(1).get( collapsedTableKey );
         double deltaQReported = 0.0;
         if( deltaQReportedEmpirical != null ) {
             deltaQReported = deltaQReportedEmpirical - qualFromRead - globalDeltaQ;
@@ -387,7 +396,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         double deltaQDinuc = 0.0;
         for( int iii = 2; iii < key.size(); iii++ ) {
             collapsedTableKey.add( key.get(iii) ); // The given covariate
-            deltaQCovariateEmpirical = dataManager.getCollapsedDoubleTable(iii).get(collapsedTableKey);
+            deltaQCovariateEmpirical = dataManager.getCollapsedDoubleTable(iii).get( collapsedTableKey );
             if( deltaQCovariateEmpirical != null ) {
                 deltaQCovariates += ( deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported) );
                 if( VALIDATE_OLD_RECALIBRATOR ) {
