@@ -59,7 +59,14 @@ public enum DiploidGenotype {
      * @return the diploid genotype
      */
     public static DiploidGenotype createHomGenotype(char hom) {
-        return DiploidGenotype.valueOf((String.valueOf(hom) + String.valueOf(hom)).toUpperCase());
+        hom = Character.toUpperCase(hom);
+        switch (hom) {
+            case 'A': return DiploidGenotype.AA;
+            case 'C': return DiploidGenotype.CC;
+            case 'G': return DiploidGenotype.GG;
+            case 'T': return DiploidGenotype.TT;
+        }
+        throw new IllegalArgumentException(hom + " is not a valid base character");
     }
 
     /**

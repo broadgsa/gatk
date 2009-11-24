@@ -9,6 +9,8 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import java.util.*;
 import java.io.PrintWriter;
 
+import net.sf.samtools.SAMRecord;
+
 public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalculationModel {
 
     // because the null allele frequencies are constant for a given N,
@@ -17,7 +19,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
     // because the Hardy-Weinberg values for a given frequency are constant,
     // we cache the results to avoid having to recompute everything
-    private HashMap<Double, double[]> hardyWeinbergValueCache = new HashMap<Double, double[]>();
+    // private HashMap<Double, double[]> hardyWeinbergValueCache = new HashMap<Double, double[]>();
 
     // the allele frequency priors
     protected double[] log10AlleleFrequencyPriors;
@@ -26,6 +28,9 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     protected double[][] alleleFrequencyPosteriors = new double[BaseUtils.BASES.length][];
     protected double[][] log10PofDgivenAFi = new double[BaseUtils.BASES.length][];
     protected double[] PofFs = new double[BaseUtils.BASES.length];
+
+    // the alternate allele with the largest sum of quality scores
+    protected Character bestAlternateAllele = null;
 
 
     protected JointEstimateGenotypeCalculationModel() {}
@@ -39,6 +44,12 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         int numSamples = getNSamples(contexts);
         int frequencyEstimationPoints = (2 * numSamples) + 1;  // (add 1 for allele frequency of zero)
+
+        // find the alternate allele with the largest sum of quality scores
+        initializeBestAlternateAllele(ref, context);
+        // if there are no non-ref bases and we don't want all bases, then we can just return
+        if ( !ALL_BASE_MODE && bestAlternateAllele == null )
+            return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
 
         initializeAlleleFrequencies(frequencyEstimationPoints);
 
@@ -59,6 +70,39 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
     protected int getNSamples(HashMap<String, AlignmentContextBySample> contexts) {
         return contexts.size();
+    }
+
+    protected void initializeBestAlternateAllele(char ref, AlignmentContext context) {
+        int[] qualCounts = new int[4];
+
+        // calculate the sum of quality scores for each base
+        List<SAMRecord> reads = context.getReads();
+        List<Integer> offsets = context.getOffsets();
+        for (int i = 0; i < reads.size(); i++) {
+            int offset = offsets.get(i);
+            // ignore deletions
+            if ( offset == -1 )
+                continue;
+
+            SAMRecord read = reads.get(i);
+            char base = (char)read.getReadBases()[offset];
+            int index = BaseUtils.simpleBaseToBaseIndex(base);
+            if ( index >= 0 )
+                qualCounts[index] += read.getBaseQualities()[offset];
+        }
+
+        // set the non-ref base with maximum quality score sum
+        int maxCount = 0;
+        bestAlternateAllele = null;
+        for ( char altAllele : BaseUtils.BASES ) {
+            if ( altAllele == ref )
+                continue;
+            int index = BaseUtils.simpleBaseToBaseIndex(altAllele);
+            if ( qualCounts[index] > maxCount ) {
+                maxCount = qualCounts[index];
+                bestAlternateAllele = altAllele;
+            }
+        }
     }
 
     protected void initializeVerboseWriter(PrintWriter verboseWriter) {
@@ -122,13 +166,8 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             log10PofDgivenAFi[baseIndex] = new double[frequencyEstimationPoints];
         }
 
-        // for each alternate allele
-        for ( char altAllele : BaseUtils.BASES ) {
-            if ( altAllele == ref )
-                continue;
-
-            calculatelog10PofDgivenAFforAllF(ref, altAllele, frequencyEstimationPoints-1, contexts, contextType);
-        }
+        // only calculate for the most likely alternate allele
+        calculatelog10PofDgivenAFforAllF(ref, bestAlternateAllele, frequencyEstimationPoints-1, contexts, contextType);
     }
 
     /********************************************************************************/
@@ -174,26 +213,22 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
      * @param frequencyEstimationPoints   number of allele frequencies
      */
     protected void calculatePofFs(char ref, int frequencyEstimationPoints) {
-        // for each alternate allele
-        for ( char altAllele : BaseUtils.BASES ) {
-            if ( altAllele == ref )
-                continue;
+        // only calculate for the most likely alternate allele
+        int baseIndex = BaseUtils.simpleBaseToBaseIndex(bestAlternateAllele);
 
-            int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
+        // multiply by null allele frequency priors to get AF posteriors, then normalize
+        for (int i = 0; i < frequencyEstimationPoints; i++)
+            alleleFrequencyPosteriors[baseIndex][i] = log10AlleleFrequencyPriors[i] + log10PofDgivenAFi[baseIndex][i];
+        alleleFrequencyPosteriors[baseIndex] = MathUtils.normalizeFromLog10(alleleFrequencyPosteriors[baseIndex]);
 
-            // multiply by null allele frequency priors to get AF posteriors, then normalize
-            for (int i = 0; i < frequencyEstimationPoints; i++)
-                alleleFrequencyPosteriors[baseIndex][i] = log10AlleleFrequencyPriors[i] + log10PofDgivenAFi[baseIndex][i];
-            alleleFrequencyPosteriors[baseIndex] = MathUtils.normalizeFromLog10(alleleFrequencyPosteriors[baseIndex]);
-
-            // calculate p(f>0)
-            double sum = 0.0;
-            for (int i = 1; i < frequencyEstimationPoints; i++)
-                sum += alleleFrequencyPosteriors[baseIndex][i];
-            PofFs[baseIndex] = Math.min(sum, 1.0); // deal with precision errors
-        }
+        // calculate p(f>0)
+        double sum = 0.0;
+        for (int i = 1; i < frequencyEstimationPoints; i++)
+            sum += alleleFrequencyPosteriors[baseIndex][i];
+        PofFs[baseIndex] = Math.min(sum, 1.0); // deal with precision errors
     }
 
+    /***
     protected double[] getHardyWeinbergValues(double f) {
         double[] HWvalues = hardyWeinbergValueCache.get(f);
 
@@ -219,7 +254,13 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         return HWvalues;
     }
+    ***/
 
+    /**
+     * @param ref                         the ref base
+     * @param loc                         the GenomeLoc
+     * @param frequencyEstimationPoints   number of allele frequencies
+     */
     protected void printAlleleFrequencyData(char ref, GenomeLoc loc, int frequencyEstimationPoints) {
         for (int i = 0; i < frequencyEstimationPoints; i++) {
             StringBuilder AFline = new StringBuilder("AFINFO\t");
@@ -256,21 +297,8 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     }
 
     protected Pair<List<Genotype>, GenotypeLocusData> createCalls(RefMetaDataTracker tracker, char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc, int frequencyEstimationPoints) {
-        // first, find the alt allele with maximum confidence
-        int indexOfMax = 0;
-        char baseOfMax = ref;
-        double maxConfidence = Double.MIN_VALUE;
-        for ( char altAllele : BaseUtils.BASES ) {
-            if ( altAllele != ref ) {
-                int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
-                if ( PofFs[baseIndex] > maxConfidence ||
-                     (MathUtils.compareDoubles(PofFs[baseIndex], maxConfidence) == 0 && log10PofDgivenAFi[baseIndex][0] < log10PofDgivenAFi[indexOfMax][0]) ) {
-                    indexOfMax = baseIndex;
-                    baseOfMax = altAllele;
-                    maxConfidence = PofFs[baseIndex];
-                }
-            }
-        }
+        // only need to look at the most likely alternate allele
+        int indexOfMax = BaseUtils.simpleBaseToBaseIndex(bestAlternateAllele);
 
         double phredScaledConfidence = -10.0 * Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
         if ( Double.isInfinite(phredScaledConfidence) )
@@ -282,7 +310,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
 
         // populate the sample-specific data
-        List<Genotype> calls = makeGenotypeCalls(ref, baseOfMax, contexts, loc);
+        List<Genotype> calls = makeGenotypeCalls(ref, bestAlternateAllele, contexts, loc);
 
         // next, the general locus data
         // note that calculating strand bias involves overwriting data structures, so we do that last
@@ -292,7 +320,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
                 ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
             }
             if ( locusdata instanceof AlternateAlleleBacked ) {
-                ((AlternateAlleleBacked)locusdata).setAlternateAllele(baseOfMax);
+                ((AlternateAlleleBacked)locusdata).setAlternateAllele(bestAlternateAllele);
             }
             if ( locusdata instanceof AlleleFrequencyBacked ) {
                 ((AlleleFrequencyBacked)locusdata).setAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
