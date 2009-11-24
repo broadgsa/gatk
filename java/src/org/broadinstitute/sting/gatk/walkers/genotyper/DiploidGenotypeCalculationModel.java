@@ -43,9 +43,9 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             double[] posteriors = GL.getPosteriors();
 
             // for each alternate allele, fill the matrix
+            DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
             for ( char alt : BaseUtils.BASES ) {
                 if ( alt != ref ) {
-                    DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(ref);
                     DiploidGenotype hetGenotype = ref < alt ? DiploidGenotype.valueOf(String.valueOf(ref) + String.valueOf(alt)) : DiploidGenotype.valueOf(String.valueOf(alt) + String.valueOf(ref));
                     DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(alt);
                     AFMatrixMap.get(alt).setLikelihoods(posteriors[refGenotype.ordinal()], posteriors[hetGenotype.ordinal()], posteriors[homGenotype.ordinal()], index);

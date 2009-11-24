@@ -28,11 +28,11 @@ public enum DiploidGenotype {
     }
 
     public boolean isHomRef(char r) {
-        return isHom() && r == this.toString().charAt(0);
+        return isHom() && r == base1;
     }
 
     public boolean isHomVar(char r) {
-        return isHom() && r != this.toString().charAt(0);
+        return isHom() && r != base1;
     }
 
     public boolean isHetRef(char r) {
@@ -59,7 +59,7 @@ public enum DiploidGenotype {
      * @return the diploid genotype
      */
     public static DiploidGenotype createHomGenotype(char hom) {
-        return DiploidGenotype.valueOf((String.valueOf(hom) + String.valueOf(hom)).toUpperCase());     
+        return DiploidGenotype.valueOf((String.valueOf(hom) + String.valueOf(hom)).toUpperCase());
     }
 
     /**

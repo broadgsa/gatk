@@ -185,13 +185,14 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
     private AlignmentContext filterAlignmentContext(AlignmentContext context) {
         List<SAMRecord> reads = context.getReads();
         List<Integer> offsets = context.getOffsets();
+        int numReads = reads.size();
 
-        List<SAMRecord> newReads = new ArrayList<SAMRecord>();
-        List<Integer> newOffsets = new ArrayList<Integer>();
+        List<SAMRecord> newReads = new ArrayList<SAMRecord>(numReads);
+        List<Integer> newOffsets = new ArrayList<Integer>(numReads);
 
-        for (int i = 0; i < reads.size(); i++) {
+        for (int i = 0; i < numReads; i++) {
             SAMRecord read = reads.get(i);
-            if ( read.getMappingQuality() != 0 ) {
+            if ( read.getMappingQuality() > 0 ) {
                 newReads.add(read);
                 newOffsets.add(offsets.get(i));
             }
