@@ -39,7 +39,7 @@ public class MinimumNQSCovariate implements Covariate {
     private int windowReach; // how far in each direction from the current base to look
 
     public MinimumNQSCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
-        windowReach = 1; // window size = 3 was the best covariate according to Chris's analysis
+        windowReach = 2; // window size = 5 was the best covariate according to Chris's analysis
     }
 
     public MinimumNQSCovariate(final int windowSize) {
@@ -69,6 +69,6 @@ public class MinimumNQSCovariate implements Covariate {
     }
 
     public String toString() {
-        return "Minimum Neighborhood Quality Score";
+        return "Minimum Neighborhood Quality Score (window size = " + (windowReach * 2 + 1) + ")";
     }
 }

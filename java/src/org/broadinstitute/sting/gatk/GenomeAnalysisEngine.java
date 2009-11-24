@@ -681,6 +681,10 @@ public class GenomeAnalysisEngine {
         outputTracker.prepareWalker(walker);
     }
 
+    /**
+     * Returns the SAM File Header from the input reads' data source file
+     * @return the SAM File Header from the input reads' data source file
+     */
     public SAMFileHeader getSAMFileHeader() {
         return readsDataSource.getHeader();
     }
