@@ -491,8 +491,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      * @param output The SAMFileWriter that outputs the bam file
      */
     public void onTraversalDone(SAMFileWriter output) {
-        if (output != null)
+        if ( output != null ) {
             output.close();
+        }
         super.onTraversalDone(output);
     }
 }
