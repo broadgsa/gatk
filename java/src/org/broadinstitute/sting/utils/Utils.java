@@ -541,6 +541,14 @@ public class Utils {
         return new Pair<Double, Integer>(max, index);
     }
 
+    public static String[] concatArrays(String[] A, String[] B) {
+       String[] C = new String[A.length + B.length];
+       System.arraycopy(A, 0, C, 0, A.length);
+       System.arraycopy(B, 0, C, A.length, B.length);
+       return C;
+    }
+
+
     /** Returns indices of all occurrences of the specified symbol in the string */
     public static int[] indexOfAll(String s, int ch) {
         int[] pos = new int[64];

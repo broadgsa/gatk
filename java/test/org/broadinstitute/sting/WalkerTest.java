@@ -126,13 +126,33 @@ public class WalkerTest extends BaseTest {
         System.out.println(String.format("Executing test %s with GATK arguments: %s", name, args));
 
         CommandLineGATK instance = new CommandLineGATK();
-        CommandLineExecutable.start(instance, args.split(" "));
+        String[] command;
+
+        // special case for ' and " so we can allow expressions
+        if ( args.indexOf('\'') != -1 )
+            command = escapeExpressions(args, "'");
+        else if ( args.indexOf('\"') != -1 )
+            command = escapeExpressions(args, "\"");
+        else
+            command = args.split(" ");
+
+        CommandLineExecutable.start(instance, command);
 
         if ( CommandLineExecutable.result != 0 ) {
             throw new RuntimeException("Error running the GATK with arguments: " + args);
         }
 
         return new Pair<List<File>, List<String>>(tmpFiles, assertMatchingMD5s(name, tmpFiles, spec.md5s));
+    }    
+
+    private static String[] escapeExpressions(String args, String delimiter) {
+        String[] command = {};
+        String[] split = args.split(delimiter);
+        for (int i = 0; i < split.length - 1; i+=2) {
+            command = Utils.concatArrays(command, split[i].trim().split(" "));
+            command = Utils.concatArrays(command, new String[] { split[i+1] } );
+        }
+        return Utils.concatArrays(command, split[split.length-1].trim().split(" "));
     }
 
     @Test
