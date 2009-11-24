@@ -25,7 +25,7 @@ import edu.mit.broad.picard.util.OverlapDetector;
 import edu.mit.broad.picard.directed.IntervalList;
 
 @By(DataSource.REFERENCE)
-public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerformanceWalker.TargetInfo> {
+public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerformanceWalker.TargetInfo> implements TreeReducible<HybSelPerformanceWalker.TargetInfo> {
     @Argument(fullName="min_mapq", shortName="mmq", required=false, doc="Minimum mapping quality of reads to consider")
     public Integer MIN_MAPQ = 1;
 
@@ -123,6 +123,10 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
         return sum;
     }
 
+    public TargetInfo treeReduce(TargetInfo lhs, TargetInfo rhs) {
+        return lhs; // dummy function to test if tree reduce by interval is working
+    }
+
     public void onTraversalDone(TargetInfo result) {
     }
 
@@ -204,7 +208,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
             Collection<Interval> bait_quant_hits = bait_quant.getOverlaps(targetInterval);
             String bait_quant_string = (bait_quant_hits.size() == 1) ? bait_quant_hits.iterator().next().getName() : "0";
-            if (bait_quant_hits.size() <= 1) { out.printf("Warning: multiple bait quantity intervals detected; perhaps bait quantity interval lengths don't match primary interval list specified with -L"); }
+            if (bait_quant_hits.size() > 1) { out.printf("Warning: multiple bait quantity intervals detected; perhaps bait quantity interval lengths don't match primary interval list specified with -L\n"); }
             int adjacent_baits = adjacent_bait_detector.getOverlaps(targetInterval).size() - 1;
 
             out.printf("%s:%d-%d\t%d\t%6.4f\t%6.4f\t%6.4f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\t%d\n",
