@@ -43,6 +43,7 @@ public class GenotypeLikelihoods implements Cloneable {
     protected final static int MAX_PLOIDY = FIXED_PLOIDY + 1;
 
     protected boolean enableCacheFlag = true;
+    protected boolean VERBOSE = false;
 
     //
     // The fundamental data arrays associated with a Genotype Likelhoods object
@@ -123,11 +124,12 @@ public class GenotypeLikelihoods implements Cloneable {
     }
 
     public void setVerbose(boolean v) {
+        VERBOSE = v;
         fourBaseLikelihoods.setVerbose(v);
     }
 
     public boolean isVerbose() {
-        return fourBaseLikelihoods.isVerbose();
+        return VERBOSE;
     }
 
     public int getMinQScoreToInclude() {
@@ -314,7 +316,7 @@ public class GenotypeLikelihoods implements Cloneable {
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             double likelihood = likelihoods[g.ordinal()];
             
-            if ( isVerbose() ) {
+            if ( VERBOSE ) {
                 boolean fwdStrand = ! read.getReadNegativeStrandFlag();
                 System.out.printf("  L(%c | G=%s, Q=%d, S=%s) = %f / %f%n",
                         observedBase, g, qualityScore, fwdStrand ? "+" : "-", pow(10,likelihood) * 100, likelihood);
@@ -397,7 +399,7 @@ public class GenotypeLikelihoods implements Cloneable {
                 gl.log10Posteriors[g.ordinal()] += likelihood;
             }
 
-            if ( fourBaseLikelihoods.isVerbose() ) {
+            if ( VERBOSE ) {
                 for ( DiploidGenotype g : DiploidGenotype.values() ) { System.out.printf("%s\t", g); }
                 System.out.println();
                 for ( DiploidGenotype g : DiploidGenotype.values() ) { System.out.printf("%.2f\t", gl.log10Likelihoods[g.ordinal()]); }
