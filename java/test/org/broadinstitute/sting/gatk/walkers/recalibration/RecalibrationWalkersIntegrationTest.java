@@ -20,6 +20,8 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "7842b33245a53b13c7b6cd4e4616ac11");
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "cbe17568c5f03516a88ff0c5ce33a87b" );
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "8806fb7f0e669d1abab61dc4b3d10d8f" );
+
+
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
             String md5 = entry.getValue();
@@ -30,7 +32,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -T CountCovariates" +
                             " -I " + bam +
                             ( bam.equals( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
-                                    ? " -L 1:10,800,000-10,810,000" : " -L 1:10,000,000-10,200,000" ) +
+                                ? " -L 1:10,800,000-10,810,000" : " -L 1:10,000,000-10,200,000" ) +
                             " -cov ReadGroupCovariate" +
                             " -cov QualityScoreCovariate" +
                             " -cov CycleCovariate" +
@@ -72,6 +74,34 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                         Arrays.asList(md5));
                 executeTest("testTableRecalibrator1", spec);
             }
+        }
+    }
+
+    @Test
+    public void testCountCovariatesVCF() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "d5962c39a53a511d7ec710d5343e7a37");
+
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            String bam = entry.getKey();
+            String md5 = entry.getValue();
+
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    "-R /broad/1KG/reference/human_b36_both.fasta" +
+                            " -B dbsnp,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample3.vcf" +
+                            " -T CountCovariates" +
+                            " -I " + bam +
+                            " -L 1:10,000,000-10,200,000" +
+                            " -cov ReadGroupCovariate" +
+                            " -cov QualityScoreCovariate" +
+                            " -cov CycleCovariate" +
+                            " -cov DinucCovariate" +
+                            " --sorted_output" +
+                            " -recalFile %s",
+                    1, // just one output file
+                    Arrays.asList(md5));
+            executeTest("testCountCovariatesVCF", spec);
         }
     }
 }

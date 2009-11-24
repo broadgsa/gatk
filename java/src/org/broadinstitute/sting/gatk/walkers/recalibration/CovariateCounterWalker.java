@@ -110,7 +110,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private final String versionString = "v2.0.4"; // Major version, minor version, and build number
+    private final String versionString = "v2.0.5"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -301,7 +301,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                     }
 
                     // This read isn't in the hashMap yet so fill out the datum and add it to the map so that we never have to do the work again
-                    // Lots of lines just pulling things out of the SAMRecord and stuffing into local variables
+                    // Lots of lines just pulling things out of the SAMRecord and stuffing into local variables, many edge cases to worry about
+                    // These lines should be exactly the same in TableRecalibrationWalker
                     quals = read.getBaseQualities();
                     // Check if we need to use the original quality scores instead
                     if ( USE_ORIGINAL_QUALS && read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
@@ -350,7 +351,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                             refBase = (byte)ref.getBase();
                             prevBase = readDatum.bases[offset - 1];
 
-                            // Get the complement base strand if we are a negative strand read, DinucCovariate is responsible for getting the complement bases if needed
+                            // DinucCovariate is responsible for getting the complement bases if needed
                             if( readDatum.isNegStrand ) {
                                 prevBase = readDatum.bases[offset + 1];
                             }
@@ -415,8 +416,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             int refCharBaseIndex  = BaseUtils.simpleBaseToBaseIndex(ref);
 
             if ( readCharBaseIndex != -1 && refCharBaseIndex != -1 ) {
-                if ( readCharBaseIndex != refCharBaseIndex )
+                if ( readCharBaseIndex != refCharBaseIndex ) {
                     counts.first++;
+                }
                 counts.second++;
             }
         }
@@ -426,8 +428,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * Validate the dbSNP mismatch rates.
      */
     private void validateDbsnpMismatchRate() {
-        if ( novel_counts.second == 0 || dbSNP_counts.second == 0 )
+        if ( novel_counts.second == 0 || dbSNP_counts.second == 0 ) {
             return;
+        }
 
         double fractionMM_novel = (double)novel_counts.first / (double)novel_counts.second;
         double fractionMM_dbsnp = (double)dbSNP_counts.first / (double)dbSNP_counts.second;
@@ -464,7 +467,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         if( datum == null ) { // key doesn't exist yet in the map so make a new bucket and add it
             datum = new RecalDatum(); // initialized with zeros, will be incremented at end of method
             if( VALIDATE_OLD_RECALIBRATOR || SORTED_OUTPUT ) {
-                dataManager.data.myPut( key, datum );
+                dataManager.data.sortedPut( key, datum );
             } else {
                 dataManager.data.put( key, datum );
             }

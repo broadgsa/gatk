@@ -35,7 +35,7 @@ import java.util.*;
  * User: rpoplin
  * Date: Oct 30, 2009
  *
- * A HashMap that maps a list of comparables to any object <T>.
+ * A HashMap that maps a list of comparables to any Object <T>.
  * There is functionality for the mappings to be given back to you in sorted order.
  */
 
@@ -55,9 +55,8 @@ public class NHashMap<T> extends HashMap<List<? extends Comparable>, T> {
     }
 
 
-    // This method is here only to help facilitate direct comparison of old and refactored recalibrator.
-    // The old recalibrator prints out its mappings in a sorted order but the refactored recalibrator doesn't need to.
-    public T myPut(List<? extends Comparable> key, T value) {
+    // This method is here only to help facilitate outputting the mappings in sorted order
+    public T sortedPut(List<? extends Comparable> key, T value) {
 
         if( keyLists == null ) {
             keyLists = new ArrayList<ArrayList<Comparable>>();
