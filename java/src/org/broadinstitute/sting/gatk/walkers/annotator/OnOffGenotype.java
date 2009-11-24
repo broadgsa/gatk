@@ -10,7 +10,7 @@ import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import java.util.List;
 import java.util.ArrayList;
 
-public class OnOffGenotype implements VariantAnnotation {
+public class OnOffGenotype extends StandardVariantAnnotation {
 
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, List<Genotype> genotypes) {
 

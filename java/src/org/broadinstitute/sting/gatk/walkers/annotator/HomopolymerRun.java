@@ -9,7 +9,7 @@ import org.broadinstitute.sting.utils.genotype.Genotype;
 import java.util.List;
 
 
-public class HomopolymerRun implements VariantAnnotation {
+public class HomopolymerRun extends StandardVariantAnnotation {
 
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, List<Genotype> genotypes) {
 

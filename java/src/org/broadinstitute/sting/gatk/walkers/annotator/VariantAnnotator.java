@@ -31,6 +31,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     protected String[] ANNOTATIONS;
     @Argument(fullName="useAllAnnotations", shortName="all", doc="Use all possible annotations", required=false)
     protected Boolean USE_ALL_ANNOTATIONS = false;
+    @Argument(fullName="useStandardAnnotations", shortName="standard", doc="Use all standard annotations", required=false)
+    protected Boolean USE_STANDARD_ANNOTATIONS = false;
     @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit")
     protected Boolean LIST = false;
 
@@ -43,15 +45,19 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
     // mapping from class name to class
     private static HashMap<String, VariantAnnotation> allAnnotations = null;
+    private static HashMap<String, VariantAnnotation> standardAnnotations = null;
 
 
     private static void determineAllAnnotations() {
         allAnnotations = new HashMap<String, VariantAnnotation>();
+        standardAnnotations = new HashMap<String, VariantAnnotation>();
         List<Class<? extends VariantAnnotation>> annotationClasses = PackageUtils.getClassesImplementingInterface(VariantAnnotation.class);
         for ( Class c : annotationClasses ) {
             try {
                 VariantAnnotation annot = (VariantAnnotation) c.newInstance();
                 allAnnotations.put(c.getSimpleName().toUpperCase(), annot);
+                if ( annot instanceof StandardVariantAnnotation )
+                    standardAnnotations.put(c.getSimpleName().toUpperCase(), annot);
             } catch (InstantiationException e) {
                 throw new StingException(String.format("Cannot instantiate annotation class '%s': must be concrete class", c.getSimpleName()));
             } catch (IllegalAccessException e) {
@@ -93,7 +99,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
         determineAllAnnotations();
 
-        if ( USE_ALL_ANNOTATIONS ) {
+        if ( USE_STANDARD_ANNOTATIONS ) {
+            requestedAnnotations = new ArrayList<VariantAnnotation>(standardAnnotations.values());
+        } else if ( USE_ALL_ANNOTATIONS ) {
             requestedAnnotations = new ArrayList<VariantAnnotation>(allAnnotations.values());
         } else {
             requestedAnnotations = new ArrayList<VariantAnnotation>();
@@ -170,9 +178,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     }
 
     public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, List<Genotype> genotypes) {
-        if ( allAnnotations == null )
+        if ( standardAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(ref, context, genotypes, allAnnotations.values());
+        return getAnnotations(ref, context, genotypes, standardAnnotations.values());
     }
 
     public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, List<Genotype> genotypes, Collection<VariantAnnotation> annotations) {

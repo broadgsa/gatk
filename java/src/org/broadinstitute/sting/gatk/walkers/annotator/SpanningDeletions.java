@@ -8,7 +8,7 @@ import org.broadinstitute.sting.utils.genotype.Genotype;
 import java.util.List;
 
 
-public class SpanningDeletions implements VariantAnnotation {
+public class SpanningDeletions extends StandardVariantAnnotation {
 
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, List<Genotype> genotypes) {
         int deletions = 0;

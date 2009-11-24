@@ -10,7 +10,7 @@ import net.sf.samtools.SAMRecord;
 import java.util.List;
 
 
-public class RMSMappingQuality implements VariantAnnotation {
+public class RMSMappingQuality extends StandardVariantAnnotation {
 
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, List<Genotype> genotypes) {
         List<SAMRecord> reads = pileup.getReads();

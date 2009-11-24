@@ -11,7 +11,7 @@ import cern.jet.math.Arithmetic;
 import java.util.List;
 
 
-public class FisherStrand implements VariantAnnotation {
+public class FisherStrand extends StandardVariantAnnotation {
 
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, List<Genotype> genotypes) {
 

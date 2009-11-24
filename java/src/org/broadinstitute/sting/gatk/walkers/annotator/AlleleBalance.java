@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 
-public class AlleleBalance implements VariantAnnotation {
+public class AlleleBalance extends StandardVariantAnnotation {
 
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, List<Genotype> genotypes) {
 
