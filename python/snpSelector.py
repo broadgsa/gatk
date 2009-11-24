@@ -236,10 +236,11 @@ def validateBins(bins):
                     raise Exception("Bad bins", left1, right1, left2, right2)
 
 def printFieldQualHeader(more = ""):
-    print '  field left right nvariants titv dbSNP fprate q', more
+    print '  field left right nVariants nNovels titv titvNovels dbSNP fprate q', more
     
 def printFieldQual( field, left, right, variants, FPRate, more = ""):
-    print '  %s %s %8d %.2f %.2f %.2e %d' % (field, binString(left, right), len(variants),  titv(variants), dbSNPRate(variants), FPRate, phredScale(FPRate)), more
+    novels = selectVariants(variants, VCFRecord.isNovel)
+    print '  %s %s %8d %8d %.2f %.2f %.2f %.2e %d' % (field, binString(left, right), len(variants), len(novels), titv(variants), titv(novels), dbSNPRate(variants), FPRate, phredScale(FPRate)), more
 
 def binString(left, right):
     leftStr = str(left)
@@ -283,9 +284,9 @@ def optimizeCalls(variants, fields, titvTarget):
 def printCallQuals(recalCalls, titvTarget, info = ""):
     print '--------------------------------------------------------------------------------'
     print info
-    calibrateFeatures(recalCalls, ['QUAL'], titvTarget, printCall = True, cumulative = False )
+    calibrateFeatures(recalCalls, ['QUAL'], titvTarget, printCall = True, cumulative = False, forcePrint = True )
     print 'Cumulative'
-    calibrateFeatures(recalCalls, ['QUAL'], titvTarget, printCall = True, cumulative = True )
+    calibrateFeatures(recalCalls, ['QUAL'], titvTarget, printCall = True, cumulative = True, forcePrint = True )
 
 
 
@@ -313,7 +314,7 @@ def mapVariantBins(variants, field, cumulative = False):
         
     return imap( variantsInBin, bins )
 
-def calibrateFeatures(variants, fields, titvTarget, printCall = False, cumulative = False ):
+def calibrateFeatures(variants, fields, titvTarget, printCall = False, cumulative = False, forcePrint = False ):
     covariates = []    
 
     printFieldQualHeader()
@@ -324,7 +325,7 @@ def calibrateFeatures(variants, fields, titvTarget, printCall = False, cumulativ
         #print 'Overall FRRate:', FPRate, nErrors, phredScale(FPRate)
 
         for left, right, selectedVariants in mapVariantBins(variants, field, cumulative = cumulative):
-            if len(selectedVariants) > max(OPTIONS.minVariantsPerBin,1):
+            if len(selectedVariants) > max(OPTIONS.minVariantsPerBin,1) or forcePrint:
                 titv, FPRate = titvFPRateEstimate(selectedVariants, titvTarget)
                 dbsnp = dbSNPRate(selectedVariants)
                 covariates.append(CallCovariate(field, left, right, FPRate))

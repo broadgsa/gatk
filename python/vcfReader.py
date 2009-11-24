@@ -19,7 +19,7 @@ def convertToType(chr, pos, d, onlyKeys = None):
                 try:
                     out[key] = type(value)
                     if is_nan(out[key]): 
-                        print 'Warning, nan found at %s:%s, using NaN string' % (chr, pos)
+                        #print 'Warning, nan found at %s:%s, using NaN string' % (chr, pos)
                         out[key] = 'NaN'
                     break
                 except:
