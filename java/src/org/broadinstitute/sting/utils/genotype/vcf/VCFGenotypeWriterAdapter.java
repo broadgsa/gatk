@@ -124,7 +124,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
             params.setLocations(locusdata.getLocation(), locusdata.getReference().charAt(0));
 
             // if there is no genotype data, we'll also need to set an alternate allele
-            if ( locusdata.isSNP() && locusdata.isBiallelic() )
+            if ( locusdata.isBiallelic() && locusdata.isSNP() )
                 params.addAlternateBase(new VCFGenotypeEncoding(locusdata.getAlternateAlleleList().get(0)));
         } else {
             params.setLocations(genotypes.get(0).getLocation(), genotypes.get(0).getReference());

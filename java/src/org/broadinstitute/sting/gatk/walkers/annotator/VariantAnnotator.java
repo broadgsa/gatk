@@ -169,7 +169,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
                 variant instanceof VariantBackedByGenotype ) {
             final List<org.broadinstitute.sting.utils.genotype.Genotype> genotypes = ((VariantBackedByGenotype)variant).getGenotypes();
             if ( genotypes != null )
-                annotations = getAnnotations(ref, context, genotypes, requestedAnnotations);
+                annotations = getAnnotations(ref, context, variant, genotypes, requestedAnnotations);
         }
 
         writeVCF(tracker, ref, context, variant, annotations);
@@ -177,13 +177,13 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         return 1;
     }
 
-    public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, List<Genotype> genotypes) {
+    public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation, List<Genotype> genotypes) {
         if ( standardAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(ref, context, genotypes, standardAnnotations.values());
+        return getAnnotations(ref, context, variation, genotypes, standardAnnotations.values());
     }
 
-    public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, List<Genotype> genotypes, Collection<VariantAnnotation> annotations) {
+    public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation, List<Genotype> genotypes, Collection<VariantAnnotation> annotations) {
 
         // set up the pileup for the full collection of reads at this position
         ReadBackedPileup fullPileup = new ReadBackedPileup(ref.getBase(), context);
@@ -208,7 +208,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         HashMap<String, String> results = new HashMap<String, String>();
 
         for ( VariantAnnotation annotator : annotations) {
-            Pair<String, String> annot = annotator.annotate(ref, (annotator.useZeroQualityReads() ? fullPileup : MQ0freePileup), genotypes);
+            Pair<String, String> annot = annotator.annotate(ref, (annotator.useZeroQualityReads() ? fullPileup : MQ0freePileup), variation, genotypes);
             if ( annot != null ) {
                 // System.out.println("Annotating: First="+annot.getFirst()+" Second="+annot.getSecond());
                 results.put(annot.first, annot.second);

@@ -175,7 +175,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
 
         // annotate the call, if possible
         if ( call != null && call.second != null && call.second instanceof ArbitraryFieldsBacked ) {
-            Map<String, String> annotations = VariantAnnotator.getAnnotations(refContext, fullContext, call.first);
+            Map<String, String> annotations = VariantAnnotator.getAnnotations(refContext, fullContext, call.second, call.first);
             ((ArbitraryFieldsBacked)call.second).setFields(annotations);
         }
 

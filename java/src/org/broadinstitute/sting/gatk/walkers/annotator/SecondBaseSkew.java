@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
 import java.util.List;
@@ -26,7 +27,7 @@ public class SecondBaseSkew implements VariantAnnotation{
 
     public boolean useZeroQualityReads() { return USE_ZERO_QUALITY_READS; }
 
-    public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, List<Genotype> genotypes) {
+    public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
         double chi_square;
         Pair<Integer,Double> depthProp = getSecondaryPileupNonrefEstimator(pileup,genotypes);
             if ( depthProp == null ) {

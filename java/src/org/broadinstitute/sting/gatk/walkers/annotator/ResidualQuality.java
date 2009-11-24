@@ -4,6 +4,7 @@ import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
 import java.util.List;
@@ -21,7 +22,7 @@ public class ResidualQuality implements VariantAnnotation{
 
     public boolean useZeroQualityReads() { return true; } // for robustness
 
-    public Pair<String,String> annotate( ReferenceContext ref, ReadBackedPileup p, List<Genotype> genotypes) {
+    public Pair<String,String> annotate( ReferenceContext ref, ReadBackedPileup p, Variation variation, List<Genotype> genotypes) {
 
         Character snp = getSNPChar(ref, genotypes);
         if ( snp == null ) {

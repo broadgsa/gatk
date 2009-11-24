@@ -10,7 +10,7 @@ import java.util.ArrayList;
 
 public class AlleleBalance extends StandardVariantAnnotation {
 
-    public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, List<Genotype> genotypes) {
+    public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
 
         if ( genotypes.size() == 0 )
             return null;

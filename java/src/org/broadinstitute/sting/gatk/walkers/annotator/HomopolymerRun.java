@@ -5,25 +5,19 @@ import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.util.List;
 
 
 public class HomopolymerRun extends StandardVariantAnnotation {
 
-    public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, List<Genotype> genotypes) {
+    public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
 
-        Genotype genotype = VariantAnnotator.getFirstVariant(ref.getBase(), genotypes);
-        if ( genotype == null )
+        if ( !variation.isBiallelic() || !variation.isSNP() )
             return null;
 
-        final String genotypeStr = genotype.getBases().toUpperCase();
-        if ( genotypeStr.length() != 2 )
-            return null;
-
-        char altAllele = (genotypeStr.charAt(0) != ref.getBase() ? genotypeStr.charAt(0) : genotypeStr.charAt(1));
-
-        int run = computeHomopolymerRun(altAllele, ref);
+        int run = computeHomopolymerRun(variation.getAlternativeBaseForSNP(), ref);
         return new Pair<String, String>("HomopolymerRun", String.format("%d", run));
     }
 

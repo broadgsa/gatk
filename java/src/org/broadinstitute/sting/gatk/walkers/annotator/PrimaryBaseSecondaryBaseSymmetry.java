@@ -4,6 +4,7 @@ import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.apache.log4j.Logger;
 
@@ -34,7 +35,7 @@ public class PrimaryBaseSecondaryBaseSymmetry implements VariantAnnotation{
 
     public boolean useZeroQualityReads() { return USE_ZERO_QUALITY_READS; }
 
-    public Pair<String,String> annotate(ReferenceContext ref, ReadBackedPileup pileup, List<Genotype> genotypes) {
+    public Pair<String,String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
         Pair<Integer,Double> refSecondBasePair = getProportionOfReferenceSecondBasesThatSupportAlt(ref, pileup, genotypes);
         Pair<Integer,Double> nonrefPrimaryBasePair = getProportionOfPrimaryNonrefBasesThatSupportAlt(ref, pileup, genotypes);
         if ( refSecondBasePair == null || nonrefPrimaryBasePair ==  null ) {
