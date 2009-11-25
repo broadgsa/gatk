@@ -519,7 +519,7 @@ def evaluateTruth(header, callVCF, truthVCF):
     if truth <> None and OPTIONS.FNoutputVCF:
         f = open(OPTIONS.FNoutputVCF, 'w')
         #print 'HEADER', header
-        for line in formatVCF(header, filter( lambda x: not x.hasField("TP"), truth.itervalues())):
+        for line in formatVCF(header, filter( lambda x: not x.hasField("FN"), truth.itervalues())):
             print >> f, line
         f.close()
 

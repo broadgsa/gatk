@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
@@ -16,7 +17,6 @@ import org.broadinstitute.sting.playground.gatk.walkers.varianteval.ConcordanceT
 
 import java.io.*;
 import java.util.LinkedList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -90,7 +90,7 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
         }
 
         ReadBackedPileup p = new ReadBackedPileup(ref.getBase(),context);
-        int support = p.getBasePileupAsCounts()[BaseUtils.simpleBaseToBaseIndex(alternate)];
+        int support = p.getBaseCounts()[BaseUtils.simpleBaseToBaseIndex(alternate)];
 
         // sanity check
         if ( refBase == alternate ) {

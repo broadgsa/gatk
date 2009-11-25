@@ -4,6 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.*;
@@ -108,7 +109,6 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
         // create the pileup
         AlignmentContext myContext = sampleContext.getContext(contextType);
         ReadBackedPileup pileup = new ReadBackedPileup(ref, myContext);
-        pileup.setIncludeDeletionsInPileupString(true);
 
         // create the GenotypeLikelihoods object
         GenotypeLikelihoods GL = new GenotypeLikelihoods(baseModel, priors, defaultPlatform);

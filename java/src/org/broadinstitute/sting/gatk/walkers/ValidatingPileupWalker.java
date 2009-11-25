@@ -4,12 +4,13 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodSAMPileup;
+import org.broadinstitute.sting.gatk.refdata.SAMPileupRecord;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.Pileup;
-import org.broadinstitute.sting.utils.BasicPileup;
-import org.broadinstitute.sting.utils.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.StingException;
+
+import java.util.Arrays;
 
 /**
  * Created by IntelliJ IDEA.
@@ -24,19 +25,19 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
     public boolean CONTINUE_AFTER_AN_ERROR = false;
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        Pileup pileup = new ReadBackedPileup(ref.getBase(), context);
-        Pileup truePileup = getTruePileup( tracker );
+        ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(), context);
+        SAMPileupRecord truePileup = getTruePileup( tracker );
 
         if ( truePileup == null ) {
-            out.printf("No truth pileup data available at %s%n", pileup.getPileupString());
+            out.printf("No truth pileup data available at %s%n", pileup.getPileupString(false));
             if ( ! CONTINUE_AFTER_AN_ERROR ) {
                 Utils.scareUser(String.format("No pileup data available at %s given GATK's output of %s -- this walker requires samtools pileup data over all bases",
-                                context.getLocation(), pileup.getBasesAsString()));
+                                context.getLocation(), new String(pileup.getBases())));
             }
         } else {
-            String pileupDiff = BasicPileup.pileupDiff(pileup, truePileup);
+            String pileupDiff = pileupDiff(pileup, truePileup, true);
             if ( pileupDiff != null ) {
-                out.printf("%s vs. %s%n", pileup.getPileupString(), truePileup.getPileupString());
+                out.printf("%s vs. %s%n", pileup.getPileupString(true), truePileup.getPileupString());
                 if ( ! CONTINUE_AFTER_AN_ERROR ) {
                     throw new RuntimeException(String.format("Pileups aren't equal: %s", pileupDiff));
                 }
@@ -44,6 +45,37 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
         }
 
         return pileup.size();
+    }
+
+    private static String maybeSorted( final String x, boolean sortMe )
+    {
+        if ( sortMe ) {
+            byte[] bytes = x.getBytes();
+            Arrays.sort(bytes);
+            return new String(bytes);
+        }
+        else
+            return x;
+    }
+
+    public static String pileupDiff(final ReadBackedPileup a, final SAMPileupRecord b, boolean orderDependent)
+    {
+        if ( a.size() != b.size() )
+            return "Sizes not equal";
+        if ( a.getLocation().compareTo(b.getLocation()) != 0 )
+            return "Locations not equal";
+
+        String aBases = maybeSorted(new String(a.getBases()), ! orderDependent );
+        String bBases = maybeSorted(b.getBasesAsString(), ! orderDependent );
+        if ( ! aBases.toUpperCase().equals(bBases.toUpperCase()) )
+            return "Bases not equal";
+
+        String aQuals = maybeSorted(new String(a.getQuals()), ! orderDependent );
+        String bQuals = maybeSorted(b.getQualsAsString(), ! orderDependent );
+        if ( ! aQuals.equals(bQuals) )
+            return "Quals not equal";
+
+        return null;
     }
 
     // Given result of map function
@@ -67,16 +99,16 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
      * @param tracker ROD tracker from which to extract pileup data.
      * @return True pileup data.
      */
-    private Pileup getTruePileup( RefMetaDataTracker tracker ) {
+    private SAMPileupRecord getTruePileup( RefMetaDataTracker tracker ) {
         rodSAMPileup pileup = (rodSAMPileup)tracker.lookup("pileup", null);
 
         if( pileup == null )
             return null;
 
         if( pileup.hasPointGenotype() )
-            return (Pileup)pileup.getPointGenotype();
+            return (SAMPileupRecord)pileup.getPointGenotype();
         else if( pileup.hasIndelGenotype() )
-            return (Pileup)pileup.getIndelGenotype();
+            return (SAMPileupRecord)pileup.getIndelGenotype();
         else
             throw new StingException("Unsupported pileup type: " + pileup);
     }

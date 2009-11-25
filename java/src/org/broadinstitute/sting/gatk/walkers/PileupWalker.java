@@ -30,7 +30,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.util.ArrayList;
@@ -59,9 +59,6 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     @Argument(fullName="qualsAsInts",doc="If true, prints out qualities in the pileup as comma-separated integers",required=false)
     public boolean qualsAsInts = false;
 
-    @Argument(fullName="extended",shortName="ext",doc="extended",required=false)
-    public boolean EXTENDED = false;
-
     @Argument(fullName="ignore_uncovered_bases",shortName="skip_uncov",doc="Output nothing when a base is uncovered")
     public boolean IGNORE_UNCOVERED_BASES = false;
     
@@ -70,23 +67,13 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(), context);
-        String bases = pileup.getBasesAsString();
         
-        if ( bases.equals("") && !IGNORE_UNCOVERED_BASES ) {
-            bases = "***UNCOVERED_SITE***";
-        }
-
         String secondBasePileup = "";
         if(shouldShowSecondaryBasePileup(pileup))
             secondBasePileup = getSecondBasePileup(pileup);
         String rods = getReferenceOrderedData( tracker );
 
         out.printf("%s%s %s%n", pileup.getPileupString(qualsAsInts), secondBasePileup, rods);
-
-        if ( EXTENDED ) {
-            String probDists = pileup.getProbDistPileup();
-            out.println(probDists);
-        }
 
         return 1;
     }
@@ -106,7 +93,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
      * @return True, if a secondary base pileup should always be shown.
      */
     private boolean shouldShowSecondaryBasePileup( ReadBackedPileup pileup ) {
-        return ( pileup.getSecondaryBasePileup() != null || alwaysShowSecondBase );
+        return ( pileup.hasSecondaryBases() || alwaysShowSecondBase );
     }
 
     /**
@@ -115,11 +102,10 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
      * @return String representation of the secondary base.
      */
     private String getSecondBasePileup( ReadBackedPileup pileup ) {
-        String secondBasePileup = pileup.getSecondaryBasePileup();
-        if( secondBasePileup != null )
-            return " " + secondBasePileup;
+        if( pileup.hasSecondaryBases() )
+            return " " + new String(pileup.getSecondaryBases());
         else
-            return " " + Utils.dupString('N', pileup.getBasesAsString().length());
+            return " " + Utils.dupString('N', pileup.size());
     }
 
     /**

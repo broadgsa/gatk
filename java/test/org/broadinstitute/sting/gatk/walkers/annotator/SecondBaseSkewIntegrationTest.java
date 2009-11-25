@@ -33,7 +33,7 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
                 +"-B variant,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_pilot_pool3_raw_calls.geli "
                 +"-vcf %s -sample variant -L /humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_test_intervals.interval_list";
 
-        String md5_for_this_test = "6a71095e1cfade39d909b35f6c99d1ca";
+        String md5_for_this_test = "cbf0636dbb2e2f70a20f4b29a213e4d0";
 
         WalkerTestSpec spec = new WalkerTestSpec(test_args,1, Arrays.asList(md5_for_this_test));
         executeTest("Testing on E2 annotated but not Q2 annotated file ",spec);

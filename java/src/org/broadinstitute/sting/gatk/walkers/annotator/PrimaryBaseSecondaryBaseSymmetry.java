@@ -1,8 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -72,23 +73,29 @@ public class PrimaryBaseSecondaryBaseSymmetry implements VariantAnnotation{
             return null;
         }
 
-        String secondaryPileupStr = p.getSecondaryBasePileup();
-        if ( secondaryPileupStr == null )
-            return null;
-
-        char[] secondaryPileup = secondaryPileupStr.toCharArray();
-        int depth = p.size();
-
+        int depth = 0;
         int support = 0;
-        for ( char c : secondaryPileup ) {
-            if ( Character.toUpperCase(c) == Character.toUpperCase(snp) ) {
-                support ++;
+
+        for (PileupElement pile : p ) {
+            byte c = pile.getSecondBase();
+
+            if ( BaseUtils.isRegularBase((char)c) ) {
+                depth++;
+
+                // todo -- chris this is dangerous
+                if ( Character.toUpperCase(c) == Character.toUpperCase(snp) ) {
+                    support++;
+                }
             }
         }
 
-        double as_prop = ( ( double ) support ) / depth;
+        if ( depth > 0 ) {
+            double as_prop = ( ( double ) support ) / depth;
 
-        return new Pair<Integer,Double> ( depth, as_prop );
+            return new Pair<Integer,Double> ( depth, as_prop );
+        } else {
+            return null;
+        }
     }
 
     private Pair<Integer,Double> getProportionOfPrimaryNonrefBasesThatSupportAlt( ReferenceContext ref, ReadBackedPileup p, List<Genotype> genotypes ) {
@@ -99,7 +106,7 @@ public class PrimaryBaseSecondaryBaseSymmetry implements VariantAnnotation{
             return null;
         }
 
-        int [] baseCounts = p.getBasePileupAsCounts();
+        int [] baseCounts = p.getBaseCounts();
         int support = -1;
         int depth = 0;
         for ( char c : BaseUtils.BASES ) {

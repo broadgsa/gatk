@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.List;
@@ -32,7 +33,7 @@ public class AlleleBalance extends StandardVariantAnnotation {
             if ( genotypeStr.length() != 2 )
                 return null;
 
-            final String bases = pileup.getBasesAsString().toUpperCase();
+            final String bases = new String(pileup.getBases()).toUpperCase();
             if ( bases.length() == 0 )
                 return null;
 
@@ -89,7 +90,7 @@ public class AlleleBalance extends StandardVariantAnnotation {
             if ( myPileup == null )
                 myPileup = pileup;
 
-            int[] counts = myPileup.getBasePileupAsCounts();
+            int[] counts = myPileup.getBaseCounts();
             int refCount = counts[BaseUtils.simpleBaseToBaseIndex(ref)];
             int altCount = counts[BaseUtils.simpleBaseToBaseIndex(altBase)];
 

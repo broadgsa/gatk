@@ -176,8 +176,16 @@ public class DupUtils {
         System.out.printf("%n");
     }
 
+    private static List<Integer> constantOffset( List<SAMRecord> reads, int i ) {
+        List<Integer> l = new ArrayList<Integer>(reads.size());
+        for ( SAMRecord read : reads ) {
+            l.add(i);
+        }
+        return l;
+    }
+
     private static Pair<Byte, Byte> combineBaseProbs(List<SAMRecord> duplicates, int readOffset, int maxQScore) {
-        List<Integer> offsets = BasicPileup.constantOffset(duplicates, readOffset);
+        List<Integer> offsets = constantOffset(duplicates, readOffset);
         ArrayList<Byte> bases = BasicPileup.getBasesAsArrayList(duplicates, offsets);
         ArrayList<Byte> quals = BasicPileup.getQualsAsArrayList(duplicates, offsets);
         final boolean debug = false;
@@ -198,11 +206,11 @@ public class DupUtils {
         if ( debug ) print4BaseQuals("final", qualSums);
 
         Pair<Byte, Byte> combined = baseProbs2BaseAndQual(qualSums, maxQScore);
-        if ( debug ) 
-            System.out.printf("%s %s => %c Q%s%n",
-                    BasicPileup.basePileupAsString(duplicates, offsets),
-                    BasicPileup.qualPileupAsString(duplicates, offsets),
-                    (char)(byte)combined.getFirst(), combined.getSecond());
+//        if ( debug )
+//            System.out.printf("%s %s => %c Q%s%n",
+//                    BasicPileup.basePileupAsString(duplicates, offsets),
+//                    BasicPileup.qualPileupAsString(duplicates, offsets),
+//                    (char)(byte)combined.getFirst(), combined.getSecond());
         return combined;
     }
 }

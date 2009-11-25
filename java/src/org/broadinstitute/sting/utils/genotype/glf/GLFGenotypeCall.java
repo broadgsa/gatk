@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.Arrays;

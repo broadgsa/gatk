@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.*;
@@ -331,21 +332,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     }
 
     public int countMismatches(ReadBackedPileup p) {
-        int refM = 0;
-
-        switch (Character.toUpperCase(p.getRef())) {
-            case 'A': refM = BasicPileup.countBases(p.getBasesAsString()).a;
-                break;
-            case 'C': refM = BasicPileup.countBases(p.getBasesAsString()).c;
-                break;
-            case 'G': refM = BasicPileup.countBases(p.getBasesAsString()).g;
-                break;
-            case 'T': refM = BasicPileup.countBases(p.getBasesAsString()).t;
-                break;
-            default:
-                throw new StingException("Exception in countMismatches - this has been called for a non-reference base. Base character from pileup was " + p.getRef() );
-        }
-
+        int refM = p.getBaseCounts()[BaseUtils.simpleBaseToBaseIndex(p.getRef())];
         return p.size()-refM;
     }
 

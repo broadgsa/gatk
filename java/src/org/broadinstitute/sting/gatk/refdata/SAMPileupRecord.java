@@ -28,7 +28,7 @@ import net.sf.picard.reference.ReferenceSequenceFileWalker;
  */
 
 
-class SAMPileupRecord implements Genotype, GenotypeList, Pileup {
+public class SAMPileupRecord implements Genotype, GenotypeList {
     private static final int NO_VARIANT = -1;
     private static final int SNP_VARIANT = 0;
     private static final int INSERTION_VARIANT = 1;

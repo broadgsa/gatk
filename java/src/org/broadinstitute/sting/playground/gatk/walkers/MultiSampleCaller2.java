@@ -11,7 +11,6 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.playground.utils.*;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 import java.util.*;
@@ -116,7 +115,7 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
 			String ans = "";
 			List<SAMRecord> reads = context.getReads();
 			List<Integer> offsets = context.getOffsets();
-			Pileup pileup = new ReadBackedPileup(ref, context);
+			//Pileup pileup = new ReadBackedPileupOld(ref, context);
 			
 			ans += String.format("%s ", context.getLocation());
 			ans += String.format("%c ", ref);
@@ -873,7 +872,7 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
                         em_result.genotype_likelihoods[i].LodVsRef(ref),
                         in_dbsnp);
 
-            //individual_output.printf("%s ", new ReadBackedPileup(ref, contexts[i]).getBasePileupAsCountsString());
+            //individual_output.printf("%s ", new ReadBackedPileup(ref, contexts[i]).getBaseCountsString());
             assert(em_result.genotype_likelihoods[i] != null);
             em_result.genotype_likelihoods[i].sort();
             assert(em_result.genotype_likelihoods[i].sorted_likelihoods != null);

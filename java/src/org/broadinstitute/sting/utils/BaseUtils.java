@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils;
 
+import net.sf.samtools.SAMRecord;
+
 import java.util.Random;
 
 /**
@@ -195,10 +197,34 @@ public class BaseUtils {
         }
     }
 
-    /**
-     * Return the complement of a base, or the specified base if it can't be complemented (i.e. an ambiguous base).
-     *
-     * @param base  the base [AaCcGgTt]
+
+    public static byte getSecondBase(final SAMRecord read, int offset) {
+        byte base2 = '.'; // todo -- what should the default char really be?
+
+        if (read.getAttribute("SQ") != null) {
+            byte[] compressedQuals = (byte[]) read.getAttribute("SQ");
+
+            if (offset != -1 && compressedQuals != null && compressedQuals.length == read.getReadLength()) {
+                base2 = (byte) BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(compressedQuals[offset]));
+            }
+        }
+        else if (read.getAttribute("E2") != null) {
+            String secondaries = (String) read.getAttribute("E2");
+            if (offset != -1 && secondaries != null && secondaries.length() == read.getReadLength()) {
+                base2 = (byte)secondaries.charAt(offset);
+            }
+        }
+        else {
+            base2 = 'N';
+        }
+
+        return base2;
+    }
+
+        /**
+         * Return the complement of a base, or the specified base if it can't be complemented (i.e. an ambiguous base).
+         *
+         * @param base  the base [AaCcGgTt]
      * @return the complementary base, or the input base if it's not one of the understood ones
      */
     static public char simpleComplement(char base) {

@@ -1,23 +1,12 @@
 package org.broadinstitute.sting.playground.gatk.walkers.secondaryBases;
 
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.IntervalRod;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
-import org.broadinstitute.sting.gatk.refdata.RodGenotypeChipAsGFF;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.ReadBackedPileup;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
 
-import javax.xml.transform.Result;
-import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 
 
 /**
@@ -44,62 +33,64 @@ public class SecondaryBaseTransitionTableWalker extends LocusWalker<Integer, Int
     }*/
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        String refBase = Character.toString(ref.getBase());
-        ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(),context);
-        String primaryBases = pileup.getBasesWithStrand();
-        String secondaryBases = pileup.getSecondaryBasePileup();
-        String contextBases = new String(ref.getBases());
-
-        /*if (refSeq != null) {
-            long startPos = context.getPosition() - 1;
-            long stopPos = context.getPosition() + 1;
-
-            ReferenceSequence prevRefSequence = refSeq.getSubsequenceAt(context.getContig(), startPos, context.getPosition() - 1);
-            ReferenceSequence nextRefSequence = refSeq.getSubsequenceAt(context.getContig(), context.getPosition() + 1, stopPos);
-
-            String prev = new String(prevRefSequence.getBases());
-            String next = new String(nextRefSequence.getBases());
-            String total = new String(refSeq.getSubsequenceAt(context.getContig(),startPos,stopPos).getBases());
-            out.println(total + "  " + prev + " " + refBase + " " + next);
-        }*/
-
-        String precedingBase = contextBases.substring(0,1);
-        String nextBase = contextBases.substring(2);
-        /*out.println(contextBases + "  " + precedingBase + " " + refBase + " " + nextBase);*/
-        /*out.println(" ");*/
-
-        boolean rods = false;
-        for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
-            if (datum != null && !(datum instanceof IntervalRod)) {
-                rods = true;}
-        }
-
-        if (!rods && precedingBase != null && secondaryBases != null) {
-            for (int i = 0; i < primaryBases.length(); i ++) {
-                if (secondaryBases.charAt(i) != 'N' && secondaryBases.charAt(i) != '.' && Character.toUpperCase(primaryBases.charAt(i)) != 'N') {
-                    String quenchingBase;
-                    if (primaryBases.charAt(i) == Character.toUpperCase(primaryBases.charAt(i))) {
-                        quenchingBase = precedingBase;
-                    }
-                    else {
-                        quenchingBase = nextBase;
-                    }
-                    String reference = Character.toString(Character.toUpperCase(refBase.charAt(0)));
-                    String primary = Character.toString(Character.toUpperCase(primaryBases.charAt(i)));
-                    String quencher = Character.toString(Character.toUpperCase(quenchingBase.charAt(0)));
-                    String secondary = Character.toString(Character.toUpperCase(secondaryBases.charAt(i)));
-                    String key = reference + primary + quencher + secondary;
-                    if (counts.containsKey(key)) {
-                        counts.put(key, counts.get(key) + Long.valueOf(1));
-                    }
-                    else {
-                        counts.put(key, Long.valueOf(1));
-                    }
-                }
-            }
-        }
-        return 1;
+        return 0;
     }
+//        String refBase = Character.toString(ref.getBase());
+//        ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(),context);
+//        String primaryBases = pileup.getBasesWithStrand();
+//        String secondaryBases = pileup.getSecondaryBasePileup();
+//        String contextBases = new String(ref.getBases());
+//
+//        /*if (refSeq != null) {
+//            long startPos = context.getPosition() - 1;
+//            long stopPos = context.getPosition() + 1;
+//
+//            ReferenceSequence prevRefSequence = refSeq.getSubsequenceAt(context.getContig(), startPos, context.getPosition() - 1);
+//            ReferenceSequence nextRefSequence = refSeq.getSubsequenceAt(context.getContig(), context.getPosition() + 1, stopPos);
+//
+//            String prev = new String(prevRefSequence.getBases());
+//            String next = new String(nextRefSequence.getBases());
+//            String total = new String(refSeq.getSubsequenceAt(context.getContig(),startPos,stopPos).getBases());
+//            out.println(total + "  " + prev + " " + refBase + " " + next);
+//        }*/
+//
+//        String precedingBase = contextBases.substring(0,1);
+//        String nextBase = contextBases.substring(2);
+//        /*out.println(contextBases + "  " + precedingBase + " " + refBase + " " + nextBase);*/
+//        /*out.println(" ");*/
+//
+//        boolean rods = false;
+//        for ( ReferenceOrderedDatum datum : tracker.getAllRods() ) {
+//            if (datum != null && !(datum instanceof IntervalRod)) {
+//                rods = true;}
+//        }
+//
+//        if (!rods && precedingBase != null && secondaryBases != null) {
+//            for (int i = 0; i < primaryBases.length(); i ++) {
+//                if (secondaryBases.charAt(i) != 'N' && secondaryBases.charAt(i) != '.' && Character.toUpperCase(primaryBases.charAt(i)) != 'N') {
+//                    String quenchingBase;
+//                    if (primaryBases.charAt(i) == Character.toUpperCase(primaryBases.charAt(i))) {
+//                        quenchingBase = precedingBase;
+//                    }
+//                    else {
+//                        quenchingBase = nextBase;
+//                    }
+//                    String reference = Character.toString(Character.toUpperCase(refBase.charAt(0)));
+//                    String primary = Character.toString(Character.toUpperCase(primaryBases.charAt(i)));
+//                    String quencher = Character.toString(Character.toUpperCase(quenchingBase.charAt(0)));
+//                    String secondary = Character.toString(Character.toUpperCase(secondaryBases.charAt(i)));
+//                    String key = reference + primary + quencher + secondary;
+//                    if (counts.containsKey(key)) {
+//                        counts.put(key, counts.get(key) + Long.valueOf(1));
+//                    }
+//                    else {
+//                        counts.put(key, Long.valueOf(1));
+//                    }
+//                }
+//            }
+//        }
+//        return 1;
+//    }
 
     public Integer reduceInit() {return 0;}
 
