@@ -8,7 +8,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
  * Date: Nov 19, 2009
  * Time: 2:07:25 AM
  *
- * This simple call class stores the data for the per-locus calls of the GATKPaperGenotyper.
+ * This is a simple call class that stores the data for the per-locus calls of the GATKPaperGenotyper.
  *
  */
 class SimpleCall {
@@ -23,6 +23,6 @@ class SimpleCall {
     }
 
     public String toString() {
-        return String.format("Location %s : %s with LOD %.2f", loc, genotype, LOD);
+        return String.format("%s : %s with LOD %.4f", loc, genotype, LOD);
     }
 }

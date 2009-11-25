@@ -10,7 +10,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-import java.io.File;
+import java.io.PrintWriter;
 
 
 /**
@@ -21,13 +21,14 @@ import java.io.File;
  *         A simple Bayesian genotyper, that output a text based call format. Intended to be used only as an
  *         example in the GATK publication.
  */
-public class GATKPaperGenotyper extends LocusWalker<SimpleCall, SimpleCallList> implements TreeReducible<SimpleCallList> {
+public class GATKPaperGenotyper extends LocusWalker<SimpleCall, Integer> implements TreeReducible<Integer> {
 
     // the possible diploid genotype strings
     private static enum GENOTYPE { AA, AC, AG, AT, CC, CG, CT, GG, GT, TT }
 
+    // where to write the genotyping data to
     @Argument(fullName = "call_location", shortName = "cl", doc = "File to which calls should be written", required = true)
-    private File LOCATION = new File("genotyping.output");
+    public PrintWriter outputStream;
 
     /**
      * our map function, which takes the reads spanning this locus, any associated reference ordered data,
@@ -45,12 +46,13 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, SimpleCallList> 
         double likelihoods[] = DiploidGenotypePriors.getReferencePolarizedPriors(ref.getBase(),
                                                                                  DiploidGenotypePriors.HUMAN_HETEROZYGOSITY,
                                                                                  DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
-
+        byte bases[] = pileup.getBases();
+        byte quals[] = pileup.getQuals();
         for (GENOTYPE genotype : GENOTYPE.values())
-            for (int index = 0; index < pileup.getBases().length; index++) {
-                if (pileup.getQuals()[index] > 0) {
-                    double epsilon = Math.pow(10, pileup.getQuals()[index] / -10.0);
-                    byte pileupBase = pileup.getBases()[index];
+            for (int index = 0; index < bases.length; index++) {
+                if (quals[index] > 0) {
+                    double epsilon = Math.pow(10, quals[index] / -10.0);
+                    byte pileupBase = bases[index];
                     for (char genotypeBase : genotype.toString().toCharArray())
                         if (genotypeBase == pileupBase)
                             likelihoods[genotype.ordinal()] += Math.log10(0.5 * ((1 - epsilon) + epsilon / 3));
@@ -76,8 +78,8 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, SimpleCallList> 
      *
      * @return Initial value of reduce.
      */
-    public SimpleCallList reduceInit() {
-        return new SimpleCallList(LOCATION);
+    public Integer reduceInit() {
+        return 0;
     }
 
     /**
@@ -87,9 +89,9 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, SimpleCallList> 
      * @param sum   accumulator for the reduce.
      * @return accumulator with result of the map taken into account.
      */
-    public SimpleCallList reduce(SimpleCall value, SimpleCallList sum) {
-        if (value != null) sum.add(value);
-        return sum;
+    public Integer reduce(SimpleCall value, Integer sum) {
+        outputStream.println(value.toString());
+        return sum + 1;
     }
 
     /**
@@ -99,17 +101,16 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, SimpleCallList> 
      * @param rhs 'right-most' portion of data in the composite reduce.
      * @return The composite reduce type.
      */
-    public SimpleCallList treeReduce(SimpleCallList lhs, SimpleCallList rhs) {
-        lhs.addAll(rhs);
-        return lhs;
+    public Integer treeReduce(Integer lhs, Integer rhs) {
+        return lhs + rhs;
     }
 
     /**
      * when we finish traversing, close the result list
      * @param result the final reduce result
      */
-    public void onTraversalDone(SimpleCallList result) {
-        result.close();
+    public void onTraversalDone(Integer result) {
+        out.println("Simple Genotyper genotyped " + result + "Loci.");
     }
 }
 
