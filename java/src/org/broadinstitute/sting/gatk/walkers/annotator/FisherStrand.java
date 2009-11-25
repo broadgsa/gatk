@@ -32,7 +32,8 @@ public class FisherStrand extends StandardVariantAnnotation {
         if ( pvalue == null )
             return null;
 
-        return new Pair<String, String>("FisherStrand", String.format("%.1f", -10.0 * Math.log10(pvalue)));
+        // use Math.abs to prevent -0's
+        return new Pair<String, String>("FisherStrand", String.format("%.1f", Math.abs(10.0 * Math.log10(pvalue))));
     }
 
     public boolean useZeroQualityReads() { return false; }
