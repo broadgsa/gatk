@@ -38,15 +38,18 @@ public class QualityScoreCovariate implements Covariate {
     public QualityScoreCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }
 
+    // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
     	
     	return (int)(readDatum.quals[offset]);
     }
-    
+
+    // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
         return (int)Integer.parseInt( str ); // cast to primitive int (as opposed to Integer Object) is required so that the return value from the two getValue methods hash to same thing
     }
 
+    // Used to estimate the amount space required for the full data HashMap
     public final int estimatedNumberOfBins() {
         return 40;
     }

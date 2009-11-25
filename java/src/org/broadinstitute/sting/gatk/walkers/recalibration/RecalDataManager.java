@@ -87,6 +87,7 @@ public class RecalDataManager {
         //data.put(key, thisDatum); // add the mapping to the main table
 
         // Create dataCollapsedReadGroup, the table where everything except read group has been collapsed
+        //BUGBUG: Bases with Reported Quality less than -pQ argument shouldn't be included in this collapsed table
         ArrayList<Comparable> newKey = new ArrayList<Comparable>();
         newKey.add( key.get(0) ); // Make a new key with just the read group
         RecalDatum collapsedDatum = dataCollapsedReadGroup.get( newKey );

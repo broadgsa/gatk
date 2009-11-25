@@ -53,9 +53,10 @@ public class DinucCovariate implements Covariate {
             }
         }
     }
-    
+
+    // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
-    	
+
         byte base;
         byte prevBase;
         // If this is a negative strand read then we need to reverse the direction for our previous base
@@ -71,12 +72,14 @@ public class DinucCovariate implements Covariate {
         return dinucHashMap.get( Dinuc.hashBytes( prevBase, base ) );
         //return String.format("%c%c", prevBase, base); // This return statement is too slow
     }
-    
+
+    // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
         //return str;
         return dinucHashMap.get( Dinuc.hashBytes( (byte)str.charAt(0), (byte)str.charAt(1) ) );
     }
 
+    // Used to estimate the amount space required for the full data HashMap
     public final int estimatedNumberOfBins() {
         return 16;
     }

@@ -23,4 +23,14 @@ public class ReadHashDatum {
         mappingQuality = _mappingQuality;
         length = _length;
     }
+
+    public ReadHashDatum(ReadHashDatum that) {
+        this.readGroup = that.readGroup;
+        this.platform = that.platform;
+        this.quals = that.quals;
+        this.bases = that.bases;
+        this.isNegStrand = that.isNegStrand;
+        this.mappingQuality = that.mappingQuality;
+        this.length = that.length;
+    }
 }

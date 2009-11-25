@@ -83,22 +83,26 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private String RECAL_FILE = "output.recal_data.csv";
     @Argument(fullName="process_nth_locus", shortName="pN", required=false, doc="Only process every Nth covered locus we see.")
     private int PROCESS_EVERY_NTH_LOCUS = 1;
+    @Argument(fullName="default_read_group", shortName="dRG", required=false, doc="If a read has no read group then default to the provided String.")
+    private String DEFAULT_READ_GROUP = ReadGroupCovariate.defaultReadGroup;
+    @Argument(fullName="default_platform", shortName="dP", required=false, doc="If a read has no platform then default to the provided String. Valid options are illumina, 454, and solid.")
+    private String DEFAULT_PLATFORM = "Illumina";
+    @Argument(fullName="force_read_group", shortName="fRG", required=false, doc="If provided, the read group ID of EVERY read will be forced to be the provided String. This is useful to collapse all data into a single read group.")
+    private String FORCE_READ_GROUP = null;
+    @Argument(fullName="force_platform", shortName="fP", required=false, doc="If provided, the platform of EVERY read will be forced to be the provided String. Valid options are illumina, 454, and solid.")
+    private String FORCE_PLATFORM = null;    
 
     /////////////////////////////
     // Debugging-only Arguments
     /////////////////////////////
-    @Argument(fullName="no_print_header", shortName="noHeader", required=false, doc="Don't print the usual header on the table recalibration file. For debugging purposes only.")
+    @Argument(fullName="no_print_header", shortName="noHeader", required=false, doc="Don't print the usual header on the table recalibration file. FOR DEBUGGING PURPOSES ONLY.")
     private boolean NO_PRINT_HEADER = false;
-    @Argument(fullName="validate_old_recalibrator", shortName="validate", required=false, doc="Depricated. Match the output of the old recalibrator exactly. FOR DEBUGGING PURPOSES ONLY.")
+    @Argument(fullName="validate_old_recalibrator", shortName="validate", required=false, doc="!!!Depricated!!! Match the output of the old recalibrator exactly. FOR DEBUGGING PURPOSES ONLY.")
     private boolean VALIDATE_OLD_RECALIBRATOR = false;
     // BUGBUG: This validate option no longer does exactly what it says because now using read filter to filter out zero mapping quality reads. The old recalibrator counted those reads in the counted_sites variable but the new one doesn't.
-    @Argument(fullName="use_slx_platform", shortName="useSLX", required=false, doc="Force the platform to be Illumina regardless of what it actually says. FOR DEBUGGING PURPOSES ONLY.")
-    private boolean USE_SLX_PLATFORM = false;
     @Argument(fullName="sorted_output", shortName="sorted", required=false, doc="The outputted table recalibration file will be in sorted order at the cost of added overhead. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
     private boolean SORTED_OUTPUT = false;
-    @Argument(fullName="ignore_readgroup", shortName="noRG", required=false, doc="All read groups are combined together. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
-    private boolean IGNORE_READGROUP = false;
-        
+
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
@@ -110,7 +114,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private final String versionString = "v2.0.5"; // Major version, minor version, and build number
+    private final String versionString = "v2.0.6"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -131,6 +135,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     public void initialize() {
 
         logger.info( "CovariateCounterWalker version: " + versionString );
+        if( FORCE_READ_GROUP != null ) { DEFAULT_READ_GROUP = FORCE_READ_GROUP; }
+        if( FORCE_PLATFORM != null ) { DEFAULT_PLATFORM = FORCE_PLATFORM; }
 
         // Get a list of all available covariates
         final List<Class<? extends Covariate>> classes = PackageUtils.getClassesImplementingInterface( Covariate.class );
@@ -159,6 +165,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
 
 
         // Initialize the requested covariates by parsing the -cov argument
+        // BUGBUG: This is a mess because there are a lot of cases (validate, all, none, and supplied covList). Clean up needed.
         requestedCovariates = new ArrayList<Covariate>();
         int estimatedCapacity = 1; // Capacity is multiplicitive so this starts at one
         if( VALIDATE_OLD_RECALIBRATOR ) {
@@ -175,6 +182,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                         Covariate covariate = (Covariate)covClass.newInstance();
                         estimatedCapacity *= covariate.estimatedNumberOfBins();
                         // Some covariates need parameters (user supplied command line arguments) passed to them
+                        if( covariate instanceof CycleCovariate && DEFAULT_PLATFORM != null ) { covariate = new CycleCovariate( DEFAULT_PLATFORM ); }
                         if( covariate instanceof MinimumNQSCovariate ) { covariate = new MinimumNQSCovariate( WINDOW_SIZE ); }
                         if( !( covariate instanceof ReadGroupCovariate || covariate instanceof QualityScoreCovariate ) ) { // These were already added so don't add them again
                             requestedCovariates.add( covariate );
@@ -203,6 +211,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                                 Covariate covariate = (Covariate)covClass.newInstance();
                                 estimatedCapacity *= covariate.estimatedNumberOfBins();
                                 // Some covariates need parameters (user supplied command line arguments) passed to them
+                                if( covariate instanceof CycleCovariate && DEFAULT_PLATFORM != null ) { covariate = new CycleCovariate( DEFAULT_PLATFORM ); }
                                 if( covariate instanceof MinimumNQSCovariate ) { covariate = new MinimumNQSCovariate( WINDOW_SIZE ); }
                                 requestedCovariates.add( covariate );
                             } catch ( InstantiationException e ) {
@@ -317,23 +326,26 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                     isNegStrand = read.getReadNegativeStrandFlag();
                     final SAMReadGroupRecord readGroup = read.getReadGroup();
                     if( readGroup == null ) {
-                        if( !warnUserNullReadGroup ) {
-                            Utils.warnUser("The input .bam file contains reads with no read group. Defaulting to Illumina platform and empty read group name.");
+                        if( !warnUserNullReadGroup && FORCE_READ_GROUP == null ) {
+                            Utils.warnUser("The input .bam file contains reads with no read group. " +
+                                            "Defaulting to read group ID = " + DEFAULT_READ_GROUP + " and platform = " + DEFAULT_PLATFORM + ". " +
+                                            "First observed at read with name = " + read.getReadName() );
                             warnUserNullReadGroup = true;
                         }
-                        readGroupId = ReadGroupCovariate.collapsedReadGroupCode;
-                        platform = "ILLUMINA";
+                        // There is no readGroup so defaulting to these values
+                        readGroupId = DEFAULT_READ_GROUP;
+                        platform = DEFAULT_PLATFORM;
                     } else {
                         readGroupId = readGroup.getReadGroupId();
                         platform = readGroup.getPlatform();
                     }
                     mappingQuality = read.getMappingQuality();
                     length = bases.length;
-                    if( USE_SLX_PLATFORM ) {
-                        platform = "ILLUMINA";
+                    if( FORCE_READ_GROUP != null ) { // Collapse all the read groups into a single common String provided by the user
+                        readGroupId = FORCE_READ_GROUP;
                     }
-                    if( IGNORE_READGROUP ) {
-                        readGroupId = ReadGroupCovariate.collapsedReadGroupCode;
+                    if( FORCE_PLATFORM != null ) {
+                        platform = FORCE_PLATFORM;
                     }
 
                     readDatum = new ReadHashDatum( readGroupId, platform, quals, bases, isNegStrand, mappingQuality, length );

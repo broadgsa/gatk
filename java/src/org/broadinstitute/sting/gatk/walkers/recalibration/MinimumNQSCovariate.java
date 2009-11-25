@@ -46,6 +46,7 @@ public class MinimumNQSCovariate implements Covariate {
         windowReach = windowSize / 2; // integer division
     }
 
+    // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
     	
     	// Loop over the list of base quality scores in the window and find the minimum
@@ -59,11 +60,13 @@ public class MinimumNQSCovariate implements Covariate {
         }
         return minQual;
     }
-    
+
+    // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
         return (int)Integer.parseInt( str ); // cast to primitive int (as opposed to Integer Object) is required so that the return value from the two getValue methods hash to same thing
     }
 
+    // Used to estimate the amount space required for the full data HashMap
     public final int estimatedNumberOfBins() {
         return 40;
     }

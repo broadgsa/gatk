@@ -35,19 +35,22 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 public class ReadGroupCovariate implements Covariate{
 
-    public static final String collapsedReadGroupCode = "Read Group Collapsed";
+    public static final String defaultReadGroup = "DefaultReadGroup";
 
     public ReadGroupCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
     }
 
+    // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
     	return readDatum.readGroup;
     }
-    
+
+    // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
     	return str;
     }
 
+    // Used to estimate the amount space required for the full data HashMap
     public final int estimatedNumberOfBins() {
         return 300;
     }

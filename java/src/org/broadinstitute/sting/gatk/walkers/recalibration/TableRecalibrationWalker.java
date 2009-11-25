@@ -76,19 +76,22 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private int WINDOW_SIZE = 5;
     @Argument(fullName="smoothing", shortName="sm", required = false, doc="Number of imaginary counts to add to each bin in order to smooth out bins with few data points")
     private int SMOOTHING = 1;
+    @Argument(fullName="default_read_group", shortName="dRG", required=false, doc="If a read has no read group then default to the provided String.")
+    private String DEFAULT_READ_GROUP = ReadGroupCovariate.defaultReadGroup;
+    @Argument(fullName="default_platform", shortName="dP", required=false, doc="If a read has no platform then default to the provided String. Valid options are illumina, 454, and solid.")
+    private String DEFAULT_PLATFORM = "Illumina";
+    @Argument(fullName="force_read_group", shortName="fRG", required=false, doc="If provided, the read group ID of EVERY read will be forced to be the provided String.")
+    private String FORCE_READ_GROUP = null;
+    @Argument(fullName="force_platform", shortName="fP", required=false, doc="If provided, the platform of EVERY read will be forced to be the provided String. Valid options are illumina, 454, and solid.")
+    private String FORCE_PLATFORM = null;
 
     /////////////////////////////
     // Debugging-only Arguments
     /////////////////////////////
     @Argument(fullName="validate_old_recalibrator", shortName="validateOldRecalibrator", required=false, doc="Match the output of the old recalibrator exactly. FOR DEBUGGING PURPOSES ONLY.")
     private boolean VALIDATE_OLD_RECALIBRATOR = false;
-    @Argument(fullName="use_slx_platform", shortName="useSLXPlatform", required=false, doc="Force the platform to be Illumina regardless of what it actually says. FOR DEBUGGING PURPOSES ONLY.")
-    private boolean USE_SLX_PLATFORM = false;
-    @Argument(fullName="ignore_readgroup", shortName="noRG", required=false, doc="All read groups are combined together. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
-    private boolean IGNORE_READGROUP = false;
     @Argument(fullName="no_pg_tag", shortName="noPG", required=false, doc="Don't output the usual PG tag in the recalibrated bam file header. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
     private boolean NO_PG_TAG = false;
-
 
     /////////////////////////////
     // Private Member Variables
@@ -100,7 +103,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static Pattern COVARIATE_PATTERN = Pattern.compile("^@!.*");
-    private final String versionString = "v2.0.3"; // Major version, minor version, and build number
+    private final String versionString = "v2.0.4"; // Major version, minor version, and build number
     private boolean warnUserNullReadGroup = false; // Has the walker warned the user about null read groups yet?
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
 
@@ -118,6 +121,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     public void initialize() {
 
         logger.info( "TableRecalibrationWalker version: " + versionString );
+        if( FORCE_READ_GROUP != null ) { DEFAULT_READ_GROUP = FORCE_READ_GROUP; }
+        if( FORCE_PLATFORM != null ) { DEFAULT_PLATFORM = FORCE_PLATFORM; }
 
         // Get a list of all available covariates
         List<Class<? extends Covariate>> classes = PackageUtils.getClassesImplementingInterface(Covariate.class);
@@ -164,6 +169,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                                 try {
                                     Covariate covariate = (Covariate)covClass.newInstance();
                                     // Some covariates need parameters (user supplied command line arguments) passed to them
+                                    if( covariate instanceof CycleCovariate && DEFAULT_PLATFORM != null ) { covariate = new CycleCovariate( DEFAULT_PLATFORM ); }
                                     if( covariate instanceof MinimumNQSCovariate ) { covariate = new MinimumNQSCovariate( WINDOW_SIZE ); }
                                     requestedCovariates.add( covariate );
                                     estimatedCapacity *= covariate.estimatedNumberOfBins();
@@ -297,12 +303,15 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         String readGroupId;
         String platform;
         if( readGroup == null ) {
-            if( !warnUserNullReadGroup ) {
-                Utils.warnUser("The input .bam file contains reads with no read group. Defaulting to Illumina platform and empty read group name.");
+            if( !warnUserNullReadGroup && FORCE_READ_GROUP == null) {
+                Utils.warnUser("The input .bam file contains reads with no read group. " +
+                                "Defaulting to read group ID = " + DEFAULT_READ_GROUP + " and platform = " + DEFAULT_PLATFORM + ". " +
+                                "First observed at read with name = " + read.getReadName() );
                 warnUserNullReadGroup = true;
             }
-            readGroupId = ReadGroupCovariate.collapsedReadGroupCode;
-            platform = "ILLUMINA";
+            // There is no readGroup so defaulting to these values
+            readGroupId = DEFAULT_READ_GROUP;
+            platform = DEFAULT_PLATFORM;
         } else {
             readGroupId = readGroup.getReadGroupId();
             platform = readGroup.getPlatform();
@@ -316,11 +325,11 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             startPos = 0;
             stopPos = bases.length - 1;
         }
-        if( USE_SLX_PLATFORM ) {
-            platform = "ILLUMINA";
+        if( FORCE_READ_GROUP != null ) { // Collapse all the read groups into a single common String provided by the user
+            readGroupId = FORCE_READ_GROUP;
         }
-        if( IGNORE_READGROUP ) {
-            readGroupId = ReadGroupCovariate.collapsedReadGroupCode;
+        if( FORCE_PLATFORM != null ) {
+            platform = FORCE_PLATFORM;
         }
 
         ReadHashDatum readDatum = new ReadHashDatum( readGroupId, platform, originalQuals, bases, isNegStrand, read.getMappingQuality(), bases.length );

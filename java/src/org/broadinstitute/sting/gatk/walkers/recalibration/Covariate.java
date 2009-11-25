@@ -36,7 +36,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
  */
 
 public interface Covariate {
-    public Comparable getValue(ReadHashDatum readDatum, int offset); // used to pick out the value from attributes of the read
-	public Comparable getValue(String str); // used to get value from input file
-    public int estimatedNumberOfBins(); // used to estimate the amount space required for the HashMap
+    public Comparable getValue(ReadHashDatum readDatum, int offset); // Used to pick out the covariate's value from attributes of the read
+    public Comparable getValue(String str); // Used to get the covariate's value from input csv file in TableRecalibrationWalker
+    public int estimatedNumberOfBins(); // Used to estimate the amount space required for the full data HashMap
 }

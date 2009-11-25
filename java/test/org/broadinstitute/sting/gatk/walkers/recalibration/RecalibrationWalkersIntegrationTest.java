@@ -11,6 +11,7 @@ import java.io.File;
 
 public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     static HashMap<String, String> paramsFiles = new HashMap<String, String>();
+    static HashMap<String, String> paramsFilesNoReadGroupTest = new HashMap<String, String>();
 
     @Test
     public void testCountCovariates1() {
@@ -20,7 +21,6 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "7842b33245a53b13c7b6cd4e4616ac11");
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "cbe17568c5f03516a88ff0c5ce33a87b" );
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "8806fb7f0e669d1abab61dc4b3d10d8f" );
-
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -82,7 +82,6 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "d5962c39a53a511d7ec710d5343e7a37");
 
-
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
             String md5 = entry.getValue();
@@ -104,4 +103,62 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
             executeTest("testCountCovariatesVCF", spec);
         }
     }
+
+
+    @Test
+    public void testCountCovariatesNoReadGroups() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "ca9e1312102190bbd58f82809eabf175" );
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            String bam = entry.getKey();
+            String md5 = entry.getValue();
+
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    "-R /broad/1KG/reference/human_b36_both.fasta" +
+                            " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
+                            " -T CountCovariates" +
+                            " -I " + bam +
+                            " -L 1:10,000,000-10,200,000" +
+                            " -cov ReadGroupCovariate" +
+                            " -cov QualityScoreCovariate" +
+                            " -cov CycleCovariate" +
+                            " -cov DinucCovariate" +
+                            " --default_platform illumina" +
+                            " --sorted_output" +
+                            " -recalFile %s",
+                    1, // just one output file
+                    Arrays.asList(md5));
+            List<File> result = executeTest("testCountCovariatesNoReadGroups", spec).getFirst();
+            paramsFilesNoReadGroupTest.put(bam, result.get(0).getAbsolutePath());
+        }
+    }
+
+    @Test
+    public void testTableRecalibratorNoReadGroups() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12762.SOLID.SRP000031.2009_07.chr1.10_20mb.bam", "9bbb281c4f55b0c094457e9f69e61962" );
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            String bam = entry.getKey();
+            String md5 = entry.getValue();
+            String paramsFile = paramsFilesNoReadGroupTest.get(bam);
+            System.out.printf("PARAMS FOR %s is %s%n", bam, paramsFile);
+            if ( paramsFile != null ) {
+                WalkerTestSpec spec = new WalkerTestSpec(
+                        "-R /broad/1KG/reference/human_b36_both.fasta" +
+                                " -T TableRecalibration" +
+                                " -I " + bam +
+                                " -L 1:10,100,000-10,300,000" +
+                                " -outputBam %s" +
+                                " --no_pg_tag" +
+                                " --default_platform illumina" +
+                                " -recalFile " + paramsFile,
+                        1, // just one output file
+                        Arrays.asList(md5));
+                executeTest("testTableRecalibratorNoReadGroups", spec);
+            }
+        }
+    }
+
 }
