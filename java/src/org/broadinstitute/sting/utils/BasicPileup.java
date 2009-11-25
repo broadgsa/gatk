@@ -18,8 +18,11 @@ import java.util.Random;
 abstract public class BasicPileup {
     public static final char DELETION_CHAR = 'D';
 
+    @Deprecated
     abstract GenomeLoc getLocation();
+    @Deprecated
     abstract char getRef();
+    @Deprecated
     abstract int size();
 
 
@@ -28,6 +31,7 @@ abstract public class BasicPileup {
      *
      * @return
      */
+    @Deprecated
     byte[] getBases() { return null; }
 
     /**
@@ -35,6 +39,7 @@ abstract public class BasicPileup {
      *
      * @return
      */
+    @Deprecated
     byte[] getQuals()  { return null; }
 
     /**
@@ -57,50 +62,6 @@ abstract public class BasicPileup {
         return String.format("%s: %s %s %s", getLocation(), getRef(), getBasesAsString(), getQualsAsString());
     }
 
-    public static String basePileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
-        StringBuilder bases = new StringBuilder();
-        for ( byte base : getBasesAsArrayList(reads, offsets)) {
-            bases.append((char)base);
-        }
-        return bases.toString();
-    }
-
-    public static String baseWithStrandPileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
-        StringBuilder bases = new StringBuilder();
-
-        for ( int i = 0; i < reads.size(); i++ ) {
-            SAMRecord read = reads.get(i);
-            int offset = offsets.get(i);
-
-            char base;
-            if ( offset == -1 ) {
-                base = DELETION_CHAR;
-            } else {
-                base = (char) read.getReadBases()[offset];
-            }
-
-            base = Character.toUpperCase(base);
-            if (read.getReadNegativeStrandFlag()) {
-                base = Character.toLowerCase(base);
-            }
-
-            bases.append(base);
-        }
-
-        return bases.toString();
-    }
-
-    //
-    // byte[] methods
-    //
-    public static byte[] getBases( List<SAMRecord> reads, List<Integer> offsets ) {
-        return getBasesAsArray(reads,offsets);
-    }
-
-    public static byte[] getQuals( List<SAMRecord> reads, List<Integer> offsets ) {
-        return getQualsAsArray( reads, offsets );
-    }
-
     //
     // ArrayList<Byte> methods
     //
@@ -119,7 +80,7 @@ abstract public class BasicPileup {
         return array;
      }
 
-
+    @Deprecated
     public static ArrayList<Byte> getBasesAsArrayList( List<SAMRecord> reads, List<Integer> offsets ) {
         ArrayList<Byte> bases = new ArrayList<Byte>(reads.size());
         for (byte value : getBasesAsArray(reads, offsets))
@@ -127,6 +88,7 @@ abstract public class BasicPileup {
         return bases;
      }
 
+    @Deprecated
     public static ArrayList<Byte> getQualsAsArrayList( List<SAMRecord> reads, List<Integer> offsets ) {
         ArrayList<Byte> quals = new ArrayList<Byte>(reads.size());
         for (byte value : getQualsAsArray(reads, offsets))
@@ -134,6 +96,7 @@ abstract public class BasicPileup {
         return quals;
     }
 
+    @Deprecated
     public static byte[] getQualsAsArray( List<SAMRecord> reads, List<Integer> offsets ) {
         byte array[] = new byte[reads.size()];
         int index = 0;
@@ -151,6 +114,7 @@ abstract public class BasicPileup {
         return array;
     }
 
+    @Deprecated
     public static ArrayList<Byte> mappingQualPileup( List<SAMRecord> reads) {
         ArrayList<Byte> quals = new ArrayList<Byte>(reads.size());
         for ( int i = 0; i < reads.size(); i++ ) {
@@ -159,73 +123,6 @@ abstract public class BasicPileup {
             quals.add(qual);
         }
         return quals;
-    }
-
-    public static String mappingQualPileupAsString( List<SAMRecord> reads) {
-        return quals2String(mappingQualPileup(reads));
-    }
-
-    public static String quals2String( List<Byte> quals ) {
-        StringBuilder qualStr = new StringBuilder();
-        for ( int qual : quals ) {
-            qual = Math.min(qual, 63);              // todo: fixme, this isn't a good idea
-            char qualChar = (char) (33 + qual);     // todo: warning, this is illegal for qual > 63
-            qualStr.append(qualChar);
-        }
-
-        return qualStr.toString();
-    }
-
-    public static String qualPileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
-        return quals2String(getQualsAsArrayList(reads, offsets));
-    }
-
-
-    public static ArrayList<Byte> getSecondaryBasesAsArrayList( List<SAMRecord> reads, List<Integer> offsets ) {
-        ArrayList<Byte> bases2 = new ArrayList<Byte>(reads.size());
-        boolean hasAtLeastOneSQorE2Field = false;
-
-        for ( int i = 0; i < reads.size(); i++ ) {
-            SAMRecord read = reads.get(i);
-            int offset = offsets.get(i);
-            byte base2 = BaseUtils.getSecondBase(read, offset);
-            hasAtLeastOneSQorE2Field = hasAtLeastOneSQorE2Field || BaseUtils.simpleBaseToBaseIndex((char)base2) != -1;
-            bases2.add(base2);
-        }
-        
-        return (hasAtLeastOneSQorE2Field ? bases2 : null);
-    }
-
-    public static String getSecondaryBasePileupAsString( List<SAMRecord> reads, List<Integer> offsets ) {
-        StringBuilder bases2 = new StringBuilder();
-        ArrayList<Byte> sbases = getSecondaryBasesAsArrayList(reads, offsets);
-
-        if (sbases == null) { return null; }
-
-        ArrayList<Byte> pbases = getBasesAsArrayList(reads, offsets);
-
-        //Random generator = new Random();
-
-        if ( sbases.size() != pbases.size() ) {
-            throw new StingException("BUG in conversion of secondary bases: primary and secondary base vectors are different sizes!");
-        }
-
-        for (int pileupIndex = 0; pileupIndex < sbases.size(); pileupIndex++) {
-            byte pbase = pbases.get(pileupIndex);
-            byte sbase = sbases.get(pileupIndex);
-
-            if ( sbase == pbase ) {
-                throw new StingException("BUG in conversion of secondary bases!");
-            }
-
-//            while (sbase == pbase) { // TODO why is here?
-//                sbase = (byte) BaseUtils.baseIndexToSimpleBase(generator.nextInt(4));
-//            }
-
-            bases2.append((char) sbase);
-        }
-
-        return bases2.toString();
     }
 
     @Deprecated // todo -- delete me

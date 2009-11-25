@@ -32,6 +32,8 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.*;
 
@@ -217,8 +219,7 @@ public class LocusIteratorByState extends LocusIterator {
         //    printState();
         //}
 
-        ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>(readStates.size());
-        ArrayList<Integer> offsets = new ArrayList<Integer>(readStates.size());
+        ArrayList<PileupElement> pile = new ArrayList<PileupElement>(readStates.size());
 
         // keep iterating forward until we encounter a reference position that has something "real" hanging over it
         // (i.e. either a real base, or a real base or a deletion if includeReadsWithDeletion is true)
@@ -229,11 +230,9 @@ public class LocusIteratorByState extends LocusIterator {
             for ( SAMRecordState state : readStates ) {
                 if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
 //                    System.out.println("Location: "+getLocation()+"; Read "+state.getRead().getReadName()+"; offset="+state.getReadOffset());
-                    reads.add(state.getRead());
-                    offsets.add(state.getReadOffset());
+                    pile.add(new PileupElement(state.getRead(), state.getReadOffset()));
                 } else if ( readInfo.includeReadsWithDeletionAtLoci() && state.getCurrentCigarOperator() != CigarOperator.N ) {
-                    reads.add(state.getRead());
-                    offsets.add(-1);
+                    pile.add(new PileupElement(state.getRead(), -1));
                 }
             }
             GenomeLoc loc = getLocation();
@@ -245,9 +244,48 @@ public class LocusIteratorByState extends LocusIterator {
         //    printState();
         //}
             // if we got reads with non-D/N over the current position, we are done
-            if ( reads.size() != 0 ) return new AlignmentContext(loc, reads, offsets);
+            if ( pile.size() != 0 ) return new AlignmentContext(loc, new ReadBackedPileup(loc, pile));
         }
     }
+
+    // old implementation -- uses lists of reads and offsets
+//    public AlignmentContext next() {
+//        //if (DEBUG) {
+//        //    logger.debug("in Next:");
+//        //    printState();
+//        //}
+//
+//        ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>(readStates.size());
+//        ArrayList<Integer> offsets = new ArrayList<Integer>(readStates.size());
+//
+//        // keep iterating forward until we encounter a reference position that has something "real" hanging over it
+//        // (i.e. either a real base, or a real base or a deletion if includeReadsWithDeletion is true)
+//        while(true) {
+//            collectPendingReads(readInfo.getMaxReadsAtLocus());
+//
+//            // todo -- performance problem -- should be lazy, really
+//            for ( SAMRecordState state : readStates ) {
+//                if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
+////                    System.out.println("Location: "+getLocation()+"; Read "+state.getRead().getReadName()+"; offset="+state.getReadOffset());
+//                    reads.add(state.getRead());
+//                    offsets.add(state.getReadOffset());
+//                } else if ( readInfo.includeReadsWithDeletionAtLoci() && state.getCurrentCigarOperator() != CigarOperator.N ) {
+//                    reads.add(state.getRead());
+//                    offsets.add(-1);
+//                }
+//            }
+//            GenomeLoc loc = getLocation();
+//
+//            updateReadStates(); // critical - must be called after we get the current state offsets and location
+//
+//        //if (DEBUG) {
+//        //    logger.debug("DONE WITH NEXT, updating read states, current state is:");
+//        //    printState();
+//        //}
+//            // if we got reads with non-D/N over the current position, we are done
+//            if ( reads.size() != 0 ) return new AlignmentContext(loc, reads, offsets);
+//        }
+//    }
 
     private void collectPendingReads(final int maximumPileupSize) {
         //if (DEBUG) {

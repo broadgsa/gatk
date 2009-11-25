@@ -10,8 +10,10 @@ import org.broadinstitute.sting.gatk.walkers.LocusWindowWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.Pair;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -40,32 +42,32 @@ public class TraverseLocusWindows extends TraversalEngine {
         LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
         ReferenceOrderedView referenceOrderedDataView = new ManagingReferenceOrderedView( dataProvider );
 
-        AlignmentContext locus = getLocusContext(readView.iterator(), interval);
+         Pair<GenomeLoc, List<SAMRecord>> locus = getLocusContext(readView.iterator(), interval);
 
         // The TraverseByLocusWindow expands intervals to cover all reads in a non-standard way.
         // TODO: Convert this approach to the standard.
-        GenomeLoc expandedInterval = locus.getLocation();
+        GenomeLoc expandedInterval = locus.getFirst();
 
         String referenceSubsequence = new String(referenceView.getReferenceBases(expandedInterval));
 
         // Iterate forward to get all reference ordered data covering this interval
-        final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation());
+        final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getFirst());
 
         //
         // Execute our contract with the walker.  Call filter, map, and reduce
         //
-        final boolean keepMeP = locusWindowWalker.filter(tracker, referenceSubsequence, locus);
-        if (keepMeP) {
-            M x = locusWindowWalker.map(tracker, referenceSubsequence, locus);
-            sum = locusWindowWalker.reduce(x, sum);
-        }
+        //final boolean keepMeP = locusWindowWalker.filter(tracker, referenceSubsequence, locus);
+        //if (keepMeP) {
+        M x = locusWindowWalker.map(tracker, referenceSubsequence, locus.getFirst(), locus.getSecond());
+        sum = locusWindowWalker.reduce(x, sum);
+        //}
 
-        printProgress(LOCUS_WINDOW_STRING, locus.getLocation());
+        printProgress(LOCUS_WINDOW_STRING, locus.getFirst());
 
         return sum;
     }
 
-    private AlignmentContext getLocusContext(StingSAMIterator readIter, GenomeLoc interval) {
+    private Pair<GenomeLoc, List<SAMRecord>> getLocusContext(StingSAMIterator readIter, GenomeLoc interval) {
         ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
         boolean done = false;
         long leftmostIndex = interval.getStart(),
@@ -86,11 +88,11 @@ public class TraverseLocusWindows extends TraversalEngine {
         }
 
         GenomeLoc window = GenomeLocParser.createGenomeLoc(interval.getContig(), leftmostIndex, rightmostIndex);
-        AlignmentContext locus = new AlignmentContext(window, reads, null);
-        if ( readIter.getSourceInfo().getDownsampleToCoverage() != null )
-            locus.downsampleToCoverage(readIter.getSourceInfo().getDownsampleToCoverage());
+//        AlignmentContext locus = new AlignmentContext(window, reads, null);
+//        if ( readIter.getSourceInfo().getDownsampleToCoverage() != null )
+//            locus.downsampleToCoverage(readIter.getSourceInfo().getDownsampleToCoverage());
 
-        return locus;
+        return new Pair<GenomeLoc, List<SAMRecord>>(window, reads);
     }
 
     /**

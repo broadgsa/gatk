@@ -318,7 +318,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
         GenomeLoc Gloc = context.getLocation();
 
         //Create pileup of reads at this locus
-        ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(), context);
+        ReadBackedPileup pileup = context.getPileup();
 
         long loc = context.getPosition();
         if( context.getReads().size() > 0 ) {

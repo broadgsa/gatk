@@ -29,7 +29,7 @@ public class SecondBaseSkew implements VariantAnnotation {
 
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileupWithDel, Variation variation, List<Genotype> genotypes) {
         ReadBackedPileup pileup = pileupWithDel; // .getPileupWithoutDeletions();
-        Pair<Integer,Double> depthProp = getSecondaryPileupNonrefEstimator(pileup,genotypes);
+        Pair<Integer,Double> depthProp = getSecondaryPileupNonrefEstimator(ref.getBase(), pileup,genotypes);
         if ( depthProp == null ) {
             return null;
         } else {
@@ -48,10 +48,10 @@ public class SecondBaseSkew implements VariantAnnotation {
         return proportion / ( Math.sqrt ( proportion*(1-proportion)/depth ) );
     }
 
-    private Pair<Integer, Double> getSecondaryPileupNonrefEstimator(ReadBackedPileup p, List<Genotype> genotypes) {
+    private Pair<Integer, Double> getSecondaryPileupNonrefEstimator(char ref, ReadBackedPileup p, List<Genotype> genotypes) {
         char snp;
         try {
-            snp = getNonref(genotypes, p.getRef());
+            snp = getNonref(genotypes, ref);
         } catch ( IllegalStateException e ) {
             // tri-allelic site
             // System.out.println("Illegal State Exception caught at "+p.getLocation().toString()+" 2bb skew annotation suppressed ("+e.getLocalizedMessage()+")");
@@ -67,7 +67,7 @@ public class SecondBaseSkew implements VariantAnnotation {
 
             if ( BaseUtils.isRegularBase((char)sbase) && BaseUtils.basesAreEqual(pbase, (byte) snp) ) {
                 variantDepth++;
-                if ( BaseUtils.basesAreEqual(sbase, (byte)p.getRef()) ) {
+                if ( BaseUtils.basesAreEqual(sbase, (byte)ref) ) {
                     variantsWithRefSecondBase++;
                 }
             }

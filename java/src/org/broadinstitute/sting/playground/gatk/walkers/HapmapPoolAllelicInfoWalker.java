@@ -77,7 +77,7 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
         }
         int numVariantAllele = alleleFreqInfo.getSecond().getFirst();
         int numChipsObserved = alleleFreqInfo.getSecond().getSecond();
-        int depth = context.numReads();
+        int depth = context.size();
         double power = powerWalker.calculatePowerAtFrequency(context,numVariantAllele);
         int called;
         Variation call = (Variation) tracker.lookup("calls",null);
@@ -89,7 +89,7 @@ public class HapmapPoolAllelicInfoWalker extends LocusWalker<String, PrintWriter
             called = 1;
         }
 
-        ReadBackedPileup p = new ReadBackedPileup(ref.getBase(),context);
+        ReadBackedPileup p = context.getPileup();
         int support = p.getBaseCounts()[BaseUtils.simpleBaseToBaseIndex(alternate)];
 
         // sanity check

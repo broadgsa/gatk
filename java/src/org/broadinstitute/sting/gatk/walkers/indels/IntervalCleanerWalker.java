@@ -106,8 +106,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
         }
     }
 
-    public Integer map(RefMetaDataTracker tracker, String ref, AlignmentContext context) {
-        List<SAMRecord> reads = context.getReads();
+    public Integer map(RefMetaDataTracker tracker, String ref, GenomeLoc loc, List<SAMRecord> reads) {
         ArrayList<SAMRecord> goodReads = new ArrayList<SAMRecord>();
         for ( SAMRecord read : reads ) {
             if ( !read.getReadUnmappedFlag() &&
@@ -121,7 +120,7 @@ public class  IntervalCleanerWalker extends LocusWindowWalker<Integer, Integer> 
                 readsToWrite.add(new ComparableSAMRecord(read));
         }
 
-        clean(goodReads, ref, context.getLocation());
+        clean(goodReads, ref, loc);
         //bruteForceClean(goodReads, ref, context.getLocation().getStart());
         //testCleanWithDeletion();
         //testCleanWithInsertion();

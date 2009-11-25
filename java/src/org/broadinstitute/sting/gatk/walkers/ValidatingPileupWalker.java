@@ -25,11 +25,11 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
     public boolean CONTINUE_AFTER_AN_ERROR = false;
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(), context);
+        ReadBackedPileup pileup = context.getPileup();
         SAMPileupRecord truePileup = getTruePileup( tracker );
 
         if ( truePileup == null ) {
-            out.printf("No truth pileup data available at %s%n", pileup.getPileupString(false));
+            out.printf("No truth pileup data available at %s%n", pileup.getPileupString(ref.getBase(), false));
             if ( ! CONTINUE_AFTER_AN_ERROR ) {
                 Utils.scareUser(String.format("No pileup data available at %s given GATK's output of %s -- this walker requires samtools pileup data over all bases",
                                 context.getLocation(), new String(pileup.getBases())));
@@ -37,7 +37,7 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
         } else {
             String pileupDiff = pileupDiff(pileup, truePileup, true);
             if ( pileupDiff != null ) {
-                out.printf("%s vs. %s%n", pileup.getPileupString(true), truePileup.getPileupString());
+                out.printf("%s vs. %s%n", pileup.getPileupString(ref.getBase(), true), truePileup.getPileupString());
                 if ( ! CONTINUE_AFTER_AN_ERROR ) {
                     throw new RuntimeException(String.format("Pileups aren't equal: %s", pileupDiff));
                 }

@@ -42,7 +42,7 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, Integer> impleme
     public SimpleCall map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (ref.getBase() == 'N' || ref.getBase() == 'n') return null; // we don't deal with the N ref base case
 
-        ReadBackedPileup pileup = new ReadBackedPileup(context.getLocation(), ref.getBase(), context.getReads(), context.getOffsets());
+        ReadBackedPileup pileup = context.getPileup();
         double likelihoods[] = DiploidGenotypePriors.getReferencePolarizedPriors(ref.getBase(),
                                                                                  DiploidGenotypePriors.HUMAN_HETEROZYGOSITY,
                                                                                  DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);

@@ -77,7 +77,7 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
     protected void calculatelog10PofDgivenAFforAllF(char ref, char alt, int nChromosomes, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
 
         AlignmentContextBySample context = contexts.get(POOL_SAMPLE_NAME);
-        ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getContext(contextType));
+        ReadBackedPileup pileup = context.getContext(contextType).getPileup();
 
         int refIndex = BaseUtils.simpleBaseToBaseIndex(ref);
         int altIndex = BaseUtils.simpleBaseToBaseIndex(alt);

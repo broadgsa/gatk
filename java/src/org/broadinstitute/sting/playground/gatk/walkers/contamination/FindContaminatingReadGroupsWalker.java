@@ -69,7 +69,7 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
         int altCount = 0;
         int totalCount = 0;
 
-        ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(), context);
+        ReadBackedPileup pileup = context.getPileup();
         int refIndex = BaseUtils.simpleBaseToBaseIndex(ref.getBase());
 
         for (byte base : pileup.getBases() ) {
@@ -108,7 +108,7 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
         int refIndex = BaseUtils.simpleBaseToBaseIndex(ref.getBase());
         String colName = String.format("%s.%d", context.getContig(), context.getPosition());
 
-        for (int i = 0; i < context.numReads(); i++) {
+        for (int i = 0; i < context.size(); i++) {
             SAMRecord read = context.getReads().get(i);
             int offset = context.getOffsets().get(i);
 

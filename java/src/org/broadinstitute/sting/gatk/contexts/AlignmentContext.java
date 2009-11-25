@@ -28,6 +28,8 @@ package org.broadinstitute.sting.gatk.contexts;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.*;
 
@@ -42,8 +44,7 @@ import java.util.*;
  */
 public class AlignmentContext {
     protected GenomeLoc loc = null;
-    protected List<SAMRecord> reads = null;
-    protected List<Integer> offsets = null;
+    protected ReadBackedPileup pileup = null;
 
     /**
      * The number of bases we've skipped over in the reference since the last map invocation.
@@ -65,31 +66,45 @@ public class AlignmentContext {
      * @param reads
      * @param offsets
      */
+    @Deprecated
     public AlignmentContext(GenomeLoc loc, List<SAMRecord> reads, List<Integer> offsets) {
-        //assert loc != null;
-        //assert loc.getContig() != null;
-        //assert reads != null;
-        //assert offsets != null;
-
-        this.loc = loc;
-        this.reads = reads;
-        this.offsets = offsets;
+        this(loc, reads, offsets, 0);
     }
 
+    @Deprecated
     public AlignmentContext(GenomeLoc loc, List<SAMRecord> reads, List<Integer> offsets, long skippedBases ) {
+        if ( loc == null ) throw new StingException("BUG: GenomeLoc in Alignment context is null");
+        if ( skippedBases < 0 ) throw new StingException("BUG: skippedBases is -1 in Alignment context");
+
         this.loc = loc;
-        this.reads = reads;
-        this.offsets = offsets;
+        this.pileup = new ReadBackedPileup(loc, reads, offsets);
         this.skippedBases = skippedBases;
     }
 
+    public AlignmentContext(GenomeLoc loc, ReadBackedPileup pileup ) {
+        this(loc, pileup, 0);
+    }
+
+
+    public AlignmentContext(GenomeLoc loc, ReadBackedPileup pileup, long skippedBases ) {
+        if ( loc == null ) throw new StingException("BUG: GenomeLoc in Alignment context is null");
+        if ( pileup == null ) throw new StingException("BUG: ReadBackedPileup in Alignment context is null");
+        if ( skippedBases < 0 ) throw new StingException("BUG: skippedBases is -1 in Alignment context");
+
+        this.loc = loc;
+        this.pileup = pileup;
+        this.skippedBases = skippedBases;
+    }
+
+    public ReadBackedPileup getPileup() { return pileup; }
 
     /**
      * get all of the reads within this context
      * 
      * @return
      */
-    public List<SAMRecord> getReads() { return reads; }
+    @Deprecated
+    public List<SAMRecord> getReads() { return pileup.getReads(); }
 
     /**
      * Are there any reads associated with this locus?
@@ -97,16 +112,15 @@ public class AlignmentContext {
      * @return
      */
     public boolean hasReads() {
-        return reads != null;
+        return pileup.size() > 0;
     }
 
     /**
      * How many reads cover this locus?
      * @return
      */
-    public int numReads() {
-        assert( reads != null );
-        return reads.size();
+    public int size() {
+        return pileup.size();
     }
 
     /**
@@ -114,89 +128,17 @@ public class AlignmentContext {
      *
      * @return
      */
+    @Deprecated
     public List<Integer> getOffsets() {
-        return offsets;
+        return pileup.getOffsets();
     }
 
     public String getContig() { return getLocation().getContig(); }
     public long getPosition() { return getLocation().getStart(); }
     public GenomeLoc getLocation() { return loc; }
 
-    //public void setLocation(GenomeLoc loc) {
-    //    this.loc = loc.clone();
-    //}
-
     public void downsampleToCoverage(int coverage) {
-        if ( numReads() <= coverage )
-            return;
-
-        // randomly choose numbers corresponding to positions in the reads list
-        Random generator = new Random();
-        TreeSet positions = new TreeSet();
-        int i = 0;
-        while ( i < coverage ) {
-            if (positions.add(new Integer(generator.nextInt(reads.size()))))
-                i++;
-        }
-
-        ArrayList<SAMRecord> downsampledReads = new ArrayList<SAMRecord>();
-        ArrayList<Integer> downsampledOffsets = new ArrayList<Integer>();
-        Iterator positionIter = positions.iterator();
-        Iterator<SAMRecord> readsIter = reads.iterator();
-        Iterator<Integer> offsetsIter = offsets.iterator();
-        int currentRead = 0;
-        while ( positionIter.hasNext() ) {
-            int nextReadToKeep = (Integer)positionIter.next();
-
-            // fast-forward to the right read
-            while ( currentRead < nextReadToKeep ) {
-                readsIter.next();
-                offsetsIter.next();
-                currentRead++;
-            }
-
-            downsampledReads.add(readsIter.next());
-            downsampledOffsets.add(offsetsIter.next());
-            currentRead++;
-        }
-
-        reads = downsampledReads;
-        offsets = downsampledOffsets;
-    }
-
-    /**
-     * Returns only the reads in ac that do not contain spanning deletions of this locus
-     *
-     * @param ac
-     * @return
-     */
-    public static AlignmentContext withoutSpanningDeletions( AlignmentContext ac ) {
-        return subsetDeletions( ac, true );
-    }
-
-    /**
-     * Returns only the reads in ac that do contain spanning deletions of this locus
-     *
-     * @param ac
-     * @return
-     */
-    public static AlignmentContext withSpanningDeletions( AlignmentContext ac ) {
-        return subsetDeletions( ac, false );
-    }
-
-    private static AlignmentContext subsetDeletions( AlignmentContext ac, boolean readsWithoutDeletions ) {
-        ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>(ac.getReads().size());
-        ArrayList<Integer> offsets = new ArrayList<Integer>(ac.getReads().size());
-        for ( int i = 0; i < ac.getReads().size(); i++ ) {
-            SAMRecord read = ac.getReads().get(i);
-            int offset = ac.getOffsets().get(i);
-            if ( (offset == -1 && ! readsWithoutDeletions) || (offset != -1 && readsWithoutDeletions) ) {
-                reads.add(read);
-                offsets.add(offset);
-            }
-        }
-
-        return new AlignmentContext(ac.getLocation(), reads, offsets);
+        pileup = pileup.getDownsampledPileup(coverage);
     }
 
     /**

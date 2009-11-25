@@ -111,7 +111,7 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
     }
 
     public double calculatePowerAtFrequency( AlignmentContext context, int alleles ) {
-        return theoreticalPower( context.numReads(), getMeanQ(context), alleles, lodThresh );
+        return theoreticalPower( context.size(), getMeanQ(context), alleles, lodThresh );
     }
 
     public byte getMeanQ( AlignmentContext context ) {
@@ -126,7 +126,7 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
     }
 
     public double expectedMatchRate(AlignmentContext context) {
-        int nReads = context.numReads();
+        int nReads = context.size();
         double matches = 0.0;
         for ( int r = 0; r < nReads; r ++ ) {
             matches += QualityUtils.qualToProb(context.getReads().get(r).getBaseQualities()[context.getOffsets().get(r)]);

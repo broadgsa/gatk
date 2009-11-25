@@ -66,14 +66,14 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(), context);
+        ReadBackedPileup pileup = context.getPileup();
         
         String secondBasePileup = "";
         if(shouldShowSecondaryBasePileup(pileup))
             secondBasePileup = getSecondBasePileup(pileup);
         String rods = getReferenceOrderedData( tracker );
 
-        out.printf("%s%s %s%n", pileup.getPileupString(qualsAsInts), secondBasePileup, rods);
+        out.printf("%s%s %s%n", pileup.getPileupString(ref.getBase(), qualsAsInts), secondBasePileup, rods);
 
         return 1;
     }

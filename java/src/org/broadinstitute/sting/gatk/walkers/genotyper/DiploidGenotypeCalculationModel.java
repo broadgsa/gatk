@@ -33,7 +33,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         int index = 0;
         for ( String sample : contexts.keySet() ) {
             AlignmentContextBySample context = contexts.get(sample);
-            ReadBackedPileup pileup = new ReadBackedPileup(ref, context.getContext(contextType));
+            ReadBackedPileup pileup = context.getContext(contextType).getPileup();
 
             // create the GenotypeLikelihoods object
             GenotypeLikelihoods GL = new GenotypeLikelihoods(baseModel, priors, defaultPlatform);
@@ -82,7 +82,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, loc);
 
             if ( call instanceof ReadBacked ) {
-                ReadBackedPileup pileup = new ReadBackedPileup(ref, contexts.get(sample).getContext(StratifiedContext.OVERALL));
+                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedContext.OVERALL).getPileup();
                 ((ReadBacked)call).setPileup(pileup);
             }
             if ( call instanceof SampleBacked ) {

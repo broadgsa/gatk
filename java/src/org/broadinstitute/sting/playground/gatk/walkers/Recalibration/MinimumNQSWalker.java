@@ -69,7 +69,7 @@ public class MinimumNQSWalker extends LocusWalker<Pair<List<Pair<Integer,Integer
         ArrayList<Pair<Integer,Integer>> matchingQualityNQSPairs = new ArrayList<Pair<Integer,Integer>>();
         ArrayList<Pair<Integer,Integer>> mismatchingQualityNQSPairs = new ArrayList<Pair<Integer,Integer>>();
         if ( (Variation) tracker.lookup("dbsnp",null) == null ) {
-            for ( int r = 0; r < context.numReads(); r ++ ) {
+            for ( int r = 0; r < context.size(); r ++ ) {
                 SAMRecord read = context.getReads().get(r);
                 int offset = context.getOffsets().get(r);
                 int quality = read.getBaseQualities()[offset];

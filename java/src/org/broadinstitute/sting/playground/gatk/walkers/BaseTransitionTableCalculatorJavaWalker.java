@@ -76,7 +76,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     }
 
     public Set<BaseTransitionTable> map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
-        ReadBackedPileup pileup = new ReadBackedPileup(ref.getBase(),context);
+        ReadBackedPileup pileup = context.getPileup();
         Set<BaseTransitionTable> newCounts = null;
         //System.out.println(pileup.getBases());
         if ( baseIsUsable(tracker, ref, pileup, context) ) {
@@ -279,7 +279,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
         }
 
         if ( usePileupMismatches ) {
-            conditions.add(countMismatches(pileup));
+            conditions.add(countMismatches(ref.getBase(), pileup));
         }
 
         if ( useReadGroup ) {
@@ -331,8 +331,8 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
         return String.format("%s\t%s%n",header,"Counts");
     }
 
-    public int countMismatches(ReadBackedPileup p) {
-        int refM = p.getBaseCounts()[BaseUtils.simpleBaseToBaseIndex(p.getRef())];
+    public int countMismatches(char ref, ReadBackedPileup p) {
+        int refM = p.getBaseCounts()[BaseUtils.simpleBaseToBaseIndex(ref)];
         return p.size()-refM;
     }
 
@@ -345,7 +345,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     }
 
     public boolean pileupBelowMismatchThreshold( ReferenceContext ref, ReadBackedPileup pileup ) {
-        return countMismatches(pileup) <= maxNumMismatches;
+        return countMismatches(ref.getBase(), pileup) <= maxNumMismatches;
     }
 
     public boolean pileupContainsNoNs(ReadBackedPileup pileup) {
