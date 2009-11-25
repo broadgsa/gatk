@@ -13,8 +13,10 @@ public class ReadHashDatum {
     public boolean isNegStrand;
     public int mappingQuality;
     public int length;
+    public Integer tile;
 
-    public ReadHashDatum(String _readGroup, String _platform, byte[] _quals, byte[] _bases, boolean _isNegStrand, int _mappingQuality, int _length) {
+    public ReadHashDatum(String _readGroup, String _platform, byte[] _quals, byte[] _bases, boolean _isNegStrand,
+                         int _mappingQuality, int _length, Integer _tile) {
         readGroup = _readGroup;
         platform = _platform;
         quals = _quals;
@@ -22,6 +24,7 @@ public class ReadHashDatum {
         isNegStrand = _isNegStrand;
         mappingQuality = _mappingQuality;
         length = _length;
+        tile = _tile;
     }
 
     public ReadHashDatum(ReadHashDatum that) {
@@ -32,5 +35,6 @@ public class ReadHashDatum {
         this.isNegStrand = that.isNegStrand;
         this.mappingQuality = that.mappingQuality;
         this.length = that.length;
+        this.tile = that.tile;
     }
 }

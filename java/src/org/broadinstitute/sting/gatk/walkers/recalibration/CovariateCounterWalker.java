@@ -18,6 +18,7 @@ import java.util.*;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
+import edu.mit.broad.picard.illumina.parser.IlluminaUtil;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -237,7 +238,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         logger.info( "The covariates being used here: " );
         logger.info( requestedCovariates );
 
-        if(estimatedCapacity > 300 * 40 * 200 * 16) { estimatedCapacity = 300 * 40 * 200 * 16; }  // Don't want to crash with out of heap space exception
+        if(estimatedCapacity > 300 * 40 * 200 * 16 || estimatedCapacity < 0) // could be negative if overflowed
+        { estimatedCapacity = 300 * 40 * 200 * 16; }  // Don't want to crash with out of heap space exception
         dataManager = new RecalDataManager( estimatedCapacity );
         readDatumHashMap = new IdentityHashMap<SAMRecord, ReadHashDatum>();
     }
@@ -347,8 +349,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                     if( FORCE_PLATFORM != null ) {
                         platform = FORCE_PLATFORM;
                     }
-
-                    readDatum = new ReadHashDatum( readGroupId, platform, quals, bases, isNegStrand, mappingQuality, length );
+                    Integer tile = IlluminaUtil.getTileFromReadName(read.getReadName());
+                    readDatum = new ReadHashDatum( readGroupId, platform, quals, bases, isNegStrand, mappingQuality, length, tile );
                     readDatumHashMap.put( read, readDatum );
                     sizeOfReadDatumHashMap++;
                 }

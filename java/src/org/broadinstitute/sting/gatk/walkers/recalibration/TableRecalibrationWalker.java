@@ -15,6 +15,8 @@ import java.util.regex.Pattern;
 import java.io.File;
 import java.io.FileNotFoundException;
 
+import edu.mit.broad.picard.illumina.parser.IlluminaUtil;
+
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -332,7 +334,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             platform = FORCE_PLATFORM;
         }
 
-        ReadHashDatum readDatum = new ReadHashDatum( readGroupId, platform, originalQuals, bases, isNegStrand, read.getMappingQuality(), bases.length );
+        Integer tile = IlluminaUtil.getTileFromReadName(read.getReadName());
+        ReadHashDatum readDatum = new ReadHashDatum( readGroupId, platform, originalQuals, bases, isNegStrand,
+                read.getMappingQuality(), bases.length, tile );
 
         // For each base in the read
         for( int iii = startPos; iii < stopPos; iii++ ) { // Skip first or last base because there is no dinuc depending on the direction of the read
