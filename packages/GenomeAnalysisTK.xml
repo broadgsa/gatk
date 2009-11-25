@@ -13,6 +13,15 @@
     <!-- Quality scores recalibration -->
     <class>org.broadinstitute.sting.gatk.walkers.recalibration.CovariateCounterWalker</class>
     <class>org.broadinstitute.sting.gatk.walkers.recalibration.TableRecalibrationWalker</class>
+    <!-- Recalibration Covariates -->
+    <class>org.broadinstitute.sting.gatk.walkers.recalibration.DinucCovariate</class>
+    <class>org.broadinstitute.sting.gatk.walkers.recalibration.PositionCovariate</class>
+    <class>org.broadinstitute.sting.gatk.walkers.recalibration.MinimumNQSCovariate</class>
+    <class>org.broadinstitute.sting.gatk.walkers.recalibration.MappingQualityCovariate</class>
+    <class>org.broadinstitute.sting.gatk.walkers.recalibration.QualityScoreCovariate</class>
+    <class>org.broadinstitute.sting.gatk.walkers.recalibration.PrimerRoundCovariate</class>
+    <class>org.broadinstitute.sting.gatk.walkers.recalibration.CycleCovariate</class>
+    <class>org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate</class>
     <!-- Local realignment around indels -->
     <class>org.broadinstitute.sting.gatk.walkers.indels.CleanedReadInjector</class>
     <class>org.broadinstitute.sting.gatk.walkers.indels.IndelIntervalWalker</class>
