@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -97,11 +98,7 @@ public class LocusIteratorByState extends LocusIterator {
             return GenomeLocParser.createGenomeLoc(read.getReferenceName(), getGenomePosition());
         }
 
-        //private CigarElement getCurElement() { return curElement; }
-
         public CigarOperator getCurrentCigarOperator() {
-            //if ( curElement == null )
-            //    System.out.printf("%s%n", this);
             return curElement.getOperator();
         }
 
@@ -110,10 +107,6 @@ public class LocusIteratorByState extends LocusIterator {
         }
 
         public CigarOperator stepForwardOnGenome() {
-            //if ( cigarOffset == cigar.numCigarElements() )
-            //    return null;    // we are done
-
-            //if (DEBUG2) System.out.printf("stepForwardOnGenome2: curElement=%s, counter=%d, len=%d%n", curElement, cigarElementCounter, curElement != null ? curElement.getLength() : -1);
             if ( curElement == null || ++cigarElementCounter > curElement.getLength() ) {
                 cigarOffset++;
                 if ( cigarOffset < nCigarElements ) {
@@ -135,14 +128,10 @@ public class LocusIteratorByState extends LocusIterator {
                     break;
                 case S : // soft clip
                 case I : // insertion w.r.t. the reference
-//                    readOffset++; done = true; break;
                     cigarElementCounter = curElement.getLength();
                     readOffset += curElement.getLength();
                     break;
                 case N : // reference skip (looks and gets processed just like a "deletion", just different logical meaning)
-//                    cigarElementCounter = curElement.getLength();
-//                    genomeOffset += curElement.getLength();
-//                    break;
                 case D : // deletion w.r.t. the reference
                     genomeOffset++;
                     done = true;
@@ -155,8 +144,6 @@ public class LocusIteratorByState extends LocusIterator {
                 default : throw new IllegalStateException("Case statement didn't deal with cigar op: " + curElement.getOperator());
             }
 
-            //if (DEBUG2) System.out.printf("stepForwardOnGenome3: done=%b curElement=%s, counter=%d, len=%d, offset=%d%n",
-            //        done, curElement, cigarElementCounter, curElement != null ? curElement.getLength() : -1, getReadOffset());
             return done ? curElement.getOperator() : stepForwardOnGenome();
         }
     }
@@ -214,37 +201,32 @@ public class LocusIteratorByState extends LocusIterator {
     //
     // -----------------------------------------------------------------------------------------------------------------
     public AlignmentContext next() {
-        //if (DEBUG) {
-        //    logger.debug("in Next:");
-        //    printState();
-        //}
-
-        ArrayList<PileupElement> pile = new ArrayList<PileupElement>(readStates.size());
-
         // keep iterating forward until we encounter a reference position that has something "real" hanging over it
         // (i.e. either a real base, or a real base or a deletion if includeReadsWithDeletion is true)
         while(true) {
+            ArrayList<PileupElement> pile = new ArrayList<PileupElement>(readStates.size());
             collectPendingReads(readInfo.getMaxReadsAtLocus());
+
+            int size = 0;
+            int nDeletions = 0;
 
             // todo -- performance problem -- should be lazy, really
             for ( SAMRecordState state : readStates ) {
+                size++;
                 if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
-//                    System.out.println("Location: "+getLocation()+"; Read "+state.getRead().getReadName()+"; offset="+state.getReadOffset());
-                    pile.add(new PileupElement(state.getRead(), state.getReadOffset()));
+                    PileupElement p = new PileupElement(state.getRead(), state.getReadOffset());
+                    pile.add(p);
                 } else if ( readInfo.includeReadsWithDeletionAtLoci() && state.getCurrentCigarOperator() != CigarOperator.N ) {
                     pile.add(new PileupElement(state.getRead(), -1));
+                    nDeletions++;
                 }
             }
             GenomeLoc loc = getLocation();
 
             updateReadStates(); // critical - must be called after we get the current state offsets and location
 
-        //if (DEBUG) {
-        //    logger.debug("DONE WITH NEXT, updating read states, current state is:");
-        //    printState();
-        //}
             // if we got reads with non-D/N over the current position, we are done
-            if ( pile.size() != 0 ) return new AlignmentContext(loc, new ReadBackedPileup(loc, pile));
+            if ( pile.size() != 0 ) return new AlignmentContext(loc, new ReadBackedPileup(loc, pile, size, nDeletions));
         }
     }
 

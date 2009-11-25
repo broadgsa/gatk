@@ -279,8 +279,11 @@ public abstract class LocusViewTemplate extends BaseTest {
         record.setReferenceIndex(sequenceSourceFile.getSequenceDictionary().getSequenceIndex(contig));
         record.setAlignmentStart(alignmentStart);
         Cigar cigar = new Cigar();
-        cigar.add(new CigarElement(alignmentEnd - alignmentStart + 1, CigarOperator.M));
+        int len = alignmentEnd - alignmentStart + 1;
+        cigar.add(new CigarElement(len, CigarOperator.M));
         record.setCigar(cigar);
+        record.setReadBases(new byte[len]);
+        record.setBaseQualities(new byte[len]);
         return record;
     }
 

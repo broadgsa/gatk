@@ -23,7 +23,6 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
     
     private int size = 0;                   // cached value of the size of the pileup
     private int nDeletions = 0;             // cached value of the number of deletions
-    private int[] counts = new int[4];      // cached value of counts
 
     /**
      * Create a new version of a read backed pileup at loc, using the reads and their corresponding
@@ -57,6 +56,22 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
     }
 
     /**
+     * Optimization of above constructor where all of the cached data is provided
+     * @param loc
+     * @param pileup
+     */
+    public ReadBackedPileup(GenomeLoc loc, ArrayList<PileupElement> pileup, int size, int nDeletions ) {
+        if ( loc == null ) throw new StingException("Illegal null genomeloc in ReadBackedPileup2");
+        if ( pileup == null ) throw new StingException("Illegal null pileup in ReadBackedPileup2");
+
+        this.loc = loc;
+        this.pileup = pileup;
+        this.size = size;
+        this.nDeletions = nDeletions;
+   }
+
+
+    /**
      * Calculate cached sizes, nDeletion, and base counts for the pileup.  This calculation is done upfront,
      * so you pay the cost at the start, but it's more efficient to do this rather than pay the cost of calling
      * sizes, nDeletion, etc. over and over potentially.
@@ -64,17 +79,11 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
     private void calculatedCachedData() {
         size = 0;
         nDeletions = 0;
-        counts[0] = 0; counts[1] = 0; counts[2] = 0; counts[3] = 0;
 
         for ( PileupElement p : this ) {
             size++;
             if ( p.isDeletion() ) {
                 nDeletions++;
-            } else {
-                int index = BaseUtils.simpleBaseToBaseIndex((char)p.getBase());
-                if (index == -1)
-                    continue;
-                counts[index]++;
             }
         }
     }
@@ -244,19 +253,17 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
      * @return
      */
     public int[] getBaseCounts() {
+        int[] counts = new int[4];
+        for ( PileupElement pile : this ) {
+            // skip deletion sites
+            if ( ! pile.isDeletion() ) {
+                int index = BaseUtils.simpleBaseToBaseIndex((char)pile.getBase());
+                if (index != -1)
+                    counts[index]++;
+            }
+        }
+
         return counts;
-//        int[] counts = new int[4];
-//        for ( PileupElement pile : this ) {
-//            // skip deletion sites
-//            if ( ! pile.isDeletion() ) {
-//                int index = BaseUtils.simpleBaseToBaseIndex((char)pile.getBase());
-//                if (index == -1)
-//                    continue;
-//                counts[index]++;
-//            }
-//        }
-//
-//        return counts;
     }
 
     /**
