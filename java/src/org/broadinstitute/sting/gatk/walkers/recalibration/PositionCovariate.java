@@ -50,7 +50,7 @@ public class PositionCovariate implements Covariate {
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
-        return (int)Integer.parseInt( str ); // cast to primitive int (as opposed to Integer Object) is required so that the return value from the two getValue methods hash to same thing
+        return Integer.parseInt( str );
     }
 
     // Used to estimate the amount space required for the full data HashMap
