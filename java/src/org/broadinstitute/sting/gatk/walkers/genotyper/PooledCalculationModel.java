@@ -56,16 +56,18 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
         for (int i = 0; i < reads.size(); i++) {
             // check for deletions
             int offset = offsets.get(i);
-            if ( offset == -1 ) {
-                // are there too many deletions in the pileup?
-                if ( ++deletionsInPileup > maxDeletionsInPileup && maxDeletionsInPileup >= 0 )
-                    return null;
-            }
+            if ( offset == -1 )
+                deletionsInPileup++;
 
             // add the read to this sample's context
             // note that bad bases are added to the context (for DoC calculations later)
             pooledContext.add(reads.get(i), offset);
         }
+
+        // are there too many deletions in the pileup?
+        if ( maxDeletionFractionInPileup != -1.0 &&
+             (double)deletionsInPileup / (double)reads.size() > maxDeletionFractionInPileup )
+            return null;
 
         HashMap<String, AlignmentContextBySample> contexts = new HashMap<String, AlignmentContextBySample>();
         contexts.put(POOL_SAMPLE_NAME, pooledContext);

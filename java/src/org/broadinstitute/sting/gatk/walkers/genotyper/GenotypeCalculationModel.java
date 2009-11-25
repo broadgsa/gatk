@@ -39,7 +39,7 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected double CONFIDENCE_THRESHOLD;
     protected double MINIMUM_ALLELE_FREQUENCY;
     protected boolean REPORT_SLOD;
-    protected int maxDeletionsInPileup;
+    protected double maxDeletionFractionInPileup;
     protected String assumedSingleSample;
     protected PrintWriter verboseWriter;
 
@@ -70,7 +70,10 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         POOL_SIZE = UAC.POOLSIZE;
         CONFIDENCE_THRESHOLD = UAC.CONFIDENCE_THRESHOLD;
         MINIMUM_ALLELE_FREQUENCY = UAC.MINIMUM_ALLELE_FREQUENCY;
-        maxDeletionsInPileup = UAC.MAX_DELETIONS;
+        maxDeletionFractionInPileup = UAC.MAX_DELETION_FRACTION;
+        // disable if that's what is requested
+        if ( maxDeletionFractionInPileup < 0.0 || maxDeletionFractionInPileup > 1.0 )
+            maxDeletionFractionInPileup = -1.0;
         assumedSingleSample = UAC.ASSUME_SINGLE_SAMPLE;
         if ( UAC.VERBOSE != null ) {
             try {
@@ -163,16 +166,19 @@ public abstract class GenotypeCalculationModel implements Cloneable {
             }
 
             // check for deletions
-            if ( offset == -1 ) {
-                // are there too many deletions in the pileup?
-                if ( ++deletionsInPileup > maxDeletionsInPileup && maxDeletionsInPileup >= 0 )
-                    return null;
-            }
+            if ( offset == -1 )
+                deletionsInPileup++;
 
             // add the read to this sample's context
             // note that bad bases are added to the context (for DoC calculations later)
             myContext.add(read, offset);
         }
+
+
+        // are there too many deletions in the pileup?
+        if ( maxDeletionFractionInPileup != -1.0 &&
+             (double)deletionsInPileup / (double)reads.size() > maxDeletionFractionInPileup )
+            return null;
 
         return contexts;
     }
