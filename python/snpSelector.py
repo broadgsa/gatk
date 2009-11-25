@@ -123,7 +123,7 @@ def titvFPRateEstimate(variants, target):
     # gaussian model
     def gaussianModel():
         LEFT_HANDED = True
-        sigma = 5
+        sigma = 1 # old value is 5
         constant = 1 / math.sqrt(2 * math.pi * sigma**2)
         exponent = -1 * ( titvRatio - target )**2 / (2 * sigma**2)
         TPRate = gaussian(titvRatio, target, sigma) / gaussian(target, target, sigma)
@@ -133,12 +133,8 @@ def titvFPRateEstimate(variants, target):
         if DEBUG: print 'TPRate', TPRate, constant, exponent, dephredScale(OPTIONS.maxQScore)
         return TPRate
     
-    #denom = (0.2 - 0.8 * titvRatio)
-    #FPRate = 1
-    #if denom <> 0:
-    #    FPRate = (1.0 / (target+1)) * (titvRatio - target) / denom
-
-    FPRate = 1 - gaussianModel()
+    FPRate = 1 - theoreticalCalc()
+    #FPRate = 1 - gaussianModel()
     nVariants = len(variants)
     
     if DEBUG: print ':::', nVariants, titvRatio, target, FPRate
@@ -426,7 +422,7 @@ def setup():
                        type='int', default=None,
                         help="Maximum number of input VCF records to process, if provided.  Default is all records")
     parser.add_option("-q", "--qMax", dest="maxQScore",
-                        type='int', default=30,
+                        type='int', default=60,
                         help="The maximum Q score allowed for both a single covariate and the overall QUAL score [default: %default]")
     parser.add_option("-o", "--outputVCF", dest="outputVCF",
                         type='string', default=None,
