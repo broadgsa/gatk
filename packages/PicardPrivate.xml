@@ -8,6 +8,7 @@
     <class>edu.mit.broad.picard.genotype.geli.GeliFileWriter</class>
     <class>edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods</class>
     <class>edu.mit.broad.picard.util.BasicTextFileParser</class>
+    <class>edu.mit.broad.picard.illumina.parser.IlluminaUtil</class>
     <class>edu.mit.broad.picard.util.Interval</class>
     <class>edu.mit.broad.picard.util.IntervalTree</class>
     <class>edu.mit.broad.picard.util.OverlapDetector</class>
