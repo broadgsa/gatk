@@ -46,20 +46,21 @@ public class CycleCovariate implements Covariate {
     private static boolean warnedUserBadPlatform = false;
     private static String defaultPlatform;
 
-    public CycleCovariate() { // Empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
-        defaultPlatform = null;
-    }
-
-    public CycleCovariate( final String _defaultPlatform ) {
-        if( _defaultPlatform.equalsIgnoreCase( "ILLUMINA" ) || _defaultPlatform.contains( "454" ) || _defaultPlatform.equalsIgnoreCase( "SOLID" ) ) {
-            defaultPlatform = _defaultPlatform;
+    // Initialize any member variables using the command-line arguments passed to the walkers
+    public void initialize( final RecalibrationArgumentCollection RAC ) {
+        if( RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ILLUMINA" ) || RAC.DEFAULT_PLATFORM.contains( "454" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SOLID" ) ) {
+            defaultPlatform = RAC.DEFAULT_PLATFORM;
         } else {
-            throw new StingException( "The requested default platform (" + _defaultPlatform +") is not a recognized platform. Implemented options are illumina, 454, and solid");
+            throw new StingException( "The requested default platform (" + RAC.DEFAULT_PLATFORM +") is not a recognized platform. Implemented options are illumina, 454, and solid");
         }
     }
 
     // Used to pick out the covariate's value from attributes of the read
     public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
+
+        //-----------------------------
+        // ILLUMINA
+        //-----------------------------
 
         if( readDatum.platform.equalsIgnoreCase( "ILLUMINA" ) ) {
             int cycle = offset;
@@ -67,7 +68,13 @@ public class CycleCovariate implements Covariate {
 	            cycle = readDatum.bases.length - (offset + 1);
 	        }
 	        return cycle;
-        } else if( readDatum.platform.contains( "454" ) ) { // Some bams have "LS454" and others have just "454"
+        }
+
+        //-----------------------------
+        // 454
+        //-----------------------------
+
+        else if( readDatum.platform.contains( "454" ) ) { // Some bams have "LS454" and others have just "454"
             int cycle = 0;
             //BUGBUG: should reverse directions on negative strand reads!
             byte prevBase = readDatum.bases[0];
@@ -78,11 +85,23 @@ public class CycleCovariate implements Covariate {
                 }
             }
             return cycle;
-        } else if( readDatum.platform.equalsIgnoreCase( "SOLID" ) ) {
+        }
+
+        //-----------------------------
+        // SOLID
+        //-----------------------------
+
+        else if( readDatum.platform.equalsIgnoreCase( "SOLID" ) ) {
             // The ligation cycle according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
             //BUGBUG: should reverse directions on negative strand reads!
         	return offset / 5; // integer division
-        } else { // Platform is unrecognized so revert to the default platform but warn the user first
+        }
+
+        //-----------------------------
+        // UNRECOGNIZED PLATFORM
+        //-----------------------------
+
+        else { // Platform is unrecognized so revert to the default platform but warn the user first
         	if( !warnedUserBadPlatform ) {
                 if( defaultPlatform != null) { // the user set a default platform
                     Utils.warnUser( "Platform string (" + readDatum.platform + ") unrecognized in CycleCovariate. " +
@@ -109,9 +128,5 @@ public class CycleCovariate implements Covariate {
     // Used to estimate the amount space required for the full data HashMap
     public final int estimatedNumberOfBins() {
         return 100;
-    }
-
-    public String toString() {
-        return "Machine Cycle";
     }
 }

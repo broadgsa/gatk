@@ -36,14 +36,11 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 public class MinimumNQSCovariate implements Covariate {
 
-    private int windowReach; // how far in each direction from the current base to look
+    private int windowReach; // How far in each direction from the current base to look
 
-    public MinimumNQSCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
-        windowReach = 2; // window size = 5 was the best covariate according to Chris's analysis
-    }
-
-    public MinimumNQSCovariate(final int windowSize) {
-        windowReach = windowSize / 2; // integer division
+    // Initialize any member variables using the command-line arguments passed to the walkers
+    public void initialize( final RecalibrationArgumentCollection RAC ) {
+        windowReach = RAC.WINDOW_SIZE / 2; // integer division
     }
 
     // Used to pick out the covariate's value from attributes of the read
@@ -69,9 +66,5 @@ public class MinimumNQSCovariate implements Covariate {
     // Used to estimate the amount space required for the full data HashMap
     public final int estimatedNumberOfBins() {
         return 40;
-    }
-
-    public String toString() {
-        return "Minimum Neighborhood Quality Score (window size = " + (windowReach * 2 + 1) + ")";
     }
 }

@@ -29,6 +29,12 @@ import org.broadinstitute.sting.utils.StingException;
  * @author alecw@broadinstitute.org
  */
 public class TileCovariate implements Covariate {
+
+    // Initialize any member variables using the command-line arguments passed to the walkers
+    public void initialize( final RecalibrationArgumentCollection RAC ) {
+    }
+
+    // Used to pick out the covariate's value from attributes of the read
     public Comparable getValue(final ReadHashDatum readDatum, final int offset) {
         if (readDatum.tile == null) {
             throw new StingException("Tile number not defined for read");
@@ -36,10 +42,12 @@ public class TileCovariate implements Covariate {
         return readDatum.tile;
     }
 
+    // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public Comparable getValue(final String str) {
         return Integer.parseInt( str );
     }
 
+    // Used to estimate the amount space required for the full data HashMap
     public int estimatedNumberOfBins() {
         return 120;
     }

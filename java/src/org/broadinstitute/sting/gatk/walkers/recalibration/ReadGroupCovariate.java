@@ -37,7 +37,8 @@ public class ReadGroupCovariate implements Covariate{
 
     public static final String defaultReadGroup = "DefaultReadGroup";
 
-    public ReadGroupCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
+    // Initialize any member variables using the command-line arguments passed to the walkers
+    public void initialize( final RecalibrationArgumentCollection RAC ) {
     }
 
     // Used to pick out the covariate's value from attributes of the read
@@ -52,11 +53,7 @@ public class ReadGroupCovariate implements Covariate{
 
     // Used to estimate the amount space required for the full data HashMap
     public final int estimatedNumberOfBins() {
-        return 300;
-    }
-
-    public String toString() {
-        return "Read Group";
+        return 60;
     }
 }
 

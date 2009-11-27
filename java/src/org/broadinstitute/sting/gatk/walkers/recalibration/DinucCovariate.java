@@ -43,8 +43,8 @@ public class DinucCovariate implements Covariate {
 
     HashMap<Integer, Dinuc> dinucHashMap;
 
-    public DinucCovariate() { // empty constructor is required to instantiate covariate in CovariateCounterWalker and TableRecalibrationWalker
-
+    // Initialize any member variables using the command-line arguments passed to the walkers
+    public void initialize( final RecalibrationArgumentCollection RAC ) {
         final byte[] BASES = { (byte)'A', (byte)'C', (byte)'G', (byte)'T' };
         dinucHashMap = new HashMap<Integer, Dinuc>();
         for(byte byte1 : BASES) {
@@ -82,9 +82,5 @@ public class DinucCovariate implements Covariate {
     // Used to estimate the amount space required for the full data HashMap
     public final int estimatedNumberOfBins() {
         return 16;
-    }
-
-    public String toString() {
-        return "Dinucleotide";
     }
 }
