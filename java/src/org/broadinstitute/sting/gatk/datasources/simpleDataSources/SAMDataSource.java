@@ -403,7 +403,9 @@ public class SAMDataSource implements SimpleDataSource {
      */
     private StingSAMIterator createIterator( DataStreamSegment segment ) {
         StingSAMIterator iterator = resourcePool.iterator(segment);
-        return new MalformedSAMFilteringIterator( getHeader(), iterator, violations );
+        StingSAMIterator malformedWrappedIterator =  new MalformedSAMFilteringIterator( getHeader(), iterator, violations );
+        StingSAMIterator readWrappingIterator = new ReadWrappingIterator(malformedWrappedIterator);
+        return readWrappingIterator;
     }
 
     /**
