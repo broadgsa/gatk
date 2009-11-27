@@ -18,8 +18,6 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMReadGroupRecord;
-import edu.mit.broad.picard.illumina.parser.IlluminaUtil;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -383,7 +381,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     }
 
     /**
-     * Validate the dbSNP mismatch rates.
+     * Validate the dbSNP reference mismatch rates.
      */
     private void validateDbsnpMismatchRate() {
         if( novel_counts.second == 0 || dbSNP_counts.second == 0 ) {

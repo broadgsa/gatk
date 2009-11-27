@@ -16,8 +16,6 @@ import java.util.regex.Pattern;
 import java.io.File;
 import java.io.FileNotFoundException;
 
-import edu.mit.broad.picard.illumina.parser.IlluminaUtil;
-
 /*
  * Copyright (c) 2009 The Broad Institute
  *
