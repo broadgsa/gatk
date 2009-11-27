@@ -1,7 +1,9 @@
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMReadGroupRecord;
+import net.sf.picard.filter.SamRecordFilter;
+import org.broadinstitute.sting.utils.cmdLine.Argument;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -31,10 +33,17 @@ import net.sf.samtools.SAMRecord;
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
- * Date: Nov 19, 2009
+ * Date: Nov 27, 2009
+ *
+ * Only use reads from the specified read group.
  */
-public class NoOriginalQualityScoresFilter implements SamRecordFilter {
-    public boolean filterOut(SAMRecord rec) {
-        return (rec.getAttribute("OQ") == null);
+
+public class SingleReadGroupFilter implements SamRecordFilter {
+    @Argument(fullName = "read_group_to_keep", shortName = "goodRG", doc="The name of the read group to keep, filtering out all others", required=true)
+    private String READ_GROUP_TO_KEEP = null;
+
+    public boolean filterOut(SAMRecord read) {
+        SAMReadGroupRecord readGroup = read.getReadGroup();
+        return !( readGroup != null && readGroup.getReadGroupId().equals( READ_GROUP_TO_KEEP ) );
     }
 }
