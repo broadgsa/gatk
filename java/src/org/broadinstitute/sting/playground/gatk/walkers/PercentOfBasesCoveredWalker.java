@@ -32,7 +32,7 @@ public class PercentOfBasesCoveredWalker extends LocusWalker<Boolean, Pair<Integ
     }
 
     public Boolean map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        return context.numReads() > minDepth;
+        return context.size() > minDepth;
     }
 
     public Pair<Integer,Integer> reduce(Boolean map, Pair<Integer,Integer> prevReduce) {
