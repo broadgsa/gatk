@@ -10,7 +10,7 @@ print("Merging:")
 vcfInputFiles = []
 vcfOutputFile = ""
 for arg in sys.argv:
-    if( arg == "./mergeVCFInfoFields.py" ):
+    if( arg.endswith("Fields.py") ):
         # do nothing
         continue
     else:
