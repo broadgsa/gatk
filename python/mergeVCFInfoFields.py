@@ -55,7 +55,7 @@ for inFile in vcfInputFiles:
                     else:
                         # now we need to parse the fields
                         curinfofields = set(curInfo.split(";"))
-                        newinfofields = set(newInfo.split(";"))
+                        newinfofields = set(info.split(";"))
                         curinfofields.update(newinfofields)
                         newInfo = ";".join(curinfofields)
                     
