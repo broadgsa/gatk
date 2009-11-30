@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
+import net.sf.samtools.SAMRecord;
+
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -44,15 +46,15 @@ public class MinimumNQSCovariate implements Covariate {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
+    public final Comparable getValue( final SAMRecord read, final int offset ) {
     	
     	// Loop over the list of base quality scores in the window and find the minimum
-        int minQual = readDatum.quals[offset];
+        int minQual = read.getBaseQualities()[offset];
         int minIndex = Math.max(offset - windowReach, 0);
-        int maxIndex = Math.min(offset + windowReach, readDatum.quals.length - 1);
+        int maxIndex = Math.min(offset + windowReach, read.getBaseQualities().length - 1);
         for ( int iii = minIndex; iii < maxIndex; iii++ ) {
-            if( readDatum.quals[iii] < minQual ) {
-                minQual = readDatum.quals[iii];
+            if( read.getBaseQualities()[iii] < minQual ) {
+                minQual = read.getBaseQualities()[iii];
             }
         }
         return minQual;

@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
+import net.sf.samtools.SAMRecord;
+
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -41,10 +43,10 @@ public class PositionCovariate implements Covariate {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
+    public final Comparable getValue( final SAMRecord read, final int offset ) {
         int cycle = offset;
-        if( readDatum.isNegStrand ) {
-            cycle = readDatum.bases.length - (offset + 1);
+        if( read.getReadNegativeStrandFlag() ) {
+            cycle = read.getReadLength() - (offset + 1);
         }
         return cycle;
     }

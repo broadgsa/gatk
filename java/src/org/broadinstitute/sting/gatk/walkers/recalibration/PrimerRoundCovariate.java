@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
+import net.sf.samtools.SAMRecord;
+
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -42,8 +44,8 @@ public class PrimerRoundCovariate implements Covariate {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
-        if( readDatum.platform.equalsIgnoreCase( "SOLID" ) ) {
+    public final Comparable getValue( final SAMRecord read, final int offset ) {
+        if( read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) {
 	        return offset % 5; // the primer round according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
         } else {
             return 1; // nothing to do here because it is always the same

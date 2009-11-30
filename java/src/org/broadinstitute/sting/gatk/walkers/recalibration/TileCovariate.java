@@ -24,6 +24,8 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.utils.StingException;
+import net.sf.samtools.SAMRecord;
+import edu.mit.broad.picard.illumina.parser.IlluminaUtil;
 
 /**
  * @author alecw@broadinstitute.org
@@ -35,11 +37,12 @@ public class TileCovariate implements Covariate {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public Comparable getValue(final ReadHashDatum readDatum, final int offset) {
-        if (readDatum.tile == null) {
+    public Comparable getValue(final SAMRecord read, final int offset) {
+        Integer tile = IlluminaUtil.getTileFromReadName(read.getReadName());
+        if (tile == null) {
             throw new StingException("Tile number not defined for read");
         }
-        return readDatum.tile;
+        return tile;
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker

@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.StingException;
+import net.sf.samtools.SAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -56,16 +57,16 @@ public class CycleCovariate implements Covariate {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
+    public final Comparable getValue( final SAMRecord read, final int offset ) {
 
         //-----------------------------
         // ILLUMINA
         //-----------------------------
 
-        if( readDatum.platform.equalsIgnoreCase( "ILLUMINA" ) ) {
+        if( read.getReadGroup().getPlatform().equalsIgnoreCase( "ILLUMINA" ) ) {
             int cycle = offset;
-	        if( readDatum.isNegStrand ) {
-	            cycle = readDatum.bases.length - (offset + 1);
+	        if( read.getReadNegativeStrandFlag() ) {
+	            cycle = read.getReadLength() - (offset + 1);
 	        }
 	        return cycle;
         }
@@ -74,14 +75,14 @@ public class CycleCovariate implements Covariate {
         // 454
         //-----------------------------
 
-        else if( readDatum.platform.contains( "454" ) ) { // Some bams have "LS454" and others have just "454"
+        else if( read.getReadGroup().getPlatform().contains( "454" ) ) { // Some bams have "LS454" and others have just "454"
             int cycle = 0;
             //BUGBUG: should reverse directions on negative strand reads!
-            byte prevBase = readDatum.bases[0];
+            byte prevBase = read.getReadBases()[0];
             for( int iii = 1; iii <= offset; iii++ ) {
-                if(readDatum.bases[iii] != prevBase) { // This base doesn't match the previous one so it is a new cycle
+                if(read.getReadBases()[iii] != prevBase) { // This base doesn't match the previous one so it is a new cycle
                     cycle++;
-                    prevBase = readDatum.bases[iii];
+                    prevBase = read.getReadBases()[iii];
                 }
             }
             return cycle;
@@ -91,7 +92,7 @@ public class CycleCovariate implements Covariate {
         // SOLID
         //-----------------------------
 
-        else if( readDatum.platform.equalsIgnoreCase( "SOLID" ) ) {
+        else if( read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) ) {
             // The ligation cycle according to http://www3.appliedbiosystems.com/cms/groups/mcb_marketing/documents/generaldocuments/cms_057511.pdf
             //BUGBUG: should reverse directions on negative strand reads!
         	return offset / 5; // integer division
@@ -104,18 +105,19 @@ public class CycleCovariate implements Covariate {
         else { // Platform is unrecognized so revert to the default platform but warn the user first
         	if( !warnedUserBadPlatform ) {
                 if( defaultPlatform != null) { // the user set a default platform
-                    Utils.warnUser( "Platform string (" + readDatum.platform + ") unrecognized in CycleCovariate. " +
+                    Utils.warnUser( "Platform string (" + read.getReadGroup().getPlatform() + ") unrecognized in CycleCovariate. " +
                             "Reverting to " + defaultPlatform + " definition of machine cycle." );
                 } else { // the user did not set a default platform
-                    Utils.warnUser( "Platform string (" + readDatum.platform + ") unrecognized in CycleCovariate. " +
+                    Utils.warnUser( "Platform string (" + read.getReadGroup().getPlatform() + ") unrecognized in CycleCovariate. " +
                             "Reverting to Illumina definition of machine cycle. Users may set the default platform using the --default_platform <String> argument." );
                     defaultPlatform = "Illumina";
                 }
                 warnedUserBadPlatform = true;
             }
-            ReadHashDatum correctedReadDatum = new ReadHashDatum( readDatum );
-            correctedReadDatum.platform = defaultPlatform;
-            return getValue( correctedReadDatum, offset ); // a recursive call
+            //ReadHashDatum correctedReadDatum = new ReadHashDatum( readDatum );
+            //correctedReadDatum.platform = defaultPlatform;
+            return 0; // BUGBUG: broken at the moment
+            //return getValue( correctedReadDatum, offset ); // a recursive call
         }
                                                         
     }

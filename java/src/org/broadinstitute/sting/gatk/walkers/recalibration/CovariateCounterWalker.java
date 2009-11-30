@@ -96,13 +96,11 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     /////////////////////////////
     private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
     private ArrayList<Covariate> requestedCovariates; // A list to hold the covariate objects that were requested
-    private IdentityHashMap<SAMRecord, ReadHashDatum> readDatumHashMap; // A hash map that hashes the read object itself into properties commonly pulled out of the read. Done for optimization purposes.
-    private int sizeOfReadDatumHashMap = 0;
     private long countedSites = 0; // Number of loci used in the calculations, used for reporting in the output file
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.0.8"; // Major version, minor version, and build number
+    private static final String versionString = "v2.0.9"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -228,7 +226,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             estimatedCapacity = 300 * 40 * 200;
         }
         dataManager = new RecalDataManager( estimatedCapacity );
-        readDatumHashMap = new IdentityHashMap<SAMRecord, ReadHashDatum>();
     }
 
 
@@ -273,7 +270,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             byte refBase;
             byte prevBase;
             byte[] colorSpaceQuals;
-            ReadHashDatum readDatum;
 
             final int numReads = reads.size();
             // For each read at this locus
@@ -281,49 +277,35 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 read = reads.get(iii);
                 offset = offsets.get(iii); // offset is zero based so quals[offset] and bases[offset] is correct
 
-                // Try to pull the read out of the read IdentityHashMap
-                readDatum = readDatumHashMap.get( read );
-                if( readDatum == null ) {
-
-                    // If the HashMap of read objects has grown too large then throw out the (mostly stale) reads
-                    if( sizeOfReadDatumHashMap > 100000 ) { //BUGBUG: Can I make this number larger?
-                        readDatumHashMap.clear();
-                        sizeOfReadDatumHashMap = 0;
-                    }
-
-                    // This read isn't in the hashMap yet so fill out the datum and add it to the map so that we never have to do the work again
-                    readDatum = ReadHashDatum.parseSAMRecord( read, RAC );
-                    readDatumHashMap.put( read, readDatum );
-                    sizeOfReadDatumHashMap++;
-                }
+                RecalDataManager.parseSAMRecord(read, RAC);
 
                 // Skip first and last base because there is no dinuc
                 // BUGBUG: Technically we only have to skip the first base on forward reads and the last base on negative strand reads. Change after passing old integration tests.
                 if( offset > 0 ) {
-                    if( offset < readDatum.length - 1 ) {
+                    if( offset < read.getReadLength() - 1 ) {
                         // Skip if base quality is zero
-                        if( readDatum.quals[offset] > 0 ) {
+                        if( read.getBaseQualities()[offset] > 0 ) {
 
                             refBase = (byte)ref.getBase();
-                            prevBase = readDatum.bases[offset - 1];
+                            prevBase = read.getReadBases()[offset - 1];
 
                             // DinucCovariate is responsible for getting the complement bases if needed
-                            if( readDatum.isNegStrand ) {
-                                prevBase = readDatum.bases[offset + 1];
+                            if( read.getReadNegativeStrandFlag() ) {
+                                prevBase = read.getReadBases()[offset + 1];
                             }
 
                             // Skip if this base or the previous one was an 'N' or etc.
-                            if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)(readDatum.bases[offset]) ) ) {
+                            if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)(read.getReadBases()[offset]) ) ) {
 
                                 // SOLID bams insert the reference base into the read if the color space quality is zero, so skip over them
                                 colorSpaceQuals = null;
-                                if( readDatum.platform.equalsIgnoreCase("SOLID") ) {
+                                if( read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") ) {
                                     colorSpaceQuals = QualityUtils.fastqToPhred((String)read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG));
                                 }
                                 if( colorSpaceQuals == null || colorSpaceQuals[offset] > 0 ) //BUGBUG: This isn't exactly correct yet
                                 {
                                     // This base finally passed all the checks for a good base, so add it to the big data hashmap
-                                    updateDataFromRead( readDatum, offset, refBase );
+                                    updateDataFromRead( read, offset, refBase );
                                 }
                             } else {
                                 if( RAC.VALIDATE_OLD_RECALIBRATOR ) {
@@ -331,9 +313,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                                 }
                             }
                         }
-                    } else { // At the last base in the read so we can remove the read from our IdentityHashMap since we will never see it again
-                        readDatumHashMap.remove( read );
-                        sizeOfReadDatumHashMap--;
                     }
                 }
             }
@@ -405,17 +384,17 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      *   adding one to the number of observations and potentially one to the number of mismatches
      * Lots of things are passed as parameters to this method as a strategy for optimizing the covariate.getValue calls
      *   because pulling things out of the SAMRecord is an expensive operation.
-     * @param readDatum The ReadHashDatum holding all the important properties of this read
+     * @param read The SAMRecord holding all the data for this read
      * @param offset The offset in the read for this locus
      * @param refBase The reference base at this locus
      */
-    private void updateDataFromRead(final ReadHashDatum readDatum, final int offset, final byte refBase) {
+    private void updateDataFromRead(final SAMRecord read, final int offset, final byte refBase) {
 
         List<Comparable> key = new ArrayList<Comparable>();
         
         // Loop through the list of requested covariates and pick out the value from the read, offset, and reference
         for( Covariate covariate : requestedCovariates ) {
-        	key.add( covariate.getValue( readDatum, offset ) );
+        	key.add( covariate.getValue( read, offset ) );
         }
 
     	// Using the list of covariate values as a key, pick out the RecalDatum from the data HashMap
@@ -430,7 +409,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
         
         // Need the bases to determine whether or not we have a mismatch
-        byte base = readDatum.bases[offset];
+        byte base = read.getReadBases()[offset];
         
         // Add one to the number of observations and potentially one to the number of mismatches
         datum.increment( (char)base, (char)refBase ); // Dangerous: If you don't cast to char than the bytes default to the (long, long) version of the increment method which is really bad

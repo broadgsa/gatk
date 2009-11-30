@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 import java.util.HashMap;
 
 import org.broadinstitute.sting.utils.BaseUtils;
+import net.sf.samtools.SAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -55,17 +56,17 @@ public class DinucCovariate implements Covariate {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
+    public final Comparable getValue( final SAMRecord read, final int offset ) {
 
         byte base;
         byte prevBase;
         // If this is a negative strand read then we need to reverse the direction for our previous base
-        if( readDatum.isNegStrand ) {
-            base = (byte)BaseUtils.simpleComplement( (char)readDatum.bases[offset] );
-            prevBase = (byte)BaseUtils.simpleComplement( (char)readDatum.bases[offset + 1] );
+        if( read.getReadNegativeStrandFlag() ) {
+            base = (byte)BaseUtils.simpleComplement( (char)(read.getReadBases()[offset]) );
+            prevBase = (byte)BaseUtils.simpleComplement( (char)(read.getReadBases()[offset + 1]) );
         } else {
-            base = readDatum.bases[offset];
-            prevBase = readDatum.bases[offset - 1];
+            base = read.getReadBases()[offset];
+            prevBase = read.getReadBases()[offset - 1];
         }
         //char[] charArray = {(char)prevBase, (char)base};
         //return new String( charArray ); // This is an expensive call

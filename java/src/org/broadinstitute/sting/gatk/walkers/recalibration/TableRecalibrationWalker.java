@@ -93,7 +93,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.0.6"; // Major version, minor version, and build number
+    private static final String versionString = "v2.0.7"; // Major version, minor version, and build number
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
 
     //---------------------------------------------------------------------------------------------------------------
@@ -301,27 +301,17 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // WARNING: refBases is always null because this walker doesn't have @Requires({DataSource.REFERENCE_BASES})
         // This is done in order to speed up the code
 
+        RecalDataManager.parseSAMRecord(read, RAC);
+
         byte[] originalQuals = read.getBaseQualities();
-        // Check if we need to use the original quality scores instead
-        if ( RAC.USE_ORIGINAL_QUALS && read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
-            Object obj = read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG);
-            if ( obj instanceof String )
-                originalQuals = QualityUtils.fastqToPhred((String)obj);
-            else {
-                throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
-            }
-        }
         byte[] recalQuals = originalQuals.clone();
-
-        // Fill out the readDatum with the useful information from the read
-        ReadHashDatum readDatum = ReadHashDatum.parseSAMRecord( read, RAC );
-
+                
         int startPos = 1;
-        int stopPos = readDatum.length;
+        int stopPos = read.getReadLength();
 
-        if( readDatum.isNegStrand ) { // DinucCovariate is responsible for getting the complement base if needed
+        if( read.getReadNegativeStrandFlag() ) { // DinucCovariate is responsible for getting the complement base if needed
             startPos = 0;
-            stopPos = readDatum.length - 1;
+            stopPos = read.getReadLength() - 1;
         }
 
         // For each base in the read
@@ -329,7 +319,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
             // Get the covariate values which make up the key
             for( Covariate covariate : requestedCovariates ) {
-                fullCovariateKey.add( covariate.getValue( readDatum, iii ) ); // offset is zero based so passing iii is correct here
+                fullCovariateKey.add( covariate.getValue( read, iii ) ); // offset is zero based so passing iii is correct here
             }
 
             recalQuals[iii] = performSequentialQualityCalculation( fullCovariateKey );
@@ -339,7 +329,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         preserveQScores( originalQuals, recalQuals ); // Overwrite the work done if original quality score is too low
 
         // SOLID bams insert the reference base into the read if the color space quality is zero, so don't change their base quality scores
-        if( readDatum.platform.equalsIgnoreCase("SOLID") ) {
+        if( read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") ) {
             byte[] colorSpaceQuals = QualityUtils.fastqToPhred((String)read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG));
             if(colorSpaceQuals != null) { preserveBadColorSpaceQualities_SOLID( originalQuals, recalQuals, colorSpaceQuals ); }
         }

@@ -1,8 +1,13 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.*;
+
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMReadGroupRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -51,6 +56,7 @@ public class RecalDataManager {
 
     public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // The tag that holds the original quality scores
     public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ"; // The tag that holds the color space quality scores for SOLID bams
+    private static boolean warnUserNullReadGroup = false;
 
     RecalDataManager() {
     	data = new NHashMap<RecalDatum>();
@@ -210,6 +216,51 @@ public class RecalDataManager {
             return dataCollapsedQualityScoreDouble; // Table of empirical qualities where everything except read group and quality score has been collapsed
         } else {
             return dataCollapsedByCovariateDouble.get( covariate - 2 ); // Table of empirical qualities where everything except read group, quality score, and given covariate has been collapsed
+        }
+    }
+
+    /**
+     * Section of code shared between the two recalibration walkers which uses the command line arguments to adjust attributes of the read such as quals or platform string
+     * @param read The read to adjust
+     * @param RAC The list of shared command line arguments
+     */
+    public static void parseSAMRecord( final SAMRecord read, final RecalibrationArgumentCollection RAC) {
+
+        // Check if we need to use the original quality scores instead
+        if ( RAC.USE_ORIGINAL_QUALS && read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) != null ) {
+            Object obj = read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG);
+            if ( obj instanceof String )
+                read.setBaseQualities( QualityUtils.fastqToPhred((String)obj) );
+            else {
+                throw new RuntimeException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, read.getReadName()));
+            }
+        }
+
+        SAMReadGroupRecord readGroup = read.getReadGroup();
+
+        // If there are no read groups we have to default to something, and that something could be specified by the user using command line arguments
+        if( readGroup == null ) {
+            if( !warnUserNullReadGroup && RAC.FORCE_READ_GROUP == null ) {
+                Utils.warnUser("The input .bam file contains reads with no read group. " +
+                                "Defaulting to read group ID = " + RAC.DEFAULT_READ_GROUP + " and platform = " + RAC.DEFAULT_PLATFORM + ". " +
+                                "First observed at read with name = " + read.getReadName() );
+                warnUserNullReadGroup = true;
+            }
+            // There is no readGroup so defaulting to these values
+            readGroup = new SAMReadGroupRecord( RAC.DEFAULT_READ_GROUP );
+            readGroup.setPlatform( RAC.DEFAULT_PLATFORM );
+            ((GATKSAMRecord)read).setReadGroup( readGroup );
+        }
+
+        if( RAC.FORCE_READ_GROUP != null && !read.getReadGroup().getReadGroupId().equals(RAC.FORCE_READ_GROUP) ) { // Collapse all the read groups into a single common String provided by the user
+            String oldPlatform = readGroup.getPlatform();
+            readGroup = new SAMReadGroupRecord( RAC.FORCE_READ_GROUP );
+            readGroup.setPlatform( oldPlatform );
+            ((GATKSAMRecord)read).setReadGroup( readGroup );
+        }
+
+        if( RAC.FORCE_PLATFORM != null && !read.getReadGroup().getPlatform().equals(RAC.FORCE_PLATFORM)) {
+            read.getReadGroup().setPlatform( RAC.FORCE_PLATFORM );
         }
     }
 }

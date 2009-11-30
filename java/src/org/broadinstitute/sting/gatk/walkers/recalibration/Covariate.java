@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
+import net.sf.samtools.SAMRecord;
+
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -37,7 +39,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 public interface Covariate {
     public void initialize( RecalibrationArgumentCollection RAC ); // Initialize any member variables using the command-line arguments passed to the walkers
-    public Comparable getValue( ReadHashDatum readDatum, int offset ); // Used to pick out the covariate's value from attributes of the read
+    public Comparable getValue( SAMRecord read, int offset ); // Used to pick out the covariate's value from attributes of the read
     public Comparable getValue( String str ); // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public int estimatedNumberOfBins(); // Used to estimate the amount space required for the full data HashMap
 }

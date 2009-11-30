@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
+import net.sf.samtools.SAMRecord;
+
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -40,9 +42,9 @@ public class QualityScoreCovariate implements Covariate {
     }
 
     // Used to pick out the covariate's value from attributes of the read
-    public final Comparable getValue( final ReadHashDatum readDatum, final int offset ) {
+    public final Comparable getValue( final SAMRecord read, final int offset ) {
     	
-    	return (int)(readDatum.quals[offset]);
+    	return (int)(read.getBaseQualities()[offset]);
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
