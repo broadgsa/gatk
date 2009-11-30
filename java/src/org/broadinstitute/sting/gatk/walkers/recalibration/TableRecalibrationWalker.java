@@ -92,8 +92,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private ArrayList<Comparable> collapsedTableKey; // The key that will be used over and over again to query the collapsed tables
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
-    private static final Pattern COVARIATE_PATTERN = Pattern.compile("^@!.*");
-    private static final String versionString = "v2.0.5"; // Major version, minor version, and build number
+    private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
+    private static final String versionString = "v2.0.6"; // Major version, minor version, and build number
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
 
     //---------------------------------------------------------------------------------------------------------------
@@ -148,33 +148,35 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                 }
                 else if( COVARIATE_PATTERN.matcher(line).matches() ) { // The line string is either specifying a covariate or is giving csv data
                     if( foundAllCovariates ) {
-                        throw new StingException( "Malformed input recalibration file. Found covariate names intermingled with data. " + RAC.RECAL_FILE );
-                    } else { // Found another covariate in input file
-                        boolean foundClass = false;
-                        for( Class<?> covClass : classes ) {
+                        throw new StingException( "Malformed input recalibration file. Found covariate names intermingled with data in file: " + RAC.RECAL_FILE );
+                    } else { // Found the covariate list in input file, loop through all of them and instantiate them
+                        String[] vals = line.split(",");
+                        for( int iii = 0; iii < vals.length - 3; iii++ ) { // There are n-3 covariates. The last three items are nObservations, nMismatch, and Qempirical
+                            boolean foundClass = false;
+                            for( Class<?> covClass : classes ) {
+                                if( (vals[iii] + "Covariate").equalsIgnoreCase( covClass.getSimpleName() ) ) {
+                                    foundClass = true;
+                                    try {
+                                        Covariate covariate = (Covariate)covClass.newInstance();
+                                        requestedCovariates.add( covariate );
+                                        estimatedCapacity *= covariate.estimatedNumberOfBins();
 
-                            if( line.equalsIgnoreCase( "@!" + covClass.getSimpleName() ) ) { // The "@!" was added by CovariateCounterWalker as a code to recognize covariate class names
-                                foundClass = true;
-                                try {
-                                    Covariate covariate = (Covariate)covClass.newInstance();
-                                    requestedCovariates.add( covariate );
-                                    estimatedCapacity *= covariate.estimatedNumberOfBins();
-                                    
-                                } catch ( InstantiationException e ) {
-                                    throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
-                                } catch ( IllegalAccessException e ) {
-                                    throw new StingException( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
+                                    } catch ( InstantiationException e ) {
+                                        throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
+                                    } catch ( IllegalAccessException e ) {
+                                        throw new StingException( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
+                                    }
                                 }
                             }
-                        }
 
-                        if( !foundClass ) {
-                            throw new StingException( "Malformed input recalibration file. The requested covariate type (" + line + ") isn't a valid covariate option." );
+                            if( !foundClass ) {
+                                throw new StingException( "Malformed input recalibration file. The requested covariate type (" + vals[iii] + ") isn't a valid covariate option." );
+                            }
                         }
 
                     }
 
-                } else { // Found some data
+                } else { // Found a line of data
                     if( !foundAllCovariates ) {
                         if( RAC.VALIDATE_OLD_RECALIBRATOR ) {
                             requestedCovariates.add( new ReadGroupCovariate() );
@@ -183,8 +185,14 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                             requestedCovariates.add( new DinucCovariate() );
                         }
                         foundAllCovariates = true;
+
+                        // At this point all the covariates should have been found and initialized
+                        if( requestedCovariates.size() < 2 ) {
+                            throw new StingException( "Malformed input recalibration file. Covariate names can't be found in file: " + RAC.RECAL_FILE );
+                        }
+
                         // Don't want to crash with out of heap space exception
-                        if(estimatedCapacity > 300 * 40 * 200 || estimatedCapacity < 0) { // Could be negative if overflowed
+                        if( estimatedCapacity > 300 * 40 * 200 || estimatedCapacity < 0 ) { // Could be negative if overflowed
                             estimatedCapacity = 300 * 40 * 200;
                         }
                         final boolean createCollapsedTables = true;
@@ -223,7 +231,12 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         if( !NO_PG_TAG ) {
             SAMProgramRecord programRecord = new SAMProgramRecord( "TableRecalibrationWalker" );
             programRecord.setProgramVersion( versionString );
-            programRecord.setCommandLine( "Covariates used: " + requestedCovariates );
+            String commandLineString = "Covariates used: ";
+            for( Covariate cov : requestedCovariates ) {
+                commandLineString += cov.getClass().getSimpleName() + ", ";
+            }
+            commandLineString = commandLineString.substring(0, commandLineString.length() - 2); // trim off the trailing comma
+            programRecord.setCommandLine( commandLineString );
             header.addProgramRecord( programRecord );
         }
 
@@ -240,6 +253,13 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      */
     private void addCSVData(String line) {
         String[] vals = line.split(",");
+
+        // Check if the data line is malformed, for example if the read group string contains a comma then it won't be parsed correctly
+        if( vals.length != requestedCovariates.size() + 3 ) { // +3 because of nObservations, nMismatch, and Qempirical
+            throw new StingException("Malformed input recalibration file. Found data line with too many fields: " + line +
+                    " --Perhaps the read group string contains a comma and isn't parsed correctly.");
+        }
+
         ArrayList<Comparable> key = new ArrayList<Comparable>();
         Covariate cov;
         int iii;

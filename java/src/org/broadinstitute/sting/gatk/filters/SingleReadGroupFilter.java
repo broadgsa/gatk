@@ -42,8 +42,8 @@ public class SingleReadGroupFilter implements SamRecordFilter {
     @Argument(fullName = "read_group_to_keep", shortName = "goodRG", doc="The name of the read group to keep, filtering out all others", required=true)
     private String READ_GROUP_TO_KEEP = null;
 
-    public boolean filterOut(SAMRecord read) {
-        SAMReadGroupRecord readGroup = read.getReadGroup();
+    public boolean filterOut( final SAMRecord read ) {
+        final SAMReadGroupRecord readGroup = read.getReadGroup();
         return !( readGroup != null && readGroup.getReadGroupId().equals( READ_GROUP_TO_KEEP ) );
     }
 }

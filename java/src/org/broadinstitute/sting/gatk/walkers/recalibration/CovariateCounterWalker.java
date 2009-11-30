@@ -102,7 +102,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.0.7"; // Major version, minor version, and build number
+    private static final String versionString = "v2.0.8"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -224,7 +224,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         }
 
         // Don't want to crash with out of heap space exception
-        if(estimatedCapacity > 300 * 40 * 200 || estimatedCapacity < 0) { // Could be negative if overflowed
+        if( estimatedCapacity > 300 * 40 * 200 || estimatedCapacity < 0 ) { // Could be negative if overflowed
             estimatedCapacity = 300 * 40 * 200;
         }
         dataManager = new RecalDataManager( estimatedCapacity );
@@ -512,8 +512,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 }
                 for( Covariate cov : requestedCovariates ) {
                     // The "@!" is a code for TableRecalibrationWalker to recognize this line as a Covariate class name
-                    recalTableStream.println( "@!" + cov.getClass().getSimpleName() );
+                    recalTableStream.print( cov.getClass().getSimpleName().split("Covariate")[0] + "," );
                 }
+                recalTableStream.println("nObservations,nMismatches,Qempirical");
             }
 
             if( SORTED_OUTPUT && requestedCovariates.size() == 4 )
@@ -530,7 +531,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                     // For each Covariate in the key
                     for( Comparable comp : entry.getKey() ) {
                         // Output the Covariate's value
-                        if( NO_PRINT_HEADER && comp instanceof String ) { continue; } // BUGBUG
                         recalTableStream.print( comp + "," );
                     }
                     // Output the RecalDatum entry

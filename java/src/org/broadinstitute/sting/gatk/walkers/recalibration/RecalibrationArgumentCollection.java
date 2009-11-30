@@ -57,7 +57,7 @@ public class RecalibrationArgumentCollection {
     public String FORCE_PLATFORM = null;
 
     //////////////////////////////////
-    // Debugging-only Arguments
+    // Shared Debugging-only Arguments
     //////////////////////////////////
     @Argument(fullName="validate_old_recalibrator", shortName="validate", required=false, doc="!!!Depricated!!! Match the output of the old recalibrator exactly. FOR DEBUGGING PURPOSES ONLY.")
     public boolean VALIDATE_OLD_RECALIBRATOR = false;

@@ -32,9 +32,11 @@ import net.sf.samtools.SAMRecord;
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Nov 19, 2009
+ *
+ * Filter out reads that don't have Original Quality scores inside. 
  */
 public class NoOriginalQualityScoresFilter implements SamRecordFilter {
-    public boolean filterOut(SAMRecord rec) {
-        return (rec.getAttribute("OQ") == null);
+    public boolean filterOut( final SAMRecord read ) {
+        return (read.getAttribute("OQ") == null);
     }
 }
