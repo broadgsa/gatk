@@ -18,8 +18,8 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalVariantROD() {
         HashMap<String, String> md5 = new HashMap<String, String>();
-        md5.put("", "86582b57ec27dd9c4a6e0252eb010376");
-        md5.put("-A", "ead904e334956435e6b586b697cd1905");
+        md5.put("", "b4adb7fed93005b3c28d72c3578ebc33");
+        md5.put("-A", "d34c1598a5b35098bd5524a52fbbc0fd");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -52,7 +52,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalVariantRODConfSix() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("875dea21073bb5b24a771105bdeb2225");
+        md5.add("4421a0b379577ea0fcde2c9866f9ca9f");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -84,7 +84,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
      @Test
     public void testEvalVariantRODOutputViolations() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("d84e5b2a23ab1cf028145f09cd1e9f5b");
+        md5.add("e1ce229698725aa06c9b08b21fe628ef");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -116,7 +116,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalGenotypeROD() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("87ec21995ab4227404da1dc144c1f4c7");
+        md5.add("fd95465965116e05e2e0356e2d105321");
         /**
          * the above MD5 was calculated after running the following command:
          *
@@ -150,7 +150,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalMarksGenotypingExample() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("e9aebff0e3ccba7ba6f64433ba7d3533");
+        md5.add("58ef0487c9231aec7f356919e8cbd305");
         /**
          * Run with the following commands:
          * 
@@ -177,7 +177,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
 	public void testEvalRuntimeWithLotsOfIntervals() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("bfdc82c3fd8a286f5855d3932ede3124");
+        md5.add("");
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T VariantEval -R /broad/1KG/reference/human_b36_both.fasta " +
                 "-B eval,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.pilot_3.all.geli.calls " +

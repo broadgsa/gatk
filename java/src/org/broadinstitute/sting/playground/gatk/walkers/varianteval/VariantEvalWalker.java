@@ -72,7 +72,8 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 
     // the types of analysis we support, and the string tags we associate with the enumerated value
     enum ANALYSIS_TYPE {
-        ALL_SNPS("all"), SINGLETON_SNPS("singletons"), TWOHIT_SNPS("2plus_hit"), KNOWN_SNPS("known"), NOVEL_SNPS("novel");
+	// todo -- differeniate into three classes -- snps at known snp sites, snps not at known snp site but covered by known indel, and novel 
+        ALL_SNPS("all"), SINGLETON_SNPS("singletons"), TWOHIT_SNPS("2plus_hit"), KNOWN_SNPS("known"), SNPS_AT_NON_SNP_SITES("snp_at_known_non_snps"), NOVEL_SNPS("novel");
 
         private final String value;
         ANALYSIS_TYPE(String value) { this.value = value;}
@@ -85,9 +86,11 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
             ANALYSIS_TYPE.SINGLETON_SNPS,
             ANALYSIS_TYPE.TWOHIT_SNPS,
             ANALYSIS_TYPE.KNOWN_SNPS,
+            ANALYSIS_TYPE.SNPS_AT_NON_SNP_SITES,
             ANALYSIS_TYPE.NOVEL_SNPS};
     final ANALYSIS_TYPE[] GENOTYPE_ANALYSIS_NAMES = {ANALYSIS_TYPE.ALL_SNPS,
             ANALYSIS_TYPE.KNOWN_SNPS,
+            ANALYSIS_TYPE.SNPS_AT_NON_SNP_SITES,
             ANALYSIS_TYPE.NOVEL_SNPS};
     final ANALYSIS_TYPE[] SIMPLE_ANALYSIS_NAMES = {ANALYSIS_TYPE.ALL_SNPS};
     ANALYSIS_TYPE[] ALL_ANALYSIS_NAMES = null;
@@ -258,7 +261,15 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
             if (eval != null) {
                 Variation dbsnp = (Variation) BrokenRODSimulator.simulate_lookup("dbSNP", ref.getLocus(), tracker);
 
-                ANALYSIS_TYPE noveltySet = dbsnp == null ? ANALYSIS_TYPE.NOVEL_SNPS : ANALYSIS_TYPE.KNOWN_SNPS;
+                ANALYSIS_TYPE noveltySet = null;
+                if ( dbsnp == null ) noveltySet = ANALYSIS_TYPE.NOVEL_SNPS;
+                else if ( dbsnp.isSNP() ) noveltySet = ANALYSIS_TYPE.KNOWN_SNPS;
+                else {  // if ( dbsnp.isIndel() )
+                    noveltySet = ANALYSIS_TYPE.SNPS_AT_NON_SNP_SITES;
+                }
+                    //else { ; } // lots of wierd things in there }
+                //  // throw new StingException("Unexpected dbSNP record type: " + dbsnp); }
+
                 updateAnalysisSet(noveltySet, eval, tracker, ref.getBase(), context);
             }
 
@@ -312,7 +323,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 
     private String getLineHeader(final ANALYSIS_TYPE analysisSetName, final String keyword, final String analysis) {
         String s = Utils.join(",", Arrays.asList(analysisSetName, keyword, analysis));
-        return s + Utils.dupString(' ', 50 - s.length());
+        return s + Utils.dupString(' ', Math.max(50 - s.length(), 1));
     }
 
     private void printAnalysisSet(final ANALYSIS_TYPE analysisSetName) {

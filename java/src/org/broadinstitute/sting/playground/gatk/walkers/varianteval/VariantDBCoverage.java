@@ -22,8 +22,9 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
     private String dbName;
     private int nDBSNPs = 0;
     private int nDBIndels = 0;
+    private int nDBElse = 0;
     private int nEvalObs = 0;
-    private int nOverlapping = 0;
+    private int nSNPsAtdbSNPs = 0;
     private int nConcordant = 0;
     private int nSNPsCalledAtIndels = 0;
 
@@ -44,13 +45,14 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
 
         if (inDB) {
             if (dbSNP.isSNP()) nDBSNPs++;
-            if (dbSNP.isIndel()) nDBIndels++;
+            else if (dbSNP.isIndel()) nDBIndels++;
+            else { nDBElse++; }
         }
 
         if (inEval) nEvalObs++;
         if (inDB && inEval) {
             if (dbSNP.isSNP()) { // changes the calculation a bit
-                nOverlapping++;
+                nSNPsAtdbSNPs++;
 
                 if (!discordantP(dbSNP, eval))
                     nConcordant++;
@@ -75,8 +77,8 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
         return nEvalObs;
     }
 
-    public int nOverlappingSites() {
-        return nOverlapping;
+    public int nSNPsAtdbSNPs() {
+        return nSNPsAtdbSNPs;
     }
 
     public int nConcordant() {
@@ -84,7 +86,7 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
     }
 
     public int nNovelSites() {
-        return Math.abs(nEvalSites() - nOverlappingSites());
+        return Math.abs(nEvalSites() - nSNPsAtdbSNPs());
     }
 
     public int nSNPsAtIndels() {
@@ -106,11 +108,11 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
      * @return
      */
     public double fractionEvalSitesCoveredByDB() {
-        return nOverlappingSites() / (1.0 * nEvalSites());
+        return nSNPsAtdbSNPs() / (1.0 * nEvalSites());
     }
 
     public double concordanceRate() {
-        return nConcordant() / (1.0 * nOverlappingSites());
+        return nConcordant() / (1.0 * nSNPsAtdbSNPs());
     }
 
     public String update(Variation eval, RefMetaDataTracker tracker, char ref, AlignmentContext context) {
@@ -119,7 +121,6 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
         //TODO process correctly all the returned dbSNP rods at each location
         Variation dbsnp = (Variation) BrokenRODSimulator.simulate_lookup(dbName,context.getLocation(),tracker);
 
-        boolean isSNP = dbsnp != null && dbsnp.isSNP();
         inc(dbsnp, eval);
 
         if (dbsnp != null && eval != null) {
@@ -142,7 +143,7 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
      * @return
      */
     public double fractionDBSitesDiscoveredInEval() {
-        return nOverlappingSites() / (1.0 * nDBSNPs());
+        return nSNPsAtdbSNPs() / (1.0 * nDBSNPs());
     }
 
     public List<String> done() {
@@ -150,15 +151,17 @@ public class VariantDBCoverage extends BasicVariantAnalysis implements GenotypeA
         //s.add(String.format("%d\t%d\t%d\t%.2f\t%.2f", nDBSNPs(), nEvalSites(), nOverlappingSites(), fractionEvalSitesCoveredByDB(), fractionDBSitesDiscoveredInEval()));
         s.add(String.format("name                     %s", dbName));
 
-        s.add(String.format("n_db_sites               %d", nDBSNPs() + nDBIndels()));
+        s.add(String.format("n_db_sites               %d", nDBSNPs() + nDBIndels() + nDBElse));
         s.add(String.format("n_db_snps                %d", nDBSNPs()));
         s.add(String.format("n_db_indels              %d", nDBIndels()));
+        s.add(String.format("n_db_others              %d", nDBElse));
         s.add(String.format("n_eval_sites             %d", nEvalSites()));
-        s.add(String.format("n_overlapping_sites      %d", nOverlappingSites()));
+        s.add(String.format("n_overlapping_sites      %d", nSNPsAtdbSNPs()));
         s.add(String.format("n_concordant             %d", nConcordant()));
         s.add(String.format("n_novel_sites            %d", nNovelSites()));
 
-        s.add(String.format("percent_eval_sites_in_db %.2f", 100 * fractionEvalSitesCoveredByDB()));
+
+        s.add(String.format("dbsnp_rate               %.2f       # percent eval snps at dbsnp snps", 100 * fractionEvalSitesCoveredByDB()));
         s.add(String.format("concordance_rate         %.2f", 100 * concordanceRate()));
 
         s.add(String.format("percent_db_sites_in_eval %.2f", 100 * fractionDBSitesDiscoveredInEval()));

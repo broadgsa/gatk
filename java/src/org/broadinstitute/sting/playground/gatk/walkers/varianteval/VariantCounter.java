@@ -62,16 +62,16 @@ public class VariantCounter extends BasicVariantAnalysis implements GenotypeAnal
         s.add(String.format("n bases covered    %d", nBasesCovered));
         s.add(String.format("variants           %d", nSNPs));
         s.add(String.format("variant rate       %.5f confident variants per base", variantRate(nSNPs)));
-        s.add(String.format("variant rate       1 / %d confident variants per base [human single sample genome-wide expectation is ~1 / 666]", variantRateInverse(nSNPs)));
+        s.add(String.format("variant rate       1 / %d confident variants per base", variantRateInverse(nSNPs)));
 
         if ( this.getMaster().evalContainsGenotypes ) {
             s.add(String.format("heterozygotes      %d", nHets));
             s.add(String.format("homozygotes        %d", nSNPs - nHets));
 
             s.add(String.format("heterozygosity     %.5f confident hets per base", variantRate(nHets)));
-            s.add(String.format("heterozygosity     1 / %d confident hets per base [human single sample expectation is ~1 / 1000]", variantRateInverse(nHets)));
+            s.add(String.format("heterozygosity     1 / %d confident hets per base", variantRateInverse(nHets)));
 
-            s.add(String.format("het to hom ratio   %.2f confident hets per confident homozygote non-refs [human single sample genome-wide expectation is 2:1]",
+            s.add(String.format("het to hom ratio   %.2f confident hets per confident homozygote non-refs   [single sample genome-wide expectation is 2:1]",
                     ((double)nHets) / (Math.max(nSNPs - nHets, 1))));
         }
         return s;
