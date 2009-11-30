@@ -22,8 +22,6 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
         UNKNOWN         // No idea -- defaulting to 1/3
     }
 
-    private final static String SAM_PLATFORM_TAG = "PL";
-
     private static TreeMap<String, SequencerPlatform> PLFieldToSequencerPlatform = new TreeMap<String, SequencerPlatform>();
     private static void bind(String s, SequencerPlatform x) {
         PLFieldToSequencerPlatform.put(s, x);
@@ -56,7 +54,7 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
         if ( lastReadForPL != read ) {
             lastReadForPL = read;
             SAMReadGroupRecord readGroup = read.getReadGroup();
-            final String platformName = readGroup == null ? null : (String)readGroup.getAttribute(SAM_PLATFORM_TAG);
+            final String platformName = readGroup == null ? null : readGroup.getPlatform();
             plOfLastRead = standardizeSequencerPlatform(platformName);
         }
 

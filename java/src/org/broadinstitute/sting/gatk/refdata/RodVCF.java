@@ -336,7 +336,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
         for (VCFGenotypeRecord rec : mCurrentRecord.getVCFGenotypeRecords()) {
             if ( rec.isEmptyGenotype() )
                 continue;
- ;
+
             double qual = 0;
             if (rec.getAlleles().equals(this.getReference()))
                 qual = refQual;

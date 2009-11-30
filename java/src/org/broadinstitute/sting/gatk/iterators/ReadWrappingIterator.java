@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.Reads;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
  * An iterator which wraps each SAMRecord inside a wrapper class, bringing new functionality to the read while
@@ -18,7 +19,7 @@ public class ReadWrappingIterator implements StingSAMIterator {
 
     /**
      * Decorate the given iterator inside a ReadWrappingIterator.
-     * @param wrappedIterator
+     * @param wrappedIterator iterator
      */
     public ReadWrappingIterator(StingSAMIterator wrappedIterator) {
         this.wrappedIterator = wrappedIterator;
@@ -64,7 +65,7 @@ public class ReadWrappingIterator implements StingSAMIterator {
      *         no next exists.
      */
     public SAMRecord next() {
-        return wrappedIterator.next();
+        return new GATKSAMRecord(wrappedIterator.next());
     }
 
     /**
