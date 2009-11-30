@@ -93,7 +93,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.0.7"; // Major version, minor version, and build number
+    private static final String versionString = "v2.0.8"; // Major version, minor version, and build number
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
 
     //---------------------------------------------------------------------------------------------------------------
@@ -257,7 +257,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // Check if the data line is malformed, for example if the read group string contains a comma then it won't be parsed correctly
         if( vals.length != requestedCovariates.size() + 3 ) { // +3 because of nObservations, nMismatch, and Qempirical
             throw new StingException("Malformed input recalibration file. Found data line with too many fields: " + line +
-                    " --Perhaps the read group string contains a comma and isn't parsed correctly.");
+                    " --Perhaps the read group string contains a comma and isn't being parsed correctly.");
         }
 
         ArrayList<Comparable> key = new ArrayList<Comparable>();
@@ -483,6 +483,5 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         if ( output != null ) {
             output.close();
         }
-        super.onTraversalDone(output);
     }
 }

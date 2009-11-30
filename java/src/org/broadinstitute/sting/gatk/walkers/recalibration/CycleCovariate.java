@@ -114,12 +114,9 @@ public class CycleCovariate implements Covariate {
                 }
                 warnedUserBadPlatform = true;
             }
-            //ReadHashDatum correctedReadDatum = new ReadHashDatum( readDatum );
-            //correctedReadDatum.platform = defaultPlatform;
-            return 0; // BUGBUG: broken at the moment
-            //return getValue( correctedReadDatum, offset ); // a recursive call
+            read.getReadGroup().setPlatform( defaultPlatform );
+            return getValue( read, offset ); // a recursive call
         }
-                                                        
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker

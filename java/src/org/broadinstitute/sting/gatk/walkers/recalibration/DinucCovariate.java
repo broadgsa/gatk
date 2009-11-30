@@ -60,23 +60,20 @@ public class DinucCovariate implements Covariate {
 
         byte base;
         byte prevBase;
+        byte[] bases = read.getReadBases();
         // If this is a negative strand read then we need to reverse the direction for our previous base
         if( read.getReadNegativeStrandFlag() ) {
-            base = (byte)BaseUtils.simpleComplement( (char)(read.getReadBases()[offset]) );
-            prevBase = (byte)BaseUtils.simpleComplement( (char)(read.getReadBases()[offset + 1]) );
+            base = (byte)BaseUtils.simpleComplement( (char)(bases[offset]) );
+            prevBase = (byte)BaseUtils.simpleComplement( (char)(bases[offset + 1]) );
         } else {
-            base = read.getReadBases()[offset];
-            prevBase = read.getReadBases()[offset - 1];
+            base = bases[offset];
+            prevBase = bases[offset - 1];
         }
-        //char[] charArray = {(char)prevBase, (char)base};
-        //return new String( charArray ); // This is an expensive call
         return dinucHashMap.get( Dinuc.hashBytes( prevBase, base ) );
-        //return String.format("%c%c", prevBase, base); // This return statement is too slow
     }
 
     // Used to get the covariate's value from input csv file in TableRecalibrationWalker
     public final Comparable getValue( final String str ) {
-        //return str;
         return dinucHashMap.get( Dinuc.hashBytes( (byte)str.charAt(0), (byte)str.charAt(1) ) );
     }
 

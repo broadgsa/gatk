@@ -101,7 +101,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.0.10"; // Major version, minor version, and build number
+    private static final String versionString = "v2.0.11"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -269,6 +269,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             byte refBase;
             byte prevBase;
             byte[] colorSpaceQuals;
+            byte[] bases;
 
             // For each read at this locus
             for ( PileupElement p : context.getPileup() ) {
@@ -284,16 +285,18 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                         // Skip if base quality is zero
                         if( read.getBaseQualities()[offset] > 0 ) {
 
+                            bases = read.getReadBases();
                             refBase = (byte)ref.getBase();
-                            prevBase = read.getReadBases()[offset - 1];
+                            prevBase = bases[offset - 1];
 
                             // DinucCovariate is responsible for getting the complement bases if needed
                             if( read.getReadNegativeStrandFlag() ) {
-                                prevBase = read.getReadBases()[offset + 1];
+                                prevBase = bases[offset + 1];
                             }
 
                             // Skip if this base or the previous one was an 'N' or etc.
-                            if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)(read.getReadBases()[offset]) ) ) {
+                            // BUGBUG: For DinucCovariate we should use previous reference base, not the previous base in this read. 
+                            if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
 
                                 // SOLID bams insert the reference base into the read if the color space quality is zero, so skip over them
                                 colorSpaceQuals = null;

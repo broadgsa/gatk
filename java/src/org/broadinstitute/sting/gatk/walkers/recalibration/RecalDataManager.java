@@ -252,15 +252,15 @@ public class RecalDataManager {
             ((GATKSAMRecord)read).setReadGroup( readGroup );
         }
 
-        if( RAC.FORCE_READ_GROUP != null && !read.getReadGroup().getReadGroupId().equals(RAC.FORCE_READ_GROUP) ) { // Collapse all the read groups into a single common String provided by the user
+        if( RAC.FORCE_READ_GROUP != null && !readGroup.getReadGroupId().equals(RAC.FORCE_READ_GROUP) ) { // Collapse all the read groups into a single common String provided by the user
             String oldPlatform = readGroup.getPlatform();
             readGroup = new SAMReadGroupRecord( RAC.FORCE_READ_GROUP );
             readGroup.setPlatform( oldPlatform );
             ((GATKSAMRecord)read).setReadGroup( readGroup );
         }
 
-        if( RAC.FORCE_PLATFORM != null && !read.getReadGroup().getPlatform().equals(RAC.FORCE_PLATFORM)) {
-            read.getReadGroup().setPlatform( RAC.FORCE_PLATFORM );
+        if( RAC.FORCE_PLATFORM != null && !readGroup.getPlatform().equals(RAC.FORCE_PLATFORM)) {
+            readGroup.setPlatform( RAC.FORCE_PLATFORM );
         }
     }
 }
