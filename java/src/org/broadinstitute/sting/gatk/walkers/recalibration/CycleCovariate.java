@@ -78,11 +78,12 @@ public class CycleCovariate implements Covariate {
         else if( read.getReadGroup().getPlatform().contains( "454" ) ) { // Some bams have "LS454" and others have just "454"
             int cycle = 0;
             //BUGBUG: should reverse directions on negative strand reads!
-            byte prevBase = read.getReadBases()[0];
+            byte[] bases = read.getReadBases();
+            byte prevBase = bases[0];
             for( int iii = 1; iii <= offset; iii++ ) {
-                if(read.getReadBases()[iii] != prevBase) { // This base doesn't match the previous one so it is a new cycle
+                if( bases[iii] != prevBase ) { // This base doesn't match the previous one so it is a new cycle
                     cycle++;
-                    prevBase = read.getReadBases()[iii];
+                    prevBase = bases[iii];
                 }
             }
             return cycle;
