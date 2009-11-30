@@ -250,7 +250,7 @@ public class VCFGenotypeCall extends AlleleConstrainedGenotype implements ReadBa
      * @return the number of reads we're backed by
      */
     public int getReadCount() {
-       return (mCoverage > 0 ? mCoverage : (mPileup != null ? mPileup.getReads().size() : 0));
+       return (mCoverage > 0 ? mCoverage : (mPileup != null ? mPileup.size() : 0));
     }
 
     /**

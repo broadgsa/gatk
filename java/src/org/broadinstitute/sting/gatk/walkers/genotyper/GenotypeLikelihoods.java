@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 
 import static java.lang.Math.log10;
@@ -277,20 +278,18 @@ public class GenotypeLikelihoods implements Cloneable {
     public int add(ReadBackedPileup pileup, boolean ignoreBadBases) {
         int n = 0;
 
-        for (int i = 0; i < pileup.getReads().size(); i++) {
-            int offset = pileup.getOffsets().get(i);
+        for ( PileupElement p : pileup ) {
+            byte base = p.getBase();
             // ignore deletions
-            if ( offset == -1 )
+            if ( base == PileupElement.DELETION_BASE )
                 continue;
 
-            SAMRecord read = pileup.getReads().get(i);
-            char base = (char)read.getReadBases()[offset];
-            byte qual = read.getBaseQualities()[offset];
-            if ( ! ignoreBadBases || ! badBase(base) ) {
-                n += add(base, qual, read, offset);
+            byte qual = p.getQual();
+            if ( ! ignoreBadBases || ! badBase((char)base) ) {
+                n += add((char)base, qual, p.getRead(), p.getOffset());
             }
         }
-
+        
         return n;
     }
 
