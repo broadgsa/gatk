@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrde
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.Variation;
 
 import java.io.PrintStream;
@@ -100,7 +101,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.0.9"; // Major version, minor version, and build number
+    private static final String versionString = "v2.0.10"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -122,6 +123,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         logger.info( "CovariateCounterWalker version: " + versionString );
         if( RAC.FORCE_READ_GROUP != null ) { RAC.DEFAULT_READ_GROUP = RAC.FORCE_READ_GROUP; }
         if( RAC.FORCE_PLATFORM != null ) { RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM; }
+        DBSNP_VALIDATION_CHECK_FREQUENCY *= PROCESS_EVERY_NTH_LOCUS;
 
         // Get a list of all available covariates
         final List<Class<? extends Covariate>> classes = PackageUtils.getClassesImplementingInterface( Covariate.class );
@@ -262,20 +264,16 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         if( !isSNP && ( ++numUnprocessed >= PROCESS_EVERY_NTH_LOCUS ) ) {
             numUnprocessed = 0; // Reset the counter because we are processing this very locus
 
-            // Long list of variables that are preallocated for use in for loop below
-            final List<SAMRecord> reads = context.getReads();
-            final List<Integer> offsets = context.getOffsets();
             SAMRecord read;
             int offset;
             byte refBase;
             byte prevBase;
             byte[] colorSpaceQuals;
 
-            final int numReads = reads.size();
             // For each read at this locus
-            for( int iii = 0; iii < numReads; iii++ ) {
-                read = reads.get(iii);
-                offset = offsets.get(iii); // offset is zero based so quals[offset] and bases[offset] is correct
+            for ( PileupElement p : context.getPileup() ) {
+                read = p.getRead();
+                offset = p.getOffset();
 
                 RecalDataManager.parseSAMRecord(read, RAC);
 
@@ -317,11 +315,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 }
             }
             countedSites++;
-            updateMismatchCounts(novel_counts, context, ref.getBase()); // For sanity check to ensure novel mismatch rate vs dnsnp mismatch rate is reasonable
-
         } else { // We skipped over the dbSNP site, and we are only processing every Nth locus
             skippedSites++;
-            if( isSNP) {
+            if( isSNP ) {
                 updateMismatchCounts(dbSNP_counts, context, ref.getBase());// For sanity check to ensure novel mismatch rate vs dnsnp mismatch rate is reasonable
             }
         }
@@ -343,10 +339,8 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @param ref The reference base
      */
     private static void updateMismatchCounts(Pair<Long, Long> counts, AlignmentContext context, char ref) {
-        List<SAMRecord> reads = context.getReads();
-        List<Integer> offsets = context.getOffsets();
-        for(int iii = 0; iii < reads.size(); iii++ ) {
-            char readChar = (char)(reads.get(iii).getReadBases()[offsets.get(iii)]);
+        for( PileupElement p : context.getPileup() ) {
+            char readChar = (char)(p.getBase());
             int readCharBaseIndex = BaseUtils.simpleBaseToBaseIndex(readChar);
             int refCharBaseIndex  = BaseUtils.simpleBaseToBaseIndex(ref);
 
@@ -410,10 +404,13 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         
         // Need the bases to determine whether or not we have a mismatch
         byte base = read.getReadBases()[offset];
-        
+        long curMismatches = datum.getNumMismatches();
+
         // Add one to the number of observations and potentially one to the number of mismatches
         datum.increment( (char)base, (char)refBase ); // Dangerous: If you don't cast to char than the bytes default to the (long, long) version of the increment method which is really bad
         countedBases++;
+        novel_counts.second++;
+        novel_counts.first += datum.getNumMismatches() - curMismatches; // For sanity check to ensure novel mismatch rate vs dnsnp mismatch rate is reasonable
     }
 
 
