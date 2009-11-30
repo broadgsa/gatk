@@ -12,12 +12,8 @@ import java.util.List;
 public class SpanningDeletions extends StandardVariantAnnotation {
 
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
-        int deletions = 0;
-        for (Integer offset : pileup.getOffsets() ) {
-            if ( offset == -1 )
-                deletions++;
-        }
-        return new Pair<String, String>("SpanningDeletionFraction", String.format("%.2f", (double)deletions/(double)pileup.getReads().size()));
+        int deletions = pileup.getNumberOfDeletions();
+        return new Pair<String, String>("SpanningDeletionFraction", String.format("%.2f", (double)deletions/(double)pileup.size()));
     }
 
     public boolean useZeroQualityReads() { return false; }

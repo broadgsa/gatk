@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.Variation.VARIANT_TYPE;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -9,8 +10,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 import java.util.*;
 import java.io.PrintWriter;
-
-import net.sf.samtools.SAMRecord;
 
 public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalculationModel {
 
@@ -77,19 +76,16 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         int[] qualCounts = new int[4];
 
         // calculate the sum of quality scores for each base
-        List<SAMRecord> reads = context.getReads();
-        List<Integer> offsets = context.getOffsets();
-        for (int i = 0; i < reads.size(); i++) {
-            int offset = offsets.get(i);
+        ReadBackedPileup pileup = context.getPileup();
+        for ( PileupElement p : pileup ) {
+            byte base = p.getBase();
             // ignore deletions
-            if ( offset == -1 )
+            if ( base == PileupElement.DELETION_BASE )
                 continue;
 
-            SAMRecord read = reads.get(i);
-            char base = (char)read.getReadBases()[offset];
-            int index = BaseUtils.simpleBaseToBaseIndex(base);
+            int index = BaseUtils.simpleBaseToBaseIndex((char)base);
             if ( index >= 0 )
-                qualCounts[index] += read.getBaseQualities()[offset];
+                qualCounts[index] += p.getQual();
         }
 
         // set the non-ref base with maximum quality score sum
