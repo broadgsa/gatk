@@ -38,8 +38,26 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         else
             openTextVersion(vcfFile);
 
-        String line = null;
+		this.parseHeader();
+    }
 
+    /**
+     * Create a VCF reader, given a stream.
+     *
+     * @param stream the stream file read
+     */
+	public VCFReader (InputStream stream)
+	{
+        mReader = new BufferedReader(
+                    new InputStreamReader(
+                            stream,
+                            Charset.forName("UTF-8")));
+		this.parseHeader();
+	}
+
+	private void parseHeader()
+	{
+        String line = null;
         // try and parse the header
         try {
             ArrayList<String> lines = new ArrayList<String>();
@@ -53,7 +71,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         } catch (IOException e) {
             throw new RuntimeException("VCFReader: Failed to parse VCF File on line: " + line, e);
         }
-    }
+	}
 
     /**
      * open a g-zipped version of the VCF format
@@ -190,9 +208,10 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
             String mFormatString = tokens[index];
             List<VCFGenotypeRecord> genotypeRecords = new ArrayList<VCFGenotypeRecord>();
             index++;
+			String[] alt_alleles = values.get(VCFHeader.HEADER_FIELDS.ALT).split(",");
             for (String str : mHeader.getGenotypeSamples()) {
                 if (!tokens[index].equalsIgnoreCase(VCFGenotypeRecord.EMPTY_GENOTYPE))
-                    genotypeRecords.add(getVCFGenotype(str, mFormatString, tokens[index], values.get(VCFHeader.HEADER_FIELDS.ALT).split(","), values.get(VCFHeader.HEADER_FIELDS.REF).charAt(0)));
+                    genotypeRecords.add(getVCFGenotype(str, mFormatString, tokens[index], alt_alleles, values.get(VCFHeader.HEADER_FIELDS.REF).charAt(0)));
                 index++;
             }
             return new VCFRecord(values, mFormatString, genotypeRecords);
