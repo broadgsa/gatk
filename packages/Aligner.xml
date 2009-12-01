@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package>
+  <name>Aligner</name>
+  <dependencies>
+    <!-- BWA/C aligner implementation -->
+    <class>org.broadinstitute.sting.alignment.bwa.c.BWACAligner</class>
+  </dependencies>
+</package>
