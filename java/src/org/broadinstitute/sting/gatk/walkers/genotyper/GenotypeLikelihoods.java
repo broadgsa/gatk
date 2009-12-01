@@ -279,14 +279,13 @@ public class GenotypeLikelihoods implements Cloneable {
         int n = 0;
 
         for ( PileupElement p : pileup ) {
-            byte base = p.getBase();
             // ignore deletions
-            if ( base == PileupElement.DELETION_BASE )
+            if ( p.isDeletion() )
                 continue;
 
-            byte qual = p.getQual();
-            if ( ! ignoreBadBases || ! badBase((char)base) ) {
-                n += add((char)base, qual, p.getRead(), p.getOffset());
+            char base = (char)p.getBase();
+            if ( ! ignoreBadBases || ! badBase(base) ) {
+                n += add(base, p.getQual(), p.getRead(), p.getOffset());
             }
         }
         

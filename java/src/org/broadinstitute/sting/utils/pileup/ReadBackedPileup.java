@@ -23,6 +23,7 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
     
     private int size = 0;                   // cached value of the size of the pileup
     private int nDeletions = 0;             // cached value of the number of deletions
+    private int nMQ0Reads = 0;              // cached value of the number of MQ0 reads
 
     /**
      * Create a new version of a read backed pileup at loc, using the reads and their corresponding
@@ -60,7 +61,7 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
      * @param loc
      * @param pileup
      */
-    public ReadBackedPileup(GenomeLoc loc, ArrayList<PileupElement> pileup, int size, int nDeletions ) {
+    public ReadBackedPileup(GenomeLoc loc, ArrayList<PileupElement> pileup, int size, int nDeletions, int nMQ0Reads ) {
         if ( loc == null ) throw new StingException("Illegal null genomeloc in ReadBackedPileup2");
         if ( pileup == null ) throw new StingException("Illegal null pileup in ReadBackedPileup2");
 
@@ -68,6 +69,7 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
         this.pileup = pileup;
         this.size = size;
         this.nDeletions = nDeletions;
+        this.nMQ0Reads = nMQ0Reads;
    }
 
 
@@ -79,11 +81,15 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
     private void calculatedCachedData() {
         size = 0;
         nDeletions = 0;
+        nMQ0Reads = 0;
 
         for ( PileupElement p : this ) {
             size++;
             if ( p.isDeletion() ) {
                 nDeletions++;
+            }
+            if ( p.getRead().getMappingQuality() == 0 ) {
+                nMQ0Reads++;
             }
         }
     }
@@ -123,15 +129,38 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
      * @return
      */
     public ReadBackedPileup getPileupWithoutDeletions() {
-        // todo -- fixme
-        if ( getNumberOfDeletions() > 0 ) { // todo -- remember number of deletions
+        if ( getNumberOfDeletions() > 0 ) {
             List<SAMRecord> newReads = new ArrayList<SAMRecord>();
             List<Integer> newOffsets = new ArrayList<Integer>();
 
-            for ( int i = 0; i < size(); i++ ) {
-                if ( getOffsets().get(i) != -1 ) {
-                    newReads.add(getReads().get(i));
-                    newOffsets.add(getOffsets().get(i));
+            for ( PileupElement p : pileup ) {
+                if ( !p.isDeletion() ) {
+                    newReads.add(p.getRead());
+                    newOffsets.add(p.getOffset());
+                }
+            }
+            return new ReadBackedPileup(loc, newReads, newOffsets);
+        } else {
+            return this;
+        }
+    }
+
+    /**
+     * Returns a new ReadBackedPileup that is free of mapping quality zero reads in this pileup.  Note that this
+     * does not copy the data, so both ReadBackedPileups should not be changed.  Doesn't make an unnecessary copy
+     * of the pileup (just returns this) if there are no MQ0 reads in the pileup.
+     *
+     * @return
+     */
+    public ReadBackedPileup getPileupWithoutMappingQualityZeroReads() {
+        if ( getNumberOfMappingQualityZeroReads() > 0 ) {
+            List<SAMRecord> newReads = new ArrayList<SAMRecord>();
+            List<Integer> newOffsets = new ArrayList<Integer>();
+
+            for ( PileupElement p : pileup ) {
+                if ( p.getRead().getMappingQuality() > 0 ) {
+                    newReads.add(p.getRead());
+                    newOffsets.add(p.getOffset());
                 }
             }
             return new ReadBackedPileup(loc, newReads, newOffsets);
@@ -220,6 +249,10 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
         return nDeletions;
     }
 
+    public int getNumberOfMappingQualityZeroReads() {
+        return nMQ0Reads;
+    }
+
 //    public int getNumberOfDeletions() {
 //        int n = 0;
 //
@@ -230,13 +263,11 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
 //        return n;
 //    }
 
-    // todo -- optimize me
     /**
      * @return the number of elements in this pileup
      */
     public int size() {
         return size;
-        //return pileup.size();
     }
 
     /**

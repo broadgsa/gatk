@@ -78,12 +78,11 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         // calculate the sum of quality scores for each base
         ReadBackedPileup pileup = context.getPileup();
         for ( PileupElement p : pileup ) {
-            byte base = p.getBase();
             // ignore deletions
-            if ( base == PileupElement.DELETION_BASE )
+            if ( p.isDeletion() )
                 continue;
 
-            int index = BaseUtils.simpleBaseToBaseIndex((char)base);
+            int index = BaseUtils.simpleBaseToBaseIndex((char)p.getBase());
             if ( index >= 0 )
                 qualCounts[index] += p.getQual();
         }

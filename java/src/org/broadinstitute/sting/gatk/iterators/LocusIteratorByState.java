@@ -209,6 +209,7 @@ public class LocusIteratorByState extends LocusIterator {
 
             int size = 0;
             int nDeletions = 0;
+            int nMQ0Reads = 0;
 
             // todo -- performance problem -- should be lazy, really
             for ( SAMRecordState state : readStates ) {
@@ -220,13 +221,17 @@ public class LocusIteratorByState extends LocusIterator {
                     pile.add(new PileupElement(state.getRead(), -1));
                     nDeletions++;
                 }
+
+                if ( state.getRead().getMappingQuality() == 0 ) {
+                    nMQ0Reads++;
+                }
             }
             GenomeLoc loc = getLocation();
 
             updateReadStates(); // critical - must be called after we get the current state offsets and location
 
             // if we got reads with non-D/N over the current position, we are done
-            if ( pile.size() != 0 ) return new AlignmentContext(loc, new ReadBackedPileup(loc, pile, size, nDeletions));
+            if ( pile.size() != 0 ) return new AlignmentContext(loc, new ReadBackedPileup(loc, pile, size, nDeletions, nMQ0Reads));
         }
     }
 

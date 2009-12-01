@@ -25,9 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import net.sf.samtools.SAMReadGroupRecord;import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -166,8 +164,8 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
         AlignmentContext MQ0freeContext = filterAlignmentContext(fullContext);
 
         // an optimization to speed things up when there is no coverage or when overly covered
-        if ( MQ0freeContext.getReads().size() == 0 ||
-             (UAC.MAX_READS_IN_PILEUP > 0 && MQ0freeContext.getReads().size() > UAC.MAX_READS_IN_PILEUP) )
+        if ( MQ0freeContext.getPileup().size() == 0 ||
+             (UAC.MAX_READS_IN_PILEUP > 0 && MQ0freeContext.getPileup().size() > UAC.MAX_READS_IN_PILEUP) )
             return null;
 
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
@@ -183,22 +181,9 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
     }
 
     private AlignmentContext filterAlignmentContext(AlignmentContext context) {
-        List<SAMRecord> reads = context.getReads();
-        List<Integer> offsets = context.getOffsets();
-        int numReads = reads.size();
-
-        List<SAMRecord> newReads = new ArrayList<SAMRecord>(numReads);
-        List<Integer> newOffsets = new ArrayList<Integer>(numReads);
-
-        for (int i = 0; i < numReads; i++) {
-            SAMRecord read = reads.get(i);
-            if ( read.getMappingQuality() > 0 ) {
-                newReads.add(read);
-                newOffsets.add(offsets.get(i));
-            }
-        }
-
-        return new AlignmentContext(context.getLocation(), newReads, newOffsets);                
+        return new AlignmentContext(context.getLocation(),
+                                    context.getPileup().getPileupWithoutMappingQualityZeroReads(),
+                                    0);
     }
 
     public Integer reduceInit() { return 0; }

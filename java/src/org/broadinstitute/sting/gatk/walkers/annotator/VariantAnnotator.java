@@ -14,8 +14,6 @@ import org.broadinstitute.sting.playground.gatk.walkers.variantstovcf.VariantsTo
 import java.util.*;
 import java.io.*;
 
-import net.sf.samtools.SAMRecord;
-
 
 /**
  * VariantAnnotator annotates variants.
@@ -188,24 +186,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
 
         // set up the pileup for the full collection of reads at this position
         ReadBackedPileup fullPileup = context.getPileup();
-
-        // todo -- reimplement directly using ReadBackedPileups, which is vastly more efficient
-        // also, set up the pileup for the mapping-quality-zero-free context
-        List<SAMRecord> reads = context.getReads();
-        List<Integer> offsets = context.getOffsets();
-        Iterator<SAMRecord> readIter = reads.iterator();
-        Iterator<Integer> offsetIter = offsets.iterator();
-        ArrayList<SAMRecord> MQ0freeReads = new ArrayList<SAMRecord>();
-        ArrayList<Integer> MQ0freeOffsets = new ArrayList<Integer>();
-        while ( readIter.hasNext() ) {
-            SAMRecord read = readIter.next();
-            Integer offset = offsetIter.next();
-            if ( read.getMappingQuality() > 0 ) {
-                MQ0freeReads.add(read);
-                MQ0freeOffsets.add(offset);
-            }
-        }
-        ReadBackedPileup MQ0freePileup = new ReadBackedPileup(context.getLocation(), MQ0freeReads, MQ0freeOffsets);
+        ReadBackedPileup MQ0freePileup = fullPileup.getPileupWithoutMappingQualityZeroReads();
 
         HashMap<String, String> results = new HashMap<String, String>();
 
