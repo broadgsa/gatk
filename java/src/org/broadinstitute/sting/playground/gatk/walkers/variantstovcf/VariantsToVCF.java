@@ -39,8 +39,10 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
             String[] rodPieces = rodName.split(",");
             String sampleName = rodPieces[0];
 
-            if (sampleName.startsWith("NA"))
-                sampleNames.put(sampleName.toUpperCase(), sampleName.toUpperCase());
+            if (! ( sampleName.equals("dbSNP") || sampleName.equals("interval") ) ) {
+                sampleNames.put(sampleName, sampleName);
+            }
+
         }
 
         vcfheader = getHeader(args, sampleNames.keySet());

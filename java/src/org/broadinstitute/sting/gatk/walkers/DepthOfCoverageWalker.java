@@ -23,7 +23,8 @@
  */
 
 package org.broadinstitute.sting.gatk.walkers;
-
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 /**
  * Display the depth of coverage at a given locus.
  */
+@By(DataSource.REFERENCE)
 public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>> {
     enum printType {
         NONE,
