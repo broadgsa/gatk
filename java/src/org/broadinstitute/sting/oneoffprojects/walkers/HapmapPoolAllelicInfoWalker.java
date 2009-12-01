@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
