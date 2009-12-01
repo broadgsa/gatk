@@ -154,7 +154,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
             log10Likelihoods[BaseUtils.simpleBaseToBaseIndex(base)] += likelihood;
         }
 
-        if ( isVerbose() ) {
+        if ( verbose ) {
             for ( char base : BaseUtils.BASES ) { System.out.printf("%s\t", base); }
             System.out.println();
             for ( char base : BaseUtils.BASES ) { System.out.printf("%.2f\t", log10Likelihoods[BaseUtils.simpleBaseToBaseIndex(base)]); }
@@ -188,7 +188,7 @@ public abstract class FourBaseProbabilities implements Cloneable {
                 for ( char base : BaseUtils.BASES ) {
                     double likelihood = log10PofObservingBaseGivenChromosome(observedBase, base, qualityScore, read, offset);
 
-                    if ( isVerbose() ) {
+                    if ( verbose ) {
                         boolean fwdStrand = ! read.getReadNegativeStrandFlag();
                         System.out.printf("  L(%c | b=%s, Q=%d, S=%s) = %f / %f%n",
                                 observedBase, base, qualityScore, fwdStrand ? "+" : "-", pow(10,likelihood) * 100, likelihood);
