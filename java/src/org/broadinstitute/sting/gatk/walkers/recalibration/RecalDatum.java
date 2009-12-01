@@ -42,7 +42,7 @@ public class RecalDatum {
 
     private long numObservations; // number of bases seen in total
     private long numMismatches; // number of bases seen that didn't match the reference
-
+    private double estimatedQReported; // estimated reported quality score based on combined data's individual q-reporteds and number of observations
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -52,16 +52,19 @@ public class RecalDatum {
     public RecalDatum() {
         numObservations = 0L;
         numMismatches = 0L;
+        estimatedQReported = 0.0;
     }
 
-    public RecalDatum( final long _numObservations, final long _numMismatches ) {
+    public RecalDatum( final long _numObservations, final long _numMismatches, final double _estimatedQReported ) {
         numObservations = _numObservations;
         numMismatches = _numMismatches;
+        estimatedQReported = _estimatedQReported;
     }
 
     public RecalDatum( final RecalDatum copy ) {
         this.numObservations = copy.numObservations;
         this.numMismatches = copy.numMismatches;
+        this.estimatedQReported = copy.estimatedQReported;
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -78,6 +81,13 @@ public class RecalDatum {
 
     public final void increment( final RecalDatum other ) {
         increment( other.numObservations, other.numMismatches );
+    }
+
+    public final void combine( final RecalDatum other ) {
+        double sumErrors = this.calcExpectedErrors() + other.calcExpectedErrors();
+        this.increment( other.numObservations, other.numMismatches );
+        this.estimatedQReported = -10 * Math.log10(sumErrors / (double)this.numObservations);
+        if( this.estimatedQReported > QualityUtils.MAX_REASONABLE_Q_SCORE ) { this.estimatedQReported = QualityUtils.MAX_REASONABLE_Q_SCORE; }
     }
 
     public final void increment( final List<RecalDatum> data ) {
@@ -126,14 +136,26 @@ public class RecalDatum {
         return String.format( "%d,%d,%d", numObservations, numMismatches, (int)empiricalQualByte( smoothing ) );
     }
 
-    public final Long getNumObservations() {
+    public final long getNumObservations() {
         return numObservations;
     }
 
-    public final Long getNumMismatches() {
+    public final long getNumMismatches() {
         return numMismatches;
     }
-    
+
+    public final double getEstimatedQReported() {
+        return estimatedQReported;
+    }
+
+    private double calcExpectedErrors() {
+        return (double)this.numObservations * qualToErrorProb( estimatedQReported );
+    }
+
+    private double qualToErrorProb( final double qual ) {
+        return Math.pow(10.0, qual / -10.0);
+    }
+
     public String toString() {
     	return String.format( "RecalDatum: %d,%d,%d", numObservations, numMismatches, (int)empiricalQualByte() );
     }

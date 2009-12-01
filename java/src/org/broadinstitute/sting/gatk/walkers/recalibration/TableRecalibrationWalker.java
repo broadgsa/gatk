@@ -93,7 +93,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.0.8"; // Major version, minor version, and build number
+    private static final String versionString = "v2.0.9"; // Major version, minor version, and build number
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
 
     //---------------------------------------------------------------------------------------------------------------
@@ -278,7 +278,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             }
         }
         // Create a new datum using the number of observations and number of mismatches
-        RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ) );
+        RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ) );
         // Add that datum to all the collapsed tables which will be used in the sequential calculation
         dataManager.addToAllTables( key, datum );
         
@@ -366,11 +366,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // The global quality shift (over the read group only)
         collapsedTableKey.add( readGroupKeyElement );
         Double globalDeltaQEmpirical = dataManager.getCollapsedDoubleTable(0).get( collapsedTableKey );
-        Double aggregrateQreported = dataManager.aggregateReportedQuality.get( collapsedTableKey );
         double globalDeltaQ = 0.0;
-        if( globalDeltaQEmpirical != null && aggregrateQreported != null ) {
-
-            globalDeltaQ = globalDeltaQEmpirical - aggregrateQreported;
+        if( globalDeltaQEmpirical != null ) {
+            Double aggregrateQReported = dataManager.getCollapsedTable(0).get( collapsedTableKey ).getEstimatedQReported();
+            globalDeltaQ = globalDeltaQEmpirical - aggregrateQReported;
         }
 
         // The shift in quality between reported and empirical

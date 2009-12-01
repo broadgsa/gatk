@@ -50,8 +50,8 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12892.SLX.SRP000031.2009_06.selected.bam", "d7f3e0db5ed9fefc917144a0f937d50d" );
         e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "94f2c602fef9800e270326be9faab3ad");
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "eea2e02ffe71c9a1f318d2e9cd31a103" );
-        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "8126b9494837d504ef1277a799267c15" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam", "320ff4cbf8f1e73ba2d6e93567382684" );
+        e.put( "/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam", "e9a7ac8bc7c6b3daaf7f80730046318d" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
