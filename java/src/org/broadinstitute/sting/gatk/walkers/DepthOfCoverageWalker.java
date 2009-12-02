@@ -23,14 +23,13 @@
  */
 
 package org.broadinstitute.sting.gatk.walkers;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.By;
+
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Pair;
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.pileup.*;
 import net.sf.samtools.SAMReadGroupRecord;
 
 import java.util.HashMap;
@@ -81,15 +80,14 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
             depthByReadGroup.put(rg.getReadGroupId(), 0);
         }
 
-        for ( int i = 0; i < context.getReads().size(); i++ ) {
-            SAMRecord read = context.getReads().get(i);
-            int offset = context.getOffsets().get(i);
+        ReadBackedPileup pileup = context.getPileup();
+        for ( PileupElement p : pileup ) {
 
-            if ( read.getMappingQuality() < excludeMAPQBelowThis ) nBadMAPQReads++;
-            else if ( offset == -1 ) nDeletionReads++;
+            if ( p.getRead().getMappingQuality() < excludeMAPQBelowThis ) nBadMAPQReads++;
+            else if ( p.isDeletion() ) nDeletionReads++;
             else nCleanReads++;
 
-            String readGroupName = read.getReadGroup().getReadGroupId();
+            String readGroupName = p.getRead().getReadGroup().getReadGroupId();
             int oldDepth = depthByReadGroup.get(readGroupName);
             depthByReadGroup.put(readGroupName, oldDepth + 1);
         }
@@ -131,6 +129,6 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
 
     public void onTraversalDone(Pair<Long, Long> result) {
         out.printf("Average depth of coverage is: %.2f in %d total coverage over %d sites\n", 
-                ((double)result.getFirst() / (double)result.getSecond()), result.getFirst(), result.getSecond());
+                ((double)result.getFirst() / result.getSecond()), result.getFirst(), result.getSecond());
     }
 }
