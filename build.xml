@@ -2,9 +2,10 @@
     <description>Compile and distribute the Sting toolkit</description>
 
     <property name="source.dir" value="java/src" />
+    <property name="dist.dir" value="dist" />
+
     <property name="single" value="*Test" />
     <property name="singleintegration" value="*IntegrationTest" />
-    <property name="dist" value="dist" />
 
     <!-- should our junit test output go to a file or the screen?
     false means it goes to the screen (default) true to file -->
@@ -18,20 +19,7 @@
 
     <!-- Set target based on STING_BUILD_TYPE environment variable -->
     <property environment="env"/>
-    <condition property="target" value="playground" else="core">
-        <equals arg1="${env.STING_BUILD_TYPE}" arg2="playground" casesensitive="false"/>
-    </condition>
-
-    <patternset id="dependency.mask" includes="*.jar">
-        <exclude name="junit*.jar" />
-        <exclude name="bcel*.jar" />
-    </patternset>
-
-    <path id="runtime.dependencies">
-      <fileset dir="lib">
-        <patternset refid="dependency.mask" />
-      </fileset>
-    </path>
+    <property name="target" value="${env.STING_BUILD_TYPE}" />
 
     <!-- ivy properties -->
     <property name="ivy.install.version" value="2.0.0"/>
@@ -54,67 +42,76 @@
       <ivy:retrieve file="ivy.xml" conf="${ivy.conf}" />
     </target>
 
-
-    <!-- where to put reports and tests-->
-    <property name="report" value="build/report"/>
-    <property name="test.classes" value="build/testclasses"/>
-    <property name="test.output" value="${dist}/test"/>
-    <property name="test.sources" value="java/test"/>
-    <property name="classes" value="classes"/>
-
+    <!-- define some key locations that might change based on how the build is run -->
     <target name="init">
-        <!-- Create the time stamp -->
-        <tstamp/>
-
-        <echo message="Compiling module ${target}"/>
-
-        <!-- Create the build directory structure used by compile -->
-        <mkdir dir="build"/>
+      <echo message="Compiling module ${target}"/>
+      
+      <condition property="include.oneoffs">
+        <equals arg1="${target}" arg2="oneoffs" casesensitive="false" />
+      </condition>
+      
+      <condition property="include.playground">
+        <or>
+          <equals arg1="${target}" arg2="playground" casesensitive="false"/>
+          <equals arg1="${target}" arg2="oneoffs" casesensitive="false" />
+        </or>
+      </condition>
+      
+      <patternset id="dependency.mask" includes="*.jar">
+        <exclude name="junit*.jar" />
+        <exclude name="bcel*.jar" />
+      </patternset>
+      
+      <path id="runtime.dependencies">
+        <fileset dir="lib">
+          <patternset refid="dependency.mask" />
+        </fileset>
+      </path>
+      
+      <!-- Create the build directory structure used by compile -->
+      <mkdir dir="build"/>
     </target>
 
     <target name="compile" depends="init,resolve"
             description="compile the source">
-	<condition property="target.is.playground" value="true">
-          <equals arg1="${target}" arg2="playground"/>
-	</condition>
-        
-        <!-- Compile the java code from ${src} into build -->
-        <javac srcdir="${source.dir}" destdir="build" debug="true" debuglevel="lines,vars,source" classpathref="runtime.dependencies">
-            <!--compilerarg value="-Xlint:unchecked" /-->
-             <exclude name="**/playground/**" unless="target.is.playground"/>
-        </javac>
+      <!-- Compile the java code from ${src} into build -->
+      <javac srcdir="${source.dir}" destdir="build" debug="true" debuglevel="lines,vars,source" classpathref="runtime.dependencies">
+        <exclude name="**/playground/**" unless="include.playground"/>
+        <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
+      </javac>
     </target>
 
     <target name="dist" depends="compile"
             description="generate the distribution">
-        <mkdir dir="${dist}"/>
+        <mkdir dir="${dist.dir}"/>
         <delete>
-          <fileset dir="${dist}" includes="*.jar" />
+          <fileset dir="${dist.dir}" includes="*.jar" />
         </delete>
 
-        <copy todir="${dist}">
+        <copy todir="${dist.dir}">
             <fileset dir="lib" includes="*.jar"/>
         </copy>
 
-        <jar jarfile="${dist}/StingUtils.jar">
+        <jar jarfile="${dist.dir}/StingUtils.jar">
             <fileset dir="build" includes="**/utils/**/*.class"/>
         </jar>
 
-        <jar jarfile="${dist}/GenomeAnalysisTK.jar">
+        <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar">
             <fileset dir="build">
               <include name="**/gatk/**/*.class" />
               <include name="**/alignment/**/*.class"/>
+              <include name="**/oneoffprojects/**/*.class" />
             </fileset>
             <manifest>
                 <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.CommandLineGATK"/>
             </manifest>
         </jar>
 
-	<jar jarfile="${dist}/Aligner.jar">
+	<jar jarfile="${dist.dir}/Aligner.jar">
 	  <fileset dir="build" includes="**/alignment/**/*.class" />
 	</jar>
 
-        <jar jarfile="${dist}/AnalyzeCovariates.jar" whenmanifestonly="skip">
+        <jar jarfile="${dist.dir}/AnalyzeCovariates.jar" whenmanifestonly="skip">
           <fileset dir="build">
             <include name="**/analyzecovariates/**/*.class" />
             <include name="**/gatk/walkers/recalibration/*.class" />
@@ -134,18 +131,9 @@
        </jar>
 
     
-        <jar jarfile="${dist}/Playground.jar" whenmanifestonly="skip">
-            <fileset dir="build">
-                <include name="**/*.class"/>
-                <exclude name="**/utils/**"/>
-                <exclude name="**/gatk/**"/>
-                <exclude name="**/secondarybase/**" />
-            </fileset>
-        </jar>
-
         <pathconvert property="jar.classpath" pathsep=" ">
             <flattenmapper/>
-            <fileset dir="${dist}" includes="*.jar"/>
+            <fileset dir="${dist.dir}" includes="*.jar"/>
             <filelist files="GATKScala.jar"/>
         </pathconvert>
 
@@ -161,38 +149,38 @@
             </manifest>
         </jar>
 
-        <jar jarfile="${dist}/GenomeAnalysisTK.jar" update="true">
+        <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar" update="true">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
             </manifest>
         </jar>
 
-        <jar jarfile="${dist}/AnalyzeCovariates.jar" update="true" whenmanifestonly="skip">
+        <jar jarfile="${dist.dir}/AnalyzeCovariates.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
-            </manifest>
-        </jar>
-
-        <jar jarfile="${dist}/Playground.jar" update="true" whenmanifestonly="skip">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}"/>
             </manifest>
         </jar>
     </target>
 
     <target name="core" description="force a build of the Sting core code">
         <antcall target="dist" inheritAll="true">
-            <param name="target" value="core" />
+          <param name="target" value="core" />
         </antcall>
     </target>
 
     <target name="playground" description="force a build of the Sting experimental code">
-        <antcall target="dist" inheritAll="true">
-            <param name="target" value="playground" />
-	</antcall>
+      <antcall target="dist" inheritAll="true">
+        <param name="target" value="playground" />
+	 </antcall>
     </target>
 
-    <target name="test.compile" depends="playground">
+    <target name="oneoffs" description="force a build of the Sting experimental code and one-offs">
+      <antcall target="dist" inheritAll="true">
+        <param name="target" value="oneoffs" />
+      </antcall>
+    </target>
+
+    <target name="test.compile" depends="oneoffs">
         <echo message="Sting: Compiling test cases!"/>
         <mkdir dir="${test.classes}"/>
         <javac destdir="${test.classes}" debug="true" optimize="on">
@@ -222,7 +210,7 @@
       <path id="scala.classpath">
         <pathelement location="lib/scala-compiler-2.7.7.jar"/>
         <pathelement location="lib/scala-library-2.7.7.jar"/>
-        <fileset dir="${dist}">
+        <fileset dir="${dist.dir}">
           <patternset id="scalaStuff">
             <include name="*.jar"/>
         </patternset>
@@ -237,7 +225,7 @@
         <include name="**/*.scala"/>
       </scalac>
       
-      <jar jarfile="${dist}/GATKScala.jar">
+      <jar jarfile="${dist.dir}/GATKScala.jar">
         <fileset dir="${scala.classes}">
           <include name="**/*.class"/>
         </fileset>
@@ -245,7 +233,11 @@
     </target>
     
 
-
+    <!-- where to put reports and tests-->
+    <property name="report" value="build/report"/>
+    <property name="test.classes" value="build/testclasses"/>
+    <property name="test.output" value="${dist.dir}/test"/>
+    <property name="test.sources" value="java/test"/>
 
     <!-- TEST -->
     <target name="test" depends="test.compile,agent" description="Run unit tests">
@@ -280,7 +272,7 @@
             <formatter type="${testOutput}" usefile="${usefile}" />
             <classpath>
                 <path refid="runtime.dependencies"/>
-                <pathelement location="${dist}/GenomeAnalysisTK.jar"/>
+                <pathelement location="${dist.dir}/GenomeAnalysisTK.jar"/>
                 <pathelement location="${test.classes}"/>
                 <pathelement location="lib/junit-4.4.jar"/>
             </classpath>
@@ -310,20 +302,24 @@
     </target>
     
     <target name="javadoc" depends="init,resolve" description="generates javadoc">
-        <mkdir dir="javadoc"/>
-	<!-- Javadoc can't take the same dirsets as javac; it only likes getting the base directory -->
-	<!-- Exclude playground files with excludepackagenames instead of the "source" dirset -->
-    	<condition property="package.excludes" value="" else="org.broadinstitute.sting.playground.*">
-              <equals arg1="${target}" arg2="playground" />
-	    </condition>
-        <javadoc destdir="javadoc" sourcepath="${source.dir}" excludepackagenames="${package.excludes}" classpathref="runtime.dependencies"/>
+      <mkdir dir="javadoc"/>
+      <javadoc destdir="javadoc"
+               classpathref="runtime.dependencies">
+        <fileset dir="${source.dir}">
+          <patternset>
+            <include name="**/*.java"/>
+            <exclude name="**/playground/**" unless="include.playground"/>
+            <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
+         </patternset>
+        </fileset>
+      </javadoc>
     </target>
 
     <!-- Unzip all classes from their current locations and assemble them in a staging directory -->
     <target name="stage" description="stage files for distribution">
         <mkdir dir="staging"/>
         <unjar dest="staging" overwrite="false">
-          <fileset dir="${dist}">
+          <fileset dir="${dist.dir}">
             <patternset refid="dependency.mask" />
           </fileset>
         </unjar>
@@ -331,9 +327,9 @@
 
     <!-- Build a package consisting of all supporting files -->
     <target name="package" depends="dist,stage" description="bundle up an executable for distribution">
-        <mkdir dir="${dist}/packages" />
-        <xslt in="packages/${executable}.xml" out="${dist}/packages/Build${executable}.xml" style="packages/CreatePackager.xsl" />
-        <ant antfile="${dist}/packages/Build${executable}.xml" />
+        <mkdir dir="${dist.dir}/packages" />
+        <xslt in="packages/${executable}.xml" out="${dist.dir}/packages/Build${executable}.xml" style="packages/CreatePackager.xsl" />
+        <ant antfile="${dist.dir}/packages/Build${executable}.xml" />
     </target>
 
     <!-- Build a subset of picard with only those classes we need by completely abusing the packaging system -->
@@ -342,10 +338,10 @@
       <!-- Build out a classpath -->
       <pathconvert property="required.picard.jars" pathsep=":">
         <fileset dir="${basedir}">
-	  <include name="staging" />
-	  <include name="lib/picard-*.*.*.jar" />
-	  <include name="lib/sam-*.jar" />
-	</fileset>
+	     <include name="staging" />
+	     <include name="lib/picard-*.*.*.jar" />
+	     <include name="lib/sam-*.jar" />
+	   </fileset>
       </pathconvert>
       <echo message="required.picard.jars=${required.picard.jars}" />
 
@@ -355,9 +351,9 @@
       <unjar src="${picard.dist.dir}/picard-private.jar" dest="staging" overwrite="true" />
 
       <!-- Use the packaging system to extract parts of picard-private we need -->
-      <mkdir dir="${dist}/packages" />
-      <xslt in="packages/PicardPrivate.xml" out="${dist}/packages/BuildPicardPrivate.xml" style="packages/CreatePackager.xsl" />
-      <ant antfile="${dist}/packages/BuildPicardPrivate.xml">
+      <mkdir dir="${dist.dir}/packages" />
+      <xslt in="packages/PicardPrivate.xml" out="${dist.dir}/packages/BuildPicardPrivate.xml" style="packages/CreatePackager.xsl" />
+      <ant antfile="${dist.dir}/packages/BuildPicardPrivate.xml">
 	<property name="additional.jars" value="${required.picard.jars}" />
       </ant>
     </target>
@@ -367,6 +363,6 @@
         <delete dir="build"/>
         <delete dir="lib"/>
         <delete dir="staging"/>
-        <delete dir="${dist}"/>
+        <delete dir="${dist.dir}"/>
     </target>
 </project>
