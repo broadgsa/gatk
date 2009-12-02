@@ -32,9 +32,7 @@ import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.pileup.*;
 import net.sf.samtools.SAMReadGroupRecord;
 
-import java.util.HashMap;
-import java.util.Collections;
-import java.util.ArrayList;
+import java.util.*;
 
 /**
  * Display the depth of coverage at a given locus.
@@ -48,16 +46,25 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
     }
 
     @Argument(fullName="printStyle", shortName = "s", doc="Printing style: NONE, COMPACT, or DETAILED", required=false)
-    public printType printStyle = printType.COMPACT;
+    protected printType printStyle = printType.COMPACT;
 
     @Argument(fullName="excludeDeletions", shortName = "ed", doc="If true, we will exclude reads with deletions at a locus in coverage",required=false)
-    public boolean excludeDeletionsInCoverage = false;
+    protected boolean excludeDeletionsInCoverage = false;
 
     @Argument(fullName="minMAPQ", shortName = "minMAPQ", doc="If provided, we will exclude reads with MAPQ < this value at a locus in coverage",required=false)
-    public int excludeMAPQBelowThis = -1;
+    protected int excludeMAPQBelowThis = -1;
 
     @Argument(fullName="byReadGroup", shortName="byRG", doc="List read depths for each read group")
-    public boolean byReadGroup = false;
+    protected boolean byReadGroup = false;
+
+    @Argument(fullName="bySample", shortName="bySample", doc="List read depths for each sample")
+    protected boolean bySample = false;
+
+
+    private TreeSet<String> readGroupNames = new TreeSet<String>();
+    private TreeSet<String> sampleNames = new TreeSet<String>();
+
+
 
     public boolean includeReadsWithDeletionAtLoci() { return ! excludeDeletionsInCoverage; }
 
@@ -70,15 +77,32 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
                 out.printf("locus nCleanReads nDeletionReads nLowMAPQReads%n");
                 break;
         }
+
+        if ( byReadGroup ) {
+            List<SAMReadGroupRecord> readGroups = this.getToolkit().getSAMFileHeader().getReadGroups();
+            for ( SAMReadGroupRecord record : readGroups )
+                readGroupNames.add(record.getReadGroupId());
+        }
+
+        if ( bySample ) {
+            List<SAMReadGroupRecord> readGroups = this.getToolkit().getSAMFileHeader().getReadGroups();
+            for ( SAMReadGroupRecord record : readGroups ) {
+                String sample = record.getSample();
+                if ( sample != null )
+                    sampleNames.add(sample);
+            }
+        }
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         int nCleanReads = 0, nBadMAPQReads = 0, nDeletionReads = 0;
 
         HashMap<String, Integer> depthByReadGroup = new HashMap<String, Integer>();
-        for (SAMReadGroupRecord rg : this.getToolkit().getSAMFileHeader().getReadGroups()) {
-            depthByReadGroup.put(rg.getReadGroupId(), 0);
-        }
+        for ( String readGroupName : readGroupNames )
+            depthByReadGroup.put(readGroupName, 0);
+        HashMap<String, Integer> depthBySample = new HashMap<String, Integer>();
+        for ( String sample : sampleNames )
+            depthBySample.put(sample, 0);
 
         ReadBackedPileup pileup = context.getPileup();
         for ( PileupElement p : pileup ) {
@@ -87,9 +111,23 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
             else if ( p.isDeletion() ) nDeletionReads++;
             else nCleanReads++;
 
-            String readGroupName = p.getRead().getReadGroup().getReadGroupId();
-            int oldDepth = depthByReadGroup.get(readGroupName);
-            depthByReadGroup.put(readGroupName, oldDepth + 1);
+            SAMReadGroupRecord readGroup = p.getRead().getReadGroup();
+            if ( readGroup == null )
+                continue;
+
+            if ( byReadGroup ) {
+                String readGroupName = readGroup.getReadGroupId();
+                int oldDepth = depthByReadGroup.get(readGroupName);
+                depthByReadGroup.put(readGroupName, oldDepth + 1);
+            }
+
+            if ( bySample ) {
+                String sample = readGroup.getSample();
+                if ( sample != null ) {
+                    int oldDepth = depthBySample.get(sample);
+                    depthBySample.put(sample, oldDepth + 1);
+                }
+            }
         }
 
         int nTotalReads = nCleanReads + (excludeDeletionsInCoverage ? 0 : nDeletionReads);
@@ -103,12 +141,15 @@ public class DepthOfCoverageWalker extends LocusWalker<Integer, Pair<Long, Long>
                 break;
         }
 
-        if (byReadGroup) {
-            ArrayList<String> rgs = new ArrayList<String>(depthByReadGroup.keySet());
-            Collections.sort(rgs);
-
-            for (String rg : rgs) {
+        if ( byReadGroup ) {
+            for ( String rg : readGroupNames ) {
                 out.printf("  %s %8d%n", rg, depthByReadGroup.get(rg));
+            }
+        }
+
+        if ( bySample ) {
+            for ( String sample : sampleNames ) {
+                out.printf("  %s %8d%n", sample, depthBySample.get(sample));
             }
         }
 
