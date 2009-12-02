@@ -62,10 +62,7 @@
     <file>testdata/exampleFASTA.fasta.fai</file>
     <file>testdata/exampleFASTA.dict</file>
     <!-- Supplemental scripts for graph generation, etc. -->
-    <file>python/analyzeRecalQuals_1KG.py</file>
-    <file>testdata/recalConfig_1KG.cfg</file>
-    <file>R/plot_q_emp_stated_hst.R</file>
-    <file>R/plot_qual_diff_v_cycle.R</file>
-    <file>R/plot_qual_diff_v_dinuc.R</file>
+    <file>R/plot_residualError_OtherCovariate.R</file>
+    <file>R/plot_residualError_QualityScoreCovariate.R</file>
   </resources>
 </package>
