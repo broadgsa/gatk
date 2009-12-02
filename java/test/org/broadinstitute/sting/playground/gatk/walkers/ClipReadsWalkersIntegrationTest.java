@@ -3,16 +3,14 @@ package org.broadinstitute.sting.playground.gatk.walkers;
 import org.broadinstitute.sting.WalkerTest;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
-import java.io.File;
 
 public class ClipReadsWalkersIntegrationTest extends WalkerTest {
     public void testClipper(String name, String args, String md51, String md52) {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-R /home/radon01/depristo/work/humanref/Homo_sapiens_assembly18.fasta " +
+                "-R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta " +
                         "-T ClipReads " +
                         "-I /humgen/gsa-scr1/GATK_Data/Validation_Data/clippingReadsTest.bam " +
                         "-o %s " +
