@@ -136,13 +136,13 @@
             <filelist files="GATKScala.jar"/>
         </pathconvert>
 
-        <jar jarfile="${dist}/VCFTool.jar" update="true" >
+        <jar jarfile="${dist.dir}/VCFTool.jar" update="true" >
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
         </jar>
 
-        <jar jarfile="${dist}/StingUtils.jar" update="true">
+        <jar jarfile="${dist.dir}/StingUtils.jar" update="true">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
             </manifest>
