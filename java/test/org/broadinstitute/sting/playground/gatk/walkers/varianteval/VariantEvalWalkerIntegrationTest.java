@@ -75,7 +75,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
                         " -L 1:10,000,000-11,000,000" +
                         " --outerr %s" +
                         " --supressDateInformation" +
-                        " -minConfidenceScore 60",
+                        " -minPhredConfidenceScore 60",
                 1, // just one output file
                 md5);
         List<File> result = executeTest("testEvalVariantRODConfSixty", spec).getFirst();

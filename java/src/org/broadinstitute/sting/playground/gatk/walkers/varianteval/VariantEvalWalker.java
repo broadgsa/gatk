@@ -29,7 +29,7 @@ import java.util.*;
 //@Allows(value={DataSource.REFERENCE},referenceMetaData = {@RMD(name="eval",type=ReferenceOrderedDatum.class), @RMD(name="dbsnp",type=rodDbSNP.class),@RMD(name="hapmap-chip",type=ReferenceOrderedDatum.class), @RMD(name="interval",type=IntervalRod.class), @RMD(name="validation",type=RodGenotypeChipAsGFF.class)})
 public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 //public class VariantEvalWalker extends RodWalker<Integer, Integer> {
-    @Argument(shortName="minConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
+    @Argument(shortName="minPhredConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
     public int minConfidenceScore = -1;
 
     @Argument(shortName="printVariants", doc="If true, prints the variants in all of the variant tracks that are examined", required=false)
