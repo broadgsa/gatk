@@ -12,5 +12,7 @@ public interface VariantAnnotation {
 
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes);
     public boolean useZeroQualityReads();
+    public String getKeyName();
+    public String getDescription();
 
 }

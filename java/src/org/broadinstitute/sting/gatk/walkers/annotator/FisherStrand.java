@@ -12,7 +12,7 @@ import cern.jet.math.Arithmetic;
 import java.util.List;
 
 
-public class FisherStrand extends StandardVariantAnnotation {
+public class FisherStrand implements VariantAnnotation {
 
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
 
@@ -33,8 +33,12 @@ public class FisherStrand extends StandardVariantAnnotation {
             return null;
 
         // use Math.abs to prevent -0's
-        return new Pair<String, String>("FisherStrand", String.format("%.1f", Math.abs(10.0 * Math.log10(pvalue))));
+        return new Pair<String, String>(getKeyName(), String.format("%.1f", Math.abs(10.0 * Math.log10(pvalue))));
     }
+
+    public String getKeyName() { return "FisherStrand"; }
+
+    public String getDescription() { return "FisherStrand,1,Float,\"Phred-scaled p-value Using Fisher's Exact Test to Detect Strand Bias\""; }
 
     public boolean useZeroQualityReads() { return false; }
 

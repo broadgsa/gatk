@@ -38,6 +38,10 @@ public class ResidualQuality implements VariantAnnotation{
         return new Pair<String,String>(KEY_NAME, String.format("%f", logResidQual ));
     }
 
+    public String getKeyName() { return KEY_NAME; }
+
+    public String getDescription() { return KEY_NAME + ",1,Float,\"Log-scaled Residual Error\""; }
+
     private Double getLogResidualQuality( ReadBackedPileup p, char ref, char snp ) {
         byte[] pbp = p.getBases();
         byte[] quals = p.getQuals();

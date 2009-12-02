@@ -40,8 +40,12 @@ public class RankSumTest implements VariantAnnotation {
         if ( MathUtils.compareDoubles(pvalue, 0.0) == 0 )
             return null;
 
-        return new Pair<String, String>("RankSum", String.format("%.1f", -10.0 * Math.log10(pvalue)));
+        return new Pair<String, String>(getKeyName(), String.format("%.1f", -10.0 * Math.log10(pvalue)));
     }
+
+    public String getKeyName() { return "RankSum"; }
+
+    public String getDescription() { return "RankSum,1,Float,\"Phred-scaled p-value From Wilcoxon Rank Sum Test of Het Vs. Ref Base Qualities\""; }
 
     private void fillQualsFromPileup(char ref, char alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals) {
         for ( PileupElement p : pileup ) {

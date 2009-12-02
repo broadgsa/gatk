@@ -40,8 +40,12 @@ public class AlleleBalance extends StandardVariantAnnotation {
             ratio = computeSingleBalance(ref.getBase(), genotypeStr, bases);
         }
 
-        return new Pair<String, String>("AlleleBalance", String.format("%.2f", ratio));
+        return new Pair<String, String>(getKeyName(), String.format("%.2f", ratio));
     }
+
+    public String getKeyName() { return "AB"; }
+
+    public String getDescription() { return "AB,1,Float,\"Allele Balance (ref/(ref+alt))\""; }
 
     private double computeSingleBalance(char ref, final String genotypeStr, final String bases) {
 

@@ -51,6 +51,10 @@ public class PrimaryBaseSecondaryBaseSymmetry implements VariantAnnotation{
         }
     }
 
+    public String getKeyName() { return KEY_NAME; }
+
+    public String getDescription() { return KEY_NAME + ",1,Float,\"Primary Vs. Secondary Base Symmetry\""; }
+
     private Pair<Integer,Double> getProportionOfReferenceSecondBasesThatSupportAlt( ReferenceContext ref, ReadBackedPileup p, byte snp ) {
         int depth = 0;
         int support = 0;

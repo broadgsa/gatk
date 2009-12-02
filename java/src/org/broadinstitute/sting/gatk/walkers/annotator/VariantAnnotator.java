@@ -28,7 +28,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     protected String sampleName = null;
     @Argument(fullName="annotations", shortName="A", doc="Annotation types to apply to variant calls", required=false)
     protected String[] ANNOTATIONS;
-    @Argument(fullName="useAllAnnotations", shortName="all", doc="Use all possible annotations", required=false)
+    @Argument(fullName="includeExperimentalAnnotations", shortName="exp", doc="Use all possible annotations, including experimental ones", required=false)
     protected Boolean USE_ALL_ANNOTATIONS = false;
     @Argument(fullName="useStandardAnnotations", shortName="standard", doc="Use all standard annotations", required=false)
     protected Boolean USE_STANDARD_ANNOTATIONS = false;

@@ -19,8 +19,12 @@ public class MappingQualityZero extends StandardVariantAnnotation {
             if ( reads.get(i).getMappingQuality() == 0 )
                 MQ0Count++;
         }
-        return new Pair<String, String>("MAPQ0", String.format("%d", MQ0Count));
+        return new Pair<String, String>(getKeyName(), String.format("%d", MQ0Count));
     }
+
+    public String getKeyName() { return "MQ0"; }
+
+    public String getDescription() { return "MQ0,1,Integer,\"Total Mapping Quality Zero Reads\""; }
 
     public boolean useZeroQualityReads() { return true; }
 }

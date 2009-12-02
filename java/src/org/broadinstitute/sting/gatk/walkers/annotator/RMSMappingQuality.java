@@ -19,8 +19,12 @@ public class RMSMappingQuality extends StandardVariantAnnotation {
         for (int i=0; i < reads.size(); i++)
             qualities[i] = reads.get(i).getMappingQuality();
         double rms = MathUtils.rms(qualities);
-        return new Pair<String, String>("RMSMAPQ", String.format("%.2f", rms));
+        return new Pair<String, String>(getKeyName(), String.format("%.2f", rms));
     }
+
+    public String getKeyName() { return "MQ"; }
+
+    public String getDescription() { return "MQ,1,Float,\"RMS Mapping Quality\""; }
 
     public boolean useZeroQualityReads() { return true; }
 }

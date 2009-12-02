@@ -18,8 +18,12 @@ public class HomopolymerRun extends StandardVariantAnnotation {
             return null;
 
         int run = computeHomopolymerRun(variation.getAlternativeBaseForSNP(), ref);
-        return new Pair<String, String>("HomopolymerRun", String.format("%d", run));
+        return new Pair<String, String>(getKeyName(), String.format("%d", run));
     }
+
+    public String getKeyName() { return "HRun"; }
+
+    public String getDescription() { return "HRun,1,Integer,\"Largest Contiguous Homopolymer Run of Variant Allele In Either Direction\""; }
 
     public boolean useZeroQualityReads() { return false; }
 

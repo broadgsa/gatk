@@ -13,8 +13,12 @@ public class DepthOfCoverage extends StandardVariantAnnotation {
 
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
         int depth = pileup.getReads().size();
-        return new Pair<String, String>("DoC", String.format("%d", depth));
+        return new Pair<String, String>(getKeyName(), String.format("%d", depth));
     }
+
+    public String getKeyName() { return "DP"; }
+
+    public String getDescription() { return "DP,1,Integer,\"Total Depth\""; }
 
     public boolean useZeroQualityReads() { return false; }
 }

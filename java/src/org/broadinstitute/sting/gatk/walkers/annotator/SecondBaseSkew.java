@@ -26,6 +26,10 @@ public class SecondBaseSkew implements VariantAnnotation {
 
     public boolean useZeroQualityReads() { return USE_ZERO_QUALITY_READS; }
 
+    public String getKeyName() { return KEY_NAME; }
+
+    public String getDescription() { return KEY_NAME + ",1,Float,\"Chi-square Secondary Base Skew\""; }
+
     public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
         if ( variation.isSNP() && variation.isBiallelic() ) {
             char snp = variation.getAlternativeBaseForSNP();
