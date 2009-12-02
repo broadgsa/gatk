@@ -121,15 +121,14 @@
           </manifest>
         </jar>
 
-		<jar jarfile="${dist}/VCFTool.jar" whenmanifestonly="skip">
-         <fileset dir="build">
-           <include name="**/*.class"/>
-         </fileset>
-         <manifest>
-           <attribute name="Main-Class" value="org.broadinstitute.sting.playground.tools.vcf.VCFTool" />
-         </manifest>
-       </jar>
-
+	   <jar jarfile="${dist.dir}/VCFTool.jar" whenmanifestonly="skip">
+          <fileset dir="build">
+            <include name="**/*.class"/>
+          </fileset>
+          <manifest>
+            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.tools.vcf.VCFTool" />
+          </manifest>
+        </jar>
     
         <pathconvert property="jar.classpath" pathsep=" ">
             <flattenmapper/>
