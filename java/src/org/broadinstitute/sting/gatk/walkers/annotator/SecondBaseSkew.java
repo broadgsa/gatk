@@ -30,7 +30,7 @@ public class SecondBaseSkew implements VariantAnnotation {
 
     public String getDescription() { return KEY_NAME + ",1,Float,\"Chi-square Secondary Base Skew\""; }
 
-    public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
+    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
         if ( variation.isSNP() && variation.isBiallelic() ) {
             char snp = variation.getAlternativeBaseForSNP();
 //            try {
@@ -50,7 +50,7 @@ public class SecondBaseSkew implements VariantAnnotation {
                 // System.out.println("p_transformed="+p_transformed+" e_transformed="+expected_transformed+" variantDepth="+depthProp.getFirst());
                 // System.out.println("Proportion variant bases with ref 2bb="+depthProp.getSecond()+" Expected="+proportionExpectations[0]);
                 double chi_square =  Math.signum(depthProp.getSecond() - proportionExpectations[0])*Math.min(Math.pow(p_transformed - expected_transformed, 2), Double.MAX_VALUE);
-                return new Pair<String,String>(KEY_NAME, String.format("%f", chi_square));
+                return String.format("%f", chi_square);
             }
         } else {
             return null;

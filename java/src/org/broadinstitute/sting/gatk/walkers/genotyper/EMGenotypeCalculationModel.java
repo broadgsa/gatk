@@ -37,9 +37,9 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         double phredScaledConfidence;
         boolean bestIsRef = false;
         if ( PofD > PofNull ) {
-            phredScaledConfidence = -10.0 * Math.log10(PofNull / sum);
+            phredScaledConfidence = QualityUtils.phredScaleErrorRate(PofNull / sum);
         } else {
-            phredScaledConfidence = -10.0 * Math.log10(PofD / sum);
+            phredScaledConfidence = QualityUtils.phredScaleErrorRate(PofD / sum);
             bestIsRef = true;
         }
 

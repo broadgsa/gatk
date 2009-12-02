@@ -280,7 +280,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
                 char base = Character.toLowerCase(altAllele);
                 int baseIndex = BaseUtils.simpleBaseToBaseIndex(altAllele);
                 if ( MathUtils.compareDoubles(PofFs[baseIndex], 0.0) != 0 ) {
-                    double phredScaledConfidence = -10.0 * Math.log10(alleleFrequencyPosteriors[baseIndex][0]);
+                    double phredScaledConfidence = QualityUtils.phredScaleErrorRate(alleleFrequencyPosteriors[baseIndex][0]);
                     if ( Double.isInfinite(phredScaledConfidence) ) {
                         phredScaledConfidence = -10.0 * log10PofDgivenAFi[baseIndex][0];
                         verboseWriter.println("P(f>0)_" + base + " = 1");
@@ -288,7 +288,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
                         verboseWriter.println("LOD_" + base + " = " + phredScaledConfidence);
                     } else {
                         verboseWriter.println("P(f>0)_" + base + " = " + Math.log10(PofFs[baseIndex]));
-                        verboseWriter.println("Qscore_" + base + " = " + (-10.0 * Math.log10(alleleFrequencyPosteriors[baseIndex][0])));
+                        verboseWriter.println("Qscore_" + base + " = " + (QualityUtils.phredScaleErrorRate(alleleFrequencyPosteriors[baseIndex][0])));
                         verboseWriter.println("LOD_" + base + " = " + (Math.log10(PofFs[baseIndex]) - Math.log10(alleleFrequencyPosteriors[baseIndex][0])));
                     }
                 }
@@ -306,7 +306,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         // only need to look at the most likely alternate allele
         int indexOfMax = BaseUtils.simpleBaseToBaseIndex(bestAlternateAllele);
 
-        double phredScaledConfidence = -10.0 * Math.log10(alleleFrequencyPosteriors[indexOfMax][0]);
+        double phredScaledConfidence = QualityUtils.phredScaleErrorRate(alleleFrequencyPosteriors[indexOfMax][0]);
         if ( Double.isInfinite(phredScaledConfidence) )
             phredScaledConfidence = -10.0 * log10PofDgivenAFi[indexOfMax][0];
         int bestAFguess = Utils.findIndexOfMaxEntry(alleleFrequencyPosteriors[indexOfMax]);

@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.Genotype;
@@ -12,13 +11,13 @@ import java.util.List;
 
 public class HomopolymerRun extends StandardVariantAnnotation {
 
-    public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
+    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
 
         if ( !variation.isBiallelic() || !variation.isSNP() )
             return null;
 
         int run = computeHomopolymerRun(variation.getAlternativeBaseForSNP(), ref);
-        return new Pair<String, String>(getKeyName(), String.format("%d", run));
+        return String.format("%d", run);
     }
 
     public String getKeyName() { return "HRun"; }

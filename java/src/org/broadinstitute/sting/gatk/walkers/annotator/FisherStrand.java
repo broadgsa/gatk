@@ -1,8 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.Pair;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
@@ -14,7 +13,7 @@ import java.util.List;
 
 public class FisherStrand implements VariantAnnotation {
 
-    public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
+    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
 
         // this test doesn't make sense for homs
         Genotype genotype = VariantAnnotator.getFirstHetVariant(genotypes);
@@ -33,7 +32,7 @@ public class FisherStrand implements VariantAnnotation {
             return null;
 
         // use Math.abs to prevent -0's
-        return new Pair<String, String>(getKeyName(), String.format("%.1f", Math.abs(10.0 * Math.log10(pvalue))));
+        return String.format("%.1f", Math.abs(QualityUtils.phredScaleErrorRate(pvalue)));
     }
 
     public String getKeyName() { return "FisherStrand"; }

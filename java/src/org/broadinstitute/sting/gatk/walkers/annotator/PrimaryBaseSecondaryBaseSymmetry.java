@@ -28,7 +28,7 @@ public class PrimaryBaseSecondaryBaseSymmetry implements VariantAnnotation{
 
     public boolean useZeroQualityReads() { return USE_ZERO_MAPQ_READS; }
 
-    public Pair<String,String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
+    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
         // todo -- this code doesn't work, should't be called
         if ( true )
             return null;
@@ -42,8 +42,7 @@ public class PrimaryBaseSecondaryBaseSymmetry implements VariantAnnotation{
                 } else {
                     //System.out.printf("refSecondBasePair = %s, nonrefPrimaryBasePair = %s%n", refSecondBasePair, nonrefPrimaryBasePair);
                     double primary_secondary_stat = refSecondBasePair.second - nonrefPrimaryBasePair.second;
-                    String annotation = String.format("%f", primary_secondary_stat);
-                    return new Pair<String,String>(KEY_NAME, annotation);
+                    return String.format("%f", primary_secondary_stat);
                 }
             } else {
                 return null;

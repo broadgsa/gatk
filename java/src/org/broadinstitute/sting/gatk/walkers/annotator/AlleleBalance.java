@@ -11,7 +11,7 @@ import java.util.ArrayList;
 
 public class AlleleBalance extends StandardVariantAnnotation {
 
-    public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
+    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
 
         if ( genotypes.size() == 0 )
             return null;
@@ -40,7 +40,7 @@ public class AlleleBalance extends StandardVariantAnnotation {
             ratio = computeSingleBalance(ref.getBase(), genotypeStr, bases);
         }
 
-        return new Pair<String, String>(getKeyName(), String.format("%.2f", ratio));
+        return String.format("%.2f", ratio);
     }
 
     public String getKeyName() { return "AB"; }

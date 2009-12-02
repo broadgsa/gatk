@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.genotype.Genotype;
@@ -22,7 +21,7 @@ public class ResidualQuality implements VariantAnnotation{
 
     public boolean useZeroQualityReads() { return true; } // for robustness
 
-    public Pair<String,String> annotate( ReferenceContext ref, ReadBackedPileup p, Variation variation, List<Genotype> genotypes) {
+    public String annotate( ReferenceContext ref, ReadBackedPileup p, Variation variation, List<Genotype> genotypes) {
 
         Character snp = getSNPChar(ref, genotypes);
         if ( snp == null ) {
@@ -35,7 +34,7 @@ public class ResidualQuality implements VariantAnnotation{
             return null;
         }
 
-        return new Pair<String,String>(KEY_NAME, String.format("%f", logResidQual ));
+        return String.format("%f", logResidQual);
     }
 
     public String getKeyName() { return KEY_NAME; }

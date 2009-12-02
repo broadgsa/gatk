@@ -58,12 +58,12 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             // calculate the phred-scaled confidence score
             double phredScaledConfidence;
             if ( GENOTYPE_MODE ) {
-                phredScaledConfidence = -10.0 * Math.log10(1.0 - posteriors[bestIndex]);
+                phredScaledConfidence = QualityUtils.phredScaleErrorRate(1.0 - posteriors[bestIndex]);
             } else {
                 int refIndex = DiploidGenotype.createHomGenotype(ref).ordinal();
                 bestIsRef = (refIndex == bestIndex);
                 double pError = (bestIsRef ? 1.0 - posteriors[refIndex] : posteriors[refIndex]);
-                phredScaledConfidence = -10.0 * Math.log10(pError);
+                phredScaledConfidence = QualityUtils.phredScaleErrorRate(pError);
             }
 
             // are we above the lod threshold for emitting calls (and not in all-bases mode)?

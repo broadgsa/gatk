@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 public class RankSumTest implements VariantAnnotation {
 
-    public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
+    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
 
         if ( genotypes.size() == 0 )
             return null;
@@ -40,7 +40,7 @@ public class RankSumTest implements VariantAnnotation {
         if ( MathUtils.compareDoubles(pvalue, 0.0) == 0 )
             return null;
 
-        return new Pair<String, String>(getKeyName(), String.format("%.1f", -10.0 * Math.log10(pvalue)));
+        return String.format("%.1f", QualityUtils.phredScaleErrorRate(pvalue));
     }
 
     public String getKeyName() { return "RankSum"; }
