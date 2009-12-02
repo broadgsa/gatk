@@ -55,7 +55,7 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, Integer> impleme
                     byte pileupBase = bases[index];
                     for (char genotypeBase : genotype.toString().toCharArray())
                         if (genotypeBase == pileupBase)
-                            likelihoods[genotype.ordinal()] += Math.log10(0.5 * ((1 - epsilon) + epsilon / 3));
+                            likelihoods[genotype.ordinal()] += Math.log10(0.5 * (1 - epsilon) + epsilon / 3);
                         else
                             likelihoods[genotype.ordinal()] += Math.log10(epsilon / 3);
                 }
