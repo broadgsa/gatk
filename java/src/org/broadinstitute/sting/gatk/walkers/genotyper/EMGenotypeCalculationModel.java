@@ -78,7 +78,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
 
                 ((SLODBacked)locusdata).setSLOD(strandScore);
             }
-            locusdata.setAlleleFrequency(overall.getMAF());
+            locusdata.setNonRefAlleleFrequency(overall.getMAF());
         }
         return new Pair<List<Genotype>, GenotypeLocusData>(genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts), locusdata);
     }

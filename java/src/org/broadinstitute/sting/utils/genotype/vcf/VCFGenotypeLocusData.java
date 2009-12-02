@@ -21,7 +21,7 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
     private Double mSLOD = null;
 
     // the allele frequency field
-    private double mAlleleFrequency = 0.0;
+    private double mAlleleFrequency = -1.0;
 
     // the location
     private GenomeLoc mLoc;
@@ -95,6 +95,10 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
 
     public VARIANT_TYPE getType() {
         return mType;
+    }
+
+    public boolean hasNonRefAlleleFrequency() {
+        return mAlleleFrequency >= 0.0;
     }
 
     public double getNonRefAlleleFrequency() {
@@ -171,7 +175,7 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
      *
      * @param   frequency    the allele frequency for this genotype
      */
-    public void setAlleleFrequency(double frequency) {
+    public void setNonRefAlleleFrequency(double frequency) {
         mAlleleFrequency = frequency;
     }
 

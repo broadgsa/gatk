@@ -323,7 +323,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, loc, VARIANT_TYPE.SNP);
         if ( locusdata != null ) {
             locusdata.addAlternateAllele(bestAlternateAllele.toString());
-            locusdata.setAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
+            locusdata.setNonRefAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
             if ( locusdata instanceof ConfidenceBacked ) {
                 ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
             }

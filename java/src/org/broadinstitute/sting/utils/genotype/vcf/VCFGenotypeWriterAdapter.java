@@ -190,7 +190,8 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         if ( locusdata != null ) {
             if ( locusdata.getSLOD() != null )
                 infoFields.put("SB", String.format("%.2f", locusdata.getSLOD()));
-            infoFields.put("AF", String.format("%.2f", locusdata.getNonRefAlleleFrequency()));
+            if ( locusdata.hasNonRefAlleleFrequency() )
+                infoFields.put("AF", String.format("%.2f", locusdata.getNonRefAlleleFrequency()));
             Map<String, String> otherFields = locusdata.getFields();
             if ( otherFields != null ) {
                 infoFields.putAll(otherFields);

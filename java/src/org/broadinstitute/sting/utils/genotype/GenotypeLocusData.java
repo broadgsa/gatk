@@ -18,8 +18,14 @@ public interface GenotypeLocusData extends Variation {
 
     /**
      *
+     * @return true if the allele frequency has been set
+     */
+    public boolean hasNonRefAlleleFrequency();
+
+    /**
+     *
      * @param   frequency    the allele frequency for this genotype
      */
-    public void setAlleleFrequency(double frequency);
+    public void setNonRefAlleleFrequency(double frequency);
 
 }
