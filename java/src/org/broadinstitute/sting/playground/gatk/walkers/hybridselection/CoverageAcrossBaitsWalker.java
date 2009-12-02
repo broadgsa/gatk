@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.playground.gatk.walkers.hybridselection;
 
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -24,7 +24,7 @@ import java.util.Arrays;
  */
 
 @By(DataSource.REFERENCE)
-public class CoverageAcrossIntervalsWalker extends LocusWalker<Pair<Integer, Integer>, CoverageAcrossIntervalsWalker.Coverage> {
+public class CoverageAcrossBaitsWalker extends LocusWalker<Pair<Integer, Integer>, CoverageAcrossBaitsWalker.Coverage> {
     /* Accumulates coverage across hybrid selection bait intervals to assess effect of bait adjacency.
      Requires input bait intervals that have an overhang beyond the actual bait interval to capture coverage data at these points.
      Outputs R parseable file that has all data in lists and then does some basic plotting.
