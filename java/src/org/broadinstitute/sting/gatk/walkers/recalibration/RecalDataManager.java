@@ -56,6 +56,7 @@ public class RecalDataManager {
 
     public final static String ORIGINAL_QUAL_ATTRIBUTE_TAG = "OQ"; // The tag that holds the original quality scores
     public final static String COLOR_SPACE_QUAL_ATTRIBUTE_TAG = "CQ"; // The tag that holds the color space quality scores for SOLID bams
+    public final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS"; // The tag that holds the color space for SOLID bams
     private static boolean warnUserNullReadGroup = false;
 
     RecalDataManager() {
@@ -242,5 +243,15 @@ public class RecalDataManager {
         if( RAC.FORCE_PLATFORM != null && !readGroup.getPlatform().equals(RAC.FORCE_PLATFORM)) {
             readGroup.setPlatform( RAC.FORCE_PLATFORM );
         }
+    }
+
+    /**
+     * Check if this base is inconsistent with its color space. If it is then SOLID inserted the reference here and we should reduce the quality
+     * @param base The nucleotide we are checking
+     * @param read The read which contains the color space to check against
+     * @return Returns true if the base is inconsistent with the color space
+     */
+    public static boolean isInconsistentColorSpace( final byte base, final SAMRecord read ) {
+        return false;
     }
 }

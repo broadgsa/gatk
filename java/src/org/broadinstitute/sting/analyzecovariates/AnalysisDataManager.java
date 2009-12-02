@@ -10,6 +10,9 @@ import java.util.List;
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Dec 1, 2009
+ *
+ * The difference between this AnalysisDataManager and the RecalDataManager used by the Recalibration walkers is that here the collapsed data tables are indexed
+ *  by only read group and the given covariate, while in the recalibrator the collapsed tables are indexed by read group, reported quality, and the given covariate.
  */
 
 public class AnalysisDataManager {

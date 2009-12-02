@@ -93,7 +93,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.0.9"; // Major version, minor version, and build number
+    private static final String versionString = "v2.0.10"; // Major version, minor version, and build number
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
 
     //---------------------------------------------------------------------------------------------------------------
@@ -328,12 +328,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         preserveQScores( originalQuals, recalQuals ); // Overwrite the work done if original quality score is too low
 
-        // SOLID bams insert the reference base into the read if the color space quality is zero, so don't change their base quality scores
-        if( read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") ) {
-            byte[] colorSpaceQuals = QualityUtils.fastqToPhred((String)read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG));
-            if(colorSpaceQuals != null) { preserveBadColorSpaceQualities_SOLID( originalQuals, recalQuals, colorSpaceQuals ); }
-        }
-
         read.setBaseQualities(recalQuals); // Overwrite old qualities with new recalibrated qualities
         if ( read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) == null ) { // Save the old qualities if the tag isn't already taken in the read
             read.setAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, QualityUtils.phredToFastq(originalQuals));
@@ -425,20 +419,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private void preserveQScores( final byte[] originalQuals, byte[] recalQuals ) {
         for( int iii = 0; iii < recalQuals.length; iii++ ) {
             if ( originalQuals[iii] < PRESERVE_QSCORES_LESS_THAN ) {
-                recalQuals[iii] = originalQuals[iii];
-            }
-        }
-    }
-
-    /**
-     * Loop over the list of qualities and overwrite the newly recalibrated score to be the original score if the color space quality is zero
-     * @param originalQuals The list of original base quality scores
-     * @param recalQuals A list of the new recalibrated quality scores
-     * @param colorSpaceQuals The list of color space quality scores for this read
-     */
-    private void preserveBadColorSpaceQualities_SOLID( final byte[] originalQuals, byte[] recalQuals, final byte[] colorSpaceQuals ) {
-        for( int iii = 0; iii < recalQuals.length; iii++ ) {
-            if ( colorSpaceQuals[iii] <= 0 ) { //BUGBUG: This isn't exactly correct yet
                 recalQuals[iii] = originalQuals[iii];
             }
         }

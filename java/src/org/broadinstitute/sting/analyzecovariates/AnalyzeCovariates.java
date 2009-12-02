@@ -292,7 +292,7 @@ public class AnalyzeCovariates {
                         } else { // Analyze all other covariates
                             Process p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_OtherCovariate.R" + " " +
                                         OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
-                                        cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument which is the name of the covariate to make the plots look nice
+                                        cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
                         }
                     } catch (IOException e) {
                         e.printStackTrace();

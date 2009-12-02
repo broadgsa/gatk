@@ -101,7 +101,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.0.11"; // Major version, minor version, and build number
+    private static final String versionString = "v2.0.12"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -268,7 +268,6 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
             int offset;
             byte refBase;
             byte prevBase;
-            byte[] colorSpaceQuals;
             byte[] bases;
 
             // For each read at this locus
@@ -298,16 +297,16 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                             // BUGBUG: For DinucCovariate we should use previous reference base, not the previous base in this read. 
                             if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
 
-                                // SOLID bams insert the reference base into the read if the color space quality is zero, so skip over them
-                                colorSpaceQuals = null;
+                                // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base
+                                //  so decrease the quality of this base by forcing it to be a mismatch
                                 if( read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") ) {
-                                    colorSpaceQuals = QualityUtils.fastqToPhred((String)read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG));
+                                    if( RecalDataManager.isInconsistentColorSpace( p.getBase(), read ) ) {
+                                        refBase = (byte)'X'; // Because we are already filter out all bases that don't pass BaseUtils.isRegularBase this will always be marked as a mismatch
+                                    }
                                 }
-                                if( colorSpaceQuals == null || colorSpaceQuals[offset] > 0 ) //BUGBUG: This isn't exactly correct yet
-                                {
-                                    // This base finally passed all the checks for a good base, so add it to the big data hashmap
-                                    updateDataFromRead( read, offset, refBase );
-                                }
+
+                                // This base finally passed all the checks for a good base, so add it to the big data hashmap
+                                updateDataFromRead( read, offset, refBase );
                             } else {
                                 if( RAC.VALIDATE_OLD_RECALIBRATOR ) {
                                     countedBases++; // Replicating a small bug in the old recalibrator
