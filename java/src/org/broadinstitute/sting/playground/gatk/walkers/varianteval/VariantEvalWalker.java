@@ -247,7 +247,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
                 eval = null;  
 
             if (eval != null)
-                if (eval.getNegLog10PError() < minConfidenceScore) eval = null;
+                if (eval.getNegLog10PError() * 10.0 < minConfidenceScore) eval = null;
 
             if ( eval != null && (eval instanceof RodVCF) && ((RodVCF)eval).mCurrentRecord.isFiltered() ) {
                 //System.out.printf("Rejecting filtered record %s%n", eval);
