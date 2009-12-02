@@ -571,10 +571,13 @@ def evaluateTruth(header, callVCF, truth, truthVCF):
 
     writeRecalibratedCalls(callVCF, header, calls)
 
+    def isFN(v):
+        return isVariantInSample(v, OPTIONS.useSample) and not v.hasField("FN")
+
     if truth <> None and OPTIONS.FNoutputVCF:
         f = open(OPTIONS.FNoutputVCF, 'w')
         #print 'HEADER', header
-        for line in formatVCF(header, filter( lambda x: not x.hasField("FN"), truth.itervalues())):
+        for line in formatVCF(header, filter( isFN, truth.itervalues())):
             print >> f, line
         f.close()
 
