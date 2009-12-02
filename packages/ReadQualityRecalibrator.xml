@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<package>
-  <name>ReadQualityRecalibrator</name>
-  <main-class>org.broadinstitute.sting.gatk.CommandLineGATK</main-class>
-  <dependencies>
-    <class>org.broadinstitute.sting.gatk.walkers.recalibration.CovariateCounterWalker</class>
-    <class>org.broadinstitute.sting.gatk.walkers.recalibration.TableRecalibrationWalker</class>
-  </dependencies>
-</package>
