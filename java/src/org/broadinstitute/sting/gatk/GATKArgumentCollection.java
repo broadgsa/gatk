@@ -64,10 +64,6 @@ public class GATKArgumentCollection {
     @Argument(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.", required = false)
     public List<String> intervals = null;
 
-    @ElementList(required = false)
-    @Argument(fullName = "sleep", doc = "If provided, the engine will sleep for this number of milliseconds before starting the analysis -- useful for debugging", required = false)
-    public long sleep = 0;
-
     @Element(required = false)
     @Argument(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
@@ -221,9 +217,6 @@ public class GATKArgumentCollection {
             }
         }
         if (other.walkerArgs.size() != walkerArgs.size()) {
-            return false;
-        }
-        if (other.sleep != sleep) {
             return false;
         }
         for (String s : walkerArgs.keySet()) {

@@ -33,13 +33,6 @@ public class SecondBaseSkew implements VariantAnnotation {
     public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
         if ( variation.isSNP() && variation.isBiallelic() ) {
             char snp = variation.getAlternativeBaseForSNP();
-//            try {
-//                System.out.printf("snp %c, alt is %c%n", snp, getNonref(genotypes, ref.getBase()));
-//            } catch (IllegalStateException e) {
-//                System.out.printf("%s is not biallelic%n", variation.toString());
-//                return null;
-//            }
-
             Pair<Integer,Double> depthProp = getSecondaryPileupNonrefEstimator(ref.getBase(), pileup, snp);
             if ( depthProp == null ) {
                 return null;
@@ -79,21 +72,10 @@ public class SecondBaseSkew implements VariantAnnotation {
         }
 
         if ( variantDepth > 0 ) {
-            //System.out.printf("%d %d %d %d%n", primaryPileup.length, secondaryPileup.length, variantDepth, variantsWithRefSecondBase );
             double biasedProportion = ( 1.0 + variantsWithRefSecondBase )/(1.0 + variantDepth );
             return new Pair<Integer,Double>(variantDepth+1, biasedProportion);
         } else {
             return null;
         }
-    }
-
-    private char getNonref(List<Genotype> genotypes, char ref) {
-        for ( Genotype g : genotypes ) {
-            if ( g.isVariant(ref) ) {
-                return g.toVariation(ref).getAlternativeBaseForSNP();
-            }
-        }
-
-        throw new IllegalStateException("List of genotypes did not contain a variant.");
     }
 }
