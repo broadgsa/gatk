@@ -1,11 +1,11 @@
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.oneoffprojects.multisamplecaller;
+
+import org.broadinstitute.sting.utils.*;
 
 import net.sf.samtools.*;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Random;
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,7 +14,6 @@ import java.util.Random;
  * Time: 8:54:05 AM
  * To change this template use File | Settings | File Templates.
  */
-@Deprecated
 abstract public class BasicPileup {
     public static final char DELETION_CHAR = 'D';
 

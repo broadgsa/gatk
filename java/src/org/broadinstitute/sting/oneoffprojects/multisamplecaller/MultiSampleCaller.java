@@ -1,5 +1,5 @@
 
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.oneoffprojects.multisamplecaller;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
@@ -9,7 +9,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.playground.utils.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
@@ -20,7 +19,7 @@ import java.io.*;
 // Beta iterative multi-sample caller
 // j.maguire 6-11-2009
 
-public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSampleCallResult,String>
+public class MultiSampleCaller extends LocusWalker<MultiSampleCaller.MultiSampleCallResult,String>
 {
     @Argument(required=false, shortName="fractional_counts", doc="should we use fractional counts?") public boolean FRACTIONAL_COUNTS = false;
     @Argument(required=false, shortName="max_iterations", doc="Maximum number of iterations for EM") public int MAX_ITERATIONS = 10;

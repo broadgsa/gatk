@@ -184,10 +184,62 @@ public class DupUtils {
         return l;
     }
 
+    // TODO -- get rid of all this crappy, obsolete pileup code
+
+    @Deprecated
+    private static ArrayList<Byte> getBasesAsArrayList( List<SAMRecord> reads, List<Integer> offsets ) {
+        ArrayList<Byte> bases = new ArrayList<Byte>(reads.size());
+        for (byte value : getBasesAsArray(reads, offsets))
+            bases.add(value);
+        return bases;
+     }
+
+    @Deprecated
+    private static ArrayList<Byte> getQualsAsArrayList( List<SAMRecord> reads, List<Integer> offsets ) {
+        ArrayList<Byte> quals = new ArrayList<Byte>(reads.size());
+        for (byte value : getQualsAsArray(reads, offsets))
+            quals.add(value);
+        return quals;
+    }
+
+    @Deprecated
+    public static byte[] getBasesAsArray( List<SAMRecord> reads, List<Integer> offsets ) {
+        byte array[] = new byte[reads.size()];
+        int index = 0;
+        for ( int i = 0; i < reads.size(); i++ ) {
+            SAMRecord read = reads.get(i);
+            int offset = offsets.get(i);
+            if ( offset == -1 ) {
+               array[index++] = ((byte)'D');
+            } else {
+                array[index++] = read.getReadBases()[offset];
+            }
+        }
+        return array;
+     }
+
+    @Deprecated
+    private static byte[] getQualsAsArray( List<SAMRecord> reads, List<Integer> offsets ) {
+        byte array[] = new byte[reads.size()];
+        int index = 0;
+        for ( int i = 0; i < reads.size(); i++ ) {
+            SAMRecord read = reads.get(i);
+            int offset = offsets.get(i);
+
+            // skip deletion sites
+            if ( offset == -1 ) {
+                array[index++] = ((byte)0);
+            } else {
+                array[index++] = read.getBaseQualities()[offset];
+            }
+        }
+        return array;
+    }
+
     private static Pair<Byte, Byte> combineBaseProbs(List<SAMRecord> duplicates, int readOffset, int maxQScore) {
         List<Integer> offsets = constantOffset(duplicates, readOffset);
-        ArrayList<Byte> bases = BasicPileup.getBasesAsArrayList(duplicates, offsets);
-        ArrayList<Byte> quals = BasicPileup.getQualsAsArrayList(duplicates, offsets);
+        ArrayList<Byte> bases = getBasesAsArrayList(duplicates, offsets);
+        ArrayList<Byte> quals = getQualsAsArrayList(duplicates, offsets);
         final boolean debug = false;
 
         // calculate base probs

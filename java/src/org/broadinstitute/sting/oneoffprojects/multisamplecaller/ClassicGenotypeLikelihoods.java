@@ -1,12 +1,9 @@
-package org.broadinstitute.sting.playground.utils;
+package org.broadinstitute.sting.oneoffprojects.multisamplecaller;
 
-import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.QualityUtils;
 
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
-import java.util.HashMap;
 import java.lang.Cloneable;
 
 public class ClassicGenotypeLikelihoods implements Cloneable {

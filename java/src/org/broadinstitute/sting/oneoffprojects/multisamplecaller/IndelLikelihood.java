@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.utils;
+package org.broadinstitute.sting.oneoffprojects.multisamplecaller;
 
 import java.util.HashMap;
 
