@@ -24,8 +24,8 @@ if( length(d.good$nBases) == length(c$nBases) ) {
 	theTitle = paste("RMSE = ", round(rmseAll,digits=3))
 	}
 if( is.numeric(c$Covariate) ) {
-	plot(d.good$Covariate, d.good$Qempirical-d.good$Qreported, type="p", main=theTitle, ylab="Empirical - Reported Quality", 	xlab=covariateName, col="blue", pch=16, ylim=c(-10, 10), xlim=c(min(c$Covariate),max(c$Covariate)))
-	points(d.1000$Covariate, d.1000$Qempirical-d.1000$Qreported, type="p", col="cornflowerblue", pch=16)
+	plot(d.good$Covariate, d.good$Qempirical-d.good$Qreported, type="p", main=theTitle, ylab="Empirical - Reported Quality", xlab=covariateName, col="blue", pch=20, ylim=c(-10, 10), xlim=c(min(c$Covariate),max(c$Covariate)))
+	points(d.1000$Covariate, d.1000$Qempirical-d.1000$Qreported, type="p", col="cornflowerblue", pch=20)
 } else {
 	plot(c$Covariate, c$Qempirical-c$Qreported, type="l", main=theTitle, ylab="Empirical - Reported Quality", 	xlab=covariateName, col="blue", ylim=c(-10, 10))
 	points(d.1000$Covariate, d.1000$Qempirical-d.1000$Qreported, type="l", col="cornflowerblue")
@@ -43,12 +43,12 @@ pdf(outfile, height=7, width=7)
 hst=subset(data.frame(e$Covariate, e$nBases), e.nBases != 0)
 hst2=subset(data.frame(f$Covariate, f$nBases), f.nBases != 0)
 if( is.numeric(c$Covariate) ) {
-	plot(hst$e.Covariate, hst$e.nBases, type="h", lwd=4, main=paste(covariateName,"histogram"), xlab=covariateName, ylab="Count",yaxt="n")
-	points(hst2$f.Covariate, hst2$f.nBases, type="h", lwd=4, col="cornflowerblue")
+	plot(hst$e.Covariate, hst$e.nBases, type="h", lwd=2, main=paste(covariateName,"histogram"), xlab=covariateName, ylab="Count",yaxt="n",xlim=c(min(c$Covariate),max(c$Covariate)))
+	points(hst2$f.Covariate, hst2$f.nBases, type="h", lwd=2, col="cornflowerblue")
 	axis(2,axTicks(2), format(axTicks(2), scientific=F))
 } else {
 	hst=subset(data.frame(c$Covariate, c$nBases), c.nBases != 0)
-	plot(1:length(hst$c.Covariate), hst$c.nBases, type="h", lwd=4, main=paste(covariateName,"histogram"), xlab=covariateName, ylab="Count",yaxt="n",xaxt="n")
+	plot(1:length(hst$c.Covariate), hst$c.nBases, type="h", lwd=7, main=paste(covariateName,"histogram"), xlab=covariateName, ylab="Count",yaxt="n",xaxt="n")
 	axis(1, at=seq(1,length(hst$c.Covariate),2), labels = hst$c.Covariate[seq(1,length(hst$c.Covariate),2)])
 	axis(2,axTicks(2), format(axTicks(2), scientific=F))
 }
