@@ -34,7 +34,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
     public static String secondBaseTestmd5( int testNo ) {
         switch ( testNo ) {
-            case 1: return "48adec9c7fa6d3f5f5647b8eababd4e3";
+            case 1: return "8f5b4b29eefb25d6b7b9e32a1c90f144";
             case 2: return "3a53d945b38e1fc87a801f23115222fe";
             default: throw new StingException("Impossible test has been run: secondbasetest number "+testNo);
         }

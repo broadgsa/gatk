@@ -89,7 +89,6 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
      *
      **/
     public void initialize() {
-
         // deal with input errors
         if ( UAC.POOLSIZE > 0 && UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED ) {
             throw new IllegalArgumentException("Attempting to use a model other than POOLED with pooled data. Please set the model to POOLED.");

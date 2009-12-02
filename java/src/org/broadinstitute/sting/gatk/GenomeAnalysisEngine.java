@@ -136,6 +136,14 @@ public class GenomeAnalysisEngine {
         // save our argument parameter
         this.argCollection = args;
 
+        if ( args.sleep > 0 ) {
+            try {
+                Thread.sleep(args.sleep);
+            } catch ( InterruptedException e ) {
+                throw new RuntimeException(e);
+            }
+        }
+
         // Prepare the data for traversal.
         initializeDataSources(my_walker, filters, argCollection);
 

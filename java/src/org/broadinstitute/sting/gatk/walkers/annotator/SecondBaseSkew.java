@@ -18,28 +18,38 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class SecondBaseSkew implements VariantAnnotation {
-    private static double epsilon = Math.pow(10.0,-12);
-    private static boolean USE_ZERO_QUALITY_READS = true;
-    private static String KEY_NAME = "2b_Chi";
-    private static double[] UNIFORM_ON_OFF_RATIO = {1.0/3, 2.0/3};
+    private final static double epsilon = Math.pow(10.0,-12);
+    private final static boolean USE_ZERO_QUALITY_READS = false; // todo -- should be false in my opinion MAD 
+    private final static String KEY_NAME = "2b_Chi";
+    private final static double[] UNIFORM_ON_OFF_RATIO = {1.0/3, 2.0/3};
     private double[] proportionExpectations = UNIFORM_ON_OFF_RATIO;
-
 
     public boolean useZeroQualityReads() { return USE_ZERO_QUALITY_READS; }
 
-    public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileupWithDel, Variation variation, List<Genotype> genotypes) {
-        ReadBackedPileup pileup = pileupWithDel; // .getPileupWithoutDeletions();
-        Pair<Integer,Double> depthProp = getSecondaryPileupNonrefEstimator(ref.getBase(), pileup,genotypes);
-        if ( depthProp == null ) {
-            return null;
+    public Pair<String, String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
+        if ( variation.isSNP() && variation.isBiallelic() ) {
+            char snp = variation.getAlternativeBaseForSNP();
+//            try {
+//                System.out.printf("snp %c, alt is %c%n", snp, getNonref(genotypes, ref.getBase()));
+//            } catch (IllegalStateException e) {
+//                System.out.printf("%s is not biallelic%n", variation.toString());
+//                return null;
+//            }
+
+            Pair<Integer,Double> depthProp = getSecondaryPileupNonrefEstimator(ref.getBase(), pileup, snp);
+            if ( depthProp == null ) {
+                return null;
+            } else {
+                //System.out.printf("%d / %f%n", depthProp.getFirst(), depthProp.getSecond());
+                double p_transformed = transform(depthProp.getSecond(), depthProp.getFirst());
+                double expected_transformed = transform(proportionExpectations[0], depthProp.getFirst());
+                // System.out.println("p_transformed="+p_transformed+" e_transformed="+expected_transformed+" variantDepth="+depthProp.getFirst());
+                // System.out.println("Proportion variant bases with ref 2bb="+depthProp.getSecond()+" Expected="+proportionExpectations[0]);
+                double chi_square =  Math.signum(depthProp.getSecond() - proportionExpectations[0])*Math.min(Math.pow(p_transformed - expected_transformed, 2), Double.MAX_VALUE);
+                return new Pair<String,String>(KEY_NAME, String.format("%f", chi_square));
+            }
         } else {
-            //System.out.printf("%d / %f%n", depthProp.getFirst(), depthProp.getSecond());
-            double p_transformed = transform(depthProp.getSecond(), depthProp.getFirst());
-            double expected_transformed = transform(proportionExpectations[0], depthProp.getFirst());
-            // System.out.println("p_transformed="+p_transformed+" e_transformed="+expected_transformed+" variantDepth="+depthProp.getFirst());
-            // System.out.println("Proportion variant bases with ref 2bb="+depthProp.getSecond()+" Expected="+proportionExpectations[0]);
-            double chi_square =  Math.signum(depthProp.getSecond() - proportionExpectations[0])*Math.min(Math.pow(p_transformed - expected_transformed, 2), Double.MAX_VALUE);
-            return new Pair<String,String>(KEY_NAME,String.format("%f", chi_square));
+            return null;
         }
     }
 
@@ -48,16 +58,7 @@ public class SecondBaseSkew implements VariantAnnotation {
         return proportion / ( Math.sqrt ( proportion*(1-proportion)/depth ) );
     }
 
-    private Pair<Integer, Double> getSecondaryPileupNonrefEstimator(char ref, ReadBackedPileup p, List<Genotype> genotypes) {
-        char snp;
-        try {
-            snp = getNonref(genotypes, ref);
-        } catch ( IllegalStateException e ) {
-            // tri-allelic site
-            // System.out.println("Illegal State Exception caught at "+p.getLocation().toString()+" 2bb skew annotation suppressed ("+e.getLocalizedMessage()+")");
-            return null;
-        }
-
+    private Pair<Integer, Double> getSecondaryPileupNonrefEstimator(char ref, ReadBackedPileup p, char snp ) {
         int variantDepth = 0;
         int variantsWithRefSecondBase = 0;
 
@@ -81,26 +82,6 @@ public class SecondBaseSkew implements VariantAnnotation {
             return null;
         }
     }
-
-//            byte[] primaryPileup = p.getBases();
-//        String secondBasePileup = p.getSecondaryBasePileup();
-//
-//        if ( secondBasePileup == null ) {
-//            // System.out.println("Warning: Second base pileup is null at "+p.getLocation().toString());
-//            return null;
-//        } else {
-//            char [] secondaryPileup = secondBasePileup.toCharArray();
-//            //System.out.printf("primary=%d secondary=%d locus=%s%n", primaryPileup.length, secondaryPileup.length, p.getLocation().toString());
-//
-//            for ( int i = 0; i < primaryPileup.length; i ++ ) {
-//                //System.out.printf("%d %c %c %c%n", i, primaryPileup[i], secondaryPileup[i], snp);
-//                if ( BaseUtils.basesAreEqual((byte) primaryPileup[i], (byte) snp) ) {
-//                    variantDepth++;
-//                    if ( BaseUtils.basesAreEqual((byte) secondaryPileup[i], (byte) p.getRef()) ) {
-//                        variantsWithRefSecondBase++;
-//                    }
-//                }
-//            }
 
     private char getNonref(List<Genotype> genotypes, char ref) {
         for ( Genotype g : genotypes ) {

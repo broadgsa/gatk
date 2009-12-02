@@ -135,8 +135,16 @@ public class BaseUtils {
         }
     }
 
+    static public int simpleBaseToBaseIndex(byte base) {
+        return simpleBaseToBaseIndex((char)base);
+    }
+
     static public boolean isRegularBase(char base) {
         return simpleBaseToBaseIndex(base) != -1;
+    }
+
+    static public boolean isRegularBase(byte base) {
+        return isRegularBase((char)base);
     }
 
     /**

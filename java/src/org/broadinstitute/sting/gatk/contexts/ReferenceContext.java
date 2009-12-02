@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.contexts;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 /**
  * The section of the reference that overlaps with the given
@@ -88,6 +89,14 @@ public class ReferenceContext {
      */
     public char getBase() {
         return bases[(int)(locus.getStart() - window.getStart())];
+    }
+
+    /**
+     * Get the base at the given locus.
+     * @return The base at the given locus from the reference.
+     */
+    public int getSimpleBase() {
+        return BaseUtils.simpleBaseToBaseIndex(getBase());
     }
 
     /**

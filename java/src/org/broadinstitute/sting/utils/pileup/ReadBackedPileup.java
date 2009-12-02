@@ -311,13 +311,14 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
         return false;
     }
 
-    public String getPileupString(char ref, boolean qualsAsInts) {
+    public String getPileupString(char ref) {
         // In the pileup format, each line represents a genomic position, consisting of chromosome name,
         // coordinate, reference base, read bases, read qualities and alignment mapping qualities.
-        return String.format("%s %s %s %s",
+        return String.format("%s %s %c %s %s",
                 getLocation().getContig(), getLocation().getStart(),    // chromosome name and coordinate
-                ref,                                                    // reference base
-                new String(getBases()));
+                ref,                                                     // reference base
+                new String(getBases()),
+                getQualsString());
     }
 
 
@@ -375,5 +376,38 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
         byte[] v = new byte[size()];
         for ( ExtendedPileupElement pile : this.extendedForeachIterator() ) { v[pile.getPileupOffset()] = pile.getQual(); }
         return v;
+    }
+
+    /**
+     * Get an array of the mapping qualities
+     * @return
+     */
+    public byte[] getMapppingQuals() {
+       byte[] v = new byte[size()];
+       for ( ExtendedPileupElement pile : this.extendedForeachIterator() ) { v[pile.getPileupOffset()] = (byte)pile.getRead().getMappingQuality(); }
+       return v;
+   }
+
+
+    //
+    // Private functions for printing pileups
+    //
+    private String getMappingQualsString() {
+        return quals2String(getMapppingQuals());
+    }
+
+    private static String quals2String( byte[] quals ) {
+        StringBuilder qualStr = new StringBuilder();
+        for ( int qual : quals ) {
+            qual = Math.min(qual, 63);              // todo: fixme, this isn't a good idea
+            char qualChar = (char) (33 + qual);     // todo: warning, this is illegal for qual > 63
+            qualStr.append(qualChar);
+        }
+
+        return qualStr.toString();
+    }
+
+    private String getQualsString() {
+        return quals2String(getQuals());
     }
 }

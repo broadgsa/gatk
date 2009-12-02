@@ -73,7 +73,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
             secondBasePileup = getSecondBasePileup(pileup);
         String rods = getReferenceOrderedData( tracker );
 
-        out.printf("%s%s %s%n", pileup.getPileupString(ref.getBase(), qualsAsInts), secondBasePileup, rods);
+        out.printf("%s%s %s%n", pileup.getPileupString(ref.getBase()), secondBasePileup, rods);
 
         return 1;
     }

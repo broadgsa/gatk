@@ -19,101 +19,69 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class PrimaryBaseSecondaryBaseSymmetry implements VariantAnnotation{
-
-    private static boolean USE_ZERO_MAPQ_READS = true;
-    private static boolean USE_ZERO_QUALITY_READS = false;
+    //
+    // Where are the integration tests for this piece of code?
+    //
+    private static boolean USE_ZERO_MAPQ_READS = false;
     private static String KEY_NAME = "1b2b_symmetry";
-    private static double epsilon = Math.pow(10.0,-12);
     Logger logger = Logger.getLogger(PrimaryBaseSecondaryBaseSymmetry.class);
 
-    private boolean useConservativeVariance = true;
-
-    public void conservativeVarianceUsage( boolean b ) {
-        useConservativeVariance = b;
-    }
-
-    public boolean useZeroMappingQualityReads() { return USE_ZERO_MAPQ_READS; }
-
-    public boolean useZeroQualityReads() { return USE_ZERO_QUALITY_READS; }
+    public boolean useZeroQualityReads() { return USE_ZERO_MAPQ_READS; }
 
     public Pair<String,String> annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
-        Pair<Integer,Double> refSecondBasePair = getProportionOfReferenceSecondBasesThatSupportAlt(ref, pileup, genotypes);
-        Pair<Integer,Double> nonrefPrimaryBasePair = getProportionOfPrimaryNonrefBasesThatSupportAlt(ref, pileup, genotypes);
-        if ( refSecondBasePair == null || nonrefPrimaryBasePair ==  null ) {
+        // todo -- this code doesn't work, should't be called
+        if ( true )
             return null;
-        } else {
-            logger.info("2b="+refSecondBasePair.second+" 1b="+nonrefPrimaryBasePair.second);
-            //double primary_secondary_stat = 1.0/Math.pow( transform(refSecondBasePair) - transform(nonrefPrimaryBasePair), 2);
-            double primary_secondary_stat = refSecondBasePair.second - nonrefPrimaryBasePair.second;
-            String annotation = String.format("%f", primary_secondary_stat);
-            logger.info("Second-base symmetry: annotating with "+annotation);
-            return new Pair<String,String>(KEY_NAME, annotation);
+        else {
+            if ( variation.isSNP() && variation.isBiallelic() ) {
+                byte snp = (byte)variation.getAlternativeBaseForSNP();
+                Pair<Integer,Double> refSecondBasePair = getProportionOfReferenceSecondBasesThatSupportAlt(ref, pileup, snp);
+                Pair<Integer,Double> nonrefPrimaryBasePair = getProportionOfPrimaryNonrefBasesThatSupportAlt(ref, pileup, (char)snp);
+                if ( refSecondBasePair == null || nonrefPrimaryBasePair ==  null ) {
+                    return null;
+                } else {
+                    //System.out.printf("refSecondBasePair = %s, nonrefPrimaryBasePair = %s%n", refSecondBasePair, nonrefPrimaryBasePair);
+                    double primary_secondary_stat = refSecondBasePair.second - nonrefPrimaryBasePair.second;
+                    String annotation = String.format("%f", primary_secondary_stat);
+                    return new Pair<String,String>(KEY_NAME, annotation);
+                }
+            } else {
+                return null;
+            }
         }
     }
 
-    private double transform( double proportion, int depth ) {
-        proportion = proportion - epsilon;
-        if ( useConservativeVariance ) {
-            return proportion / ( Math.sqrt ( 0.5*(1-0.5) / Math.sqrt(depth) ) );
-        } else {
-            return proportion / ( Math.sqrt ( proportion*(1-proportion)/depth ) );
-        }
-    }
-
-    private double transform( Pair<Integer, Double> depth_prop ) {
-        return transform( depth_prop.getSecond(), depth_prop.getFirst() );
-    }
-
-    private Pair<Integer,Double> getProportionOfReferenceSecondBasesThatSupportAlt( ReferenceContext ref, ReadBackedPileup p, List<Genotype> genotypes) {
-        char snp;
-        try {
-            snp = getNonref(genotypes, ref.getBase());
-        } catch ( IllegalStateException e) {
-            logger.info("Caught: IllegalStateException -- "+e.getLocalizedMessage());
-            return null;
-        }
-
+    private Pair<Integer,Double> getProportionOfReferenceSecondBasesThatSupportAlt( ReferenceContext ref, ReadBackedPileup p, byte snp ) {
         int depth = 0;
         int support = 0;
+        byte refBase = (byte)ref.getBase();
 
         for (PileupElement pile : p ) {
             byte c = pile.getSecondBase();
 
-            if ( BaseUtils.isRegularBase((char)c) ) {
+            if ( BaseUtils.isRegularBase(c) && BaseUtils.basesAreEqual(pile.getBase(), refBase)) { // stops indels et al
                 depth++;
-
-                // todo -- chris this is dangerous
-                if ( Character.toUpperCase(c) == Character.toUpperCase(snp) ) {
-                    support++;
-                }
+                support += BaseUtils.basesAreEqual(c, snp) ? 1 : 0;
             }
         }
 
         if ( depth > 0 ) {
             double as_prop = ( ( double ) support ) / depth;
-
             return new Pair<Integer,Double> ( depth, as_prop );
         } else {
             return null;
         }
     }
 
-    private Pair<Integer,Double> getProportionOfPrimaryNonrefBasesThatSupportAlt( ReferenceContext ref, ReadBackedPileup p, List<Genotype> genotypes ) {
-        char snp;
-        try {
-            snp = getNonref(genotypes, ref.getBase());
-        } catch ( IllegalStateException e ) {
-            return null;
-        }
-
+    private Pair<Integer,Double> getProportionOfPrimaryNonrefBasesThatSupportAlt( ReferenceContext ref, ReadBackedPileup p, char snp ) {
+        // todo -- Why is it looping?
         int [] baseCounts = p.getBaseCounts();
         int support = -1;
         int depth = 0;
         for ( char c : BaseUtils.BASES ) {
             // ignore ref
-            if ( Character.toUpperCase(c) == Character.toUpperCase(ref.getBase()) ) {
-            } else {
-            // catch our snp
+            if ( Character.toUpperCase(c) != Character.toUpperCase(ref.getBase()) ) {
+                // catch our snp
                 if ( Character.toUpperCase(c) == Character.toUpperCase(snp) ) {
                     support = baseCounts[BaseUtils.simpleBaseToBaseIndex(c)];
                     depth = depth + baseCounts[BaseUtils.simpleBaseToBaseIndex(c)];
@@ -131,16 +99,4 @@ public class PrimaryBaseSecondaryBaseSymmetry implements VariantAnnotation{
 
         return new Pair<Integer,Double> ( depth, as_prop );
     }
-
-    private char getNonref(List<Genotype> genotypes, char ref) {
-        //logger.info(genotypes.size());
-        for ( Genotype g : genotypes ) {
-            //logger.info("Genotype: "+g.getBases()+" Ref from genotype: "+g.getReference()+" Ref from method: "+ref);
-            if ( g.isVariant(ref) ) {
-                return g.toVariation(ref).getAlternativeBaseForSNP();
-            }
-        }
-        throw new IllegalStateException("List of genotypes did not contain a variant.");
-    }
-
 }

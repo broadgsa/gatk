@@ -19,7 +19,7 @@ public class PileupWalkerIntegrationTest extends WalkerTest {
         String gatk_args = "-T Pileup -I /humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_Pileup_Test.bam "
                  + "-R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"
                  +  " -L chr15:46,347,148 -o %s";
-        String expected_md5 = "98040c47b623bb133cd296ce12768d49";
+        String expected_md5 = "59edd722be96402be9dacd4c6f0b0c5e";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 1, Arrays.asList(expected_md5));
         executeTest("Testing the standard (no-indel) pileup on three merged FHS pools with 27 deletions in 969 bases", spec);
     }
