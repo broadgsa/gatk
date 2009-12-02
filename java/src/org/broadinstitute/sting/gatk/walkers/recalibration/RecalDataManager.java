@@ -44,6 +44,7 @@ import net.sf.samtools.SAMReadGroupRecord;
  */
 
 public class RecalDataManager {
+    
     public NHashMap<RecalDatum> data; // The full dataset
     private NHashMap<RecalDatum> dataCollapsedReadGroup; // Table where everything except read group has been collapsed
     private NHashMap<RecalDatum> dataCollapsedQualityScore; // Table where everything except read group and quality score has been collapsed

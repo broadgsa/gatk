@@ -114,12 +114,13 @@
 	  <fileset dir="build" includes="**/alignment/**/*.class" />
 	</jar>
 
-        <jar jarfile="${dist}/FourBaseRecaller.jar" whenmanifestonly="skip">
+        <jar jarfile="${dist}/AnalyzeCovariates.jar" whenmanifestonly="skip">
           <fileset dir="build">
-            <include name="**/secondarybase/**/*.class" />
+            <include name="**/analyzecovariates/**/*.class" />
+            <include name="**/gatk/walkers/recalibration/*.class" />
           </fileset>
           <manifest>
-            <attribute name="Main-Class" value="org.broadinstitute.sting.secondarybase.FourBaseRecaller" />
+            <attribute name="Main-Class" value="org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates" />
           </manifest>
         </jar>
     
@@ -150,7 +151,7 @@
             </manifest>
         </jar>
 
-        <jar jarfile="${dist}/FourBaseRecaller.jar" update="true" whenmanifestonly="skip">
+        <jar jarfile="${dist}/AnalyzeCovariates.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
