@@ -39,6 +39,8 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
     @Argument(fullName="ALLELE_FREQ_TOLERANCE", shortName="AFT", required=false, doc="") 
     public double ALLELE_FREQ_TOLERANCE = 1e-6;
 
+    @Argument(fullName="append", shortName="append", required=false, doc="if the discovery file already exists, don't re-call sites that are done.") boolean APPEND = false;
+
     private static final double MIN_LOD_FOR_STRAND = 0.01;
 
 	// Private state.
@@ -183,17 +185,57 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
 		}
 	}
 
-    private void maybeInitializeDisoveryOutput() {
-        if ( discovery_output_file == null ) {
-            try {
-                //final String filename = String.format("%s_%s_%d.calls", DISCOVERY_OUTPUT, loc.getContig(), loc.getStart());
-                final String filename = DISCOVERY_OUTPUT;
-                //System.out.printf("opening %s%n", filename);
-                discovery_output_file = new PrintStream(filename);
-                discovery_output_file.println(new MultiSampleCallResult().header());
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+	GenomeLoc highest_previously_done_loc = null; 
+	private boolean in_skip_mask(GenomeLoc loc)
+	{
+		if (highest_previously_done_loc == null) { return false; }
+		if (highest_previously_done_loc.compareTo(loc) < 0) { return false; }
+		else { return true; }
+	}
+
+    private void maybeInitializeDisoveryOutput() 
+	{
+        if ( discovery_output_file == null ) 
+		{
+			File file = new File(DISCOVERY_OUTPUT);
+			if ((APPEND == true) && (file.exists()))
+			{
+				try
+				{
+					Runtime.getRuntime().exec("cp -v " + DISCOVERY_OUTPUT + " " + DISCOVERY_OUTPUT + ".backup");
+
+					// 1. Read the existing file and record the highest site we've seen.
+					Scanner scanner = new Scanner(file);
+					while(scanner.hasNext())
+					{
+						String line = scanner.nextLine();
+						String[] tokens = line.split(" +");
+						String loc_string = tokens[0];
+						if (loc_string.equals("loc")) { continue; }
+						highest_previously_done_loc = GenomeLocParser.parseGenomeLoc(loc_string);
+					}
+	
+					// 2. Open the output file for appending.
+					discovery_output_file = new PrintStream(new FileOutputStream(DISCOVERY_OUTPUT, true));			
+				}
+				catch (Exception e) 
+				{
+	                throw new RuntimeException(e);
+	            }
+			}
+			else
+			{
+	            try 
+				{
+	                final String filename = DISCOVERY_OUTPUT;
+	                discovery_output_file = new PrintStream(filename);
+	                discovery_output_file.println(new MultiSampleCallResult().header());
+	            } 
+				catch (Exception e) 
+				{
+	                throw new RuntimeException(e);
+	            }
+			}
         }
     }
 
@@ -265,6 +307,8 @@ public class MultiSampleCaller2 extends LocusWalker<MultiSampleCaller2.MultiSamp
     public MultiSampleCallResult map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) 
 	{
 		if (start_time == null) { start_time = new Date(); }
+
+		if (in_skip_mask(context.getLocation()) == true)  { return null; } 
 
 		if ((n_sites_processed % 1000) == 0)
 		{
