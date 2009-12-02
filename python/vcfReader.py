@@ -30,11 +30,12 @@ def convertToType(chr, pos, d, onlyKeys = None):
     
 class VCFRecord:
     """Simple support for accessing a VCF record"""
-    def __init__(self, basicBindings, header=None, rest=[], decodeAll = True):
+    def __init__(self, basicBindings, header=None, rest=[], moreFields = dict(), decodeAll = True):
         self.header = header
         self.info = parseInfo(basicBindings["INFO"])
         chr, pos = basicBindings['CHROM'], basicBindings['POS']
         self.bindings = convertToType(chr, pos, basicBindings, onlyKeys = ['POS', 'QUAL'])
+        self.bindings.update(moreFields)
         if decodeAll: self.info = convertToType(chr, pos, self.info)
         self.rest = rest
     
@@ -144,7 +145,12 @@ def string2VCF(line, header=None, decodeAll = True):
     if line[0] != "#":
         s = line.split()
         bindings = dict(zip(VCF_KEYS, s[0:8]))
-        return VCFRecord(bindings, header, rest=s[8:], decodeAll = decodeAll)
+        moreFields = dict()
+        #print 'HELLO', header, s, decodeAll
+        if header <> None and decodeAll: 
+            moreFields = dict(zip(header[8:], s[8:]))
+            #print header, moreFields
+        return VCFRecord(bindings, header, rest=s[8:], moreFields = moreFields, decodeAll = decodeAll)
     else:
         return None
 
@@ -156,7 +162,7 @@ def readVCFHeader(lines):
             header.append(line.strip())
         else:
             if header <> []:
-                columnNames = header[-1]
+                columnNames = header[-1].strip("#").split()
             return header, columnNames, itertools.chain([line], lines)
             
     # we reach this point for empty files    
@@ -170,10 +176,11 @@ def quickCountRecords(lines):
     return counter
 
 
-def lines2VCF(lines, extendedOutput = False, decodeAll = True):
-    header, columnNames, lines = readVCFHeader(lines)
+def lines2VCF(lines, extendedOutput = False, decodeAll = True, header=None, columnNames = None):
+    if header == None:
+        header, columnNames, lines = readVCFHeader(lines)
     counter = 0
-    
+
     for line in lines:
         if line[0] != "#":
             counter += 1
