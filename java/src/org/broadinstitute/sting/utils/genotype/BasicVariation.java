@@ -5,7 +5,9 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * User: aaron
@@ -65,14 +67,14 @@ public class BasicVariation implements Variation {
      */
     @Override
     public VARIANT_TYPE getType() {
-        if (mLength != 0) return VARIANT_TYPE.INSERTION;
+        if (mLength > 0) return VARIANT_TYPE.INSERTION;
+        if (mLength < 0) return VARIANT_TYPE.DELETION;
         return (isSNP()) ? VARIANT_TYPE.SNP : VARIANT_TYPE.REFERENCE;
     }
 
     @Override
     public boolean isSNP() {
-        if (mLength == 0) return true;
-        return false;
+        return ((mLength == 0) && (new HashSet(getAlternateAlleleList()).size() == 1));
     }
 
     @Override
@@ -95,10 +97,15 @@ public class BasicVariation implements Variation {
         return (mRef);
     }
 
-    /** are we bi-allelic? */
+    /**
+     * are we bi-allelic? In this case we always
+     * count the reference as an allele
+     */
     @Override
     public boolean isBiallelic() {
-        return (getAlternateAlleleList().size() == 1);
+        // put the alternate alleles into a set, there may be duplicates (i.e. hom var)
+        Set<String> alleles = new HashSet(getAlternateAlleleList());
+        return (alleles.size() == 1); // if the alt list contained one unqiue non-ref base, we're biallelic
     }
 
     @Override
@@ -133,20 +140,16 @@ public class BasicVariation implements Variation {
     @Override
     public List<String> getAlleleList() {
         List<String> list = new ArrayList<String>();
-        if (this.mBases.contains(mRef)) list.add(mRef);
         for (char c : this.mBases.toCharArray())
-            if (c != Utils.stringToChar(mRef))
-                list.add(String.valueOf(c));
+            list.add(String.valueOf(c));
         return list;
     }
 
     @Override
     public boolean isReference() {
         if (mLength != 0) return false;
-        int refIndex = 0;
-        for (char c : mBases.toCharArray()) {
-            if (mRef.charAt(refIndex) != c) return false;
-        }
+        for (String str : getAlleleList())
+            if (!str.equals(mRef)) return false;
         return true;
     }
 
@@ -169,8 +172,8 @@ public class BasicVariation implements Variation {
     @Override
     public char getAlternativeBaseForSNP() {
         if (!this.isSNP()) throw new IllegalStateException("we're not a SNP");
-        if (!this.isBiallelic() || this.getAlternateAlleleList().size() != 1) throw new IllegalStateException("we're not biallelic");
-        return Utils.stringToChar(this.getAlternateAlleleList().get(0));
+        if (!this.isBiallelic()) throw new IllegalStateException("we're not biallelic");
+        return Utils.stringToChar((new HashSet<String>(getAlternateAlleleList())).iterator().next());
     }
 
     /**

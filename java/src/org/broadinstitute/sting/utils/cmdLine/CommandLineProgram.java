@@ -261,6 +261,7 @@ public abstract class CommandLineProgram {
             throw new RuntimeException(e);
         }
         clp.generateErrorLog(stream, e);
+        stream.close();
     }
 
     /**
