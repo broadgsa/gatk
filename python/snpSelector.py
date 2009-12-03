@@ -187,6 +187,7 @@ def calculateBins(variants, field, minValue, maxValue, partitions):
 
 def calculateBinsForValues(values, field, minValue, maxValue, partitions):
     sortedValues = sorted(values)
+    captureFieldRangeForPrinting(field, sortedValues)
     
     targetBinSize = len(values) / (1.0*partitions)
     #print sortedValues
@@ -199,10 +200,11 @@ def calculateBinsForValues(values, field, minValue, maxValue, partitions):
     for bin in binsAndSizes[1:]:
         #print '  Breaks', bins
         #print '  current bin', bin
+        curLeft = bins[-1][0]
         curSize = bin[1]
         prevSize = bins[-1][2]
         #print curSize, prevSize
-        if curSize + prevSize > targetBinSize:
+        if curSize + prevSize > targetBinSize or (not isNumber(curLeft) and isNumber(bin[0])):
             #print '     => appending', bin2Break(bin)
             bins.append(bin2Break(bin))
         else:
@@ -253,17 +255,34 @@ def printFieldQual( category, field, left, right, variants, FPRate ):
     novels = selectVariants(variants, VCFRecord.isNovel)
     def p(stream):
         if stream <> None:
-            print >> stream, '  %20s %20s %s %8d %8d %.2f %.2f %.2f %.2e %3d' % (category, field, binString(left, right), len(variants), len(novels), titv(variants), titv(novels), dbSNPRate(variants), FPRate, phredScale(FPRate)), more
+            print >> stream, '  %20s %20s %s %8d %8d %.2f %.2f %.2f %.2e %3d' % (category, field, binString(field, left, right), len(variants), len(novels), titv(variants), titv(novels), dbSNPRate(variants), FPRate, phredScale(FPRate)), more
     p(sys.stdout)
     p(RECAL_LOG)
 
-def binString(left, right):
-    leftStr = str(left)
-    if type(left) == float: leftStr = "%.2f" % left
-    rightStr = "%5s" % str(right)
-    if type(right) == float: rightStr = "%.2f" % right
-    return '%8s %8s' % (leftStr, rightStr)
+FIELD_RANGES = dict()
+def captureFieldRangeForPrinting(field, sortedValues):
+    """Finds the minimum float value in sortedValues for convenience printing in recal.log"""
+    #print sortedValues
+    floatValues = filter(isNumber, sortedValues)
+    if floatValues <> []:
+        FIELD_RANGES[field] = floatValues[0]
+        #print 'Setting field range to', field, FIELD_RANGES[field]
 
+
+def isNumber(x):
+    return isinstance(x, (int, long, float))
+
+def binString(field, left, right):
+    epsilon = 1e-2
+    leftStr = str(left)
+    rightStr = "%5s" % str(right)
+    if OPTIONS.plottableNones and not isNumber(left) and not isNumber(right) and field in FIELD_RANGES:
+        left = right = FIELD_RANGES[field] - epsilon
+    if OPTIONS.plottableNones and not isNumber(left) and isNumber(right):
+        left = right - epsilon        
+    if isNumber(left): leftStr = "%.2f" % left
+    if isNumber(right): rightStr = "%.2f" % right
+    return '%8s %8s' % (leftStr, rightStr)
 
 #
 #
@@ -371,7 +390,7 @@ class CallCmp:
     HEADER = "TP    FP    FN  FNRate  Sensitivity PPV"
     
     def __str__(self):
-        return '%6d %6d %6d %.2f %.2f %.2f' % (self.nTP, self.nFP, self.nFN, self.FNRate(), self.sensitivity(), self.PPV())
+        return '%6d %6d %6d %.3f %.3f %.3f' % (self.nTP, self.nFP, self.nFN, self.FNRate(), self.sensitivity(), self.PPV())
 
 def variantInTruth(variant, truth):
     if variant.getLoc() in truth:
@@ -463,11 +482,14 @@ def setup():
     parser.add_option("", "--unFilteredTruth", dest="unFilteredTruth",
                         action='store_true', default=False,
                         help="If provided, the unfiltered truth calls will be used in comparisons [default: %default]")
+    parser.add_option("", "--plottable", dest="plottableNones",
+                        action='store_true', default=False,
+                        help="If provided, will generate fake plottable points for annotations with None values -- doesn't effect the behavior of the system just makes it easy to plot outputs [default: %default]")
     parser.add_option("-p", "--partitions", dest="partitions",
                         type='int', default=25,
                         help="Number of partitions to use for each feature.  Don't use so many that the number of variants per bin is very low. [default: %default]")
     parser.add_option("", "--maxRecordsForCovariates", dest="maxRecordsForCovariates",
-                        type='int', default=200000,
+                        type='int', default=2000000,
                         help="Derive covariate information from up to this many VCF records.  For files with more than this number of records, the system downsamples the reads [default: %default]")
     parser.add_option("-m", "--minVariantsPerBin", dest="minVariantsPerBin",
                        type='int', default=10,
