@@ -39,14 +39,9 @@ import java.util.*;
  */
 @By(DataSource.REFERENCE)
 public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoCInfo, DepthOfCoverageWalker.DoCInfo> {
-    enum printType {
-        NONE,
-        COMPACT,
-        DETAILED
-    }
 
-    @Argument(fullName="printStyle", shortName = "s", doc="Printing style: NONE, COMPACT, or DETAILED", required=false)
-    protected printType printStyle = printType.COMPACT;
+    @Argument(fullName="printBaseCounts", shortName = "bases", doc="Print individual base counts (A,C,G,T only)", required=false)
+    protected boolean printBaseCounts = false;
 
     @Argument(fullName="minMAPQ", shortName = "minMAPQ", doc="If provided, we will also list read counts with MAPQ >= this value at a locus in coverage",required=false)
     protected int excludeMAPQBelowThis = -1;
@@ -107,6 +102,9 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
             header.append("\tcoverage_atleast_MQ");
             header.append(excludeMAPQBelowThis);
         }
+        if ( printBaseCounts ) {
+            header.append("\tA_count\tC_count\tG_count\tT_count");
+        }
         if ( byReadGroup ) {
             for ( String rg : readGroupNames ) {
                 header.append("\tcoverage_for_");
@@ -138,6 +136,12 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
                 nBadMAPQReads++;
             else if ( p.isDeletion() )
                 nDeletionReads++;
+
+            if ( printBaseCounts ) {
+                int baseIndex = BaseUtils.simpleBaseToBaseIndex(p.getBase());
+                if ( baseIndex != -1 )
+                    info.baseCounts[baseIndex]++;
+            }
 
             SAMReadGroupRecord readGroup = p.getRead().getReadGroup();
             if ( readGroup == null )
@@ -187,6 +191,10 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
         if ( value.totalCoverage >= minDepthForPercentage ) {
             sum.minDepthCoveredLoci++;
         }
+        if ( printBaseCounts ) {
+            for (int baseIndex = 0; baseIndex < BaseUtils.BASES.length; baseIndex++ )
+                sum.baseCounts[baseIndex] += value.baseCounts[baseIndex];
+        }
         if ( byReadGroup ) {
             for ( String rg : readGroupNames ) {
                 int oldDepth = sum.depthByReadGroup.get(rg);
@@ -219,6 +227,9 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
         if ( minDepthForPercentage >= 0 ) {
             header.append("\tpercent_loci_covered_atleast_depth");
             header.append(minDepthForPercentage);            
+        }
+        if ( printBaseCounts ) {
+            header.append("\tA_count\tC_count\tG_count\tT_count");
         }
         if ( byReadGroup ) {
             for ( String rg : readGroupNames ) {
@@ -321,10 +332,12 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
             sb.append("\t");
         }
         sb.append((info.totalCoverage - info.numDeletions));
+
         if ( printAverageCoverage ) {
             sb.append("\t");
             sb.append(String.format("%.2f", ((double)(info.totalCoverage - info.numDeletions)) / totalBases));
         }
+
         if ( excludeMAPQBelowThis > 0 ) {
             sb.append("\t");
             sb.append((info.totalCoverage - info.numBadMQReads));
@@ -333,10 +346,19 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
                 sb.append(String.format("%.2f", ((double)(info.totalCoverage - info.numBadMQReads)) / totalBases));
             }
         }
+
         if ( minDepthForPercentage >= 0 ) {
             sb.append("\t");
             sb.append(String.format("%.2f", ((double)info.minDepthCoveredLoci) / totalBases));            
         }
+
+        if ( printBaseCounts ) {
+            for (int baseIndex = 0; baseIndex < BaseUtils.BASES.length; baseIndex++ ) {
+                sb.append("\t");
+                sb.append(String.format("%8d", info.baseCounts[baseIndex]));
+            }
+        }
+
         if ( byReadGroup ) {
             for ( String rg : readGroupNames ) {
                 sb.append("\t");
@@ -360,10 +382,15 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
         public int numBadMQReads = 0;
         public int minDepthCoveredLoci = 0;
 
+        public int[] baseCounts = null;
+
         public HashMap<String, Integer> depthByReadGroup = null;
         public HashMap<String, Integer> depthBySample = null;
 
         public DoCInfo() {
+            if ( printBaseCounts ) {
+                baseCounts = new int[4];
+            }
             if ( byReadGroup ) {
                 depthByReadGroup = new HashMap<String, Integer>();
                 for ( String readGroupName : readGroupNames )
