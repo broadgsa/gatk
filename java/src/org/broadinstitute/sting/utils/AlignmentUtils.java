@@ -5,9 +5,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.picard.reference.ReferenceSequence;
-import org.broadinstitute.sting.playground.utils.CountedObject;
 
-import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.

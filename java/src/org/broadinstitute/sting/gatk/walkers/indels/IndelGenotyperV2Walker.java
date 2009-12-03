@@ -9,7 +9,6 @@ import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.playground.utils.CircularArray;
 
 import java.util.*;
 import java.io.IOException;

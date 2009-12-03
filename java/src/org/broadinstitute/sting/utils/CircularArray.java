@@ -1,7 +1,5 @@
-package org.broadinstitute.sting.playground.utils;
+package org.broadinstitute.sting.utils;
 
-
-import org.broadinstitute.sting.utils.StingException;
 
 /** This class, closely resembling a deque (except that it is not dynamically grown), 
  * provides an object with array-like interface and efficient 

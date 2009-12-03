@@ -9,7 +9,6 @@ import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
-import org.broadinstitute.sting.playground.utils.CircularArray;
 
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
