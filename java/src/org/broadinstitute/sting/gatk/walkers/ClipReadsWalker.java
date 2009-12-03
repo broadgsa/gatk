@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.gatk.walkers;
 
 import net.sf.samtools.*;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
@@ -8,9 +8,6 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 
 import java.util.*;
 import java.util.regex.Pattern;

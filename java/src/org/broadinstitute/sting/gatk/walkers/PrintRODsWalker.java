@@ -23,18 +23,18 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.genotype.Variation;
+
+import java.util.Iterator;
 
 /**
  * PrintRODsWalker prints out all of the RODs that it sees (using the ROD's toString method)
  */
-@Requires(value={DataSource.REFERENCE},referenceMetaData=@RMD(name="variant",type=ReferenceOrderedDatum.class))
-public class PrintRODsWalker extends RefWalker<Integer, Integer> {
+public class PrintRODsWalker extends RodWalker<Integer, Integer> {
 
     /**
      * Initialize the number of loci processed to zero.
@@ -52,10 +52,15 @@ public class PrintRODsWalker extends RefWalker<Integer, Integer> {
      * @return 1 if the locus was successfully processed, 0 if otherwise
      */
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        ReferenceOrderedDatum variant = tracker.lookup("variant", null);
+        if ( tracker == null )
+            return 0;
 
-        if (variant != null )
-            out.println(variant);
+        Iterator<ReferenceOrderedDatum> rods = tracker.getAllRods().iterator();
+        while ( rods.hasNext() ) {
+            ReferenceOrderedDatum rod = rods.next();
+            if ( rod instanceof Variation )
+                out.println(rod.toString());
+        }
 
         return 1;
     }
