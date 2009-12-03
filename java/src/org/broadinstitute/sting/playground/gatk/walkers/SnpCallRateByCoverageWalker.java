@@ -26,7 +26,7 @@ import java.util.List;
  * Time: 12:38:17 PM
  * To change this template use File | Settings | File Templates.
  */
-public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
+public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, String> {
 
     // Control what goes into the variants file and what format that file should have
     @Argument(fullName="lod_threshold", shortName="lod", doc="The lod threshold on which variants should be filtered", required=false) public Double LOD_THRESHOLD = 5.0;
@@ -47,7 +47,7 @@ public class CoverageEvalWalker extends LocusWalker<List<String>, String> {
     }
 
     public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        return (BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 && context.getReads().size() != 0);
+        return (BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 && context.getPileup().size() != 0);
     }
 
     public List<String> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
