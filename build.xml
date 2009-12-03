@@ -121,6 +121,15 @@
           </manifest>
         </jar>
 
+        <jar jarfile="${dist.dir}/CGUtilities.jar" whenmanifestonly="skip">
+          <fileset dir="build">
+            <include name="**/*.class" />
+          </fileset>
+          <manifest>
+            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.tools.CGUtilities" />
+          </manifest>
+        </jar>
+
 	   <jar jarfile="${dist.dir}/VCFTool.jar" whenmanifestonly="skip">
           <fileset dir="build">
             <include name="**/*.class"/>
@@ -155,6 +164,12 @@
         </jar>
 
         <jar jarfile="${dist.dir}/AnalyzeCovariates.jar" update="true" whenmanifestonly="skip">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}" />
+            </manifest>
+        </jar>
+
+        <jar jarfile="${dist.dir}/CGUtilities.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
