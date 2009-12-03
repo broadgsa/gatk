@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.gatk.walkers.coverage;
 
 import net.sf.samtools.SAMRecord;
 
