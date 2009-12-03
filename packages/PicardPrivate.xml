@@ -1,29 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package>
   <name>picard-private-parts</name>
-  <dependencies>
-    <class>edu.mit.broad.picard.directed.IntervalList</class>
-    <class>edu.mit.broad.picard.genotype.DiploidGenotype</class>
-    <class>edu.mit.broad.picard.genotype.geli.GeliFileReader</class>
-    <class>edu.mit.broad.picard.genotype.geli.GeliFileWriter</class>
-    <class>edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods</class>
-    <class>edu.mit.broad.picard.util.BasicTextFileParser</class>
-    <class>edu.mit.broad.picard.illumina.parser.IlluminaUtil</class>
-    <class>edu.mit.broad.picard.util.Interval</class>
-    <class>edu.mit.broad.picard.util.IntervalTree</class>
-    <class>edu.mit.broad.picard.util.OverlapDetector</class>
-    <class>edu.mit.broad.picard.util.PasteParser</class>
-    <class>edu.mit.broad.picard.variation.KnownVariantCodecV2</class>
-    <class>edu.mit.broad.picard.variation.KnownVariantCodec</class>
-    <class>edu.mit.broad.picard.variation.KnownVariantFileHeader</class>
-    <class>edu.mit.broad.picard.variation.GenerateDbSnpFile</class>
-    <class>edu.mit.broad.picard.variation.VariantType</class>
-    <class>edu.mit.broad.picard.variation.ObsoleteKnownVariantCodecV1</class>
-    <class>edu.mit.broad.picard.variation.AbstractKnownVariantCodec</class>
-    <class>edu.mit.broad.picard.variation.KnownVariantIterator</class>
-    <class>edu.mit.broad.picard.variation.KnownVariantCodecFactory</class>
-    <class>edu.mit.broad.picard.variation.KnownVariant</class>
-    <class>edu.mit.broad.picard.variation.DbSnpFileReader</class>
-    <class>edu.mit.broad.picard.variation.DbSnpFileGenerator</class>
-  </dependencies>
+  <executable>
+    <name>picard-private-parts</name>
+    <dependencies>
+      <class>edu.mit.broad.picard.directed.IntervalList</class>
+      <class>edu.mit.broad.picard.genotype.DiploidGenotype</class>
+      <class>edu.mit.broad.picard.genotype.geli.GeliFileReader</class>
+      <class>edu.mit.broad.picard.genotype.geli.GeliFileWriter</class>
+      <class>edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods</class>
+      <class>edu.mit.broad.picard.util.BasicTextFileParser</class>
+      <class>edu.mit.broad.picard.illumina.parser.IlluminaUtil</class>
+      <class>edu.mit.broad.picard.util.Interval</class>
+      <class>edu.mit.broad.picard.util.IntervalTree</class>
+      <class>edu.mit.broad.picard.util.OverlapDetector</class>
+      <class>edu.mit.broad.picard.util.PasteParser</class>
+      <class>edu.mit.broad.picard.variation.KnownVariantCodecV2</class>
+      <class>edu.mit.broad.picard.variation.KnownVariantCodec</class>
+      <class>edu.mit.broad.picard.variation.KnownVariantFileHeader</class>
+      <class>edu.mit.broad.picard.variation.GenerateDbSnpFile</class>
+      <class>edu.mit.broad.picard.variation.VariantType</class>
+      <class>edu.mit.broad.picard.variation.ObsoleteKnownVariantCodecV1</class>
+      <class>edu.mit.broad.picard.variation.AbstractKnownVariantCodec</class>
+      <class>edu.mit.broad.picard.variation.KnownVariantIterator</class>
+      <class>edu.mit.broad.picard.variation.KnownVariantCodecFactory</class>
+      <class>edu.mit.broad.picard.variation.KnownVariant</class>
+      <class>edu.mit.broad.picard.variation.DbSnpFileReader</class>
+      <class>edu.mit.broad.picard.variation.DbSnpFileGenerator</class>
+    </dependencies>
+  </executable>
 </package>

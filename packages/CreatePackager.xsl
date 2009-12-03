@@ -20,7 +20,7 @@
 
     <target name="package">
       <!-- Verify that all classes specified are present -->
-      <xsl:for-each select="dependencies/class">
+      <xsl:for-each select="//class">
 	<available property="is.{current()}.present" classpath="{$classpath}" classname="{current()}"/>
 	<fail message="Class {current()} not found" unless="is.{current()}.present" />
       </xsl:for-each>
@@ -28,24 +28,26 @@
       <!-- Create an output directory for the package -->
       <mkdir dir="{$package.dir}"/>
 
-      <!-- Create a jar file containing the specified classes / packages and all their dependencies -->
-      <jar jarfile="{concat($package.dir,$project.name,'.jar')}">
-        <classfileset dir="{$staging.dir}">
-          <root classname="{main-class}"/>
-          <xsl:for-each select="dependencies/package">
-            <rootfileset dir="{$staging.dir}" includes="{concat(translate(current(),'.','/'),'/','*.class')}" />
+      <xsl:for-each select="executable">
+	<!-- Create a jar file containing the specified classes / packages and all their dependencies -->
+	<jar jarfile="{concat($package.dir,name,'.jar')}">
+          <classfileset dir="{$staging.dir}">
+            <root classname="{main-class}"/>
+            <xsl:for-each select="dependencies/package">
+              <rootfileset dir="{$staging.dir}" includes="{concat(translate(current(),'.','/'),'/','*.class')}" />
+            </xsl:for-each>
+            <xsl:for-each select="dependencies/class">
+              <root classname="{current()}" />
+            </xsl:for-each>
+          </classfileset>
+          <xsl:for-each select="dependencies/file">
+            <fileset file="{current()}" />
           </xsl:for-each>
-          <xsl:for-each select="dependencies/class">
-            <root classname="{current()}" />
-          </xsl:for-each>
-        </classfileset>
-        <xsl:for-each select="dependencies/file">
-          <fileset file="{current()}" />
-        </xsl:for-each>
-        <manifest>
-          <attribute name="Main-Class" value="{main-class}"/>
-        </manifest>
-      </jar>
+          <manifest>
+            <attribute name="Main-Class" value="{main-class}"/>
+          </manifest>
+	</jar>
+      </xsl:for-each>
 
       <!-- Include various script files -->
       <xsl:for-each select="scripts/file">

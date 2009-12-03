@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<package>
-  <name>SomaticCoverage</name>
-  <main-class>org.broadinstitute.sting.playground.somaticcoverage.SomaticCoverageTool</main-class>
-  <dependencies>
-    <class>org.broadinstitute.sting.playground.gatk.walkers.SomaticCoverageWalker</class>
-    <file>java/src/org/broadinstitute/sting/playground/somaticcoverage/SomaticCoverage.xml</file>
-  </dependencies>
-</package>
