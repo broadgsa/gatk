@@ -1,20 +1,14 @@
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.gatk.walkers.qc;
 
-import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.StingException;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMFileHeader;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.ArrayList;
-import java.math.BigInteger;
 
 
 /*
