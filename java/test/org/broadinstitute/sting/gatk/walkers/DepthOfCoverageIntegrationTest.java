@@ -13,13 +13,14 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
     private static String root = "-L 1:10,164,500-10,164,520 -R /broad/1KG/reference/human_b36_both.fasta -T DepthOfCoverage -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam";
     static HashMap<String, String> expectations = new HashMap<String, String>();
     static {
-        expectations.put("-minMAPQ 1", "59c6071105a598e19f460640c35768c6");
-        expectations.put("-minMAPQ 100", "e997fb5d61eaec21518722b0de90af20");
-        expectations.put("-minDepth 8", "3e50afef0e751119cd27c324bdfae544");
-        expectations.put("-minDepth 10", "d4c336d9e748347e1082bbc92d2489a3");
-        expectations.put("-bySample", "160ffa185dbfa8b0d2dc57f60f5b1e48");
-        expectations.put("-byRG", "dd3b4d040df7325dad4760ac6fa5252d");
-        expectations.put("-minMAPQ 1 -bySample -byRG", "bd2a07ef548b86e82ac6cce534225612");
+        expectations.put("-minMAPQ 1", "8b73fad5cce4620907d5da2a985219d5");
+        expectations.put("-minMAPQ 100", "1a959892d8ad0523dac2fb097eacb3c2");
+        expectations.put("-minDepth 8", "6e8c6b6d78962d110c87ad905fa5b664");
+        expectations.put("-minDepth 10", "14399e1237866540af3f1aee149030d0");
+        expectations.put("-bySample", "93358437153b4d65bdff747e33de1d63");
+        expectations.put("-byRG", "777e8427eb4bdad300b23800cb7b0592");
+        expectations.put("-histogram", "96f15e1d9d598d48191e20ee84715d46");
+        expectations.put("-minMAPQ 1 -bySample -byRG -minDepth 8 -histogram", "783b0bc83c54d883efa8383a379ff17b");
     }
 
     @Test
@@ -41,7 +42,7 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T DepthOfCoverage -R /broad/1KG/reference/human_b36_both.fasta -I /humgen/gsa-scr1/GATK_Data/Validation_Data/NA12873.454.SRP000031.2009_06.chr1.10_20mb.bam -L 1:10,001,890-10,001,895 -o %s",
                 1, // just one output file
-                Arrays.asList("51203ba5ab928449cd01363af0b91510"));
+                Arrays.asList("a332d1539b29dff615b198818a3d4dd1"));
         executeTest("testDepthOfCoverage454", spec);
     }    
 }

@@ -60,20 +60,37 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
     @Argument(fullName="bySample", shortName="bySample", doc="List read depths for each sample")
     protected boolean bySample = false;
 
+    @Argument(fullName="printHistogram", shortName="histogram", doc="Print a histogram of the coverage")
+    protected boolean printHistogram = false;
+
+
     // keep track of the read group and sample names
     private TreeSet<String> readGroupNames = new TreeSet<String>();
     private TreeSet<String> sampleNames = new TreeSet<String>();
 
+    // keep track of the histogram data
+    private ExpandingArrayList<Integer> coverageHist = null;
+    private int maxDepth = 0;
+    private int totalLoci = 0;
+
+    // we want to see reads with deletions
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     public void initialize() {
 
+        // initialize histogram array
+        if ( printHistogram ) {
+            coverageHist = new ExpandingArrayList<Integer>();
+        }
+
+        // initialize read group names from BAM header
         if ( byReadGroup ) {
             List<SAMReadGroupRecord> readGroups = this.getToolkit().getSAMFileHeader().getReadGroups();
             for ( SAMReadGroupRecord record : readGroups )
                 readGroupNames.add(record.getReadGroupId());
         }
 
+        // initialize sample names from BAM header
         if ( bySample ) {
             List<SAMReadGroupRecord> readGroups = this.getToolkit().getSAMFileHeader().getReadGroups();
             for ( SAMReadGroupRecord record : readGroups ) {
@@ -83,6 +100,8 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
             }
         }
 
+        // build and print the per-locus header
+        out.println("\nPER_LOCUS_COVERAGE_SECTION");
         StringBuilder header = new StringBuilder("location\ttotal_coverage\tcoverage_without_deletions");
         if ( excludeMAPQBelowThis > 0 ) {
             header.append("\tcoverage_atleast_MQ");
@@ -104,6 +123,8 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
     }
 
     public DoCInfo map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+
+        // fill in and print all of the per-locus coverage data, then return it to reduce
 
         ReadBackedPileup pileup = context.getPileup();
 
@@ -141,6 +162,10 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
         if ( excludeMAPQBelowThis > 0 )
             info.numBadMQReads = nBadMAPQReads;
 
+        // if we need to print the histogram, fill in the data
+        if ( printHistogram )
+            incCov(info.totalCoverage);
+
         printDoCInfo(context.getLocation(), info, false);
 
         return info;
@@ -153,6 +178,9 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
     public DoCInfo reduceInit() { return new DoCInfo(); }
 
     public DoCInfo reduce(DoCInfo value, DoCInfo sum) {
+
+        // combine all of the per-locus data for a given interval
+
         sum.totalCoverage += value.totalCoverage;
         sum.numDeletions += value.numDeletions;
         sum.numBadMQReads += value.numBadMQReads;
@@ -178,7 +206,10 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
     @Override
     public void onTraversalDone(List<Pair<GenomeLoc, DoCInfo>> results) {
 
-        StringBuilder header = new StringBuilder("\nlocation\ttotal_coverage\taverage_coverage\tcoverage_without_deletions\taverage_coverage_without_deletions");
+        // build and print the per-interval header
+        out.println("\n\nPER_INTERVAL_COVERAGE_SECTION");
+
+        StringBuilder header = new StringBuilder("location\ttotal_coverage\taverage_coverage\tcoverage_without_deletions\taverage_coverage_without_deletions");
         if ( excludeMAPQBelowThis > 0 ) {
             header.append("\tcoverage_atleast_MQ");
             header.append(excludeMAPQBelowThis);
@@ -203,8 +234,77 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
         }
         out.println(header.toString());
 
+        // print all of the individual per-interval coverage data
         for ( Pair<GenomeLoc, DoCInfo> result : results )
             printDoCInfo(result.first, result.second, true);
+
+        // if we need to print the histogram, do so now
+        if ( printHistogram )
+            printHisto();
+    }
+
+    private void incCov(int depth) {
+        int c = coverageHist.expandingGet(depth, 0);
+        coverageHist.set(depth, c + 1);
+        if ( depth > maxDepth )
+            maxDepth = depth;
+        totalLoci++;
+    }
+
+    private int getCov(int depth) {
+        return coverageHist.get(depth);
+    }
+
+    private void printHisto() {
+
+        // sanity check
+        if ( totalLoci == 0 )
+            return;
+
+        // Code for calculting std devs adapted from Michael Melgar's python script
+
+        // Find the maximum extent of 'good' data
+        // First, find the mode
+        long maxValue = getCov(1); // ignore doc=0
+        int mode = 1;
+        for (int i = 2; i <= maxDepth; i++) {
+            if ( getCov(i) > maxValue ) {
+                maxValue = getCov(i);
+                mode = i;
+            }
+        }
+
+        // now, procede to find end of good Gaussian fit
+        long dist = (long)Math.pow(10, 9);
+        while ( Math.abs(getCov(mode) - getCov(1)) < dist && mode < maxDepth )
+            dist = Math.abs(getCov(mode++) - getCov(1));
+        int maxGoodDepth = Math.min(mode + 1, maxDepth);
+
+        // calculate the mean of the good region
+        long totalGoodSites = 0, totalGoodDepth = 0;
+        for (int i = 1; i <= maxGoodDepth; i++) { // ignore doc=0
+            totalGoodSites += getCov(i);
+            totalGoodDepth += i * getCov(i);
+        }
+        double meanGoodDepth = (double)totalGoodDepth / (double)totalGoodSites;
+
+        // calculate the variance and standard deviation of the good region
+        double var = 0.0;
+        for (int i = 1; i <= maxGoodDepth; i++) {  // ignore doc=0
+            var += getCov(i) * Math.pow(meanGoodDepth - (double)i, 2);
+        }
+        double stdev = Math.sqrt(var / (double)totalGoodSites);
+
+        // print
+        out.println("\n\nHISTOGRAM_SECTION");
+        out.printf("# sites within Gaussian fit  : mean:%f num_sites:%d std_dev:%f%n", meanGoodDepth, totalGoodSites, stdev);
+
+        for (int i = 1; i <= 5; i++)
+            out.printf("# Gaussian mean + %d Std Dev  : %f%n", i, (meanGoodDepth + i*stdev));
+
+		out.println("\ndepth count freq(percent)");
+		for (int i = 0; i <= maxDepth; i++)
+			out.printf("%d %d %f\n", i, getCov(i), (100.0*getCov(i)) / (double)totalLoci);
     }
 
     private void printDoCInfo(GenomeLoc loc, DoCInfo info, boolean printAverageCoverage) {
