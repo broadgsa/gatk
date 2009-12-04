@@ -112,7 +112,7 @@ for line in raw_calls_file.readlines():
 
     # window has been updated
 
-    if ( not this_line ):
+    if ( not two_lines_ago ):
         continue # window not filled yet
     else:
         if ( float(this_line[lod_score_index]) > 0 and this_line[call_index] != "D" and this_line[call_index] != "I"):
@@ -132,15 +132,18 @@ for line in raw_calls_file.readlines():
                 syz_sb = "-1"
             else:
                 syz_sb = this_line[fish_pval_index]
-                # syzy neighborhood mismatch rate
-                next_mmr = getProportionNonref(next_line)
-                after_next_mmr = getProportionNonref(line_after_next)
-                prev_mmr = getProportionNonref(previous_line)
-                before_last_mmr = getProportionNonref(two_lines_ago)
-                syzy_nmmr = str(next_mmr+after_next_mmr+prev_mmr+before_last_mmr)
-                # turn these into key value pairs
-                INFO = [["syzy_DP",syz_depth],[";syzy_SB",syz_sb],[";syzy_NMMR",syzy_nmmr]] # semicolons are a complete hack
-                # get the vcf line
-                vcfLine = generateVCFLine(chrom, pos, dbsnp, ref, alt, filter, lod, INFO)
-                # print the sucker
-                output_vcf_file.write(vcfLine+"\n")
+
+            # do we want any other kind of annotations here ??
+
+            # syzy neighborhood mismatch rate
+            next_mmr = getProportionNonref(next_line) # from later in genome
+            after_next_mmr = getProportionNonref(line_after_next) # from same
+            prev_mmr = getProportionNonref(previous_line) # from earlier
+            before_last_mmr = getProportionNonref(two_lines_ago) # same
+            syzy_nmmr = str(next_mmr+after_next_mmr+prev_mmr+before_last_mmr)
+            # turn these into key value pairs
+            INFO = [["syzy_DP",syz_depth],[";syzy_SB",syz_sb],[";syzy_NMMR",syzy_nmmr]] # semicolons are a complete hack
+            # get the vcf line
+            vcfLine = generateVCFLine(chrom, pos, dbsnp, ref, alt, filter, lod, INFO)
+            # print the sucker
+            output_vcf_file.write(vcfLine+"\n")
