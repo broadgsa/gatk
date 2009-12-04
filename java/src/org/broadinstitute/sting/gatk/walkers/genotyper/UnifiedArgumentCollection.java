@@ -60,6 +60,9 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "noSLOD", shortName = "nsl", doc = "If provided, we will not calculate the SLOD", required = false)
     public boolean NO_SLOD = false;
 
+    @Argument(fullName = "include_experimental_annotations", shortName = "exp", doc = "Annotate calls with all annotations, including experimental ones", required = false)
+    public boolean ALL_ANNOTATIONS = false;
+
 
     // control the error modes
     @Argument(fullName = "assume_single_sample_reads", shortName = "single_sample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)

@@ -176,12 +176,21 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         return 1;
     }
 
+    // option #1: don't specify annotations to be used: standard annotations are used by default
     public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation, List<Genotype> genotypes) {
         if ( standardAnnotations == null )
             determineAllAnnotations();
         return getAnnotations(ref, context, variation, genotypes, standardAnnotations.values());
     }
 
+    // option #2: specify that all possible annotations be used
+    public static Map<String, String> getAllAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation, List<Genotype> genotypes) {
+        if ( allAnnotations == null )
+            determineAllAnnotations();
+        return getAnnotations(ref, context, variation, genotypes, allAnnotations.values());
+    }
+
+    // option #3: specify the exact annotations to be used
     public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation, List<Genotype> genotypes, Collection<VariantAnnotation> annotations) {
 
         // set up the pileup for the full collection of reads at this position
