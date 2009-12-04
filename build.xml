@@ -2,7 +2,9 @@
     <description>Compile and distribute the Sting toolkit</description>
 
     <property name="source.dir" value="java/src" />
+    <property name="build.dir" value="build" />
     <property name="dist.dir" value="dist" />
+    <property name="help.file" value="${build.dir}/help.properties" />
 
     <property name="single" value="*Test" />
     <property name="singleintegration" value="*IntegrationTest" />
@@ -23,6 +25,25 @@
     <!-- Set target based on STING_BUILD_TYPE environment variable -->
     <property environment="env"/>
     <property name="target" value="${env.STING_BUILD_TYPE}" />
+
+    <dirset id="source.files" dir="${source.dir}">
+      <patternset>
+	<include name="org/broadinstitute/sting/**"/>
+	<exclude name="**/playground/**" unless="include.playground" />
+	<exclude name="**/oneoffprojects/**" unless="include.oneoffs" />
+      </patternset>
+    </dirset>
+    
+    <patternset id="dependency.mask" includes="*.jar">
+      <exclude name="junit*.jar" />
+      <exclude name="bcel*.jar" />
+    </patternset>
+    
+    <path id="runtime.dependencies">
+      <fileset dir="lib">
+        <patternset refid="dependency.mask" />
+      </fileset>
+    </path>
 
     <!-- ivy properties -->
     <property name="ivy.install.version" value="2.0.0"/>
@@ -60,17 +81,6 @@
         </or>
       </condition>
       
-      <patternset id="dependency.mask" includes="*.jar">
-        <exclude name="junit*.jar" />
-        <exclude name="bcel*.jar" />
-      </patternset>
-      
-      <path id="runtime.dependencies">
-        <fileset dir="lib">
-          <patternset refid="dependency.mask" />
-        </fileset>
-      </path>
-      
       <!-- Create the build directory structure used by compile -->
       <mkdir dir="build"/>
     </target>
@@ -84,7 +94,17 @@
       </javac>
     </target>
 
-    <target name="dist" depends="compile"
+    <target name="extracthelp" depends="compile" 
+	    description="Extract help key/value pair file from the JavaDoc tags.">
+      <javadoc doclet="org.broadinstitute.sting.utils.doc.HelpExtractorDoclet"
+	       docletpath="build"
+	       classpathref="runtime.dependencies"
+	       additionalparam="-out ${help.file}">
+	<packageset refid="source.files"/>
+      </javadoc>
+    </target>
+
+    <target name="dist" depends="compile,extracthelp"
             description="generate the distribution">
         <mkdir dir="${dist.dir}"/>
         <delete>
@@ -101,6 +121,7 @@
 
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar">
             <fileset dir="build">
+	      <include name="help.properties" />
               <include name="**/gatk/**/*.class" />
               <include name="**/alignment/**/*.class"/>
               <include name="**/oneoffprojects/**/*.class" />
@@ -251,8 +272,8 @@
     
 
     <!-- where to put reports and tests-->
-    <property name="report" value="build/report"/>
-    <property name="test.classes" value="build/testclasses"/>
+    <property name="report" value="${build.dir}/report"/>
+    <property name="test.classes" value="${build.dir}/testclasses"/>
     <property name="test.output" value="${dist.dir}/test"/>
     <property name="test.sources" value="java/test"/>
 
@@ -261,7 +282,7 @@
         <mkdir dir="${report}"/>
         <echo message="Sting: Running test cases!"/>
         <junit printsummary="yes" showoutput="yes" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
-            <jvmarg value="-javaagent:build/TestAgent.jar"/>
+            <jvmarg value="-javaagent:${build.dir}/TestAgent.jar"/>
             <formatter type="${testOutput}" usefile="${usefile}" />
             <classpath>
                 <path refid="runtime.dependencies"/>
@@ -306,7 +327,7 @@
     <!-- this builds the instrumentation library we're going to use for test cases -->
     <target name="agent" description="build the agent">
         <echo message="Sting: Creating test agent!"/>
-        <jar jarfile="build/TestAgent.jar">
+        <jar jarfile="${build.dir}/TestAgent.jar">
             <fileset dir="build">
             <include name="**/TrivialInstrumenter.class" />
           </fileset>
@@ -322,13 +343,7 @@
       <mkdir dir="javadoc"/>
       <javadoc destdir="javadoc"
                classpathref="runtime.dependencies">
-        <fileset dir="${source.dir}">
-          <patternset>
-            <include name="**/*.java"/>
-            <exclude name="**/playground/**" unless="include.playground"/>
-            <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
-         </patternset>
-        </fileset>
+        <packageset refid="source.files"/>
       </javadoc>
     </target>
 
