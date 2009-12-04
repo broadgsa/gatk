@@ -1,78 +1,72 @@
 package org.broadinstitute.sting.utils;
 
+import cern.jet.random.Normal;
+
 import java.util.*;
 
 public class WilcoxonRankSum {
 
-    private LinkedList<Pair<Double, WILCOXON_SET>> observations = new LinkedList<Pair<Double, WILCOXON_SET>>();
+    // *****************************************************************************************//
+    // The following 4 variables were copied from Tim Fennell's RankSumTest.java code in Picard //
+    // *****************************************************************************************//
+
+    // Constructs a normal distribution; actual values of mean and SD don't matter since it's
+    // just used to convert a z-score into a cumulative probability
+    private static final double NORMAL_MEAN = 100;
+    private static final double NORMAL_SD   = 15;
+    private static final Normal NORMAL = new Normal(NORMAL_MEAN, NORMAL_SD, null);
+
+    // The minimum length for both data series (individually) in order to use a normal distribution
+    // to calculate the Z-score and the p-value. If either series is shorter than this value then
+    // we don't attempt to assign a p-value
+    private static final int minimumNormalN = 10;
+
+    // *****************************************************************************************//
 
     public enum WILCOXON_SET { SET1, SET2 }
 
+    // random number generator for dithering
+    private static final long RANDOM_SEED = 1252863494;
+    private Random generator = new Random(RANDOM_SEED);
+
+    // storage for observations
+    private LinkedList<Pair<Double, WILCOXON_SET>> observations = new LinkedList<Pair<Double, WILCOXON_SET>>();
+
+
     public WilcoxonRankSum() {}
 
+    // add an observation for a given set
     public void addObservation(Double observation, WILCOXON_SET set) {
         observations.add(new Pair<Double, WILCOXON_SET>(observation, set));
     }
 
+    // calculate normal approximation of the p-value
+    // returns -1 when unable to calculate it (too few data points)
     public double getTwoTailedPValue() {
         if ( observations.size() == 0 )
-            return 0.0;
+            return -1.0;
 
-////////
-// Remove me
-////////
-        observations.clear();
-
-        for (int i=0; i < 50; i++)
-            addObservation(1.0, WILCOXON_SET.SET2);
-        for (int i=0; i < 50; i++)
-            addObservation(3.0, WILCOXON_SET.SET1);
-
-        observations.clear();
-
-        observations.add(new Pair<Double, WILCOXON_SET>(1.0, WILCOXON_SET.SET2));
-        observations.add(new Pair<Double, WILCOXON_SET>(1.0, WILCOXON_SET.SET2));
-        observations.add(new Pair<Double, WILCOXON_SET>(1.0, WILCOXON_SET.SET2));
-        observations.add(new Pair<Double, WILCOXON_SET>(1.0, WILCOXON_SET.SET2));
-
-        observations.add(new Pair<Double, WILCOXON_SET>(8.0, WILCOXON_SET.SET1));
-        observations.add(new Pair<Double, WILCOXON_SET>(8.0, WILCOXON_SET.SET1));
-        observations.add(new Pair<Double, WILCOXON_SET>(8.0, WILCOXON_SET.SET1));
-        observations.add(new Pair<Double, WILCOXON_SET>(8.0, WILCOXON_SET.SET1));
-
-        observations.clear();
-
-        observations.add(new Pair<Double, WILCOXON_SET>(2.0, WILCOXON_SET.SET1));
-        observations.add(new Pair<Double, WILCOXON_SET>(4.0, WILCOXON_SET.SET1));
-        observations.add(new Pair<Double, WILCOXON_SET>(6.0, WILCOXON_SET.SET1));
-        observations.add(new Pair<Double, WILCOXON_SET>(8.0, WILCOXON_SET.SET1));
-
-        observations.add(new Pair<Double, WILCOXON_SET>(1.0, WILCOXON_SET.SET2));
-        observations.add(new Pair<Double, WILCOXON_SET>(2.0, WILCOXON_SET.SET2));
-        observations.add(new Pair<Double, WILCOXON_SET>(3.0, WILCOXON_SET.SET2));
-        observations.add(new Pair<Double, WILCOXON_SET>(4.0, WILCOXON_SET.SET2));
-////////
-
+        // dither to break rank ties
+        dither();
 
         // sort
         Collections.sort(observations, new PairComparator());
 
-        // rank
-        double[] ranks = calculateRanks(observations);
-        // for (int i = 0; i < ranks.length; i++)
-        //     System.out.println(observations.get(i).first + " -> " + ranks[i]);
-
         // sum
         double sum = 0.0;
         int n1 = 0;
-        for (int i = 0; i < ranks.length; i++) {
+        for (int i = 0; i < observations.size(); i++) {
             if ( observations.get(i).second == WILCOXON_SET.SET1 ) {
-                sum += ranks[i];
+                sum += i+1;
                 n1++;
             }
         }
-        int n2 = ranks.length - n1;
+        int n2 = observations.size() - n1;
 
+        // if we don't have enough data points, quit
+        if ( n1 < minimumNormalN || n2 < minimumNormalN )
+            return -1.0;
+                
         // we want the smaller of U1 and U2
         double U1 = sum - (n1 * (n1 + 1.0) / 2.0);
         double U2 = (n1 * n2) - U1;                                                                
@@ -83,59 +77,33 @@ public class WilcoxonRankSum {
         double stdevU = Math.sqrt(n1 * n2 * (n1 + n2 + 1.0) / 12.0);
         double z = (U - MuU) / stdevU;
 
+        // compute p-value.  Taken from Tim Fennell's RankSumTest.java code in Picard
+        double pvalue = 2.0 * NORMAL.cdf(NORMAL_MEAN + z * NORMAL_SD);
+
+        // for (int i = 0; i < observations.size(); i++)
+        //      System.out.println(observations.get(i).first + " -> set" + (observations.get(i).second == WILCOXON_SET.SET1 ? 1 : 2));
         // System.out.println("U1=" + U1);
         // System.out.println("U2=" + U2);
         // System.out.println("U=" + U);
-        // System.out.println("z=" + z);
-
-        // compute p-value
-        // double pvalue = ndtr(z);  // normal distribution function
-        double pvalue = 0.0;
+        // System.out.println("Zscore=" + z);
+        // System.out.println("Pvalue=" + pvalue);
 
         return pvalue;
     }
 
-    private static double[] calculateRanks(List<Pair<Double, WILCOXON_SET>> observations) {
-        int length = observations.size();
-        double[] ranks = new double[length];
+    private void dither() {
+        for ( Pair<Double, WILCOXON_SET> observation : observations ) {
+            // generate a random number between 0 and 10,000
+            int rand = generator.nextInt(10000);
 
-        int currentIndex = 1;
-        Double currentValue = observations.get(0).first;
-        int startIndex = 0;
-        int endIndex = 0;
+            // convert it into a small floating point number by dividing by 1,000,000
+            double smallFloat = (double)rand / 1000000;
 
-        while ( currentIndex < length ) {
-            // if two observations have the same value, they'll need to be ranked together
-            if ( observations.get(currentIndex).first.equals(currentValue) ) {
-                endIndex++;
-            } else {
-                setRanks(ranks, startIndex, endIndex);
-
-                // increment the holders
-                startIndex = endIndex = currentIndex;
-                currentValue = observations.get(currentIndex).first;
-            }
-            currentIndex++;
+            // add it to the observation
+            observation.first += smallFloat;
         }
-        if ( startIndex < length )
-            setRanks(ranks, startIndex, endIndex);
-
-        return ranks;
     }
-
-    private static void setRanks(double[] ranks, int startIndex, int endIndex) {
-
-        // the rank is the average rank of all equal observations
-        double rankValue = 0.0;
-        for (int i = startIndex; i <= endIndex; i++)
-            rankValue += (i+1);
-        rankValue /= (endIndex - startIndex + 1);
-
-        // set the value
-        for (int i = startIndex; i <= endIndex; i++)
-            ranks[i] = rankValue;
-    }
-
+    
     private class PairComparator implements Comparator<Pair<Double, WILCOXON_SET>>{
         public int compare(Pair<Double, WILCOXON_SET> p1, Pair<Double, WILCOXON_SET> p2) {
             return (p1.first < p2.first ? -1 : (p1.first == p2.first ? 0 : 1));

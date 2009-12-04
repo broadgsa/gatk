@@ -12,6 +12,8 @@ import java.util.ArrayList;
 
 public class RankSumTest implements VariantAnnotation {
 
+    private static final double minPValue = 1e-10;
+
     public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
 
         if ( genotypes.size() == 0 )
@@ -37,8 +39,12 @@ public class RankSumTest implements VariantAnnotation {
             wilcoxon.addObservation((double)qual, WilcoxonRankSum.WILCOXON_SET.SET2);
 
         double pvalue = wilcoxon.getTwoTailedPValue();
-        if ( MathUtils.compareDoubles(pvalue, 0.0) == 0 )
+        if ( MathUtils.compareDoubles(pvalue, -1.0) == 0 )
             return null;
+
+        // deal with precision issues
+        if ( pvalue < minPValue )
+            pvalue = minPValue;
 
         return String.format("%.1f", QualityUtils.phredScaleErrorRate(pvalue));
     }
