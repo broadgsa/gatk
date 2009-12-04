@@ -55,15 +55,15 @@ hst=subset(data.frame(e$Covariate, e$nBases), e.nBases != 0)
 hst2=subset(data.frame(f$Covariate, f$nBases), f.nBases != 0)
 if( is.numeric(c$Covariate) ) {
     if( length(hst$e.Covariate) == 0 ) {
-        plot(hst2$f.Covariate, hst2$f.nBases, type="h", lwd=2, col="cornflowerblue", main=paste(covariateName,"histogram"), xlab=covariateName, ylab="Count",yaxt="n",xlim=c(min(c$Covariate),max(c$Covariate)))
+        plot(hst2$f.Covariate, hst2$f.nBases, type="h", lwd=2, col="cornflowerblue", main=paste(covariateName,"histogram"), ylim=c(0, max(hst2$f.nBases)), xlab=covariateName, ylab="Count",yaxt="n",xlim=c(min(c$Covariate),max(c$Covariate)))
     } else {
-	    plot(hst$e.Covariate, hst$e.nBases, type="h", lwd=2, main=paste(covariateName,"histogram"), xlab=covariateName, ylab="Count",yaxt="n",xlim=c(min(c$Covariate),max(c$Covariate)))
+	    plot(hst$e.Covariate, hst$e.nBases, type="h", lwd=2, main=paste(covariateName,"histogram"), xlab=covariateName, ylim=c(0, max(hst$e.nBases)),ylab="Number of Bases",yaxt="n",xlim=c(min(c$Covariate),max(c$Covariate)))
 	    points(hst2$f.Covariate, hst2$f.nBases, type="h", lwd=2, col="cornflowerblue")
 	}
 	axis(2,axTicks(2), format(axTicks(2), scientific=F))
 } else { # Dinuc (and other non-numeric covariates) are different to make their plots look nice
 	hst=subset(data.frame(c$Covariate, c$nBases), c.nBases != 0)
-	plot(1:length(hst$c.Covariate), hst$c.nBases, type="h", lwd=7, main=paste(covariateName,"histogram"), xlab=covariateName, ylab="Count",yaxt="n",xaxt="n")
+	plot(1:length(hst$c.Covariate), hst$c.nBases, type="h", lwd=7, main=paste(covariateName,"histogram"), ylim=c(0, max(hst$c.nBases)),xlab=covariateName, ylab="Number of Bases",yaxt="n",xaxt="n")
 	axis(1, at=seq(1,length(hst$c.Covariate),2), labels = hst$c.Covariate[seq(1,length(hst$c.Covariate),2)])
 	axis(2,axTicks(2), format(axTicks(2), scientific=F))
 }
