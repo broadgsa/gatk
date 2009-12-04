@@ -18,8 +18,8 @@ c <- c[sort.list(c[,1]),]
 
 d.good <- c[c$nBases >= 1000,]
 d.1000 <- c[c$nBases < 1000,]
-rmseGood = sqrt(sum((d.good$Qempirical-d.good$Qreported)^2 * d.good$nBases) / sum(d.good$nBases) )
-rmseAll = sqrt(sum((c$Qempirical-c$Qreported)^2 * c$nBases) / sum(c$nBases) )
+rmseGood = sqrt( sum(as.numeric((d.good$Qempirical-d.good$Qreported)^2 * d.good$nBases)) / sum(as.numeric(d.good$nBases)) ) # prevent integer overflow with as.numeric, ugh
+rmseAll = sqrt( sum(as.numeric((c$Qempirical-c$Qreported)^2 * c$nBases)) / sum(as.numeric(c$nBases)) )
 theTitle = paste("RMSE_good = ", round(rmseGood,digits=3), ", RMSE_all = ", round(rmseAll,digits=3))
 if( length(d.good$nBases) == length(c$nBases) ) {
 	theTitle = paste("RMSE = ", round(rmseAll,digits=3))

@@ -18,8 +18,8 @@ d.1000 <- t[t$nBases < 1000  & t$Qreported >= Qcutoff,]
 d.10000 <- t[t$nBases < 10000 & t$nBases >= 1000  & t$Qreported >= Qcutoff,]
 f <- t[t$Qreported < Qcutoff,]
 e <- rbind(d.good, d.1000, d.10000)
-rmseGood = sqrt(sum((d.good$Qempirical-d.good$Qreported)^2 * d.good$nBases) / sum(d.good$nBases) )
-rmseAll = sqrt(sum((e$Qempirical-e$Qreported)^2 * e$nBases) / sum(e$nBases) )
+rmseGood = sqrt( sum(as.numeric((d.good$Qempirical-d.good$Qreported)^2 * d.good$nBases)) / sum(as.numeric(d.good$nBases)) ) # prevent integer overflow with as.numeric, ugh
+rmseAll = sqrt( sum(as.numeric((e$Qempirical-e$Qreported)^2 * e$nBases)) / sum(as.numeric(e$nBases)) )
 theTitle = paste("RMSE_good = ", round(rmseGood,digits=3), ", RMSE_all = ", round(rmseAll,digits=3))
 if( length(t$nBases) - length(f$nBases) == length(d.good$nBases) ) {
 	theTitle = paste("RMSE = ", round(rmseAll,digits=3));
