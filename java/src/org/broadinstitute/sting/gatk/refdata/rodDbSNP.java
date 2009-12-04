@@ -2,12 +2,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import net.sf.samtools.util.SequenceUtil;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.genotype.BasicGenotype;
-import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -22,7 +17,7 @@ import java.util.List;
  * Time: 10:47:14 AM
  * To change this template use File | Settings | File Templates.
  */
-public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod, VariantBackedByGenotype {
+public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod {
     public GenomeLoc loc;       // genome location of SNP
     // Reference sequence chromosome or scaffold
     // Start and stop positions in chrom
@@ -50,6 +45,10 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
 
     public int weight;          // The quality of the alignment
 
+    // cache the allele list so it doesn't need to get recomputed each time
+    private List<String> alleleList = null;
+
+
     // ----------------------------------------------------------------------
     //
     // Constructors
@@ -73,7 +72,6 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      *
      * @return the reference base or bases, as a string
      */
-    @Override
     public String getReference() {
         return refBases;
     }
@@ -83,7 +81,6 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      *
      * @return the log based error estimate
      */
-    @Override
     public double getNegLog10PError() {
         return 4; // -log10(0.0001)
     }
@@ -111,14 +108,17 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      * @return an alternate allele list
      */
     public List<String> getAlleleList() {
-        List<String> ret; //ref first!!!!!
-        if (onFwdStrand())
-            ret = Arrays.asList(observed.split("/"));
-        else
-            ret = Arrays.asList(SequenceUtil.reverseComplement(observed).split("/"));
-        if (ret.size() > 0 && ret.contains(getReference()) && !ret.get(0).equals(this.getReference()))
-            Collections.swap(ret,ret.indexOf(getReference()),0);
-        return ret;
+        if ( alleleList == null ) {
+            // add ref first
+            if ( onFwdStrand() )
+                alleleList = Arrays.asList(observed.split("/"));
+            else
+                alleleList = Arrays.asList(SequenceUtil.reverseComplement(observed).split("/"));
+            if ( alleleList.size() > 0 && alleleList.contains(getReference()) && !alleleList.get(0).equals(this.getReference()) )
+                Collections.swap(alleleList, alleleList.indexOf(getReference()), 0);
+        }
+
+        return alleleList;
     }
 
     public boolean onFwdStrand() {
@@ -130,13 +130,11 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      *
      * @return VariantFrequency with the stored frequency
      */
-    @Override
     public double getNonRefAlleleFrequency() {
         return 0;  // dbSNP doesn't know the allele frequency
     }
 
     /** @return the VARIANT_TYPE of the current variant */
-    @Override
     public VARIANT_TYPE getType() {
         return VARIANT_TYPE.SNP;
     }// ----------------------------------------------------------------------
@@ -167,7 +165,6 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      *
      * @return a char, representing the alternate base
      */
-    @Override
     public char getAlternativeBaseForSNP() {
         if (!isSNP())  throw new StingException("We're not a SNP; called in DbSNP rod at position " + this.loc);
         if (!isBiallelic()) throw new StingException("We're not biallelic; at position " + this.loc);
@@ -182,7 +179,6 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
      *
      * @return a char, representing the alternate base
      */
-    @Override
     public char getReferenceForSNP() {
         if (!isSNP())  throw new StingException("We're not a SNP; called in DbSNP rod at position " + this.loc);
         if (refBases.length() != 1) throw new StingException("The reference base in DbSNP must be zero, at position " + this.loc + " was " + refBases);
@@ -280,47 +276,7 @@ public class rodDbSNP extends BasicReferenceOrderedDatum implements VariationRod
     }
 
     public boolean isBiallelic() {
-        // TODO Auto-generated method stub
-        return observed.indexOf('/') == observed.lastIndexOf('/');
-    }
-
-    /**
-     * get the genotype
-     *
-     * @return a map in lexigraphical order of the genotypes
-     */
-    @Override
-    public org.broadinstitute.sting.utils.genotype.Genotype getCalledGenotype() {
-        return new BasicGenotype(getLocation(),
-                                 BasicGenotype.alleleListToString(getAlleleList()),
-                                 Utils.stringToChar(getReference()),
-                                 getNegLog10PError());
-    }
-
-    /**
-     * get the likelihoods
-     *
-     * @return an array in lexigraphical order of the likelihoods
-     */
-    @Override
-    public List<org.broadinstitute.sting.utils.genotype.Genotype> getGenotypes() {
-        ArrayList<Genotype> list = new ArrayList<Genotype>();
-        list.add(getCalledGenotype());
-        return list;
-    }
-
-
-    /**
-     * do we have the specified genotype?  not all backedByGenotypes
-     * have all the genotype data.
-     *
-     * @param x the genotype
-     *
-     * @return true if available, false otherwise
-     */
-    @Override
-    public boolean hasGenotype(DiploidGenotype x) {
-        return (!x.toString().equals(BasicGenotype.alleleListToString(getAlleleList()))) ? false : true;
+        return getAlleleList().size() == 2;
     }
 
     public static rodDbSNP getFirstRealSNP(RODRecordList<ReferenceOrderedDatum> dbsnpList) {
