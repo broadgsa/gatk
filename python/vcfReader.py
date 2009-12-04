@@ -1,6 +1,7 @@
 import itertools
 
 VCF_KEYS = "CHROM  POS     ID        REF   ALT    QUAL  FILTER  INFO".split()
+VCF_KEYS_FORMAT = "CHROM  POS     ID        REF   ALT    QUAL  FILTER".split()
 
 TRANSITIONS = dict()
 for p in ["AG", "CT"]:
@@ -82,7 +83,7 @@ class VCFRecord:
             self.bindings[field] = value
         else: 
             self.info[field] = value
-            self.setField("INFO", self.getInfo())
+            #self.setField("INFO", self.getInfo())
         #print 'getInfo', self.getInfo()
     
     def getField(self, field, default = None):
@@ -100,7 +101,9 @@ class VCFRecord:
                 return str(x)
             else:
                 return str(x) + '=' + str(y)
-        return ';'.join(map(lambda x: info2str(*x), self.info.iteritems()))
+        v = ';'.join(map(lambda x: info2str(*x), sorted(self.info.iteritems(), key=lambda x: x[0])))
+        #print 'V = ', v
+        return v
 
     def getInfoDict(self): return self.info
     
@@ -119,7 +122,7 @@ class VCFRecord:
         return ' '.join(['%s=%s' % (x,y) for x,y in self.bindings.iteritems()])
         
     def format(self):
-        return '\t'.join([str(self.getField(key)) for key in VCF_KEYS] + self.rest)
+        return '\t'.join([str(self.getField(key)) for key in VCF_KEYS_FORMAT] + [self.getInfo()] + self.rest)
 
 def parseInfo(s):
     d = dict()
@@ -191,7 +194,6 @@ def lines2VCF(lines, extendedOutput = False, decodeAll = True, header=None, colu
                 else:
                     yield vcf
     raise StopIteration()
-
 
 def formatVCF(header, records):
     #print records

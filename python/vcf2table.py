@@ -23,7 +23,6 @@ if __name__ == "__main__":
     counter = OPTIONS.skip
 
     fields = OPTIONS.fields.split(',')
-    print sys.stdin
     for header, vcf, count in lines2VCF(sys.stdin, extendedOutput = True):
         #print vcf, count
         if count == 1 and vcf.hasHeader():
