@@ -15,13 +15,13 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
     static {
         expectations.put("-minMAPQ 1", "8b73fad5cce4620907d5da2a985219d5");
         expectations.put("-minMAPQ 100", "1a959892d8ad0523dac2fb097eacb3c2");
-        expectations.put("-minDepth 8", "6e8c6b6d78962d110c87ad905fa5b664");
-        expectations.put("-minDepth 10", "14399e1237866540af3f1aee149030d0");
+        expectations.put("-minDepth 8", "6d549e5a5c4c55420d68e0221a955a0e");
+        expectations.put("-minDepth 10", "a367c894e6a48ebb107d2fe004cdfee7");
         expectations.put("-bySample", "93358437153b4d65bdff747e33de1d63");
         expectations.put("-byRG", "777e8427eb4bdad300b23800cb7b0592");
         expectations.put("-histogram", "96f15e1d9d598d48191e20ee84715d46");
         expectations.put("-bases", "baafcb2b90098cad1c5950da9e9932a6");
-        expectations.put("-minMAPQ 1 -bySample -byRG -minDepth 8 -histogram -bases", "eb27297504e003ce7bb42300dfd436fe");
+        expectations.put("-minMAPQ 1 -bySample -byRG -minDepth 8 -histogram -bases", "bf2094b33e0e10fc11a7216bc1097a8b");
     }
 
     @Test

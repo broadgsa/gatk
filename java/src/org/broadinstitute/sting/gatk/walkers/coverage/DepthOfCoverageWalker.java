@@ -98,27 +98,7 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
 
         // build and print the per-locus header
         out.println("\nPER_LOCUS_COVERAGE_SECTION");
-        StringBuilder header = new StringBuilder("location\ttotal_coverage\tcoverage_without_deletions");
-        if ( excludeMAPQBelowThis > 0 ) {
-            header.append("\tcoverage_atleast_MQ");
-            header.append(excludeMAPQBelowThis);
-        }
-        if ( printBaseCounts ) {
-            header.append("\tA_count\tC_count\tG_count\tT_count");
-        }
-        if ( byReadGroup ) {
-            for ( String rg : readGroupNames ) {
-                header.append("\tcoverage_for_");
-                header.append(rg);
-            }
-        }
-        if ( bySample ) {
-            for ( String sample : sampleNames ) {
-                header.append("\tcoverage_for_");
-                header.append(sample);
-            }
-        }
-        out.println(header.toString());
+        printHeaderLine(false);
     }
 
     public DoCInfo map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -217,17 +197,36 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
 
         // build and print the per-interval header
         out.println("\n\nPER_INTERVAL_COVERAGE_SECTION");
+        printHeaderLine(true);
 
-        StringBuilder header = new StringBuilder("location\ttotal_coverage\taverage_coverage\tcoverage_without_deletions\taverage_coverage_without_deletions");
+        // print all of the individual per-interval coverage data
+        for ( Pair<GenomeLoc, DoCInfo> result : results )
+            printDoCInfo(result.first, result.second, true);
+
+        // if we need to print the histogram, do so now
+        if ( printHistogram )
+            printHisto();
+    }
+
+    private void printHeaderLine(boolean printAverageCoverage) {
+
+        StringBuilder header = new StringBuilder("location\ttotal_coverage");
+        if ( printAverageCoverage )
+            header.append("\taverage_coverage");
+        header.append("\tcoverage_without_deletions");
+        if ( printAverageCoverage )
+            header.append("\taverage_coverage_without_deletions");
         if ( excludeMAPQBelowThis > 0 ) {
             header.append("\tcoverage_atleast_MQ");
             header.append(excludeMAPQBelowThis);
-            header.append("\taverage_coverage_atleast_MQ");
-            header.append(excludeMAPQBelowThis);
+            if ( printAverageCoverage ) {
+                header.append("\taverage_coverage_atleast_MQ");
+                header.append(excludeMAPQBelowThis);
+            }
         }
-        if ( minDepthForPercentage >= 0 ) {
+        if ( printAverageCoverage && minDepthForPercentage >= 0 ) {
             header.append("\tpercent_loci_covered_atleast_depth");
-            header.append(minDepthForPercentage);            
+            header.append(minDepthForPercentage);
         }
         if ( printBaseCounts ) {
             header.append("\tA_count\tC_count\tG_count\tT_count");
@@ -245,14 +244,6 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
             }
         }
         out.println(header.toString());
-
-        // print all of the individual per-interval coverage data
-        for ( Pair<GenomeLoc, DoCInfo> result : results )
-            printDoCInfo(result.first, result.second, true);
-
-        // if we need to print the histogram, do so now
-        if ( printHistogram )
-            printHisto();
     }
 
     private void incCov(int depth) {
@@ -348,7 +339,7 @@ public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoC
             }
         }
 
-        if ( minDepthForPercentage >= 0 ) {
+        if ( printAverageCoverage && minDepthForPercentage >= 0 ) {
             sb.append("\t");
             sb.append(String.format("%.2f", ((double)info.minDepthCoveredLoci) / totalBases));            
         }
