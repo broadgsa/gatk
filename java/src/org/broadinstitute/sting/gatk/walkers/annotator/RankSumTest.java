@@ -11,7 +11,7 @@ import java.util.ArrayList;
 
 
 public class RankSumTest implements VariantAnnotation {
-
+    private final static boolean DEBUG = false;
     private static final double minPValue = 1e-10;
 
     public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
@@ -38,7 +38,16 @@ public class RankSumTest implements VariantAnnotation {
         for ( Integer qual : refQuals )
             wilcoxon.addObservation((double)qual, WilcoxonRankSum.WILCOXON_SET.SET2);
 
-        double pvalue = wilcoxon.getTwoTailedPValue();
+        // for R debugging
+        if ( DEBUG ) {
+            wilcoxon.DEBUG = DEBUG;
+            System.out.printf("%s%n", pileup.getLocation());
+            System.out.printf("alt <- c(%s)%n", Utils.join(",", altQuals));
+            System.out.printf("ref <- c(%s)%n", Utils.join(",", refQuals));
+        }
+
+        // we are testing these set1 (the alt bases) have lower quality scores than set2 (the ref bases)
+        double pvalue = wilcoxon.getPValue(WilcoxonRankSum.WILCOXON_H0.SMALLER_SET_LT);
         if ( MathUtils.compareDoubles(pvalue, -1.0) == 0 )
             return null;
 
