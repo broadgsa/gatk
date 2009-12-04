@@ -10,7 +10,7 @@ import math
 dbsnp = "."  # can be global. Let something else annotate dbsnp info
 filter = "0" # don't declare any filtering in the VCF file
 
-print(sys.argv)
+#print(sys.argv)
 
 raw_calls_file = open(sys.argv[1])
 output_vcf_file = open(sys.argv[2],'w')
@@ -28,7 +28,7 @@ header = raw_calls_file.readline().strip()
 
 fields = header.split()
 
-print(fields)
+#print(fields)
 
 # parse it for important offsets
 
@@ -76,7 +76,7 @@ def getProportionNonref(list):
     else:
         ref_bases = int(list[for_t_index].split(":")[1]) + int(list[rev_t_index].split(":")[1])
 
-    return 1.0 - ( float(ref_bases) / float(total_bases) )
+    return 1.0 - ( float(ref_bases+1) / float(total_bases+1) )
 
 def generateVCFLine(chrom, pos, db, ref, alt, filt, qual, INFO):
     # make the info into a single string
