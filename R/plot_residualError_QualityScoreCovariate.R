@@ -21,7 +21,7 @@ e <- rbind(d.good, d.1000, d.10000)
 rmseGood = sqrt(sum((d.good$Qempirical-d.good$Qreported)^2 * d.good$nBases) / sum(d.good$nBases) )
 rmseAll = sqrt(sum((e$Qempirical-e$Qreported)^2 * e$nBases) / sum(e$nBases) )
 theTitle = paste("RMSE_good = ", round(rmseGood,digits=3), ", RMSE_all = ", round(rmseAll,digits=3))
-if (length(t$nBases) == length(d.good$nBases) ) {
+if( length(t$nBases) - length(f$nBases) == length(d.good$nBases) ) {
 	theTitle = paste("RMSE = ", round(rmseAll,digits=3));
 }
 plot(d.good$Qreported, d.good$Qempirical, type="p", col="blue", main=theTitle, xlim=c(0,40), ylim=c(0,40), pch=16, xlab="Reported quality score", ylab="Empirical quality score")

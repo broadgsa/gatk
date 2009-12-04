@@ -54,8 +54,12 @@ pdf(outfile, height=7, width=7)
 hst=subset(data.frame(e$Covariate, e$nBases), e.nBases != 0)
 hst2=subset(data.frame(f$Covariate, f$nBases), f.nBases != 0)
 if( is.numeric(c$Covariate) ) {
-	plot(hst$e.Covariate, hst$e.nBases, type="h", lwd=2, main=paste(covariateName,"histogram"), xlab=covariateName, ylab="Count",yaxt="n",xlim=c(min(c$Covariate),max(c$Covariate)))
-	points(hst2$f.Covariate, hst2$f.nBases, type="h", lwd=2, col="cornflowerblue")
+    if( length(hst$e.Covariate) == 0 ) {
+        plot(hst2$f.Covariate, hst2$f.nBases, type="h", lwd=2, col="cornflowerblue", main=paste(covariateName,"histogram"), xlab=covariateName, ylab="Count",yaxt="n",xlim=c(min(c$Covariate),max(c$Covariate)))
+    } else {
+	    plot(hst$e.Covariate, hst$e.nBases, type="h", lwd=2, main=paste(covariateName,"histogram"), xlab=covariateName, ylab="Count",yaxt="n",xlim=c(min(c$Covariate),max(c$Covariate)))
+	    points(hst2$f.Covariate, hst2$f.nBases, type="h", lwd=2, col="cornflowerblue")
+	}
 	axis(2,axTicks(2), format(axTicks(2), scientific=F))
 } else { # Dinuc (and other non-numeric covariates) are different to make their plots look nice
 	hst=subset(data.frame(c$Covariate, c$nBases), c.nBases != 0)
