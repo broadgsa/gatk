@@ -115,7 +115,7 @@ for line in raw_calls_file.readlines():
     if ( not two_lines_ago ):
         continue # window not filled yet
     else:
-        if ( float(this_line[lod_score_index]) > 0 and this_line[call_index] != "D" and this_line[call_index] != "I"):
+        if ( float(this_line[lod_score_index]) > 1 and this_line[call_index] != "D" and this_line[call_index] != "I"):
             # potential call
             chrom = this_line[chrompos].split(":")[0]
             pos = this_line[chrompos].split(":")[1]
