@@ -22,6 +22,7 @@ public class HelpExtractorDoclet {
      * Extracts the contents of certain types of javadoc and adds them to an XML file.
      * @param rootDoc The documentation root.
      * @return Whether the JavaDoc run succeeded.
+     * @throws FileNotFoundException if output can't be written.
      */
     public static boolean start(RootDoc rootDoc) throws FileNotFoundException {
         PrintStream out = System.out;
@@ -56,9 +57,9 @@ public class HelpExtractorDoclet {
     }
 
     /**
-     * Validate the given options against 
-     * @param option
-     * @return
+     * Validate the given options against options supported by this doclet.
+     * @param option Option to validate.
+     * @return Number of potential parameters; 0 if not supported.
      */
     public static int optionLength(String option) {
         if(option.equals("-out")) {

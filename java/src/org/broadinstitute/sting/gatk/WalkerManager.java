@@ -26,6 +26,8 @@
 package org.broadinstitute.sting.gatk;
 
 import java.util.*;
+import java.io.InputStream;
+import java.io.IOException;
 
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
@@ -50,16 +52,70 @@ public class WalkerManager extends PluginManager<Walker> {
      */
     private static Logger logger = Logger.getLogger(WalkerManager.class);
 
+    /**
+     * A collection of help text for walkers and their enclosing packages.
+     */
+    private Properties helpText = new Properties();
+
     public WalkerManager() {
         super(Walker.class,"walker","Walker");
+        InputStream helpSourceFile = getClass().getClassLoader().getResourceAsStream("help.properties");
+        if(helpSourceFile != null) {
+            try {
+                helpText.load(helpSourceFile);
+            }
+            catch(IOException ex) {
+                throw new StingException("Unable to process help data");
+            }
+        }
     }
 
     /**
-     * Get the list of walkers currently available to the GATK.
+     * Get the list of walkers currently available to the GATK, organized
+     * by package.
      * @return Names of currently available walkers.
      */
-    public Set<String> getWalkerNames() {
-        return Collections.unmodifiableSet( pluginsByName.keySet() );
+    public Map<String,Collection<Class<? extends Walker>>> getWalkerNamesByPackage() {
+        Map<String,Collection<Class<? extends Walker>>> walkersByPackage = new HashMap<String,Collection<Class<? extends Walker>>>();
+        for(Class<? extends Walker> walker: pluginsByName.values()) {
+            String walkerPackage = walker.getPackage().getName();
+            if(!walkersByPackage.containsKey(walkerPackage))
+                walkersByPackage.put(walkerPackage,new ArrayList<Class<? extends Walker>>());
+            walkersByPackage.get(walkerPackage).add(walker);
+        }
+        return Collections.unmodifiableMap(walkersByPackage);
+    }
+
+    /**
+     * Gets the display name for a given package.
+     * @param packageName Fully qualified package name.
+     * @return A suitable display name for the package.
+     */
+    public String getPackageDisplayName(String packageName) {
+        return packageName.substring(packageName.lastIndexOf('.')+1);
+    }
+
+    /**
+     * Gets the help text associated with a given package name.
+     * @param packageName Package for which to search for help text.
+     * @return Package help text, or "" if none exists.
+     */
+    public String getPackageHelpText(String packageName) {
+        if(!helpText.containsKey(packageName))
+            return "";
+        return helpText.getProperty(packageName);    
+    }
+
+    /**
+     * Gets the help text associated with a given walker type.
+     * @param walkerType Type of walker for which to search for help text.
+     * @return Package help text, or "" if none exists.
+     */
+    public String getWalkerHelpText(Class<? extends Walker> walkerType) {
+        String walkerName = walkerType.getName();
+        if(!helpText.containsKey(walkerName))
+            return "";
+        return helpText.getProperty(walkerName);
     }
 
     /**

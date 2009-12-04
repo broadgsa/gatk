@@ -176,15 +176,6 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Gets a set of the names of all walkers that the GATK has discovered.
-     *
-     * @return A set of the names of all discovered walkers.
-     */
-    public Set<String> getWalkerNames() {
-        return walkerManager.getWalkerNames();
-    }
-
-    /**
      * Retrieves an instance of the walker based on the walker name.
      *
      * @param walkerName Name of the walker.  Must not be null.  If the walker cannot be instantiated, an exception will be thrown.
@@ -217,6 +208,14 @@ public class GenomeAnalysisEngine {
         for(String filterName: args.readFilters)
             filters.add(filterManager.createByName(filterName));
         return Collections.unmodifiableSet(filters);
+    }
+
+    /**
+     * Allow subclasses and others within this package direct access to the walker manager.
+     * @return The walker manager used by this package.
+     */
+    protected WalkerManager getWalkerManager() {
+        return walkerManager;
     }
 
     private void initializeDataSources(Walker my_walker, Collection<SamRecordFilter> filters, GATKArgumentCollection argCollection) {

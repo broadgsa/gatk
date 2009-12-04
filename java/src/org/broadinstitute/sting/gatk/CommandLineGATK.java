@@ -1,7 +1,9 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.utils.GATKErrorReport;
+import org.broadinstitute.sting.utils.TextFormattingUtils;
 import org.broadinstitute.sting.utils.cmdLine.*;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -112,38 +114,73 @@ public class CommandLineGATK extends CommandLineExecutable {
      * @return A string summarizing the walkers available in this distribution.
      */
     private String getAdditionalHelp() {
-        // Get the list of walker names from the walker manager.
-        Set<String> walkerNames = GATKEngine.getWalkerNames();
 
-        // Sort the list of walker names.
-        walkerNames = new TreeSet<String>(walkerNames);
+        //HelpFormatter.LINE_WIDTH;
 
-        // Construct a help string to output available walkers.         
+        final int PACKAGE_INDENT = 1;
+        final int WALKER_INDENT = 3;
+        final String FIELD_SEPARATOR = " | ";
+
+        // Construct a help string to output available walkers.
         StringBuilder additionalHelp = new StringBuilder();
         Formatter formatter = new Formatter(additionalHelp);
 
-        formatter.format("Available analyses:%n");
+        formatter.format("Available analyses:%n%n");
 
-        // Compute the max size of any walker name
-        int maxNameLength = 0;
-        for (String walkerName : walkerNames) {
-            if (maxNameLength < walkerName.length())
-                maxNameLength = walkerName.length();
+        // Get the list of walker names from the walker manager.
+        WalkerManager walkerManager = GATKEngine.getWalkerManager();
+        Map<String,Collection<Class<? extends Walker>>> walkers = walkerManager.getWalkerNamesByPackage();
+
+        int longestPackageName = 0;
+        int longestWalkerName = 0;
+        for(Map.Entry<String,Collection<Class<? extends Walker>>> walkersByPackage: walkers.entrySet()) {
+            longestPackageName = Math.max(longestPackageName,walkerManager.getPackageDisplayName(walkersByPackage.getKey()).length());
+            for(Class<? extends Walker> walkerType: walkersByPackage.getValue())
+                longestWalkerName = Math.max(longestWalkerName,walkerManager.getName(walkerType).length());
         }
 
-        final int fieldWidth = maxNameLength + HelpFormatter.FIELD_SEPARATION_WIDTH;
-        final int walkersPerLine = Math.min(HelpFormatter.LINE_WIDTH / fieldWidth, 4);
-        final int columnSpacing = Math.max((HelpFormatter.LINE_WIDTH - (fieldWidth * walkersPerLine)) / walkersPerLine, 1);
+        final int headerWidth = Math.max(longestPackageName+PACKAGE_INDENT,longestWalkerName+WALKER_INDENT);
 
-        int currentWalkerName = 0;
-        for (String walkerName : walkerNames) {
-            formatter.format("%-" + HelpFormatter.FIELD_SEPARATION_WIDTH + "s" +
-                    "%-" + fieldWidth + "s" +
-                    "%-" + columnSpacing + "s", "", walkerName, "");
-            if (++currentWalkerName % walkersPerLine == 0)
-                formatter.format("%n");
+        // Sort the list of walker names.
+        walkers = new TreeMap<String,Collection<Class<? extends Walker>>>(walkers);
+
+        for(String packageName: walkers.keySet()) {
+            String packageDisplayName = walkerManager.getPackageDisplayName(packageName);
+            String packageHelpText = walkerManager.getPackageHelpText(packageName);
+            printDescriptorLine(formatter,PACKAGE_INDENT,packageDisplayName,headerWidth,FIELD_SEPARATOR,packageHelpText, TextFormattingUtils.DEFAULT_LINE_WIDTH);
+            
+            for(Class<? extends Walker> walkerType: walkers.get(packageName)) {
+                String walkerName = walkerManager.getName(walkerType);
+                String walkerHelpText = walkerManager.getWalkerHelpText(walkerType);
+                printDescriptorLine(formatter,WALKER_INDENT,walkerName,headerWidth,FIELD_SEPARATOR,walkerHelpText, TextFormattingUtils.DEFAULT_LINE_WIDTH);
+            }
+
+            // Print a blank line between sets of walkers.
+            printDescriptorLine(formatter,0,"",headerWidth,FIELD_SEPARATOR,"", TextFormattingUtils.DEFAULT_LINE_WIDTH);
         }
 
         return additionalHelp.toString();
+    }
+
+    private void printDescriptorLine(Formatter formatter,
+                                     int headerIndentWidth,
+                                     String header,
+                                     int headerWidth,
+                                     String fieldSeparator,
+                                     String description,
+                                     int lineWidth) {
+        final int headerPaddingWidth = headerWidth - header.length() - headerIndentWidth;
+        final int descriptionWidth = lineWidth - fieldSeparator.length() - headerWidth;
+        List<String> wordWrappedText = TextFormattingUtils.wordWrap(description,descriptionWidth);
+
+        String headerIndentFormatString  = headerIndentWidth  > 0 ? "%" + headerIndentWidth  + "s" : "%s";
+        String headerPaddingFormatString = headerPaddingWidth > 0 ? "%" + headerPaddingWidth + "s" : "%s";
+        String headerWidthFormatString   = headerWidth        > 0 ? "%" + headerWidth        + "s" : "%s";
+
+        // Output description line.
+        formatter.format(headerIndentFormatString + "%s" + headerPaddingFormatString + "%s%s%n",
+                "", header, "", fieldSeparator, wordWrappedText.size()>0?wordWrappedText.get(0):"");
+        for(int i = 1; i < wordWrappedText.size(); i++)
+            formatter.format(headerWidthFormatString + "%s%s%n", "", fieldSeparator, wordWrappedText.get(i));
     }
 }

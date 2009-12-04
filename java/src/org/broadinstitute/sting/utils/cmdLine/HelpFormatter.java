@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.cmdLine;
 
+import org.broadinstitute.sting.utils.TextFormattingUtils;
+
 import java.util.Formatter;
 import java.util.List;
 import java.util.ArrayList;
@@ -7,8 +9,6 @@ import java.util.Iterator;
 import java.util.Comparator;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 /**
  * User: hanna
  * Date: May 6, 2009
@@ -27,10 +27,6 @@ import java.util.regex.Matcher;
  */
 
 public class HelpFormatter {
-    /**
-     * Target this line width.
-     */
-    public static final int LINE_WIDTH = 100;
     public static final int FIELD_SEPARATION_WIDTH = 3;
 
     /**
@@ -76,7 +72,7 @@ public class HelpFormatter {
         }
 
         // Word wrap the synopsis.
-        List<String> wrappedSynopsis = wordWrap( lineBuilder.toString(), LINE_WIDTH );
+        List<String> wrappedSynopsis = TextFormattingUtils.wordWrap( lineBuilder.toString(), TextFormattingUtils.DEFAULT_LINE_WIDTH );
 
         String header = "usage: ";
         int headerLength = header.length();
@@ -119,12 +115,12 @@ public class HelpFormatter {
 
         // Try to fit the entire argument definition across the screen, but impose an arbitrary cap of 3/4 *
         // LINE_WIDTH in case the length of the arguments gets out of control.
-        int argWidth = Math.min( findLongestArgumentCallingInfo(argumentDefinitions), (LINE_WIDTH*3)/4 - FIELD_SEPARATION_WIDTH );
-        int docWidth = LINE_WIDTH - argWidth - FIELD_SEPARATION_WIDTH;
+        int argWidth = Math.min( findLongestArgumentCallingInfo(argumentDefinitions), (TextFormattingUtils.DEFAULT_LINE_WIDTH*3)/4 - FIELD_SEPARATION_WIDTH );
+        int docWidth = TextFormattingUtils.DEFAULT_LINE_WIDTH - argWidth - FIELD_SEPARATION_WIDTH;
 
         for( ArgumentDefinition argumentDefinition: argumentDefinitions ) {
-            Iterator<String> wordWrappedArgs = wordWrap( getArgumentCallingInfo(argumentDefinition), argWidth ).iterator();
-            Iterator<String> wordWrappedDoc  = wordWrap( argumentDefinition.doc, docWidth ).iterator();
+            Iterator<String> wordWrappedArgs = TextFormattingUtils.wordWrap( getArgumentCallingInfo(argumentDefinition), argWidth ).iterator();
+            Iterator<String> wordWrappedDoc  = TextFormattingUtils.wordWrap( argumentDefinition.doc, docWidth ).iterator();
 
             while( wordWrappedArgs.hasNext() || wordWrappedDoc.hasNext() ) {
                 String arg = wordWrappedArgs.hasNext() ? wordWrappedArgs.next() : "";
@@ -171,29 +167,6 @@ public class HelpFormatter {
                 longest = argumentText.length();
         }
         return longest;
-    }
-
-    /**
-     * Simple implementation of word-wrap for a line of text.  Idea and
-     * regexp shamelessly stolen from http://joust.kano.net/weblog/archives/000060.html.
-     * Regexp can probably be simplified for our application.
-     * @param text Text to wrap.
-     * @param width Maximum line width.
-     * @return A list of word-wrapped lines.
-     */
-    private List<String> wordWrap( String text, int width ) {
-        Pattern wrapper = Pattern.compile( String.format(".{0,%d}(?:\\S(?: |$)|$)", width-1) );
-        Matcher matcher = wrapper.matcher( text );
-
-        List<String> wrapped = new ArrayList<String>();
-        while( matcher.find() ) {
-            // Regular expression is supersensitive to whitespace.
-            // Assert that content is present before adding the line.
-            String line = matcher.group().trim();
-            if( line.length() > 0 )
-                wrapped.add( matcher.group() );
-        }
-        return wrapped;
     }
 
     /**
