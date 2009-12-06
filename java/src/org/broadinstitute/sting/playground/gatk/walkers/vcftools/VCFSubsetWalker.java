@@ -77,7 +77,9 @@ public class VCFSubsetWalker extends RefWalker<ArrayList<VCFRecord>, VCFWriter> 
 
     private VCFRecord subsetRecord(VCFRecord record) {
         ArrayList<VCFGenotypeRecord> genotypeRecords = new ArrayList<VCFGenotypeRecord>();
-        for (VCFGenotypeRecord gr : record.getVCFGenotypeRecords()) {
+        for (int i = 0; i < record.getGenotypes().size(); i++) {
+            VCFGenotypeRecord gr = (VCFGenotypeRecord)record.getGenotypes().get(i);
+
             //if (gr.getSampleName().equalsIgnoreCase(SAMPLE)) {
             if (SAMPLES.contains(gr.getSampleName())) {
                 //out.println(gr.getSampleName() + " " + gr.toGenotypeString(record.getAlternateAlleles()));
@@ -86,8 +88,8 @@ public class VCFSubsetWalker extends RefWalker<ArrayList<VCFRecord>, VCFWriter> 
         }
 
         VCFRecord subset = new VCFRecord(record.getReferenceBase(),
-                                         record.getChromosome(),
-                                         (int) record.getPosition(),
+                                         record.getLocation().getContig(),
+                                         (int) record.getLocation().getStart(),
                                          record.getID(),
                                          record.getAlternateAlleles(),
                                          record.getQual(),
@@ -104,7 +106,7 @@ public class VCFSubsetWalker extends RefWalker<ArrayList<VCFRecord>, VCFWriter> 
             VCFRecord subset = subsetRecord(record);
 
             boolean isVariant = false;
-            for (VCFGenotypeEncoding ge : subset.getVCFGenotypeRecords().get(0).getAlleles()) {
+            for (VCFGenotypeEncoding ge : ((VCFGenotypeRecord)subset.getGenotypes().get(0)).getAlleles()) {
                 if (record.getReferenceBase() != ge.getBases().charAt(0)) {
                     isVariant = true;
                 }

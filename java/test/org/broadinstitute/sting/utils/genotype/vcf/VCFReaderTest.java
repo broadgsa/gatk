@@ -1,9 +1,13 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.BeforeClass;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -17,6 +21,18 @@ public class VCFReaderTest extends BaseTest {
     private static final File vcfFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample.vcf");
     private static final File multiSampleVCF = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/MultiSample.vcf");
     private static final String VCF_MIXUP_FILE = "/humgen/gsa-scr1/GATK_Data/Validation_Data/mixedup.vcf";
+
+    private static IndexedFastaSequenceFile seq;
+
+       @BeforeClass
+       public static void beforeTests() {
+           try {
+               seq = new IndexedFastaSequenceFile(new File("/broad/1KG/reference/human_b36_both.fasta"));
+           } catch (FileNotFoundException e) {
+               throw new StingException("unable to load the sequence dictionary");
+           }
+           GenomeLocParser.setupRefContigOrdering(seq);
+       }
 
     @Test
     public void testVCFInput() {

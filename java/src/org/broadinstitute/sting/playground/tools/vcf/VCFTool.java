@@ -509,8 +509,8 @@ public class VCFTool
 		
 		public static Interval getIntervalFromRecord(VCFRecord record)
 		{
-			String chr = record.getChromosome();
-			long   off = record.getPosition();
+			String chr = record.getLocation().getContig();
+			long   off = record.getLocation().getStart();
 			return new Interval(chr, (int)off, (int)off);
 		}
 

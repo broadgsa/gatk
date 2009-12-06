@@ -5,7 +5,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 /**
  * @author aaron
  *         <p/>
- *         Class GenotypeLikelihood
+ *         Class Genotype
  *         <p/>
  *         This class emcompasses all the basic information about a genotype
  */

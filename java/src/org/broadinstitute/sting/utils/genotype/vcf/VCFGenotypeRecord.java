@@ -1,5 +1,8 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.genotype.*;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,10 +14,8 @@ import java.util.Map;
  *         <p/>
  *         Class VCFGenotypeRecord
  *         <p/>
- *         The genotype record in VCF store a considerable amount of information,
- *         so they were broken off into their own class
  */
-public class VCFGenotypeRecord {
+public class VCFGenotypeRecord implements Genotype {
     // the symbol for a empty genotype
     public static final String EMPTY_GENOTYPE = ".";
 
@@ -22,6 +23,9 @@ public class VCFGenotypeRecord {
     public enum PHASE {
         UNPHASED, PHASED, PHASED_SWITCH_PROB, UNKNOWN
     }
+
+    // our record
+    private VCFRecord mRecord;
 
     // our phasing
     private PHASE mPhaseType;
@@ -38,10 +42,10 @@ public class VCFGenotypeRecord {
     /**
      * Create a VCF genotype record
      *
-     * @param sampleName
-     * @param genotypes
-     * @param phasing
-     * @param otherFlags
+     * @param sampleName  sample name
+     * @param genotypes   list of genotypes
+     * @param phasing     phasing
+     * @param otherFlags  other flags
      */
     public VCFGenotypeRecord(String sampleName, List<VCFGenotypeEncoding> genotypes, PHASE phasing, Map<String, String> otherFlags) {
         this.mSampleName = sampleName;
@@ -50,11 +54,16 @@ public class VCFGenotypeRecord {
         if (otherFlags != null) this.mFields.putAll(otherFlags);        
     }
 
+    public void setVCFRecord(VCFRecord record) {
+        this.mRecord = record;
+    }
 
     /**
      * determine the phase of the genotype
      *
      * @param phase the string that contains the phase character
+     *
+     * @return the phase
      */
     static PHASE determinePhase(String phase) {
         // find the phasing information
@@ -68,7 +77,6 @@ public class VCFGenotypeRecord {
             throw new IllegalArgumentException("Unknown genotype phasing parameter");
     }
 
-    /** getter methods */
 
     public PHASE getPhaseType() {
         return mPhaseType;
@@ -84,6 +92,64 @@ public class VCFGenotypeRecord {
 
     public Map<String, String> getFields() {
         return mFields;
+    }
+
+    public double getNegLog10PError() {
+        return ( mFields.containsKey("GQ") ? Double.valueOf(mFields.get("GQ")) / 10.0 : 0.0);
+    }
+
+    public GenomeLoc getLocation() {
+        return mRecord != null ? mRecord.getLocation() : null;
+    }
+
+    public char getReference() {
+        return mRecord != null ? mRecord.getReferenceBase() : 'N';
+    }
+
+    public Variation toVariation(char ref) {
+        return mRecord != null ? mRecord : null;
+    }
+
+    public String getBases() {
+        String genotype = "";
+        for ( VCFGenotypeEncoding encoding : mGenotypeAlleles )
+            genotype += encoding.getBases();
+        return genotype;
+    }
+
+    public boolean isVariant(char ref) {
+        for ( VCFGenotypeEncoding encoding : mGenotypeAlleles ) {
+            if ( encoding.getType() == VCFGenotypeEncoding.TYPE.UNCALLED )
+                continue;
+            if ( encoding.getType() != VCFGenotypeEncoding.TYPE.SINGLE_BASE ||
+                 encoding.getBases().charAt(0) != ref )
+                return true;
+        }
+        return false;
+    }
+
+    public boolean isPointGenotype() {
+        return (mRecord != null ? !mRecord.isIndel() : true);
+    }
+
+    public boolean isHom() {
+        if ( mGenotypeAlleles.size() == 0 )
+            return true;
+
+        String bases = mGenotypeAlleles.get(0).getBases();
+        for ( int i = 1; i < mGenotypeAlleles.size(); i++ ) {
+            if ( !bases.equals(mGenotypeAlleles.get(1).getBases()) )
+                return false;
+        }
+        return true;
+    }
+
+    public boolean isHet() {
+        return !isHom();
+    }
+
+    public int getPloidy() {
+        return 2;
     }
 
     private String toGenotypeString(List<VCFGenotypeEncoding> altAlleles) {
@@ -144,7 +210,6 @@ public class VCFGenotypeRecord {
     public String toStringEncoding(List<VCFGenotypeEncoding> altAlleles) {
         StringBuilder builder = new StringBuilder();
         builder.append(toGenotypeString(altAlleles));
-        boolean first = true;
         for (String field : mFields.keySet()) {
             if (mFields.get(field).equals("")) continue;
             builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);

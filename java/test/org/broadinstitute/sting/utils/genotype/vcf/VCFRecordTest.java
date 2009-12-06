@@ -1,10 +1,16 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.BeforeClass;
 
 import java.util.*;
+import java.io.File;
+import java.io.FileNotFoundException;
 
 
 /**
@@ -15,6 +21,18 @@ import java.util.*;
  *         test the basic functionality of the vcf record
  */
 public class VCFRecordTest extends BaseTest {
+
+    private static IndexedFastaSequenceFile seq;
+
+    @BeforeClass
+    public static void beforeTests() {
+        try {
+            seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        } catch (FileNotFoundException e) {
+            throw new StingException("unable to load the sequence dictionary");
+        }
+        GenomeLocParser.setupRefContigOrdering(seq);
+    }
 
     /**
      * create a fake VCF record

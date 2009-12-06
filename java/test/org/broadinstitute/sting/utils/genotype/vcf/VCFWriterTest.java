@@ -1,10 +1,15 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.BeforeClass;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.*;
 
 
@@ -20,6 +25,18 @@ public class VCFWriterTest extends BaseTest {
     private Map<String, String> metaData = new HashMap();
     private Set<String> additionalColumns = new HashSet<String>();
     private File fakeVCFFile = new File("FAKEVCFFILEFORTESTING.vcf");
+
+    private static IndexedFastaSequenceFile seq;
+
+    @BeforeClass
+    public static void beforeTests() {
+        try {
+            seq = new IndexedFastaSequenceFile(new File(seqLocation + "/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"));
+        } catch (FileNotFoundException e) {
+            throw new StingException("unable to load the sequence dictionary");
+        }
+        GenomeLocParser.setupRefContigOrdering(seq);
+    }
 
     /** test, using the writer and reader, that we can output and input a VCF file without problems */
     @Test
