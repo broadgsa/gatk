@@ -79,7 +79,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         for ( String sample : GLs.keySet() ) {
 
             // create the call
-            Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, loc);
+            GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, loc);
 
             if ( call instanceof ReadBacked ) {
                 ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedContext.OVERALL).getPileup();

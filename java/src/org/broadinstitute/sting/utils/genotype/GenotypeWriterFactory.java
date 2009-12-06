@@ -80,7 +80,7 @@ public class GenotypeWriterFactory {
      * @param loc the location
      * @return an unpopulated genotype call object
      */
-    public static Genotype createSupportedCall(GENOTYPE_FORMAT format, char ref, GenomeLoc loc) {
+    public static GenotypeCall createSupportedGenotypeCall(GENOTYPE_FORMAT format, char ref, GenomeLoc loc) {
         switch (format) {
             case VCF:
                 return new VCFGenotypeCall(ref, loc);
@@ -102,10 +102,10 @@ public class GenotypeWriterFactory {
      * @param type the variant type
      * @return an unpopulated genotype locus data object
      */
-    public static GenotypeLocusData createSupportedGenotypeLocusData(GENOTYPE_FORMAT format, char ref, GenomeLoc loc, Variation.VARIANT_TYPE type) {
+    public static VariationCall createSupportedCall(GENOTYPE_FORMAT format, char ref, GenomeLoc loc, Variation.VARIANT_TYPE type) {
         switch (format) {
             case VCF:
-                return new VCFGenotypeLocusData(ref, loc, type);
+                return new VCFVariationCall(ref, loc, type);
             case GELI:
             case GELI_BINARY:
                 return null;

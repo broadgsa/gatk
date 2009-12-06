@@ -35,7 +35,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
     protected JointEstimateGenotypeCalculationModel() {}
 
-    public Pair<List<Genotype>, GenotypeLocusData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
         // keep track of the context for each sample, overall and separated by strand
         HashMap<String, AlignmentContextBySample> contexts = createContexts(context);
@@ -49,7 +49,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         initializeBestAlternateAllele(ref, context);
         // if there are no non-ref bases and we don't want all bases, then we can just return
         if ( !ALL_BASE_MODE && bestAlternateAllele == null )
-            return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
+            return new Pair<VariationCall, List<Genotype>>(null, null);
 
         initializeAlleleFrequencies(frequencyEstimationPoints);
 
@@ -302,7 +302,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         return new ArrayList<Genotype>();
     }
 
-    protected Pair<List<Genotype>, GenotypeLocusData> createCalls(RefMetaDataTracker tracker, char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc, int frequencyEstimationPoints) {
+    protected Pair<VariationCall, List<Genotype>> createCalls(RefMetaDataTracker tracker, char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc, int frequencyEstimationPoints) {
         // only need to look at the most likely alternate allele
         int indexOfMax = BaseUtils.simpleBaseToBaseIndex(bestAlternateAllele);
 
@@ -313,14 +313,14 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         // return a null call if we don't pass the confidence cutoff or the most likely allele frequency is zero
         if ( !ALL_BASE_MODE && (bestAFguess == 0 || phredScaledConfidence < CONFIDENCE_THRESHOLD) )
-            return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
+            return new Pair<VariationCall, List<Genotype>>(null, null);
 
         // populate the sample-specific data
         List<Genotype> calls = makeGenotypeCalls(ref, bestAlternateAllele, contexts, loc);
 
         // next, the general locus data
-        // note that calculating strand bias involves overwriting data structures, so we do that last
-        GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, loc, VARIANT_TYPE.SNP);
+        // *** note that calculating strand bias involves overwriting data structures, so we do that last
+        VariationCall locusdata = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, loc, bestAFguess == 0 ? VARIANT_TYPE.REFERENCE : VARIANT_TYPE.SNP);
         if ( locusdata != null ) {
             locusdata.addAlternateAllele(bestAlternateAllele.toString());
             locusdata.setNonRefAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
@@ -373,6 +373,13 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
             }
         }
 
-        return new Pair<List<Genotype>, GenotypeLocusData>(calls, locusdata);
+        // finally, associate the Variation with the Genotypes (if available)
+        if ( locusdata != null ) {
+            locusdata.setGenotypeCalls(calls);
+            for ( Genotype call : calls )
+                ((GenotypeCall)call).setVariation(locusdata);
+        }
+
+        return new Pair<VariationCall, List<Genotype>>(locusdata, calls);
     }
 }

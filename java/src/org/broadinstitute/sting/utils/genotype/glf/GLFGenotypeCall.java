@@ -14,7 +14,7 @@ import java.util.Arrays;
  *         <p/>
  *         The implementation of the genotype interface, specific to GLF
  */
-public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked {
+public class GLFGenotypeCall implements GenotypeCall, ReadBacked, LikelihoodsBacked {
     private final char mRefBase;
     private final GenomeLoc mLocation;
 
@@ -23,6 +23,9 @@ public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked 
 
     private double mNegLog10PError;
     private String mGenotype;
+
+    private Variation mVariation = null;
+
 
     /**
      * Generate a single sample genotype object, containing everything we need to represent calls out of a genotyper object
@@ -52,6 +55,10 @@ public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked 
 
     public void setNegLog10PError(double negLog10PError) {
         mNegLog10PError = negLog10PError;
+    }
+
+    public void setVariation(Variation variation) {
+        this.mVariation = variation;
     }
 
     public void setGenotype(String genotype) {
@@ -120,7 +127,10 @@ public class GLFGenotypeCall implements Genotype, ReadBacked, LikelihoodsBacked 
      * @return return this genotype as a variant
      */
     public Variation toVariation(char ref) {
-        throw new UnsupportedOperationException("GLF call doesn't support conversion to Variation");
+        if ( mVariation == null ) {
+            mVariation = new BasicGenotypeBackedVariation(ref, mLocation, Variation.VARIANT_TYPE.REFERENCE);
+        }
+        return mVariation;
     }
 
     /**

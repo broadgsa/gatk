@@ -14,13 +14,14 @@ import java.util.Arrays;
  *         <p/>
  *         The implementation of the genotype interface, specific to Geli
  */
-public class GeliGenotypeCall extends AlleleConstrainedGenotype implements ReadBacked, PosteriorsBacked {
+public class GeliGenotypeCall extends AlleleConstrainedGenotype implements GenotypeCall, ReadBacked, PosteriorsBacked {
     private final char mRefBase;
     private final GenomeLoc mLocation;
 
     private ReadBackedPileup mPileup = null;
     private double[] mPosteriors;
 
+    private Variation mVariation = null;
 
     // the reference genotype, the best genotype, and the next best genotype, lazy loaded
     private DiploidGenotype mRefGenotype = null;
@@ -77,6 +78,9 @@ public class GeliGenotypeCall extends AlleleConstrainedGenotype implements ReadB
         mPosteriors = posteriors;
     }
 
+    public void setVariation(Variation variation) {
+        this.mVariation = variation;
+    }
 
     @Override
     public boolean equals(Object other) {
@@ -237,8 +241,15 @@ public class GeliGenotypeCall extends AlleleConstrainedGenotype implements ReadB
      * @return return this genotype as a variant
      */
     public Variation toVariation(char ref) {
-        double bestRef = Math.abs(mPosteriors[getBestGenotype().ordinal()] - mPosteriors[getRefGenotype().ordinal()]);
-        return new BasicVariation(this.getBases(), String.valueOf(ref), 0, this.mLocation, bestRef);
+        if ( mVariation == null ) {
+            BasicGenotypeBackedVariation var = new BasicGenotypeBackedVariation(ref, mLocation, isVariant() ? Variation.VARIANT_TYPE.SNP : Variation.VARIANT_TYPE.REFERENCE);
+            double confidence = Math.abs(mPosteriors[getBestGenotype().ordinal()] - mPosteriors[getRefGenotype().ordinal()]);
+            var.setConfidence(confidence);
+            if ( isVariant() )
+                var.addAlternateAllele(Character.toString(mBestGenotype.base1 != ref ? mBestGenotype.base1 : mBestGenotype.base2));
+            mVariation = var;
+        }
+        return mVariation;
     }
 
     /**

@@ -8,11 +8,11 @@ import java.util.*;
 /**
  * @author ebanks
  *         <p/>
- *         Class VCFGenotypeLocusData
+ *         Class VCFVariationCall
  *         <p/>
- *         represents the meta data for a genotype object.
+ *         represents a VCF Variation
  */
-public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked, SLODBacked, IDBacked, ArbitraryFieldsBacked {
+public class VCFVariationCall implements VariationCall, VariantBackedByGenotype, ConfidenceBacked, SLODBacked, IDBacked, ArbitraryFieldsBacked {
 
     // the discovery lod score
     private double mConfidence = 0.0;
@@ -36,17 +36,20 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
     // the id
     private String mID;
 
+    // the genotypes
+    private List<Genotype> mGenotypes = null;
+
     // the various info field values
     private Map<String, String> mInfoFields;
 
     /**
-     * create a basic genotype meta data pbject, given the following fields
+     * create a VCF Variation object, given the following fields
      *
      * @param ref       the reference base
      * @param loc       the locus
      * @param type      the variant type
      */
-    public VCFGenotypeLocusData(char ref, GenomeLoc loc, VARIANT_TYPE type) {
+    public VCFVariationCall(char ref, GenomeLoc loc, VARIANT_TYPE type) {
         mRefBase = ref;
         mLoc = loc;
         mType = type;
@@ -188,6 +191,50 @@ public class VCFGenotypeLocusData implements GenotypeLocusData, ConfidenceBacked
 
     public void setID(String id) {
         mID = id;
+    }
+
+    /**
+     *
+     * @param   calls    the GenotypeCalls for this variation
+     */
+    public void setGenotypeCalls(List<Genotype> calls) {
+        mGenotypes = calls;
+    }
+
+    /**
+     * @return a specific genotype that represents the called genotype
+     */
+    public Genotype getCalledGenotype() {
+        if ( mGenotypes == null || mGenotypes.size() != 1 )
+            throw new IllegalStateException("There is not one and only one Genotype associated with this Variation");
+        return mGenotypes.get(0);
+    }
+
+    /**
+     * @return a list of all the genotypes
+     */
+    public List<Genotype> getGenotypes() {
+        return mGenotypes;
+    }
+
+    /**
+     * do we have the specified genotype?  not all backedByGenotypes
+     * have all the genotype data.
+     *
+     * @param x the genotype
+     *
+     * @return true if available, false otherwise
+     */
+    public boolean hasGenotype(DiploidGenotype x) {
+        if ( mGenotypes == null )
+            return false;
+
+        for ( Genotype g : mGenotypes ) {
+            if ( DiploidGenotype.valueOf(g.getBases()).equals(x) )
+                return true;
+        }
+
+        return false;
     }
 
     /**

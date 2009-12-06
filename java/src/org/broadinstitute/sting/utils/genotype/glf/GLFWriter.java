@@ -289,7 +289,7 @@ public class GLFWriter implements GenotypeWriter {
      *
      * @param genotypes the list of genotypes
      */
-    public void addMultiSampleCall(List<Genotype> genotypes, GenotypeLocusData metadata) {
+    public void addMultiSampleCall(List<Genotype> genotypes, VariationCall metadata) {
         throw new UnsupportedOperationException("GLF writer doesn't support multisample calls");
     }
 

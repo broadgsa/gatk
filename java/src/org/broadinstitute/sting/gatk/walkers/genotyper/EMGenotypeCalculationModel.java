@@ -19,7 +19,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
 
     protected EMGenotypeCalculationModel() {}
 
-    public Pair<List<Genotype>, GenotypeLocusData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
         // keep track of the context for each sample, overall and separated by strand
         HashMap<String, AlignmentContextBySample> contexts = splitContextBySample(context);
@@ -45,11 +45,13 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
 
         // are we above the lod threshold for emitting calls (and not in all-bases mode)?
         if ( !ALL_BASE_MODE && (bestIsRef || phredScaledConfidence < CONFIDENCE_THRESHOLD) ) {
-                return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
+                return new Pair<VariationCall, List<Genotype>>(null, null);
         }
 
         // generate the calls
-        GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, context.getLocation(), Variation.VARIANT_TYPE.SNP);
+        List<Genotype> calls = genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts);
+
+        VariationCall locusdata = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation(), bestIsRef ? Variation.VARIANT_TYPE.REFERENCE : Variation.VARIANT_TYPE.SNP);
         if ( locusdata != null ) {
             if ( locusdata instanceof ConfidenceBacked ) {
                 ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
@@ -79,8 +81,13 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
                 ((SLODBacked)locusdata).setSLOD(strandScore);
             }
             locusdata.setNonRefAlleleFrequency(overall.getMAF());
+
+            // finally, associate the Variation with the Genotypes
+            locusdata.setGenotypeCalls(calls);
+            for ( Genotype call : calls )
+                ((GenotypeCall)call).setVariation(locusdata);
         }
-        return new Pair<List<Genotype>, GenotypeLocusData>(genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts), locusdata);
+        return new Pair<VariationCall, List<Genotype>>(locusdata, calls);
     }
 
     protected List<Genotype> genotypeCallsFromGenotypeLikelihoods(EMOutput results, char ref, HashMap<String, AlignmentContextBySample> contexts) {
@@ -93,7 +100,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
 
             // create the call
             AlignmentContext context = contexts.get(sample).getContext(StratifiedContext.OVERALL);
-            Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation());
+            GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, context.getLocation());
 
             if ( call instanceof ReadBacked ) {
                 ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedContext.OVERALL).getPileup();

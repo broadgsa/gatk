@@ -164,12 +164,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         // if the reference base is not ambiguous, the variant is a SNP, and it's the appropriate type, we can annotate
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 &&
                 variant.isBiallelic() &&
-                variant.isSNP() &&
-                variant instanceof VariantBackedByGenotype ) {
-            final List<org.broadinstitute.sting.utils.genotype.Genotype> genotypes = ((VariantBackedByGenotype)variant).getGenotypes();
-            if ( genotypes != null )
-                annotations = getAnnotations(ref, context, variant, genotypes, requestedAnnotations);
-        }
+                variant.isSNP() )
+            annotations = getAnnotations(ref, context, variant, requestedAnnotations);
 
         writeVCF(tracker, ref, context, variant, annotations);
 
@@ -177,30 +173,30 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     }
 
     // option #1: don't specify annotations to be used: standard annotations are used by default
-    public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation, List<Genotype> genotypes) {
+    public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation) {
         if ( standardAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(ref, context, variation, genotypes, standardAnnotations.values());
+        return getAnnotations(ref, context, variation, standardAnnotations.values());
     }
 
     // option #2: specify that all possible annotations be used
-    public static Map<String, String> getAllAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation, List<Genotype> genotypes) {
+    public static Map<String, String> getAllAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation) {
         if ( allAnnotations == null )
             determineAllAnnotations();
-        return getAnnotations(ref, context, variation, genotypes, allAnnotations.values());
+        return getAnnotations(ref, context, variation, allAnnotations.values());
     }
 
     // option #3: specify the exact annotations to be used
-    public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation, List<Genotype> genotypes, Collection<VariantAnnotation> annotations) {
+    public static Map<String, String> getAnnotations(ReferenceContext ref, AlignmentContext context, Variation variation, Collection<VariantAnnotation> annotations) {
+
+        HashMap<String, String> results = new HashMap<String, String>();
 
         // set up the pileup for the full collection of reads at this position
         ReadBackedPileup fullPileup = context.getPileup();
         ReadBackedPileup MQ0freePileup = fullPileup.getPileupWithoutMappingQualityZeroReads();
 
-        HashMap<String, String> results = new HashMap<String, String>();
-
         for ( VariantAnnotation annotator : annotations) {
-            String annot = annotator.annotate(ref, (annotator.useZeroQualityReads() ? fullPileup : MQ0freePileup), variation, genotypes);
+            String annot = annotator.annotate(ref, (annotator.useZeroQualityReads() ? fullPileup : MQ0freePileup), variation);
             if ( annot != null ) {
                 results.put(annotator.getKeyName(), annot);
             }

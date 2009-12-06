@@ -11,9 +11,12 @@ import java.util.ArrayList;
 
 public class AlleleBalance extends StandardVariantAnnotation {
 
-    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
+    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation) {
 
-        if ( genotypes.size() == 0 )
+        if ( !(variation instanceof VariantBackedByGenotype) )
+            return null;
+        final List<Genotype> genotypes = ((VariantBackedByGenotype)variation).getGenotypes();
+        if ( genotypes == null || genotypes.size() == 0 )
             return null;
 
         double ratio;

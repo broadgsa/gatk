@@ -14,9 +14,12 @@ public class RankSumTest implements VariantAnnotation {
     private final static boolean DEBUG = false;
     private static final double minPValue = 1e-10;
 
-    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
+    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation) {
 
-        if ( genotypes.size() == 0 )
+        if ( !(variation instanceof VariantBackedByGenotype) )
+            return null;
+        final List<Genotype> genotypes = ((VariantBackedByGenotype)variation).getGenotypes();
+        if ( genotypes == null || genotypes.size() == 0 )
             return null;
 
         // this test doesn't make sense for homs

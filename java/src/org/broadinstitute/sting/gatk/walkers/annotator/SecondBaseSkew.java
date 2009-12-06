@@ -4,11 +4,9 @@ import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
-import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -30,7 +28,7 @@ public class SecondBaseSkew implements VariantAnnotation {
 
     public String getDescription() { return KEY_NAME + ",1,Float,\"Chi-square Secondary Base Skew\""; }
 
-    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
+    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation) {
         if ( variation.isSNP() && variation.isBiallelic() ) {
             char snp = variation.getAlternativeBaseForSNP();
             Pair<Integer,Double> depthProp = getSecondaryPileupNonrefEstimator(ref.getBase(), pileup, snp);

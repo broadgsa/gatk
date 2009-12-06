@@ -44,7 +44,7 @@ import java.util.*;
 
 
 @Reference(window=@Window(start=-20,stop=20))
-public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeLocusData>, Integer> {
+public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genotype>>, Integer> {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
@@ -154,7 +154,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
      * @param refContext the reference base
      * @param fullContext contextual information around the locus
      */
-    public Pair<List<Genotype>, GenotypeLocusData> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext fullContext) {
+    public Pair<VariationCall, List<Genotype>> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext fullContext) {
         char ref = Character.toUpperCase(refContext.getBase());
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
@@ -168,16 +168,16 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
             return null;
 
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
-        Pair<List<Genotype>, GenotypeLocusData> call = gcm.calculateGenotype(tracker, ref, MQ0freeContext, priors);
+        Pair<VariationCall, List<Genotype>> call = gcm.calculateGenotype(tracker, ref, MQ0freeContext, priors);
 
         // annotate the call, if possible
-        if ( call != null && call.second != null && call.second instanceof ArbitraryFieldsBacked ) {
+        if ( call != null && call.first != null && call.first instanceof ArbitraryFieldsBacked ) {
             Map<String, String> annotations;
             if ( UAC.ALL_ANNOTATIONS )
-                annotations = VariantAnnotator.getAllAnnotations(refContext, fullContext, call.second, call.first);
+                annotations = VariantAnnotator.getAllAnnotations(refContext, fullContext, call.first);
             else
-                annotations = VariantAnnotator.getAnnotations(refContext, fullContext, call.second, call.first);
-            ((ArbitraryFieldsBacked)call.second).setFields(annotations);
+                annotations = VariantAnnotator.getAnnotations(refContext, fullContext, call.first);
+            ((ArbitraryFieldsBacked)call.first).setFields(annotations);
         }
 
         return call;
@@ -191,7 +191,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
 
     public Integer reduceInit() { return 0; }
 
-    public Integer reduce(Pair<List<Genotype>, GenotypeLocusData> value, Integer sum) {
+    public Integer reduce(Pair<VariationCall, List<Genotype>> value, Integer sum) {
         // can't call the locus because of no coverage
         if ( value == null )
             return sum;
@@ -199,22 +199,22 @@ public class UnifiedGenotyper extends LocusWalker<Pair<List<Genotype>, GenotypeL
         callsMetrics.nCalledBases++;
 
         // can't make a confident variant call here
-        if ( value.first == null ||
-                (UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED && value.first.size() == 0) ) {
+        if ( value.second == null ||
+                (UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED && value.second.size() == 0) ) {
             callsMetrics.nNonConfidentCalls++;
             return sum;
         }
 
         callsMetrics.nConfidentCalls++;
 
-        // if we have a single-sample call (single sample from PointEstimate model returns no genotype locus data)
-        if ( value.second == null || (!writer.supportsMultiSample() && samples.size() <= 1) ) {
-            writer.addGenotypeCall(value.first.get(0));
+        // if we have a single-sample call (single sample from PointEstimate model returns no VariationCall data)
+        if ( value.first == null || (!writer.supportsMultiSample() && samples.size() <= 1) ) {
+            writer.addGenotypeCall(value.second.get(0));
         }
 
         // use multi-sample mode if we have multiple samples or the output type allows it
         else {
-            writer.addMultiSampleCall(value.first, value.second);
+            writer.addMultiSampleCall(value.second, value.first);
         }
 
         return sum + 1;

@@ -26,7 +26,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
 
     // overload this method so we can special-case the single sample
-    public Pair<List<Genotype>, GenotypeLocusData> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
 
         // we don't actually want to run EM for single samples
         if ( samples.size() == 1 ) {
@@ -45,7 +45,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                 return null;
 
             // get the genotype likelihoods
-            Pair<ReadBackedPileup, GenotypeLikelihoods> discoveryGL = getSingleSampleLikelihoods(ref, sampleContext, priors, StratifiedContext.OVERALL);
+            Pair<ReadBackedPileup, GenotypeLikelihoods> discoveryGL = getSingleSampleLikelihoods(sampleContext, priors, StratifiedContext.OVERALL);
 
             // find the index of the best genotype
             double[] posteriors = discoveryGL.second.getNormalizedPosteriors();
@@ -68,11 +68,12 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
             // are we above the lod threshold for emitting calls (and not in all-bases mode)?
             if ( !ALL_BASE_MODE && (bestIsRef || phredScaledConfidence < CONFIDENCE_THRESHOLD) ) {
-                    return new Pair<List<Genotype>, GenotypeLocusData>(null, null);
+                    return new Pair<VariationCall, List<Genotype>>(null, null);
             }
 
             // we can now create the genotype call object
-            Genotype call = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation());
+            GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, context.getLocation());
+            call.setVariation(null);
 
             if ( call instanceof ReadBacked ) {
                 ((ReadBacked)call).setPileup(discoveryGL.first);
@@ -87,7 +88,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                 ((PosteriorsBacked)call).setPosteriors(discoveryGL.second.getPosteriors());
             }
 
-            GenotypeLocusData locusdata = GenotypeWriterFactory.createSupportedGenotypeLocusData(OUTPUT_FORMAT, ref, context.getLocation(), Variation.VARIANT_TYPE.SNP);
+            VariationCall locusdata = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation(), bestIsRef ? Variation.VARIANT_TYPE.REFERENCE : Variation.VARIANT_TYPE.SNP);
             if ( locusdata != null ) {
                 if ( locusdata instanceof ConfidenceBacked ) {
                     ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
@@ -99,13 +100,13 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                 }
             }
 
-            return new Pair<List<Genotype>, GenotypeLocusData>(Arrays.asList(call), locusdata);
+            return new Pair<VariationCall, List<Genotype>>(locusdata, Arrays.asList((Genotype)call));
         }
 
         return super.calculateGenotype(tracker, ref, context, priors);
     }
 
-    private Pair<ReadBackedPileup, GenotypeLikelihoods> getSingleSampleLikelihoods(char ref, AlignmentContextBySample sampleContext, DiploidGenotypePriors priors, StratifiedContext contextType) {
+    private Pair<ReadBackedPileup, GenotypeLikelihoods> getSingleSampleLikelihoods(AlignmentContextBySample sampleContext, DiploidGenotypePriors priors, StratifiedContext contextType) {
         // create the pileup
         AlignmentContext myContext = sampleContext.getContext(contextType);
         ReadBackedPileup pileup = myContext.getPileup();

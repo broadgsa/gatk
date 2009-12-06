@@ -149,7 +149,7 @@ public class GeliAdapter implements GenotypeWriter {
      *
      * @param genotypes the list of genotypes
      */
-    public void addMultiSampleCall( List<Genotype> genotypes, GenotypeLocusData metadata) {
+    public void addMultiSampleCall( List<Genotype> genotypes, VariationCall metadata) {
         throw new UnsupportedOperationException("Geli binary doesn't support multisample calls");
     }
 

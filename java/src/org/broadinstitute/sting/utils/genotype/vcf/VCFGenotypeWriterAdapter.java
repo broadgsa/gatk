@@ -109,9 +109,9 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      *
      * @param genotypes the list of genotypes
      */
-    public void addMultiSampleCall(List<Genotype> genotypes, GenotypeLocusData locusdata) {
-        if ( locusdata != null && !(locusdata instanceof VCFGenotypeLocusData) )
-            throw new IllegalArgumentException("Only VCFGenotypeLocusData objects should be passed in to the VCF writers");
+    public void addMultiSampleCall(List<Genotype> genotypes, VariationCall locusdata) {
+        if ( locusdata != null && !(locusdata instanceof VCFVariationCall) )
+            throw new IllegalArgumentException("Only VCFVariationCall objects should be passed in to the VCF writers");
 
         VCFParameters params = new VCFParameters();
         params.addFormatItem("GT");
@@ -151,17 +151,17 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         }
 
         // info fields
-        Map<String, String> infoFields = getInfoFields((VCFGenotypeLocusData)locusdata, params);
+        Map<String, String> infoFields = getInfoFields((VCFVariationCall)locusdata, params);
 
         // q-score
-        double qual = (locusdata == null) ? 0 : ((VCFGenotypeLocusData)locusdata).getConfidence();
+        double qual = (locusdata == null) ? 0 : ((VCFVariationCall)locusdata).getConfidence();
         // min Q-score is zero
         qual = Math.max(qual, 0);
 
         // dbsnp id
         String dbSnpID = null;
         if ( locusdata != null )
-            dbSnpID = ((VCFGenotypeLocusData)locusdata).getID();
+            dbSnpID = ((VCFVariationCall)locusdata).getID();
 
         VCFRecord vcfRecord = new VCFRecord(params.getReferenceBase(),
                                             params.getContig(),
@@ -185,7 +185,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
      *
      * @return a mapping of info field to value
      */
-    private static Map<String, String> getInfoFields(VCFGenotypeLocusData locusdata, VCFParameters params) {
+    private static Map<String, String> getInfoFields(VCFVariationCall locusdata, VCFParameters params) {
         Map<String, String> infoFields = new HashMap<String, String>();
         if ( locusdata != null ) {
             if ( locusdata.getSLOD() != null )

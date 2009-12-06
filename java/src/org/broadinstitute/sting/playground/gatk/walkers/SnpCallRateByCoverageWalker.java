@@ -80,9 +80,9 @@ public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, Strin
                     List<Integer> sub_offsets = ListUtils.sliceListByIndices(subset_indices, offsets);
 
                     AlignmentContext subContext = new AlignmentContext(context.getLocation(), sub_reads, sub_offsets);
-                    Pair<List<Genotype>, GenotypeLocusData> calls = UG.map(tracker, ref, subContext);
-                    if (calls != null && calls.first != null) {
-                        Genotype call = calls.first.get(0);
+                    Pair<VariationCall, List<Genotype>> calls = UG.map(tracker, ref, subContext);
+                    if (calls != null && calls.second != null && calls.second.size() > 0) {
+                        Genotype call = calls.second.get(0);
                         String callType = (call.isVariant(call.getReference())) ? ((call.isHom()) ? "HomozygousSNP" : "HeterozygousSNP") : "HomozygousReference";
                         GenotypeCalls.add(coverage+"\t"+coverage_available+"\t"+hc_genotype+"\t"+callType+"\t"+toGeliString(call));
                     }

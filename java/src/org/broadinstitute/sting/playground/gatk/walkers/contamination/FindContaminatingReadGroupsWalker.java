@@ -8,7 +8,8 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.genotype.Genotype;
-import org.broadinstitute.sting.utils.genotype.GenotypeLocusData;
+import org.broadinstitute.sting.utils.genotype.VariationCall;
+import org.broadinstitute.sting.utils.genotype.GenotypeCall;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -84,10 +85,10 @@ public class FindContaminatingReadGroupsWalker extends LocusWalker<Integer, Inte
         double altBalance = ((double) altCount)/((double) totalCount);
 
         if (altBalance > 0.70) {
-            Pair<List<Genotype>, GenotypeLocusData> ugResult = ug.map(tracker, ref, context);
+            Pair<VariationCall, List<Genotype>> ugResult = ug.map(tracker, ref, context);
 
-            if (ugResult != null && ugResult.first != null) {
-                return ugResult.first.get(0).isHet();
+            if (ugResult != null && ugResult.second != null && ugResult.second.size() > 0) {
+                return ugResult.second.get(0).isHet();
             }
         }
 

@@ -7,6 +7,8 @@ import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -102,10 +104,10 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      *
      * @return calls
      */
-    public abstract Pair<List<Genotype>, GenotypeLocusData> calculateGenotype(RefMetaDataTracker tracker,
-                                                                             char ref,
-                                                                             AlignmentContext context,
-                                                                             DiploidGenotypePriors priors);
+    public abstract Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker,
+                                                                          char ref,
+                                                                          AlignmentContext context,
+                                                                          DiploidGenotypePriors priors);
 
     /**
      * @param tracker   rod data
@@ -137,15 +139,11 @@ public abstract class GenotypeCalculationModel implements Cloneable {
 
         HashMap<String, AlignmentContextBySample> contexts = new HashMap<String, AlignmentContextBySample>();
 
-        int deletionsInPileup = 0;
-        List<SAMRecord> reads = context.getReads();
-        List<Integer> offsets = context.getOffsets();
-
-        for (int i = 0; i < reads.size(); i++) {
+        ReadBackedPileup pileup = context.getPileup();
+        for (PileupElement p : pileup ) {
 
             // get the read and offset
-            SAMRecord read = reads.get(i);
-            int offset = offsets.get(i);
+            SAMRecord read = p.getRead();
 
             // find the sample
             String sample;
@@ -165,19 +163,15 @@ public abstract class GenotypeCalculationModel implements Cloneable {
                 contexts.put(sample, myContext);
             }
 
-            // check for deletions
-            if ( offset == -1 )
-                deletionsInPileup++;
-
             // add the read to this sample's context
             // note that bad bases are added to the context (for DoC calculations later)
-            myContext.add(read, offset);
+            myContext.add(read, p.getOffset());
         }
 
 
         // are there too many deletions in the pileup?
         if ( maxDeletionFractionInPileup != -1.0 &&
-             (double)deletionsInPileup / (double)reads.size() > maxDeletionFractionInPileup )
+             (double)pileup.getNumberOfDeletions() / (double)pileup.size() > maxDeletionFractionInPileup )
             return null;
 
         return contexts;
@@ -221,19 +215,19 @@ public abstract class GenotypeCalculationModel implements Cloneable {
 
         private AlignmentContext getOverallContext() {
             if ( overall == null )
-                overall = new AlignmentContext(loc, allReads, allOffsets);
+                overall = new AlignmentContext(loc, new ReadBackedPileup(loc, allReads, allOffsets));
             return overall;
         }
 
         private AlignmentContext getForwardContext() {
             if ( forward == null )
-                forward = new AlignmentContext(loc, forwardReads, forwardOffsets);
+                forward = new AlignmentContext(loc, new ReadBackedPileup(loc, forwardReads, forwardOffsets));
             return forward;
         }
 
         private AlignmentContext getReverseContext() {
             if ( reverse == null )
-                reverse = new AlignmentContext(loc, reverseReads, reverseOffsets);
+                reverse = new AlignmentContext(loc, new ReadBackedPileup(loc, reverseReads, reverseOffsets));
             return reverse;
         }
 

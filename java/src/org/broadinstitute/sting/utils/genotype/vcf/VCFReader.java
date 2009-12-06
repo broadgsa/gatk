@@ -148,7 +148,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         for (String str : headerStrings) {
             Matcher matcher = pMeta.matcher(str);
             if (matcher.matches()) {
-                String metaKey = "";
+                String metaKey;
                 String metaValue = "";
                 if (matcher.groupCount() < 1) continue;
                 if (matcher.groupCount() == 2) metaValue = matcher.group(2);
@@ -300,7 +300,6 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         return this.mHeader;
     }
 
-    @Override
     public Iterator<VCFRecord> iterator() {
         return this;
     }

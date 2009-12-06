@@ -5,6 +5,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.VariantBackedByGenotype;
 import net.sf.samtools.SAMRecord;
 import cern.jet.math.Arithmetic;
 
@@ -13,7 +14,13 @@ import java.util.List;
 
 public class FisherStrand implements VariantAnnotation {
 
-    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation, List<Genotype> genotypes) {
+    public String annotate(ReferenceContext ref, ReadBackedPileup pileup, Variation variation) {
+
+        if ( !(variation instanceof VariantBackedByGenotype) )
+            return null;
+        final List<Genotype> genotypes = ((VariantBackedByGenotype)variation).getGenotypes();
+        if ( genotypes == null || genotypes.size() == 0 )
+            return null;
 
         // this test doesn't make sense for homs
         Genotype genotype = VariantAnnotator.getFirstHetVariant(genotypes);
