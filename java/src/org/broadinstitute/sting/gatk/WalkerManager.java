@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.PluginManager;
+import org.broadinstitute.sting.utils.doc.DisplayNameTaglet;
 import org.apache.log4j.Logger;
 import net.sf.picard.filter.SamRecordFilter;
 
@@ -92,7 +93,8 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return A suitable display name for the package.
      */
     public String getPackageDisplayName(String packageName) {
-        return packageName.substring(packageName.lastIndexOf('.')+1);
+        String specifiedDisplayName = helpText.getProperty(packageName+"."+ DisplayNameTaglet.NAME);
+        return specifiedDisplayName != null ? specifiedDisplayName : packageName.substring(packageName.lastIndexOf('.')+1);
     }
 
     /**

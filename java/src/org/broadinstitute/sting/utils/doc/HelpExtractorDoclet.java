@@ -1,14 +1,14 @@
 package org.broadinstitute.sting.utils.doc;
 
-import com.sun.javadoc.RootDoc;
-import com.sun.javadoc.PackageDoc;
-import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.*;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Scanner;
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
+
+import org.broadinstitute.sting.utils.StingException;
 
 /**
  * Extracts certain types of javadoc (specifically package and class descriptions) and makes them available
@@ -41,17 +41,12 @@ public class HelpExtractorDoclet {
             String className = containingPackage.name().length() > 0 ?
                     String.format("%s.%s",containingPackage.name(),currentClass.name()) :
                     String.format("%s",currentClass.name());
-            String commentText = formatText(currentClass.commentText());
 
-            if(commentText.length() > 0)
-                out.printf("%s=%s%n",className,commentText);
+            renderHelpText(className,currentClass,out);
         }
 
-        for(PackageDoc currentPackage: packages) {
-            String commentText = formatText(currentPackage.commentText());
-            if(commentText.length() > 0)
-                out.printf("%s=%s%n",currentPackage.name(),commentText);
-        }
+        for(PackageDoc currentPackage: packages)
+            renderHelpText(currentPackage.name(),currentPackage,out);
 
         return true;
     }
@@ -66,6 +61,25 @@ public class HelpExtractorDoclet {
             return 2;
         }
         return 0;
+    }
+
+    /**
+     * Renders all the help text required for a given name.
+     * @param elementName element name to use as the key
+     * @param element Doc element to process.
+     * @param out Output stream to which to write.
+     */
+    private static void renderHelpText(String elementName, Doc element, PrintStream out) {
+        // Provide a new display name if provided by the user.
+        Tag[] tags = element.tags("@"+DisplayNameTaglet.NAME);
+        if(tags.length > 1)
+            throw new StingException("Cannot provide multiple display names for a single tag.");
+        if(tags.length == 1)
+            out.printf("%s.%s=%s%n",elementName,DisplayNameTaglet.NAME,tags[0].text());
+
+        String commentText = formatText(element.commentText());
+        if(commentText.length() > 0)
+            out.printf("%s=%s%n",elementName,commentText);
     }
 
     /**
