@@ -25,8 +25,8 @@ public class VCFGenotypeEncoding {
     public VCFGenotypeEncoding(String baseString) {
         if ((baseString.length() == 1)) {
             // are we an empty (no-call) genotype?
-            if (baseString.equals(VCFGenotypeRecord.EMPTY_GENOTYPE)) {
-                mBases = VCFGenotypeRecord.EMPTY_GENOTYPE;
+            if (baseString.equals(VCFGenotypeRecord.EMPTY_ALLELE)) {
+                mBases = VCFGenotypeRecord.EMPTY_ALLELE;
                 mLength = 0;
                 mType = TYPE.UNCALLED;
             } else if (!validBases(baseString)) {
@@ -67,10 +67,14 @@ public class VCFGenotypeEncoding {
     }
 
     public boolean equals(Object obj) {
-        if (obj != null && (obj.getClass().equals(this.getClass()))) {
+        if ( obj == null )
+            return false;
+        if ( obj instanceof VCFGenotypeEncoding ) {
             VCFGenotypeEncoding d = (VCFGenotypeEncoding) obj;
             return (mType == d.mType) && (mBases.equals(d.mBases)) && (mLength == d.mLength);
         }
+        if ( mType == TYPE.UNCALLED && obj.toString().equals(VCFGenotypeRecord.EMPTY_ALLELE) )
+            return true;
         return false;
     }
 
@@ -84,7 +88,7 @@ public class VCFGenotypeEncoding {
     /**
      * dump the string representation of this genotype encoding
      *
-     * @return
+     * @return string representation
      */
     public String toString() {
         StringBuilder builder = new StringBuilder();

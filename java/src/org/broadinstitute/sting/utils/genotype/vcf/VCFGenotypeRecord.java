@@ -16,8 +16,11 @@ import java.util.Map;
  *         <p/>
  */
 public class VCFGenotypeRecord implements Genotype {
-    // the symbol for a empty genotype
-    public static final String EMPTY_GENOTYPE = ".";
+    // the symbols for an empty genotype
+    public static final String EMPTY_GENOTYPE = "./.";
+    public static final String EMPTY_ALLELE = ".";
+
+    public static final int MISSING_DEPTH = -1;
 
     // what kind of phasing this genotype has
     public enum PHASE {
@@ -37,7 +40,7 @@ public class VCFGenotypeRecord implements Genotype {
     private final Map<String, String> mFields = new HashMap<String, String>();
 
     // our sample name
-    private final String mSampleName;
+    private String mSampleName;
 
     /**
      * Create a VCF genotype record
@@ -56,6 +59,10 @@ public class VCFGenotypeRecord implements Genotype {
 
     public void setVCFRecord(VCFRecord record) {
         this.mRecord = record;
+    }
+
+    public void setSampleName(String name) {
+        mSampleName = name;
     }
 
     /**
@@ -96,6 +103,15 @@ public class VCFGenotypeRecord implements Genotype {
 
     public double getNegLog10PError() {
         return ( mFields.containsKey("GQ") ? Double.valueOf(mFields.get("GQ")) / 10.0 : 0.0);
+    }
+
+    public int getReadCount() {
+        int depth = MISSING_DEPTH;
+        if ( mFields.containsKey("RD") )
+            depth = Integer.valueOf(mFields.get("RD"));
+        else if ( mFields.containsKey("DP") )
+            depth = Integer.valueOf(mFields.get("DP"));
+        return depth;
     }
 
     public GenomeLoc getLocation() {
@@ -157,7 +173,7 @@ public class VCFGenotypeRecord implements Genotype {
         boolean first = true;
         for (VCFGenotypeEncoding allele : mGenotypeAlleles) {
             if (allele.getType() == VCFGenotypeEncoding.TYPE.UNCALLED)
-                str += VCFGenotypeRecord.EMPTY_GENOTYPE;
+                str += VCFGenotypeRecord.EMPTY_ALLELE;
             else
                 str += String.valueOf((altAlleles.contains(allele)) ? altAlleles.indexOf(allele) + 1 : 0);
             if (first) {

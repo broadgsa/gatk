@@ -206,15 +206,20 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
         // if we have genotyping data, we try and extract the genotype fields
         if (mHeader.hasGenotypingData()) {
             String mFormatString = tokens[index];
+            String keyStrings[] = mFormatString.split(":");
             List<VCFGenotypeRecord> genotypeRecords = new ArrayList<VCFGenotypeRecord>();
             index++;
 			String[] alt_alleles = values.get(VCFHeader.HEADER_FIELDS.ALT).split(",");
             for (String str : mHeader.getGenotypeSamples()) {
-                if (!tokens[index].equalsIgnoreCase(VCFGenotypeRecord.EMPTY_GENOTYPE))
-                    genotypeRecords.add(getVCFGenotype(str, mFormatString, tokens[index], alt_alleles, values.get(VCFHeader.HEADER_FIELDS.REF).charAt(0)));
+                genotypeRecords.add(getVCFGenotype(str, keyStrings, tokens[index], alt_alleles, values.get(VCFHeader.HEADER_FIELDS.REF).charAt(0)));
                 index++;
             }
-            return new VCFRecord(values, mFormatString, genotypeRecords);
+            VCFRecord vrec = new VCFRecord(values, mFormatString, genotypeRecords);
+            // associate the genotypes with this new record
+            for ( VCFGenotypeRecord gr : genotypeRecords )
+                gr.setVCFRecord(vrec);
+            return vrec;
+
         }
         return new VCFRecord(values);
     }
@@ -231,11 +236,25 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * @return a VCFGenotypeRecord
      */
     public static VCFGenotypeRecord getVCFGenotype(String sampleName, String formatString, String genotypeString, String altAlleles[], char referenceBase) {
+        return getVCFGenotype(sampleName, formatString.split(":"), genotypeString, altAlleles, referenceBase);
+    }
+
+    /**
+     * generate a VCF genotype record, given it's format string, the genotype string, and allele info
+     *
+     * @param sampleName     the sample name
+     * @param keyStrings     the split format string for this record, which contains the keys for the genotype parameters
+     * @param genotypeString contains the phasing information, allele information, and values for genotype parameters
+     * @param altAlleles     the alternate allele string array, which we index into based on the field parameters
+     * @param referenceBase  the reference base
+     *
+     * @return a VCFGenotypeRecord
+     */
+    public static VCFGenotypeRecord getVCFGenotype(String sampleName, String[] keyStrings, String genotypeString, String altAlleles[], char referenceBase) {
         // parameters to create the VCF genotype record
         Map<String, String> tagToValue = new HashMap<String, String>();
         VCFGenotypeRecord.PHASE phase = VCFGenotypeRecord.PHASE.UNKNOWN;
         List<VCFGenotypeEncoding> bases = new ArrayList<VCFGenotypeEncoding>();
-        String keyStrings[] = formatString.split(":");
 
         for (String key : keyStrings) {
             String parse;
@@ -260,11 +279,13 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
             if (nextDivider + 1 >= genotypeString.length()) nextDivider = genotypeString.length() - 1;
             genotypeString = genotypeString.substring(nextDivider + 1, genotypeString.length());
         }
+        if ( bases.size() > 0 && bases.get(0).equals(VCFGenotypeRecord.EMPTY_ALLELE) )
+            tagToValue.clear();
         // catch some common errors, either there are too many field keys or there are two many field values
-        if (keyStrings.length != tagToValue.size() + ((bases.size() > 0) ? 1 : 0))
+        else if ( keyStrings.length != tagToValue.size() + ((bases.size() > 0) ? 1 : 0))
             throw new RuntimeException("VCFReader: genotype value count doesn't match the key count (expected "
                     + keyStrings.length + " but saw " + tagToValue.size() + ")");
-        else if (genotypeString.length() > 0)
+        else if ( genotypeString.length() > 0 )
             throw new RuntimeException("VCFReader: genotype string contained additional unprocessed fields: " + genotypeString
                     + ".  This most likely means that the format string is shorter then the value fields.");
         return new VCFGenotypeRecord(sampleName, bases, phase, tagToValue);
@@ -280,8 +301,8 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * @param bases         the list of bases for this genotype call
      */
     private static void addAllele(String alleleNumber, String[] altAlleles, char referenceBase, List<VCFGenotypeEncoding> bases) {
-        if (alleleNumber.equals(VCFGenotypeRecord.EMPTY_GENOTYPE)) {
-            bases.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_GENOTYPE));
+        if (alleleNumber.equals(VCFGenotypeRecord.EMPTY_ALLELE)) {
+            bases.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE));
         } else {
             int alleleValue = Integer.valueOf(alleleNumber);
             // check to make sure the allele value is within bounds

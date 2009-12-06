@@ -130,19 +130,15 @@ public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
 
         // pull out all of the individual calls from the rods and insert into a map based on the
         // mapping from rod/sample to uniquified name
-        HashMap<String, VCFGenotypeCall> samplesToRecords = new HashMap<String, VCFGenotypeCall>();
+        HashMap<String, Genotype> samplesToRecords = new HashMap<String, Genotype>();
         for ( RodVCF rod : vcfRods ) {
-            List<Genotype> records = rod.getGenotypes();
-            for ( Genotype g : records ) {
-                if ( !(g instanceof VCFGenotypeCall) )
-                    throw new StingException("Expected VCF rod Genotypes to be of type VCFGenotypeCall");
-
-                VCFGenotypeCall vcfCall = (VCFGenotypeCall)g;
-                String uniquifiedSample = rodNamesToSampleNames.get(new Pair<String, String>(rod.getName(), vcfCall.getSampleName()));
+            List<VCFGenotypeRecord> records = rod.getVCFGenotypeRecords();
+            for ( VCFGenotypeRecord vcfRec : records ) {
+                String uniquifiedSample = rodNamesToSampleNames.get(new Pair<String, String>(rod.getName(), vcfRec.getSampleName()));
                 if ( uniquifiedSample == null )
-                    throw new StingException("Unexpected sample encountered: " + vcfCall.getSampleName() + " in rod " + rod.getName());
+                    throw new StingException("Unexpected sample encountered: " + vcfRec.getSampleName() + " in rod " + rod.getName());
 
-                samplesToRecords.put(uniquifiedSample, vcfCall);
+                samplesToRecords.put(uniquifiedSample, vcfRec);
             }
         }
 

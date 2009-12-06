@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeCall;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -18,12 +18,12 @@ public class NWayVenn implements ConcordanceType {
 
     public void initialize(Map<String, String> args, Set<String> samples) { }
 
-    public String computeConcordance(Map<String, VCFGenotypeCall> samplesToRecords, ReferenceContext ref) {
+    public String computeConcordance(Map<String, Genotype> samplesToRecords, ReferenceContext ref) {
         if ( samplesToRecords.size() == 0 )
             return null;
 
         TreeSet<String> concordantSamples = new TreeSet<String>();
-        for ( Entry<String, VCFGenotypeCall> entry : samplesToRecords.entrySet() ) {
+        for ( Entry<String, Genotype> entry : samplesToRecords.entrySet() ) {
             concordantSamples.add(entry.getKey());
         }
 

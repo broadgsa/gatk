@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeCall;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
@@ -25,10 +25,10 @@ public class SimpleVenn implements ConcordanceType {
         sample2 = iter.next();
     }
 
-    public String computeConcordance(Map<String, VCFGenotypeCall> samplesToRecords, ReferenceContext ref) {
+    public String computeConcordance(Map<String, Genotype> samplesToRecords, ReferenceContext ref) {
 
-        VCFGenotypeCall call1 = samplesToRecords.get(sample1);
-        VCFGenotypeCall call2 = samplesToRecords.get(sample2);
+        Genotype call1 = samplesToRecords.get(sample1);
+        Genotype call2 = samplesToRecords.get(sample2);
 
         if ( call1 == null && call2 == null )
             return null;

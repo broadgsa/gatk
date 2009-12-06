@@ -5,8 +5,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.RodVCF;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.Genotype;
+import org.broadinstitute.sting.utils.genotype.*;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -116,17 +115,13 @@ public class VCFUtils {
         int freqsSeen = 0;
 
         for ( RodVCF rod : rods ) {
-            List<Genotype> myGenotypes = rod.getGenotypes();
-            for ( Genotype g : myGenotypes ) {
-                if ( !(g instanceof VCFGenotypeCall) )
-                    throw new StingException("Expected VCFGenotypeCall object but instead saw " + g.getClass().getSimpleName());
-
+            List<VCFGenotypeRecord> myGenotypes = rod.getVCFGenotypeRecords();
+            for ( VCFGenotypeRecord call : myGenotypes ) {
                 // set the name to be the new uniquified name and add it to the list of genotypes
-                VCFGenotypeCall call = (VCFGenotypeCall)g;
                 call.setSampleName(rodNamesToSampleNames.get(new Pair<String, String>(rod.getName(), call.getSampleName())));
                 if ( params.getPosition() < 1 )
-                    params.setLocations(call.getLocation(), call.getReference());
-                params.addGenotypeRecord(createVCFGenotypeRecord(params, call));
+                    params.setLocations(rod.getLocation(), call.getReference());
+                params.addGenotypeRecord(createVCFGenotypeRecord(params, call, rod.mCurrentRecord));
                 totalReadDepth += call.getReadCount();
             }
 
@@ -166,6 +161,39 @@ public class VCFUtils {
                 infoFields,
                 params.getFormatString(),
                 params.getGenotypesRecords());
+    }
+
+    /**
+     * create the VCF genotype record
+     *
+     * @param params the VCF parameters object
+     * @param gtype  the genotype
+     * @param vcfrecord  the VCF record
+     *
+     * @return a VCFGenotypeRecord
+     */
+    public static VCFGenotypeRecord createVCFGenotypeRecord(VCFParameters params, VCFGenotypeRecord gtype, VCFRecord vcfrecord) {
+        Map<String, String> map = new HashMap<String, String>();
+
+        // calculate the RMS mapping qualities and the read depth
+        int readDepth = gtype.getReadCount();
+        map.put("RD", String.valueOf(readDepth));
+        params.addFormatItem("RD");
+        double qual = 10.0 * gtype.getNegLog10PError();
+        map.put("GQ", String.format("%.2f", qual));
+        params.addFormatItem("GQ");
+
+        List<VCFGenotypeEncoding> alleles = createAlleleArray(gtype);
+        for (VCFGenotypeEncoding allele : alleles) {
+            params.addAlternateBase(allele);
+        }
+
+        VCFGenotypeRecord record = new VCFGenotypeRecord(gtype.getSampleName(),
+                                                         alleles,
+                                                         VCFGenotypeRecord.PHASE.UNPHASED,
+                                                         map);
+        record.setVCFRecord(vcfrecord);
+        return record;
     }
 
     /**

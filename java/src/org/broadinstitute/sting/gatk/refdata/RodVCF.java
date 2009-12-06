@@ -260,6 +260,16 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     }
 
     /**
+     * get the genotypes
+     *
+     * @return a list of the genotypes
+     */
+    public List<VCFGenotypeRecord> getVCFGenotypeRecords() {
+        assertNotNull();
+        return mCurrentRecord.getVCFGenotypeRecords();
+    }
+
+    /**
      * do we have the specified genotype?  not all backedByGenotypes
      * have all the genotype data.
      *

@@ -85,11 +85,7 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         this.setQual(qual);
         this.setFilterString(filters);
         this.mInfoFields.putAll(infoFields);
-        mGenotypeFormatString = genotypeFormatString;
-
-        // associate the genotypes with this Variation, then add them
-        for ( VCFGenotypeRecord rec : genotypeObjects )
-            rec.setVCFRecord(this);
+        this.mGenotypeFormatString = genotypeFormatString;
         this.mGenotypeFields.addAll(genotypeObjects);
     }
 

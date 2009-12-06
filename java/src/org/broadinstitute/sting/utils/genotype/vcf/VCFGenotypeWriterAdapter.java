@@ -213,8 +213,8 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
 
 
         List<VCFGenotypeEncoding> alleles = new ArrayList<VCFGenotypeEncoding>();
-        alleles.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_GENOTYPE));
-        alleles.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_GENOTYPE));
+        alleles.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE));
+        alleles.add(new VCFGenotypeEncoding(VCFGenotypeRecord.EMPTY_ALLELE));
 
         VCFGenotypeRecord record = new VCFGenotypeRecord(sampleName,
                                                          alleles,

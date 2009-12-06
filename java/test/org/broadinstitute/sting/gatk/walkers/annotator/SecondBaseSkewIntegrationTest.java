@@ -61,7 +61,7 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
                      + " -R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta -A SecondBaseSkew"
                      + " -sample variant -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_pileup_test_chr15.vcf"
                      + " -vcf %s -L chr15:46347148";
-        String expected_md5 = "fe7f6d2b48ecf2c1340b5de98a9d5614";
+        String expected_md5 = "160a8e3826eb745bcfe2f463f73e1ec7";
         WalkerTestSpec spec = new WalkerTestSpec(test_args,1,Arrays.asList(expected_md5));
         executeTest("Testing on locus with many indels", spec);
     }

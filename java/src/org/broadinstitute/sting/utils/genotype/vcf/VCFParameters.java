@@ -65,7 +65,9 @@ class VCFParameters {
     }
 
     public void addAlternateBase(VCFGenotypeEncoding base) {
-        if (!alternateBases.contains(base) && !base.toString().equals(String.valueOf(this.getReferenceBase())))
+        if ( !alternateBases.contains(base) &&
+             !base.toString().equals(String.valueOf(getReferenceBase())) &&
+             !base.toString().equals(VCFGenotypeRecord.EMPTY_ALLELE) )
             alternateBases.add(base);
     }
 

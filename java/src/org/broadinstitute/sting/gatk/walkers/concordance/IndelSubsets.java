@@ -4,7 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.Variation;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeCall;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 
 import java.util.*;
 
@@ -53,10 +53,10 @@ public class IndelSubsets implements ConcordanceType {
         }
     }
 
-    public String computeConcordance(Map<String, VCFGenotypeCall> samplesToRecords, ReferenceContext ref) {
+    public String computeConcordance(Map<String, Genotype> samplesToRecords, ReferenceContext ref) {
 
-        VCFGenotypeCall indel1 = samplesToRecords.get(sample1);
-        VCFGenotypeCall indel2 = samplesToRecords.get(sample2);
+        Genotype indel1 = samplesToRecords.get(sample1);
+        Genotype indel2 = samplesToRecords.get(sample2);
 
         int set1 = ( indel1 != null && !indel1.isPointGenotype() ? 0 : 1 );
         int set2 = ( indel2 != null && !indel2.isPointGenotype() ? 0 : 1 );

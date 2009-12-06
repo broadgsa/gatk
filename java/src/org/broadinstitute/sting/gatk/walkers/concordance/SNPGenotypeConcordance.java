@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.concordance;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeCall;
+import org.broadinstitute.sting.utils.genotype.Genotype;
 
 import java.util.*;
 
@@ -29,10 +29,10 @@ public class SNPGenotypeConcordance implements ConcordanceType {
         sample2 = iter.next();
     }
 
-    public String computeConcordance(Map<String, VCFGenotypeCall> samplesToRecords, ReferenceContext ref) {
+    public String computeConcordance(Map<String, Genotype> samplesToRecords, ReferenceContext ref) {
 
-        VCFGenotypeCall call1 = samplesToRecords.get(sample1);
-        VCFGenotypeCall call2 = samplesToRecords.get(sample2);
+        Genotype call1 = samplesToRecords.get(sample1);
+        Genotype call2 = samplesToRecords.get(sample2);
 
         // the only reason they would be null is a lack of coverage
         if ( call1 == null || call2 == null ) {
@@ -78,9 +78,9 @@ public class SNPGenotypeConcordance implements ConcordanceType {
         }
 
         // one is variant and the other is ref
-        else if ( call1.isPointGenotype() && call2.isVariant() && confidence1 >= Qscore )
+        else if ( call1.isPointGenotype() && call2.isVariant(ref.getBase()) && confidence1 >= Qscore )
              return "set1VariantSet2Ref";
-        else if ( call2.isPointGenotype() && call1.isVariant() && confidence2 >= Qscore )
+        else if ( call2.isPointGenotype() && call1.isVariant(ref.getBase()) && confidence2 >= Qscore )
             return "set1RefSet2Variant";
 
         return null;
