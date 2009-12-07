@@ -70,16 +70,27 @@ public class HelpExtractorDoclet {
      * @param out Output stream to which to write.
      */
     private static void renderHelpText(String elementName, Doc element, PrintStream out) {
-        // Provide a new display name if provided by the user.
-        Tag[] tags = element.tags("@"+DisplayNameTaglet.NAME);
-        if(tags.length > 1)
-            throw new StingException("Cannot provide multiple display names for a single tag.");
-        if(tags.length == 1)
-            out.printf("%s.%s=%s%n",elementName,DisplayNameTaglet.NAME,tags[0].text());
+        // Extract overrides from the doc tags.
+        String overrideName = null;
+        String overrideDescription = element.commentText();
+        for(Tag tag: element.tags()) {
+            if(tag.name().equals("@"+DisplayNameTaglet.NAME)) {
+                if(overrideName != null)
+                    throw new StingException("Only one display name tag can be used per package / walker.");
+                overrideName = tag.text();
+            }
+            else if(tag.name().equals("@"+DescriptionTaglet.NAME))
+                overrideDescription = tag.text();
+        }
 
-        String commentText = formatText(element.commentText());
-        if(commentText.length() > 0)
-            out.printf("%s=%s%n",elementName,commentText);
+        // Write out an alternate element name, if exists.
+        if(overrideName != null)
+            out.printf("%s.%s=%s%n",elementName,DisplayNameTaglet.NAME,overrideName);
+
+        // Write out an alternate description, if present.
+        String description = formatText(overrideDescription);
+        if(description.length() > 0)
+            out.printf("%s=%s%n",elementName,description);
     }
 
     /**

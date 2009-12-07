@@ -6,16 +6,16 @@ import com.sun.javadoc.Tag;
 import java.util.Map;
 
 /**
- * Provide a display name in the help for packages
+ * Provide an alternate description for the given help system.
  *
  * @author mhanna
  * @version 0.1
  */
-public class DisplayNameTaglet implements Taglet {
+public class DescriptionTaglet implements Taglet {
     /**
-     * The display name for this taglet.
+     * The key tag for this taglet.
      */
-    public static final String NAME = "help.display.name";
+    public static final String NAME = "help.description";
 
     /**
      * Return the name of this custom tag.
@@ -57,12 +57,12 @@ public class DisplayNameTaglet implements Taglet {
      * @return false always
      */
     public boolean inOverview() {
-        return false;
+        return true;
     }
 
     /**
      * Will return true to indicate that packages can be given useful
-     * display text.
+     * description.
      * @return true always
      */
     public boolean inPackage() {
@@ -71,7 +71,7 @@ public class DisplayNameTaglet implements Taglet {
 
     /**
      * Will return false indicating that types cannot be given
-     * alternate display names.
+     * alternate description.
      * @return false always.
      */
     public boolean inType() {
@@ -94,7 +94,7 @@ public class DisplayNameTaglet implements Taglet {
      * @param tagletMap  the map to register this tag to.
      */
     public static void register(Map tagletMap) {
-       DisplayNameTaglet tag = new DisplayNameTaglet();
+       DescriptionTaglet tag = new DescriptionTaglet();
        Taglet t = (Taglet)tagletMap.get(tag.getName());
        if (t != null) {
            tagletMap.remove(tag.getName());
