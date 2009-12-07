@@ -1,6 +1,8 @@
 <project name="Sting" default="dist" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
     <description>Compile and distribute the Sting toolkit</description>
 
+    <property name="build.sysclasspath" value="first" />
+
     <property name="source.dir" value="java/src" />
     <property name="build.dir" value="build" />
     <property name="dist.dir" value="dist" />
