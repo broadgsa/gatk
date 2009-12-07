@@ -11,8 +11,8 @@ public class WilcoxonRankSum {
 
     // Probabilities relate to the distribution of WA, the rank sum for group A when
     // H0 : A = B is true. The tabulated value for the lower tail is the largest
-    // value of wA for which pr(WA ² wA) ² prob . The tabulated value for the
-    // upper tail is the smallest value of wfor which pr(W³ w) ² prob .
+    // value of wA for which pr(WA <= wA) <= prob . The tabulated value for the
+    // upper tail is the smallest value of wfor which pr(W >= w) <= prob .
 
     // I think this data is wrong -- we should really do the computation outselves and remember the results
     static final int data[][] = {
