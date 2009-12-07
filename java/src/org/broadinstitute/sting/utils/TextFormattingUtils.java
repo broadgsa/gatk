@@ -2,11 +2,12 @@ package org.broadinstitute.sting.utils;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 /**
- * Common utilities for dealing with strings.
+ * Common utilities for dealing with text formatting.
  *
  * @author mhanna
  * @version 0.1
@@ -38,6 +39,25 @@ public class TextFormattingUtils {
                 wrapped.add( matcher.group() );
         }
         return wrapped;
+    }
+
+    /**
+     * Compares two strings independently of case sensitivity.
+     */
+    public static class CaseInsensitiveComparator implements Comparator<String> {
+        /**
+         * Compares the order of lhs to rhs, not taking case into account.
+         * @param lhs First object to compare.
+         * @param rhs Second object to compare.
+         * @return 0 if objects are identical; -1 if lhs is before rhs, 1 if rhs is before lhs.  Nulls are treated as after everything else.
+         */
+        public int compare(String lhs, String rhs) {
+            if(lhs == null && rhs == null) return 0;
+            if(lhs == null) return 1;
+            if(rhs == null) return -1;
+            return lhs.toLowerCase().compareTo(rhs.toLowerCase());
+        }
+
     }
 
 }

@@ -130,31 +130,45 @@ public class CommandLineGATK extends CommandLineExecutable {
 
         // Get the list of walker names from the walker manager.
         WalkerManager walkerManager = GATKEngine.getWalkerManager();
-        Map<String,Collection<Class<? extends Walker>>> walkers = walkerManager.getWalkerNamesByPackage();
 
+        // Build a list sorted by walker display name.  As this information is collected, keep track of the longest
+        // package / walker name for later formatting.
+        SortedSet<HelpEntry> helpText = new TreeSet<HelpEntry>(new HelpEntryComparator());
+        
         int longestPackageName = 0;
         int longestWalkerName = 0;
-        for(Map.Entry<String,Collection<Class<? extends Walker>>> walkersByPackage: walkers.entrySet()) {
-            longestPackageName = Math.max(longestPackageName,walkerManager.getPackageDisplayName(walkersByPackage.getKey()).length());
-            for(Class<? extends Walker> walkerType: walkersByPackage.getValue())
+        for(Map.Entry<String,Collection<Class<? extends Walker>>> walkersByPackage: walkerManager.getWalkerNamesByPackage().entrySet()) {
+            // Get the display name.
+            String packageName = walkersByPackage.getKey();
+            String packageDisplayName = walkerManager.getPackageDisplayName(walkersByPackage.getKey());
+            String packageHelpText = walkerManager.getPackageHelpText(packageName);
+
+            // Compute statistics about which names is longest.
+            longestPackageName = Math.max(longestPackageName,packageDisplayName.length());
+
+            SortedSet<HelpEntry> walkersInPackage = new TreeSet<HelpEntry>(new HelpEntryComparator());
+            for(Class<? extends Walker> walkerType: walkersByPackage.getValue()) {
+                String walkerName = walkerType.getName();
+                String walkerDisplayName = walkerManager.getName(walkerType);
+                String walkerHelpText = walkerManager.getWalkerHelpText(walkerType);                
+
                 longestWalkerName = Math.max(longestWalkerName,walkerManager.getName(walkerType).length());
+
+                walkersInPackage.add(new HelpEntry(walkerName,walkerDisplayName,walkerHelpText));
+            }
+
+            // Dump the walkers into the sorted set.
+            helpText.add(new HelpEntry(packageName, packageDisplayName,packageHelpText,Collections.unmodifiableSortedSet(walkersInPackage)));
         }
 
         final int headerWidth = Math.max(longestPackageName+PACKAGE_INDENT,longestWalkerName+WALKER_INDENT);
 
-        // Sort the list of walker names.
-        walkers = new TreeMap<String,Collection<Class<? extends Walker>>>(walkers);
 
-        for(String packageName: walkers.keySet()) {
-            String packageDisplayName = walkerManager.getPackageDisplayName(packageName);
-            String packageHelpText = walkerManager.getPackageHelpText(packageName);
-            printDescriptorLine(formatter,PACKAGE_INDENT,packageDisplayName,headerWidth,FIELD_SEPARATOR,packageHelpText, TextFormattingUtils.DEFAULT_LINE_WIDTH);
+        for(HelpEntry packageHelp: helpText) {
+            printDescriptorLine(formatter,PACKAGE_INDENT,packageHelp.displayName,headerWidth,FIELD_SEPARATOR,packageHelp.description,TextFormattingUtils.DEFAULT_LINE_WIDTH);
             
-            for(Class<? extends Walker> walkerType: walkers.get(packageName)) {
-                String walkerName = walkerManager.getName(walkerType);
-                String walkerHelpText = walkerManager.getWalkerHelpText(walkerType);
-                printDescriptorLine(formatter,WALKER_INDENT,walkerName,headerWidth,FIELD_SEPARATOR,walkerHelpText, TextFormattingUtils.DEFAULT_LINE_WIDTH);
-            }
+            for(HelpEntry walkerHelp: packageHelp.children)
+                printDescriptorLine(formatter,WALKER_INDENT,walkerHelp.displayName,headerWidth,FIELD_SEPARATOR,walkerHelp.description,TextFormattingUtils.DEFAULT_LINE_WIDTH);
 
             // Print a blank line between sets of walkers.
             printDescriptorLine(formatter,0,"",headerWidth,FIELD_SEPARATOR,"", TextFormattingUtils.DEFAULT_LINE_WIDTH);
@@ -184,4 +198,62 @@ public class CommandLineGATK extends CommandLineExecutable {
         for(int i = 1; i < wordWrappedText.size(); i++)
             formatter.format(headerWidthFormatString + "%s%s%n", "", fieldSeparator, wordWrappedText.get(i));
     }
+
+}
+
+/**
+ * Represents a given help entry; contains a display name, a description and optionally some children.
+ */
+class HelpEntry {
+    public final String uid;
+    public final String displayName;
+    public final String description;
+    public final SortedSet<HelpEntry> children;
+
+    /**
+     * Create a new help entry with the given display name, description and children.
+     * @param uid a unique identifier.  Usually, the java package.
+     * @param displayName display name for this help entry.
+     * @param description description for this help entry.
+     * @param children children for this help entry.
+     */
+    public HelpEntry(String uid, String displayName, String description, SortedSet<HelpEntry> children)  {
+        this.uid = uid;
+        this.displayName = displayName;
+        this.description = description;
+        this.children = children;
+    }
+
+    /**
+     * Create a new help entry with the given display name, description and children.
+     * @param uid a unique identifier.  Usually, the java package.
+     * @param displayName display name for this help entry.
+     * @param description description for this help entry.
+     */
+    public HelpEntry(String uid, String displayName, String description) {
+        this(uid,displayName,description,null);
+    }
+
+}
+
+/**
+ * Compare two help entries by display name.
+ */
+class HelpEntryComparator implements Comparator<HelpEntry> {
+    private static TextFormattingUtils.CaseInsensitiveComparator textComparator = new TextFormattingUtils.CaseInsensitiveComparator();
+
+    /**
+     * Compares the order of lhs to rhs, not taking case into account.
+     * @param lhs First object to compare.
+     * @param rhs Second object to compare.
+     * @return 0 if objects are identical; -1 if lhs is before rhs, 1 if rhs is before lhs.  Nulls are treated as after everything else.
+     */
+    public int compare(HelpEntry lhs, HelpEntry rhs) {
+        if(lhs == null && rhs == null) return 0;
+        if(lhs == null) return 1;
+        if(rhs == null) return -1;
+        return textComparator.compare(lhs.displayName,rhs.displayName);
+    }
+
+
 }

@@ -97,7 +97,8 @@
     </target>
 
     <target name="extracthelp" depends="compile" 
-	    description="Extract help key/value pair file from the JavaDoc tags.">
+	    description="Extract help key/value pair file from the JavaDoc tags."
+	    unless="disable.help">
       <javadoc doclet="org.broadinstitute.sting.utils.help.HelpExtractorDoclet"
 	       docletpath="build"
 	       classpathref="runtime.dependencies"
