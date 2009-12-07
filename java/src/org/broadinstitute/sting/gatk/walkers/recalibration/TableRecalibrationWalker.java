@@ -12,6 +12,7 @@ import org.broadinstitute.sting.utils.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.regex.Pattern;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -93,8 +94,9 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    private static final String versionString = "v2.0.10"; // Major version, minor version, and build number
+    private static final String versionString = "v2.1.0"; // Major version, minor version, and build number
     private SAMFileWriter OUTPUT_BAM = null;// The File Writer that will write out the recalibrated bam
+    private Random coinFlip; // Random number generator is used to remove reference bias in solid bams
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -112,6 +114,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         logger.info( "TableRecalibrationWalker version: " + versionString );
         if( RAC.FORCE_READ_GROUP != null ) { RAC.DEFAULT_READ_GROUP = RAC.FORCE_READ_GROUP; }
         if( RAC.FORCE_PLATFORM != null ) { RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM; }
+        coinFlip = new Random();
+        if( !RAC.checkSolidRecalMode() ) {
+            throw new StingException( "Unrecognized --solid_recal_mode argument. Implemented options: DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, COUNT_AS_MISMATCH, or REMOVE_REF_BIAS");
+        }
 
         // Get a list of all available covariates
         List<Class<? extends Covariate>> classes = PackageUtils.getClassesImplementingInterface(Covariate.class);
@@ -178,12 +184,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
                 } else { // Found a line of data
                     if( !foundAllCovariates ) {
-                        if( RAC.VALIDATE_OLD_RECALIBRATOR ) {
-                            requestedCovariates.add( new ReadGroupCovariate() );
-                            requestedCovariates.add( new QualityScoreCovariate() );
-                            requestedCovariates.add( new CycleCovariate() );
-                            requestedCovariates.add( new DinucCovariate() );
-                        }
                         foundAllCovariates = true;
 
                         // At this point all the covariates should have been found and initialized
@@ -265,17 +265,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         int iii;
         for( iii = 0; iii < requestedCovariates.size(); iii++ ) {
             cov = requestedCovariates.get( iii );
-            if( RAC.VALIDATE_OLD_RECALIBRATOR ) {
-                if( iii == 1 ) { // Order is different in the old recalibrator unfortunately
-                    key.add( cov.getValue( vals[2] ) );
-                } else if ( iii == 2 ) {
-                    key.add( cov.getValue( vals[1] ) );
-                } else {
-                    key.add( cov.getValue( vals[iii] ) );
-                }
-            } else {
-                key.add( cov.getValue( vals[iii] ) );
-            }
+            key.add( cov.getValue( vals[iii] ) );
         }
         // Create a new datum using the number of observations, number of mismatches, and reported quality score
         RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ) );
@@ -301,10 +291,15 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // WARNING: refBases is always null because this walker doesn't have @Requires({DataSource.REFERENCE_BASES})
         // This is done in order to speed up the code
 
-        RecalDataManager.parseSAMRecord(read, RAC);
+        RecalDataManager.parseSAMRecord( read, RAC );
 
         byte[] originalQuals = read.getBaseQualities();
         byte[] recalQuals = originalQuals.clone();
+
+        String platform = read.getReadGroup().getPlatform();
+        if( platform.equalsIgnoreCase("SOLID") && !RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") ) {
+            originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, coinFlip );
+        }
                 
         int startPos = 1;
         int stopPos = read.getReadLength();
@@ -328,7 +323,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
 
         preserveQScores( originalQuals, recalQuals ); // Overwrite the work done if original quality score is too low
 
-        read.setBaseQualities(recalQuals); // Overwrite old qualities with new recalibrated qualities
+        read.setBaseQualities( recalQuals ); // Overwrite old qualities with new recalibrated qualities
         if ( read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) == null ) { // Save the old qualities if the tag isn't already taken in the read
             read.setAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, QualityUtils.phredToFastq(originalQuals));
         }
@@ -377,17 +372,11 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         // The shift in quality due to each covariate by itself in turn
         double deltaQCovariates = 0.0;
         Double deltaQCovariateEmpirical;
-        double deltaQPos = 0.0;
-        double deltaQDinuc = 0.0;
         for( int iii = 2; iii < key.size(); iii++ ) {
             collapsedTableKey.add( key.get(iii) ); // The given covariate
             deltaQCovariateEmpirical = dataManager.getCollapsedDoubleTable(iii).get( collapsedTableKey );
             if( deltaQCovariateEmpirical != null ) {
                 deltaQCovariates += ( deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported) );
-                if( RAC.VALIDATE_OLD_RECALIBRATOR ) {
-                    if(iii==2) { deltaQPos = deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported); } // BUGBUG: Only here to validate against the old recalibrator
-                    if(iii==3) { deltaQDinuc = deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported); }
-                }
             }
             collapsedTableKey.remove( 2 ); // This new covariate is always added in at position 2 in the collapsedTableKey list
             // The collapsedTableKey should be: < ReadGroup, Reported Quality Score, This Covariate >
@@ -418,7 +407,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      */
     private void preserveQScores( final byte[] originalQuals, byte[] recalQuals ) {
         for( int iii = 0; iii < recalQuals.length; iii++ ) {
-            if ( originalQuals[iii] < PRESERVE_QSCORES_LESS_THAN ) {
+            if( originalQuals[iii] < PRESERVE_QSCORES_LESS_THAN ) {
                 recalQuals[iii] = originalQuals[iii];
             }
         }
@@ -431,7 +420,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     //---------------------------------------------------------------------------------------------------------------
 
     /**
-     * Start the reduce with a new handle to the output bam file
+     * Start the reduce with a handle to the output bam file
      * @return A FileWriter pointing to a new bam file
      */
     public SAMFileWriter reduceInit() {

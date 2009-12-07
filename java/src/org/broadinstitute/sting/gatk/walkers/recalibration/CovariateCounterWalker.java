@@ -87,9 +87,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     /////////////////////////////
     // Debugging-only Arguments
     /////////////////////////////
-    @Argument(fullName="no_print_header", shortName="noHeader", required=false, doc="Don't print the usual header on the table recalibration file. FOR DEBUGGING PURPOSES ONLY.")
-    private boolean NO_PRINT_HEADER = false;
-    @Argument(fullName="sorted_output", shortName="sorted", required=false, doc="The outputted table recalibration file will be in sorted order at the cost of added overhead. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
+    @Argument(fullName="sorted_output", shortName="sorted", required=false, doc="The output table recalibration csv file will be in sorted order at the cost of added overhead. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
     private boolean SORTED_OUTPUT = false;
 
     /////////////////////////////
@@ -100,8 +98,10 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
     private long countedSites = 0; // Number of loci used in the calculations, used for reporting in the output file
     private long countedBases = 0; // Number of bases used in the calculations, used for reporting in the output file
     private long skippedSites = 0; // Number of loci skipped because it was a dbSNP site, used for reporting in the output file
+    private long solidInsertedReferenceBases = 0; // Number of bases where we believe SOLID has inserted the reference because the color space is inconsistent with the read base
+    private long otherColorSpaceInconsistency = 0; // Number of bases where the color space is inconsistent with the read but the reference wasn't inserted. BUGBUG: I don't understand what is going on in this case
     private int numUnprocessed = 0; // Number of consecutive loci skipped because we are only processing every Nth site
-    private static final String versionString = "v2.0.12"; // Major version, minor version, and build number
+    private static final String versionString = "v2.1.0"; // Major version, minor version, and build number
     private Pair<Long, Long> dbSNP_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for dbSNP loci
     private Pair<Long, Long> novel_counts = new Pair<Long, Long>(0L, 0L);  // mismatch/base counts for non-dbSNP loci
     private static final double DBSNP_VS_NOVEL_MISMATCH_RATE = 2.0;        // rate at which dbSNP sites (on an individual level) mismatch relative to novel sites (determined by looking at NA12878)
@@ -124,6 +124,9 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         if( RAC.FORCE_READ_GROUP != null ) { RAC.DEFAULT_READ_GROUP = RAC.FORCE_READ_GROUP; }
         if( RAC.FORCE_PLATFORM != null ) { RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM; }
         DBSNP_VALIDATION_CHECK_FREQUENCY *= PROCESS_EVERY_NTH_LOCUS;
+        if( !RAC.checkSolidRecalMode() ) {
+            throw new StingException( "Unrecognized --solid_recal_mode argument. Implemented options: DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, COUNT_AS_MISMATCH, or REMOVE_REF_BIAS");
+        }
 
         // Get a list of all available covariates
         final List<Class<? extends Covariate>> classes = PackageUtils.getClassesImplementingInterface( Covariate.class );
@@ -155,13 +158,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         // BUGBUG: This is a mess because there are a lot of cases (validate, all, none, and supplied covList). Clean up needed.
         requestedCovariates = new ArrayList<Covariate>();
         int estimatedCapacity = 1; // Capacity is multiplicitive so this starts at one
-        if( RAC.VALIDATE_OLD_RECALIBRATOR ) {
-            requestedCovariates.add( new ReadGroupCovariate() );
-            requestedCovariates.add( new CycleCovariate() ); // Unfortunately order is different here in order to match the old recalibrator exactly
-            requestedCovariates.add( new QualityScoreCovariate() );
-            requestedCovariates.add( new DinucCovariate() );
-            estimatedCapacity = 60 * 100 * 40 * 16;
-        } else if( COVARIATES != null ) {
+        if( COVARIATES != null ) {
             if(COVARIATES[0].equalsIgnoreCase( "ALL" )) { // The user wants ALL covariates to be used
                 requestedCovariates.add( new ReadGroupCovariate() ); // First add the required covariates then add the rest by looping over all implementing classes that were found
                 requestedCovariates.add( new QualityScoreCovariate() );
@@ -275,44 +272,46 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 read = p.getRead();
                 offset = p.getOffset();
 
-                RecalDataManager.parseSAMRecord(read, RAC);
+                RecalDataManager.parseSAMRecord( read, RAC );
+                RecalDataManager.parseColorSpace( read );
 
                 // Skip first and last base because there is no dinuc
                 // BUGBUG: Technically we only have to skip the first base on forward reads and the last base on negative strand reads. Change after passing old integration tests.
-                if( offset > 0 ) {
-                    if( offset < read.getReadLength() - 1 ) {
-                        // Skip if base quality is zero
-                        if( read.getBaseQualities()[offset] > 0 ) {
+                if( offset > 0 && offset < read.getReadLength() - 1) {
+                    // Skip if base quality is zero
+                    if( read.getBaseQualities()[offset] > 0 ) {
 
-                            bases = read.getReadBases();
-                            refBase = (byte)ref.getBase();
-                            prevBase = bases[offset - 1];
+                        bases = read.getReadBases();
+                        refBase = (byte)ref.getBase();
+                        prevBase = bases[offset - 1];
 
-                            // DinucCovariate is responsible for getting the complement bases if needed
-                            if( read.getReadNegativeStrandFlag() ) {
-                                prevBase = bases[offset + 1];
-                            }
+                        // DinucCovariate is responsible for getting the complement bases if needed
+                        if( read.getReadNegativeStrandFlag() ) {
+                            prevBase = bases[offset + 1];
+                        }
 
-                            // Skip if this base or the previous one was an 'N' or etc.
-                            // BUGBUG: For DinucCovariate we should use previous reference base, not the previous base in this read. 
-                            if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
+                        // Skip if this base or the previous one was an 'N' or etc.
+                        // BUGBUG: For DinucCovariate we should use previous reference base, not the previous base in this read.
+                        if( BaseUtils.isRegularBase( (char)prevBase ) && BaseUtils.isRegularBase( (char)(bases[offset]) ) ) {
 
-                                // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base
-                                //  so decrease the quality of this base by forcing it to be a mismatch
-                                if( read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") ) {
-                                    if( RecalDataManager.isInconsistentColorSpace( p.getBase(), read ) ) {
-                                        refBase = (byte)'X'; // Because we are already filter out all bases that don't pass BaseUtils.isRegularBase this will always be marked as a mismatch
-                                    }
-                                }
+                            // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
+                            if( !read.getReadGroup().getPlatform().equalsIgnoreCase("SOLID") || RAC.SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || !RecalDataManager.isInconsistentColorSpace( read, offset ) ) {
 
                                 // This base finally passed all the checks for a good base, so add it to the big data hashmap
                                 updateDataFromRead( read, offset, refBase );
-                            } else {
-                                if( RAC.VALIDATE_OLD_RECALIBRATOR ) {
-                                    countedBases++; // Replicating a small bug in the old recalibrator
+
+                            } else { // calculate SOLID reference insertion rate
+                                if( ref.getBase() == (char)bases[offset] ) {
+                                    solidInsertedReferenceBases++;
+                                } else {
+                                    otherColorSpaceInconsistency++;
+                                }
+                                if( RAC.SOLID_RECAL_MODE.equalsIgnoreCase("COUNT_AS_MISMATCH") ) {
+                                    refBase = (byte)'X'; // This will always mismatch since we are already filtering out reads that don't pass BaseUtils.isRegularBase
+                                    updateDataFromRead( read, offset, refBase );
                                 }
                             }
-                        }
+                        } 
                     }
                 }
             }
@@ -352,6 +351,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
                 }
                 counts.second++;
             }
+
         }
     }
 
@@ -397,7 +397,7 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
         RecalDatum datum = dataManager.data.get( key );
         if( datum == null ) { // key doesn't exist yet in the map so make a new bucket and add it
             datum = new RecalDatum(); // initialized with zeros, will be incremented at end of method
-            if( RAC.VALIDATE_OLD_RECALIBRATOR || SORTED_OUTPUT ) {
+            if( SORTED_OUTPUT ) {
                 dataManager.data.sortedPut( key, datum );
             } else {
                 dataManager.data.put( key, datum );
@@ -461,59 +461,45 @@ public class CovariateCounterWalker extends LocusWalker<Integer, PrintStream> {
      * @param recalTableStream The PrintStream to write out to
      */
     private void outputToCSV( final PrintStream recalTableStream ) {
+       
+        recalTableStream.printf("# Counted Sites    %d%n", countedSites);
+        recalTableStream.printf("# Counted Bases    %d%n", countedBases);
+        recalTableStream.printf("# Skipped Sites    %d%n", skippedSites);
+        if( PROCESS_EVERY_NTH_LOCUS == 1 ) {
+            recalTableStream.printf("# Fraction Skipped 1 / %.0f bp%n", (double)countedSites / skippedSites);
+        } else {
+            recalTableStream.printf("# Percent Skipped  %.4f%n", 100.0 * (double)skippedSites / ((double)countedSites+skippedSites));
+        }
+        if( solidInsertedReferenceBases != 0 ) {
+            recalTableStream.printf("# Fraction SOLiD inserted reference 1 / %.0f bases%n", (double) countedBases / solidInsertedReferenceBases);
+            recalTableStream.printf("# Fraction other color space inconsistencies 1 / %.0f bases%n", (double) countedBases / otherColorSpaceInconsistency);
+        }
 
-        //BUGBUG: This method is a mess. It will be cleaned up when I get rid of the validation and no_header debug options.
-        if( RAC.VALIDATE_OLD_RECALIBRATOR ) {
-            // Output the old header as well as output the data in sorted order
-            recalTableStream.printf("# collapsed_pos    false%n");
-            recalTableStream.printf("# collapsed_dinuc  false%n");
-            recalTableStream.printf("# counted_sites    %d%n", countedSites);
-            recalTableStream.printf("# counted_bases    %d%n", countedBases);
-            recalTableStream.printf("# skipped_sites    %d%n", skippedSites);
-            recalTableStream.printf("# fraction_skipped 1 / %.0f bp%n", (double)countedSites / skippedSites);
-            recalTableStream.printf("rg,pos,Qrep,dn,nBases,nMismatches,Qemp%n");
-            for( Pair<List<? extends Comparable>,RecalDatum> entry : dataManager.data.entrySetSorted4() ) {
+        // Output header saying which covariates were used and in what order
+        for( Covariate cov : requestedCovariates ) {
+            recalTableStream.print( cov.getClass().getSimpleName().split("Covariate")[0] + "," );
+        }
+        recalTableStream.println("nObservations,nMismatches,Qempirical");
+
+
+        if( SORTED_OUTPUT && requestedCovariates.size() == 4 )
+        {
+            for( Pair<List<? extends Comparable>,RecalDatum> entry : dataManager.data.entrySetSorted4() ) { //BUGBUG: entrySetSorted4 isn't correct here
                 for( Comparable comp : entry.first ) {
                     recalTableStream.print( comp + "," );
                 }
                 recalTableStream.println( entry.second.outputToCSV() );
             }
         } else {
-            if( !NO_PRINT_HEADER ) {
-                recalTableStream.printf("# Counted Sites    %d%n", countedSites);
-                recalTableStream.printf("# Counted Bases    %d%n", countedBases);
-                recalTableStream.printf("# Skipped Sites    %d%n", skippedSites);
-                if( PROCESS_EVERY_NTH_LOCUS == 1 ) {
-                    recalTableStream.printf("# Fraction Skipped 1 / %.0f bp%n", (double)countedSites / skippedSites);
-                } else {
-                    recalTableStream.printf("# Percent Skipped  %.4f%n", 100.0 * (double)skippedSites / ((double)countedSites+skippedSites));
+            // For each entry in the data hashmap
+            for( Map.Entry<List<? extends Comparable>, RecalDatum> entry : dataManager.data.entrySet() ) {
+                // For each Covariate in the key
+                for( Comparable comp : entry.getKey() ) {
+                    // Output the Covariate's value
+                    recalTableStream.print( comp + "," );
                 }
-                for( Covariate cov : requestedCovariates ) {
-                    // The "@!" is a code for TableRecalibrationWalker to recognize this line as a Covariate class name
-                    recalTableStream.print( cov.getClass().getSimpleName().split("Covariate")[0] + "," );
-                }
-                recalTableStream.println("nObservations,nMismatches,Qempirical");
-            }
-
-            if( SORTED_OUTPUT && requestedCovariates.size() == 4 )
-            {
-                for( Pair<List<? extends Comparable>,RecalDatum> entry : dataManager.data.entrySetSorted4() ) { //BUGBUG: entrySetSorted4 isn't correct here
-                    for( Comparable comp : entry.first ) {
-                        recalTableStream.print( comp + "," );
-                    }
-                    recalTableStream.println( entry.second.outputToCSV() );
-                }
-            } else {
-                // For each entry in the data hashmap
-                for( Map.Entry<List<? extends Comparable>, RecalDatum> entry : dataManager.data.entrySet() ) {
-                    // For each Covariate in the key
-                    for( Comparable comp : entry.getKey() ) {
-                        // Output the Covariate's value
-                        recalTableStream.print( comp + "," );
-                    }
-                    // Output the RecalDatum entry
-                    recalTableStream.println( entry.getValue().outputToCSV() );
-                }
+                // Output the RecalDatum entry
+                recalTableStream.println( entry.getValue().outputToCSV() );
             }
         }
     }

@@ -56,7 +56,7 @@ public class AnalysisDataManager {
 
         // Create dataCollapsedByCovariate's, the tables where everything except read group, quality score, and given covariate has been collapsed
         for( int iii = 0; iii < dataCollapsedByCovariate.size(); iii++ ) {
-            if( iii == 0 || !(qscore < IGNORE_QSCORES_LESS_THAN) ) { // use all data for the plot versus reported quality, but not for the other plots versus cycle etc.
+            if( iii == 0 || !(qscore < IGNORE_QSCORES_LESS_THAN) ) { // use all data for the plot versus reported quality, but not for the other plots versus cycle and etc.
                 newKey = new ArrayList<Comparable>();
                 newKey.add( key.get(0) ); // Make a new key with the read group ...
                 newKey.add( key.get(iii + 1) ); //                                                    and the given covariate

@@ -37,6 +37,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -cov CycleCovariate" +
                             " -cov DinucCovariate" +
                             " --sorted_output" +
+                            " --solid_recal_mode DO_NOTHING" +
                             " -recalFile %s",
                     1, // just one output file
                     Arrays.asList(md5));
@@ -67,6 +68,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                                     ? " -L 1:10,800,000-10,810,000" : " -L 1:10,100,000-10,300,000" ) +
                                 " -outputBam %s" +
                                 " --no_pg_tag" +
+                                " --solid_recal_mode DO_NOTHING" +
                                 " -recalFile " + paramsFile,
                         1, // just one output file
                         Arrays.asList(md5));
@@ -95,6 +97,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -cov CycleCovariate" +
                             " -cov DinucCovariate" +
                             " --sorted_output" +
+                            " --solid_recal_mode DO_NOTHING" +
                             " -recalFile %s",
                     1, // just one output file
                     Arrays.asList(md5));
@@ -123,6 +126,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -cov DinucCovariate" +
                             " --default_platform illumina" +
                             " --sorted_output" +
+                            " --solid_recal_mode DO_NOTHING" +
                             " -recalFile %s",
                     1, // just one output file
                     Arrays.asList(md5));
@@ -149,6 +153,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                                 " -L 1:10,100,000-10,300,000" +
                                 " -outputBam %s" +
                                 " --no_pg_tag" +
+                                " --solid_recal_mode DO_NOTHING" +
                                 " --default_platform illumina" +
                                 " -recalFile " + paramsFile,
                         1, // just one output file

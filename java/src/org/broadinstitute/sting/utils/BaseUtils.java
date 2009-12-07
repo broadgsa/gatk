@@ -229,10 +229,50 @@ public class BaseUtils {
         return base2;
     }
 
-        /**
-         * Return the complement of a base, or the specified base if it can't be complemented (i.e. an ambiguous base).
-         *
-         * @param base  the base [AaCcGgTt]
+    /**
+     * Perform a transition (A <-> G or C <-> T) on the base, or the specified base if it can't be done (i.e. an ambiguous base).
+     *
+     * @param base the base [AaCcGgTt]
+     * @return the transition of the base, or the input base if it's not one of the understood ones
+     */
+    static public char transition(char base) {
+        switch (base) {
+            case 'A':
+            case 'a': return 'G';
+            case 'C':
+            case 'c': return 'T';
+            case 'G':
+            case 'g': return 'A';
+            case 'T':
+            case 't': return 'C';
+            default: return base;
+        }
+    }
+
+    /**
+     * Perform a transversion (A <-> C or G <-> T) on the base, or the specified base if it can't be done (i.e. an ambiguous base).
+     *
+     * @param base the base [AaCcGgTt]
+     * @return the transversion of the base, or the input base if it's not one of the understood ones
+     */
+    static public char transversion(char base) {
+        switch (base) {
+            case 'A':
+            case 'a': return 'C';
+            case 'C':
+            case 'c': return 'A';
+            case 'G':
+            case 'g': return 'T';
+            case 'T':
+            case 't': return 'G';
+            default: return base;
+        }
+    }
+
+   /**
+     * Return the complement (A <-> T or C <-> G) of a base, or the specified base if it can't be complemented (i.e. an ambiguous base).
+     *
+     * @param base the base [AaCcGgTt]
      * @return the complementary base, or the input base if it's not one of the understood ones
      */
     static public char simpleComplement(char base) {
@@ -252,7 +292,7 @@ public class BaseUtils {
     /**
      * Reverse complement a byte array of bases (that is, chars casted to bytes, *not* base indices in byte form)
      *
-     * @param bases  the byte array of bases
+     * @param bases the byte array of bases
      * @return the reverse complement of the base byte array
      */
     static public byte[] simpleReverseComplement(byte[] bases) {

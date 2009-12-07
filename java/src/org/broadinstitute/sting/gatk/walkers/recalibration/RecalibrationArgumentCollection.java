@@ -45,8 +45,6 @@ public class RecalibrationArgumentCollection {
     public String RECAL_FILE = "output.recal_data.csv";
     @Argument(fullName = "use_original_quals", shortName="OQ", doc="If provided, we will use the quals from the original qualities OQ attribute field instead of the quals in the regular QUALS field", required=false)
     public boolean USE_ORIGINAL_QUALS = false;
-    @Argument(fullName = "window_size_nqs", shortName="nqs", doc="The window size used by MinimumNQSCovariate for its calculation", required=false)
-    public int WINDOW_SIZE = 5;
     @Argument(fullName="default_read_group", shortName="dRG", required=false, doc="If a read has no read group then default to the provided String.")
     public String DEFAULT_READ_GROUP = ReadGroupCovariate.defaultReadGroup;
     @Argument(fullName="default_platform", shortName="dP", required=false, doc="If a read has no platform then default to the provided String. Valid options are illumina, 454, and solid.")
@@ -55,14 +53,15 @@ public class RecalibrationArgumentCollection {
     public String FORCE_READ_GROUP = null;
     @Argument(fullName="force_platform", shortName="fP", required=false, doc="If provided, the platform of EVERY read will be forced to be the provided String. Valid options are illumina, 454, and solid.")
     public String FORCE_PLATFORM = null;
+    @Argument(fullName="solid_recal_mode", shortName="sMode", required = false, doc="How should we recalibrate solid bases in which the reference was inserted? EXPERIMENTAL OPTION. USE AT OWN RISK. Options = DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, COUNT_AS_MISMATCH, or REMOVE_REF_BIAS")
+    public String SOLID_RECAL_MODE = "DO_NOTHING";
+    @Argument(fullName = "window_size_nqs", shortName="nqs", doc="The window size used by MinimumNQSCovariate for its calculation", required=false)
+    public int WINDOW_SIZE = 5;
+    @Argument(fullName = "homopolymer_nback", shortName="nback", doc="The number of previous bases to look at in HomopolymerCovariate", required=false)
+    public int HOMOPOLYMER_NBACK = 10;
 
-    //////////////////////////////////
-    // Shared Debugging-only Arguments
-    //////////////////////////////////
-    @Argument(fullName="validate_old_recalibrator", shortName="validate", required=false, doc="!!!Depricated!!! Match the output of the old recalibrator exactly. FOR DEBUGGING PURPOSES ONLY.")
-    public boolean VALIDATE_OLD_RECALIBRATOR = false;
-    // BUGBUG: This validate option no longer does exactly what it says because now using read filter to filter out zero mapping quality reads. The old recalibrator counted those reads in the counted_sites variable but the new one doesn't.
-                
+    public boolean checkSolidRecalMode() {
+        return ( SOLID_RECAL_MODE.equalsIgnoreCase("DO_NOTHING") || SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO") ||
+                 SOLID_RECAL_MODE.equalsIgnoreCase("SET_Q_ZERO_BASE_N") || SOLID_RECAL_MODE.equalsIgnoreCase("COUNT_AS_MISMATCH") || SOLID_RECAL_MODE.equalsIgnoreCase("REMOVE_REF_BIAS") ); 
+    }
 }
-
-
