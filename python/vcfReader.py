@@ -5,8 +5,9 @@ VCF_KEYS_FORMAT = "CHROM  POS     ID        REF   ALT    QUAL  FILTER".split()
 
 TRANSITIONS = dict()
 for p in ["AG", "CT"]:
-    TRANSITIONS[p] = True
-    TRANSITIONS[''.join(reversed(p))] = True
+    for x in [p, ''.join(reversed(p))]:
+        TRANSITIONS[x.lower()] = True
+        TRANSITIONS[x] = True
 
 def is_nan(x):
     return type(x) is float and x != x
@@ -68,8 +69,10 @@ class VCFRecord:
     def getFilter(self): return self.get("FILTER")
     def failsFilters(self): return not self.passesFilters()
     def passesFilters(self):
-        #print self.getFilter(), ">>>", self
-        return self.getFilter() == "." or self.getFilter() == "0"
+        v = self.getFilter() == "." or self.getFilter() == "0"
+        #print self.getFilter(), ">>>", v, self
+        return v
+        
 
     def hasField(self, field):
         return field in self.bindings or field in self.info 

@@ -67,13 +67,19 @@ class RecalibratedCall:
     def __str__(self):
         return '[%s: %s => Q%d]' % (str(self.call), self.featureStringList(), phredScale(self.jointFPErrorRate()))
 
-def readVariants( file, maxRecords = None, decodeAll = True, downsampleFraction = 1 ):
+def readVariants( file, maxRecords = None, decodeAll = True, downsampleFraction = 1, filter = None ):
+    if filter == None:
+        filter = not OPTIONS.unfiltered
+        
     f = open(file)
     header, columnNames, lines = readVCFHeader(f)
 
     def parseVariant(args):
         header1, VCF, counter = args
-        if random.random() <= downsampleFraction:
+        if filter and not VCF.passesFilters():
+            #print 'filtering', VCF
+            return None
+        elif random.random() <= downsampleFraction:
             return VCF
         else:
             return None
@@ -479,9 +485,9 @@ def setup():
     parser.add_option("-l", "--recalLog", dest="recalLog",
                         type='string', default="recal.log",
                         help="VCF formated truth file.  If provided, the script will compare the input calls with the truth calls.  It also emits calls tagged as TP and a separate file of FP calls")
-    parser.add_option("", "--unFilteredTruth", dest="unFilteredTruth",
+    parser.add_option("-u", "--unfiltered", dest="unfiltered",
                         action='store_true', default=False,
-                        help="If provided, the unfiltered truth calls will be used in comparisons [default: %default]")
+                        help="If provided, unfiltered calls will be used in comparisons [default: %default]")
     parser.add_option("", "--plottable", dest="plottableNones",
                         action='store_true', default=False,
                         help="If provided, will generate fake plottable points for annotations with None values -- doesn't effect the behavior of the system just makes it easy to plot outputs [default: %default]")
@@ -573,10 +579,7 @@ def writeRecalibratedCalls(file, header, calls):
 def readTruth(truthVCF):
     print 'Reading truth file', truthVCF
     rawTruth = list(readVariants(truthVCF, maxRecords = None, decodeAll = True)[1])
-    def keepVariant(t): 
-        #print t.getPos(), t.getLoc()
-        return OPTIONS.unFilteredTruth or t.passesFilters()
-    truth = dict( [[v.getLoc(), v] for v in filter(keepVariant, rawTruth)])
+    truth = dict( [[v.getLoc(), v] for v in rawTruth])
     print 'Number of raw and passing filter truth calls', len(rawTruth), len(truth)
     return truth
 
