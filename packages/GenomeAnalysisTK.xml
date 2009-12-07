@@ -24,6 +24,7 @@
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.PrimerRoundCovariate</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.CycleCovariate</class>
       <class>org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate</class>
+      <class>org.broadinstitute.sting.gatk.walkers.recalibration.TileCovariate</class>
       <!-- Local realignment around indels -->
       <class>org.broadinstitute.sting.gatk.walkers.indels.CleanedReadInjector</class>
       <class>org.broadinstitute.sting.gatk.walkers.indels.IndelIntervalWalker</class>
