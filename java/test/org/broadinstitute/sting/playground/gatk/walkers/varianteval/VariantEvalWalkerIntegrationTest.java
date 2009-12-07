@@ -18,8 +18,8 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalVariantROD() {
         HashMap<String, String> md5 = new HashMap<String, String>();
-        md5.put("", "b4adb7fed93005b3c28d72c3578ebc33");
-        md5.put("-A", "d34c1598a5b35098bd5524a52fbbc0fd");
+        md5.put("", "d6b8c2d6c37d42d1ca2288799a8bd8e4");
+        md5.put("-A", "b868aac194f6d0bd1fd2c0c63ddfaeab");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -52,7 +52,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalVariantRODConfSix() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("4421a0b379577ea0fcde2c9866f9ca9f");
+        md5.add("85cfefcac2dfb06545792605a3043a52");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -84,7 +84,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
      @Test
     public void testEvalVariantRODOutputViolations() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("e1ce229698725aa06c9b08b21fe628ef");
+        md5.add("e24732ffd95a78385a2c6986d1d3a359");
 
         /**
          * the above MD5 was calculated from running the following command:
@@ -116,7 +116,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalGenotypeROD() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("fd95465965116e05e2e0356e2d105321");
+        md5.add("8b85148ec20f31481a30ceddd8645ba1");
         /**
          * the above MD5 was calculated after running the following command:
          *
@@ -150,7 +150,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalMarksGenotypingExample() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("58ef0487c9231aec7f356919e8cbd305");
+        md5.add("7d5a98c01051f96a684a383786da3d76");
         /**
          * Run with the following commands:
          * 

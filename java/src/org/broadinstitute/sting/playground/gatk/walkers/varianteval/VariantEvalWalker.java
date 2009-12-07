@@ -113,7 +113,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         // hence to pass the integration test. The new iterator this code is now using does see ALL the SNPs,
         // whether masked by overlapping indels/other events or not.
         //TODO process correctly all the returned dbSNP rods at each location
-        BrokenRODSimulator.attach("dbSNP");
+        //BrokenRODSimulator.attach("dbSNP");
     }
 
 
@@ -259,17 +259,7 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 
             // update the known / novel set by checking whether the knownSNPDBName track has an entry here
             if (eval != null) {
-                Variation dbsnp = (Variation) BrokenRODSimulator.simulate_lookup("dbSNP", ref.getLocus(), tracker);
-
-                ANALYSIS_TYPE noveltySet = null;
-                if ( dbsnp == null ) noveltySet = ANALYSIS_TYPE.NOVEL_SNPS;
-                else if ( dbsnp.isSNP() ) noveltySet = ANALYSIS_TYPE.KNOWN_SNPS;
-                else {  // if ( dbsnp.isIndel() )
-                    noveltySet = ANALYSIS_TYPE.SNPS_AT_NON_SNP_SITES;
-                }
-                    //else { ; } // lots of wierd things in there }
-                //  // throw new StingException("Unexpected dbSNP record type: " + dbsnp); }
-
+                ANALYSIS_TYPE noveltySet = getNovelAnalysisType(tracker);
                 updateAnalysisSet(noveltySet, eval, tracker, ref.getBase(), context);
             }
 
@@ -284,6 +274,30 @@ public class VariantEvalWalker extends RefWalker<Integer, Integer> {
         }
 
         return 1;
+    }
+
+    private ANALYSIS_TYPE getNovelAnalysisType(RefMetaDataTracker tracker) {
+        RODRecordList<ReferenceOrderedDatum> dbsnpList = tracker.getTrackData("dbsnp", null);
+
+        if (dbsnpList == null)
+            return ANALYSIS_TYPE.NOVEL_SNPS;
+
+        for (ReferenceOrderedDatum d : dbsnpList) {
+            if (((rodDbSNP) d).isSNP()) {
+                return ANALYSIS_TYPE.KNOWN_SNPS;
+            }
+        }
+
+        return ANALYSIS_TYPE.SNPS_AT_NON_SNP_SITES;
+
+        // old and busted way of doing this
+//        Variation dbsnp = (Variation) BrokenRODSimulator.simulate_lookup("dbSNP", ref.getLocus(), tracker);
+//
+//        ANALYSIS_TYPE noveltySet = null;
+//        if ( dbsnp == null ) noveltySet = ANALYSIS_TYPE.NOVEL_SNPS;
+//        else if ( dbsnp.isSNP() ) noveltySet = ANALYSIS_TYPE.KNOWN_SNPS;
+//        else {  // if ( dbsnp.isIndel() )
+//            noveltySet = ANALYSIS_TYPE.SNPS_AT_NON_SNP_SITES;
     }
 
     public boolean includeViolations() { return mIncludeViolations; }
