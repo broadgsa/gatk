@@ -1,12 +1,12 @@
 package org.broadinstitute.sting.utils.cmdLine;
 
 import org.apache.log4j.*;
+import org.broadinstitute.sting.utils.help.ApplicationDetails;
+import org.broadinstitute.sting.utils.help.HelpFormatter;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -224,7 +224,7 @@ public abstract class CommandLineProgram {
             clp.setupLoggerLevel();
 
             // regardless of what happens next, generate the header information
-            generateHeaderInformation(clp, args);
+            HelpFormatter.generateHeaderInformation(clp.getApplicationDetails(), args);
 
             // call the execute
             CommandLineProgram.result = clp.execute();
@@ -282,32 +282,6 @@ public abstract class CommandLineProgram {
      */
     public void loadAdditionalSource(CommandLineProgram clp, Class cls) {
         parser.addArgumentSource(clp.getArgumentSourceName(cls), cls);
-    }
-
-    /**
-     * generateHeaderInformation
-     * <p/>
-     * <p/>
-     * Generate a standard header for the logger
-     *
-     * @param clp  the command line program to execute
-     * @param args the command line arguments passed in
-     */
-    protected static void generateHeaderInformation(CommandLineProgram clp, String[] args) {
-
-        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-        java.util.Date date = new java.util.Date();
-
-        logger.info("-------------------------------------------------------");
-        for (String headerLine : clp.getApplicationDetails().applicationHeader)
-            logger.info(headerLine);
-        String output = "";
-        for (String str : args) {
-            output = output + str + " ";
-        }
-        logger.info("Program Args: " + output);
-        logger.info("Date/Time: " + dateFormat.format(date));
-        logger.info("-------------------------------------------------------");
     }
 
     /**

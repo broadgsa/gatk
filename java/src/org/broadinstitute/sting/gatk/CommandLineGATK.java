@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.utils.GATKErrorReport;
 import org.broadinstitute.sting.utils.TextFormattingUtils;
+import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.cmdLine.*;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 

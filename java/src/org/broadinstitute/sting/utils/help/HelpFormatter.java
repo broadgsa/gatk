@@ -1,6 +1,11 @@
-package org.broadinstitute.sting.utils.cmdLine;
+package org.broadinstitute.sting.utils.help;
 
+import org.broadinstitute.sting.utils.cmdLine.ArgumentDefinition;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentDefinitionGroup;
+import org.broadinstitute.sting.utils.cmdLine.ArgumentDefinitions;
+import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 import org.broadinstitute.sting.utils.TextFormattingUtils;
+import org.apache.log4j.Logger;
 
 import java.util.Formatter;
 import java.util.List;
@@ -9,6 +14,8 @@ import java.util.Iterator;
 import java.util.Comparator;
 import java.util.Collection;
 import java.util.Collections;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 /**
  * User: hanna
  * Date: May 6, 2009
@@ -27,6 +34,9 @@ import java.util.Collections;
  */
 
 public class HelpFormatter {
+    /** our log, which we want to capture anything from org.broadinstitute.sting */
+    private static Logger logger = Logger.getRootLogger();    
+
     public static final int FIELD_SEPARATION_WIDTH = 3;
 
     /**
@@ -208,5 +218,31 @@ public class HelpFormatter {
 
 
         return argumentGroups;
+    }
+
+    /**
+     * generateHeaderInformation
+     * <p/>
+     * <p/>
+     * Generate a standard header for the logger
+     *
+     * @param applicationDetails details of the application to run.
+     * @param args the command line arguments passed in
+     */
+    public static void generateHeaderInformation(ApplicationDetails applicationDetails, String[] args) {
+
+        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        java.util.Date date = new java.util.Date();
+
+        logger.info("-------------------------------------------------------");
+        for (String headerLine : applicationDetails.applicationHeader)
+            logger.info(headerLine);
+        String output = "";
+        for (String str : args) {
+            output = output + str + " ";
+        }
+        logger.info("Program Args: " + output);
+        logger.info("Date/Time: " + dateFormat.format(date));
+        logger.info("-------------------------------------------------------");
     }
 }

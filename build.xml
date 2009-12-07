@@ -98,7 +98,7 @@
 
     <target name="extracthelp" depends="compile" 
 	    description="Extract help key/value pair file from the JavaDoc tags.">
-      <javadoc doclet="org.broadinstitute.sting.utils.doc.HelpExtractorDoclet"
+      <javadoc doclet="org.broadinstitute.sting.utils.help.HelpExtractorDoclet"
 	       docletpath="build"
 	       classpathref="runtime.dependencies"
 	       additionalparam="-out ${help.file}">

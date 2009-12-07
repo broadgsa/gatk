@@ -35,7 +35,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.PluginManager;
-import org.broadinstitute.sting.utils.doc.DisplayNameTaglet;
+import org.broadinstitute.sting.utils.help.DisplayNameTaglet;
 import org.apache.log4j.Logger;
 import net.sf.picard.filter.SamRecordFilter;
 

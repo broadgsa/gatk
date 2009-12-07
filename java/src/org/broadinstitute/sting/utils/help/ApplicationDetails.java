@@ -23,10 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.cmdLine;
+package org.broadinstitute.sting.utils.help;
 
 import org.broadinstitute.sting.utils.JVMUtils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.cmdLine.CommandLineProgram;
 
 import java.util.List;
 import java.util.Collections;

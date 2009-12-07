@@ -3,6 +3,8 @@ package org.broadinstitute.sting.utils.cmdLine;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.JVMUtils;
+import org.broadinstitute.sting.utils.help.ApplicationDetails;
+import org.broadinstitute.sting.utils.help.HelpFormatter;
 import org.apache.log4j.Logger;
 
 import java.lang.reflect.*;
