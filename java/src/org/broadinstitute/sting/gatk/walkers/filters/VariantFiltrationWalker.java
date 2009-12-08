@@ -43,10 +43,10 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     private void initializeVcfWriter(RodVCF rod) {
         // setup the header fields
-        Map<String, String> hInfo = new HashMap<String, String>();
-        hInfo.put("format", VCFWriter.VERSION);
-        hInfo.put("source", "VariantFiltration");
-        hInfo.put("reference", this.getToolkit().getArguments().referenceFile.getName());
+        Set<String> hInfo = new HashSet<String>();
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+        hInfo.add("source=" + "VariantFiltration");
+        hInfo.add("reference=" + getToolkit().getArguments().referenceFile.getName());
 
         VCFHeader header = new VCFHeader(hInfo, rod.getHeader().getGenotypeSamples());
         writer = new VCFWriter(header, out);
@@ -150,6 +150,10 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             if ( rec.isFiltered() )
                 filterString.append(";" + rec.getFilterString());
             rec.setFilterString(filterString.toString());
+        }
+        // otherwise, if it's not already filtered, set it to "passing filters"
+        else if ( !rec.isFiltered() ) {
+            rec.setFilterString(VCFRecord.PASSES_FILTERS);    
         }
 
         if ( writer == null )

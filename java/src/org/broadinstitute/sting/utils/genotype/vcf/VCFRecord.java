@@ -11,13 +11,31 @@ import java.util.*;
  */
 public class VCFRecord implements Variation, VariantBackedByGenotype {
 
+    // standard info field keys
+    public static final String ANCESTRAL_ALLELE_KEY = "AA";
+    public static final String ALLELE_COUNT_KEY = "AC";
+    public static final String ALLELE_FREQUENCY_KEY = "AF";
+    public static final String ALLELE_NUMBER_KEY = "AN";
+    public static final String RMS_BASE_QUALITY_KEY = "BQ";
+    public static final String DBSNP_KEY = "DB";
+    public static final String DEPTH_KEY = "DP";
+    public static final String HAPMAP2_KEY = "H2";
+    public static final String RMS_MAPPING_QUALITY_KEY = "MQ";
+    public static final String SAMPLE_NUMBER_KEY = "NS";
+    public static final String STRAND_BIAS_KEY = "SB";
+
     // commonly used strings that are in the standard
     public static final String FORMAT_FIELD_SEPERATOR = ":";
     public static final String GENOTYPE_FIELD_SEPERATOR = ":";
     public static final String FIELD_SEPERATOR = "\t";
     public static final String FILTER_CODE_SEPERATOR = ";";
     public static final String INFO_FIELD_SEPERATOR = ";";
+
+    // default values
+    public static final String UNFILTERED = ".";
+    public static final String PASSES_FILTERS = "0";
     public static final String EMPTY_INFO_FIELD = ".";
+    public static final String EMPTY_ID_FIELD = ".";
     public static final String DOUBLE_PRECISION_FORMAT_STRING = "%.2f";
 
     // the reference base
@@ -139,13 +157,12 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
                     String vals[] = columnValues.get(val).split(";");
                     for (String alt : vals) {
                         String keyVal[] = alt.split("=");
-                        if (keyVal.length == 1 && keyVal[0].equals(".")) {
+                        if ( keyVal.length == 1 )
                             this.addInfoField(keyVal[0], "");
-                            break;
-                        }
-                        if (keyVal.length != 2)
+                        else if (keyVal.length == 2)
+                            this.addInfoField(keyVal[0], keyVal[1]);
+                        else
                             throw new IllegalArgumentException("info field key-value pair did not parse into key->value pair: " + alt);
-                        this.addInfoField(keyVal[0], keyVal[1]);
                     }
                     break;
             }
@@ -231,14 +248,14 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     }
 
     public double getNonRefAlleleFrequency() {
-        if ( mInfoFields.containsKey("AF") ) {
-            return Double.valueOf(mInfoFields.get("AF"));
+        if ( mInfoFields.containsKey(ALLELE_FREQUENCY_KEY) ) {
+            return Double.valueOf(mInfoFields.get(ALLELE_FREQUENCY_KEY));
         } else {
             // this is the poor man's AF
-            if ( mInfoFields.containsKey("AC") && mInfoFields.containsKey("AN")) {
-                String splt[] = mInfoFields.get("AC").split(",");
+            if ( mInfoFields.containsKey(ALLELE_COUNT_KEY) && mInfoFields.containsKey(ALLELE_NUMBER_KEY)) {
+                String splt[] = mInfoFields.get(ALLELE_COUNT_KEY).split(",");
                 if ( splt.length > 0 ) {
-                    return (Double.valueOf(splt[0]) / Double.valueOf(mInfoFields.get("AN")));
+                    return (Double.valueOf(splt[0]) / Double.valueOf(mInfoFields.get(ALLELE_NUMBER_KEY)));
                 }
             }
         }
@@ -250,9 +267,13 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         if ( !hasAlternateAllele() )
             return VARIANT_TYPE.REFERENCE;
 
-        // TODO -- figure out what to do about records with more than one type
-        VCFGenotypeEncoding encoding = mAlts.get(0);
-        switch ( encoding.getType() ) {
+        VCFGenotypeEncoding.TYPE type = mAlts.get(0).getType();
+        for (int i = 1; i < mAlts.size(); i++) {
+            if ( mAlts.get(i).getType() != type )
+                throw new IllegalStateException("The record contains multiple encoding types");
+        }
+
+        switch ( type ) {
             case SINGLE_BASE:
                 return VARIANT_TYPE.SNP;
             case DELETION:
@@ -309,23 +330,20 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
     /**
      * get the filter criteria
      *
-     * @return an array of strings representing the filtering criteria, or 0 is none are applied
+     * @return an array of strings representing the filtering criteria, or UNFILTERED if none are applied
      */
     public String[] getFilteringCodes() {
-        if (mFilterString == null) return new String[]{"0"};
-        return this.mFilterString.split(FILTER_CODE_SEPERATOR);
+        if (mFilterString == null) return new String[]{UNFILTERED};
+        return mFilterString.split(FILTER_CODE_SEPERATOR);
     }
 
     public boolean isFiltered() {
         String[] codes = getFilteringCodes();
-        if ( codes.length > 1 ) return true;
-        else if ( codes[0].equals(".") || codes[0].equals("0") ) return false;
-        else return true;
+        return !codes[0].equals(UNFILTERED) && !codes[0].equals(PASSES_FILTERS);
     }
 
     public boolean hasFilteringCodes() {
-        // todo --- currently always returns true
-        return getFilteringCodes() != null;
+        return mFilterString != null;
     }
 
     public String getFilterString() {
@@ -567,7 +585,9 @@ public class VCFRecord implements Variation, VariantBackedByGenotype {
         if (!this.mLoc.equals(other.mLoc)) return false;
         if (!this.mID.equals(other.mID)) return false;
         if (this.mQual != other.mQual) return false;
-        if (!this.mFilterString.equals(other.mFilterString)) return false;
+        if ( this.mFilterString == null ) {
+            if ( other.mFilterString != null ) return false;
+        } else if ( !this.mFilterString.equals(other.mFilterString) ) return false;            
         if (!this.mInfoFields.equals(other.mInfoFields)) return false;
         if (!this.mGenotypeFields.equals(other.mGenotypeFields)) return false;
         return true;

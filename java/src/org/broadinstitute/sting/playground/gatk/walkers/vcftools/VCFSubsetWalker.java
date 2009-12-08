@@ -29,13 +29,12 @@ public class VCFSubsetWalker extends RefWalker<ArrayList<VCFRecord>, VCFWriter> 
     private VCFWriter vwriter = null;
 
     public void initializeWriter() {
-        Map<String, String> metaData = new HashMap<String, String>();
+
+        Set<String> metaData = new HashSet<String>();
+        metaData.add("source=VariantsToVCF");
+        metaData.add("reference=" + this.getToolkit().getArguments().referenceFile.getAbsolutePath());
+
         Set<String> additionalColumns = new HashSet<String>();
-
-        metaData.put("format", "VCRv3.2");
-        metaData.put("source", "VariantsToVCF");
-        metaData.put("reference", this.getToolkit().getArguments().referenceFile.getAbsolutePath());
-
         additionalColumns.add("FORMAT");
         additionalColumns.addAll(SAMPLES);
 

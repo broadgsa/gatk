@@ -14,7 +14,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testSimpleVenn() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example1.vcf -B set2,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example2.vcf -CT SimpleVenn", 1,
-                Arrays.asList("851b68004874f3a2e76d795e7401f8a0"));
+                Arrays.asList("2c7e18901dbf27bac9f36b3dbee063c6"));
         executeTest("testSimpleVenn", spec);
     }
 
@@ -22,7 +22,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testSNPConcordance() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example1.vcf -B set2,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example2.vcf -CT SNPGenotypeConcordance:qscore=5", 1,
-                Arrays.asList("7afb56b30257fe2d66bee7a029d75685"));
+                Arrays.asList("c21d59fc3194c39c662d2e74b53dcf9c"));
         executeTest("testSNPConcordance", spec);
     }
 
@@ -30,7 +30,15 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testNWayVenn() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example1.vcf -B set2,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example2.vcf -B set3,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/CEU.sample.vcf -CT NWayVenn", 1,
-                Arrays.asList("f452c04c600ad10c054f18b0c77b53d5"));
+                Arrays.asList("2b38ae235edd10773dbee0bfae036e35"));
         executeTest("testNWayVenn", spec);
+    }
+
+    @Test
+    public void testMulti() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " -B set1,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example1.vcf -B set2,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example2.vcf -CT SimpleVenn -CT NWayVenn -CT SNPGenotypeConcordance:qscore=5", 1,
+                Arrays.asList("9bcc83aadac00a160cef20e7126368ee"));
+        executeTest("testMulti", spec);
     }
 }

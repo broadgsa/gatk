@@ -22,7 +22,7 @@ import java.util.*;
  */
 public class VCFWriterTest extends BaseTest {
     private Set<VCFHeader.HEADER_FIELDS> headerFields = new LinkedHashSet<VCFHeader.HEADER_FIELDS>();
-    private Map<String, String> metaData = new HashMap();
+    private Set<String> metaData = new HashSet();
     private Set<String> additionalColumns = new HashSet<String>();
     private File fakeVCFFile = new File("FAKEVCFFILEFORTESTING.vcf");
 
@@ -62,9 +62,9 @@ public class VCFWriterTest extends BaseTest {
      * create a fake header of known quantity
      * @return a fake VCF header
      */
-    public static VCFHeader createFakeHeader(Map<String, String> metaData, Set<String> additionalColumns) {
-        metaData.put("format", "VCRv3.2"); // required
-        metaData.put("two", "2");
+    public static VCFHeader createFakeHeader(Set<String> metaData, Set<String> additionalColumns) {
+        metaData.add(VCFHeader.FULL_FORMAT_LINE); // required
+        metaData.add("two=2");
         additionalColumns.add("FORMAT");
         additionalColumns.add("extra1");
         additionalColumns.add("extra2");
@@ -109,12 +109,7 @@ public class VCFWriterTest extends BaseTest {
             Assert.assertEquals(VCFHeader.HEADER_FIELDS.values()[index], field);
             index++;
         }
-        index = 0;
-        for (String key : header.getMetaData().keySet()) {
-            Assert.assertEquals(header.getMetaData().get(key), metaData.get(key));
-            index++;
-        }
-        Assert.assertEquals(metaData.size(), index);
+        Assert.assertEquals(metaData.size(), header.getMetaData().size());
         index = 0;
         for (String key : header.getGenotypeSamples()) {
             Assert.assertTrue(additionalColumns.contains(key));

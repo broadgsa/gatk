@@ -30,9 +30,9 @@ import java.util.List;
 /**
  * @author aaron
  *         <p/>
- *         Class Genotype
+ *         Class GenotypeWriter
  *         <p/>
- *         The interface for storing genotype calls.
+ *         The interface for writing genotype calls.
  */
 public interface GenotypeWriter {
 
@@ -55,8 +55,9 @@ public interface GenotypeWriter {
     /**
      * add a multi-sample call if we support it
      * @param genotypes the list of genotypes, that are backed by sample information
+     * @param variation the variation
      */
-    public void addMultiSampleCall(List<Genotype> genotypes, VariationCall metadata);
+    public void addMultiSampleCall(List<Genotype> genotypes, VariationCall variation);
 
     /**
      * @return true if we support multisample, false otherwise

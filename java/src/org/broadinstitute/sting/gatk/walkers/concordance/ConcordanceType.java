@@ -11,4 +11,5 @@ public interface ConcordanceType {
     public void initialize(Map<String,String> args, Set<String> samples);
     public String computeConcordance(Map<String, Genotype> samplesToRecords, ReferenceContext ref);
     public String getInfoName();
+    public String getInfoDescription();
 }

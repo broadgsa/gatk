@@ -21,11 +21,37 @@ public class VCFUtils {
 
 
     /**
+     * Gets the header fields from all VCF rods input by the user
+     *
+     * @param toolkit    GATK engine
+     *
+     * @return a set of all fields
+     */
+    public static Set<String> getHeaderFields(GenomeAnalysisEngine toolkit) {
+
+        // keep a map of sample name to occurrences encountered
+        TreeSet<String> fields = new TreeSet<String>();
+
+        // iterate to get all of the sample names
+        List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
+        for ( ReferenceOrderedDataSource source : dataSources ) {
+            ReferenceOrderedData rod = source.getReferenceOrderedData();
+            if ( rod.getType().equals(RodVCF.class) ) {
+                VCFReader reader = new VCFReader(rod.getFile());
+                fields.addAll(reader.getHeader().getMetaData());
+                reader.close();
+            }
+        }
+
+        return fields;
+    }
+
+    /**
      * Gets the sample names from all VCF rods input by the user and uniquifies them if there is overlap
      * (e.g. sampleX.1, sampleX.2, ...)
      * When finished, samples contains the uniquified sample names and rodNamesToSampleNames contains a mapping
      * from rod/sample pairs to the new uniquified names
-     * 
+     *
      * @param toolkit    GATK engine
      * @param samples    set to store the sample names
      * @param rodNamesToSampleNames mapping of rod/sample pairs to new uniquified sample names
@@ -104,7 +130,7 @@ public class VCFUtils {
     public static VCFRecord mergeRecords(List<RodVCF> rods, Map<Pair<String, String>, String> rodNamesToSampleNames) {
 
         VCFParameters params = new VCFParameters();
-        params.addFormatItem("GT");
+        params.addFormatItem(VCFGenotypeRecord.GENOTYPE_KEY);
 
         // keep track of the locus specific data so we can merge them intelligently
         int totalReadDepth = 0;
@@ -122,7 +148,9 @@ public class VCFUtils {
                 if ( params.getPosition() < 1 )
                     params.setLocations(rod.getLocation(), call.getReference());
                 params.addGenotypeRecord(createVCFGenotypeRecord(params, call, rod.mCurrentRecord));
-                totalReadDepth += call.getReadCount();
+                int depth = call.getReadCount();
+                if ( depth > 0 )
+                    totalReadDepth += call.getReadCount();
             }
 
             // set the overall confidence to be the max entry we see
@@ -142,14 +170,14 @@ public class VCFUtils {
         }
 
         Map<String, String> infoFields = new HashMap<String, String>();
-        infoFields.put("DP", String.format("%d", totalReadDepth));
-        infoFields.put("NS", String.valueOf(params.getGenotypesRecords().size()));
+        infoFields.put(VCFRecord.DEPTH_KEY, String.format("%d", totalReadDepth));
+        infoFields.put(VCFRecord.SAMPLE_NUMBER_KEY, String.valueOf(params.getGenotypesRecords().size()));
 
         // set the overall strand bias and allele frequency to be the average of all entries we've seen
         if ( SLODsSeen > 0 )
-            infoFields.put("SB", String.format("%.2f", (totalSLOD/(double)SLODsSeen)));
+            infoFields.put(VCFRecord.STRAND_BIAS_KEY, String.format("%.2f", (totalSLOD/(double)SLODsSeen)));
         if ( freqsSeen > 0 )
-            infoFields.put("AF", String.format("%.2f", (totalFreq/(double)freqsSeen)));
+            infoFields.put(VCFRecord.ALLELE_FREQUENCY_KEY, String.format("%.2f", (totalFreq/(double)freqsSeen)));
 
         return new VCFRecord(params.getReferenceBase(),
                 params.getContig(),
@@ -175,13 +203,12 @@ public class VCFUtils {
     public static VCFGenotypeRecord createVCFGenotypeRecord(VCFParameters params, VCFGenotypeRecord gtype, VCFRecord vcfrecord) {
         Map<String, String> map = new HashMap<String, String>();
 
-        // calculate the RMS mapping qualities and the read depth
-        int readDepth = gtype.getReadCount();
-        map.put("RD", String.valueOf(readDepth));
-        params.addFormatItem("RD");
-        double qual = 10.0 * gtype.getNegLog10PError();
-        map.put("GQ", String.format("%.2f", qual));
-        params.addFormatItem("GQ");
+        // calculate the genotype quality and the read depth
+        map.put(VCFGenotypeRecord.DEPTH_KEY, String.valueOf(gtype.getReadCount()));
+        params.addFormatItem(VCFGenotypeRecord.DEPTH_KEY);
+        double qual = Math.min(10.0 * gtype.getNegLog10PError(), VCFGenotypeRecord.MAX_QUAL_VALUE);
+        map.put(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, String.format("%.2f", qual));
+        params.addFormatItem(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
 
         List<VCFGenotypeEncoding> alleles = createAlleleArray(gtype);
         for (VCFGenotypeEncoding allele : alleles) {
@@ -208,12 +235,11 @@ public class VCFUtils {
         Map<String, String> map = new HashMap<String, String>();
 
         // calculate the RMS mapping qualities and the read depth
-        int readDepth = gtype.getReadCount();
-        map.put("RD", String.valueOf(readDepth));
-        params.addFormatItem("RD");
-        double qual = gtype.getNegLog10PError();
-        map.put("GQ", String.format("%.2f", qual));
-        params.addFormatItem("GQ");
+        map.put(VCFGenotypeRecord.DEPTH_KEY, String.valueOf(gtype.getReadCount()));
+        params.addFormatItem(VCFGenotypeRecord.DEPTH_KEY);
+        double qual = Math.min(10.0 * gtype.getNegLog10PError(), VCFGenotypeRecord.MAX_QUAL_VALUE);
+        map.put(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY, String.format("%.2f", qual));
+        params.addFormatItem(VCFGenotypeRecord.GENOTYPE_QUALITY_KEY);
 
         List<VCFGenotypeEncoding> alleles = createAlleleArray(gtype);
         for (VCFGenotypeEncoding allele : alleles) {

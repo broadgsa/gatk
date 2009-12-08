@@ -39,4 +39,5 @@ public class NWayVenn implements ConcordanceType {
     }
 
     public String getInfoName() { return "NwayVenn"; }    
+    public String getInfoDescription() { return getInfoName() + ",1,String,\"N-way Venn split\""; }
 }

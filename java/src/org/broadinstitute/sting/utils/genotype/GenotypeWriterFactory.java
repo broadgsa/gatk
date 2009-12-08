@@ -33,6 +33,7 @@ public class GenotypeWriterFactory {
      * @param source the source
      * @param referenceName the ref name
      * @param sampleNames the sample names
+     * @param headerInfo the optional header info fields
      * @return the genotype writer object
      */
     public static GenotypeWriter create(GENOTYPE_FORMAT format,
@@ -40,7 +41,8 @@ public class GenotypeWriterFactory {
                                         File destination,
                                         String source,
                                         String referenceName,
-                                        Set<String> sampleNames ) {
+                                        Set<String> sampleNames,
+                                        Set<String> headerInfo) {
         switch (format) {
             case GLF:
                 return new GLFWriter(header.toString(), destination);
@@ -49,7 +51,7 @@ public class GenotypeWriterFactory {
             case GELI_BINARY:
                 return new GeliAdapter(destination, header);
             case VCF:
-                return new VCFGenotypeWriterAdapter(source, referenceName, destination, sampleNames);
+                return new VCFGenotypeWriterAdapter(source, referenceName, destination, sampleNames, headerInfo);
             default:
                 throw new StingException("Genotype writer " + format.toString() + " is not implemented");
         }
@@ -60,14 +62,15 @@ public class GenotypeWriterFactory {
                                         PrintStream destination,
                                         String source,
                                         String referenceName,
-                                        Set<String> sampleNames ) {
+                                        Set<String> sampleNames,
+                                        Set<String> headerInfo) {
         switch (format) {
             case GELI:
                 return new GeliTextWriter(destination);
             case GLF:
                 return new GLFWriter(header.toString(), destination);
             case VCF:
-                return new VCFGenotypeWriterAdapter(source, referenceName, destination, sampleNames);
+                return new VCFGenotypeWriterAdapter(source, referenceName, destination, sampleNames, headerInfo);
             default:
                 throw new StingException("Genotype writer to " + format.toString() + " to standard output is not implemented");
         }

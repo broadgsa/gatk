@@ -20,7 +20,7 @@ public class VCFReaderTest extends BaseTest {
 
     private static final File vcfFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample.vcf");
     private static final File multiSampleVCF = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/MultiSample.vcf");
-    private static final String VCF_MIXUP_FILE = "/humgen/gsa-scr1/GATK_Data/Validation_Data/mixedup.vcf";
+    private static final String VCF_MIXUP_FILE = "/humgen/gsa-scr1/GATK_Data/Validation_Data/mixedup.v2.vcf";
 
     private static IndexedFastaSequenceFile seq;
 

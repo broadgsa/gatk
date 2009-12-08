@@ -2,14 +2,14 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 
 
 import java.io.*;
+import java.util.TreeSet;
 
 /**
  * this class writers VCF files
  */
 public class VCFWriter {
 
-    public static final String VERSION = "VCRv3.2";
-
+    
     // the VCF header we're storing
     private VCFHeader mHeader;
 
@@ -49,10 +49,25 @@ public class VCFWriter {
         mWriter = new BufferedWriter(
                 new OutputStreamWriter(location));
         try {
-            // write the header meta-data out
-            for (String metadata : header.getMetaData().keySet()) {
-                mWriter.write(VCFHeader.METADATA_INDICATOR + metadata + "=" + header.getMetaData().get(metadata) + "\n");
+            // the fileformat field needs to be written first
+            TreeSet<String> allMetaData = new TreeSet<String>(header.getMetaData());
+            for ( String metadata : allMetaData ) {
+                if ( metadata.startsWith(VCFHeader.FILE_FORMAT_KEY) ) {
+                    mWriter.write(VCFHeader.METADATA_INDICATOR + metadata + "\n");
+                    break;
+                }
+                else if ( metadata.startsWith(VCFHeader.OLD_FILE_FORMAT_KEY) ) {
+                    mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeader.FILE_FORMAT_KEY + metadata.substring(VCFHeader.OLD_FILE_FORMAT_KEY.length()) + "\n");
+                    break;
+                }
             }
+
+            // write the rest of the header meta-data out
+            for ( String metadata : header.getMetaData() ) {
+                if ( !metadata.startsWith(VCFHeader.FILE_FORMAT_KEY) && !metadata.startsWith(VCFHeader.OLD_FILE_FORMAT_KEY) )
+                    mWriter.write(VCFHeader.METADATA_INDICATOR + metadata + "\n");                
+            }
+            
             // write out the column line
             StringBuilder b = new StringBuilder();
             b.append(VCFHeader.HEADER_INDICATOR);

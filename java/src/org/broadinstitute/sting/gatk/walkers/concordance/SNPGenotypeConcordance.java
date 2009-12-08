@@ -95,4 +95,5 @@ public class SNPGenotypeConcordance implements ConcordanceType {
     }
 
     public String getInfoName() { return "SnpConcordance"; }    
+    public String getInfoDescription() { return getInfoName() + ",1,String,\"SNP concordance test\""; }    
 }

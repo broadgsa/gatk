@@ -133,17 +133,31 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         if ( UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED )
             samples.clear();
 
+        // get the optional header fields
+        Set<String> headerInfo = new HashSet<String>();
+        if ( UAC.ALL_ANNOTATIONS )
+            headerInfo.addAll(VariantAnnotator.getAllVCFAnnotationDescriptions());
+        else
+            headerInfo.addAll(VariantAnnotator.getVCFAnnotationDescriptions());
+        headerInfo.add("INFO=AF,1,Float,\"Allele Frequency\"");
+        headerInfo.add("INFO=NS,1,Integer,\"Number of Samples With Data\"");
+        if ( !UAC.NO_SLOD )
+            headerInfo.add("INFO=SB,1,Float,\"Strand Bias\"");
+
         // create the output writer stream
         if ( VARIANTS_FILE != null )
             writer = GenotypeWriterFactory.create(UAC.VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE,
                                                   "UnifiedGenotyper",
                                                   this.getToolkit().getArguments().referenceFile.getName(),
-                                                  samples);
+                                                  samples,
+                                                  headerInfo);
         else
             writer = GenotypeWriterFactory.create(UAC.VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out,
                                                   "UnifiedGenotyper",
                                                   this.getToolkit().getArguments().referenceFile.getName(),
-                                                  samples);
+                                                  samples,
+                                                  headerInfo);
+
         callsMetrics = new CallMetrics();
     }
 

@@ -50,18 +50,17 @@ public class VariantsToVCF extends RefWalker<Integer, Integer> {
     }
 
     public static VCFHeader getHeader(GATKArgumentCollection args, Set<String> sampleNames) {
-        Map<String, String> metaData = new HashMap<String, String>();
-        Set<String> additionalColumns = new HashSet<String>();
 
         // Don't output the data for now because it kills our unit test MD5s and is optional
         // TODO - figure out what to do here
         //Calendar cal = Calendar.getInstance();
         //metaData.put("fileDate", String.format("%d%02d%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)));
 
-        metaData.put("format", "VCRv3.2");
-        metaData.put("source", "VariantsToVCF");
-        metaData.put("reference", args.referenceFile.getAbsolutePath());
+        Set<String> metaData = new HashSet<String>();
+        metaData.add("source=VariantsToVCF");
+        metaData.add("reference=" + args.referenceFile.getAbsolutePath());
 
+        Set<String> additionalColumns = new HashSet<String>();
         additionalColumns.add("FORMAT");
         additionalColumns.addAll(sampleNames);
 

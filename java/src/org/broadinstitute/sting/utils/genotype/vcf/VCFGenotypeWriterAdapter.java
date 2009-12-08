@@ -27,23 +27,23 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     protected static Logger logger = Logger.getLogger(VCFGenotypeWriterAdapter.class);
 
 
-    public VCFGenotypeWriterAdapter(String source, String referenceName, File writeTo, Set<String> sampleNames) {
+    public VCFGenotypeWriterAdapter(String source, String referenceName, File writeTo, Set<String> sampleNames, Set<String> headerInfo) {
         mReferenceName = referenceName;
         mSource = source;
         mSampleNames.addAll(sampleNames);
 
-        initializeHeader();
+        initializeHeader(headerInfo);
 
         if (writeTo == null) throw new RuntimeException("VCF output file must not be null");
         mWriter = new VCFWriter(mHeader, writeTo);
     }
 
-    public VCFGenotypeWriterAdapter(String source, String referenceName, OutputStream writeTo, Set<String> sampleNames) {
+    public VCFGenotypeWriterAdapter(String source, String referenceName, OutputStream writeTo, Set<String> sampleNames, Set<String> headerInfo) {
         mReferenceName = referenceName;
         mSource = source;
         mSampleNames.addAll(sampleNames);
 
-        initializeHeader();
+        initializeHeader(headerInfo);
 
         if (writeTo == null) throw new RuntimeException("VCF output stream must not be null");
         mWriter = new VCFWriter(mHeader, writeTo);
@@ -51,15 +51,18 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
 
     /**
      * initialize this VCF header
+     *
+     * @param optionalHeaderInfo the optional header fields
      */
-    private void initializeHeader() {
-        Map<String, String> hInfo = new HashMap<String, String>();
+    private void initializeHeader(Set<String> optionalHeaderInfo) {
+        Set<String> hInfo = new TreeSet<String>();
 
         // setup the header fields
-        hInfo.put("format", VCFWriter.VERSION);
-        hInfo.put("source", mSource);
-        hInfo.put("reference", mReferenceName);
-
+        hInfo.add(VCFHeader.FULL_FORMAT_LINE);
+        hInfo.add("source=" + mSource);
+        hInfo.add("reference=" + mReferenceName);
+        hInfo.addAll(optionalHeaderInfo);
+        
         // setup the sample names
         mHeader = new VCFHeader(hInfo, mSampleNames);
     }
@@ -114,7 +117,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
             throw new IllegalArgumentException("Only VCFVariationCall objects should be passed in to the VCF writers");
 
         VCFParameters params = new VCFParameters();
-        params.addFormatItem("GT");
+        params.addFormatItem(VCFGenotypeRecord.GENOTYPE_KEY);
 
         // get the location and reference
         if ( genotypes.size() == 0 ) {
@@ -166,10 +169,10 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         VCFRecord vcfRecord = new VCFRecord(params.getReferenceBase(),
                                             params.getContig(),
                                             params.getPosition(),
-                                            (dbSnpID == null ? "." : dbSnpID),
+                                            (dbSnpID == null ? VCFRecord.EMPTY_ID_FIELD : dbSnpID),
                                             params.getAlternateBases(),
                                             qual,
-                                            "0",
+                                            VCFRecord.UNFILTERED,
                                             infoFields,
                                             params.getFormatString(),
                                             params.getGenotypesRecords());
@@ -189,15 +192,15 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         Map<String, String> infoFields = new HashMap<String, String>();
         if ( locusdata != null ) {
             if ( locusdata.getSLOD() != null )
-                infoFields.put("SB", String.format("%.2f", locusdata.getSLOD()));
+                infoFields.put(VCFRecord.STRAND_BIAS_KEY, String.format("%.2f", locusdata.getSLOD()));
             if ( locusdata.hasNonRefAlleleFrequency() )
-                infoFields.put("AF", String.format("%.2f", locusdata.getNonRefAlleleFrequency()));
+                infoFields.put(VCFRecord.ALLELE_FREQUENCY_KEY, String.format("%.2f", locusdata.getNonRefAlleleFrequency()));
             Map<String, String> otherFields = locusdata.getFields();
             if ( otherFields != null ) {
                 infoFields.putAll(otherFields);
             }
         }
-        infoFields.put("NS", String.valueOf(params.getGenotypesRecords().size()));
+        infoFields.put(VCFRecord.SAMPLE_NUMBER_KEY, String.valueOf(params.getGenotypesRecords().size()));
         return infoFields;
     }
 

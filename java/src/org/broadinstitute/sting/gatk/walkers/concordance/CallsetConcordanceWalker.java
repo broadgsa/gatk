@@ -61,16 +61,6 @@ public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
             logger.debug("Uniquified sample mapping: " + entry.getKey().first + "/" + entry.getKey().second + " -> " + entry.getValue());
         }
 
-        // set up the header fields
-        Map<String, String> hInfo = new HashMap<String, String>();
-        hInfo.put("format", VCFWriter.VERSION);
-        hInfo.put("source", "CallsetConcordance");
-        hInfo.put("reference", getToolkit().getArguments().referenceFile.getName());
-        hInfo.put("explanation", "This file represents a concordance test of various call sets - NOT the output from a multi-sample caller");
-        VCFHeader header = new VCFHeader(hInfo, samples);
-
-        vcfWriter = new VCFWriter(header, OUTPUT);
-
         // initialize requested concordance types
         requestedTypes = new ArrayList<ConcordanceType>();
         if (TYPES != null) {
@@ -110,6 +100,25 @@ public class CallsetConcordanceWalker extends RodWalker<Integer, Integer> {
                     throw new StingException("The requested concordance type (" + requestedType + ") isn't a valid concordance option");
             }
         }
+
+        // set up the header fields
+        Set<String> hInfo = new HashSet<String>();
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+        hInfo.add("source=CallsetConcordance");
+        hInfo.add("note=\"This file represents a concordance test of various call sets - NOT the output from a multi-sample caller\"");
+        hInfo.addAll(getVCFAnnotationDescriptions(requestedTypes));
+        VCFHeader header = new VCFHeader(hInfo, samples);
+
+        vcfWriter = new VCFWriter(header, OUTPUT);
+    }
+
+    public static Set<String> getVCFAnnotationDescriptions(Collection<ConcordanceType> types) {
+
+        TreeSet<String> descriptions = new TreeSet<String>();
+        for ( ConcordanceType type : types )
+            descriptions.add("INFO=" + type.getInfoDescription());
+
+        return descriptions;
     }
 
     public Integer map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {

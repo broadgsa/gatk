@@ -140,10 +140,10 @@ public class VCFRecordTest extends BaseTest {
      * @return a fake VCF header
      */
     public static VCFHeader createFakeHeader() {
-        Map<String, String> metaData = new HashMap();
+        Set<String> metaData = new HashSet();
+        metaData.add(VCFHeader.FULL_FORMAT_LINE); // required
+        metaData.add("two=2");
         Set<String> additionalColumns = new HashSet<String>();
-        metaData.put("format", "VCRv3.2"); // required
-        metaData.put("two", "2");
         additionalColumns.add("FORMAT");
         additionalColumns.add("sample1");
         return new VCFHeader(metaData, additionalColumns);

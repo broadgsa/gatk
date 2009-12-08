@@ -16,7 +16,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testNoAction() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("2408d449fbe7bf74099cc53d2d97c248"));
+                Arrays.asList("49817e684effce7b6f3d5776dc781988"));
         executeTest("test no action", spec);
     }
 
@@ -24,7 +24,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testClusteredSnps() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -window 10 -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("58a2d4cd3d3ba1460833b45b9b8455c2"));
+                Arrays.asList("ee5e4e00bf25a912e8cab3e768fa0e7d"));
         executeTest("test clustered SNPs", spec);
     }
 
@@ -32,7 +32,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testMask() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -mask foo -B mask,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample2.vcf -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("9fc2cb210b3595159f34ddfba5a2e572"));
+                Arrays.asList("77451c3ba8a070343e69157cdaf2be92"));
         executeTest("test mask", spec);
     }
 
@@ -40,7 +40,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testFilter1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -filter 'DoC < 20 || FisherStrand > 20.0' -filterName foo -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("5effa4b4fdd4dd33a373561637a5d86e"));
+                Arrays.asList("3b44be79d676536bd6c0f32774091fee"));
         executeTest("test filter #1", spec);
     }
 
@@ -48,7 +48,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testFilter2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -filter 'AlleleBalance < 70.0 && FisherStrand == 1.4' -filterName bar -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("5e0077148eda3b4274fbef1048902d47"));
+                Arrays.asList("baa425fa8e0761a05733a1a9d62d02ff"));
         executeTest("test filter #2", spec);
     }
 }

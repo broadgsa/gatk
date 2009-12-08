@@ -90,7 +90,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
 
     public boolean hasStrandBias() {
         assertNotNull();
-        return this.mCurrentRecord.getInfoValues().containsKey("SB");
+        return this.mCurrentRecord.getInfoValues().containsKey(VCFRecord.STRAND_BIAS_KEY);
     }
 
     /**
@@ -99,7 +99,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
      * @return StrandBias with the stored slod
      */
     public double getStrandBias() {
-        return hasStrandBias() ? Double.valueOf(this.mCurrentRecord.getInfoValues().get("SB")) : 0.0;
+        return hasStrandBias() ? Double.valueOf(this.mCurrentRecord.getInfoValues().get(VCFRecord.STRAND_BIAS_KEY)) : 0.0;
     }
 
     /** @return the VARIANT_TYPE of the current variant */
@@ -291,8 +291,7 @@ public class RodVCF extends BasicReferenceOrderedDatum implements VariationRod, 
     }
 
     public RodVCF next() {
-        mCurrentRecord = mReader.next();
-        return new RodVCF(name, mCurrentRecord, mReader);
+        return new RodVCF(name, mReader.next(), mReader);
     }
 
     public void remove() {

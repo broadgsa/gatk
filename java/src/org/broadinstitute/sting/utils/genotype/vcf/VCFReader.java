@@ -21,9 +21,6 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
     // our next record
     private VCFRecord mNextRecord = null;
 
-    // a pattern we use for detecting meta data and header lines
-    private static Pattern pMeta = Pattern.compile("^" + VCFHeader.METADATA_INDICATOR + "\\s*(\\S+)\\s*=\\s*(\\S+)\\s*$");
-
     // our pattern matching for the genotype mFields
     private static final Pattern gtPattern = Pattern.compile("([0-9\\.]+)([\\\\|\\/])([0-9\\.]*)");
 
@@ -142,24 +139,11 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
      * @return a VCF Header created from the list of stinrgs
      */
     protected VCFHeader createHeader(List<String> headerStrings) {
-        Map<String, String> metaData = new HashMap<String, String>();
+        Set<String> metaData = new TreeSet<String>();
         Set<String> auxTags = new LinkedHashSet<String>();
         // iterate over all the passed in strings
-        for (String str : headerStrings) {
-            Matcher matcher = pMeta.matcher(str);
-            if (matcher.matches()) {
-                String metaKey;
-                String metaValue = "";
-                if (matcher.groupCount() < 1) continue;
-                if (matcher.groupCount() == 2) metaValue = matcher.group(2);
-                metaKey = matcher.group(1);
-                metaData.put(metaKey, metaValue);
-            }
-        }
-
-        // iterate over all the passed in strings
-        for (String str : headerStrings) {  // TODO: fix, we shouldn't loop over every line
-            if (str.startsWith("#") && !str.startsWith("##")) {
+        for ( String str : headerStrings ) {
+            if ( !str.startsWith("##") ) {
                 String[] strings = str.substring(1).split("\\s+");
                 // the columns should be in order according to Richard Durbin
                 int arrayIndex = 0;
@@ -177,8 +161,11 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
                         auxTags.add(strings[arrayIndex]);
                     arrayIndex++;
                 }
+            } else {
+                metaData.add(str.substring(2));
             }
         }
+
         return new VCFHeader(metaData, auxTags);
     }
 
@@ -266,7 +253,7 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
                 nextDivider = (genotypeString.indexOf(":") > genotypeString.length()) ? genotypeString.length() : genotypeString.indexOf(":");
                 parse = genotypeString.substring(0, nextDivider);
             }
-            if (key.equals("GT")) {
+            if (key.equals(VCFGenotypeRecord.GENOTYPE_KEY)) {
                 Matcher m = gtPattern.matcher(parse);
                 if (!m.matches())
                     throw new RuntimeException("VCFReader: Unable to match GT genotype flag to it's expected pattern, the field was: " + parse);
@@ -274,6 +261,8 @@ public class VCFReader implements Iterator<VCFRecord>, Iterable<VCFRecord> {
                 addAllele(m.group(1), altAlleles, referenceBase, bases);
                 if (m.group(3).length() > 0) addAllele(m.group(3), altAlleles, referenceBase, bases);
             } else {
+                if ( parse.length() == 0 )
+                    parse = VCFGenotypeRecord.getMissingFieldValue(key);
                 tagToValue.put(key, parse);
             }
             if (nextDivider + 1 >= genotypeString.length()) nextDivider = genotypeString.length() - 1;

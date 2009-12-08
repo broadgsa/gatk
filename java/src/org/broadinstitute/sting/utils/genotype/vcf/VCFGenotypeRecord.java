@@ -16,12 +16,25 @@ import java.util.Map;
  *         <p/>
  */
 public class VCFGenotypeRecord implements Genotype {
-    // the symbols for an empty genotype
+
+    // key names
+    public static final String GENOTYPE_KEY = "GT";
+    public static final String GENOTYPE_QUALITY_KEY = "GQ";
+    public static final String DEPTH_KEY = "DP";
+    public static final String HAPLOTYPE_QUALITY_KEY = "HQ";
+    public static final String FILTER_KEY = "FT";
+    public static final String OLD_DEPTH_KEY = "RD";
+
+    // the values for empty fields
     public static final String EMPTY_GENOTYPE = "./.";
     public static final String EMPTY_ALLELE = ".";
-
+    public static final int MISSING_GENOTYPE_QUALITY = -1;
     public static final int MISSING_DEPTH = -1;
+    public static final int MISSING_HAPLOTYPE_QUALITY = -1;
+    public static final String UNFILTERED = ".";
 
+    public static final double MAX_QUAL_VALUE = 99.0;
+    
     // what kind of phasing this genotype has
     public enum PHASE {
         UNPHASED, PHASED, PHASED_SWITCH_PROB, UNKNOWN
@@ -51,14 +64,21 @@ public class VCFGenotypeRecord implements Genotype {
      * @param otherFlags  other flags
      */
     public VCFGenotypeRecord(String sampleName, List<VCFGenotypeEncoding> genotypes, PHASE phasing, Map<String, String> otherFlags) {
-        this.mSampleName = sampleName;
+        mSampleName = sampleName;
         if (genotypes != null) this.mGenotypeAlleles.addAll(genotypes);
-        this.mPhaseType = phasing;
-        if (otherFlags != null) this.mFields.putAll(otherFlags);        
+        mPhaseType = phasing;
+        if (otherFlags != null) {
+            // we need to be backwards compatible
+            if ( otherFlags.containsKey(OLD_DEPTH_KEY) ) {
+                otherFlags.put(DEPTH_KEY, otherFlags.get(OLD_DEPTH_KEY));
+                otherFlags.remove(OLD_DEPTH_KEY);
+            }
+            mFields.putAll(otherFlags);
+        }
     }
 
     public void setVCFRecord(VCFRecord record) {
-        this.mRecord = record;
+        mRecord = record;
     }
 
     public void setSampleName(String name) {
@@ -102,16 +122,11 @@ public class VCFGenotypeRecord implements Genotype {
     }
 
     public double getNegLog10PError() {
-        return ( mFields.containsKey("GQ") ? Double.valueOf(mFields.get("GQ")) / 10.0 : 0.0);
+        return ( mFields.containsKey(GENOTYPE_QUALITY_KEY) ? Double.valueOf(mFields.get(GENOTYPE_QUALITY_KEY)) / 10.0 : MISSING_GENOTYPE_QUALITY);
     }
 
     public int getReadCount() {
-        int depth = MISSING_DEPTH;
-        if ( mFields.containsKey("RD") )
-            depth = Integer.valueOf(mFields.get("RD"));
-        else if ( mFields.containsKey("DP") )
-            depth = Integer.valueOf(mFields.get("DP"));
-        return depth;
+        return ( mFields.containsKey(DEPTH_KEY) ? Integer.valueOf(mFields.get(DEPTH_KEY)) : MISSING_DEPTH);
     }
 
     public GenomeLoc getLocation() {
@@ -227,11 +242,26 @@ public class VCFGenotypeRecord implements Genotype {
         StringBuilder builder = new StringBuilder();
         builder.append(toGenotypeString(altAlleles));
         for (String field : mFields.keySet()) {
-            if (mFields.get(field).equals("")) continue;
             builder.append(VCFRecord.GENOTYPE_FIELD_SEPERATOR);
-            builder.append(mFields.get(field));
-
+            if (mFields.get(field).equals(""))
+                builder.append(getMissingFieldValue(field));
+            else
+                builder.append(mFields.get(field));
         }
         return builder.toString();
+    }
+
+    public static String getMissingFieldValue(String field) {
+        String result = "";
+        if ( field.equals(GENOTYPE_QUALITY_KEY) )
+            result = String.valueOf(MISSING_GENOTYPE_QUALITY);
+        else if ( field.equals(DEPTH_KEY) )
+            result = String.valueOf(MISSING_DEPTH);
+        else if ( field.equals(FILTER_KEY) )
+            result = UNFILTERED;
+        // TODO -- support haplotype quality
+        //else if ( field.equals(HAPLOTYPE_QUALITY_KEY) )
+        //    result = String.valueOf(MISSING_HAPLOTYPE_QUALITY);
+        return result;
     }
 }

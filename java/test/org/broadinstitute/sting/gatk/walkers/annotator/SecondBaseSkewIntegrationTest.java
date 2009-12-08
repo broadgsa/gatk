@@ -33,7 +33,7 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
                 +"-B variant,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_pilot_pool3_raw_calls.geli "
                 +"-vcf %s -sample variant -L /humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_test_intervals.interval_list";
 
-        String md5_for_this_test = "a2ec1d36e77da56b4a11eef34d73296e";
+        String md5_for_this_test = "f7e67c353d3113447d1b9c8c39de6ed0";
 
         WalkerTestSpec spec = new WalkerTestSpec(test_args,1, Arrays.asList(md5_for_this_test));
         executeTest("Testing on E2 annotated but not Q2 annotated file ",spec);
@@ -49,7 +49,7 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
                 +"-B variant,Variants,/humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_pilot_pool3_raw_calls.geli "
                 +"-vcf %s -sample variant -L /humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_test_intervals.interval_list";
 
-        String md5_for_this_test = "f105fd8a7ae7026a55107b86e768553a";
+        String md5_for_this_test = "3eee411119888fc4633870a91ed2093d";
 
         WalkerTestSpec spec = new WalkerTestSpec(test_args,1, Arrays.asList(md5_for_this_test));
         executeTest("Testing on bam file without 2bb annotations ",spec);
@@ -61,7 +61,7 @@ public class SecondBaseSkewIntegrationTest extends WalkerTest {
                      + " -R /seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta -A SecondBaseSkew"
                      + " -sample variant -B variant,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/FHS_pileup_test_chr15.vcf"
                      + " -vcf %s -L chr15:46347148";
-        String expected_md5 = "160a8e3826eb745bcfe2f463f73e1ec7";
+        String expected_md5 = "c70dfb30c3caa9184604f88bc7f62a07";
         WalkerTestSpec spec = new WalkerTestSpec(test_args,1,Arrays.asList(expected_md5));
         executeTest("Testing on locus with many indels", spec);
     }

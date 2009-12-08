@@ -59,4 +59,5 @@ public class SimpleVenn implements ConcordanceType {
     }
 
     public String getInfoName() { return "Venn"; }
+    public String getInfoDescription() { return getInfoName() + ",1,String,\"2-way Venn split\""; }    
 }

@@ -18,7 +18,7 @@ import java.util.*;
 public class VCFHeaderTest extends BaseTest {
 
     private Set<VCFHeader.HEADER_FIELDS> headerFields = new LinkedHashSet<VCFHeader.HEADER_FIELDS>();
-    private Map<String, String> metaData = new HashMap();
+    private Set<String> metaData = new HashSet();
     private Set<String> additionalColumns = new HashSet<String>();
 
     /**
@@ -26,8 +26,8 @@ public class VCFHeaderTest extends BaseTest {
      */
     @Test
     public void testHeaderConstructor() {
-        metaData.put("format","VCRv3.2");
-        metaData.put("two","2");
+        metaData.add(VCFHeader.FULL_FORMAT_LINE); // required
+        metaData.add("two=2");
         additionalColumns.add("extra1");
         additionalColumns.add("extra2");
         // this should create a header that is valid
@@ -40,12 +40,7 @@ public class VCFHeaderTest extends BaseTest {
             Assert.assertEquals(VCFHeader.HEADER_FIELDS.values()[index],field);
             index++;
         }
-        index = 0;
-        for (String key: header.getMetaData().keySet()) {
-            Assert.assertEquals(header.getMetaData().get(key),metaData.get(key));
-            index++;
-        }
-        Assert.assertEquals(metaData.size(),index);
+        Assert.assertEquals(metaData.size(), header.getMetaData().size());
         index = 0;
         for (String key: header.getGenotypeSamples()) {
             Assert.assertTrue(additionalColumns.contains(key));

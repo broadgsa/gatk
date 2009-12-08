@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
-import org.apache.log4j.Logger;
-
 import java.util.*;
 
 
@@ -14,13 +12,25 @@ import java.util.*;
  */
 public class VCFHeader {
 
+    public static final String FILE_FORMAT_KEY = "fileformat=";
+    public static final String OLD_FILE_FORMAT_KEY = "format=";   // from version 3.2
+
+
+    /** the current vcf version we support. */
+    public static final String VCF_VERSION_HEADER = "VCFv";
+    public static final String OLD_VCF_VERSION_HEADER = "VCRv";  // from version 3.2
+    public static final double VCF_VERSION_NUMBER = 3.3;
+    public static final String VCF_VERSION = VCF_VERSION_HEADER + VCF_VERSION_NUMBER;
+
+    public static final String FULL_FORMAT_LINE = FILE_FORMAT_KEY + VCF_VERSION;
+
     // the manditory header fields
     public enum HEADER_FIELDS {
         CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO
     }
 
     // the associated meta data
-    private final Map<String, String> mMetaData = new HashMap<String, String>();
+    private final Set<String> mMetaData;
 
     // the list of auxillary tags
     private final Set<String> mGenotypeSampleNames = new LinkedHashSet<String>();
@@ -31,22 +41,17 @@ public class VCFHeader {
     // the header string indicator
     public static final String HEADER_INDICATOR = "#";
 
-    /** our log, which we use to capture anything from this class */
-    private static Logger logger = Logger.getLogger(VCFHeader.class);
 
     /** do we have genotying data? */
     private boolean hasGenotypingData = false;
-
-    /** the current vcf version we support. */
-    private static final String VCF_VERSION = "VCRv3.2";
 
     /**
      * create a VCF header, given a list of meta data and auxillary tags
      *
      * @param metaData     the meta data associated with this header
      */
-    public VCFHeader(Map<String, String> metaData) {
-        for (String key : metaData.keySet()) mMetaData.put(key, metaData.get(key));
+    public VCFHeader(Set<String> metaData) {
+        mMetaData = new TreeSet<String>(metaData);
         checkVCFVersion();
     }
 
@@ -56,8 +61,8 @@ public class VCFHeader {
      * @param metaData            the meta data associated with this header
      * @param genotypeSampleNames the genotype format field, and the sample names
      */
-    public VCFHeader(Map<String, String> metaData, Set<String> genotypeSampleNames) {
-        for (String key : metaData.keySet()) mMetaData.put(key, metaData.get(key));
+    public VCFHeader(Set<String> metaData, Set<String> genotypeSampleNames) {
+        mMetaData = new TreeSet<String>(metaData);
         for (String col : genotypeSampleNames) {
             if (!col.equals("FORMAT"))
                 mGenotypeSampleNames.add(col);
@@ -71,13 +76,34 @@ public class VCFHeader {
      * or the version is not present
      */
     public void checkVCFVersion() {
-        if (mMetaData.containsKey("format")) {
-            if (mMetaData.get("format").equals(VCF_VERSION))
-                return;
-            throw new RuntimeException("VCFHeader: VCF version of " + mMetaData.get("format") +
-                    " doesn't match the supported version of " + VCF_VERSION);
+        String version = null;
+        for ( String field : mMetaData ) {
+            if ( field.startsWith(FILE_FORMAT_KEY) ) {
+                version = field.substring(FILE_FORMAT_KEY.length());
+                break;
+            }
+            else if ( field.startsWith(OLD_FILE_FORMAT_KEY) ) {
+                version = field.substring(OLD_FILE_FORMAT_KEY.length());
+                break;
+            }
         }
-        throw new RuntimeException("VCFHeader: VCF version isn't present");
+
+        if ( version == null )
+            mMetaData.add(FULL_FORMAT_LINE);
+        else if ( !isSupportedVersion(version) )
+            throw new RuntimeException("VCF version " + version +
+                    " is not yet supported; only version " + VCF_VERSION + " and earlier can be used");
+    }
+
+    private boolean isSupportedVersion(String version) {
+        if ( !version.startsWith(VCF_VERSION_HEADER) && !version.startsWith(OLD_VCF_VERSION_HEADER) )
+            return false;
+        try {
+            double dVersion = Double.valueOf(version.substring(VCF_VERSION_HEADER.length()));
+            return dVersion <= VCF_VERSION_NUMBER;
+        } catch (Exception e) { }
+
+        return false;
     }
 
     /**
@@ -96,9 +122,9 @@ public class VCFHeader {
     /**
      * get the meta data, associated with this header
      *
-     * @return a map of the meta data
+     * @return a set of the meta data
      */
-    public Map<String, String> getMetaData() {
+    public Set<String> getMetaData() {
         return mMetaData;
     }
 

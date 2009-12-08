@@ -4,6 +4,8 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.Variation;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFRecord;
+
 import net.sf.samtools.SAMRecord;
 
 import java.util.List;
@@ -20,9 +22,9 @@ public class RMSMappingQuality extends StandardVariantAnnotation {
         return String.format("%.2f", rms);
     }
 
-    public String getKeyName() { return "MQ"; }
+    public String getKeyName() { return VCFRecord.RMS_MAPPING_QUALITY_KEY; }
 
-    public String getDescription() { return "MQ,1,Float,\"RMS Mapping Quality\""; }
+    public String getDescription() { return getKeyName() + ",1,Float,\"RMS Mapping Quality\""; }
 
     public boolean useZeroQualityReads() { return true; }
 }
