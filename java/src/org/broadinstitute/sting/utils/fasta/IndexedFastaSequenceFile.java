@@ -17,34 +17,46 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
 import java.util.Iterator;
-import java.util.Scanner;
 
 /**
- * Created by IntelliJ IDEA.
- * User: hanna
- * Date: Apr 14, 2009
- * Time: 2:14:26 PM
- *
  * A fasta file driven by an index for fast, concurrent lookups.  Supports two interfaces:
  * the ReferenceSequenceFile for old-style, stateful lookups and a direct getter.
  */
 public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
+    /**
+     * Stores the main fasta file.
+     */
     private final File file;
-    private FileInputStream in;
+
+    /**
+     * The interface facilitating direct access to the fasta.
+     */
     private FileChannel channel;
 
-    private SAMSequenceDictionary sequenceDictionary = null;    
+    /**
+     * A representation of the sequence dictionary, stored alongside the fasta in a .dict file.
+     */
+    private SAMSequenceDictionary sequenceDictionary = null;
 
+    /**
+     * A representation of the sequence index, stored alongside the fasta in a .fasta.fai file.
+     */
     private FastaSequenceIndex index;
+
+    /**
+     * An iterator into the fasta index, for traversing iteratively across the fasta.
+     */
     private Iterator<FastaSequenceIndexEntry> indexIterator;
 
+    /**
+     * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
+     * @param file The file to open.
+     * @throws FileNotFoundException If the fasta or any of its supporting files cannot be found.
+     */
     public IndexedFastaSequenceFile(File file) throws FileNotFoundException {
         this.file = file;
-        in = new FileInputStream(file);
+        FileInputStream in = new FileInputStream(file);
         channel = in.getChannel();
 
         loadDictionary(file);
@@ -55,7 +67,6 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
     /**
      * Loads a dictionary, if available.
      * @param fastaFile File to check for a match.
-     * TODO: This code is copied directly from FastaSequenceFile / FastaSequenceFile2.  Bring it into a shared utility.
      */
     private void loadDictionary( File fastaFile ) {
         // Try and locate the dictionary
@@ -207,11 +218,18 @@ public class IndexedFastaSequenceFile implements ReferenceSequenceFile {
         return getSequence( indexIterator.next().getContig() );
     }
 
+    /**
+     * Reset the iterator over the index.
+     */
     @Override
     public void reset() {
         indexIterator = index.iterator();
     }
 
+    /**
+     * A simple toString implementation for debugging.
+     * @return String representation of the file.
+     */
     public String toString() {
         return this.file.getAbsolutePath();
     }

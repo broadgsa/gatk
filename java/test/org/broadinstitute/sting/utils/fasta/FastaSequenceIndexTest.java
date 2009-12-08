@@ -12,11 +12,7 @@ import java.io.FileNotFoundException;
 import java.util.Iterator;
 
 /**
- * Created by IntelliJ IDEA.
- * User: hanna
- * Date: Apr 14, 2009
- * Time: 10:34:15 AM
- * To change this template use File | Settings | File Templates.
+ * Test the fasta sequence index reader.
  */
 public class FastaSequenceIndexTest extends BaseTest {
     // our basic human 18 fai

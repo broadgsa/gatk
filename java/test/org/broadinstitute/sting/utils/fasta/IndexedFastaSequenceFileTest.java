@@ -16,11 +16,7 @@ import net.sf.picard.PicardException;
 import net.sf.samtools.util.StringUtil;
 
 /**
- * Created by IntelliJ IDEA.
- * User: hanna
- * Date: Apr 14, 2009
- * Time: 2:37:29 PM
- * To change this template use File | Settings | File Templates.
+ * Test the indexed fasta sequence file reader.
  */
 public class IndexedFastaSequenceFileTest extends BaseTest {
     private static String sequenceFileName;
