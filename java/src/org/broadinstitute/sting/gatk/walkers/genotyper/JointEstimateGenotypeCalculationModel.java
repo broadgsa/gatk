@@ -47,15 +47,26 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         // find the alternate allele with the largest sum of quality scores
         initializeBestAlternateAllele(ref, context);
-        // if there are no non-ref bases and we don't want all bases, then we can just return
-        if ( !ALL_BASE_MODE && bestAlternateAllele == null )
-            return new Pair<VariationCall, List<Genotype>>(null, null);
 
-        initializeAlleleFrequencies(frequencyEstimationPoints);
+        // if there are no non-ref bases...
+        if ( bestAlternateAllele == null ) {
+            // if we don't want all bases, then we can just return
+            if ( !ALL_BASE_MODE )
+                return new Pair<VariationCall, List<Genotype>>(null, null);
 
-        initialize(ref, contexts, StratifiedContext.OVERALL);
-        calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedContext.OVERALL);
-        calculatePofFs(ref, frequencyEstimationPoints);
+            // otherwise, we care about the ref base
+            bestAlternateAllele = ref;
+
+            // TODO -- figure out what to do here!
+
+        }
+        else {
+            initializeAlleleFrequencies(frequencyEstimationPoints);
+
+            initialize(ref, contexts, StratifiedContext.OVERALL);
+            calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedContext.OVERALL);
+            calculatePofFs(ref, frequencyEstimationPoints);
+        }
 
         // print out stats if we have a writer
         if ( verboseWriter != null )

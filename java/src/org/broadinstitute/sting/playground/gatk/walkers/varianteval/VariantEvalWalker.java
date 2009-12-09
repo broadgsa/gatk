@@ -30,7 +30,7 @@ import java.util.*;
 public class VariantEvalWalker extends RefWalker<Integer, Integer> {
 //public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(shortName="minPhredConfidenceScore", doc="Minimum confidence score to consider an evaluation SNP a variant", required=false)
-    public int minConfidenceScore = -1;
+    public double minConfidenceScore = -1.0;
 
     @Argument(shortName="printVariants", doc="If true, prints the variants in all of the variant tracks that are examined", required=false)
     public boolean printVariants = false;
