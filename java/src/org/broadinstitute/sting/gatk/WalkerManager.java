@@ -79,7 +79,8 @@ public class WalkerManager extends PluginManager<Walker> {
     public Map<String,Collection<Class<? extends Walker>>> getWalkerNamesByPackage() {
         Map<String,Collection<Class<? extends Walker>>> walkersByPackage = new HashMap<String,Collection<Class<? extends Walker>>>();
         for(Class<? extends Walker> walker: pluginsByName.values()) {
-            String walkerPackage = walker.getPackage() != null ? walker.getPackage().getName() : "<unpackaged>";
+            // Extract the name for the package; if the walker is in the unnamed package, use the empty string
+            String walkerPackage = walker.getPackage() != null ? walker.getPackage().getName() : "";
             if(!walkersByPackage.containsKey(walkerPackage))
                 walkersByPackage.put(walkerPackage,new ArrayList<Class<? extends Walker>>());
             walkersByPackage.get(walkerPackage).add(walker);
@@ -93,8 +94,17 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return A suitable display name for the package.
      */
     public String getPackageDisplayName(String packageName) {
-        String specifiedDisplayName = helpText.getProperty(packageName+"."+ DisplayNameTaglet.NAME);
-        return specifiedDisplayName != null ? specifiedDisplayName : packageName.substring(packageName.lastIndexOf('.')+1);
+        // Try to find an override for the display name of this package.
+        String displayName = helpText.getProperty(packageName+"."+ DisplayNameTaglet.NAME);
+        // If no override exists...
+        if(displayName == null) {
+            // ...try to compute the override from the text of the package name, while accounting for
+            // unpackaged walkers.
+            displayName = packageName.substring(packageName.lastIndexOf('.')+1);
+            if(displayName.trim().equals("")) displayName = "<unpackaged>";
+
+        }
+        return displayName;
     }
 
     /**
