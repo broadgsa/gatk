@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
 import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 
 import java.io.File;
 import java.util.*;
@@ -152,19 +153,30 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
     private Set<String> getHeaderInfo() {
         Set<String> headerInfo = new HashSet<String>();
 
+        // this is only applicable to VCF
+        if ( UAC.VAR_FORMAT != GenotypeWriterFactory.GENOTYPE_FORMAT.VCF )
+            return headerInfo;
+
+        // first, the basic info
         headerInfo.add("source=UnifiedGenotyper");
         headerInfo.add("reference=" + getToolkit().getArguments().referenceFile.getName());
 
+        // annotation (INFO) fields from VariantAnnotator
         if ( UAC.ALL_ANNOTATIONS )
             headerInfo.addAll(VariantAnnotator.getAllVCFAnnotationDescriptions());
         else
             headerInfo.addAll(VariantAnnotator.getVCFAnnotationDescriptions());
 
+        // annotation (INFO) fields from UnifiedGenotyper
         headerInfo.add("INFO=AF,1,Float,\"Allele Frequency\"");
         headerInfo.add("INFO=NS,1,Integer,\"Number of Samples With Data\"");
         if ( !UAC.NO_SLOD )
             headerInfo.add("INFO=SB,1,Float,\"Strand Bias\"");
 
+        if ( UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED )
+            headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings());
+
+        // TODO -- clean this up
         headerInfo.add("UG_genotype_model=" + UAC.genotypeModel);
         headerInfo.add("UG_base_model=" + UAC.baseModel);
         headerInfo.add("UG_heterozygosity=" + UAC.heterozygosity);

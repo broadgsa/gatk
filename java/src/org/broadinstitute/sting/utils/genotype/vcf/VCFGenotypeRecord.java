@@ -3,10 +3,7 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotype.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -262,6 +259,15 @@ public class VCFGenotypeRecord implements Genotype {
         // TODO -- support haplotype quality
         //else if ( field.equals(HAPLOTYPE_QUALITY_KEY) )
         //    result = String.valueOf(MISSING_HAPLOTYPE_QUALITY);
+        return result;
+    }
+
+    public static Set<String> getSupportedHeaderStrings() {
+        Set<String> result = new HashSet<String>();
+        result.add("FORMAT=" + GENOTYPE_KEY + ",1,String,\"Genotype\"");
+        result.add("FORMAT=" + GENOTYPE_QUALITY_KEY + ",1,Integer,\"Genotype Quality\"");
+        result.add("FORMAT=" + DEPTH_KEY + ",1,Integer,\"Read Depth (without MQ0 reads)\"");
+        //result.add("FORMAT=" + HAPLOTYPE_QUALITY_KEY + ",1,Integer,\"Haplotype Quality\"");
         return result;
     }
 }
