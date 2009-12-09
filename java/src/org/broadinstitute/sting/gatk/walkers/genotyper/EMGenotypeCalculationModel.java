@@ -44,9 +44,8 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         }
 
         // are we above the lod threshold for emitting calls (and not in all-bases mode)?
-        if ( !ALL_BASE_MODE && (bestIsRef || phredScaledConfidence < CONFIDENCE_THRESHOLD) ) {
-                return new Pair<VariationCall, List<Genotype>>(null, null);
-        }
+        if ( !ALL_BASE_MODE && ((!GENOTYPE_MODE && bestIsRef) || phredScaledConfidence < CONFIDENCE_THRESHOLD) )
+            return new Pair<VariationCall, List<Genotype>>(null, null);
 
         // generate the calls
         List<Genotype> calls = genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts);

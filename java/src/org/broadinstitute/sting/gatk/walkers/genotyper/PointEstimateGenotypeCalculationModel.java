@@ -67,9 +67,8 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             }
 
             // are we above the lod threshold for emitting calls (and not in all-bases mode)?
-            if ( !ALL_BASE_MODE && (bestIsRef || phredScaledConfidence < CONFIDENCE_THRESHOLD) ) {
-                    return new Pair<VariationCall, List<Genotype>>(null, null);
-            }
+            if ( !ALL_BASE_MODE && ((!GENOTYPE_MODE && bestIsRef) || phredScaledConfidence < CONFIDENCE_THRESHOLD) )
+                return new Pair<VariationCall, List<Genotype>>(null, null);
 
             // we can now create the genotype call object
             GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, context.getLocation());

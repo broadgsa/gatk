@@ -48,10 +48,10 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "variant_output_format", shortName = "vf", doc = "Format to be used to represent variants; default is VCF", required = false)
     public GenotypeWriterFactory.GENOTYPE_FORMAT VAR_FORMAT = GenotypeWriterFactory.GENOTYPE_FORMAT.VCF;
 
-    @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confident genotypes or just the variants?", required = false)
+    @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confident genotypes (i.e. including ref calls) or just the variants?", required = false)
     public boolean GENOTYPE = false;
 
-    @Argument(fullName = "output_all_callable_bases", shortName = "all_bases", doc = "Should we output nonconfident variant or confident ref calls too?", required = false)
+    @Argument(fullName = "output_all_callable_bases", shortName = "all_bases", doc = "Should we output all callable bases?", required = false)
     public boolean ALL_BASES = false;
 
     @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)

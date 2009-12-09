@@ -51,22 +51,18 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         // if there are no non-ref bases...
         if ( bestAlternateAllele == null ) {
             // if we don't want all bases, then we can just return
-            if ( !ALL_BASE_MODE )
+            if ( !ALL_BASE_MODE && !GENOTYPE_MODE )
                 return new Pair<VariationCall, List<Genotype>>(null, null);
 
-            // otherwise, we care about the ref base
-            bestAlternateAllele = ref;
-
-            // TODO -- figure out what to do here!
-
+            // otherwise, choose any alternate allele (it doesn't really matter)
+            bestAlternateAllele = (ref != 'A' ? 'A' : 'C');
         }
-        else {
-            initializeAlleleFrequencies(frequencyEstimationPoints);
 
-            initialize(ref, contexts, StratifiedContext.OVERALL);
-            calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedContext.OVERALL);
-            calculatePofFs(ref, frequencyEstimationPoints);
-        }
+        initializeAlleleFrequencies(frequencyEstimationPoints);
+
+        initialize(ref, contexts, StratifiedContext.OVERALL);
+        calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedContext.OVERALL);
+        calculatePofFs(ref, frequencyEstimationPoints);
 
         // print out stats if we have a writer
         if ( verboseWriter != null )
@@ -311,19 +307,30 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     protected List<Genotype> makeGenotypeCalls(char ref, char alt, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {
         // by default, we return no genotypes
         return new ArrayList<Genotype>();
-    }
+    }    
 
     protected Pair<VariationCall, List<Genotype>> createCalls(RefMetaDataTracker tracker, char ref, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc, int frequencyEstimationPoints) {
         // only need to look at the most likely alternate allele
         int indexOfMax = BaseUtils.simpleBaseToBaseIndex(bestAlternateAllele);
 
-        double phredScaledConfidence = QualityUtils.phredScaleErrorRate(alleleFrequencyPosteriors[indexOfMax][0]);
-        if ( Double.isInfinite(phredScaledConfidence) )
-            phredScaledConfidence = -10.0 * log10PofDgivenAFi[indexOfMax][0];
         int bestAFguess = Utils.findIndexOfMaxEntry(alleleFrequencyPosteriors[indexOfMax]);
+        double phredScaledConfidence;
+        if ( bestAFguess != 0 ) {
+            phredScaledConfidence = QualityUtils.phredScaleErrorRate(alleleFrequencyPosteriors[indexOfMax][0]);
+            if ( Double.isInfinite(phredScaledConfidence) )
+                phredScaledConfidence = -10.0 * log10PofDgivenAFi[indexOfMax][0];
+        } else {
+            phredScaledConfidence = QualityUtils.phredScaleErrorRate(PofFs[indexOfMax]);
+            if ( Double.isInfinite(phredScaledConfidence) ) {
+                double sum = 0.0;
+                for (int i = 1; i < frequencyEstimationPoints; i++)
+                    sum += log10PofDgivenAFi[indexOfMax][i];
+                phredScaledConfidence = -10.0 * sum;
+            }
+        }
 
         // return a null call if we don't pass the confidence cutoff or the most likely allele frequency is zero
-        if ( !ALL_BASE_MODE && (bestAFguess == 0 || phredScaledConfidence < CONFIDENCE_THRESHOLD) )
+        if ( !ALL_BASE_MODE && ((!GENOTYPE_MODE && bestAFguess == 0) || phredScaledConfidence < CONFIDENCE_THRESHOLD) )
             return new Pair<VariationCall, List<Genotype>>(null, null);
 
         // populate the sample-specific data
@@ -333,8 +340,10 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         VariationCall locusdata = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, loc, bestAFguess == 0 ? VARIANT_TYPE.REFERENCE : VARIANT_TYPE.SNP);
         if ( locusdata != null ) {
-            locusdata.addAlternateAllele(bestAlternateAllele.toString());
-            locusdata.setNonRefAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
+            if ( bestAFguess != 0 ) {
+                locusdata.addAlternateAllele(bestAlternateAllele.toString());
+                locusdata.setNonRefAlleleFrequency((double)bestAFguess / (double)(frequencyEstimationPoints-1));
+            }
             if ( locusdata instanceof ConfidenceBacked ) {
                 ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
             }
