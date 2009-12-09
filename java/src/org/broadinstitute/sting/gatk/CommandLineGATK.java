@@ -158,7 +158,7 @@ public class CommandLineGATK extends CommandLineExecutable {
             }
 
             // Dump the walkers into the sorted set.
-            helpText.add(new HelpEntry(packageName, packageDisplayName,packageHelpText,Collections.unmodifiableSortedSet(walkersInPackage)));
+            helpText.add(new HelpEntry(packageName,packageDisplayName,packageHelpText,Collections.unmodifiableSortedSet(walkersInPackage)));
         }
 
         final int headerWidth = Math.max(longestPackageName+PACKAGE_INDENT,longestWalkerName+WALKER_INDENT);
@@ -250,9 +250,9 @@ class HelpEntryComparator implements Comparator<HelpEntry> {
      */
     public int compare(HelpEntry lhs, HelpEntry rhs) {
         if(lhs == null && rhs == null) return 0;
-        if(lhs == null) return 1;
-        if(rhs == null) return -1;
-        return textComparator.compare(lhs.displayName,rhs.displayName);
+        if(lhs == null || lhs.displayName.equals("")) return 1;
+        if(rhs == null || rhs.displayName.equals("")) return -1;
+        return lhs.displayName.equals(rhs.displayName) ? textComparator.compare(lhs.uid,rhs.uid) : textComparator.compare(lhs.displayName,rhs.displayName);
     }
 
 

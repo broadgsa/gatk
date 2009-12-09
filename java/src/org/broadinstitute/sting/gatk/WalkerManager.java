@@ -79,7 +79,7 @@ public class WalkerManager extends PluginManager<Walker> {
     public Map<String,Collection<Class<? extends Walker>>> getWalkerNamesByPackage() {
         Map<String,Collection<Class<? extends Walker>>> walkersByPackage = new HashMap<String,Collection<Class<? extends Walker>>>();
         for(Class<? extends Walker> walker: pluginsByName.values()) {
-            String walkerPackage = walker.getPackage().getName();
+            String walkerPackage = walker.getPackage() != null ? walker.getPackage().getName() : "<unpackaged>";
             if(!walkersByPackage.containsKey(walkerPackage))
                 walkersByPackage.put(walkerPackage,new ArrayList<Class<? extends Walker>>());
             walkersByPackage.get(walkerPackage).add(walker);
