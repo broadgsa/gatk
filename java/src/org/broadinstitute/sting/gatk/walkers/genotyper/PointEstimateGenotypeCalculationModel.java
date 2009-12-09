@@ -72,7 +72,6 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
             // we can now create the genotype call object
             GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, context.getLocation());
-            call.setVariation(null);
 
             if ( call instanceof ReadBacked ) {
                 ((ReadBacked)call).setPileup(discoveryGL.first);
@@ -97,7 +96,10 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                     if ( dbsnp != null )
                         ((IDBacked)locusdata).setID(dbsnp.getRS_ID());
                 }
+                locusdata.setGenotypeCalls(Arrays.asList((Genotype)call));
             }
+            
+            call.setVariation(locusdata);
 
             return new Pair<VariationCall, List<Genotype>>(locusdata, Arrays.asList((Genotype)call));
         }

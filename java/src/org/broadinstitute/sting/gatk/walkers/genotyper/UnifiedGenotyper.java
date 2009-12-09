@@ -33,15 +33,14 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotator;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Window;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.cmdLine.Argument;
-import org.broadinstitute.sting.utils.cmdLine.ArgumentCollection;
+import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.cmdLine.*;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 
 import java.io.File;
 import java.util.*;
+import java.lang.reflect.Field;
 
 
 @Reference(window=@Window(start=-20,stop=20))
@@ -173,24 +172,18 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         if ( !UAC.NO_SLOD )
             headerInfo.add("INFO=SB,1,Float,\"Strand Bias\"");
 
+        // FORMAT fields if not in POOLED mode
         if ( UAC.genotypeModel != GenotypeCalculationModel.Model.POOLED )
             headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings());
 
-        // TODO -- clean this up
-        headerInfo.add("UG_genotype_model=" + UAC.genotypeModel);
-        headerInfo.add("UG_base_model=" + UAC.baseModel);
-        headerInfo.add("UG_heterozygosity=" + UAC.heterozygosity);
-        headerInfo.add("UG_genotype_mode=" + UAC.GENOTYPE);
-        headerInfo.add("UG_all_bases_mode=" + UAC.ALL_BASES);
-        headerInfo.add("UG_min_confidence=" + UAC.CONFIDENCE_THRESHOLD);
-        headerInfo.add("UG_max_deletion_fraction=" + UAC.MAX_DELETION_FRACTION);
-        headerInfo.add("UG_max_coverage=" + UAC.MAX_READS_IN_PILEUP);
-        if ( UAC.POOLSIZE > 0 )
-            headerInfo.add("UG_poolSize=" + UAC.POOLSIZE);
-        if ( UAC.ASSUME_SINGLE_SAMPLE != null )
-            headerInfo.add("UG_single_sample=" + UAC.ASSUME_SINGLE_SAMPLE);
-        if ( UAC.defaultPlatform != null )
-            headerInfo.add("UG_default_platform=" + UAC.defaultPlatform);
+        // all of the arguments from the argument collection
+        Field[] fields = UAC.getClass().getFields();
+        for ( Field field: fields ) {
+            ArgumentTypeDescriptor atd = ArgumentTypeDescriptor.create(field.getType());
+            List<ArgumentDefinition> adList = atd.createArgumentDefinitions(new ArgumentSource(field.getType(), field));
+            for ( ArgumentDefinition ad : adList )
+                headerInfo.add("UG_" + ad.fullName + "=" + JVMUtils.getFieldValue(field, UAC));
+        }
 
         return headerInfo;
     }
