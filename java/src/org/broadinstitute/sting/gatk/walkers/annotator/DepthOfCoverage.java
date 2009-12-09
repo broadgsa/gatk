@@ -15,7 +15,7 @@ public class DepthOfCoverage extends StandardVariantAnnotation {
 
     public String getKeyName() { return VCFRecord.DEPTH_KEY; }
 
-    public String getDescription() { return getKeyName() + ",1,Integer,\"Total Depth\""; }
+    public String getDescription() { return getKeyName() + ",1,Integer,\"Total Depth (including MQ0 reads)\""; }
 
-    public boolean useZeroQualityReads() { return false; }
+    public boolean useZeroQualityReads() { return true; }
 }

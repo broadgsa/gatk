@@ -44,7 +44,6 @@
       <class>org.broadinstitute.sting.gatk.walkers.annotator.AlleleBalance</class>
       <class>org.broadinstitute.sting.gatk.walkers.annotator.DepthOfCoverage</class>
       <class>org.broadinstitute.sting.gatk.walkers.annotator.HomopolymerRun</class>
-      <class>org.broadinstitute.sting.gatk.walkers.annotator.MappingQualityZero</class>
       <class>org.broadinstitute.sting.gatk.walkers.annotator.RMSMappingQuality</class>
       <class>org.broadinstitute.sting.gatk.walkers.annotator.SpanningDeletions</class>
     </dependencies>

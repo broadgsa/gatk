@@ -134,31 +134,53 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             samples.clear();
 
         // get the optional header fields
+        Set<String> headerInfo = getHeaderInfo();
+
+        // create the output writer stream
+        if ( VARIANTS_FILE != null )
+            writer = GenotypeWriterFactory.create(UAC.VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE,
+                                                  samples,
+                                                  headerInfo);
+        else
+            writer = GenotypeWriterFactory.create(UAC.VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out,
+                                                  samples,
+                                                  headerInfo);
+
+        callsMetrics = new CallMetrics();
+    }
+
+    private Set<String> getHeaderInfo() {
         Set<String> headerInfo = new HashSet<String>();
+
+        headerInfo.add("source=UnifiedGenotyper");
+        headerInfo.add("reference=" + getToolkit().getArguments().referenceFile.getName());
+
         if ( UAC.ALL_ANNOTATIONS )
             headerInfo.addAll(VariantAnnotator.getAllVCFAnnotationDescriptions());
         else
             headerInfo.addAll(VariantAnnotator.getVCFAnnotationDescriptions());
+
         headerInfo.add("INFO=AF,1,Float,\"Allele Frequency\"");
         headerInfo.add("INFO=NS,1,Integer,\"Number of Samples With Data\"");
         if ( !UAC.NO_SLOD )
             headerInfo.add("INFO=SB,1,Float,\"Strand Bias\"");
 
-        // create the output writer stream
-        if ( VARIANTS_FILE != null )
-            writer = GenotypeWriterFactory.create(UAC.VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), VARIANTS_FILE,
-                                                  "UnifiedGenotyper",
-                                                  this.getToolkit().getArguments().referenceFile.getName(),
-                                                  samples,
-                                                  headerInfo);
-        else
-            writer = GenotypeWriterFactory.create(UAC.VAR_FORMAT, GenomeAnalysisEngine.instance.getSAMFileHeader(), out,
-                                                  "UnifiedGenotyper",
-                                                  this.getToolkit().getArguments().referenceFile.getName(),
-                                                  samples,
-                                                  headerInfo);
+        headerInfo.add("UG_genotype_model=" + UAC.genotypeModel);
+        headerInfo.add("UG_base_model=" + UAC.baseModel);
+        headerInfo.add("UG_heterozygosity=" + UAC.heterozygosity);
+        headerInfo.add("UG_genotype_mode=" + UAC.GENOTYPE);
+        headerInfo.add("UG_all_bases_mode=" + UAC.ALL_BASES);
+        headerInfo.add("UG_min_confidence=" + UAC.CONFIDENCE_THRESHOLD);
+        headerInfo.add("UG_max_deletion_fraction=" + UAC.MAX_DELETION_FRACTION);
+        headerInfo.add("UG_max_coverage=" + UAC.MAX_READS_IN_PILEUP);
+        if ( UAC.POOLSIZE > 0 )
+            headerInfo.add("UG_poolSize=" + UAC.POOLSIZE);
+        if ( UAC.ASSUME_SINGLE_SAMPLE != null )
+            headerInfo.add("UG_single_sample=" + UAC.ASSUME_SINGLE_SAMPLE);
+        if ( UAC.defaultPlatform != null )
+            headerInfo.add("UG_default_platform=" + UAC.defaultPlatform);
 
-        callsMetrics = new CallMetrics();
+        return headerInfo;
     }
 
     /**

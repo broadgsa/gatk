@@ -19,17 +19,13 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
     // our VCF objects
     private VCFWriter mWriter = null;
     private VCFHeader mHeader = null;
-    private String mSource;
-    private String mReferenceName;
     private final Set<String> mSampleNames = new LinkedHashSet<String>();
 
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(VCFGenotypeWriterAdapter.class);
 
 
-    public VCFGenotypeWriterAdapter(String source, String referenceName, File writeTo, Set<String> sampleNames, Set<String> headerInfo) {
-        mReferenceName = referenceName;
-        mSource = source;
+    public VCFGenotypeWriterAdapter(File writeTo, Set<String> sampleNames, Set<String> headerInfo) {
         mSampleNames.addAll(sampleNames);
 
         initializeHeader(headerInfo);
@@ -38,9 +34,7 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
         mWriter = new VCFWriter(mHeader, writeTo);
     }
 
-    public VCFGenotypeWriterAdapter(String source, String referenceName, OutputStream writeTo, Set<String> sampleNames, Set<String> headerInfo) {
-        mReferenceName = referenceName;
-        mSource = source;
+    public VCFGenotypeWriterAdapter(OutputStream writeTo, Set<String> sampleNames, Set<String> headerInfo) {
         mSampleNames.addAll(sampleNames);
 
         initializeHeader(headerInfo);
@@ -59,8 +53,6 @@ public class VCFGenotypeWriterAdapter implements GenotypeWriter {
 
         // setup the header fields
         hInfo.add(VCFHeader.FULL_FORMAT_LINE);
-        hInfo.add("source=" + mSource);
-        hInfo.add("reference=" + mReferenceName);
         hInfo.addAll(optionalHeaderInfo);
         
         // setup the sample names
