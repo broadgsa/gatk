@@ -619,7 +619,7 @@ def main():
 
     if OPTIONS.truth <> None:
         truthVCF = OPTIONS.truth
-        readTruth(truthVCF)
+        TRUTH_CALLS = readTruth(truthVCF)
 
     if len(args) > 1:
         truthVCF = args[1]
