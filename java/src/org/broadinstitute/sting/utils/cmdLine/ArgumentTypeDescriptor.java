@@ -255,7 +255,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         } catch (IllegalAccessException e) {
             throw new StingException("constructFromString:IllegalAccessException: Failed conversion " + e.getMessage());
         } catch (InvocationTargetException e) {
-            throw new StingException("constructFromString:InvocationTargetException: Failed conversion " + e.getMessage());
+            throw new StingException("constructFromString:InvocationTargetException: Failed conversion - this is most likely caused by using an incorrect data type (e.g. a double when an int is required)");
         } catch (InstantiationException e) {
             throw new StingException("constructFromString:InstantiationException: Failed conversion " + e.getMessage());
         }
