@@ -34,9 +34,13 @@ d.1000$residualError[which(d.1000$residualError < -10)] = -10
 c$residualError = c$Qempirical-c$Qreported
 c$residualError[which(c$residualError > 10)] = 10
 c$residualError[which(c$residualError < -10)] = -10
+pointType = "p"
+if( length(c$Covariate) <= 20 ) {
+    pointType = "o"
+}
 if( is.numeric(c$Covariate) ) {
-	plot(d.good$Covariate, d.good$residualError, type="p", main=theTitle, ylab="Empirical - Reported Quality", xlab=covariateName, col="blue", pch=20, ylim=c(-10, 10), xlim=c(min(c$Covariate),max(c$Covariate)))
-	points(d.1000$Covariate, d.1000$residualError, type="p", col="cornflowerblue", pch=20)
+	plot(d.good$Covariate, d.good$residualError, type=pointType, main=theTitle, ylab="Empirical - Reported Quality", xlab=covariateName, col="blue", pch=20, ylim=c(-10, 10), xlim=c(min(c$Covariate),max(c$Covariate)))
+	points(d.1000$Covariate, d.1000$residualError, type=pointType, col="cornflowerblue", pch=20)
 } else { # Dinuc (and other non-numeric covariates) are different to make their plots look nice
 	plot(c$Covariate, c$residualError, type="l", main=theTitle, ylab="Empirical - Reported Quality", xlab=covariateName, col="blue", ylim=c(-10, 10))
 	points(d.1000$Covariate, d.1000$residualError, type="l", col="cornflowerblue")
@@ -53,17 +57,25 @@ outfile = paste(input, ".", covariateName,"_hist.pdf", sep="")
 pdf(outfile, height=7, width=7)
 hst=subset(data.frame(e$Covariate, e$nBases), e.nBases != 0)
 hst2=subset(data.frame(f$Covariate, f$nBases), f.nBases != 0)
+
+lwdSize=2
+if( length(c$Covariate) <= 20 ) {
+    lwdSize=7
+} else if( length(c$Covariate) <= 70 ) {
+    lwdSize=4
+}
+
 if( is.numeric(c$Covariate) ) {
     if( length(hst$e.Covariate) == 0 ) {
-        plot(hst2$f.Covariate, hst2$f.nBases, type="h", lwd=2, col="cornflowerblue", main=paste(covariateName,"histogram"), ylim=c(0, max(hst2$f.nBases)), xlab=covariateName, ylab="Count",yaxt="n",xlim=c(min(c$Covariate),max(c$Covariate)))
+        plot(hst2$f.Covariate, hst2$f.nBases, type="h", lwd=lwdSize, col="cornflowerblue", main=paste(covariateName,"histogram"), ylim=c(0, max(hst2$f.nBases)), xlab=covariateName, ylab="Count",yaxt="n",xlim=c(min(c$Covariate),max(c$Covariate)))
     } else {
-	    plot(hst$e.Covariate, hst$e.nBases, type="h", lwd=2, main=paste(covariateName,"histogram"), xlab=covariateName, ylim=c(0, max(hst$e.nBases)),ylab="Number of Bases",yaxt="n",xlim=c(min(c$Covariate),max(c$Covariate)))
-	    points(hst2$f.Covariate, hst2$f.nBases, type="h", lwd=2, col="cornflowerblue")
+	    plot(hst$e.Covariate, hst$e.nBases, type="h", lwd=lwdSize, main=paste(covariateName,"histogram"), xlab=covariateName, ylim=c(0, max(hst$e.nBases)),ylab="Number of Bases",yaxt="n",xlim=c(min(c$Covariate),max(c$Covariate)))
+	    points(hst2$f.Covariate, hst2$f.nBases, type="h", lwd=lwdSize, col="cornflowerblue")
 	}
 	axis(2,axTicks(2), format(axTicks(2), scientific=F))
 } else { # Dinuc (and other non-numeric covariates) are different to make their plots look nice
 	hst=subset(data.frame(c$Covariate, c$nBases), c.nBases != 0)
-	plot(1:length(hst$c.Covariate), hst$c.nBases, type="h", lwd=7, main=paste(covariateName,"histogram"), ylim=c(0, max(hst$c.nBases)),xlab=covariateName, ylab="Number of Bases",yaxt="n",xaxt="n")
+	plot(1:length(hst$c.Covariate), hst$c.nBases, type="h", lwd=lwdSize, main=paste(covariateName,"histogram"), ylim=c(0, max(hst$c.nBases)),xlab=covariateName, ylab="Number of Bases",yaxt="n",xaxt="n")
 	axis(1, at=seq(1,length(hst$c.Covariate),2), labels = hst$c.Covariate[seq(1,length(hst$c.Covariate),2)])
 	axis(2,axTicks(2), format(axTicks(2), scientific=F))
 }
