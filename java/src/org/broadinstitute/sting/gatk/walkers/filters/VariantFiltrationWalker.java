@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.filters;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.vcf.*;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
@@ -29,6 +30,9 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="maskName", shortName="mask", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call", required=false)
     protected String MASK_NAME = "Mask";
 
+    public static final String CLUSTERED_SNP_FILTER_NAME = "SnpCluster";
+
+
     private VCFWriter writer = null;
 
     private ClusteredSnps clusteredSNPs = null;
@@ -47,6 +51,17 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add("source=" + "VariantFiltration");
         hInfo.add("reference=" + getToolkit().getArguments().referenceFile.getName());
+        if ( clusterWindow > 0 )
+            hInfo.add("FILTER=" + CLUSTERED_SNP_FILTER_NAME + ",\"SNPs found in clusters\"");
+        if ( filterExpression != null )
+            hInfo.add("FILTER=" + FILTER_NAME + ",\"" + FILTER_STRING + "\"");
+        List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
+        for ( ReferenceOrderedDataSource source : dataSources ) {
+            if ( source.getReferenceOrderedData().getName().equals("mask") ) {
+                hInfo.add("FILTER=" + MASK_NAME + ",\"Overlaps a user-input mask\"");
+                break;
+            }
+        }
 
         VCFHeader header = new VCFHeader(hInfo, rod.getHeader().getGenotypeSamples());
         writer = new VCFWriter(header, out);
@@ -116,7 +131,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
         // test for clustered SNPs if requested
         if ( clusteredSNPs != null && clusteredSNPs.filter(variantContextWindow) )
-            addFilter(filterString, "SnpCluster");
+            addFilter(filterString, CLUSTERED_SNP_FILTER_NAME);
 
         if ( filterExpression != null ) {
             Map<String, String> infoMap = new HashMap<String, String>(context.second.mCurrentRecord.getInfoValues());
