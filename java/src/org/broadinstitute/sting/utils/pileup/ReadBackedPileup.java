@@ -382,7 +382,7 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
      * Get an array of the mapping qualities
      * @return
      */
-    public byte[] getMapppingQuals() {
+    public byte[] getMappingQuals() {
        byte[] v = new byte[size()];
        for ( ExtendedPileupElement pile : this.extendedForeachIterator() ) { v[pile.getPileupOffset()] = (byte)pile.getRead().getMappingQuality(); }
        return v;
@@ -393,7 +393,7 @@ public class ReadBackedPileup implements Iterable<PileupElement> {
     // Private functions for printing pileups
     //
     private String getMappingQualsString() {
-        return quals2String(getMapppingQuals());
+        return quals2String(getMappingQuals());
     }
 
     private static String quals2String( byte[] quals ) {

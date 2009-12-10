@@ -205,7 +205,7 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         // are there too many deletions in the pileup?
         ReadBackedPileup pileup = context.getPileup();
         if ( isValidDeletionFraction(UAC.MAX_DELETION_FRACTION) &&
-             (double)pileup.getNumberOfDeletions() / (double)pileup.size() > UAC.MAX_DELETION_FRACTION )
+             (double)pileup.getPileupWithoutMappingQualityZeroReads().getNumberOfDeletions() / (double)(pileup.size() - pileup.getNumberOfMappingQualityZeroReads()) > UAC.MAX_DELETION_FRACTION )
             return null;
 
         // stratify the AlignmentContext and cut by sample
