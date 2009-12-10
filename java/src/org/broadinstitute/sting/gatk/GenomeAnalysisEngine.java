@@ -440,7 +440,8 @@ public class GenomeAnalysisEngine {
      */
     private void validateSuppliedReferenceAgainstWalker(Walker walker, GATKArgumentCollection arguments) {
         // Check what the walker says is required against what was provided on the command line.
-        if (WalkerManager.isRequired(walker, DataSource.REFERENCE) && arguments.referenceFile == null)
+        // TODO: Temporarily disabling WalkerManager.isRequired check on the reference because the reference is always required.
+        if (/*WalkerManager.isRequired(walker, DataSource.REFERENCE) &&*/ arguments.referenceFile == null)
             throw new ArgumentException("Walker requires a reference but none was provided.  If this is incorrect, alter the walker's @Requires annotation.");
 
         // Check what the walker says is allowed against what was provided on the command line.
