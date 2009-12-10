@@ -109,24 +109,35 @@ public class CommandLineGATK extends CommandLineExecutable {
 
     /**
      * Retrieves additional information about GATK walkers.
-     * TODO: This functionality is very similar to that employed by the HelpFormatter.  Generalize
      * the code in HelpFormatter and supply it as a helper to this method.
      *
      * @return A string summarizing the walkers available in this distribution.
      */
     private String getAdditionalHelp() {
+        String additionalHelp = "";
 
-        //HelpFormatter.LINE_WIDTH;
+        // If no analysis name is present, fill in extra help on the walkers.
+        String analysisName = getAnalysisName();
+        if(analysisName == null || !GATKEngine.getWalkerManager().exists(getAnalysisName()))
+            additionalHelp = getWalkerHelp();
 
+        return additionalHelp;
+    }
+
+    /**
+     * Load in additional help information about all available walkers.
+     * @return A string representation of the additional help.
+     */
+    private String getWalkerHelp() {
         final int PACKAGE_INDENT = 1;
         final int WALKER_INDENT = 3;
-        final String FIELD_SEPARATOR = " | ";
+        final String FIELD_SEPARATOR = "  ";
 
         // Construct a help string to output available walkers.
         StringBuilder additionalHelp = new StringBuilder();
         Formatter formatter = new Formatter(additionalHelp);
 
-        formatter.format("Available analyses:%n%n");
+        formatter.format("Available analyses:%n");
 
         // Get the list of walker names from the walker manager.
         WalkerManager walkerManager = GATKEngine.getWalkerManager();
