@@ -21,6 +21,7 @@ public class VCFReaderTest extends BaseTest {
     private static final File vcfFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/vcfexample.vcf");
     private static final File multiSampleVCF = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/MultiSample.vcf");
     private static final String VCF_MIXUP_FILE = "/humgen/gsa-scr1/GATK_Data/Validation_Data/mixedup.v2.vcf";
+    private static final File complexFile = new File("/humgen/gsa-scr1/GATK_Data/Validation_Data/complexExample.vcf");
 
     private static IndexedFastaSequenceFile seq;
 
@@ -199,5 +200,129 @@ public class VCFReaderTest extends BaseTest {
                     + " != " + variant.get(header.indexOf(record.getSampleName())));
             }
         }
+    }
+
+    @Test
+    public void testComplexExample() {
+        VCFReader reader = new VCFReader(complexFile);
+
+        // record #1: test dbsnp id
+        if (!reader.hasNext()) Assert.fail("The reader should have a record");
+        VCFRecord rec = reader.next();
+        Assert.assertTrue(rec.getID().equals("testid1"));
+        List<VCFGenotypeRecord> grecords = rec.getVCFGenotypeRecords();
+        int counter = 0;
+        for ( VCFGenotypeRecord grec : grecords ) {
+            if ( grec.isEmptyGenotype() )
+                counter++;
+        }
+        Assert.assertEquals(2, counter);
+
+        // record #2: test info field
+        if (!reader.hasNext()) Assert.fail("The reader should have a record");
+        rec = reader.next();
+        Assert.assertTrue(rec.getInfoValues().get("RMSMAPQ").equals("81.91"));
+
+        // record #3: test alternate alleles
+        if (!reader.hasNext()) Assert.fail("The reader should have a record");
+        rec = reader.next();
+        List<String> alts = rec.getAlternateAlleleList();
+        Assert.assertTrue((alts.get(0).equals("T") && alts.get(1).equals("C")) || (alts.get(0).equals("C") && alts.get(1).equals("T")));
+
+        // record #4: test max GQ value and read count
+        if (!reader.hasNext()) Assert.fail("The reader should have a record");
+        rec = reader.next();
+        grecords = rec.getVCFGenotypeRecords();
+        for ( VCFGenotypeRecord grec : grecords ) {
+            if ( !grec.isEmptyGenotype() ) {
+                Assert.assertTrue(grec.getFields().get("GQ").equals("2000000"));
+                Assert.assertEquals(7, grec.getReadCount());
+            }
+        }
+
+        // record #5: test more alternate alleles
+        if (!reader.hasNext()) Assert.fail("The reader should have a record");
+        rec = reader.next();
+        alts = rec.getAlternateAlleleList();
+        Assert.assertEquals(alts.size(), 3);
+        grecords = rec.getVCFGenotypeRecords();
+        boolean[] seen = new boolean[3];
+        for ( VCFGenotypeRecord grec : grecords ) {
+            if ( grec.getBases().equals("CC") ) {
+                Assert.assertEquals(27, grec.getReadCount());
+                seen[0] = true;
+            } else if ( grec.getBases().equals("AA") ) {
+                Assert.assertEquals(26, grec.getReadCount());
+                seen[1] = true;
+            } else if ( grec.getBases().equals("GT") || grec.getBases().equals("TG") ) {
+                Assert.assertEquals(16, grec.getReadCount());
+                seen[2] = true;
+            }
+        }
+        Assert.assertTrue(seen[0] && seen[1] && seen[2]);
+
+        // record #6: toVariation
+        if (!reader.hasNext()) Assert.fail("The reader should have a record");
+        rec = reader.next();
+        grecords = rec.getVCFGenotypeRecords();
+        for ( VCFGenotypeRecord grec : grecords ) {
+            if ( !grec.isEmptyGenotype() ) {
+                Assert.assertTrue(grec.isVariant(rec.getReferenceBase()));
+                Assert.assertEquals(rec, grec.toVariation(rec.getReferenceBase()));
+            }
+        }
+
+        // record #7: default values, isVariation, and isHom/isHet
+        if (!reader.hasNext()) Assert.fail("The reader should have a record");
+        rec = reader.next();
+        grecords = rec.getVCFGenotypeRecords();
+        for ( VCFGenotypeRecord grec : grecords ) {
+            if ( !grec.isVariant(rec.getReferenceBase()) ) {
+                Assert.assertTrue(grec.isHom());
+                Assert.assertTrue(grec.getFields().get("GQ").equals("-1"));
+                Assert.assertEquals(-1, grec.getReadCount());
+            } else {
+                Assert.assertTrue(grec.isHet());
+                if ( grec.getReadCount() == 4 )
+                    Assert.assertTrue(grec.getFields().get("GQ").equals("-1"));
+                else
+                    Assert.assertTrue(grec.getFields().get("GQ").equals("5.85") && grec.getReadCount() == -1);                    
+            }
+        }
+ 
+        // record #8: filtered and type
+        if (!reader.hasNext()) Assert.fail("The reader should have a record");
+        rec = reader.next();
+        Assert.assertTrue(!rec.isFiltered());
+        Assert.assertTrue(rec.getFilterString().equals("."));
+        Assert.assertEquals(VCFRecord.VARIANT_TYPE.SNP, rec.getType());
+        
+        // record #9: deletion
+        if (!reader.hasNext()) Assert.fail("The reader should have a record");
+        rec = reader.next();
+        Assert.assertEquals(VCFRecord.VARIANT_TYPE.DELETION, rec.getType());
+        Assert.assertEquals(1, rec.getAlternateAlleleList().size());
+        Assert.assertTrue(rec.getAlternateAlleleList().get(0).equals(""));
+
+        // record #10: insertion
+        if (!reader.hasNext()) Assert.fail("The reader should have a record");
+        rec = reader.next();
+        Assert.assertEquals(VCFRecord.VARIANT_TYPE.INSERTION, rec.getType());     
+        Assert.assertEquals(rec.getAlternateAlleleList().size(), 1);
+        Assert.assertTrue(rec.getAlternateAlleleList().get(0).equals("CAT"));
+
+        // record #11: more filters
+        if (!reader.hasNext()) Assert.fail("The reader should have a record");
+        rec = reader.next();
+        Assert.assertTrue(rec.isFiltered());
+        Assert.assertTrue(rec.getFilterString().equals("foo"));
+
+        // record #12: yet more filters
+        if (!reader.hasNext()) Assert.fail("The reader should have a record");
+        rec = reader.next();
+        Assert.assertTrue(rec.isFiltered());
+        Assert.assertTrue(rec.getFilterString().equals("bar;baz"));
+
+        if (reader.hasNext()) Assert.fail("The reader should NOT have a record");
     }
 }
