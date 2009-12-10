@@ -6,20 +6,19 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotypePriors;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
-import java.io.PrintWriter;
+import java.io.PrintStream;
 
 
 /**
  * @author aaron
- *         <p/>
- *         Class GATKPaperGenotyper
- *         <p/>
- *         A simple Bayesian genotyper, that output a text based call format. Intended to be used only as an
- *         example in the GATK publication.
+ * A simple Bayesian genotyper, that output a text based call format. Intended to be used only as an
+ * example in the GATK publication.
+ *
+ * @help.description A simple, naive Bayesian genotyper that is used as an example locus walker in the GATK paper. THIS IS NOT TO BE USED FOR ANY ANALYSIS
  */
 public class GATKPaperGenotyper extends LocusWalker<SimpleCall, Integer> implements TreeReducible<Integer> {
 
@@ -28,7 +27,7 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, Integer> impleme
 
     // where to write the genotyping data to
     @Argument(fullName = "call_location", shortName = "cl", doc = "File to which calls should be written", required = true)
-    public PrintWriter outputStream;
+    public PrintStream outputStream;
 
     /**
      * our map function, which takes the reads spanning this locus, any associated reference ordered data,
@@ -90,7 +89,7 @@ public class GATKPaperGenotyper extends LocusWalker<SimpleCall, Integer> impleme
      * @return accumulator with result of the map taken into account.
      */
     public Integer reduce(SimpleCall value, Integer sum) {
-        outputStream.println(value.toString());
+        if (value != null) outputStream.println(value.toString());
         return sum + 1;
     }
 
