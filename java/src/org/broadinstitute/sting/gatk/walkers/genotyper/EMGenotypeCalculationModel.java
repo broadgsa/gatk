@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.utils.*;
@@ -19,15 +19,10 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
 
     protected EMGenotypeCalculationModel() {}
 
-    public Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
-
-        // keep track of the context for each sample, overall and separated by strand
-        HashMap<String, AlignmentContextBySample> contexts = splitContextBySample(context);
-        if ( contexts == null )
-            return null;
+    public Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
 
         // run the EM calculation
-        EMOutput overall = runEM(ref, contexts, priors, StratifiedContext.OVERALL);
+        EMOutput overall = runEM(ref, contexts, priors, StratifiedAlignmentContext.StratifiedContextType.OVERALL);
 
         double PofD = Math.pow(10, overall.getPofD());
         double PofNull = Math.pow(10, overall.getPofNull());
@@ -50,7 +45,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         // generate the calls
         List<Genotype> calls = genotypeCallsFromGenotypeLikelihoods(overall, ref, contexts);
 
-        VariationCall locusdata = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation(), bestIsRef ? Variation.VARIANT_TYPE.REFERENCE : Variation.VARIANT_TYPE.SNP);
+        VariationCall locusdata = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, loc, bestIsRef ? Variation.VARIANT_TYPE.REFERENCE : Variation.VARIANT_TYPE.SNP);
         if ( locusdata != null ) {
             if ( locusdata instanceof ConfidenceBacked ) {
                 ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
@@ -67,8 +62,8 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
                 double lod = overall.getPofD() - overall.getPofNull();
                 logger.debug(String.format("LOD=%f", lod));
 
-                EMOutput forward = runEM(ref, contexts, priors, StratifiedContext.FORWARD);
-                EMOutput reverse = runEM(ref, contexts, priors, StratifiedContext.REVERSE);
+                EMOutput forward = runEM(ref, contexts, priors, StratifiedAlignmentContext.StratifiedContextType.FORWARD);
+                EMOutput reverse = runEM(ref, contexts, priors, StratifiedAlignmentContext.StratifiedContextType.REVERSE);
                 double forwardLod = (forward.getPofD() + reverse.getPofNull()) - overall.getPofNull();
                 double reverseLod = (reverse.getPofD() + forward.getPofNull()) - overall.getPofNull();
                 logger.debug("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
@@ -89,7 +84,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         return new Pair<VariationCall, List<Genotype>>(locusdata, calls);
     }
 
-    protected List<Genotype> genotypeCallsFromGenotypeLikelihoods(EMOutput results, char ref, HashMap<String, AlignmentContextBySample> contexts) {
+    protected List<Genotype> genotypeCallsFromGenotypeLikelihoods(EMOutput results, char ref, Map<String, StratifiedAlignmentContext> contexts) {
         HashMap<String, GenotypeLikelihoods> GLs = results.getGenotypeLikelihoods();
 
         ArrayList<Genotype> calls = new ArrayList<Genotype>();
@@ -98,11 +93,11 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         for ( String sample : GLs.keySet() ) {
 
             // create the call
-            AlignmentContext context = contexts.get(sample).getContext(StratifiedContext.OVERALL);
+            AlignmentContext context = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.OVERALL);
             GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, context.getLocation());
 
             if ( call instanceof ReadBacked ) {
-                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedContext.OVERALL).getPileup();
+                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.OVERALL).getPileup();
                 ((ReadBacked)call).setPileup(pileup);
             }
             if ( call instanceof SampleBacked ) {
@@ -129,7 +124,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
         return calls;
     }
 
-    public EMOutput runEM(char ref, HashMap<String, AlignmentContextBySample> contexts, DiploidGenotypePriors priors, StratifiedContext contextType) {
+    public EMOutput runEM(char ref, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors, StratifiedAlignmentContext.StratifiedContextType contextType) {
 
         // initialize the allele frequencies
         initializeAlleleFrequencies(contexts.size(), ref);
@@ -157,7 +152,7 @@ public abstract class EMGenotypeCalculationModel extends GenotypeCalculationMode
     }
 
     protected abstract void initializeAlleleFrequencies(int numSamplesInContext, char ref);
-    protected abstract void initializeGenotypeLikelihoods(char ref, HashMap<String, AlignmentContextBySample> contexts, DiploidGenotypePriors priors, StratifiedContext contextType);
+    protected abstract void initializeGenotypeLikelihoods(char ref, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors, StratifiedAlignmentContext.StratifiedContextType contextType);
     protected abstract void calculateAlleleFrequencyPosteriors();
     protected abstract void applyAlleleFrequencyToGenotypeLikelihoods();
     protected abstract boolean isStable();

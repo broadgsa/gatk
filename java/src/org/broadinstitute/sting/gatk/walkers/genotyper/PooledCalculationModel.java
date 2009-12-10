@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -10,7 +10,7 @@ import java.util.*;
 import net.sf.samtools.SAMRecord;
 
 public class PooledCalculationModel extends JointEstimateGenotypeCalculationModel {
-    private static final String POOL_SAMPLE_NAME = "POOL";
+    protected static final String POOL_SAMPLE_NAME = "POOL";
 
     private static FourBaseProbabilities fourBaseLikelihoods = null;
     private static boolean USE_CACHE = true;
@@ -26,7 +26,7 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
      * @param contexts
      * @param contextType
      */
-    protected void initialize(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
+    protected void initialize(char ref, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
         super.initialize(ref, contexts, contextType);
 
         // todo -- move this code to a static initializer
@@ -40,43 +40,13 @@ public class PooledCalculationModel extends JointEstimateGenotypeCalculationMode
             makeCache(POOL_SIZE);
     }
 
-    protected int getNSamples(HashMap<String, AlignmentContextBySample> contexts) {
+    protected int getNSamples(Map<String, StratifiedAlignmentContext> contexts) {
         return POOL_SIZE;
     }
-    
-    protected HashMap<String, AlignmentContextBySample> createContexts(AlignmentContext context) {
-        // for testing purposes, we may want to throw multi-samples at pooled mode,
-        // so we can't use the standard splitContextBySample() method here
-        AlignmentContextBySample pooledContext = new AlignmentContextBySample(context.getLocation());
 
-        int deletionsInPileup = 0;
-        List<SAMRecord> reads = context.getReads();
-        List<Integer> offsets = context.getOffsets();
+    protected void calculatelog10PofDgivenAFforAllF(char ref, char alt, int nChromosomes, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
 
-        for (int i = 0; i < reads.size(); i++) {
-            // check for deletions
-            int offset = offsets.get(i);
-            if ( offset == -1 )
-                deletionsInPileup++;
-
-            // add the read to this sample's context
-            // note that bad bases are added to the context (for DoC calculations later)
-            pooledContext.add(reads.get(i), offset);
-        }
-
-        // are there too many deletions in the pileup?
-        if ( maxDeletionFractionInPileup != -1.0 &&
-             (double)deletionsInPileup / (double)reads.size() > maxDeletionFractionInPileup )
-            return null;
-
-        HashMap<String, AlignmentContextBySample> contexts = new HashMap<String, AlignmentContextBySample>();
-        contexts.put(POOL_SAMPLE_NAME, pooledContext);
-        return contexts;
-    }
-
-    protected void calculatelog10PofDgivenAFforAllF(char ref, char alt, int nChromosomes, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
-
-        AlignmentContextBySample context = contexts.get(POOL_SAMPLE_NAME);
+        StratifiedAlignmentContext context = contexts.get(POOL_SAMPLE_NAME);
         ReadBackedPileup pileup = context.getContext(contextType).getPileup();
 
         int refIndex = BaseUtils.simpleBaseToBaseIndex(ref);

@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
 import org.broadinstitute.sting.utils.*;
@@ -26,26 +26,21 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
 
 
     // overload this method so we can special-case the single sample
-    public Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker, char ref, AlignmentContext context, DiploidGenotypePriors priors) {
+    public Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker, char ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors) {
 
         // we don't actually want to run EM for single samples
         if ( samples.size() == 1 ) {
 
-            // split the context (so we can get forward/reverse contexts for free)
-            HashMap<String, AlignmentContextBySample> contexts = splitContextBySample(context);
-            if ( contexts == null )
-                return null;
-
             // get the context for the sample
             String sample = samples.iterator().next();
-            AlignmentContextBySample sampleContext = contexts.get(sample);
+            StratifiedAlignmentContext sampleContext = contexts.get(sample);
 
             // if there were no good bases, the context wouldn't exist
             if ( sampleContext == null )
                 return null;
 
             // get the genotype likelihoods
-            Pair<ReadBackedPileup, GenotypeLikelihoods> discoveryGL = getSingleSampleLikelihoods(sampleContext, priors, StratifiedContext.OVERALL);
+            Pair<ReadBackedPileup, GenotypeLikelihoods> discoveryGL = getSingleSampleLikelihoods(sampleContext, priors, StratifiedAlignmentContext.StratifiedContextType.OVERALL);
 
             // find the index of the best genotype
             double[] posteriors = discoveryGL.second.getNormalizedPosteriors();
@@ -71,7 +66,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                 return new Pair<VariationCall, List<Genotype>>(null, null);
 
             // we can now create the genotype call object
-            GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, context.getLocation());
+            GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, loc);
 
             if ( call instanceof ReadBacked ) {
                 ((ReadBacked)call).setPileup(discoveryGL.first);
@@ -86,7 +81,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                 ((PosteriorsBacked)call).setPosteriors(discoveryGL.second.getPosteriors());
             }
 
-            VariationCall locusdata = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, context.getLocation(), bestIsRef ? Variation.VARIANT_TYPE.REFERENCE : Variation.VARIANT_TYPE.SNP);
+            VariationCall locusdata = GenotypeWriterFactory.createSupportedCall(OUTPUT_FORMAT, ref, loc, bestIsRef ? Variation.VARIANT_TYPE.REFERENCE : Variation.VARIANT_TYPE.SNP);
             if ( locusdata != null ) {
                 if ( locusdata instanceof ConfidenceBacked ) {
                     ((ConfidenceBacked)locusdata).setConfidence(phredScaledConfidence);
@@ -104,10 +99,10 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             return new Pair<VariationCall, List<Genotype>>(locusdata, Arrays.asList((Genotype)call));
         }
 
-        return super.calculateGenotype(tracker, ref, context, priors);
+        return super.calculateGenotype(tracker, ref, loc, contexts, priors);
     }
 
-    private Pair<ReadBackedPileup, GenotypeLikelihoods> getSingleSampleLikelihoods(AlignmentContextBySample sampleContext, DiploidGenotypePriors priors, StratifiedContext contextType) {
+    private Pair<ReadBackedPileup, GenotypeLikelihoods> getSingleSampleLikelihoods(StratifiedAlignmentContext sampleContext, DiploidGenotypePriors priors, StratifiedAlignmentContext.StratifiedContextType contextType) {
         // create the pileup
         AlignmentContext myContext = sampleContext.getContext(contextType);
         ReadBackedPileup pileup = myContext.getPileup();
@@ -127,13 +122,13 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
             logger.debug("Initial allele frequency for " + BaseUtils.baseIndexToSimpleBase(i) + ": " + alleleFrequencies[i]);
     }
 
-    protected void initializeGenotypeLikelihoods(char ref, HashMap<String, AlignmentContextBySample> contexts, DiploidGenotypePriors priors, StratifiedContext contextType) {
+    protected void initializeGenotypeLikelihoods(char ref, Map<String, StratifiedAlignmentContext> contexts, DiploidGenotypePriors priors, StratifiedAlignmentContext.StratifiedContextType contextType) {
         GLs.clear();
 
         DiploidGenotypePriors AFPriors = calculateAlleleFreqBasedPriors(alleleFrequencies);
 
         for ( String sample : contexts.keySet() ) {
-            AlignmentContextBySample context = contexts.get(sample);
+            StratifiedAlignmentContext context = contexts.get(sample);
             ReadBackedPileup pileup = context.getContext(contextType).getPileup();
 
             // create the GenotypeLikelihoods object

@@ -1,14 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.rodDbSNP;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.genotype.*;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Pair;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -41,8 +37,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
     protected double CONFIDENCE_THRESHOLD;
     protected double MINIMUM_ALLELE_FREQUENCY;
     protected boolean REPORT_SLOD;
-    protected double maxDeletionFractionInPileup;
-    protected String assumedSingleSample;
     protected PrintWriter verboseWriter;
 
     /**
@@ -72,11 +66,6 @@ public abstract class GenotypeCalculationModel implements Cloneable {
         POOL_SIZE = UAC.POOLSIZE;
         CONFIDENCE_THRESHOLD = UAC.CONFIDENCE_THRESHOLD;
         MINIMUM_ALLELE_FREQUENCY = UAC.MINIMUM_ALLELE_FREQUENCY;
-        maxDeletionFractionInPileup = UAC.MAX_DELETION_FRACTION;
-        // disable if that's what is requested
-        if ( maxDeletionFractionInPileup < 0.0 || maxDeletionFractionInPileup > 1.0 )
-            maxDeletionFractionInPileup = -1.0;
-        assumedSingleSample = UAC.ASSUME_SINGLE_SAMPLE;
         if ( UAC.VERBOSE != null ) {
             try {
                 verboseWriter = new PrintWriter(UAC.VERBOSE);
@@ -97,16 +86,18 @@ public abstract class GenotypeCalculationModel implements Cloneable {
 
     /**
      * Must be overridden by concrete subclasses
-     * @param tracker   rod data
-     * @param ref       reference base
-     * @param context   alignment context
-     * @param priors    priors to use for GL
+     * @param tracker              rod data
+     * @param ref                  reference base
+     * @param loc                  GenomeLoc
+     * @param stratifiedContexts   stratified alignment contexts
+     * @param priors               priors to use for GL
      *
      * @return calls
      */
     public abstract Pair<VariationCall, List<Genotype>> calculateGenotype(RefMetaDataTracker tracker,
                                                                           char ref,
-                                                                          AlignmentContext context,
+                                                                          GenomeLoc loc,
+                                                                          Map<String, StratifiedAlignmentContext> stratifiedContexts,
                                                                           DiploidGenotypePriors priors);
 
     /**
@@ -127,120 +118,5 @@ public abstract class GenotypeCalculationModel implements Cloneable {
      */
     private static boolean isHapmapSite(RefMetaDataTracker tracker) {
         return tracker.getTrackData("hapmap", null) != null;
-    }
-
-    /**
-     * Create the mapping from sample to alignment contexts.
-     * @param context   original alignment context
-     *
-     * @return stratified contexts, or null if there are too many deletions at this position
-     */
-    protected HashMap<String, AlignmentContextBySample> splitContextBySample(AlignmentContext context) {
-
-        HashMap<String, AlignmentContextBySample> contexts = new HashMap<String, AlignmentContextBySample>();
-
-        ReadBackedPileup pileup = context.getPileup();
-        for (PileupElement p : pileup ) {
-
-            // get the read and offset
-            SAMRecord read = p.getRead();
-
-            // find the sample
-            String sample;
-            SAMReadGroupRecord readGroup = read.getReadGroup();
-            if ( readGroup == null ) {
-                if ( assumedSingleSample == null )
-                    throw new StingException("Missing read group for read " + read.getReadName());
-                sample = assumedSingleSample;
-            } else {
-                sample = readGroup.getSample();
-            }
-
-            // create a new context object if this is the first time we're seeing a read for this sample
-            AlignmentContextBySample myContext = contexts.get(sample);
-            if ( myContext == null ) {
-                myContext = new AlignmentContextBySample(context.getLocation());
-                contexts.put(sample, myContext);
-            }
-
-            // add the read to this sample's context
-            // note that bad bases are added to the context (for DoC calculations later)
-            myContext.add(read, p.getOffset());
-        }
-
-
-        // are there too many deletions in the pileup?
-        if ( maxDeletionFractionInPileup != -1.0 &&
-             (double)pileup.getNumberOfDeletions() / (double)pileup.size() > maxDeletionFractionInPileup )
-            return null;
-
-        return contexts;
-    }
-
-    
-    /**
-     * A class to keep track of the alignment context observed for a given sample.
-     * we currently store the overall context and strand-stratified sets,
-     * but any arbitrary stratification could be added.
-    */
-    protected enum StratifiedContext { OVERALL, FORWARD, REVERSE }
-    protected class AlignmentContextBySample {
-
-        private AlignmentContext overall = null;
-        private AlignmentContext forward = null;
-        private AlignmentContext reverse = null;
-        private GenomeLoc loc;
-
-        private ArrayList<SAMRecord> allReads = new ArrayList<SAMRecord>();
-        private ArrayList<SAMRecord> forwardReads = new ArrayList<SAMRecord>();
-        private ArrayList<SAMRecord> reverseReads = new ArrayList<SAMRecord>();
-
-        private ArrayList<Integer> allOffsets = new ArrayList<Integer>();
-        private ArrayList<Integer> forwardOffsets = new ArrayList<Integer>();
-        private ArrayList<Integer> reverseOffsets = new ArrayList<Integer>();
-
-
-        AlignmentContextBySample(GenomeLoc loc) {
-            this.loc = loc;
-        }
-
-        public AlignmentContext getContext(StratifiedContext context) {
-            switch ( context ) {
-                case OVERALL: return getOverallContext();
-                case FORWARD: return getForwardContext();
-                case REVERSE: return getReverseContext();
-            }
-            return null;
-        }
-
-        private AlignmentContext getOverallContext() {
-            if ( overall == null )
-                overall = new AlignmentContext(loc, new ReadBackedPileup(loc, allReads, allOffsets));
-            return overall;
-        }
-
-        private AlignmentContext getForwardContext() {
-            if ( forward == null )
-                forward = new AlignmentContext(loc, new ReadBackedPileup(loc, forwardReads, forwardOffsets));
-            return forward;
-        }
-
-        private AlignmentContext getReverseContext() {
-            if ( reverse == null )
-                reverse = new AlignmentContext(loc, new ReadBackedPileup(loc, reverseReads, reverseOffsets));
-            return reverse;
-        }
-
-        public void add(SAMRecord read, int offset) {
-            if ( read.getReadNegativeStrandFlag() ) {
-                reverseReads.add(read);
-                reverseOffsets.add(offset);
-            } else {
-                forwardReads.add(read);
-                forwardOffsets.add(offset);
-            }
-            allReads.add(read);
-            allOffsets.add(offset);
-         }
     }
 }

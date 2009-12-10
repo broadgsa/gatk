@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.*;
+import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 
 import java.util.*;
 
@@ -16,7 +17,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
     private enum GenotypeType { REF, HET, HOM }
 
-    protected void initialize(char ref, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
+    protected void initialize(char ref, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
         // initialize the GenotypeLikelihoods
         GLs.clear();
         AFMatrixMap.clear();
@@ -32,7 +33,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
         int index = 0;
         for ( String sample : contexts.keySet() ) {
-            AlignmentContextBySample context = contexts.get(sample);
+            StratifiedAlignmentContext context = contexts.get(sample);
             ReadBackedPileup pileup = context.getContext(contextType).getPileup();
 
             // create the GenotypeLikelihoods object
@@ -55,7 +56,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         }
     }
 
-    protected void calculatelog10PofDgivenAFforAllF(char ref, char alt, int numFrequencies, HashMap<String, AlignmentContextBySample> contexts, StratifiedContext contextType) {
+    protected void calculatelog10PofDgivenAFforAllF(char ref, char alt, int numFrequencies, Map<String, StratifiedAlignmentContext> contexts, StratifiedAlignmentContext.StratifiedContextType contextType) {
 
         AlleleFrequencyMatrix matrix = AFMatrixMap.get(alt);
         int baseIndex = BaseUtils.simpleBaseToBaseIndex(alt);
@@ -73,7 +74,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
         }
     }
 
-    protected List<Genotype> makeGenotypeCalls(char ref, char alt, HashMap<String, AlignmentContextBySample> contexts, GenomeLoc loc) {
+    protected List<Genotype> makeGenotypeCalls(char ref, char alt, Map<String, StratifiedAlignmentContext> contexts, GenomeLoc loc) {
         ArrayList<Genotype> calls = new ArrayList<Genotype>();
 
         for ( String sample : GLs.keySet() ) {
@@ -82,7 +83,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             GenotypeCall call = GenotypeWriterFactory.createSupportedGenotypeCall(OUTPUT_FORMAT, ref, loc);
 
             if ( call instanceof ReadBacked ) {
-                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedContext.OVERALL).getPileup();
+                ReadBackedPileup pileup = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.OVERALL).getPileup();
                 ((ReadBacked)call).setPileup(pileup);
             }
             if ( call instanceof SampleBacked ) {

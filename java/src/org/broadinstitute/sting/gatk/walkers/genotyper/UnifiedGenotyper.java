@@ -25,22 +25,23 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import net.sf.samtools.SAMReadGroupRecord;import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotator;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.cmdLine.*;
 import org.broadinstitute.sting.utils.genotype.*;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFGenotypeRecord;
 
+import net.sf.samtools.SAMReadGroupRecord;
+
 import java.io.File;
 import java.util.*;
-import java.lang.reflect.Field;
 
 
 @Reference(window=@Window(start=-20,stop=20))
@@ -178,8 +179,8 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
 
         // all of the arguments from the argument collection
         Map<String,String> commandLineArgs = CommandLineUtils.getApproximateCommandLineArguments(Collections.<Object>singleton(UAC));
-        for(Map.Entry<String,String> commandLineArg: commandLineArgs.entrySet())
-            headerInfo.add(String.format("UG_%s=%s",commandLineArg.getKey(),commandLineArg.getValue()));            
+        for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() )
+            headerInfo.add(String.format("UG_%s=%s", commandLineArg.getKey(), commandLineArg.getValue()));            
 
         return headerInfo;
     }
@@ -204,8 +205,20 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
              (UAC.MAX_READS_IN_PILEUP > 0 && MQ0freeContext.getPileup().size() > UAC.MAX_READS_IN_PILEUP) )
             return null;
 
+        // are there too many deletions in the pileup?
+        ReadBackedPileup pileup = MQ0freeContext.getPileup();
+        if ( isValidDeletionFraction(UAC.MAX_DELETION_FRACTION) &&
+             (double)pileup.getNumberOfDeletions() / (double)pileup.size() > UAC.MAX_DELETION_FRACTION )
+            return null;
+
+        // stratify the AlignmentContext and cut by sample
+        // Note that for testing purposes, we may want to throw multi-samples at pooled mode
+        Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(MQ0freeContext, UAC.ASSUME_SINGLE_SAMPLE, (UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ? PooledCalculationModel.POOL_SAMPLE_NAME : null));
+        if ( stratifiedContexts == null )
+            return null;
+
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
-        Pair<VariationCall, List<Genotype>> call = gcm.calculateGenotype(tracker, ref, MQ0freeContext, priors);
+        Pair<VariationCall, List<Genotype>> call = gcm.calculateGenotype(tracker, ref, fullContext.getLocation(), stratifiedContexts, priors);
 
         // annotate the call, if possible
         if ( call != null && call.first != null && call.first instanceof ArbitraryFieldsBacked ) {
@@ -220,7 +233,11 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
         return call;
     }
 
-    private AlignmentContext filterAlignmentContext(AlignmentContext context) {
+    private static boolean isValidDeletionFraction(double d) {
+        return ( d >= 0.0 && d <= 1.0 );
+    }
+
+    private static AlignmentContext filterAlignmentContext(AlignmentContext context) {
         return new AlignmentContext(context.getLocation(),
                                     context.getPileup().getPileupWithoutMappingQualityZeroReads(),
                                     0);
