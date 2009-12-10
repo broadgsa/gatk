@@ -42,63 +42,49 @@ import java.util.Map;
  */
 public class StratifiedAlignmentContext {
 
-    public enum StratifiedContextType { OVERALL, FORWARD, REVERSE }
+    // Definitions:
+    //   COMPLETE = full alignment context
+    //   MQ0FREE  = full context without MQ0 reads
+    //   FORWARD  = reads on forward strand (*no* MQ0 reads)
+    //   REVERSE  = reads on forward strand (*no* MQ0 reads)
+    //
+    public enum StratifiedContextType { COMPLETE, MQ0FREE, FORWARD, REVERSE }
 
-    private AlignmentContext overall = null;
-    private AlignmentContext forward = null;
-    private AlignmentContext reverse = null;
     private GenomeLoc loc;
-
-    private ArrayList<SAMRecord> allReads = new ArrayList<SAMRecord>();
-    private ArrayList<SAMRecord> forwardReads = new ArrayList<SAMRecord>();
-    private ArrayList<SAMRecord> reverseReads = new ArrayList<SAMRecord>();
-
-    private ArrayList<Integer> allOffsets = new ArrayList<Integer>();
-    private ArrayList<Integer> forwardOffsets = new ArrayList<Integer>();
-    private ArrayList<Integer> reverseOffsets = new ArrayList<Integer>();
+    private AlignmentContext[] contexts = new AlignmentContext[StratifiedContextType.values().length];
+    private ArrayList<SAMRecord>[] reads = new ArrayList[StratifiedContextType.values().length];
+    private ArrayList<Integer>[] offsets = new ArrayList[StratifiedContextType.values().length];
 
 
     public StratifiedAlignmentContext(GenomeLoc loc) {
         this.loc = loc;
+        for ( int i = 0; i < StratifiedContextType.values().length; i++) {
+            reads[i] = new ArrayList<SAMRecord>();
+            offsets[i] = new ArrayList<Integer>();
+        }
     }
 
     public AlignmentContext getContext(StratifiedContextType context) {
-        switch ( context ) {
-            case OVERALL: return getOverallContext();
-            case FORWARD: return getForwardContext();
-            case REVERSE: return getReverseContext();
-        }
-        return null;
-    }
-
-    private AlignmentContext getOverallContext() {
-        if ( overall == null )
-            overall = new AlignmentContext(loc, new ReadBackedPileup(loc, allReads, allOffsets));
-        return overall;
-    }
-
-    private AlignmentContext getForwardContext() {
-        if ( forward == null )
-            forward = new AlignmentContext(loc, new ReadBackedPileup(loc, forwardReads, forwardOffsets));
-        return forward;
-    }
-
-    private AlignmentContext getReverseContext() {
-        if ( reverse == null )
-            reverse = new AlignmentContext(loc, new ReadBackedPileup(loc, reverseReads, reverseOffsets));
-        return reverse;
+        int index = context.ordinal();
+        if ( contexts[index] == null )
+            contexts[index] = new AlignmentContext(loc, new ReadBackedPileup(loc, reads[index], offsets[index]));
+        return contexts[index];
     }
 
     public void add(SAMRecord read, int offset) {
-        if ( read.getReadNegativeStrandFlag() ) {
-            reverseReads.add(read);
-            reverseOffsets.add(offset);
-        } else {
-            forwardReads.add(read);
-            forwardOffsets.add(offset);
+        if ( read.getMappingQuality() > 0 ) {
+            reads[StratifiedContextType.MQ0FREE.ordinal()].add(read);
+            offsets[StratifiedContextType.MQ0FREE.ordinal()].add(offset);
+            if ( read.getReadNegativeStrandFlag() ) {
+                reads[StratifiedContextType.REVERSE.ordinal()].add(read);
+                offsets[StratifiedContextType.REVERSE.ordinal()].add(offset);
+            } else {
+                reads[StratifiedContextType.FORWARD.ordinal()].add(read);
+                offsets[StratifiedContextType.FORWARD.ordinal()].add(offset);
+            }
         }
-        allReads.add(read);
-        allOffsets.add(offset);
+        reads[StratifiedContextType.COMPLETE.ordinal()].add(read);
+        offsets[StratifiedContextType.COMPLETE.ordinal()].add(offset);
      }
 
     /**

@@ -55,8 +55,8 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
 
         initializeAlleleFrequencies(frequencyEstimationPoints);
 
-        initialize(ref, contexts, StratifiedAlignmentContext.StratifiedContextType.OVERALL);
-        calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedAlignmentContext.StratifiedContextType.OVERALL);
+        initialize(ref, contexts, StratifiedAlignmentContext.StratifiedContextType.MQ0FREE);
+        calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedAlignmentContext.StratifiedContextType.MQ0FREE);
         calculatePofFs(ref, frequencyEstimationPoints);
 
         // print out stats if we have a writer
@@ -74,7 +74,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         int[] qualCounts = new int[4];
 
         for ( String sample : contexts.keySet() ) {
-            AlignmentContext context = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.OVERALL);
+            AlignmentContext context = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.MQ0FREE);
 
             // calculate the sum of quality scores for each base
             ReadBackedPileup pileup = context.getPileup();

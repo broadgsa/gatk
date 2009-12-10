@@ -10,8 +10,6 @@ import org.apache.log4j.Logger;
 import java.io.*;
 import java.util.*;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMReadGroupRecord;
 
 /**
  * The model representing how we calculate a genotype given the priors and a pile

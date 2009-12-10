@@ -40,7 +40,7 @@ public class PointEstimateGenotypeCalculationModel extends EMGenotypeCalculation
                 return null;
 
             // get the genotype likelihoods
-            Pair<ReadBackedPileup, GenotypeLikelihoods> discoveryGL = getSingleSampleLikelihoods(sampleContext, priors, StratifiedAlignmentContext.StratifiedContextType.OVERALL);
+            Pair<ReadBackedPileup, GenotypeLikelihoods> discoveryGL = getSingleSampleLikelihoods(sampleContext, priors, StratifiedAlignmentContext.StratifiedContextType.MQ0FREE);
 
             // find the index of the best genotype
             double[] posteriors = discoveryGL.second.getNormalizedPosteriors();

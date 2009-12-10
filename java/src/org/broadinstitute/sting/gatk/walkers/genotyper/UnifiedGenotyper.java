@@ -190,43 +190,40 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
      *
      * @param tracker the meta data tracker
      * @param refContext the reference base
-     * @param fullContext contextual information around the locus
+     * @param context contextual information around the locus
      */
-    public Pair<VariationCall, List<Genotype>> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext fullContext) {
+    public Pair<VariationCall, List<Genotype>> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext context) {
         char ref = Character.toUpperCase(refContext.getBase());
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
 
-        // remove mapping quality zero reads
-        AlignmentContext MQ0freeContext = filterAlignmentContext(fullContext);
-
         // an optimization to speed things up when there is no coverage or when overly covered
-        if ( MQ0freeContext.getPileup().size() == 0 ||
-             (UAC.MAX_READS_IN_PILEUP > 0 && MQ0freeContext.getPileup().size() > UAC.MAX_READS_IN_PILEUP) )
+        if ( context.getPileup().size() == 0 ||
+             (UAC.MAX_READS_IN_PILEUP > 0 && context.getPileup().size() > UAC.MAX_READS_IN_PILEUP) )
             return null;
 
         // are there too many deletions in the pileup?
-        ReadBackedPileup pileup = MQ0freeContext.getPileup();
+        ReadBackedPileup pileup = context.getPileup();
         if ( isValidDeletionFraction(UAC.MAX_DELETION_FRACTION) &&
              (double)pileup.getNumberOfDeletions() / (double)pileup.size() > UAC.MAX_DELETION_FRACTION )
             return null;
 
         // stratify the AlignmentContext and cut by sample
         // Note that for testing purposes, we may want to throw multi-samples at pooled mode
-        Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(MQ0freeContext, UAC.ASSUME_SINGLE_SAMPLE, (UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ? PooledCalculationModel.POOL_SAMPLE_NAME : null));
+        Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(context, UAC.ASSUME_SINGLE_SAMPLE, (UAC.genotypeModel == GenotypeCalculationModel.Model.POOLED ? PooledCalculationModel.POOL_SAMPLE_NAME : null));
         if ( stratifiedContexts == null )
             return null;
 
         DiploidGenotypePriors priors = new DiploidGenotypePriors(ref, UAC.heterozygosity, DiploidGenotypePriors.PROB_OF_TRISTATE_GENOTYPE);
-        Pair<VariationCall, List<Genotype>> call = gcm.calculateGenotype(tracker, ref, fullContext.getLocation(), stratifiedContexts, priors);
+        Pair<VariationCall, List<Genotype>> call = gcm.calculateGenotype(tracker, ref, context.getLocation(), stratifiedContexts, priors);
 
         // annotate the call, if possible
         if ( call != null && call.first != null && call.first instanceof ArbitraryFieldsBacked ) {
             Map<String, String> annotations;
             if ( UAC.ALL_ANNOTATIONS )
-                annotations = VariantAnnotator.getAllAnnotations(refContext, fullContext, call.first);
+                annotations = VariantAnnotator.getAllAnnotations(refContext, context, call.first);
             else
-                annotations = VariantAnnotator.getAnnotations(refContext, fullContext, call.first);
+                annotations = VariantAnnotator.getAnnotations(refContext, context, call.first);
             ((ArbitraryFieldsBacked)call.first).setFields(annotations);
         }
 
