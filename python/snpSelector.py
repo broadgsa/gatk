@@ -621,12 +621,6 @@ def main():
         truthVCF = OPTIONS.truth
         TRUTH_CALLS = readTruth(truthVCF)
 
-    if len(args) > 1:
-        truthVCF = args[1]
-        TRUTH_CALLS = readTruth(truthVCF)
-        #for v in TRUTH_CALLS.itervalues(): print v.getField("NA12878")
-        #sys.exit(1)
-
     if OPTIONS.recalLog <> None:
         RECAL_LOG = open(OPTIONS.recalLog, "w") 
         print >> RECAL_LOG, "# optimized vcf", args[0]
