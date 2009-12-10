@@ -29,6 +29,9 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
     @Argument(fullName="min_mapq", shortName="mmq", required=false, doc="Minimum mapping quality of reads to consider")
     public Integer MIN_MAPQ = 1;
 
+    @Argument(fullName="min_baseq", shortName="mbq", required=false, doc="Minimum base call quality of reads to consider (default: 0)")
+    public Integer MIN_BASEQ = 0;
+
     @Argument(fullName="include_duplicates", shortName="idup", required=false, doc="consider duplicate reads")
     public boolean INCLUDE_DUPLICATE_READS = false;
 
@@ -57,6 +60,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
         public boolean hitTwice = false;
 
         public int positionsOver2x = 0;
+        public int positionsOver8x = 0;
         public int positionsOver10x = 0;
         public int positionsOver20x = 0;
         public int positionsOver30x = 0;
@@ -81,6 +85,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         List<SAMRecord> reads = context.getReads();
+        List<Integer> offsets = context.getOffsets();
 
         int depth = 0;
         for ( int i = 0; i < reads.size(); i++ )
@@ -91,6 +96,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
             if (read.getReadUnmappedFlag()) { continue; }
             if (!INCLUDE_DUPLICATE_READS && read.getDuplicateReadFlag()) { continue; }
             if (read.getMappingQuality() < MIN_MAPQ) { continue; }
+            if (read.getBaseQualities()[offsets.get(i)] < MIN_BASEQ) { continue; }
             depth++;
         }
 
@@ -117,6 +123,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
     public TargetInfo reduce(Integer depth, TargetInfo sum) {
         sum.counts += depth;
         if (depth >= 2) { sum.hitTwice = true; sum.positionsOver2x++;}
+        if (depth >= 8) { sum.positionsOver8x++; }
         if (depth >= 10) { sum.positionsOver10x++; }
         if (depth >= 20) { sum.positionsOver20x++; }
         if (depth >= 30) { sum.positionsOver30x++; }
@@ -132,7 +139,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
 
     @Override
     public void onTraversalDone(List<Pair<GenomeLoc, TargetInfo>> results) {
-        out.println("location\tlength\tgc\tavg_coverage\tnormalized_coverage\thit_twice\tfreestanding\tboosted\tbases_over_2x\tbases_over_10x\tbases_over_20x\tbases_over_30x\tgene_name\tbait_quantity\tadjacent_baits");
+        out.println("location\tlength\tgc\tavg_coverage\tnormalized_coverage\thit_twice\tfreestanding\tboosted\tbases_over_2x\tbases_over_8x\tbases_over_10x\tbases_over_20x\tbases_over_30x\tgene_name\tbait_quantity\tadjacent_baits");
 
         // first zip through and build an overlap detector of all the intervals, so later
         // we can calculate if this interval is free-standing
@@ -211,10 +218,11 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
             if (bait_quant_hits.size() > 1) { out.printf("Warning: multiple bait quantity intervals detected; perhaps bait quantity interval lengths don't match primary interval list specified with -L\n"); }
             int adjacent_baits = adjacent_bait_detector.getOverlaps(targetInterval).size() - 1;
 
-            out.printf("%s:%d-%d\t%d\t%6.4f\t%6.4f\t%6.4f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\t%d\n",
+            out.printf("%s:%d-%d\t%d\t%6.4f\t%6.4f\t%6.4f\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\t%d\n",
                        target.getContig(), target.getStart(), target.getStop(), length, gc,
                         avgCoverage, normCoverage, ((ti.hitTwice)?1:0), ((freestanding)?1:0), ((boosted)?1:0),
                         ti.positionsOver2x,
+                        ti.positionsOver8x,
                         ti.positionsOver10x,
                         ti.positionsOver20x,
                         ti.positionsOver30x,
