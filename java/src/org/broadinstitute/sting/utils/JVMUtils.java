@@ -4,6 +4,10 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Field;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Arrays;
 
 /**
  * Created by IntelliJ IDEA.
@@ -47,6 +51,21 @@ public class JVMUtils {
     public static boolean isConcrete( Class clazz ) {
         return !Modifier.isAbstract(clazz.getModifiers()) &&
                !Modifier.isInterface(clazz.getModifiers());
+    }
+
+    /**
+     * Retrieve all fields available in this object, regardless of where they are declared or
+     * whether they're accessible.
+     * @param type Type to inspect for fields.
+     * @return A list of all available fields.
+     */
+    public static List<Field> getAllFields(Class type) {
+        List<Field> allFields = new ArrayList<Field>();
+        while( type != null ) {
+            allFields.addAll(Arrays.asList(type.getDeclaredFields()));
+            type = type.getSuperclass();
+        }
+        return allFields;
     }
 
     /**

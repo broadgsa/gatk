@@ -177,13 +177,9 @@ public class UnifiedGenotyper extends LocusWalker<Pair<VariationCall, List<Genot
             headerInfo.addAll(VCFGenotypeRecord.getSupportedHeaderStrings());
 
         // all of the arguments from the argument collection
-        Field[] fields = UAC.getClass().getFields();
-        for ( Field field: fields ) {
-            ArgumentTypeDescriptor atd = ArgumentTypeDescriptor.create(field.getType());
-            List<ArgumentDefinition> adList = atd.createArgumentDefinitions(new ArgumentSource(field.getType(), field));
-            for ( ArgumentDefinition ad : adList )
-                headerInfo.add("UG_" + ad.fullName + "=" + JVMUtils.getFieldValue(field, UAC));
-        }
+        Map<String,String> commandLineArgs = CommandLineUtils.getApproximateCommandLineArguments(Collections.<Object>singleton(UAC));
+        for(Map.Entry<String,String> commandLineArg: commandLineArgs.entrySet())
+            headerInfo.add(String.format("UG_%s=%s",commandLineArg.getKey(),commandLineArg.getValue()));            
 
         return headerInfo;
     }

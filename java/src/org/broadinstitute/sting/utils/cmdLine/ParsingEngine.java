@@ -298,7 +298,7 @@ public class ParsingEngine {
      * @param sourceClass class to act as sources for other arguments.
      * @return A list of sources associated with this object and its aggregated objects.
      */
-    private List<ArgumentSource> extractArgumentSources(Class sourceClass) {
+    protected static List<ArgumentSource> extractArgumentSources(Class sourceClass) {
         List<ArgumentSource> argumentSources = new ArrayList<ArgumentSource>();
         while( sourceClass != null ) {
             Field[] fields = sourceClass.getDeclaredFields();
