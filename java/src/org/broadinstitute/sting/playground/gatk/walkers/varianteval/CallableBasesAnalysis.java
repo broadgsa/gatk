@@ -68,15 +68,18 @@ public class CallableBasesAnalysis extends BasicVariantAnalysis implements Genot
         // For every threshold, updated discoverable and callable
         for (int i = 0; i < thresholds.length; i++) {
             double threshold = thresholds[i];
-            Genotype genotype = ((VariantBackedByGenotype)eval).getCalledGenotype();
 
             // update discoverable
-            if ( eval.isSNP() && eval.getNegLog10PError() >= threshold)
+            if ( eval.getNegLog10PError() >= threshold )
                 discoverable_bases[i]++;
-            if ( eval.isReference() && genotype.getNegLog10PError() >= threshold)
-                discoverable_bases[i]++;
-            if ( genotype.getNegLog10PError() >= threshold)
-                genotypable_bases[i]++;
+
+            List<Genotype> genotypes = ((VariantBackedByGenotype)eval).getGenotypes();
+            for ( Genotype g : genotypes ) {
+                if ( g.getNegLog10PError() >= threshold ) {
+                    genotypable_bases[i]++;
+                    break;
+                }
+            }
         }
 
         return null;
