@@ -12,7 +12,7 @@ import java.util.*;
  *         Class VCFGenotypeRecord
  *         <p/>
  */
-public class VCFGenotypeRecord implements Genotype {
+public class VCFGenotypeRecord implements Genotype, SampleBacked {
 
     // key names
     public static final String GENOTYPE_KEY = "GT";
