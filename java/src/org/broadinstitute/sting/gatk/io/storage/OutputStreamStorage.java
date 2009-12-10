@@ -80,7 +80,7 @@ public class OutputStreamStorage extends OutputStream implements Storage<OutputS
      * @{inheritDoc}
      */
     public void flush() throws IOException {
-        outputStream.close();
+        outputStream.flush();
     }
 
     /**
