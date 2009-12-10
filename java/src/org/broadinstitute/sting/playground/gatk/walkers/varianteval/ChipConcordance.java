@@ -90,19 +90,19 @@ public abstract class ChipConcordance extends BasicVariantAnalysis {
 
         // don't procede if we have no truth data and no call
         if ( eval != null || chips.size() > 0 )
-            inc(chips, eval, ref);
-
-        return null;
+            return inc(chips, eval, ref);
+        else
+            return null;
     }
 
-    public void inc(Map<String, Genotype> chips, Variation eval, char ref) {
+    public String inc(Map<String, Genotype> chips, Variation eval, char ref) {
 
         // each implementing class can decide whether the Variation is valid
         assertVariationIsValid(eval);
 
         // This shouldn't happen, but let's check anyways to be safe
         if (BaseUtils.simpleBaseToBaseIndex(ref) == -1)
-            return;
+            return null;
 
         // create a hash of samples to their Genotypes
         List<Genotype> evals = (eval != null ? ((VariantBackedByGenotype)eval).getGenotypes() : new ArrayList<Genotype>());
@@ -124,12 +124,17 @@ public abstract class ChipConcordance extends BasicVariantAnalysis {
         }
 
         // now we can finally update our truth tables with the truth vs. calls data
+        StringBuilder s = new StringBuilder();
         for (int i = 0; i < truthTables.length; i++) {
             if ( chipEvals[i] != null ) {
                 ConcordanceTruthTable table = truthTables[i];
-                table.addEntry(chipEvals[i], eval, ref);
+                String x = table.addEntry(chipEvals[i], eval, ref);
+                if ( x != null ) s.append(x);
             }
         }
+
+        String toReturn = s.toString();
+        return toReturn.equals("") ? null : toReturn;
     }
 
     public List<String> done() {

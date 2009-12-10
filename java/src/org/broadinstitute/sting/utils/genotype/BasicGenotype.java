@@ -168,4 +168,7 @@ public class BasicGenotype implements Genotype {
         return builder.toString();
     }
 
+    public String toString() {
+        return String.format("[%s %s]", getLocation(), getBases());   
+    }
 }

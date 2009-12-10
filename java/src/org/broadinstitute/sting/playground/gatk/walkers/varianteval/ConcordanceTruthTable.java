@@ -17,7 +17,6 @@ import java.util.*;
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
 public class ConcordanceTruthTable {
-
     private static final int TRUE_POSITIVE = 0;
     private static final int TRUE_NEGATIVE = 1;
     private static final int FALSE_POSITIVE = 2;
@@ -83,7 +82,8 @@ public class ConcordanceTruthTable {
         // System.out.println("Table Size: "+table.length+" by "+table[1].length);
     }
 
-    public void addEntry(List<Pair<Genotype, Genotype>> chipEvals, Variation eval, char ref) {
+    public String addEntry(List<Pair<Genotype, Genotype>> chipEvals, Variation eval, char ref) {
+        String violation = null;
 
         // if the table represents a single sample, then we can calculate genotype stats
         if ( singleSampleMode ) {
@@ -114,7 +114,13 @@ public class ConcordanceTruthTable {
 
             int callType = getCallIndex(eval,ref);
 
-            addFrequencyEntry( truthType,callType,poolVariant.getSecond().getFirst() );
+            int numTrueSupportingAlleles = poolVariant.getSecond().getFirst();
+            if ( numTrueSupportingAlleles > 0 && truthType == VARIANT && callType != VARIANT ) {
+                violation = String.format("False negative: %s with %d alt alleles",
+                        chipEvals.get(0).getFirst(), numTrueSupportingAlleles);
+            }
+
+            addFrequencyEntry( truthType,callType, poolVariant.getSecond().getFirst() );
 
         }
 
@@ -122,6 +128,7 @@ public class ConcordanceTruthTable {
         // TODO -- You'll want to use eval and the chips from chipEvals (these are the first members of the pair)
         // TODO -- You'll also need to declare (and initialize) the relevant data arrays for the data
         // TODO -- Indexes like TRUE_POSITIVE are defined above for you
+        return violation;
     }
 
     public Pair< Genotype , Pair<Integer,Integer> > getPooledAlleleFrequency( List<Pair<Genotype,Genotype>> chips, char ref) {
