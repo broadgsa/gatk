@@ -116,7 +116,7 @@ public class VariantEvalWalkerIntegrationTest extends WalkerTest {
     @Test
     public void testEvalGenotypeROD() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("8b85148ec20f31481a30ceddd8645ba1");
+        md5.add("978176e0b369c08c041a66045e995129");
         /**
          * the above MD5 was calculated after running the following command:
          *
