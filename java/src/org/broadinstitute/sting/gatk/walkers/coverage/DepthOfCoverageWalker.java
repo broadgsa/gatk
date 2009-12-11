@@ -36,7 +36,9 @@ import net.sf.samtools.SAMReadGroupRecord;
 import java.util.*;
 
 /**
- * Display the depth of coverage at a given locus.
+ * Computes the depth of coverage at all loci in the specified region of the reference.  Includes features to control
+ * grouping of results by read group or by sample, or filtering loci with either a small number of overlapping alignments
+ * or with alignments of poor mapping quality.  Can optionally include individual base counts at each locus. 
  */
 @By(DataSource.REFERENCE)
 public class DepthOfCoverageWalker extends LocusWalker<DepthOfCoverageWalker.DoCInfo, DepthOfCoverageWalker.DoCInfo> {

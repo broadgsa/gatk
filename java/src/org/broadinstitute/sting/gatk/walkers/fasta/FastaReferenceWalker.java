@@ -10,8 +10,10 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Pair;
 import org.broadinstitute.sting.utils.cmdLine.Argument;
 
-// create a fasta sequence file from a reference and intervals
-
+/**
+ * Renders a new reference in FASTA format consisting of only those loci provided in the input data set.  Has optional
+ * features to control the output format.
+ */
 @WalkerName("FastaReferenceMaker")
 public class FastaReferenceWalker extends RefWalker<Pair<GenomeLoc, String>, GenomeLoc> {
     @Argument(fullName="lineWidth", shortName="lw", doc="Maximum length of sequence to write per line", required=false) public int fastaLineWidth=60;

@@ -8,8 +8,10 @@ import net.sf.samtools.SAMRecord;
 
 import java.io.*;
 
-// create a fastq file from a bam file
-
+/**
+ * Converts reads from the input BAM file into fastq format, stripping away all alignment information.
+ * Optionally re-reverses the negative strand alignments using the --re-reverse command-line argument.
+ */
 @WalkerName("BamToFastq")
 public class BamToFastqWalker extends ReadWalker<Integer, Integer> {
 
