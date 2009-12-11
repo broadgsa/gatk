@@ -61,6 +61,8 @@ import net.sf.samtools.SAMRecord;
  *
  * Note: ReadGroupCovariate and QualityScoreCovariate are required covariates and must be at the start of the list.
  * Note: This walker is designed to be used in conjunction with TableRecalibrationWalker.
+ *
+ * @help.description First pass of the recalibration. Generates recalibration table based on various user-specified covariates (such as reported quality score, cycle, and dinucleotide).
  */
 
 @By( DataSource.READS ) // Only look at covered loci, not every loci of the reference file
