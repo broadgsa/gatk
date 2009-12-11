@@ -42,12 +42,8 @@ class DuplicateCount  {
     }
 
 /**
- * 
- * @author aaron 
- * 
- * Class CountDuplicatesWalker
- *
- * Count the number of duplicates, and the average depth of duplicates at all positions.
+ * Count the number of unique reads, duplicates, and the average depth of unique reads and duplicates at all positions.
+ * @author aaron
  */
 public class CountDuplicatesWalker extends DuplicateWalker<DuplicateCount, DuplicateCount> {
 
