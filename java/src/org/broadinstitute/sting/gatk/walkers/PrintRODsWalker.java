@@ -32,7 +32,8 @@ import org.broadinstitute.sting.utils.genotype.Variation;
 import java.util.Iterator;
 
 /**
- * PrintRODsWalker prints out all of the RODs that it sees (using the ROD's toString method)
+ * Prints out all of the RODs in the input data set. Data is rendered using the toString() method
+ * of the given ROD.
  */
 public class PrintRODsWalker extends RodWalker<Integer, Integer> {
 

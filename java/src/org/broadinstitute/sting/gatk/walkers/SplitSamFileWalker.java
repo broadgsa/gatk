@@ -32,6 +32,10 @@ import org.apache.log4j.Logger;
 
 import java.util.*;
 
+/**
+ * Divides the input data set into separate BAM files, one for each sample in the input data set.  The split
+ * files are named concatenating the sample name to the end of the provided outputRoot command-line argument.
+ */
 @WalkerName("SplitSamFile")
 @Requires({DataSource.READS})
 public class SplitSamFileWalker extends ReadWalker<SAMRecord, Map<String, SAMFileWriter>> {

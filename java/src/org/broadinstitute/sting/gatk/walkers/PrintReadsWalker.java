@@ -31,10 +31,10 @@ import org.broadinstitute.sting.utils.cmdLine.Argument;
  */
 
 /**
- * This walker prints out the reads from the BAM files provided to the traversal engines.
- * It also supports the command line option '-outputBamFile filname', which outputs all the
- * reads to a specified BAM file
- * The walker now also optionally filters reads based on command line options.
+ * Renders, in SAM/BAM format, all reads from the input data set in the order in which they appear
+ * in the input file.  It can dynamically merge the contents of multiple input BAM files, resulting
+ * in merged output sorted in coordinate order.  Can also optionally filter reads based on the --read-filter
+ * command line argument.
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {

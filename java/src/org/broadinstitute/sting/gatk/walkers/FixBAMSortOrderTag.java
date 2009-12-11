@@ -22,10 +22,10 @@ import net.sf.samtools.SAMFileWriterFactory;
 import java.io.File;
 
 /**
- * Created by IntelliJ IDEA.
- * User: aaron
- * Date: Oct 9, 2009
- * Time: 2:21:08 PM
+ * Fixes slightly corrupted BAM files by rewriting the input BAM file, altering
+ * the header by changing the sort order tag (SO) to coordinate sort order.  Will NOT
+ * verify the contents of the file to ensure that the data is actually in coordinate sorted
+ * order. 
  */
 public class FixBAMSortOrderTag extends ReadWalker<SAMRecord, SAMFileWriter> {
 

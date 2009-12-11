@@ -51,6 +51,13 @@ import java.util.ArrayList;
  * Also at the read base column, a symbol '^' marks the start of a read segment which is a contiguous subsequence on the read
  * separated by 'N/S/H' CIGAR operations. The ASCII of the character following '^' minus 33 gives the mapping quality.
  * A symbol '$' marks the end of a read segment.
+ *
+ * @help.description Prints the alignment in the pileup format. In the pileup format, each line represents a genomic position,
+ * consisting of chromosome name, coordinate, reference base, read bases, read qualities and alignment mapping
+ * qualities. Information on match, mismatch, indel, strand, mapping quality and start and end of a read are all
+ * encoded at the read base column. At this column, a dot stands for a match to the reference base on the forward strand,
+ * a comma for a match on the reverse strand, 'ACGTN' for a mismatch on the forward strand and 'acgtn' for a mismatch on the
+ * reverse strand.
  */
 public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeReducible<Integer> {
     @Argument(fullName="alwaysShowSecondBase",doc="If true, prints dummy bases for the second bases in the BAM file where they are missing",required=false)
