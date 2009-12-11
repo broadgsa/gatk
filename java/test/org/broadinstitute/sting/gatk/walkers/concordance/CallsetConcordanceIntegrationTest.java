@@ -22,7 +22,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testSNPConcordance() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example1.vcf -B set2,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example2.vcf -CT SNPGenotypeConcordance:qscore=5", 1,
-                Arrays.asList("c21d59fc3194c39c662d2e74b53dcf9c"));
+                Arrays.asList("8a17c93572a2c498feeaf8ba172d40d6"));
         executeTest("testSNPConcordance", spec);
     }
 
@@ -38,7 +38,7 @@ public class CallsetConcordanceIntegrationTest extends WalkerTest {
     public void testMulti() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B set1,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example1.vcf -B set2,VCF,/humgen/gsa-scr1/GATK_Data/Validation_Data/NA12878.example2.vcf -CT SimpleVenn -CT NWayVenn -CT SNPGenotypeConcordance:qscore=5", 1,
-                Arrays.asList("9bcc83aadac00a160cef20e7126368ee"));
+                Arrays.asList("4e0f768389028dbd09266ee1802ccd3b"));
         executeTest("testMulti", spec);
     }
 }

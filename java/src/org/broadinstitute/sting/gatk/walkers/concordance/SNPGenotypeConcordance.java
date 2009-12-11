@@ -34,12 +34,19 @@ public class SNPGenotypeConcordance implements ConcordanceType {
         Genotype call1 = samplesToRecords.get(sample1);
         Genotype call2 = samplesToRecords.get(sample2);
 
-        // the only reason they would be null is a lack of coverage
         if ( call1 == null || call2 == null ) {
-            if ( call1 != null && call1.isPointGenotype() && (10.0 * call1.getNegLog10PError()) >= Qscore )
-                return "set1ConfidentVariantSet2NoCoverage";
-            else if ( call2 != null && call2.isPointGenotype() && (10.0 * call2.getNegLog10PError()) >= Qscore )
-                return "set1NoCoverageSet2ConfidentVariant";
+            if ( call1 != null && call1.isPointGenotype() ) {
+                if ( 10.0 * call1.getNegLog10PError() >= Qscore )
+                    return "set1ConfidentSet2NoCall";
+                else
+                    return "set2NoCall";
+            }
+            else if ( call2 != null && call2.isPointGenotype() ) {
+                if (10.0 * call2.getNegLog10PError() >= Qscore )
+                    return "set1NoCallSet2Confident";
+                else
+                    return "set1NoCall";
+            }
             return null;
         }
 
@@ -51,30 +58,32 @@ public class SNPGenotypeConcordance implements ConcordanceType {
         // are they both variant SNPs?
         if ( call1.isPointGenotype() && call2.isPointGenotype() ) {
 
-            // are they both confident calls?
-            if ( confidence1 >= Qscore && confidence2 >= Qscore ) {
-                // same genotype
-                if ( genotype1.equals(genotype2) )
-                    return "sameConfidentVariant";
+            // are they confident calls?
+            boolean conf1 = confidence1 >= Qscore;
+            boolean conf2 = confidence2 >= Qscore;
+            boolean confCombo = !conf1 && !conf2 && confidence1 + confidence2 >= Qscore;
 
-                // same allele, different genotype
-                else if ( sameVariantAllele(genotype1, genotype2, ref.getBase()) )
-                    return "sameVariantAlleleDifferentGenotype";
+            StringBuffer result = new StringBuffer("");
+            if ( conf1 && conf2 )
+                result.append("bothConfident");
+            else if ( confCombo )
+                result.append("confidentWhenCombined");
+            else if ( conf1 ||conf2 )
+                result.append("onlyOneConfident");
+            else
+                result.append("neitherConfident");
 
-                // different variant allele
-                else
-                    return "differentVariantAllele";
-            }
+            result.append("_");
 
-            // confident only when combined
-            else if ( confidence1 < Qscore && confidence2 < Qscore && confidence1 + confidence2 >= Qscore ) {
-                return "confidentVariantWhenCombined";
-            }
+            // are they the same genotype
+            if ( genotype1.equals(genotype2) )
+                result.append("sameGenotype");
+            else if ( sameVariantAllele(genotype1, genotype2, ref.getBase()) )
+                result.append("differentGenotypeSameVariantAllele");
+            else
+                result.append("differentVariantAllele");
 
-            // only one is confident variant
-            else if ( (confidence1 < Qscore && confidence2 >= Qscore) || (confidence1 >= Qscore && confidence2 < Qscore) ) {
-                return "bothVariantOnlyOneIsConfident";
-            }
+            return result.toString();
         }
 
         // one is variant and the other is ref
