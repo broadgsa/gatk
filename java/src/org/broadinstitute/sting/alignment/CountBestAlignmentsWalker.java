@@ -10,7 +10,8 @@ import net.sf.samtools.SAMRecord;
 import java.util.*;
 
 /**
- * Counts the number of best alignments
+ * Counts the number of best alignments as presented by BWA and outputs a histogram of number of placements vs. the
+ * frequency of that number of placements.
  *
  * @author mhanna
  * @version 0.1

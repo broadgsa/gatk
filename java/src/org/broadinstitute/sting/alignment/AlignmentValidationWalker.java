@@ -12,7 +12,9 @@ import net.sf.samtools.SAMRecord;
 import java.util.Iterator;
 
 /**
- * Validates alignments against existing reads.
+ * Validates consistency of the aligner interface by taking reads already aligned by BWA in a BAM file, stripping them
+ * of their alignment data, realigning them, and making sure one of the best resulting realignments matches the original
+ * alignment from the input file.
  *
  * @author mhanna
  * @version 0.1

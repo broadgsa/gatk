@@ -12,7 +12,8 @@ import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import java.io.File;
 
 /**
- * Align reads to the reference specified by BWTPrefix.
+ * Aligns reads to a given reference using Heng Li's BWA aligner, presenting the resulting alignments in SAM or BAM format.
+ * Mimics the steps 'bwa aln' followed by 'bwa samse' using the BWA/C implementation.
  *
  * @author mhanna
  * @version 0.1
