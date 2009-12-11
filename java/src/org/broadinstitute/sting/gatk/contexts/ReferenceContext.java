@@ -95,7 +95,7 @@ public class ReferenceContext {
      * Get the base at the given locus.
      * @return The base at the given locus from the reference.
      */
-    public int getSimpleBase() {
+    public int getBaseIndex() {
         return BaseUtils.simpleBaseToBaseIndex(getBase());
     }
 
